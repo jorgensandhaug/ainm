@@ -64,6 +64,7 @@ Authentication:
 |---|---|
 | Create customer | `./task-playbooks/create-customer.md` |
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
+| Create department | `./task-playbooks/create-department.md` |
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create project | `./task-playbooks/create-project.md` |
 
@@ -145,6 +146,7 @@ Authentication:
 - `422` usually means validation failure or missing required fields.
 
 ## Tripletex Gotchas
+- Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
