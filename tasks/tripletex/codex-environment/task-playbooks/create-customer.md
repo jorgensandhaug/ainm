@@ -29,6 +29,7 @@ This was verified in sandbox:
 - the write response already proved the final scored fields
 - Tripletex filled defaults like `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - the response came back as `{"value": {...}}` with the created customer id and requested fields
+- when the prompt gave a single street address, `postalAddress` alone was sufficient; no `physicalAddress` was needed
 
 ## Minimal Flow
 
@@ -52,6 +53,24 @@ This was verified in sandbox:
 - Verify the requested scored fields directly from `value`
 - Reuse the returned `id` if any follow-up step unexpectedly depends on it
 
+## Address Mapping For Standard Customer Creates
+
+- If the prompt gives one ordinary postal/street address, map it to `postalAddress`
+- Use:
+
+```json
+{
+  "postalAddress": {
+    "addressLine1": "Sjøgata 51",
+    "postalCode": "9008",
+    "city": "Tromsø"
+  }
+}
+```
+
+- Do not guess `physicalAddress` as well unless the prompt explicitly distinguishes a separate visiting/physical address
+- The `201` response can already prove the stored address fields, so no follow-up `GET` is needed
+
 ## When Not To Pre-Read
 
 - Do not `GET /customer` first just to check whether the customer already exists
@@ -68,5 +87,6 @@ This was verified in sandbox:
 ## Extra Fields Only When The Prompt Implies Them
 
 - If EHF or another invoice send mode is requested or implied, include the required delivery/address data
+- If the prompt gives one normal customer address and does not distinguish address types, send only `postalAddress`
 - If the organization is foreign, set country/address fields consistently
 - Otherwise, avoid speculative address or invoice configuration fields

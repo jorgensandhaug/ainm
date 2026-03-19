@@ -146,6 +146,7 @@ Authentication:
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
+- In standard customer creation tasks with one ordinary address, prefer `postalAddress` (`addressLine1`, `postalCode`, `city`) and do not also invent `physicalAddress` unless the prompt explicitly asks for a separate physical/visiting address.
 - If using a foreign organization number, country/address fields may need to be set consistently.
 - Employee creation may require a department if department functionality is enabled in the account.
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may omit writable fields like `userType` or nested `employments`.
