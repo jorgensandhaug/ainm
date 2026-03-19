@@ -69,6 +69,7 @@ Authentication:
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
 
 ## Common Endpoints
 - `/employee` — `GET`, `POST`, `PUT` — employees
@@ -153,6 +154,7 @@ Authentication:
 - Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
+- In invoice payment tasks, the prompt may identify the invoice by an excluding-VAT line amount, but the payment write still needs the current outstanding invoice balance. Locate by the prompt identifiers, then pay `amountOutstandingTotal` (or `amountOutstanding` if total is absent), not the prompt's lookup amount.
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
 - In standard customer creation tasks with one ordinary address, prefer `postalAddress` (`addressLine1`, `postalCode`, `city`) and do not also invent `physicalAddress` unless the prompt explicitly asks for a separate physical/visiting address.
 - In standard customer creation tasks with one generic prompt email, map it to `email`; do not also populate `invoiceEmail` unless the prompt explicitly asks for an invoice/billing email.
