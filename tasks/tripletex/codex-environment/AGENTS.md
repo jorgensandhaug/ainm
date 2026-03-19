@@ -63,6 +63,7 @@ Authentication:
 |---|---|
 | Create customer | `./task-playbooks/create-customer.md` |
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
+| Create employee | `./task-playbooks/create-employee.md` |
 
 ## Common Endpoints
 - `/employee` — `GET`, `POST`, `PUT` — employees
@@ -147,6 +148,7 @@ Authentication:
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
 - If using a foreign organization number, country/address fields may need to be set consistently.
 - Employee creation may require a department if department functionality is enabled in the account.
+- Employee creation may also require explicit `userType`, and the `POST /employee` success response may omit writable fields like `userType` or nested `employments`.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.
