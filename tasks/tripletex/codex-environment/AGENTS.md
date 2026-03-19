@@ -66,6 +66,7 @@ Authentication:
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
 | Create department | `./task-playbooks/create-department.md` |
 | Create employee | `./task-playbooks/create-employee.md` |
+| Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
 
 ## Common Endpoints
@@ -152,6 +153,8 @@ Authentication:
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
 - In standard customer creation tasks with one ordinary address, prefer `postalAddress` (`addressLine1`, `postalCode`, `city`) and do not also invent `physicalAddress` unless the prompt explicitly asks for a separate physical/visiting address.
 - If using a foreign organization number, country/address fields may need to be set consistently.
+- Product creation with VAT should resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, not from the unfiltered VAT catalog or `typeOfVat=LEDGER`; broader lists can expose codes that still fail `POST /product` with `Internt felt (vatTypeId): Ugyldig mva-kode.`
+- For product VAT selection, do not filter away base VAT codes by requiring `parentType` to be missing; standard code `3` (`25% Utgående avgift, høy sats`) still has `parentType.id=0`.
 - Employee creation may require a department if department functionality is enabled in the account.
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may omit writable fields like `userType` or nested `employments`.
 - Project creation may require `startDate` even though the `Project` schema does not clearly mark it as required. Project manager assignment is also validated: a plain employee match may still be ineligible, so prefer resolving managers with `assignableProjectManagers=true`.
