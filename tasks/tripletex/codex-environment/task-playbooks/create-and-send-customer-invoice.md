@@ -33,6 +33,21 @@ This was verified in sandbox:
 - invoice creation failed before this update
 - invoice creation succeeded after this update
 
+## Key Finding: Resolve VAT Type Dynamically
+
+Do not hardcode invoice line `vatType.id = 3`.
+
+Use:
+
+`GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+
+and choose from the filtered result for the actual invoice date.
+
+This was re-verified in sandbox on 2026-03-19:
+- `POST /invoice` failed with `Ugyldig mva-kode.` when line VAT was hardcoded to `3`
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-19&fields=*` returned only VAT code `6`
+- invoice creation succeeded after using the dynamically resolved VAT type from that filtered result
+
 ## Important Constraints
 
 - Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
@@ -40,6 +55,8 @@ This was verified in sandbox:
 - Do not create a second invoice bank account with the same `bankAccountNumber`
 - Duplicate bank account numbers trigger validation errors
 - Prefer updating existing `1920` over creating a new invoice account
+- Do not hardcode invoice/order-line VAT code `3`
+- The authoritative candidate set for invoice lines is the filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` result on the invoice date
 
 ## Minimal Flow
 
@@ -50,11 +67,14 @@ This was verified in sandbox:
 3. Ensure company invoice bank account is registered
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - update existing invoice account with `PUT /ledger/account/{id}`
-4. Create invoice with `sendToCustomer=false`
+4. Resolve a valid outgoing VAT type for the invoice date
+   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+   - use a VAT type that actually exists in that filtered response
+5. Create invoice with `sendToCustomer=false`
    - include required dates
    - include `orders`
    - include `orderLines` inside the order, not directly on invoice input
-5. Send invoice explicitly with:
+6. Send invoice explicitly with:
    - `PUT /invoice/{id}/:send?sendType=...`
 
 ## Invoice Payload Notes
@@ -81,13 +101,15 @@ Example shape:
           "description": "Analyserapport",
           "count": 1,
           "unitPriceExcludingVatCurrency": 7850,
-          "vatType": { "id": 3 }
+          "vatType": { "id": 6 }
         }
       ]
     }
   ]
 }
 ```
+
+In real tasks, replace `6` with the VAT type resolved from the filtered `GET /ledger/vatType` response for the invoice date. Do not assume the same code is valid across accounts.
 
 ## If You Still Need to Probe
 
