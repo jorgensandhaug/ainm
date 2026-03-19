@@ -30,6 +30,7 @@ This was verified in sandbox:
 - Tripletex filled defaults like `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - the response came back as `{"value": {...}}` with the created customer id and requested fields
 - when the prompt gave a single street address, `postalAddress` alone was sufficient; no `physicalAddress` was needed
+- re-verified on 2026-03-19 with only `name`, `email`, and `organizationNumber`; the `201` response again contained the created customer plus default invoice delivery fields
 
 ## Minimal Flow
 
@@ -38,6 +39,23 @@ This was verified in sandbox:
 3. `POST /customer`
 4. Verify the requested fields from the `201` response body
 5. Stop
+
+## Exact-Match Fast Path
+
+- If the prompt only asks to create one customer and gives `name`, `email`, and `organizationNumber`, send exactly those fields
+- Confirm only the exact `POST /customer` operation and its referenced request/response schemas
+- Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
+- The winning shape is typically:
+
+```json
+{
+  "name": "Same Agent Prompt Test AS",
+  "email": "post@same-agent-prompt.no",
+  "organizationNumber": "999888777"
+}
+```
+
+- Verify directly from `response.value` and stop
 
 ## OpenAPI Navigation Trap
 

@@ -58,6 +58,7 @@ Authentication:
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
 - If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks
+- If the prompt is an exact playbook match, keep pre-write exploration narrow: read the playbook, confirm the exact endpoint operation and referenced schema in `./openapi.json`, then execute
 
 | Task pattern | Playbook |
 |---|---|
@@ -167,6 +168,7 @@ Authentication:
 - Zero `4xx` is ideal.
 - Plan before calling.
 - Do not browse the API randomly.
+- Once a playbook already gives the likely winning path, do not spend time on unrelated repo tooling or broad schema enumeration before the write.
 - Ideal is zero reads when not needed.
 - If a read is needed, prefer one decisive `GET ?fields=*` over multiple narrower `GET`s on the same object.
 - Do not do a second `GET` for fields you could have received in the first one.
