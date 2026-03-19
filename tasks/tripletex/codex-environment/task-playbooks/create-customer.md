@@ -28,6 +28,7 @@ This was verified in sandbox:
 - no pre-read was needed
 - the write response already proved the final scored fields
 - Tripletex filled defaults like `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- the response came back as `{"value": {...}}` with the created customer id and requested fields
 
 ## Minimal Flow
 
@@ -36,6 +37,20 @@ This was verified in sandbox:
 3. `POST /customer`
 4. Verify the requested fields from the `201` response body
 5. Stop
+
+## OpenAPI Navigation Trap
+
+- `openapi.json` contains multiple customer-related schemas
+- Do not get misled by later read-only customer/account representations
+- For create-customer tasks, use the schema referenced by `POST /customer`: `#/components/schemas/Customer`
+- The minimal create payload still works even though other customer-shaped schemas expose many extra or read-only fields
+
+## Verification Shape
+
+- Expect `201 Created`
+- Expect a wrapper of shape `{"value": {...}}`
+- Verify the requested scored fields directly from `value`
+- Reuse the returned `id` if any follow-up step unexpectedly depends on it
 
 ## When Not To Pre-Read
 

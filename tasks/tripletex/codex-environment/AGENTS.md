@@ -52,6 +52,7 @@ Authentication:
 - These are common endpoints, not the only possible endpoints.
 - Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling.
 - Use `./openapi.json` as the full API reference.
+- When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
 - Do not guess endpoint shapes, field names, request payloads, or delete/update paths.
 
 ## Task Playbooks
