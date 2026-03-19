@@ -48,6 +48,7 @@ This was verified in sandbox:
 - Confirm only the exact `POST /customer` operation and its referenced request/response schemas
 - Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
+- Do not transliterate prompt text; preserve Unicode in customer and city names exactly as given
 - The winning shape is typically:
 
 ```json
@@ -97,6 +98,7 @@ This was verified in sandbox:
 
 - If the prompt gives one generic email address such as `E-mail`, `Email`, or `E‑post`, map it to `email`
 - Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
+- A single prompt email does not, by itself, justify inventing a separate invoice-delivery email field
 - The standard create flow still defaults invoice delivery fields from the account/customer setup, so adding `invoiceEmail` speculatively is unnecessary
 
 ## When Not To Pre-Read

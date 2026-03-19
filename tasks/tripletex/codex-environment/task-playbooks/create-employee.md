@@ -16,6 +16,12 @@ Sandbox verification showed:
 - the employee create response may still omit `userType` and nested employment fields even when creation succeeded
 - `GET /employee/employment?employeeId=...&fields=*` confirmed the requested start date after create
 
+Persistent-sandbox re-verification on 2026-03-19 showed:
+- `POST /employee` succeeded with `userType: "NO_ACCESS"`, `department: { "id": ... }`, and nested `employments`
+- the `201` response echoed `userType: null` even though `NO_ACCESS` was sent
+- the `201` response included `employments: [{ "id": ..., "url": ... }]` but still did not echo `startDate`
+- `GET /employee/employment?employeeId=...&fields=*` returned the authoritative `startDate`
+
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `Feltet må fylles ut.`
@@ -40,7 +46,7 @@ Observed validation messages:
 
 ## Recommended Payload Shape
 
-Use ISO dates.
+Use ISO dates. Normalize any localized prompt date first.
 
 ```json
 {
@@ -58,6 +64,24 @@ Use ISO dates.
 }
 ```
 
+## Exact-Match Fast Path
+
+- If the prompt only asks to create one employee and gives name, birth date, email, and start date, use this flow:
+  1. `GET /department?isInactive=false&count=1&fields=*`
+  2. if none exists, `POST /department` with a minimal name-only payload
+  3. `POST /employee` with:
+     - `firstName`
+     - `lastName`
+     - `dateOfBirth` in ISO format
+     - `email`
+     - `userType: "NO_ACCESS"`
+     - `department: { "id": ... }`
+     - `employments: [{ "startDate": "YYYY-MM-DD" }]`
+  4. Inspect `response.value`
+  5. If `response.value.employments` does not already include the actual `startDate`, do one decisive `GET /employee/employment?employeeId=<newId>&fields=*`
+- Do not add a pre-read on `/employee` for a pure create task
+- Do not add any extra employee or department reads beyond the single department lookup and the conditional employment verification read
+
 ## Why `NO_ACCESS`
 
 - Use `NO_ACCESS` as the default when the prompt only asks to create the employee and does not ask for login access
@@ -66,7 +90,8 @@ Use ISO dates.
 ## Verification Trap
 
 - Do not assume `POST /employee` echoes all writable fields back
-- A successful create response may show `email` and `dateOfBirth` but still omit `userType` and nested `employments`
+- A successful create response may show `email` and `dateOfBirth` but still echo `userType: null`
+- A successful create response may include `employments`, but only as references such as `{ "id": ..., "url": ... }` without `startDate`
 - If start date is scored, verify it via `/employee/employment` using the returned employee id
 
 ## Avoidable Mistakes
@@ -75,3 +100,5 @@ Use ISO dates.
 - Do not assume department is optional just because the schema has no `required` list
 - Do not jump straight to `POST /employee/employment` before first trying nested `employments` on create
 - Do not spend extra reads on employee lookup for a pure create task
+- Do not treat `response.value.userType === null` as proof that the create failed or that `NO_ACCESS` was rejected
+- Do not skip the employment verification read just because `response.value.employments` is non-empty
