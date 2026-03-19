@@ -31,6 +31,8 @@ This was verified in sandbox:
 - the response came back as `{"value": {...}}` with the created customer id and requested fields
 - when the prompt gave a single street address, `postalAddress` alone was sufficient; no `physicalAddress` was needed
 - re-verified on 2026-03-19 with only `name`, `email`, and `organizationNumber`; the `201` response again contained the created customer plus default invoice delivery fields
+- re-verified on 2026-03-19 in persistent sandbox with `name`, `organizationNumber`, `email`, and `postalAddress`; the `201` response preserved non-ASCII text such as `Grünfeld` and `Ålesund` and still defaulted `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT` without needing `invoiceEmail`
+- re-verified on 2026-03-19 with `name`, `email`, `organizationNumber`, and `postalAddress`; the same single `POST /customer` stored the exact Unicode city string `Tromsø` and returned it directly in `response.value.postalAddress.city`
 
 ## Minimal Flow
 
@@ -45,6 +47,7 @@ This was verified in sandbox:
 - If the prompt only asks to create one customer and gives `name`, `email`, and `organizationNumber`, send exactly those fields
 - Confirm only the exact `POST /customer` operation and its referenced request/response schemas
 - Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
+- If the prompt also gives one ordinary mailing address, add only `postalAddress`
 - The winning shape is typically:
 
 ```json
@@ -74,6 +77,7 @@ This was verified in sandbox:
 ## Address Mapping For Standard Customer Creates
 
 - If the prompt gives one ordinary postal/street address, map it to `postalAddress`
+- Preserve address strings exactly as given in the prompt, including non-ASCII characters like `ø`
 - Use:
 
 ```json
@@ -88,6 +92,12 @@ This was verified in sandbox:
 
 - Do not guess `physicalAddress` as well unless the prompt explicitly distinguishes a separate visiting/physical address
 - The `201` response can already prove the stored address fields, so no follow-up `GET` is needed
+
+## Email Mapping For Standard Customer Creates
+
+- If the prompt gives one generic email address such as `E-mail`, `Email`, or `E‑post`, map it to `email`
+- Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
+- The standard create flow still defaults invoice delivery fields from the account/customer setup, so adding `invoiceEmail` speculatively is unnecessary
 
 ## When Not To Pre-Read
 

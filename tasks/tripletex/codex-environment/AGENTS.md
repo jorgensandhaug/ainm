@@ -21,6 +21,7 @@
 - Do not ask questions.
 - Do not talk to the user.
 - Do only the requested task. No extra work.
+- Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
 - Assume a hard `300s` budget. Plan before calling APIs.
 - Only interact with the Tripletex API by writing TypeScript and running it with `bun`.
 - The prompt provides a run-specific scripts directory.
@@ -117,6 +118,7 @@ Authentication:
 - Use search parameters to narrow candidates before reading more.
 - Before every write, confirm required fields and allowed payload shape in `./openapi.json`.
 - When referencing an existing related object, prefer `{ "id": ... }` if the schema supports it. Do not send large nested objects unless required.
+- Preserve prompt-provided string fields exactly as written when they are part of the scored state. Do not transliterate or ASCII-normalize names, addresses, cities, emails, or other user-provided text.
 
 ## Execution Pattern
 1. Parse the task completely.
