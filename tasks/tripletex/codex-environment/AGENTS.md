@@ -181,6 +181,7 @@ Authentication:
 - Plan before calling.
 - Do not browse the API randomly.
 - Once a playbook already gives the likely winning path, do not spend time on unrelated repo tooling or broad schema enumeration before the write.
+- If an exact-match create playbook applies, confirm only the endpoint operation plus the referenced write schema, then execute.
 - Ideal is zero reads when not needed.
 - If a read is needed, prefer one decisive `GET ?fields=*` over multiple narrower `GET`s on the same object.
 - Do not do a second `GET` for fields you could have received in the first one.

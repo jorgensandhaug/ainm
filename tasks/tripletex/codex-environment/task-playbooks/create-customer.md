@@ -48,6 +48,7 @@ This was verified in sandbox:
 - Confirm only the exact `POST /customer` operation and its referenced request/response schemas
 - Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
+- Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
 - Do not transliterate prompt text; preserve Unicode in customer and city names exactly as given
 - The winning shape is typically:
 
