@@ -108,6 +108,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
+  - `GET /product?productNumber=...&fields=*` can return the matched identifier under `number` rather than `productNumber`; normalize both keys before deciding a direct numeric resolver failed
   - when the prompt clearly provides exact existing product numbers, the lower-call first resolver is one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
   - for invoice/order tasks where the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, the lower-call product resolver is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
   - only switch from the direct `productNumber` query to the broader catalog read when those numeric refs are unclear semantics or the direct numeric query returns an incomplete/ambiguous subset
@@ -135,6 +136,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard search note:
   - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
   - when that expanded project search already leaves one exact `project.name` plus nested `customer.organizationNumber` and/or `customer.name` match, do not add a separate `GET /customer`
+  - for fixed-price partial-billing update tasks, that same expanded project read can also supply the existing `startDate`; reuse it on `PUT /project/{id}` unless the prompt explicitly asks to change the start date
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
   - in that exact create-project shape, do not add `GET /customer/{id}` or `GET /employee/{id}` after the filtered resolver reads; the search responses plus the project write response already prove the scored linkage
@@ -213,10 +215,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - customer id
   - often product ids
 - Standard fast-path note:
-  - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning path is usually customer read, product read, order write, invoice write, payment-type read, payment write
+  - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning uncached path is usually customer read, product read, payment-type read, order write, then one combined invoice-and-payment write
+  - if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, skip the extra payment-type read and do the same combined invoice-and-payment write in 4 downstream calls
   - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
   - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
   - if earlier steps in the same run already proved a valid company invoice bank account, skip that extra `/ledger/account` read
+  - for fixed-price milestone tasks, `unitPriceExcludingVatCurrency` can be a real decimal such as `87662.5`; do not round percentage-derived milestone amounts to whole NOK just to make the payload look cleaner
 
 ## Invoice
 - `/invoice`
@@ -241,6 +245,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - line or order data
   - sometimes outgoing `vatType`
   - sometimes company bank-account repair through `/ledger/account/{id}`
+  - for invoice-on-order prepayment, one valid incoming `paymentTypeId`
 - Standard explicit-VAT note:
   - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
   - when that same prompt also gives exact product names but the parenthetical numeric refs are not trustworthy search keys, the winning product read is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
@@ -258,6 +263,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create-and-send note:
   - `POST /invoice` defaults `sendToCustomer=true`
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
+- Standard payment note:
+  - `PUT /order/{id}/:invoice` supports combined prepayment through query params `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
+  - for the exact order-to-invoice-to-full-payment task shape, the lower-call path is to resolve one incoming `paymentTypeId` before invoicing, then pass a minimal positive `paidAmount` seed and the same id as `paymentTypeIdRestAmount`
+  - in persistent sandbox on 2026-03-20, `paidAmount=0` was rejected as effectively missing, while `paidAmount=0.01` with the same `paymentTypeIdRestAmount` settled the full NOK invoice in the same invoice write
+  - when that combined invoice write already returns `amountCurrencyOutstanding=0` or `amountOutstanding=0`, do not spend a separate `PUT /invoice/{id}/:payment`
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
   - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
   - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`

@@ -20,16 +20,17 @@
 
 ## Standard Flow
 1. `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
-2. `GET /customer?organizationNumber=...&count=10&fields=*`
-3. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
-4. `GET /project?name=...&customerId=...&count=50&fields=*`
-5. `POST /project` if missing, otherwise `PUT /project/{id}`
-6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
-7. `POST /order` with one project-linked milestone line
-8. if this is likely the first outgoing invoice in a fresh-account run, `GET /ledger/account?isBankAccount=true&fields=*`
-9. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
-10. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-11. stop
+2. first try one decisive project-first resolver: `GET /project?name=...&count=50&fields=*,customer(*)`
+3. if that read leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the existing `startDate`, and skip a separate `GET /customer`
+4. otherwise, `GET /customer?organizationNumber=...&count=10&fields=*`
+5. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
+6. `POST /project` if missing, otherwise `PUT /project/{id}`
+7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+8. `POST /order` with one project-linked milestone line
+9. if this is likely the first outgoing invoice in a fresh-account run, `GET /ledger/account?isBankAccount=true&fields=*`
+10. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
+11. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+12. stop
 
 ## Payload Rules
 - on `POST /project` or `PUT /project/{id}`, include:
@@ -40,6 +41,8 @@
   - `isFixedPrice: true`
   - `fixedprice: <full-fixed-price>`
   - `invoiceOnAccountVatHigh: false`
+- on `PUT /project/{id}` for an existing project where the prompt does not ask to change the start date:
+  - reuse the existing `startDate` returned by the project search instead of overwriting it with the run date
 - on `POST /order`, include:
   - `customer: { "id": ... }`
   - `project: { "id": ... }`
@@ -50,6 +53,8 @@
     - `count: 1`
     - `unitPriceExcludingVatCurrency: <partial-amount>`
     - `vatType: { "id": ... }`
+- for percentage-based milestone prompts:
+  - compute the exact 2-decimal partial amount and send that amount directly; do not round milestone amounts to whole NOK
 - compare returned `employee.email` exactly because the endpoint filter is containing
 - compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present
 - if the prompt implies a normal taxable service and the filtered outgoing VAT result contains `25%`, use that `25%` row
@@ -91,6 +96,11 @@
   - `PUT /project/{id}` updates `fixedprice` successfully
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` may expose only VAT code `6` (`0%`) in that account
   - `PUT /order/{id}/:invoice` can already prove totals and outstanding amount while still leaving nested project linkage sparse/null in the write response
+- persistent-sandbox optimization re-verification on 2026-03-20 additionally proved:
+  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*)` can already return enough nested customer data to skip a separate `GET /customer` when the project already exists and the nested `customer.organizationNumber` matches
+  - reusing that project read's `startDate` on `PUT /project/{id}` updated `fixedprice` successfully without changing the project's start date
+  - `POST /order` plus `PUT /order/{id}/:invoice` preserved a percentage-derived decimal partial amount of `87662.5` exactly; do not round `25%` milestone amounts such as `350650 * 0.25`
+  - omitting `orderLines[].vatType` on the same sandbox account also succeeded only because the filtered outgoing VAT list exposed a single `0%` row; do not generalize that as the trusted scored-run shortcut
 - exact production reflection on 2026-03-20 proved two score-relevant optimizations for this task shape:
   - the later `GET /invoice/{id}` was not part of the minimum scored path
   - on a fresh account with missing company invoice bank account number, proactive `/ledger/account` preflight before the first invoice write would have saved one Tripletex call and avoided one `422`
