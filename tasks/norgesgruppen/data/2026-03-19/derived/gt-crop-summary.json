@@ -1,0 +1,31 @@
+{
+  "row_count": 22731,
+  "split_counts": {
+    "train": 18327,
+    "val": 4404
+  },
+  "theme_counts": {
+    "egg": 1398,
+    "frokost": 5889,
+    "knekkebrod": 8689,
+    "other": 1311,
+    "varmedrikker": 5444
+  },
+  "manual_review_decision_counts": {
+    "do_not_auto_map": 204,
+    "exact_name_ambiguous": 263,
+    "manual_review": 37,
+    "map_likely": 164,
+    "matched_no_packshot": 55,
+    "missing_ref_likely": 364,
+    "sentinel": 422,
+    "unreviewed": 21222
+  },
+  "exact_match_status_counts": {
+    "exact_name_ambiguous": 263,
+    "exact_unique_no_images": 55,
+    "exact_unique_with_images": 21218,
+    "no_match": 1195
+  },
+  "manifest_path": "data/2026-03-19/derived/gt-crop-manifest.jsonl"
+}

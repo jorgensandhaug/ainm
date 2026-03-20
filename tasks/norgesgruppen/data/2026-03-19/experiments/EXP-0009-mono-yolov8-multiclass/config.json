@@ -1,0 +1,20 @@
+{
+  "id": "EXP-0009",
+  "slug": "mono-yolov8-multiclass",
+  "status": "planned",
+  "phase": "M4",
+  "priority": 9,
+  "question": "How competitive is a simple monolithic multi-class detector as an ablation?",
+  "prerequisites": [
+    "EXP-0001",
+    "EXP-0006"
+  ],
+  "success_gate": "Provides a fair closed-set reference for stack-vs-monolith decisions.",
+  "data_snapshot": "2026-03-19",
+  "split": null,
+  "recognition_slice": null,
+  "seed": null,
+  "code_entrypoints": [],
+  "weights": [],
+  "notes": "Fill before or during the run."
+}

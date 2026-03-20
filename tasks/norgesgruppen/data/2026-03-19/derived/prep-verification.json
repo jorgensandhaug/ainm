@@ -1,0 +1,45 @@
+{
+  "status": "ok",
+  "data_date": "2026-03-19",
+  "verified_counts": {
+    "images": 248,
+    "annotations": 22731,
+    "categories": 356,
+    "metadata_products": 329,
+    "packshot_directories": 344,
+    "problem_categories": 37,
+    "custom_packshot_dirs": 17,
+    "train_images": 199,
+    "val_images": 49,
+    "gt_crop_rows": 22731
+  },
+  "optional_checks": {
+    "yolo_export": "ok",
+    "yolo_class_agnostic_export": "ok"
+  },
+  "checked_files": [
+    "data/2026-03-19/extracted/coco/train/annotations.json",
+    "data/2026-03-19/extracted/product_images/metadata.json",
+    "docs/norgesgruppen-data/deep-audit-summary.json",
+    "data/2026-03-19/manual-review-decisions.json",
+    "data/2026-03-19/section-blocked-val-split.json",
+    "data/2026-03-19/derived/prep-overview.json",
+    "data/2026-03-19/derived/category-manifest.json",
+    "data/2026-03-19/derived/category-strategy-manifest.json",
+    "data/2026-03-19/derived/image-manifest.json",
+    "data/2026-03-19/derived/image-sampling-manifest.json",
+    "data/2026-03-19/derived/packshot-manifest.json",
+    "data/2026-03-19/derived/problem-category-manifest.json",
+    "data/2026-03-19/derived/training-manifest.json",
+    "data/2026-03-19/derived/gt-crop-summary.json",
+    "data/2026-03-19/derived/gt-crop-manifest.jsonl",
+    "data/2026-03-19/derived/coco-splits/train.json",
+    "data/2026-03-19/derived/coco-splits/val.json",
+    "docs/norgesgruppen-data/modeling-experiment-plan.md",
+    "docs/norgesgruppen-data/project-operating-system.md",
+    "docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md",
+    "docs/norgesgruppen-data/plans/PLAN-0002-immediate-execution-wave.md",
+    "docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md",
+    "data/2026-03-19/experiments/experiment-registry.json"
+  ]
+}

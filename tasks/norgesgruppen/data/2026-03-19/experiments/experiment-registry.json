@@ -1,0 +1,157 @@
+{
+  "snapshot_date": "2026-03-19",
+  "last_updated": "2026-03-20",
+  "statuses": [
+    "planned",
+    "in_progress",
+    "completed",
+    "blocked",
+    "killed"
+  ],
+  "notes": [
+    "This registry is the canonical queue for serious experiments.",
+    "Create an experiment folder only when the run actually starts.",
+    "Keep stable prep artifacts in ../derived, not here."
+  ],
+  "experiments": [
+    {
+      "id": "EXP-0001",
+      "slug": "eval-harness",
+      "status": "completed",
+      "priority": 1,
+      "phase": "M0",
+      "question": "Can we reproduce the blocked validation split and compute the canonical bucketed competition-proxy metrics locally?",
+      "prerequisites": [],
+      "success_gate": "One command produces primary metrics, bucketed metrics, and a fixed-format error report for a saved prediction file.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0001-eval-harness",
+      "result_note": "Implemented scripts/eval_norgesgruppen_predictions.py and passed empty/oracle sanity cases."
+    },
+    {
+      "id": "EXP-0002",
+      "slug": "crop-random-and-nearest-neighbor-floor",
+      "status": "completed",
+      "priority": 2,
+      "phase": "M1",
+      "question": "What is the floor for GT-crop recognition before using stronger embedders?",
+      "prerequisites": [
+        "EXP-0001"
+      ],
+      "success_gate": "Strict, extended, and full recognition slices all produce sane non-random baselines and error reports.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0002-crop-random-and-nearest-neighbor-floor",
+      "result_note": "Implemented scripts/benchmark_norgesgruppen_crops.py. Hash nearest-neighbor beats random on strict/extended/full; egg and low-view buckets remain extremely weak; full slice has 199 unevaluable queries."
+    },
+    {
+      "id": "EXP-0003",
+      "slug": "crop-pe-core",
+      "status": "completed",
+      "priority": 3,
+      "phase": "M1",
+      "question": "How strong is PE-Core as the primary catalog retrieval embedder on GT crops?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0002"
+      ],
+      "success_gate": "Clearly beats EXP-0002 on strict-slice top-1, Recall@5, and macro top-1.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0003-crop-pe-core",
+      "result_note": "PE-Core decisively cleared the floor. Strict top-1 0.627952 vs hash 0.068176, strict mAP@20 0.721652 vs 0.108862. Full evaluable fraction stayed 0.954814, so remaining misses are mostly structural no-reference buckets and sibling-variant confusion."
+    },
+    {
+      "id": "EXP-0004",
+      "slug": "crop-dinov3",
+      "status": "completed",
+      "priority": 4,
+      "phase": "M1",
+      "question": "How strong is DINOv3 as a pure-vision retrieval embedder on GT crops?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0002"
+      ],
+      "success_gate": "Either beats PE-Core on a meaningful slice or provides complementary confusion behavior worth fusion.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0004-crop-dinov3",
+      "result_note": "Public timm DINOv3 was much worse than PE-Core. Strict top-1 0.246409 vs PE-Core 0.627952. Oracle union with PE-Core only reaches 0.661066 on strict, so complementarity exists but is too small to justify DINOv3 as the main path."
+    },
+    {
+      "id": "EXP-0005",
+      "slug": "crop-fusion-and-ocr",
+      "status": "planned",
+      "priority": 5,
+      "phase": "M1",
+      "question": "Does fusion of the best visual retriever plus OCR materially reduce sibling-SKU confusion?",
+      "prerequisites": [
+        "EXP-0003",
+        "EXP-0004"
+      ],
+      "success_gate": "Improves strict-slice recognition and sibling-heavy / low-view buckets without hurting overall calibration.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0005-crop-fusion-and-ocr"
+    },
+    {
+      "id": "EXP-0006",
+      "slug": "det-yolov8-class-agnostic",
+      "status": "in_progress",
+      "priority": 6,
+      "phase": "M2",
+      "question": "What is the fastest submission-friendly class-agnostic localization baseline?",
+      "prerequisites": [
+        "EXP-0001"
+      ],
+      "success_gate": "Overfit sanity passes and blocked-split class-agnostic AP50 is strong enough to anchor later pipeline work.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic",
+      "result_note": "Preflight complete, training not run yet. Class-agnostic YOLO export exists, detector evaluator passed empty/oracle sanity, .venv-det boots on this host, and one-image yolov8n predict -> txt -> json -> eval smoke succeeded after fixing headless OpenCV and torch 2.6 checkpoint-loading compatibility."
+    },
+    {
+      "id": "EXP-0007",
+      "slug": "det-rf-detr-class-agnostic",
+      "status": "planned",
+      "priority": 7,
+      "phase": "M2",
+      "question": "Does RF-DETR materially improve localization over YOLOv8 in this dense shelf regime?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0006"
+      ],
+      "success_gate": "Beats EXP-0006 on class-agnostic AP50 and count MAE without unacceptable complexity.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0007-det-rf-detr-class-agnostic"
+    },
+    {
+      "id": "EXP-0008",
+      "slug": "pipe-det-plus-retrieval",
+      "status": "planned",
+      "priority": 8,
+      "phase": "M3",
+      "question": "Does the decomposition stack already beat simple closed-set baselines end-to-end?",
+      "prerequisites": [
+        "EXP-0003",
+        "EXP-0006"
+      ],
+      "success_gate": "Hybrid proxy beats the simplest monolithic baseline and failures are understandable by bucket.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0008-pipe-det-plus-retrieval"
+    },
+    {
+      "id": "EXP-0009",
+      "slug": "mono-yolov8-multiclass",
+      "status": "planned",
+      "priority": 9,
+      "phase": "M4",
+      "question": "How competitive is a simple monolithic multi-class detector as an ablation?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0006"
+      ],
+      "success_gate": "Provides a fair closed-set reference for stack-vs-monolith decisions.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0009-mono-yolov8-multiclass"
+    },
+    {
+      "id": "EXP-0010",
+      "slug": "submission-harness-baseline",
+      "status": "planned",
+      "priority": 10,
+      "phase": "M5",
+      "question": "Can the best practical baseline be packaged into a sandbox-compatible submission path early?",
+      "prerequisites": [
+        "EXP-0006"
+      ],
+      "success_gate": "Local submission-style run works with realistic latency and artifact-size checks.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0010-submission-harness-baseline"
+    }
+  ]
+}

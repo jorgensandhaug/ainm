@@ -1,0 +1,20 @@
+{
+  "status": "ok",
+  "yolo_root": "data/2026-03-19/derived/yolo",
+  "dataset_yaml": "data/2026-03-19/derived/yolo/dataset.yaml",
+  "counts": {
+    "categories": 356,
+    "train_images": 199,
+    "val_images": 49,
+    "train_annotations": 18327,
+    "val_annotations": 4404
+  },
+  "link_modes": {
+    "hardlink": 248
+  },
+  "notes": [
+    "Images are materialized as hardlinks when possible, otherwise copied.",
+    "Labels use native payload category ids 0..355.",
+    "This export follows the blocked section-aware split."
+  ]
+}

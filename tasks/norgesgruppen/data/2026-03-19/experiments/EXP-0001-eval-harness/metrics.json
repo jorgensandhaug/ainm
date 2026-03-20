@@ -1,0 +1,30 @@
+{
+  "id": "EXP-0001",
+  "status": "completed",
+  "primary_metrics": {
+    "empty_case_hybrid_proxy": 0.0,
+    "empty_case_detection_ap50_ignore_class": 0.0,
+    "empty_case_classification_map50": 0.0,
+    "oracle_case_hybrid_proxy": 1.0,
+    "oracle_case_detection_ap50_ignore_class": 1.0,
+    "oracle_case_classification_map50": 1.0
+  },
+  "bucketed_metrics": {
+    "theme": {
+      "oracle_case_all_ones": true
+    },
+    "readiness_bucket": {
+      "oracle_case_all_ones": true
+    },
+    "image_difficulty_bucket": {
+      "oracle_case_all_ones": true
+    }
+  },
+  "artifacts": [
+    "data/2026-03-19/experiments/EXP-0001-eval-harness/artifacts/empty-case/metrics.json",
+    "data/2026-03-19/experiments/EXP-0001-eval-harness/artifacts/empty-case/error_summary.json",
+    "data/2026-03-19/experiments/EXP-0001-eval-harness/artifacts/oracle-case/metrics.json",
+    "data/2026-03-19/experiments/EXP-0001-eval-harness/artifacts/oracle-case/error_summary.json"
+  ],
+  "summary": "Evaluator implemented and passed empty/oracle sanity checks."
+}

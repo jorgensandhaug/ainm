@@ -1,0 +1,19 @@
+{
+  "id": "EXP-0010",
+  "slug": "submission-harness-baseline",
+  "status": "planned",
+  "phase": "M5",
+  "priority": 10,
+  "question": "Can the best practical baseline be packaged into a sandbox-compatible submission path early?",
+  "prerequisites": [
+    "EXP-0006"
+  ],
+  "success_gate": "Local submission-style run works with realistic latency and artifact-size checks.",
+  "data_snapshot": "2026-03-19",
+  "split": null,
+  "recognition_slice": null,
+  "seed": null,
+  "code_entrypoints": [],
+  "weights": [],
+  "notes": "Fill before or during the run."
+}

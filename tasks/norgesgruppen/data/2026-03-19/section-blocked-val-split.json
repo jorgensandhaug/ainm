@@ -1,0 +1,45 @@
+{
+  "name": "section_blocked_mid_segment_val",
+  "date": "2026-03-19",
+  "source": "Derived from deep_audit_norgesgruppen_data.py and docs/norgesgruppen-data/split-eval-plan.md",
+  "image_count_total": 248,
+  "val_image_count": 49,
+  "train_image_count": 199,
+  "segments": [
+    {
+      "theme": "varmedrikker",
+      "segment_start_image_id": 1,
+      "segment_end_image_id": 66,
+      "segment_image_count": 47,
+      "val_image_ids": [23, 25, 26, 27, 29, 31, 32, 33, 34]
+    },
+    {
+      "theme": "egg",
+      "segment_start_image_id": 71,
+      "segment_end_image_id": 111,
+      "segment_image_count": 29,
+      "val_image_ids": [85, 86, 88, 89, 93, 94]
+    },
+    {
+      "theme": "frokost",
+      "segment_start_image_id": 114,
+      "segment_end_image_id": 243,
+      "segment_image_count": 82,
+      "val_image_ids": [160, 161, 163, 167, 168, 169, 170, 173, 175, 177, 178, 183, 184, 186, 192, 193]
+    },
+    {
+      "theme": "knekkebrod",
+      "segment_start_image_id": 244,
+      "segment_end_image_id": 382,
+      "segment_image_count": 90,
+      "val_image_ids": [297, 298, 299, 300, 302, 303, 304, 305, 306, 308, 310, 311, 313, 315, 316, 317, 319, 320]
+    }
+  ],
+  "val_image_ids": [
+    23, 25, 26, 27, 29, 31, 32, 33, 34,
+    85, 86, 88, 89, 93, 94,
+    160, 161, 163, 167, 168, 169, 170, 173, 175, 177, 178, 183, 184, 186, 192, 193,
+    297, 298, 299, 300, 302, 303, 304, 305, 306, 308, 310, 311, 313, 315, 316, 317, 319, 320
+  ],
+  "train_image_ids_are_complement": true
+}

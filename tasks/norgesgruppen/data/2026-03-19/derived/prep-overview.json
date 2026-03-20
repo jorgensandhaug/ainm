@@ -1,0 +1,52 @@
+{
+  "data_date": "2026-03-19",
+  "source_counts": {
+    "images": 248,
+    "annotations": 22731,
+    "categories": 356,
+    "metadata_products": 329,
+    "packshot_directories": 344
+  },
+  "category_match_summary": {
+    "exact_unique_with_images": 319,
+    "exact_unique_no_images": 2,
+    "exact_name_ambiguous": 2,
+    "no_match": 33
+  },
+  "manual_review_decision_counts": {
+    "do_not_auto_map": 6,
+    "exact_name_ambiguous": 2,
+    "manual_review": 4,
+    "map_likely": 2,
+    "matched_no_packshot": 2,
+    "missing_ref_likely": 17,
+    "sentinel": 1,
+    "unreviewed": 322
+  },
+  "classification_readiness_counts": {
+    "ambiguous_reference": 2,
+    "exact_reference_high_view": 234,
+    "exact_reference_low_view": 39,
+    "exact_reference_medium_view": 46,
+    "missing_reference": 22,
+    "needs_manual_review": 4,
+    "provisional_alias_reference": 2,
+    "sibling_variant_trap": 6,
+    "unknown_sentinel": 1
+  },
+  "blocked_split": {
+    "train_image_count": 199,
+    "val_image_count": 49,
+    "segment_count": 4
+  },
+  "image_sampler_bucket_counts": {
+    "dense_standard": 41,
+    "problem_heavy": 112,
+    "rare_class_rich": 4,
+    "standard": 91
+  },
+  "gt_crop_manifest_row_count": 22731,
+  "problem_category_count": 37,
+  "custom_packshot_dir_count": 17,
+  "deep_audit_reference": "docs/norgesgruppen-data/deep-audit-summary.json"
+}

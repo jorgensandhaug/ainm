@@ -1,0 +1,19 @@
+{
+  "id": "EXP-0001",
+  "slug": "eval-harness",
+  "status": "completed",
+  "phase": "M0",
+  "priority": 1,
+  "question": "Can we reproduce the blocked validation split and compute the canonical bucketed competition-proxy metrics locally?",
+  "prerequisites": [],
+  "success_gate": "One command produces primary metrics, bucketed metrics, and a fixed-format error report for a saved prediction file.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked_val",
+  "recognition_slice": null,
+  "seed": null,
+  "code_entrypoints": [
+    "scripts/eval_norgesgruppen_predictions.py"
+  ],
+  "weights": [],
+  "notes": "Completed evaluator sanity pass with empty predictions and oracle val-ground-truth predictions."
+}

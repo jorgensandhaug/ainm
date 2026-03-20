@@ -1,0 +1,21 @@
+{
+  "status": "ok",
+  "export_mode": "class_agnostic",
+  "yolo_root": "data/2026-03-19/derived/yolo-class-agnostic",
+  "dataset_yaml": "data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml",
+  "counts": {
+    "categories": 1,
+    "train_images": 199,
+    "val_images": 49,
+    "train_annotations": 18327,
+    "val_annotations": 4404
+  },
+  "link_modes": {
+    "hardlink": 248
+  },
+  "notes": [
+    "Images are materialized as hardlinks when possible, otherwise copied.",
+    "All labels are remapped to class id 0 (`product`).",
+    "This export follows the blocked section-aware split."
+  ]
+}

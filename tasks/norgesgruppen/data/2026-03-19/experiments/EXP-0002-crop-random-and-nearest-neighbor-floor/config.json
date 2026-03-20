@@ -1,0 +1,27 @@
+{
+  "id": "EXP-0002",
+  "slug": "crop-random-and-nearest-neighbor-floor",
+  "status": "completed",
+  "phase": "M1",
+  "priority": 2,
+  "question": "What is the floor for GT-crop recognition before using stronger embedders?",
+  "prerequisites": [
+    "EXP-0001"
+  ],
+  "success_gate": "Strict, extended, and full recognition slices all produce sane non-random baselines and error reports.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked val GT crops",
+  "recognition_slices": [
+    "strict",
+    "extended",
+    "full"
+  ],
+  "gallery_mode": "representative",
+  "seed": 20260320,
+  "code_entrypoints": [
+    "scripts/benchmark_norgesgruppen_crops.py",
+    "scripts/norgesgruppen_crop_benchmark_common.py"
+  ],
+  "weights": [],
+  "notes": "Completed. Random and nearest-neighbor-hash baselines run on the fixed crop-eval surface."
+}

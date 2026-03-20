@@ -1,0 +1,24 @@
+{
+  "id": "EXP-0006",
+  "slug": "det-yolov8-class-agnostic",
+  "status": "planned",
+  "phase": "M2",
+  "priority": 6,
+  "question": "What is the fastest submission-friendly class-agnostic localization baseline?",
+  "prerequisites": [
+    "EXP-0001"
+  ],
+  "success_gate": "Overfit sanity passes and blocked-split class-agnostic AP50 is strong enough to anchor later pipeline work.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked val, class-agnostic localization only",
+  "recognition_slice": null,
+  "seed": 20260320,
+  "code_entrypoints": [
+    "scripts/run_norgesgruppen_yolov8.py",
+    "scripts/convert_yolo_txt_predictions.py",
+    "scripts/eval_norgesgruppen_class_agnostic_detection.py",
+    "scripts/export_norgesgruppen_yolo.py"
+  ],
+  "weights": [],
+  "notes": "Fill before or during the run."
+}

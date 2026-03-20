@@ -1,0 +1,20 @@
+{
+  "id": "EXP-0007",
+  "slug": "det-rf-detr-class-agnostic",
+  "status": "planned",
+  "phase": "M2",
+  "priority": 7,
+  "question": "Does RF-DETR materially improve localization over YOLOv8 in this dense shelf regime?",
+  "prerequisites": [
+    "EXP-0001",
+    "EXP-0006"
+  ],
+  "success_gate": "Beats EXP-0006 on class-agnostic AP50 and count MAE without unacceptable complexity.",
+  "data_snapshot": "2026-03-19",
+  "split": null,
+  "recognition_slice": null,
+  "seed": null,
+  "code_entrypoints": [],
+  "weights": [],
+  "notes": "Fill before or during the run."
+}

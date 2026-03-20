@@ -1,0 +1,30 @@
+{
+  "id": "EXP-0004",
+  "slug": "crop-dinov3",
+  "status": "planned",
+  "phase": "M1",
+  "priority": 4,
+  "question": "How strong is DINOv3 as a pure-vision retrieval embedder on GT crops?",
+  "prerequisites": [
+    "EXP-0001",
+    "EXP-0002"
+  ],
+  "success_gate": "Either beats PE-Core on a meaningful slice or provides complementary confusion behavior worth fusion.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked val GT crops",
+  "recognition_slices": [
+    "strict",
+    "extended",
+    "full"
+  ],
+  "gallery_mode": "representative",
+  "seed": 20260320,
+  "code_entrypoints": [
+    "scripts/run_norgesgruppen_crop_retrieval.py",
+    "scripts/norgesgruppen_retrieval_backends.py",
+    "scripts/eval_norgesgruppen_crop_rankings.py",
+    "scripts/norgesgruppen_crop_benchmark_common.py"
+  ],
+  "weights": [],
+  "notes": "Use the same generic crop retrieval runner as EXP-0003 so DINOv3 and PE-Core stay directly comparable."
+}

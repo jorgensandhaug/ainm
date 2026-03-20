@@ -1,0 +1,20 @@
+{
+  "id": "EXP-0005",
+  "slug": "crop-fusion-and-ocr",
+  "status": "planned",
+  "phase": "M1",
+  "priority": 5,
+  "question": "Does fusion of the best visual retriever plus OCR materially reduce sibling-SKU confusion?",
+  "prerequisites": [
+    "EXP-0003",
+    "EXP-0004"
+  ],
+  "success_gate": "Improves strict-slice recognition and sibling-heavy / low-view buckets without hurting overall calibration.",
+  "data_snapshot": "2026-03-19",
+  "split": null,
+  "recognition_slice": null,
+  "seed": null,
+  "code_entrypoints": [],
+  "weights": [],
+  "notes": "Fill before or during the run."
+}

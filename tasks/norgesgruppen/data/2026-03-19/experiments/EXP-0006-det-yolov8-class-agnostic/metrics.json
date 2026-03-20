@@ -1,0 +1,12 @@
+{
+  "id": "EXP-0006",
+  "status": "not_run",
+  "primary_metrics": {},
+  "bucketed_metrics": {
+    "theme": {},
+    "readiness_bucket": {},
+    "image_difficulty_bucket": {}
+  },
+  "artifacts": [],
+  "summary": ""
+}
