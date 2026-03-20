@@ -12,7 +12,7 @@ Do not use for:
 - mileage allowance
 - accommodation allowance
 - attachments
-- approval or delivery flows
+- standalone approval or delivery of an existing travel expense
 - project-linked or reinvoiced travel expenses
 
 ## Key Findings
@@ -21,6 +21,8 @@ Verified in persistent sandbox on 2026-03-20:
 - `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`
 - `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`
 - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned the live per-diem `rateType` options needed for a deliverable overnight trip
+- that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`
+- one returned sparse `rateType.id` still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
 - `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
 - `POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically
 - embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`
@@ -35,6 +37,7 @@ Verified in persistent sandbox on 2026-03-20:
 - `GET /travelExpense/perDiemCompensation?travelExpenseId=...&count=20&fields=*` returned full per-diem objects with `location`, `count`, `rate`, and `amount`
 - `PUT /travelExpense/:approve` returned `403` for the sandbox token even with `overrideApprovalFlow=true`; approval is not a trusted default follow-up step
 - top-level travel-expense `amount`/`paymentAmount` still reflected only reimbursable cost lines even after successful `:deliver`; those totals are not proof of per-diem correctness
+- the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"`; when the prompt omits departureFrom, generic placeholders are correctness-risky and should not be upgraded into a trusted inference
 
 ## Lowest-Call Scored Flow
 
@@ -54,6 +57,8 @@ Verified in persistent sandbox on 2026-03-20:
    - `GET /travelExpense/paymentType?count=1000&fields=*`
    - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=<departureDate>&dateTo=<returnDate>&count=1000&fields=*`
    - filter locally on `showOnTravelExpenses=true`
+   - do not locally require `rateCategory.isValidDomestic` or `rateCategory.isRequiresOvernightAccommodation` after that filtered rate call; the response can be sparse link-only data
+   - prefer a returned `rate` equal to the prompt day rate when such a row exists; otherwise reuse any returned `rateType.id`
 4. Create the travel expense in one write
    - `POST /travelExpense`
    - embed top-level `travelDetails`
@@ -155,8 +160,11 @@ For the travel-expense create, the sandbox-proven shape was:
 ## Per-Diem Resolution
 
 - for multi-day domestic per-diem tasks, resolve one compatible live `rateType` from `GET /travelExpense/rate?...fields=*`; do not leave `perDiemCompensations[].rateType` empty
+- the filtered rate search can already be authoritative even when `rateCategory` stays sparse; do not spend `GET /travelExpense/rateCategory/{id}` just to expand booleans
 - preserve the prompt's scored `count`, `rate`, and `amount`, but still include a compatible `rateType` so the row is deliverable
 - if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`
+- if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
+- do not invent generic placeholders such as `Hjemsted`; if the employee read also lacks a concrete location, this prompt shape is no longer an exact trusted match
 - if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape
 
 ## Date Inference For Underspecified Prompts
