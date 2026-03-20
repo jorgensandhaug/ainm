@@ -79,6 +79,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create prerequisites:
   - customer id
   - often product ids
+- Standard fast-path note:
+  - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning path is usually customer read, product read, order write, invoice write, payment-type read, payment write
 
 ## Invoice
 - `/invoice`

@@ -14,6 +14,9 @@ Do not use for:
 - invoice-send tasks where customer delivery/send method is the main concern
 - update/delete/reverse flows on existing orders or invoices
 
+Exact-match tasks should now prefer the trusted standard:
+- `./trusted-standards/create-order-invoice-and-register-payment.md`
+
 ## Key Findings
 
 - `POST /order` can create embedded `orderLines`, but the `201` response may still echo `orderLines=[]`
@@ -44,6 +47,14 @@ Do not use for:
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
   - `PUT /invoice/{id}/:payment?...`
   - the prompt line-price sum excluding VAT was `56350`, but the actual payment amount from the invoice response was `70437.5`; this confirmed again that payment must use the invoice outstanding amount, not the prompt ex-VAT total
+- another production verification on 2026-03-20 confirmed the same exact-match path again:
+  - `GET /customer?organizationNumber=911511053&fields=*`
+  - `GET /product?productNumber=7579&productNumber=2292&fields=*`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `PUT /invoice/{id}/:payment?...`
+  - the prompt line-price sum excluding VAT was `26450`, but the actual payment amount from the invoice response was `33062.5`; `Betalt til bank` again settled the invoice to `0`
 
 ## Minimal Flow
 

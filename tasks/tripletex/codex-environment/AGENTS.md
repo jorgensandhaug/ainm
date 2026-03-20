@@ -92,6 +92,7 @@ Authentication:
 | Create project | `./trusted-standards/create-project.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
+| Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
 
