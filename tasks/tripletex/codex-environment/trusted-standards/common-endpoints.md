@@ -374,6 +374,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for the exact one-supplier create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical path is one `POST /supplier`
   - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
+  - when the provided base URL already ends in `/v2` without a trailing slash, do not resolve `new URL('supplier', baseUrl)` directly; that can drop `/v2` and turn the intended one-call write into a wasted `404`
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
   - for exact supplier-invoice prompts in real fresh accounts that give supplier business fields but do not say the supplier already exists, the lower-call default is to reuse the same create-one-supplier primitive: `POST /supplier`, then continue the invoice workflow with the returned supplier ids
   - 2026-03-20 production for `Stormberg AS` / `877462137` / `INV-2026-9382` / `61600` / `6340` / `25%` repeated the same miss: the old lookup-first zero-hit branch wasted one call because the supplier did not exist and still had to be created

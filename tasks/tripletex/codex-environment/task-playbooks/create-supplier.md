@@ -44,6 +44,7 @@ This was verified in sandbox:
 - re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Northwave Reflection Supplier 321000009`, `321000009`, and `faktura-321000009@northwaveltd.no`; the single `POST /supplier` returned supplier `id=108281238`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 - production on 2026-03-20 for the exact French supplier-create shape `Cascade SARL`, `997712560`, and `faktura@cascadesarl.no` also succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108283132`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with French-style prompt semantics and production-like invoice-looking payload `Cascade SARL Reflection 321000010`, `321000010`, and `faktura-321000010@cascadesarl.no`; the single `POST /supplier` returned supplier `id=108283330`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
+- re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Northwave Reflection Supplier 321000011`, `321000011`, and `faktura-321000011@northwaveltd.no`; the single `POST /supplier` returned supplier `id=108286080`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 
 ## Minimal Flow
 
@@ -67,6 +68,7 @@ This was verified in sandbox:
 - Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
 - Do not enumerate supplier-related invoice schemas for a simple create task
 - Do not add a post-create `GET /supplier/{id}` when the `201` body already includes the scored fields
+- When the provided base URL ends at `/v2` without a trailing slash, do not resolve `new URL('supplier', baseUrl)` directly; that can silently drop `/v2` and waste a `404` before the real supplier write
 - If the first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials; do not burn calls on `/supplier` reads or alternate auth-format retries
 - The winning shape is typically:
 
