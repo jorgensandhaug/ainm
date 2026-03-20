@@ -88,7 +88,7 @@
   - the same endpoint also returned `422` with validation message `Maximum of 3 accounting dimensions allowed` when the persistent sandbox already had all three free-dimension slots occupied
   - `POST /ledger/accountingDimensionValue` succeeded with only `dimensionIndex`, `displayName`, `active`, and `showInVoucherRegistration`
   - `PUT /ledger/accountingDimensionValue/list` is batch update only, so it is not a lower-call shortcut for creating the requested values
-  - `POST /ledger/voucher` with `account: { "number": "7000" }` and again with `account: { "number": "6590" }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
+  - `POST /ledger/voucher` with `account: { "number": "7000" }`, again with `account: { "number": "6590" }`, and later with `account: { "number": 6860 }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
   - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=6590,1920&fields=*`
   - later same-day re-verification with dimension `KS154433946` assigned `dimensionIndex=3`, created values `Innkjøp` and `Logistikk`, and returned the linked value on `freeAccountingDimension3.id` in the successful voucher write response
-  - a same-day voucher-path re-verification on existing sandbox dimension value `15253` confirmed that `GET /ledger/account?number=7300,1920&fields=*` returns both account rows with integer `number` fields and that the next `POST /ledger/voucher` succeeded with the linked `freeAccountingDimension1.id`
+  - a same-day voucher-path re-verification on existing sandbox dimension value `15253` confirmed that `GET /ledger/account?number=6860,1920&fields=*` returns both account rows with integer `number` fields and that the next `POST /ledger/voucher` succeeded with the linked `freeAccountingDimension1.id`

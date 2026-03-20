@@ -338,7 +338,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard prerequisite note:
   - this is the canonical bank-account repair endpoint
-  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000`, `6590`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000`, `6590`, `6860`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
 
 ## Ledger Accounting Dimension Name
@@ -394,7 +394,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - prefer reverse over ad hoc mutation when task allows
 - Standard create note:
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
-  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000` and `6590`, so there is no trusted lower-call shortcut that skips the account-id lookup
+  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, and `6860`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
