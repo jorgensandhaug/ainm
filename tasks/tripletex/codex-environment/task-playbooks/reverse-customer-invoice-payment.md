@@ -111,10 +111,19 @@ Observed production confirmation on 2026-03-20:
   - one `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=2026-03-20`
 - no follow-up proof read was needed; the side effect itself was the scored target
 
+Observed production confirmation on 2026-03-20:
+- exact prompt shape `customer.organizationNumber=896496468` + `amountExcludingVatCurrency=17200` + line text `Skylagring`
+- the run also finished in the canonical 2-call path:
+  - one decisive `GET /invoice?...fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))`
+  - one `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=2026-03-20`
+- no follow-up proof read was needed; the side effect itself was the scored target
+
 Observed sandbox proof nuance on 2026-03-20:
 - disposable invoice `76` / invoice id `2147538250` was created unpaid, then paid through standalone `PUT /invoice/{id}/:payment`, and its payment reversal worked normally through standalone voucher `608834712`
 - an earlier failed disposable proof paid during the combined `PUT /order/{id}/:invoice?...paymentTypeId=...` write and produced one shared voucher containing both the invoice posting and the payment-style postings
 - therefore that combined-prepayment shape must not be treated as an ordinary standalone-payment-reversal exact match
+- another prompt-like sandbox analog on 2026-03-20 with direct-line text `Skylagring Reflection ...` and ex-VAT `1000` repeated the same search-lag trap: the broad same-day `GET /invoice?...count=1000...` returned zero matches immediately after standalone payment registration, while direct `GET /invoice/{id}` exposed the correct negative `Betaling: ...` posting with `voucherId=608862777`, `amountCurrency=-1000`, and `account.number=1500`
+- treat that as sandbox-only proof noise, not as a reason to add direct `GET /invoice/{id}` or any extra locate read to the production exact-match fast path once a normal broad locate read already isolates the invoice
 
 ## Minimal Flow
 
