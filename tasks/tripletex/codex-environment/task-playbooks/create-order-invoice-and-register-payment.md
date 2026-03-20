@@ -35,6 +35,15 @@ Do not use for:
 - additional production verification on 2026-03-20 showed two more traps:
   - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice
+- additional production verification on 2026-03-20 also showed the clean exact-match path:
+  - one successful run completed with only 6 Tripletex API calls after local spec confirmation
+  - `GET /customer?organizationNumber=...&fields=*`
+  - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` already returned both target products, so no fallback `/product?ids=...` read was needed
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `PUT /invoice/{id}/:payment?...`
+  - the prompt line-price sum excluding VAT was `56350`, but the actual payment amount from the invoice response was `70437.5`; this confirmed again that payment must use the invoice outstanding amount, not the prompt ex-VAT total
 
 ## Minimal Flow
 
@@ -82,7 +91,7 @@ Do not use for:
   - the existing products by numeric refs
   - the order line prices
   - the need to invoice and fully pay immediately
-- the winning path is usually:
+- the winning path is usually 6 Tripletex API calls when the first product-number read succeeds:
   1. `GET /customer?organizationNumber=...&fields=*`
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
   3. if that misses, `GET /product?ids=<ref>,<ref>&fields=*`
@@ -149,6 +158,7 @@ Do not use for:
 - When the prompt names existing products with numeric refs in parentheses, try product-number resolution first
 - Use:
   - `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
+- If that first read already returns both target products, stop there and reuse those IDs directly
 - If that does not uniquely resolve the products, do one fallback:
   - `GET /product?ids=<ref>,<ref>&fields=*`
 - If both numeric reads fail and the prompt also gives exact product names, one final decisive fallback is allowed:

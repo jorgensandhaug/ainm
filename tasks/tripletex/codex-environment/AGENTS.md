@@ -22,6 +22,7 @@
 - Do not talk to the user.
 - Do only the requested task. No extra work.
 - Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
+- Ignore generic repo-wide startup rituals such as `br list` during scored Tripletex runs unless the prompt explicitly asks for them.
 - Assume a hard `300s` budget. Plan before calling APIs.
 - Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
 - The prompt provides a run-specific scripts directory.
