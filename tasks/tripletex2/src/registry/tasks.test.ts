@@ -48,17 +48,32 @@ test("task registrations seed every canonical task id exactly once", () => {
   );
 });
 
-test("unimplemented canonical tasks load as honest placeholders", async () => {
-  const placeholderSpec = getTaskSpec("create-department");
-  assert.ok(placeholderSpec);
-  assert.equal(placeholderSpec.implementationStatus, "placeholder");
-  assert.equal(placeholderSpec.txTaskId, "03");
-  assert.equal(placeholderSpec.inputSchemaId, "create-department.placeholder.v1");
-  assert.match(placeholderSpec.extractionNotes?.[0] ?? "", /Placeholder only\./);
+test("newly surfaced canonical tasks load real modules and draft strategies", async () => {
+  const taskSpec = getTaskSpec("create-department");
+  assert.ok(taskSpec);
+  assert.equal(taskSpec.implementationStatus, "implemented");
+  assert.equal(taskSpec.txTaskId, "03");
+  assert.equal(taskSpec.inputSchemaId, "create-department.v1");
+  assert.deepEqual(taskSpec.requiredFields, ["departmentNames"]);
 
-  const placeholderTaskModule = await loadTaskModule("create-department");
-  assert.ok(placeholderTaskModule);
-  assert.equal(placeholderTaskModule.strategies.length, 0);
+  const taskModule = await loadTaskModule("create-department");
+  assert.ok(taskModule);
+  assert.deepEqual(
+    taskModule.strategies.map((strategy) => strategy.strategyId),
+    ["create-department.not-implemented.v1"],
+  );
+});
+
+test("every canonical task now loads a task module with at least one strategy", async () => {
+  for (const canonicalTask of CANONICAL_TASK_REGISTRY) {
+    const taskModule = await loadTaskModule(canonicalTask.taskId);
+    assert.ok(taskModule, canonicalTask.taskId);
+    assert.equal(taskModule.task.taskId, canonicalTask.taskId);
+    assert.ok(
+      taskModule.strategies.length >= 1,
+      `Expected at least one strategy for ${canonicalTask.taskId}.`,
+    );
+  }
 });
 
 test("implemented task remains the real registered task module", async () => {

@@ -29,23 +29,31 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
   assert.match(prompt, /create-and-send-invoice/);
 });
 
-test("adaptCodexTaskUnderstandingResult rejects placeholder tasks as unsupported", () => {
+test("adaptCodexTaskUnderstandingResult accepts newly implemented task surfaces", () => {
   const adapted = adaptCodexTaskUnderstandingResult(
     {
       status: "resolved",
       taskId: "create-employee",
-      input: {},
+      input: {
+        employeeName: "Joao Rodrigues",
+        birthDate: "1980-09-05",
+        email: "joao.rodrigues@example.org",
+        startDate: "2026-08-08",
+      },
       notes: ["Matched the employee-creation prompt shape."],
     },
     taskSpecs,
   );
 
   assert.deepEqual(adapted.result, {
-    status: "unresolved",
-    code: "unsupported-request",
-    message:
-      'Request matched "create-employee", but Tripletex2 does not yet implement deterministic extraction/runtime for that task.',
+    status: "resolved",
     taskId: "create-employee",
+    input: {
+      employeeName: "Joao Rodrigues",
+      birthDate: "1980-09-05",
+      email: "joao.rodrigues@example.org",
+      startDate: "2026-08-08",
+    },
   });
   assert.deepEqual(adapted.notes, [
     "Matched the employee-creation prompt shape.",

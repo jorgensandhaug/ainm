@@ -96,7 +96,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
     sidecars?: Array<{ kind: string; path: string }>;
   };
 
-  assert.equal(artifact.selection.selectionConfigId, "active-strategies-2026-03-20-a");
+  assert.equal(artifact.selection.selectionConfigId, "active-strategies-2026-03-20-task-stubs-a");
   assert.equal(
     artifact.strategy.strategyPath,
     "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
@@ -163,13 +163,10 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
     },
     {
       mode: "sandbox",
-      selectionConfigOverride: {
-        schemaVersion: "tripletex2.active-strategy-selection.v1",
-        selectionConfigId: "active-strategies-2026-03-20-explicit-invoice-send",
-        taskStrategies: {
-          "create-and-send-invoice": "create-and-send-invoice.order-then-invoice-then-send.v1",
-        },
-      },
+      selectionConfigOverride: createSelectionConfigOverride({
+        "create-and-send-invoice":
+          "create-and-send-invoice.order-then-invoice-then-send.v1",
+      }),
       runContext: {
         runId: "sandbox-explicit-send-run",
         stageDirectory,
@@ -397,6 +394,49 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
 
 function createFrozenNow(timestamp: string): () => Date {
   return () => new Date(timestamp);
+}
+
+function createSelectionConfigOverride(
+  overrides: Record<string, string>,
+): {
+  schemaVersion: "tripletex2.active-strategy-selection.v1";
+  selectionConfigId: string;
+  taskStrategies: Record<string, string>;
+} {
+  return {
+    schemaVersion: "tripletex2.active-strategy-selection.v1",
+    selectionConfigId: "active-strategies-2026-03-20-explicit-invoice-send",
+    taskStrategies: {
+      "create-accounting-dimension-and-post-voucher":
+        "create-accounting-dimension-and-post-voucher.not-implemented.v1",
+      "create-and-send-invoice":
+        "create-and-send-invoice.order-then-invoice-send.v1",
+      "create-customer": "create-customer.not-implemented.v1",
+      "create-customer-invoice": "create-customer-invoice.not-implemented.v1",
+      "create-department": "create-department.not-implemented.v1",
+      "create-employee": "create-employee.not-implemented.v1",
+      "create-order-invoice-and-register-payment":
+        "create-order-invoice-and-register-payment.not-implemented.v1",
+      "create-product": "create-product.not-implemented.v1",
+      "create-project": "create-project.not-implemented.v1",
+      "create-supplier": "create-supplier.not-implemented.v1",
+      "issue-full-credit-note": "issue-full-credit-note.not-implemented.v1",
+      "register-customer-invoice-payment":
+        "register-customer-invoice-payment.not-implemented.v1",
+      "register-project-hours-and-create-project-invoice":
+        "register-project-hours-and-create-project-invoice.not-implemented.v1",
+      "register-supplier-invoice":
+        "register-supplier-invoice.not-implemented.v1",
+      "register-travel-expense":
+        "register-travel-expense.not-implemented.v1",
+      "reverse-customer-invoice-payment":
+        "reverse-customer-invoice-payment.not-implemented.v1",
+      "run-payroll-with-bonus": "run-payroll-with-bonus.not-implemented.v1",
+      "set-project-fixed-price-and-invoice-milestone":
+        "set-project-fixed-price-and-invoice-milestone.not-implemented.v1",
+      ...overrides,
+    },
+  };
 }
 
 function createFixtureTripletexFetch(): TripletexFetch {
