@@ -114,3 +114,7 @@
   - that proactive read showed invoice account `1920` already had a valid `bankAccountNumber`
   - persistent sandbox then re-proved the same update-first task shape succeeds in `5` measured calls without `/ledger/account` when the invoice account is already configured
   - therefore the default exact-match path stays optimistic `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, with `/ledger/account` reserved for the specific missing-bank-account branch or for runs that already proved that prerequisite is missing
+- persistent-sandbox re-proof on 2026-03-20 for the same prompt shape as `Estrella SL` / `816896770` / `Desarrollo e-commerce` / `375250` / `33%` confirmed the amount and call-count behavior still hold:
+  - after fixture setup, the measured proof path again stayed at `5` calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - `375250 * 0.33` was accepted directly as `123832.5` on the milestone line; do not coerce that amount to whole NOK or unnecessary two-decimal string formatting
+  - that sandbox account still exposed only the filtered outgoing `0%` VAT row (`id=6`), and the invoice write still returned `amountExcludingVatCurrency=123832.5` plus `amountCurrencyOutstanding=123832.5`

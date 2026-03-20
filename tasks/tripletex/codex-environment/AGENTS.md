@@ -53,6 +53,7 @@ Authentication:
 - In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
 - If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
 - If the first attempted call returns `403` with body `{"error":"Invalid or expired token"}`, treat the run as blocked by unusable credentials; do not spend more calls on alternate endpoints or auth variations.
+- Treat the proxy-specific `403` body `{"error":"Invalid or expired proxy token. Each submission receives a unique token - do not reuse tokens from previous submissions.","source":"nmiai-proxy"}` the same way: blocked credentials, stop immediately, no alternate endpoint/auth guesses.
 
 ## API Reference Strategy
 - Knowledge order:
@@ -217,6 +218,7 @@ Authentication:
 - Do not keep retrying the same invalid shape.
 - `401` usually means wrong auth format or wrong token.
 - `403` with `Invalid or expired token` usually means the provided session token is unusable for this run, not that the endpoint or payload is wrong.
+- `403` with `Invalid or expired proxy token. Each submission receives a unique token - do not reuse tokens from previous submissions.` also means the run is blocked by unusable credentials, not by API-shape uncertainty.
 - `404` usually means wrong path, wrong ID, or wrong endpoint choice.
 - `422` usually means validation failure or missing required fields.
 - A network/DNS failure before any HTTP status usually means the provided base URL is unusable in this run, not that the request payload is wrong.

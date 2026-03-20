@@ -71,6 +71,10 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - that read returned invoice account `1920` with `bankAccountNumber=12345678903`, so the later invoice write already had the prerequisite it needed
   - a new persistent-sandbox proof run for the same shape then measured `5` calls after fixture setup with no `/ledger/account` step: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - therefore this task shape should keep `/ledger/account` out of the default exact-match path unless earlier evidence already shows the bank-account prerequisite is missing
+- persistent-sandbox re-proof on 2026-03-20 for the same prompt shape as `Estrella SL` / `816896770` / `Desarrollo e-commerce` / `375250` / `33%` showed:
+  - after fixture setup, the update-first proof path again completed in `5` measured calls with no `/ledger/account` preflight
+  - the percentage-derived amount `123832.5` (`375250 * 0.33`) was accepted directly on `orderLines[].unitPriceExcludingVatCurrency`
+  - the sandbox still exposed only filtered outgoing VAT code `6` (`0%`), yet the invoice write still proved `amountExcludingVatCurrency=123832.5` and `amountCurrencyOutstanding=123832.5`
 
 ## Minimal Safe Flow
 
