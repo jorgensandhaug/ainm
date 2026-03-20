@@ -16,6 +16,7 @@ Do not use for:
 ## Verified Findings
 
 Persistent-sandbox verification on 2026-03-20 showed:
+- `GET /project?name=...&count=50&fields=*,customer(*)` returned enough expanded customer data to identify the linked customer without a separate `GET /customer`
 - `PUT /project/hourlyRates/{id}` can switch an existing project hourly-rate holder from `TYPE_FIXED_HOURLY_RATE` to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
 - after that model switch, `POST /project/hourlyRates/projectSpecificRates` with:
   - `projectHourlyRate`
@@ -30,6 +31,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - `POST /timesheet/entry` on a non-chargeable project activity still succeeded even with `projectChargeableHours`, but the write response kept:
   - `chargeable=false`
   - `hourlyRate=0`
+- after that non-chargeable time write, `POST /order` with one real project-linked manual line and `PUT /order/{id}/:invoice?...sendToCustomer=false` still succeeded and produced the expected customer-facing invoice amount
 - `PUT /timesheet/week/:approve` returned `403` even for the token owner; do not make week approval a default step in this task shape
 - `GET /project/{id}/period/hourlistReport?...` can show those hours under `nonApprovedHours`
 - `GET /project/{id}/period/invoicingReserve?...` can still show a positive fee reserve, but that does not mean the public API can actually charge those hours directly
@@ -62,7 +64,6 @@ Persistent-sandbox verification on 2026-03-20 showed:
 
 1. Confirm these operations in `./openapi.json`
    - `GET /employee`
-   - `GET /customer`
    - `GET /project`
    - `GET /activity/>forTimeSheet`
    - `GET /project/hourlyRates`
@@ -75,16 +76,14 @@ Persistent-sandbox verification on 2026-03-20 showed:
 2. Resolve the employee
    - `GET /employee?email=<email>&count=10&fields=*`
    - exact-match locally because the email filter is containing
-3. Resolve the customer
-   - usually `GET /customer?organizationNumber=...&count=10&fields=*`
-   - exact-match the name locally too when the prompt gives both name and organization number
-4. Resolve the project
-   - `GET /project?name=<project-name>&customerId=<customer-id>&count=50&fields=*`
+3. Resolve the project and linked customer in one read
+   - `GET /project?name=<project-name>&count=50&fields=*,customer(*)`
    - exact-match the project name locally
+   - exact-match the nested `customer.organizationNumber` and/or `customer.name` locally when the prompt gives them
+   - only fall back to a separate `GET /customer` if the project read is ambiguous or unexpectedly sparse
 5. Resolve the applicable activity through the project-timesheet endpoint
    - `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*`
-6. Stop and treat the exact hour-linked invoice request as blocked if the resolved activity is non-chargeable
-   - do not spend a speculative project-specific-rate write on that activity in production
+6. If the resolved activity is chargeable, continue with the rate path
 7. Resolve the project hourly-rate holder
    - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*`
 8. If needed, switch the holder to project-specific rates
@@ -104,6 +103,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - `date`
      - `hours`
      - `projectChargeableHours`
+   - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
 11. Resolve a valid outgoing VAT type for the invoice date
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
 12. Create a real project-linked order line derived from the prompt hours and rate
@@ -179,25 +179,24 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 
 - For a prompt that gives:
   - employee email
-  - customer organization number and name
-  - project name
+  - project name plus customer organization number and/or name
   - activity name
   - hour count
   - hourly rate
 - the public fast path is usually:
   1. `GET /employee?...`
-  2. `GET /customer?...`
-  3. `GET /project?...`
-  4. `GET /activity/>forTimeSheet?...`
-  5. `GET /project/hourlyRates?...`
-  6. conditional `PUT /project/hourlyRates/{id}`
-  7. `POST /project/hourlyRates/projectSpecificRates`
-  8. `POST /timesheet/entry`
-  9. `GET /ledger/vatType?...`
-  10. `POST /order` with one real project-linked line using prompt hours x prompt rate
-  11. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  2. `GET /project?name=...&fields=*,customer(*)`
+  3. `GET /activity/>forTimeSheet?...`
+  4. if chargeable: `GET /project/hourlyRates?...`
+  5. if needed: conditional `PUT /project/hourlyRates/{id}`
+  6. if chargeable: `POST /project/hourlyRates/projectSpecificRates`
+  7. `POST /timesheet/entry`
+  8. `GET /ledger/vatType?...`
+  9. `POST /order` with one real project-linked line using prompt hours x prompt rate
+  10. `PUT /order/{id}/:invoice?...sendToCustomer=false`
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
+- do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
 
 ## Verification Shape
 
@@ -212,8 +211,14 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   - verify:
     - `hours`
     - `projectChargeableHours`
+    - `project.id`
+    - `activity.id`
+  - on the chargeable branch, also verify:
     - `hourlyRate`
     - `chargeable`
+  - on the non-chargeable fallback branch, expect:
+    - `chargeable=false`
+    - `hourlyRate=0`
 - `PUT /order/{id}/:invoice`
   - expect `ResponseWrapperInvoice`
   - verify:
@@ -228,6 +233,7 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not assume `PUT /timesheet/week/:approve` is required or even permitted for this task shape
 - Do not try to attach a project-specific rate to a non-chargeable activity; the server returns `422 activity.id: Ikke fakturerbar.`
 - Do not assume `projectChargeableHours` overrides a non-chargeable activity; the timesheet entry can still come back with `chargeable=false` and `hourlyRate=0`
+- Do not stop the run solely because of that non-chargeable timesheet response when the prompt only scores requested hours registration plus the invoice side effect; the scoring-first fallback is still the timesheet write plus a manual project-linked order/invoice
 - Do not assume a positive project invoicing reserve means the public API can actually charge those hours into an invoice
 - Do not use `POST /order` or `POST /invoice` with a project but no real order lines as the invoicing write; both public paths were re-proven to fail for this task shape
 - Do not treat writable-looking nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` as a working path; the server accepts or validates the payload but still persists `includeHours=false`

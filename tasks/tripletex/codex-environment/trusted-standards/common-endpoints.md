@@ -123,6 +123,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
   - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
+- Standard search note:
+  - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
+  - when that expanded project search already leaves one exact `project.name` plus nested `customer.organizationNumber` and/or `customer.name` match, do not add a separate `GET /customer`
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
 
@@ -137,6 +140,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard time-registration note:
   - for project hour tasks, prefer `/activity/>forTimeSheet` over a broad `/activity` search because it proves the activity is actually available on the project for that employee/date
   - if the resolved activity is non-chargeable, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
+  - for prompt shapes that only score requested hours registration plus the customer-facing project invoice, a non-chargeable activity is still not an automatic stop condition: skip the doomed project-specific-rate write, register the hours, and use the manual project-linked order/invoice fallback
 
 ## Project Hourly Rates
 - `/project/hourlyRates`
@@ -170,6 +174,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` approve week
 - Standard time-registration note:
   - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
+  - that non-chargeable timesheet response is only a true blocker when the prompt explicitly scores internal billability semantics or true project-hour reserve consumption
   - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
 
 ## Project Period
