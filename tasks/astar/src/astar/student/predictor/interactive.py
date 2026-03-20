@@ -112,7 +112,7 @@ def build_online_predictor(
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v5__policy={resolved_policy_name}",
+                f"query_residual_v7__policy={resolved_policy_name}",
             )
             checkpoint_path = checkpoint_dir / "checkpoint.json"
             if checkpoint_path.exists():

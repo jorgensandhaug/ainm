@@ -14,7 +14,9 @@ from astar.core.prediction import PredictionBundle
 from astar.core.score import entropy_map
 from astar.core.terrain import CLASS_COUNT, CLASS_NAMES, collapse_internal_grid, map_internal_code
 from astar.core.trajectory import LiveQueryObs
+from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
+from astar.history.episodes.build import build_round_episode
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
@@ -28,6 +30,7 @@ from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor, softmax_logits
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.round import BaseRoundPredictor
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 
 LOG_FLOOR_DENOM = math.log(100.0)
 MAX_QUERY_BUDGET = 50.0
@@ -186,6 +189,32 @@ def _initial_settlement_maps(round_detail: RoundDetail, seed_index: int) -> tupl
     return settlement_map, port_map
 
 
+class _TeacherSeedAdapter(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    seed_index: int = Field(ge=0)
+    initial_state: InitialWorldState
+
+
+def _teacher_seed_adapter(round_detail: RoundDetail, seed_index: int) -> _TeacherSeedAdapter:
+    initial_state = round_detail.initial_states[seed_index]
+    return _TeacherSeedAdapter(
+        seed_index=seed_index,
+        initial_state=InitialWorldState(
+            grid=np.asarray(initial_state.grid, dtype=np.int64),
+            settlements=tuple(
+                InitialSettlementState(
+                    x=item.x,
+                    y=item.y,
+                    has_port=item.has_port,
+                    alive=item.alive,
+                )
+                for item in initial_state.settlements
+            ),
+        ),
+    )
+
+
 def _gaussian_kernel1d(sigma: float) -> np.ndarray:
     radius = max(1, int(math.ceil(3.0 * sigma)))
     coords = np.arange(-radius, radius + 1, dtype=np.float64)
@@ -281,6 +310,24 @@ class TranscriptDerivedFeatures(BaseModel):
     exact_counts: dict[int, np.ndarray]
 
 
+def _fit_linear_map(
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    *,
+    ridge_alpha: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    design = np.concatenate(
+        [np.ones((inputs.shape[0], 1), dtype=np.float64), inputs],
+        axis=1,
+    )
+    penalty = np.eye(design.shape[1], dtype=np.float64)
+    penalty[0, 0] = 0.0
+    lhs = design.T @ design + ridge_alpha * penalty
+    rhs = design.T @ targets
+    solution = np.linalg.pinv(lhs) @ rhs
+    return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
+
+
 class QueryResidualPredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -298,6 +345,13 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     signal_scale: float = Field(gt=0.0)
     min_delta_scale: float = Field(ge=0.0, le=1.0)
     residual_class_scale: list[float]
+    teacher_name: str
+    teacher_feature_names: list[str]
+    teacher_regime_intercept: list[float]
+    teacher_regime_weights: list[list[float]]
+    teacher_blend: float = Field(ge=0.0, le=1.0)
+    regime_intercept: list[float]
+    regime_weights: list[list[float]]
     beta_min: float = Field(ge=0.0)
     beta_scale: float = Field(ge=0.0)
     training_episode_count: int = Field(ge=0)
@@ -631,6 +685,45 @@ def _local_evidence_names() -> list[str]:
     return names
 
 
+def _regime_summary_names() -> list[str]:
+    return [
+        "regime_build_hit_buildable",
+        "regime_build_hit_coast",
+        "regime_build_hit_inland",
+        "regime_port_hit_buildable",
+        "regime_ruin_hit_buildable",
+        "regime_owner_flip_buildable",
+        "regime_terminal_settlement_mass",
+        "regime_terminal_port_mass",
+        "regime_terminal_ruin_mass",
+        "regime_terminal_built_mass",
+        "regime_terminal_port_mass_dup",
+        "regime_terminal_ruin_mass_dup",
+    ]
+
+
+def _regime_input_names() -> list[str]:
+    names = [f"regime_in__{name}" for name in _global_summary_names()]
+    names.extend([f"regime_in__seed_mean__{name}" for name in _seed_summary_names()])
+    names.extend([f"regime_in__seed_std__{name}" for name in _seed_summary_names()])
+    return names
+
+
+def _regime_interaction_names() -> list[str]:
+    return [
+        "regime_build_hit_buildable_x_buildable",
+        "regime_build_hit_coast_x_maritime_access",
+        "regime_build_hit_inland_x_settlement_proximity",
+        "regime_port_hit_buildable_x_maritime_access",
+        "regime_ruin_hit_buildable_x_frontier_score",
+        "regime_owner_flip_buildable_x_frontier_score",
+        "regime_terminal_settlement_mass_x_settlement_proximity",
+        "regime_terminal_port_mass_x_maritime_access",
+        "regime_terminal_ruin_mass_x_frontier_score",
+        "regime_terminal_built_mass_x_buildable",
+    ]
+
+
 def _interaction_names() -> list[str]:
     return [
         "global_empty_x_buildable",
@@ -662,14 +755,18 @@ def _interaction_names() -> list[str]:
 
 GLOBAL_SUMMARY_INDEX = {name: index for index, name in enumerate(_global_summary_names())}
 SEED_SUMMARY_INDEX = {name: index for index, name in enumerate(_seed_summary_names())}
+REGIME_SUMMARY_INDEX = {name: index for index, name in enumerate(_regime_summary_names())}
 
 
 def _full_feature_names() -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
+    names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend(_global_summary_names())
     names.extend(_seed_summary_names())
+    names.extend(_regime_summary_names())
     names.extend(_local_evidence_names())
+    names.extend(_regime_interaction_names())
     names.extend(_interaction_names())
     return names
 
@@ -755,10 +852,50 @@ def _interaction_tensor(
     )
 
 
+def _regime_input_vector(derived: TranscriptDerivedFeatures) -> np.ndarray:
+    ordered_seed_indexes = sorted(derived.seed_summaries)
+    seed_stack = np.stack([derived.seed_summaries[seed_index] for seed_index in ordered_seed_indexes], axis=0)
+    return np.concatenate(
+        [
+            np.asarray(derived.global_summary, dtype=np.float64),
+            np.mean(seed_stack, axis=0),
+            np.std(seed_stack, axis=0),
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
+def _regime_interaction_tensor(
+    static_stack: np.ndarray,
+    regime_vector: np.ndarray,
+) -> np.ndarray:
+    buildable = static_stack[..., len(CLASS_NAMES) + 2]
+    frontier_score = static_stack[..., len(CLASS_NAMES) + 10]
+    settlement_proximity = static_stack[..., len(CLASS_NAMES) + 11]
+    maritime_access = static_stack[..., len(CLASS_NAMES) + 12]
+    return np.stack(
+        [
+            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_buildable"]] * buildable,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_coast"]] * maritime_access,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_inland"]] * settlement_proximity,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_port_hit_buildable"]] * maritime_access,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_ruin_hit_buildable"]] * frontier_score,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_owner_flip_buildable"]] * frontier_score,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_settlement_mass"]] * settlement_proximity,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_port_mass"]] * maritime_access,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_ruin_mass"]] * frontier_score,
+            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_built_mass"]] * buildable,
+        ],
+        axis=-1,
+    )
+
+
 def _compose_design_tensor(
     static_stack: np.ndarray,
     prior: np.ndarray,
+    teacher_prior: np.ndarray,
     derived: TranscriptDerivedFeatures,
+    regime_vector: np.ndarray,
     *,
     seed_index: int,
     probability_floor: float,
@@ -767,15 +904,21 @@ def _compose_design_tensor(
     global_broadcast = np.broadcast_to(derived.global_summary, (height, width, len(derived.global_summary)))
     seed_summary = derived.seed_summaries[seed_index]
     seed_broadcast = np.broadcast_to(seed_summary, (height, width, len(seed_summary)))
+    regime_broadcast = np.broadcast_to(regime_vector, (height, width, len(regime_vector)))
     prior_logits = _safe_log_probs(prior, probability_floor) / LOG_FLOOR_DENOM
+    teacher_logits = _safe_log_probs(teacher_prior, probability_floor) / LOG_FLOOR_DENOM
+    regime_interaction = _regime_interaction_tensor(static_stack, regime_vector)
     interaction = _interaction_tensor(static_stack, derived.global_summary, seed_summary)
     return np.concatenate(
         [
             static_stack,
             prior_logits,
+            teacher_logits,
             global_broadcast,
             seed_broadcast,
+            regime_broadcast,
             derived.local_evidence[seed_index],
+            regime_interaction,
             interaction,
         ],
         axis=-1,
@@ -801,8 +944,9 @@ def _select_training_cells(
 class QueryResidualPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "query_residual_v5"
+    name: str = "query_residual_v7"
     base_predictor: HistoricalBucketPriorPredictor
+    teacher: HazardTeacher
     policy_name: str = "coverage"
     round_ids: tuple[str, ...] = ()
     samples_per_round: int = Field(default=1, ge=1)
@@ -817,6 +961,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
     min_delta_scale: float = Field(default=0.4, ge=0.0, le=1.0)
     residual_class_scale: np.ndarray = Field(
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
+    )
+    teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
+    regime_intercept: np.ndarray = Field(
+        default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
+    )
+    regime_weights: np.ndarray = Field(
+        default_factory=lambda: np.zeros((len(_regime_input_names()), len(_regime_summary_names())), dtype=np.float64),
     )
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
@@ -841,13 +992,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
         cells_per_seed: int = 256,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
         ridge_lambda: float = 8.0,
-        model_name: str = "query_residual_v5",
+        model_name: str = "query_residual_v7",
         probability_floor: float = 0.01,
         temperature: float = 1.15,
         prior_blend: float = 0.35,
         signal_scale: float = 0.12,
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
+        teacher_blend: float = 0.12,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
     ) -> QueryResidualPredictor:
@@ -859,6 +1011,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
         base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
             paths,
             round_ids=list(selected_round_ids),
+        )
+        teacher = HazardTeacher(name=f"{model_name}__hazard_teacher").fit(
+            [build_round_episode(paths, round_id) for round_id in selected_round_ids],
         )
         index_path = _ensure_synthetic_dataset(
             paths,
@@ -878,6 +1033,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
         training_episode_count = 0
         sample_count = 0
+        training_prefixes: list[tuple[dict[str, object], TranscriptDerivedFeatures, np.ndarray]] = []
 
         round_cache: dict[str, dict[str, object]] = {}
         for row in rows:
@@ -940,26 +1096,56 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     blur_sigmas=DEFAULT_BLUR_SIGMAS,
                 )
                 training_episode_count += 1
-                for seed_index in cached["analyses"]:  # type: ignore[operator]
-                    design = _compose_design_tensor(
-                        cached["static_stacks"][seed_index],  # type: ignore[index]
-                        cached["prior_bundle"].predictions_by_seed[seed_index],  # type: ignore[index]
+                training_prefixes.append(
+                    (
+                        cached,
                         derived,
-                        seed_index=seed_index,
-                        probability_floor=probability_floor,
-                    )
-                    flat_design = design.reshape(-1, feature_dim)
-                    selected = cached["selected_indices"][seed_index]  # type: ignore[index]
-                    batch_x = flat_design[selected]
-                    batch_y = cached["target_delta"][seed_index][selected]  # type: ignore[index]
-                    batch_w = cached["row_weights"][seed_index][selected]  # type: ignore[index]
-                    batch_aug = np.concatenate(
-                        [np.ones((batch_x.shape[0], 1), dtype=np.float64), batch_x],
-                        axis=1,
-                    )
-                    xtwx += batch_aug.T @ (batch_w[:, None] * batch_aug)
-                    xtwy += batch_aug.T @ (batch_w[:, None] * batch_y)
-                    sample_count += int(batch_x.shape[0])
+                        np.asarray(artifact.regime_vector, dtype=np.float64),
+                    ),
+                )
+        regime_inputs = np.stack(
+            [_regime_input_vector(derived) for _, derived, _ in training_prefixes],
+            axis=0,
+        )
+        regime_targets = np.stack([target for _, _, target in training_prefixes], axis=0)
+        regime_intercept, regime_weights = _fit_linear_map(
+            regime_inputs,
+            regime_targets,
+            ridge_alpha=max(ridge_lambda, 1e-3),
+        )
+
+        for cached, derived, _ in training_prefixes:
+            predicted_regime = np.asarray(
+                regime_intercept + (_regime_input_vector(derived) @ regime_weights),
+                dtype=np.float64,
+            )
+            predicted_regime = np.clip(predicted_regime, -0.25, 1.25)
+            for seed_index in cached["analyses"]:  # type: ignore[operator]
+                teacher_prior = teacher.terminal_tensor(
+                    _teacher_seed_adapter(cached["round_detail"], seed_index),  # type: ignore[arg-type]
+                    predicted_regime,
+                )
+                design = _compose_design_tensor(
+                    cached["static_stacks"][seed_index],  # type: ignore[index]
+                    cached["prior_bundle"].predictions_by_seed[seed_index],  # type: ignore[index]
+                    teacher_prior,
+                    derived,
+                    predicted_regime,
+                    seed_index=seed_index,
+                    probability_floor=probability_floor,
+                )
+                flat_design = design.reshape(-1, feature_dim)
+                selected = cached["selected_indices"][seed_index]  # type: ignore[index]
+                batch_x = flat_design[selected]
+                batch_y = cached["target_delta"][seed_index][selected]  # type: ignore[index]
+                batch_w = cached["row_weights"][seed_index][selected]  # type: ignore[index]
+                batch_aug = np.concatenate(
+                    [np.ones((batch_x.shape[0], 1), dtype=np.float64), batch_x],
+                    axis=1,
+                )
+                xtwx += batch_aug.T @ (batch_w[:, None] * batch_aug)
+                xtwy += batch_aug.T @ (batch_w[:, None] * batch_y)
+                sample_count += int(batch_x.shape[0])
 
         regularizer = np.eye(feature_dim + 1, dtype=np.float64)
         regularizer[0, 0] = 0.0
@@ -968,6 +1154,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         return cls(
             name=model_name,
             base_predictor=base_predictor,
+            teacher=teacher,
             policy_name=policy_name,
             round_ids=tuple(selected_round_ids),
             samples_per_round=samples_per_round,
@@ -981,6 +1168,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
             signal_scale=signal_scale,
             min_delta_scale=min_delta_scale,
             residual_class_scale=np.asarray(residual_class_scale, dtype=np.float64),
+            teacher_blend=teacher_blend,
+            regime_intercept=np.asarray(regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(regime_weights, dtype=np.float64),
             beta_min=beta_min,
             beta_scale=beta_scale,
             training_episode_count=training_episode_count,
@@ -997,6 +1187,12 @@ class QueryResidualPredictor(BaseRoundPredictor):
         return cls(
             name=checkpoint.name,
             base_predictor=HistoricalBucketPriorPredictor.load_checkpoint(base_path),
+            teacher=HazardTeacher(
+                name=checkpoint.teacher_name,
+                feature_names=list(checkpoint.teacher_feature_names),
+                regime_intercept=np.asarray(checkpoint.teacher_regime_intercept, dtype=np.float64),
+                regime_weights=np.asarray(checkpoint.teacher_regime_weights, dtype=np.float64),
+            ),
             policy_name=checkpoint.policy_name,
             round_ids=tuple(checkpoint.round_ids),
             samples_per_round=checkpoint.samples_per_round,
@@ -1010,6 +1206,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
             signal_scale=checkpoint.signal_scale,
             min_delta_scale=checkpoint.min_delta_scale,
             residual_class_scale=np.asarray(checkpoint.residual_class_scale, dtype=np.float64),
+            teacher_blend=checkpoint.teacher_blend,
+            regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
             beta_min=checkpoint.beta_min,
             beta_scale=checkpoint.beta_scale,
             training_episode_count=checkpoint.training_episode_count,
@@ -1038,6 +1237,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
             signal_scale=self.signal_scale,
             min_delta_scale=self.min_delta_scale,
             residual_class_scale=np.asarray(self.residual_class_scale, dtype=np.float64).tolist(),
+            teacher_name=self.teacher.name,
+            teacher_feature_names=list(self.teacher.feature_names),
+            teacher_regime_intercept=np.asarray(self.teacher.regime_intercept, dtype=np.float64).tolist(),
+            teacher_regime_weights=np.asarray(self.teacher.regime_weights, dtype=np.float64).tolist(),
+            teacher_blend=self.teacher_blend,
+            regime_intercept=np.asarray(self.regime_intercept, dtype=np.float64).tolist(),
+            regime_weights=np.asarray(self.regime_weights, dtype=np.float64).tolist(),
             beta_min=self.beta_min,
             beta_scale=self.beta_scale,
             training_episode_count=self.training_episode_count,
@@ -1059,14 +1265,18 @@ class QueryResidualPredictor(BaseRoundPredictor):
         prior_bundle = self.base_predictor.build_prediction_bundle(round_detail, features)
         delta_scale = self._transcript_delta_scale(derived)
         effective_prior_blend = 1.0 - (delta_scale * (1.0 - self.prior_blend))
+        inferred_regime = self._infer_regime_from_derived(derived)
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
             static_stack = _build_static_feature_stack(round_detail, features, seed_index)
             prior = np.asarray(prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            teacher_prior = self._teacher_prior_for_seed(round_detail, seed_index, inferred_regime)
             design = _compose_design_tensor(
                 static_stack,
                 prior,
+                teacher_prior,
                 derived,
+                inferred_regime,
                 seed_index=seed_index,
                 probability_floor=self.probability_floor,
             )
@@ -1086,6 +1296,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
             )
             if self.temperature != 1.0:
                 prediction = softmax_logits(_safe_log_probs(prediction, self.probability_floor) / self.temperature)
+            if self.teacher_blend > 0.0:
+                prediction = ((1.0 - self.teacher_blend) * prediction) + (self.teacher_blend * teacher_prior)
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
@@ -1093,6 +1305,27 @@ class QueryResidualPredictor(BaseRoundPredictor):
             round_id=round_detail.id,
             model_name=self.name,
             predictions_by_seed=predictions_by_seed,
+        )
+
+    def _infer_regime_from_derived(self, derived: TranscriptDerivedFeatures) -> np.ndarray:
+        regime = np.asarray(
+            self.regime_intercept + (_regime_input_vector(derived) @ self.regime_weights),
+            dtype=np.float64,
+        )
+        return np.clip(regime, -0.25, 1.25)
+
+    def _teacher_prior_for_seed(
+        self,
+        round_detail: RoundDetail,
+        seed_index: int,
+        inferred_regime: np.ndarray,
+    ) -> np.ndarray:
+        return np.asarray(
+            self.teacher.terminal_tensor(
+                _teacher_seed_adapter(round_detail, seed_index),
+                inferred_regime,
+            ),
+            dtype=np.float64,
         )
 
     def _transcript_delta_scale(self, derived: TranscriptDerivedFeatures) -> float:
