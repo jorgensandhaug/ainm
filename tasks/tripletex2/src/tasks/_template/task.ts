@@ -7,6 +7,7 @@ import type {
 } from "../../runtime/contracts";
 
 export const TEMPLATE_TASK_ID = "replace-task-id";
+export const TEMPLATE_TX_TASK_ID = "00";
 export const TEMPLATE_INPUT_SCHEMA_ID = "replace-task-id.v1";
 
 export interface TemplateTaskInput {
@@ -16,6 +17,7 @@ export interface TemplateTaskInput {
 
 export const task = {
   taskId: TEMPLATE_TASK_ID,
+  txTaskId: TEMPLATE_TX_TASK_ID,
   taskName: "Replace task name",
   signature: "replaceTask(primaryValue, optionalValue?)",
   summary: "Replace this with a one-sentence task summary.",

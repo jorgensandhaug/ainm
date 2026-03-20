@@ -87,6 +87,7 @@ test("deriveRunReports groups matched legacy attribution into the canonical task
   );
 
   assert.ok(createProduct);
+  assert.equal(createProduct.txTaskId, "04");
   assert.equal(createProduct.runCount, 2);
   assert.equal(createProduct.status, "solved-estimated");
   assert.equal(createProduct.sourceCoverage.sourceMix, "combined");
@@ -181,13 +182,24 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
   assert.equal(taskStatus.source.legacyImportArtifactCount, 0);
   assert.ok(
     taskStatus.tasks.some(
-      (task) => task.taskId === "create-product" && task.status === "not-run",
+      (task) =>
+        task.taskId === "create-product" &&
+        task.txTaskId === "04" &&
+        task.status === "not-run",
     ),
   );
   assert.ok(
     openTasks.tasks.some(
-      (task) => task.taskId === "create-product" && task.openCategory === "missing-coverage",
+      (task) =>
+        task.taskId === "create-product" &&
+        task.txTaskId === "04" &&
+        task.openCategory === "missing-coverage",
     ),
+  );
+  assert.equal(
+    strategyComparison.tasks.find((task) => task.taskId === "create-and-send-invoice")
+      ?.txTaskId,
+    "08",
   );
   assert.equal(
     strategyComparison.reportSchemaVersion,
@@ -198,13 +210,22 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
     strategyComparisonMarkdown,
     /\| Task \| Status \| Sources \| Current best \| Verified best \|/,
   );
-  assert.match(strategyComparisonMarkdown, /create-and-send-invoice/);
+  assert.match(strategyComparisonMarkdown, /\[08\] create-and-send-invoice/);
   assert.match(taskStatusMarkdown, /# Combined Task Status/);
+  assert.match(taskStatusMarkdown, /\[04\] create-product/);
   assert.match(taskStatusMarkdown, /combined live\+native evidence|Tasks with native runs/);
   assert.match(openTasksMarkdown, /# Open Optimization Targets/);
+  assert.match(openTasksMarkdown, /\[04\] create-product/);
   assert.match(openTasksMarkdown, /Target: Add first canonical run coverage/);
   assert.equal(productFrontier.task.taskId, "create-product");
+  assert.equal(productFrontier.task.txTaskId, "04");
   assert.equal(productFrontier.task.frontier.length, 0);
+  assert.equal(
+    derived.reports.strategyFrontiers.tasks.find(
+      (task) => task.taskId === "create-and-send-invoice",
+    )?.txTaskId,
+    "08",
+  );
   assert.equal(derived.reports.strategyFrontiers.tasks.length, taskStatus.tasks.length);
   assert.equal(derived.reports.openTasks.summary.highestPriorityOpenTasks > 0, true);
 });
@@ -335,6 +356,7 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
     comparisonTask.bestKnownStrategy?.strategyId,
     "create-and-send-invoice.estimated",
   );
+  assert.equal(comparisonTask.txTaskId, "08");
   assert.equal(
     comparisonTask.bestVerifiedStrategy?.strategyId,
     "create-and-send-invoice.direct-fast",
@@ -342,6 +364,7 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
   assert.equal(comparisonTask.leaderEvidenceClass, "estimated");
   assert.equal(comparisonTask.leaderNeedsVerification, true);
   assert.equal(comparisonTask.sourceCoverage.sourceMix, "native-only");
+  assert.equal(bestStrategiesTask.txTaskId, "08");
   assert.equal(bestStrategiesTask.bestKnownStrategy?.strategyId, "create-and-send-invoice.estimated");
   assert.equal(bestStrategiesTask.bestVerifiedStrategy?.strategyId, "create-and-send-invoice.direct-fast");
 });

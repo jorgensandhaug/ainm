@@ -3,7 +3,11 @@ import {
   createActiveStrategyResolver,
   loadActiveStrategySelectionConfig,
 } from "./active-strategy-selection";
-import { CANONICAL_TASK_REGISTRY } from "./legacy-tripletex1-task-bridge";
+import {
+  CANONICAL_TASK_REGISTRY,
+  slugToTxTaskId,
+  txTaskIdToSlug,
+} from "./legacy-tripletex1-task-bridge";
 import { createPlaceholderTaskRegistration } from "./placeholder-tasks";
 import { createTaskRegistry } from "./task-registry";
 import { taskRegistration as createAndSendInvoiceTask } from "../tasks/task-create-and-send-invoice/task";
@@ -27,6 +31,8 @@ export const DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH =
 export const taskRegistry = createTaskRegistry(taskRegistrations);
 
 export const taskSpecs = taskRegistry.taskSpecs;
+
+export { slugToTxTaskId, txTaskIdToSlug };
 
 export const listTaskIds = (): readonly string[] => taskRegistry.listTaskIds();
 

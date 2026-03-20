@@ -169,6 +169,7 @@ function createFakeTaskRegistration(
 ): FakeTaskRegistration {
   const task = {
     taskId,
+    txTaskId: taskId,
     taskName: `Task ${taskId}`,
     implementationStatus: options.implementationStatus,
     signature: `${taskId}(value)`,

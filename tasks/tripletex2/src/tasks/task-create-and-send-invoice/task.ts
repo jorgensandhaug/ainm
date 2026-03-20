@@ -7,6 +7,7 @@ import type {
 } from "../../runtime/contracts";
 
 export const CREATE_AND_SEND_INVOICE_TASK_ID = "create-and-send-invoice";
+export const CREATE_AND_SEND_INVOICE_TX_TASK_ID = "08";
 export const CREATE_AND_SEND_INVOICE_INPUT_SCHEMA_ID =
   "create-and-send-invoice.v1";
 
@@ -22,6 +23,7 @@ export interface CreateAndSendInvoiceInput {
 
 export const task = {
   taskId: CREATE_AND_SEND_INVOICE_TASK_ID,
+  txTaskId: CREATE_AND_SEND_INVOICE_TX_TASK_ID,
   taskName: "Create and send invoice",
   implementationStatus: "implemented",
   signature:

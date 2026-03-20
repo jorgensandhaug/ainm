@@ -164,6 +164,7 @@ export interface TaskSpec<
   TTaskId extends string = string,
 > {
   taskId: TTaskId;
+  txTaskId: string;
   taskName: string;
   implementationStatus?: TaskImplementationStatus;
   signature: string;
