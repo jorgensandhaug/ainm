@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
@@ -131,6 +132,38 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
         assert round_result.samples_per_round == 2
         for seed_result in round_result.seed_results:
             assert seed_result.samples_per_round == 2
+
+
+def test_query_residual_online_historical_benchmark_rebuilds_incomplete_legacy_dataset(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+    build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_coverage_v1",
+    )
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="query_residual",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_query_residual_online_incomplete_legacy",
+    )
+
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
 
 
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:

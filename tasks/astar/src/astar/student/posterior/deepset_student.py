@@ -35,8 +35,17 @@ def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
     return np.asarray(components, dtype=np.float64)
 
 
-def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    artifact = load_synthetic_episode(path)
+def _summary_vector_from_artifact(
+    path: Path,
+    *,
+    dataset_dir: Path | None = None,
+    workspace_root: Path | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    artifact = load_synthetic_episode(
+        path,
+        dataset_dir=dataset_dir,
+        workspace_root=workspace_root,
+    )
     grouped: dict[int, list[LiveQueryObs]] = {}
     for observation in artifact.observations:
         grouped.setdefault(observation.seed_index, []).append(observation)
@@ -111,8 +120,13 @@ class SummaryBankStudent(BaseModel):
         index_table = pl.read_parquet(dataset.index_path)
         summary_vectors: list[np.ndarray] = []
         regime_vectors: list[np.ndarray] = []
+        workspace_root = dataset.dataset_dir.parents[3]
         for path_value in index_table["episode_path"].to_list():
-            summary_vector, regime_vector = _summary_vector_from_artifact(Path(str(path_value)))
+            summary_vector, regime_vector = _summary_vector_from_artifact(
+                Path(str(path_value)),
+                dataset_dir=dataset.dataset_dir,
+                workspace_root=workspace_root,
+            )
             summary_vectors.append(summary_vector)
             regime_vectors.append(regime_vector)
         if not summary_vectors:

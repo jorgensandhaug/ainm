@@ -46,6 +46,47 @@ class SyntheticEpisodeArtifact(BaseModel):
     target_paths: dict[int, Path]
 
 
+def _resolve_workspace_path(
+    path: Path,
+    *,
+    dataset_dir: Path | None = None,
+    workspace_root: Path | None = None,
+) -> Path:
+    candidate = Path(path)
+    if candidate.exists():
+        return candidate
+
+    attempted: list[Path] = []
+    if not candidate.is_absolute():
+        resolved = candidate.resolve()
+        attempted.append(resolved)
+        if resolved.exists():
+            return resolved
+        if dataset_dir is not None:
+            dataset_relative = (dataset_dir / candidate).resolve()
+            attempted.append(dataset_relative)
+            if dataset_relative.exists():
+                return dataset_relative
+
+    if dataset_dir is not None:
+        episode_name_candidate = (dataset_dir / "episodes" / candidate.name).resolve()
+        attempted.append(episode_name_candidate)
+        if episode_name_candidate.exists():
+            return episode_name_candidate
+
+    if workspace_root is not None and "data" in candidate.parts:
+        data_index = candidate.parts.index("data")
+        remapped = workspace_root.joinpath(*candidate.parts[data_index:]).resolve()
+        attempted.append(remapped)
+        if remapped.exists():
+            return remapped
+
+    attempted_text = ", ".join(str(item) for item in attempted) or "none"
+    raise FileNotFoundError(
+        f"could not resolve synthetic dataset path {candidate}; tried: {attempted_text}",
+    )
+
+
 def _plan_budget(
     policy: QueryPlanPolicyAdapter,
     round_id: str,
@@ -71,8 +112,18 @@ def _target_info(
     raise ValueError(msg)
 
 
-def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+def load_synthetic_episode(
+    path: Path,
+    *,
+    dataset_dir: Path | None = None,
+    workspace_root: Path | None = None,
+) -> SyntheticEpisodeArtifact:
+    resolved_path = _resolve_workspace_path(
+        path,
+        dataset_dir=dataset_dir,
+        workspace_root=workspace_root,
+    )
+    payload = json.loads(resolved_path.read_text(encoding="utf-8"))
     payload["regime_vector"] = np.asarray(payload["regime_vector"], dtype=np.float64)
     normalized_observations: list[dict[str, object]] = []
     for observation in payload.get("observations", []):
@@ -80,6 +131,19 @@ def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
         observation_payload["grid"] = np.asarray(observation_payload["grid"], dtype=np.int64)
         normalized_observations.append(observation_payload)
     payload["observations"] = normalized_observations
+    resolved_target_paths: dict[int, Path] = {}
+    for seed_index, target_path in payload.get("target_paths", {}).items():
+        normalized_target_path = Path(str(target_path))
+        if workspace_root is not None:
+            try:
+                normalized_target_path = _resolve_workspace_path(
+                    normalized_target_path,
+                    workspace_root=workspace_root,
+                )
+            except FileNotFoundError:
+                pass
+        resolved_target_paths[int(seed_index)] = normalized_target_path
+    payload["target_paths"] = resolved_target_paths
     return SyntheticEpisodeArtifact.model_validate(payload)
 
 
@@ -153,6 +217,7 @@ def build_synthetic_live_dataset(
                 target_paths=target_paths,
             )
             episode_path = episodes_dir / f"{round_id}__sample_index={sample_index}.json"
+            episode_relpath = Path("episodes") / episode_path.name
             episode_path.write_text(
                 json.dumps(to_jsonable(artifact), indent=2),
                 encoding="utf-8",
@@ -163,7 +228,7 @@ def build_synthetic_live_dataset(
                     "sample_index": sample_index,
                     "policy_name": policy.name,
                     "query_count": len(observations),
-                    "episode_path": str(episode_path),
+                    "episode_path": str(episode_relpath),
                 },
             )
             total_query_count += len(observations)
@@ -178,7 +243,7 @@ def build_synthetic_live_dataset(
         "samples_per_round": samples_per_round,
         "total_query_count": total_query_count,
         "round_count": len({row["round_id"] for row in rows}),
-        "index_path": str(index_path),
+        "index_path": str(Path(index_path.name)),
     }
     summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")
     CatalogDB(paths.catalog_path).log_event(

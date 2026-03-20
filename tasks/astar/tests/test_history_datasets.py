@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+
+import polars as pl
 
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
@@ -134,6 +137,34 @@ def test_synthetic_live_dataset_builds_episode_artifacts(sample_paths: RepoPaths
     assert len(artifact.observations) > 0
     assert artifact.regime_vector.ndim == 1
     assert set(artifact.target_paths) == {0, 1, 2, 3, 4}
+
+    index_table = pl.read_parquet(dataset.index_path)
+    assert index_table["episode_path"].to_list()[0] == f"episodes/{ROUND_ID}__sample_index=0.json"
+
+
+def test_synthetic_live_dataset_artifact_loader_resolves_moved_workspace_path(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_portable_test",
+    )
+
+    moved_path = Path("/tmp/old-checkout/data/artifacts/datasets/synthetic_live_portable_test/episodes") / (
+        f"{ROUND_ID}__sample_index=0.json"
+    )
+    artifact = load_synthetic_episode(
+        moved_path,
+        dataset_dir=dataset.dataset_dir,
+        workspace_root=sample_paths.root,
+    )
+    assert artifact.round_id == ROUND_ID
+    assert len(artifact.observations) > 0
 
 
 def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
