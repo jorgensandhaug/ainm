@@ -17,11 +17,14 @@ Sandbox verification on 2026-03-19 showed:
 - single create returned `{"value": {...}}`
 - batch create returned `{"values": [...]}` with all created departments
 - a successful batch-create response can still show top-level `fullResultSize=0`; verify from `values[]`, not that metadata
+- exact Unicode department names survive the batch write unchanged; do not transliterate names such as `Økonomi`
 
 Production and sandbox re-verification on 2026-03-20 showed:
 - an exact German prompt asking for three named departments was still a pure exact-match create flow
 - one `POST /department/list` remained sufficient for perfect correctness
 - no language-specific branch, pre-read, or follow-up verification read was needed
+- an exact Spanish prompt asking for `Lager`, `Økonomi`, and `Drift` was the same exact-match flow
+- one sandbox `POST /department/list` with `Lager`, `Økonomi`, and `Drift`-shaped names returned the same names in `values[]`
 
 ## Minimal Safe Flow
 
@@ -47,6 +50,7 @@ Production and sandbox re-verification on 2026-03-20 showed:
 - Do not spend a discovery `GET`
 - Do not split the work into repeated `POST /department` calls unless the prompt only asks for a single department
 - Do not change the endpoint choice just because the prompt is written in German, French, or another supported language
+- Preserve the prompt-provided department names exactly; do not ASCII-normalize `Ø`
 
 ## Single-Create Payload Shape
 

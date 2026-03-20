@@ -9,7 +9,7 @@
 - create one or more new departments
 - prompt directly provides department names
 - no update/delete/lookup flow
-- prompt language does not matter for this shape; German, Norwegian, French, etc. still use the same endpoint choice
+- prompt language does not matter for this shape; German, Norwegian, Spanish, French, etc. still use the same endpoint choice
 
 ## Do Not Use This Standard If
 - prompt requires modifying existing departments
@@ -27,6 +27,7 @@
   - `{ "name": "..." }`
 - many departments:
   - `[{"name":"..."}, ...]`
+- preserve department names exactly, including non-ASCII letters such as `Ø`
 - do not invent `departmentNumber`
 - do not invent `departmentManager`
 
@@ -48,4 +49,6 @@
 - `/department` and `/department/list` verified in `./openapi.json`
 - sandbox-proven for one-call single and one-call batch create
 - sandbox re-verified on 2026-03-20: batch create returned correct `values[]` with `fullResultSize=0`
+- sandbox re-verified on 2026-03-20 with `Lager`, `Økonomi`, `Drift`-shaped names: one `POST /department/list` preserved the exact Unicode names in `values[]`
 - production re-confirmed on 2026-03-20 with a German three-department prompt: one `POST /department/list` created all requested departments with no prerequisite reads
+- production re-confirmed on 2026-03-20 with a Spanish three-department prompt for `Lager`, `Økonomi`, and `Drift`: one `POST /department/list` created all requested departments with no prerequisite reads
