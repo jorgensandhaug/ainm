@@ -45,7 +45,7 @@
 - do not invent `physicalAddress`
 - do not invent `invoiceEmail`
 - localized generic email labels such as `Correo` and `E-mail` still map to `email`
-- prompt language alone does not change this standard; French- and German-language prompts with ordinary Norwegian customer fields are still the same one-call create path
+- prompt language alone does not change this standard; French-, German-, and Spanish-language prompts with ordinary Norwegian customer fields are still the same one-call create path
 
 ## Reuse From Write Response
 - `value.id`
@@ -80,3 +80,5 @@
 - re-verified again on 2026-03-20 in persistent sandbox with production-like German prompt semantics and unique payload `Grünfeld Reflection 201018 AS`, `post-reflection-201018@grunfeld.no`, `999201018`, and `postalAddress` `Kirkegata 87`, `6003`, `Ålesund`; the same single `POST /customer` returned customer `id=108268237`, preserved the exact Unicode name and city, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in production for the French-language prompt `Colline SARL`, `939137599`, `post@colline.no`, and `Kirkegata 77, 4611 Kristiansand`; one `POST /customer` returned customer `id=108284978`, preserved the exact name, email, and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in persistent sandbox with production-like French prompt semantics and unique payload `Colline Reflection c833b15d SARL`, `post-reflection-c833b15d@colline.no`, `999833115`, and `postalAddress` `Kirkegata 77`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108285083`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in production for the Spanish-language prompt `Río Verde SL`, `919234830`, `post@rio.no`, and `Solveien 5, 4006 Stavanger`; one `POST /customer` returned customer `id=108285940`, preserved the exact accented Unicode name plus email and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in persistent sandbox with production-like Spanish prompt semantics and unique payload `Río Verde Reflection 017503 AS`, `post-reflection-017503@rio.no`, `999017503`, and `postalAddress` `Solveien 5`, `4006`, `Stavanger`; the same single `POST /customer` returned customer `id=108286045`, preserved the exact accented Unicode name and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
