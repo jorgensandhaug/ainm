@@ -38,15 +38,19 @@ Fresh-account production verification on 2026-03-20 showed:
 - do not search for a book-specific VAT endpoint or hardcode the sandbox's `0%` code; the safe path is still to pick the matching `0%` row from the filtered `OUTGOING` result in the current account
 
 Fresh-account production verification on 2026-03-20 also showed:
-- an exact create-product prompt for `Stockage cloud`, product number `8912`, `26850 NOK` excluding VAT, and standard `25%` VAT succeeded with exactly two API calls
-- the winning path was `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, pick the `25%` row `id=3`, then `POST /product`
+- an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
+- that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
 - the `201` write response already proved the created `id`, `name`, `number`, `priceExcludingVatCurrency`, computed `priceIncludingVatCurrency`, and `vatType.id`
-- therefore this exact task shape does not need `GET /product`, `GET /product/{id}`, or an `openapi.json` re-check once the trusted standard already matches
 
 Scoring feedback on 2026-03-20 later clarified that the same `Stockage cloud` run was still not minimal-call:
 - the extra `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` cost the efficiency half-point
 - the lower-call winning path for that exact fresh-account shape was one `POST /product` with `name`, `number`, and `priceExcludingVatCurrency`, omitting explicit `vatType`
 - therefore the trusted shortcut for the exact fresh-account standard-`25%` product-create shape is one write call, not two
+
+Fresh-account production verification later on 2026-03-20 confirmed that lower-call path directly:
+- the exact prompt `Softwarelizenz`, product number `7986`, `24900 NOK` excluding VAT, standard `25%` VAT succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=31125` and `vatType.id=3`
+- therefore the exact fresh-account standard-`25%` create-product shape is now doubly proven as a one-write path, while the earlier VAT read remains documented only as a non-minimal historical branch
 
 Persistent-sandbox verification on 2026-03-20 also showed:
 - `POST /product` without any `vatType` still succeeded and auto-filled sandbox default `0%` VAT code `6`
@@ -80,7 +84,7 @@ Persistent-sandbox verification on 2026-03-20 also showed:
 
 ## Recommended Payload Shape
 
-Use `number` for the product number and the VAT code id from the `OUTGOING` lookup.
+Use `number` for the product number. Include `vatType` only on the non-shortcut branch that already proved the needed `OUTGOING` VAT id.
 
 ```json
 {

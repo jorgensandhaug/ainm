@@ -96,15 +96,16 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` update
   - `DELETE` delete
 - Standard create prerequisite:
-  - resolve valid outgoing `vatType`
-  - if the prompt requires an exact VAT percentage and that percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+  - exact prompt-required fields
+  - if the prompt requires a non-standard or otherwise non-default exact VAT percentage, resolve a valid outgoing `vatType`
+  - if the requested exact VAT percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
 - Standard create fast-path note:
   - for the exact fresh-account create-one-product shape with prompt-provided `name`, `number`, excluding-VAT price, and standard `25%` VAT wording, the canonical winning path is one `POST /product` with no explicit `vatType`
-  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`
+  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`; the 2026-03-20 `Softwarelizenz` / `7986` / `24900` production run again confirmed that one-write path with `priceIncludingVatCurrency=31125` and `vatType.id=3`
   - for exact `0%`, reduced-rate, or otherwise non-standard VAT prompts, fall back to one filtered outgoing VAT read followed by `POST /product`
   - do not re-check `./openapi.json` for an exact trusted-standard match, and do not add `GET /product` pre-reads or `GET /product/{id}` verification reads when the write response already proves the scored fields
 - Standard create note:
-  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; do not use that as the trusted fast path when the prompt scores exact VAT
+  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; the persistent sandbox still auto-filled `0%` VAT code `6` on 2026-03-20 and produced `priceIncludingVatCurrency == priceExcludingVatCurrency`, so do not use that as the trusted fast path when the prompt scores exact VAT outside the exact fresh-account standard-`25%` shortcut
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)

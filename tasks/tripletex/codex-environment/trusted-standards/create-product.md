@@ -62,5 +62,6 @@
 - `/product` verified in `./openapi.json`
 - VAT selection rule proven in sandbox/playbooks
 - scoring feedback on 2026-03-20 confirmed that the exact `Stockage cloud` `25%` product-create task lost efficiency when it spent a filtered `OUTGOING` VAT read before `POST /product`; the lower-call winning path for that exact fresh-account shape is one `POST /product`
+- fresh-account production verification on 2026-03-20 for `Softwarelizenz` / `7986` / `24900` excluding VAT confirmed that the one-call path still returns the correct `25%` outcome directly from the write response (`priceIncludingVatCurrency=31125`, `vatType.id=3`)
 - persistent-sandbox verification on 2026-03-20 showed that `POST /product` without `vatType` auto-filled `0%` VAT code `6`, so the one-call shortcut is account-dependent and must stay scoped to the exact fresh-account standard-`25%` shape
-- persistent-sandbox verification on 2026-03-20 still exposed only `0%` on the filtered `OUTGOING` VAT read; that account remains blocked for explicit `25%` VAT resolution
+- persistent-sandbox re-verification on 2026-03-20 still exposed only `0%` on the filtered `OUTGOING` VAT read, and the omitted-`vatType` create still produced `priceIncludingVatCurrency == priceExcludingVatCurrency`; that account remains blocked for explicit `25%` VAT resolution
