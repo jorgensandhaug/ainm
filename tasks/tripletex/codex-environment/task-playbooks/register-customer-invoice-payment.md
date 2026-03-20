@@ -33,6 +33,9 @@ Verified in sandbox on 2026-03-19:
   - `32813747` `Kontant` with debit account `1900`
   - `32813748` `Betalt til bank` with debit account `1920`
 - `PUT /invoice/{id}/:payment?...` updated the invoice and returned `remainingOutstanding = 0`
+- re-verified on 2026-03-20 in persistent sandbox:
+  - `Betalt til bank` (`id=32813748`) had `debitAccount.number=1920`, `isBankAccount=true`, `isInvoiceAccount=true`, and `creditAccount=null`
+  - despite `creditAccount=null`, `PUT /invoice/{id}/:payment?...` with that payment type still reduced `remainingOutstanding` to `0`
 
 ## Minimal Flow
 
@@ -49,7 +52,9 @@ Verified in sandbox on 2026-03-19:
    - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].invoiceComment`, or nearby invoice text fields
 4. Resolve one usable payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-   - prefer a bank-style incoming payment type when available, typically debit account `19xx` and customer ledger credit `15xx`
+   - prefer a bank-style incoming payment type when available, typically debit account `19xx`
+   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+   - do not reject the candidate just because `creditAccount` is `null`
 5. Register full payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<outstanding>`
 6. Verify from the write response
@@ -72,6 +77,8 @@ Verified in sandbox on 2026-03-19:
 - Read from `GET /invoice/paymentType`
 - Normalize `debitAccount.number` and `creditAccount.number` before applying string-prefix checks; they may be returned as numbers rather than strings
 - Prefer an ordinary bank payment type over niche/custom types when several are available
+- Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present
+- Do not require a `15xx` credit account; `creditAccount` may be `null` on a valid incoming payment type such as `Betalt til bank`
 
 ## If You Still Need to Probe
 

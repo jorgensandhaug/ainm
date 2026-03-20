@@ -28,13 +28,15 @@ Do not use for:
   - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` returned both target products
   - `GET /product?ids=<id-a>,<id-b>&fields=*` also returned both target products
   - therefore, for numeric product refs in the prompt, product-number lookup is a good first try and one fallback ID lookup is enough if needed
+- additional production verification on 2026-03-20 showed two more traps:
+  - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice
 
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
    - `GET /customer`
    - `GET /product`
-   - `GET /ledger/account`
    - `POST /order`
    - `PUT /order/{id}/:invoice`
    - `GET /invoice/paymentType`
@@ -44,7 +46,8 @@ Do not use for:
 3. Resolve the products from prompt refs
    - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
    - if that does not uniquely resolve the products, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
-4. Ensure the company invoice bank account is registered if needed
+   - if both numeric lookups fail and the prompt also gives exact product names, do one final decisive fallback `GET /product?count=1000&fields=*` and filter locally by exact prompt names
+4. Only if the first invoice write fails with a company-bank-account validation, repair that prerequisite
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - if the invoice account bank number is missing, update that existing invoice account with `PUT /ledger/account/{id}`
 5. Create the order with embedded lines
@@ -58,7 +61,9 @@ Do not use for:
    - use invoice totals/lines in that response as verification where available
 8. Resolve one usable incoming payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-   - prefer a normal incoming payment type, typically debit account `19xx` and customer ledger credit `15xx`
+   - prefer a bank-style incoming payment type whose debit account is `19xx`
+   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+   - do not reject the candidate just because `creditAccount` is `null`
 9. Register full payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<outstanding>`
 10. Verify from the payment write response
@@ -74,12 +79,14 @@ Do not use for:
 - the winning path is usually:
   1. `GET /customer?organizationNumber=...&fields=*`
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-  3. if needed, `GET /ledger/account?isBankAccount=true&fields=*`
-  4. `POST /order` with embedded `orderLines`
-  5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-  6. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-  7. `PUT /invoice/{id}/:payment?...`
+  3. if that misses, `GET /product?ids=<ref>,<ref>&fields=*`
+  4. only if both numeric lookups miss and the prompt also gives exact product names, `GET /product?count=1000&fields=*` and filter locally by exact names
+  5. `POST /order` with embedded `orderLines`
+  6. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+  7. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  8. `PUT /invoice/{id}/:payment?...`
 - Do not insert an automatic `GET /order/{id}` just because `POST /order` echoed empty `orderLines`
+- Do not insert an automatic `GET /ledger/account` before the first invoice write
 - If the invoice response already proves the charged lines/totals and outstanding amount, that later write response is often enough
 
 ## Order Payload Notes
@@ -137,7 +144,10 @@ Do not use for:
   - `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
 - If that does not uniquely resolve the products, do one fallback:
   - `GET /product?ids=<ref>,<ref>&fields=*`
-- Do not spray multiple exploratory `/product` reads after that
+- If both numeric reads fail and the prompt also gives exact product names, one final decisive fallback is allowed:
+  - `GET /product?count=1000&fields=*`
+  - filter locally by exact prompt names
+- Do not spray multiple exploratory `/product` reads after that final fallback
 - Reuse the resolved product objects for IDs and any needed VAT context
 
 ## Payment Rules
@@ -147,6 +157,23 @@ Do not use for:
   - `amountCurrencyOutstanding` first
   - otherwise `amountOutstanding`
 - This avoids VAT and currency mistakes
+- For `GET /invoice/paymentType`, normalize account numbers before prefix checks
+- Prefer a `19xx` debit account that is also flagged as `isBankAccount=true` or `isInvoiceAccount=true`
+- Do not require a `15xx` `creditAccount`; the correct incoming payment type may return `creditAccount=null`
+
+## Recovery Rule After Partial Success
+
+- If `POST /order` and `PUT /order/{id}/:invoice` already succeeded but payment registration failed, do not start over with a new order
+- Locate the existing unpaid invoice with one decisive read such as:
+  - `GET /invoice?customerId=<id>&invoiceDateFrom=<date>&invoiceDateTo=<next-date>&count=1000&fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))`
+- Filter locally by:
+  - positive outstanding amount
+  - exact ex-VAT total
+  - exact prompt line descriptions or product refs
+- Then finish with:
+  - `GET /invoice/paymentType?...`
+  - `PUT /invoice/{id}/:payment?...`
+- This avoids duplicating orders/invoices after a late-step failure
 
 ## Verification Shape
 
