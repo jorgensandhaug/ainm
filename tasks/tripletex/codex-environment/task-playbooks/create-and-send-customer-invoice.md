@@ -151,14 +151,17 @@ For ordinary direct-line service prompts that are explicitly priced excluding VA
 - use the filtered outgoing VAT read
 - choose an exact `25%` row, not the first returned row
 - if the filtered result exposes only `0%`, treat the run as blocked in that account instead of downgrading the invoice to `0%`
+- French `hors TVA` belongs to this taxed ex-VAT branch. Do not misread it as `sans TVA` / `0%`.
 
 This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 
 - the production run for `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in `3` calls: direct `POST /customer`, filtered outgoing VAT read, then `POST /invoice`
+- the French production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` / `hors TVA` also succeeded in the same `3` calls and confirms the same taxed branch
 - the production invoice write already proved the taxed outcome with `amountExcludingVatCurrency=20100` and `amountCurrency=25125`
 - the persistent sandbox on the same date still exposed only VAT code `6` (`0%`)
 - on that sandbox account, omitting `vatType` for the same `20100` / `Webdesign` line silently created `amountCurrency=20100`
 - on that sandbox account, hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
+- on the analogous sandbox probe `944164341` / `Service reseau` / `44750`, omission again created a wrong untaxed `44750` total and hardcoded `vatType.id=3` again failed with `422 ... Ugyldig mva-kode.`
 
 ## Important Constraints
 
