@@ -12,6 +12,7 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.query_residual_specs import resolve_query_residual_model_spec
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -120,7 +121,7 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
+    if resolve_query_residual_model_spec(normalized_model_name) is not None and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")

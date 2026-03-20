@@ -1081,9 +1081,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 }
                 round_cache[round_id] = cached
 
-            from astar.history.datasets.synthetic_live import load_synthetic_episode
+            from astar.history.datasets.synthetic_live import (
+                load_synthetic_episode,
+                resolve_synthetic_episode_path,
+            )
 
-            artifact = load_synthetic_episode(Path(str(row["episode_path"])))
+            artifact = load_synthetic_episode(
+                resolve_synthetic_episode_path(index_path.parent, Path(str(row["episode_path"]))),
+            )
             full_observations = tuple(artifact.observations)
             budget_values = sorted({min(int(value), len(full_observations)) for value in budget_prefixes})
             for budget in budget_values:

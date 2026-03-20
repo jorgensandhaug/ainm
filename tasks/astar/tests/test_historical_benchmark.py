@@ -127,6 +127,35 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
     assert result.artifact_path.exists()
 
 
+def test_family1_query_residual_variant_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="f1_student_query_residual_s4p45_v01",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_f1_query_residual_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+
+
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)

@@ -10,7 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
-from astar.history.datasets.synthetic_live import load_synthetic_episode
+from astar.history.datasets.synthetic_live import (
+    load_synthetic_episode,
+    resolve_synthetic_episode_path,
+)
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.observe.evidence import RoundEvidenceBundle
 from astar.student.predictor.base import LiveInferenceContext
@@ -112,7 +115,9 @@ class SummaryBankStudent(BaseModel):
         summary_vectors: list[np.ndarray] = []
         regime_vectors: list[np.ndarray] = []
         for path_value in index_table["episode_path"].to_list():
-            summary_vector, regime_vector = _summary_vector_from_artifact(Path(str(path_value)))
+            summary_vector, regime_vector = _summary_vector_from_artifact(
+                resolve_synthetic_episode_path(dataset.dataset_dir, Path(str(path_value))),
+            )
             summary_vectors.append(summary_vector)
             regime_vectors.append(regime_vector)
         if not summary_vectors:

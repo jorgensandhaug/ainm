@@ -65,6 +65,7 @@ from astar.observe.query_plan import read_any_query_plan
 from astar.policy import build_interactive_policy, build_named_policy
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.interactive import build_online_predictor
+from astar.student.predictor.query_residual_specs import supported_query_residual_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -106,6 +107,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--root", default=".", help="repo root")
     parser.add_argument("--json", action=argparse.BooleanOptionalAction, default=False)
     subparsers = parser.add_subparsers(dest="command", required=True)
+    online_models = [
+        "geometry_prior",
+        "historical_bucket_prior",
+        "latent_regime",
+        *supported_query_residual_model_names(),
+    ]
+    historical_models = [
+        "static_semantic",
+        *online_models,
+    ]
 
     sync_parser = subparsers.add_parser("sync-round")
     sync_parser.add_argument("--round-id", required=True)
@@ -200,13 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     model_prediction_parser.add_argument("--seed-index", type=int, required=True)
     model_prediction_parser.add_argument(
         "--model",
-        choices=[
-            "static_semantic",
-            "geometry_prior",
-            "historical_bucket_prior",
-            "latent_regime",
-            "query_residual",
-        ],
+        choices=historical_models,
         required=True,
     )
 
@@ -243,7 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=online_models,
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -255,7 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=online_models,
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -270,13 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
     historical_benchmark_parser = subparsers.add_parser("run-historical-benchmark")
     historical_benchmark_parser.add_argument(
         "--model",
-        choices=[
-            "static_semantic",
-            "geometry_prior",
-            "historical_bucket_prior",
-            "latent_regime",
-            "query_residual",
-        ],
+        choices=historical_models,
         required=True,
     )
     historical_benchmark_parser.add_argument(
@@ -304,7 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=online_models,
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

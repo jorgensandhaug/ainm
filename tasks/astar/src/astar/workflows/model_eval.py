@@ -21,6 +21,7 @@ from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegi
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_specs import resolve_query_residual_model_spec
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -216,10 +217,25 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
+    query_residual_spec = resolve_query_residual_model_spec(normalized)
+    if query_residual_spec is not None:
         predictor = QueryResidualPredictor.fit_from_workspace(
             paths,
             round_ids=list(training_round_ids),
+            samples_per_round=query_residual_spec.samples_per_round,
+            cells_per_seed=query_residual_spec.cells_per_seed,
+            budget_prefixes=query_residual_spec.budget_prefixes,
+            ridge_lambda=query_residual_spec.ridge_lambda,
+            model_name=query_residual_spec.model_name,
+            probability_floor=query_residual_spec.probability_floor,
+            temperature=query_residual_spec.temperature,
+            prior_blend=query_residual_spec.prior_blend,
+            signal_scale=query_residual_spec.signal_scale,
+            min_delta_scale=query_residual_spec.min_delta_scale,
+            residual_class_scale=query_residual_spec.residual_class_scale,
+            teacher_blend=query_residual_spec.teacher_blend,
+            beta_min=query_residual_spec.beta_min,
+            beta_scale=query_residual_spec.beta_scale,
         )
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (

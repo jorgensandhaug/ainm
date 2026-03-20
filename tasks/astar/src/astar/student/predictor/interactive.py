@@ -13,6 +13,10 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_specs import (
+    resolve_query_residual_model_spec,
+    supported_query_residual_model_names,
+)
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -101,7 +105,8 @@ def build_online_predictor(
             predictor=latent_predictor,
             name=latent_predictor.name,
         )
-    if normalized == "query_residual":
+    query_residual_spec = resolve_query_residual_model_spec(normalized)
+    if query_residual_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         if historical_round_ids is not None:
@@ -109,10 +114,24 @@ def build_online_predictor(
                 workspace_paths,
                 round_ids=list(historical_round_ids),
                 policy_name=resolved_policy_name,
+                samples_per_round=query_residual_spec.samples_per_round,
+                cells_per_seed=query_residual_spec.cells_per_seed,
+                budget_prefixes=query_residual_spec.budget_prefixes,
+                ridge_lambda=query_residual_spec.ridge_lambda,
+                model_name=query_residual_spec.model_name,
+                probability_floor=query_residual_spec.probability_floor,
+                temperature=query_residual_spec.temperature,
+                prior_blend=query_residual_spec.prior_blend,
+                signal_scale=query_residual_spec.signal_scale,
+                min_delta_scale=query_residual_spec.min_delta_scale,
+                residual_class_scale=query_residual_spec.residual_class_scale,
+                teacher_blend=query_residual_spec.teacher_blend,
+                beta_min=query_residual_spec.beta_min,
+                beta_scale=query_residual_spec.beta_scale,
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v7__policy={resolved_policy_name}",
+                f"{query_residual_spec.model_name}__policy={resolved_policy_name}",
             )
             checkpoint_path = checkpoint_dir / "checkpoint.json"
             if checkpoint_path.exists():
@@ -121,6 +140,20 @@ def build_online_predictor(
                 predictor = QueryResidualPredictor.fit_from_workspace(
                     workspace_paths,
                     policy_name=resolved_policy_name,
+                    samples_per_round=query_residual_spec.samples_per_round,
+                    cells_per_seed=query_residual_spec.cells_per_seed,
+                    budget_prefixes=query_residual_spec.budget_prefixes,
+                    ridge_lambda=query_residual_spec.ridge_lambda,
+                    model_name=query_residual_spec.model_name,
+                    probability_floor=query_residual_spec.probability_floor,
+                    temperature=query_residual_spec.temperature,
+                    prior_blend=query_residual_spec.prior_blend,
+                    signal_scale=query_residual_spec.signal_scale,
+                    min_delta_scale=query_residual_spec.min_delta_scale,
+                    residual_class_scale=query_residual_spec.residual_class_scale,
+                    teacher_blend=query_residual_spec.teacher_blend,
+                    beta_min=query_residual_spec.beta_min,
+                    beta_scale=query_residual_spec.beta_scale,
                 )
                 predictor.save_checkpoint(checkpoint_path)
         return RoundPredictorAdapter(
@@ -135,4 +168,5 @@ __all__ = [
     "OnlinePredictor",
     "RoundPredictorAdapter",
     "build_online_predictor",
+    "supported_query_residual_model_names",
 ]

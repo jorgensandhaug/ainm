@@ -46,6 +46,32 @@ class SyntheticEpisodeArtifact(BaseModel):
     target_paths: dict[int, Path]
 
 
+def resolve_synthetic_episode_path(
+    dataset_dir: Path,
+    path_value: str | Path,
+) -> Path:
+    path = Path(str(path_value))
+    if path.exists():
+        return path
+    if not path.is_absolute():
+        candidate = dataset_dir / path
+        if candidate.exists():
+            return candidate
+    parts = list(path.parts)
+    if "episodes" in parts:
+        candidate = dataset_dir.joinpath(*parts[parts.index("episodes") :])
+        if candidate.exists():
+            return candidate
+    candidate = dataset_dir / "episodes" / path.name
+    if candidate.exists():
+        return candidate
+    msg = (
+        "synthetic episode artifact path is missing and could not be resolved from "
+        f"dataset_dir={dataset_dir}: {path_value}"
+    )
+    raise FileNotFoundError(msg)
+
+
 def _plan_budget(
     policy: QueryPlanPolicyAdapter,
     round_id: str,

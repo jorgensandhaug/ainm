@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
     build_synthetic_live_dataset,
     load_synthetic_episode,
+    resolve_synthetic_episode_path,
 )
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
@@ -178,3 +180,23 @@ def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
         assert [item.model_dump(mode="json") for item in artifact_obs.settlements] == [
             item.model_dump(mode="json") for item in runtime_obs.settlements
         ]
+
+
+def test_resolve_synthetic_episode_path_recovers_from_stale_absolute_index_path(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_portability_test",
+    )
+    local_path = dataset.dataset_dir / "episodes" / f"{ROUND_ID}__sample_index=0.json"
+    stale_path = Path("/tmp/old-worktree/data/artifacts/datasets/synthetic_live_portability_test/episodes") / local_path.name
+
+    resolved = resolve_synthetic_episode_path(dataset.dataset_dir, stale_path)
+
+    assert resolved == local_path
