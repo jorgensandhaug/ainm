@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from astar.domain.validation import SubmissionSpec, validate_prediction_tensor
+from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.features.geometry import compute_round_features
-from astar.models.geometry_baseline import GeometryPriorPredictor
-from astar.models.latent_regime import LatentRegimePredictor
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.infra.artifacts.store import read_round_record
 from astar.observe.evidence import build_round_evidence
-from astar.storage.io_raw import read_round_record
-from astar.storage.manifests import RepoPaths
+from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from tests.conftest import ROUND_ID
 
 

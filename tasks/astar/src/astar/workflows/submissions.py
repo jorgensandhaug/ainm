@@ -6,11 +6,6 @@ from pathlib import Path
 
 import numpy as np
 
-from astar.baselines.static_semantic import (
-    build_static_semantic_prediction,
-    default_static_semantic_config,
-)
-from astar.baselines.uniform import build_uniform_prediction
 from astar.core.types import FloatArray
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.infra.api.client import AstarApiClient
@@ -21,6 +16,11 @@ from astar.infra.artifacts.store import (
     save_prediction_tensor,
     write_submission_record,
 )
+from astar.student.predictor.static_semantic import (
+    build_static_semantic_prediction,
+    default_static_semantic_config,
+)
+from astar.student.predictor.uniform import build_uniform_prediction
 from astar.workflows.results import BuildSubmissionResult, SubmitPredictionResult
 
 

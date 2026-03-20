@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from astar.domain.geometry import MapShape, TileSpec, coverage_counts, tile_viewports
+from astar.core.grid import MapShape, TileSpec, coverage_counts, tile_viewports
 
 
 def test_tiling_covers_full_map() -> None:

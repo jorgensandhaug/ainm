@@ -52,9 +52,9 @@ def _owner_flip_counts(seed: SeedEpisode) -> np.ndarray:
             for settlement in frame.settlements:
                 if settlement.owner_id is not None:
                     current[settlement.y, settlement.x] = settlement.owner_id
-            counts[run_index] += (
-                (previous >= 0) & (current >= 0) & (previous != current)
-            ).astype(np.int64)
+            counts[run_index] += ((previous >= 0) & (current >= 0) & (previous != current)).astype(
+                np.int64
+            )
             previous = current
     return counts
 
@@ -214,9 +214,7 @@ def seed_regime_summary_vector(seed: SeedEpisode) -> np.ndarray | None:
 
 def round_regime_summary_vector(episode: RoundEpisode) -> np.ndarray:
     vectors = [
-        vector
-        for seed in episode.seeds
-        if (vector := seed_regime_summary_vector(seed)) is not None
+        vector for seed in episode.seeds if (vector := seed_regime_summary_vector(seed)) is not None
     ]
     if not vectors:
         return np.zeros(12, dtype=np.float64)

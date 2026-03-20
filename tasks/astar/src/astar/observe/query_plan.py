@@ -45,9 +45,4 @@ def read_query_plan(path: Path) -> QueryPlan:
 
 
 def read_any_query_plan(path: Path) -> QueryPlan:
-    try:
-        return read_query_plan(path)
-    except Exception:
-        from astar.legacy.query_plan import read_any_query_plan as read_legacy_query_plan
-
-        return read_legacy_query_plan(path)
+    return read_query_plan(path)

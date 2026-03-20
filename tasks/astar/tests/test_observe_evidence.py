@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.observe.evidence import build_round_evidence
-from astar.storage.manifests import RepoPaths
 from tests.conftest import ROUND_ID
 
 

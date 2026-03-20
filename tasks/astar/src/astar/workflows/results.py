@@ -14,8 +14,6 @@ from astar.eval.science import ScienceRoundReport
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
 from astar.history.summaries.hazards import ReplayHazardRoundSummary
-from astar.models.latent_regime import RoundRegimePosterior
-from astar.observe.results import QueryPlanRunResult
 
 
 class SyncRoundResult(BaseModel):
@@ -43,18 +41,62 @@ class QueryPlanSummary(BaseModel):
     plan_path: Path
 
 
-class ReplayRoundResult(BaseModel):
+class RecordedReplayResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     round_id: str
-    query_count: int = Field(ge=0)
-    cell_observation_count: int = Field(ge=0)
+    seed_index: int = Field(ge=0)
+    sim_seed: int
+    frame_count: int = Field(ge=1)
     settlement_observation_count: int = Field(ge=0)
-    rounds_path: Path
-    seed_initial_states_path: Path
-    query_log_path: Path
-    cell_observations_path: Path
-    settlement_observations_path: Path
+    path: Path
+
+
+class ReplayHarvestSeedSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    round_id: str
+    seed_index: int = Field(ge=0)
+    existing_before: int = Field(ge=0)
+    captured: int = Field(ge=0)
+    total_after: int = Field(ge=0)
+    replay_dir: Path
+
+
+class HarvestReplaysResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    round_ids: list[str]
+    rounds_considered: int = Field(ge=0)
+    seeds_considered: int = Field(ge=0)
+    existing_replays: int = Field(ge=0)
+    captured_replays: int = Field(ge=0)
+    total_replays: int = Field(ge=0)
+    rate_limit_cooldowns: int = Field(ge=0)
+    replay_root: Path
+    seed_summaries: list[ReplayHarvestSeedSummary]
+
+
+class RoundReportArtifacts(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    report_path: Path
+    manifest_path: Path | None = None
+    figure_paths: dict[str, Path] = Field(default_factory=dict)
+    initial_map_path: Path
+    coverage_path: Path
+    baseline_path: Path
+    entropy_path: Path
+
+
+class VisualizationReportResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    report_key: str
+    title: str
+    report_path: Path
+    manifest_path: Path
+    figure_paths: dict[str, Path]
 
 
 class BuildSubmissionResult(BaseModel):
@@ -89,23 +131,6 @@ class FetchAnalysisResult(BaseModel):
     tensor_path: Path
 
 
-class ExplorationRunResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    round_id: str
-    round_number: int
-    round_path: Path
-    plan_path: Path
-    planned_queries: int = Field(ge=0)
-    dry_run: bool
-    baseline_model: str | None = None
-    sync_result: SyncRoundResult
-    query_run_result: QueryPlanRunResult | None = None
-    replay_result: ReplayRoundResult | None = None
-    submission_build_result: BuildSubmissionResult | None = None
-    submission_results: list[SubmitPredictionResult] = Field(default_factory=list)
-
-
 class MaterializedSeedArtifacts(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -131,24 +156,6 @@ class MaterializeEpisodeResult(BaseModel):
     diagnostics: RoundEpisodeDiagnostics
     replay_round_summary: ReplayHazardRoundSummary | None = None
     backtest_result: BacktestRoundResult | None = None
-
-
-class LiveRoundRunResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
-
-    spec_name: str
-    round_id: str
-    round_number: int
-    sync_result: SyncRoundResult
-    plan_path: Path
-    query_run_result: QueryPlanRunResult | None = None
-    replay_result: ReplayRoundResult | None = None
-    prediction_dir: Path | None = None
-    model_name: str | None = None
-    regime_posterior: RoundRegimePosterior | None = None
-    submitted_predictions: list[SubmitPredictionResult] = Field(default_factory=list)
-    episode_diagnostics: RoundEpisodeDiagnostics | None = None
-    materialized_episode: MaterializeEpisodeResult | None = None
 
 
 class FetchRoundAnalysesResult(BaseModel):

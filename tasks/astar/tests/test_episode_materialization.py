@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from astar.models.episode_dataset import load_round_learning_episode
-from astar.storage.manifests import RepoPaths
+from astar.history.learning import load_round_learning_episode
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.materialize_episode import materialize_round_episode
 from tests.conftest import ROUND_ID
 

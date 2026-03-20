@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from astar.domain.validation import (
+from astar.core.validation import (
     SubmissionSpec,
     SubmissionValidationError,
     validate_prediction_tensor,

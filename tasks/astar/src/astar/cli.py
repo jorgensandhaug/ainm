@@ -15,7 +15,6 @@ from astar.cli_output import (
     render_dataset_diagnostics,
     render_dataset_ref,
     render_episode_diagnostics,
-    render_exploration_run,
     render_factorize_round_summaries,
     render_fetch_analysis,
     render_fetch_round_analyses,
@@ -24,14 +23,12 @@ from astar.cli_output import (
     render_inspect_replays,
     render_json,
     render_live_online_run,
-    render_live_round_run,
     render_materialize_episode,
     render_paired_benchmark_comparison,
     render_query_plan_run,
     render_query_plan_summary,
     render_recorded_replay,
     render_recorded_simulation,
-    render_replay_round,
     render_round_list,
     render_round_report,
     render_round_summary,
@@ -45,6 +42,7 @@ from astar.cli_output import (
     render_train_hazard_teacher,
     render_train_summary_student,
     render_validation,
+    render_visualization_report,
 )
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.eval.backtest import backtest_round_from_saved_analyses
@@ -60,27 +58,21 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import load_prediction_tensor, read_round_record
 from astar.observe.executor import execute_query_plan, record_simulation
 from astar.observe.planner import build_policy_plan
-from astar.observe.policies.registry import build_named_policy
 from astar.observe.query_plan import read_any_query_plan
-from astar.policy import build_interactive_policy
-from astar.spec_loader import load_object
+from astar.policy import build_interactive_policy, build_named_policy
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
-from astar.student.predictor.interactive import build_legacy_online_predictor
+from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
-from astar.workflows.exploration import explore_round
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
 from astar.workflows.live_online import run_live_online_round
-from astar.workflows.live_round import run_live_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
-from astar.workflows.replay_round import replay_round
 from astar.workflows.results import QueryPlanSummary
 from astar.workflows.round_report import build_round_report
-from astar.workflows.specs import LiveRunSpec
 from astar.workflows.submissions import build_submission, submit_saved_prediction
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.sync_round import sync_round
@@ -88,6 +80,7 @@ from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
+from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
 
 
 def load_env_file(path: Path) -> None:
@@ -121,41 +114,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     show_parser = subparsers.add_parser("show-round")
     show_parser.add_argument("--round-id", required=True)
-
-    explore_parser = subparsers.add_parser("explore-round")
-    explore_parser.add_argument("--round-id", required=True)
-    explore_parser.add_argument(
-        "--baseline-model",
-        choices=["uniform", "static_semantic"],
-        default="static_semantic",
-    )
-    explore_parser.add_argument(
-        "--submit-baseline",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-    )
-    explore_parser.add_argument(
-        "--dry-run",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-    )
-
-    explore_current_parser = subparsers.add_parser("explore-current-round")
-    explore_current_parser.add_argument(
-        "--baseline-model",
-        choices=["uniform", "static_semantic"],
-        default="static_semantic",
-    )
-    explore_current_parser.add_argument(
-        "--submit-baseline",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-    )
-    explore_current_parser.add_argument(
-        "--dry-run",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-    )
 
     plan_parser = subparsers.add_parser("plan-queries")
     plan_parser.add_argument("--round-id", required=True)
@@ -193,9 +151,6 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--plan", required=True)
     run_parser.add_argument("--config-hash", default="manual")
 
-    replay_parser = subparsers.add_parser("replay-round")
-    replay_parser.add_argument("--round-id", required=True)
-
     ingest_replays_parser = subparsers.add_parser("ingest-replays")
     ingest_replays_parser.add_argument("--round-id", default=None)
 
@@ -225,14 +180,9 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--round-id", required=True)
     report_parser.add_argument("--seed-index", type=int, required=True)
 
-    live_run_parser = subparsers.add_parser("live-run")
-    live_run_parser.add_argument("--spec", default="experiments.live.explore_v1:spec")
-    live_run_parser.add_argument("--round-id", default=None)
-    live_run_parser.add_argument(
-        "--dry-run",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-    )
+    terminal_comparison_parser = subparsers.add_parser("visualize-terminal-comparison")
+    terminal_comparison_parser.add_argument("--round-id", required=True)
+    terminal_comparison_parser.add_argument("--seed-index", type=int, required=True)
 
     fetch_round_analyses_parser = subparsers.add_parser("fetch-round-analyses")
     fetch_round_analyses_parser.add_argument("--round-id", required=True)
@@ -410,24 +360,6 @@ def _main() -> int:
         )
         return 0
 
-    if args.command == "explore-round":
-        client = AstarApiClient(ClientConfig.from_env(), AuthConfig.from_env())
-        exploration_result = explore_round(
-            paths,
-            client,
-            args.round_id,
-            baseline_model=args.baseline_model,
-            submit_baseline=args.submit_baseline,
-            dry_run=args.dry_run,
-        )
-        _emit(args.json, exploration_result, render_exploration_run(exploration_result))
-        return 0
-
-    if args.command == "replay-round":
-        replay_result = replay_round(paths, args.round_id)
-        _emit(args.json, replay_result, render_replay_round(replay_result))
-        return 0
-
     if args.command == "ingest-replays":
         ingest_result = ingest_replays(paths, args.round_id)
         _emit(args.json, ingest_result, render_ingest_replays(ingest_result))
@@ -468,6 +400,11 @@ def _main() -> int:
     if args.command == "round-report":
         artifacts = build_round_report(paths, args.round_id, args.seed_index)
         _emit(args.json, artifacts, render_round_report(artifacts))
+        return 0
+
+    if args.command == "visualize-terminal-comparison":
+        artifacts = visualize_terminal_comparison(paths, args.round_id, args.seed_index)
+        _emit(args.json, artifacts, render_visualization_report(artifacts))
         return 0
 
     if args.command == "episode-summary":
@@ -554,7 +491,7 @@ def _main() -> int:
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=build_legacy_online_predictor(args.model),
+            predictor=build_online_predictor(args.model),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             episode_seed=args.episode_seed,
@@ -569,7 +506,7 @@ def _main() -> int:
     if args.command == "run-synthetic-benchmark":
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=build_legacy_online_predictor(args.model),
+            predictor=build_online_predictor(args.model),
             policy=build_interactive_policy(args.policy),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
@@ -628,37 +565,6 @@ def _main() -> int:
         )
     client = AstarApiClient(client_config, AuthConfig.from_env())
 
-    if args.command == "explore-current-round":
-        active_round = client.get_active_round()
-        exploration_result = explore_round(
-            paths,
-            client,
-            active_round.id,
-            baseline_model=args.baseline_model,
-            submit_baseline=args.submit_baseline,
-            dry_run=args.dry_run,
-        )
-        _emit(args.json, exploration_result, render_exploration_run(exploration_result))
-        return 0
-
-    if args.command == "live-run":
-        loaded = load_object(args.spec)
-        if not isinstance(loaded, LiveRunSpec):
-            msg = f"{args.spec!r} did not resolve to LiveRunSpec"
-            raise ValueError(msg)
-        round_id = args.round_id
-        if round_id is None:
-            round_id = client.get_active_round().id
-        live_result = run_live_round(
-            paths,
-            client,
-            loaded,
-            round_id=round_id,
-            dry_run=args.dry_run,
-        )
-        _emit(args.json, live_result, render_live_round_run(live_result))
-        return 0
-
     if args.command == "run-live-online":
         round_id = args.round_id
         if round_id is None:
@@ -667,7 +573,7 @@ def _main() -> int:
             paths,
             client,
             round_id=round_id,
-            predictor=build_legacy_online_predictor(args.model),
+            predictor=build_online_predictor(args.model),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             submit_predictions=args.submit_predictions,

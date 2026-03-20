@@ -6,13 +6,18 @@ from typing import cast
 
 import pytest
 
-from astar.api.client import AstarApiClient
-from astar.api.schemas import BudgetStatus, SimulationRequest, SimulationResponse, StoredQueryRecord
-from astar.domain.geometry import Viewport
+from astar.core.grid import Viewport
+from astar.infra.api.client import AstarApiClient
+from astar.infra.api.dto import (
+    BudgetStatus,
+    SimulationRequest,
+    SimulationResponse,
+    StoredQueryRecord,
+)
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.infra.artifacts.store import write_query_record
+from astar.observe.executor import execute_query_plan as run_query_plan
 from astar.observe.query_plan import QueryPlan, QueryPlanItem
-from astar.ops.run_queries import run_query_plan
-from astar.storage.io_raw import write_query_record
-from astar.storage.manifests import RepoPaths
 
 
 class NoopClient:

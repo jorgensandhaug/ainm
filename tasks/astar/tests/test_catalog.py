@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
-from astar.storage.manifests import RepoPaths
 
 
 def test_catalog_logs_and_summarizes_events(tmp_path: Path) -> None:

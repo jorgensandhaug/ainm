@@ -5,8 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from astar.api.schemas import RoundSummary, StoredRoundRecord
-from astar.domain.validation import SubmissionValidationReport
+from astar.core.validation import SubmissionValidationReport
 from astar.eval.backtest import BacktestRoundResult
 from astar.eval.competition import PairedBenchmarkComparison
 from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
@@ -17,26 +16,25 @@ from astar.eval.reports import (
 )
 from astar.history.datasets.base import DatasetRef, SyntheticEpisodeDatasetRef
 from astar.history.replay.ingest import IngestReplaysResult
+from astar.infra.api.dto import RoundSummary, StoredRoundRecord
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.models.latent_regime import RoundRegimePosterior
 from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
-from astar.ops.results import HarvestReplaysResult, RecordedReplayResult
-from astar.ops.round_report import RoundReportArtifacts
 from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
+from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
 from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.results import (
     BuildSubmissionResult,
     EvaluateTeacherScienceResult,
-    ExplorationRunResult,
     FetchAnalysisResult,
     FetchRoundAnalysesResult,
+    HarvestReplaysResult,
     InspectReplaysResult,
-    LiveRoundRunResult,
     MaterializeEpisodeResult,
     QueryPlanSummary,
-    ReplayRoundResult,
+    RecordedReplayResult,
+    RoundReportArtifacts,
     SubmitPredictionResult,
     SummarizeReplaysResult,
     SyncRoundResult,
@@ -44,6 +42,7 @@ from astar.workflows.results import (
     SyntheticTournamentResult,
     TrainHazardTeacherResult,
     TrainSummaryStudentResult,
+    VisualizationReportResult,
 )
 
 
@@ -233,20 +232,6 @@ def render_harvest_replays(result: HarvestReplaysResult) -> str:
     return "\n".join(lines)
 
 
-def render_replay_round(result: ReplayRoundResult) -> str:
-    return "\n".join(
-        [
-            f"replay-round {result.round_id}",
-            f"queries: {result.query_count}",
-            f"cell_observations: {result.cell_observation_count}",
-            f"settlement_observations: {result.settlement_observation_count}",
-            f"query_log: {result.query_log_path}",
-            f"cells: {result.cell_observations_path}",
-            f"settlements: {result.settlement_observations_path}",
-        ],
-    )
-
-
 def render_ingest_replays(result: IngestReplaysResult) -> str:
     lines = [
         "ingest-replays",
@@ -424,62 +409,32 @@ def render_fetch_analysis(result: FetchAnalysisResult) -> str:
 
 
 def render_round_report(artifacts: RoundReportArtifacts) -> str:
-    return "\n".join(
+    lines = [
+        "round-report",
+        f"report: {artifacts.report_path}",
+    ]
+    if artifacts.manifest_path is not None:
+        lines.append(f"manifest: {artifacts.manifest_path}")
+    lines.extend(
         [
-            "round-report",
-            f"report: {artifacts.report_path}",
             f"initial_map: {artifacts.initial_map_path}",
             f"coverage: {artifacts.coverage_path}",
             f"baseline: {artifacts.baseline_path}",
             f"entropy: {artifacts.entropy_path}",
         ],
     )
+    return "\n".join(lines)
 
 
-def render_exploration_run(result: ExplorationRunResult) -> str:
+def render_visualization_report(result: VisualizationReportResult) -> str:
     lines = [
-        f"explore-round #{result.round_number} {result.round_id}",
-        f"status: {result.sync_result.status}",
-        f"map: {result.sync_result.map_height}x{result.sync_result.map_width}",
-        f"seeds: {result.sync_result.seeds_count}",
-        f"planned_queries: {result.planned_queries}",
-        f"dry_run: {str(result.dry_run).lower()}",
-        f"plan_path: {result.plan_path}",
-        f"raw_round: {result.round_path}",
+        f"visualization {result.report_key}",
+        f"title: {result.title}",
+        f"report: {result.report_path}",
+        f"manifest: {result.manifest_path}",
     ]
-    if result.query_run_result is None:
-        lines.append("queries: not run")
-    else:
-        lines.append(
-            "queries: "
-            f"executed={result.query_run_result.executed_queries} "
-            f"reused={result.query_run_result.reused_queries} "
-            f"total={result.query_run_result.total_planned_queries}",
-        )
-        lines.append(f"query_dir: {result.query_run_result.query_dir}")
-    if result.replay_result is None:
-        lines.append("replay: not run")
-    else:
-        lines.append(
-            "replay: "
-            f"queries={result.replay_result.query_count} "
-            f"cells={result.replay_result.cell_observation_count} "
-            f"settlements={result.replay_result.settlement_observation_count}",
-        )
-        lines.append(f"query_log: {result.replay_result.query_log_path}")
-    if result.submission_build_result is None:
-        lines.append("submissions: not built")
-    else:
-        lines.append(
-            "submissions: "
-            f"model={result.submission_build_result.model_name} "
-            f"built={result.submission_build_result.seeds_built} "
-            f"submitted={len(result.submission_results)}",
-        )
-        if result.submission_build_result.prediction_paths:
-            lines.append(
-                f"prediction_dir: {result.submission_build_result.prediction_paths[0].parent}",
-            )
+    for key, path in sorted(result.figure_paths.items()):
+        lines.append(f"{key}: {path}")
     return "\n".join(lines)
 
 
@@ -493,47 +448,6 @@ def render_regime_posterior(result: RoundRegimePosterior) -> str:
         f"reclamation={result.reclamation:.3f} "
         f"evidence_queries={result.evidence_queries}"
     )
-
-
-def render_live_round_run(result: LiveRoundRunResult) -> str:
-    lines = [
-        f"live-run {result.spec_name} #{result.round_number} {result.round_id}",
-        f"status: {result.sync_result.status}",
-        f"plan_path: {result.plan_path}",
-        f"raw_round: {result.sync_result.round_path}",
-    ]
-    if result.query_run_result is not None:
-        lines.append(
-            "queries: "
-            f"executed={result.query_run_result.executed_queries} "
-            f"reused={result.query_run_result.reused_queries} "
-            f"total={result.query_run_result.total_planned_queries}",
-        )
-    if result.replay_result is not None:
-        lines.append(
-            "replay: "
-            f"queries={result.replay_result.query_count} "
-            f"cells={result.replay_result.cell_observation_count} "
-            f"settlements={result.replay_result.settlement_observation_count}",
-        )
-    if result.regime_posterior is not None:
-        lines.append(render_regime_posterior(result.regime_posterior))
-    if result.model_name is not None:
-        lines.append(f"predictor: {result.model_name}")
-    if result.prediction_dir is not None:
-        lines.append(f"prediction_dir: {result.prediction_dir}")
-    lines.append(f"submitted_predictions: {len(result.submitted_predictions)}")
-    if result.episode_diagnostics is not None:
-        lines.append(
-            "episode: "
-            f"queries={result.episode_diagnostics.summary.query_count} "
-            f"repeats={result.episode_diagnostics.summary.repeated_window_groups} "
-            f"analyses={result.episode_diagnostics.summary.analysis_count}",
-        )
-    if result.materialized_episode is not None:
-        lines.append(f"episode_summary: {result.materialized_episode.summary_path}")
-        lines.append(f"episode_report: {result.materialized_episode.report_path}")
-    return "\n".join(lines)
 
 
 def render_fetch_round_analyses(result: FetchRoundAnalysesResult) -> str:

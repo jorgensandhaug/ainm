@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.history.corpus import LearningCorpus, load_learning_corpus
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.models.corpus import LearningCorpus, load_learning_corpus
 
 
 class CorpusSummaryResult(BaseModel):

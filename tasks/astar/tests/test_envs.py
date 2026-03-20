@@ -5,7 +5,7 @@ from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.historical import HistoricalReplayOracle
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.envs.types import ViewportQuery
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from tests.conftest import ROUND_ID
 from tests.test_history_datasets import _write_replays_for_all_seeds
 

@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from astar.domain.scoring import score_prediction
+from astar.core.score import score_prediction
 
 
 def test_identical_prediction_scores_perfect() -> None:

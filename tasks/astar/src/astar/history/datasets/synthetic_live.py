@@ -12,15 +12,15 @@ from astar.core.trajectory import LiveQueryObs
 from astar.core.world_state import LiveSettlementObs, SettlementFullState
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.episodes.build import build_round_episode
+from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
 from astar.history.summaries.round_coefficients import round_regime_summary_vector
 from astar.infra.api.dto import InitialSettlement, InitialState, RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.models.episode_dataset import RoundLearningEpisode, load_round_learning_episode
-from astar.observe.policies.registry import build_named_policy
 from astar.observe.query_plan import QueryPlanItem
+from astar.policy.registry import build_named_policy
 from astar.workflows.materialize_episode import materialize_round_episode
 
 

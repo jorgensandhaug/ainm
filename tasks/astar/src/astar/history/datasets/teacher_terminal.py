@@ -5,11 +5,11 @@ import json
 import polars as pl
 
 from astar.history.datasets.base import DatasetRef
+from astar.history.learning import load_round_learning_episode
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.models.episode_dataset import load_round_learning_episode
 from astar.workflows.materialize_episode import materialize_round_episode
 
 
@@ -20,8 +20,7 @@ def build_teacher_terminal_dataset(
     dataset_name: str = "teacher_terminal_v1",
 ) -> DatasetRef:
     selected_round_ids = round_ids or sorted(
-        path.stem
-        for path in paths.raw_dir.joinpath("rounds").glob("*.json")
+        path.stem for path in paths.raw_dir.joinpath("rounds").glob("*.json")
     )
     dataset_dir = paths.dataset_dir(dataset_name)
     dataset_dir.mkdir(parents=True, exist_ok=True)

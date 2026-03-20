@@ -19,8 +19,7 @@ def build_teacher_transition_dataset(
     dataset_name: str = "teacher_transition_v1",
 ) -> DatasetRef:
     selected_round_ids = round_ids or sorted(
-        path.stem
-        for path in paths.raw_dir.joinpath("rounds").glob("*.json")
+        path.stem for path in paths.raw_dir.joinpath("rounds").glob("*.json")
     )
     dataset_dir = paths.dataset_dir(dataset_name)
     dataset_dir.mkdir(parents=True, exist_ok=True)
@@ -40,9 +39,7 @@ def build_teacher_transition_dataset(
                     current_built = (
                         (current.grid == 1) | (current.grid == 2) | (current.grid == 3)
                     ).sum()
-                    next_built = (
-                        (nxt.grid == 1) | (nxt.grid == 2) | (nxt.grid == 3)
-                    ).sum()
+                    next_built = ((nxt.grid == 1) | (nxt.grid == 2) | (nxt.grid == 3)).sum()
                     rows.append(
                         {
                             "round_id": round_id,

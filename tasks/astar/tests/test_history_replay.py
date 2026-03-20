@@ -10,8 +10,8 @@ from astar.infra.api.dto import (
     SettlementObservation,
     StoredReplayRecord,
 )
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import load_named_arrays, read_round_record, write_replay_record
-from astar.storage.manifests import RepoPaths
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from tests.conftest import ROUND_ID

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from astar.history.summaries.manifold import factorize_round_regime_manifold
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from tests.conftest import ROUND_ID
 from tests.test_history_datasets import _write_replays_for_all_seeds
 

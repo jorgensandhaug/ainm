@@ -19,10 +19,10 @@ The repo is organized around:
 - `src/astar/infra`: API, artifact paths, blob metadata, DuckDB catalog
 - `src/astar/features`: deterministic geometry, reachability, influence, motifs
 - `src/astar/observe`: evidence aggregation, policy planning, query execution
-- `src/astar/models`: geometry baseline, latent regime predictor, calibration, seams
+- `src/astar/student`: online-safe predictors and posterior logic
+- `src/astar/teacher`: privileged offline models
 - `src/astar/eval`: diagnostics, backtests, reports
 - `src/astar/workflows`: live round orchestration, analysis harvest, episode materialization
-- `src/astar/api`, `src/astar/domain`, `src/astar/storage`, `src/astar/ops`: legacy-compatible surface kept while the new architecture lands
 - `src/experiments`: typed Python run specs
 - `data/raw`: immutable round/query/submission/analysis payloads
 - `data/derived`: parquet + tensor outputs
@@ -35,7 +35,6 @@ The repo is organized around:
 uv sync --extra dev
 uv run pytest
 uv run astar show-round --round-id 00000000-0000-0000-0000-000000000001
-uv run astar replay-round --round-id 00000000-0000-0000-0000-000000000001
 uv run astar fetch-replay --round-id 00000000-0000-0000-0000-000000000001 --seed-index 0
 uv run astar harvest-replays --samples-per-seed 10 --max-new-replays 50
 uv run astar harvest-replays --samples-per-seed 10 --random-delay-min-seconds 60 --random-delay-max-seconds 180
@@ -46,7 +45,7 @@ uv run astar dataset-summary
 uv run astar corpus-summary
 uv run astar episode-summary --round-id 00000000-0000-0000-0000-000000000001
 uv run astar materialize-episode --round-id 00000000-0000-0000-0000-000000000001
-uv run astar live-run --spec experiments.live.explore_v1:spec --round-id <active-round-id> --dry-run
+uv run astar run-live-online --round-id <active-round-id> --model latent_regime --policy coverage --no-submit-predictions
 ```
 
 On most machines, plain `uv run ...` should just work. On stricter Linux hosts,
@@ -104,7 +103,6 @@ Stage 1 scaffold includes:
 
 The current playground layer now also includes:
 
-- typed live experiment specs in Python, not YAML
 - mainline query planning from Python policies plus JSON plan artifacts
 - deterministic geometry feature bundles per seed
 - round evidence aggregation from raw query logs
@@ -115,6 +113,7 @@ The current playground layer now also includes:
 - a geometry prior predictor
 - a shared round-latent heuristic predictor seam
 - round episode diagnostics and local dataset diagnostics
-- a DuckDB event catalog for live-run observability
+- a DuckDB event catalog for live and offline observability
+- `run-live-online` as the only live execution path
 
 See [architecture.md](/home/jorge/repos/ainm/tasks/astar/docs/architecture.md) for the target design.

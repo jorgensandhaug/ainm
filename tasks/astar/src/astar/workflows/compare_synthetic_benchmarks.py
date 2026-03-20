@@ -29,14 +29,8 @@ def compare_synthetic_benchmarks(
     seed: int = 0,
     artifact_path: Path | None = None,
 ) -> PairedBenchmarkComparison:
-    baseline_map = {
-        (item.round_id, item.episode_seed): item
-        for item in baseline.episodes
-    }
-    candidate_map = {
-        (item.round_id, item.episode_seed): item
-        for item in candidate.episodes
-    }
+    baseline_map = {(item.round_id, item.episode_seed): item for item in baseline.episodes}
+    candidate_map = {(item.round_id, item.episode_seed): item for item in candidate.episodes}
     if set(baseline_map) != set(candidate_map):
         raise ValueError("benchmark episode keys do not match; cannot run paired comparison")
     deltas: list[PairedBenchmarkEpisodeDelta] = []
@@ -95,9 +89,7 @@ def compare_benchmark_artifacts(
 ) -> PairedBenchmarkComparison:
     baseline = load_synthetic_benchmark_result(baseline_path)
     candidate = load_synthetic_benchmark_result(candidate_path)
-    comparison_name = (
-        f"baseline={baseline.predictor_name}__candidate={candidate.predictor_name}"
-    )
+    comparison_name = f"baseline={baseline.predictor_name}__candidate={candidate.predictor_name}"
     artifact_path = paths.comparison_result_path(comparison_name)
     result = compare_synthetic_benchmarks(
         baseline,

@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
 
-from astar.domain.terrain import CLASS_COLORS, collapse_internal_grid
+from astar.core.terrain import CLASS_COLORS, collapse_internal_grid
 
 
 def _base_cmap() -> ListedColormap:

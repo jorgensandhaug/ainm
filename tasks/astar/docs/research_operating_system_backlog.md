@@ -4,6 +4,12 @@ This file is the long-horizon execution ledger for the Astar Island codebase.
 
 It exists to keep work coherent across many rounds, many refactors, and many model ideas.
 
+See also:
+
+- [cleanup_matrix.md](/home/jorge/repos/ainm/tasks/astar/docs/cleanup_matrix.md)
+- [handoff_from_high_level_agent.md](/home/jorge/repos/ainm/tasks/astar/docs/handoff_from_high_level_agent.md)
+- [architecture.md](/home/jorge/repos/ainm/tasks/astar/docs/architecture.md)
+
 ## Core Thesis
 
 - Native object: episode
@@ -41,12 +47,20 @@ It exists to keep work coherent across many rounds, many refactors, and many mod
 - benchmark/comparison markdown scorecards
 - explicit online-safe transcript/context separation in student-facing interfaces
 - first teacher science evaluation workflow and report path
+- explicit cleanup matrix for keep/migrate/compat/delete decisions
+- zero-legacy-import boundary enforced in `src/astar/`
+- deleted tracked `api/`, `domain/`, `storage/`, `ops/`, `legacy/`, and top-level `policies/` packages
+- deleted `models/` catch-all package by splitting code into `student/` and `history/`
+- deleted old `live-run`, spec-loader, and `experiments/live` surface
+- collapsed query-plan policy implementation fully into `policy/`
+- collapsed baseline submission priors fully into `student/predictor/`
+- deleted old `explore-*` and `replay-round` workflow surface
 
 ### In Progress
 
-- oracle/environment boundary
-- offline tournament harness
+- stronger split discipline
 - science evaluation / trajectory criticism
+- richer geometry / topology / spectral features
 
 ### Not Done
 
@@ -55,8 +69,7 @@ It exists to keep work coherent across many rounds, many refactors, and many mod
 - score-aligned learned policy
 - rigorous split manifests + frozen benchmark banks
 - full experiment scorecards + paired statistical reports
-- strong no-leakage enforcement by dataset/type boundary
-- richer geometry / topology / spectral features
+- stronger no-leakage enforcement by dataset/type boundary
 - full model lineage catalog
 
 ## Non-Negotiable Boundaries
@@ -172,6 +185,7 @@ Goal: make leakage difficult by construction.
   - `eval/competition.py`
   - `eval/science.py`
 - [x] add tests proving online paths cannot accidentally require replay-only fields
+- [x] delete legacy package surfaces that bypassed these boundaries
 
 ### 3. Synthetic Active Tournament Harness
 

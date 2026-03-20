@@ -5,8 +5,8 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from astar.infra.api.dto import StoredReplayRecord
+from astar.infra.artifacts.store import ReplayFileRecord
 from astar.infra.replay_source.base import ReplayRunHandle, ReplaySourceSummary
-from astar.storage.io_raw import ReplayFileRecord
 
 
 class FolderReplaySource(BaseModel):

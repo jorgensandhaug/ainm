@@ -64,9 +64,7 @@ def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
                     defenses.append(float(settlement.defense))
         total = float(np.sum(class_counts))
         class_frequencies = (
-            class_counts / total
-            if total > 0
-            else np.zeros(CLASS_COUNT, dtype=np.float64)
+            class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
         )
         components.append(float(len(observations)))
         components.extend(class_frequencies.tolist())

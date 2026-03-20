@@ -4,9 +4,9 @@ from pydantic import BaseModel, ConfigDict
 
 from astar.envs.base import InteractiveQueryPolicy, TranscriptBeliefState
 from astar.envs.types import ViewportQuery
-from astar.observe.policies.base import BaseQueryPolicy
-from astar.observe.policies.registry import build_named_policy
 from astar.observe.query_plan import QueryPlanItem
+from astar.policy.query_plan import QueryPlanPolicy
+from astar.policy.registry import build_named_policy
 
 
 def _expand_query_items(items: list[QueryPlanItem]) -> list[QueryPlanItem]:
@@ -16,10 +16,10 @@ def _expand_query_items(items: list[QueryPlanItem]) -> list[QueryPlanItem]:
     return expanded
 
 
-class LegacyPlanPolicyAdapter(BaseModel):
+class QueryPlanPolicyAdapter(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    policy: BaseQueryPolicy
+    policy: QueryPlanPolicy
     name: str
 
     def select(
@@ -41,13 +41,13 @@ class LegacyPlanPolicyAdapter(BaseModel):
         )
 
 
-def build_interactive_policy(policy_name: str) -> LegacyPlanPolicyAdapter:
+def build_interactive_policy(policy_name: str) -> QueryPlanPolicyAdapter:
     policy = build_named_policy(policy_name)
-    return LegacyPlanPolicyAdapter(policy=policy, name=policy.name)
+    return QueryPlanPolicyAdapter(policy=policy, name=policy.name)
 
 
 __all__ = [
     "InteractiveQueryPolicy",
-    "LegacyPlanPolicyAdapter",
+    "QueryPlanPolicyAdapter",
     "build_interactive_policy",
 ]

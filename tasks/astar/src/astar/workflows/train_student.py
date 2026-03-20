@@ -27,10 +27,7 @@ def train_summary_bank_student(
         for round_dir in paths.raw_dir.joinpath("replays").glob("*")
         if round_dir.is_dir()
     )
-    replay_episodes = [
-        build_round_episode(paths, round_id)
-        for round_id in replay_round_ids
-    ]
+    replay_episodes = [build_round_episode(paths, round_id) for round_id in replay_round_ids]
     teacher = HazardTeacher(name=teacher_result.model_name).fit(
         [episode for episode in replay_episodes if episode.replay_run_count > 0],
     )

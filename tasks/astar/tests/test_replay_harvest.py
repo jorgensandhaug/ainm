@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from astar.api.schemas import (
+from astar.infra.api.dto import (
     ReplayFrame,
     ReplayRequest,
     ReplayResponse,
@@ -13,9 +13,10 @@ from astar.api.schemas import (
     SettlementObservation,
     StoredReplayRecord,
 )
-from astar.ops.harvest_replays import harvest_replays, record_replay
-from astar.storage.io_raw import read_round_record
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.infra.artifacts.store import read_round_record
+from astar.workflows.replay_capture import fetch_replay as record_replay
+from astar.workflows.replay_capture import harvest_replays
 from tests.conftest import ROUND_ID
 
 
@@ -142,10 +143,10 @@ def test_harvest_replays_applies_randomized_inter_replay_delay(
     progress_messages: list[str] = []
 
     monkeypatch.setattr(
-        "astar.ops.harvest_replays.random.uniform",
+        "astar.workflows.replay_capture.random.uniform",
         lambda lower, upper: (lower + upper) / 2.0,
     )
-    monkeypatch.setattr("astar.ops.harvest_replays.time.sleep", sleep_calls.append)
+    monkeypatch.setattr("astar.workflows.replay_capture.time.sleep", sleep_calls.append)
 
     result = harvest_replays(
         sample_paths,

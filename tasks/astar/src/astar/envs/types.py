@@ -94,12 +94,12 @@ def build_round_context_from_detail(round_detail: RoundDetail) -> RoundContext:
         map_width=round_detail.map_width,
         map_height=round_detail.map_height,
         seeds=tuple(
-                SeedContext(
-                    seed_index=seed_index,
-                    initial_state=InitialWorldState(
-                        grid=np.asarray(seed_state.grid, dtype=np.int64),
-                        settlements=tuple(
-                            InitialSettlementState(
+            SeedContext(
+                seed_index=seed_index,
+                initial_state=InitialWorldState(
+                    grid=np.asarray(seed_state.grid, dtype=np.int64),
+                    settlements=tuple(
+                        InitialSettlementState(
                             x=item.x,
                             y=item.y,
                             has_port=item.has_port,

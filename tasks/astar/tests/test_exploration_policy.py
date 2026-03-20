@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_round_record
-from astar.observe.policies.coverage_then_replicate import CoverageThenReplicatePolicy
+from astar.policy.coverage import CoverageThenReplicatePolicy
 from tests.conftest import ROUND_ID
 
 

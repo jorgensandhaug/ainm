@@ -23,8 +23,10 @@ The system is organized to learn two different things:
   Deterministic geometry only. Coastlines, reachability, settlement influence, motifs.
 - `observe`
   Live evidence acquisition. Query policy, planning, execution, transcript aggregation.
-- `models`
-  Predictors and calibration. Geometry prior first, latent regime on top.
+- `student`
+  Online-safe predictors and posterior logic.
+- `teacher`
+  Privileged offline models and decoders.
 - `eval`
   Diagnostics, dataset summaries, episode summaries, backtests.
 - `workflows`
@@ -56,7 +58,7 @@ This is intentionally parsimonious. The goal is to encode the competition struct
 
 ## Current Live Workflow
 
-`astar live-run --spec experiments.live.explore_v1:spec`
+`astar run-live-online --model latent_regime --policy coverage`
 
 1. sync the round
 2. build a typed policy plan

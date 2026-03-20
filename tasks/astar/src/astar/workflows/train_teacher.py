@@ -19,10 +19,7 @@ def train_hazard_teacher(
         for round_dir in paths.raw_dir.joinpath("replays").glob("*")
         if round_dir.is_dir()
     )
-    episodes = [
-        build_round_episode(paths, round_id)
-        for round_id in selected_round_ids
-    ]
+    episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
     replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
     teacher = HazardTeacher(name=model_name).fit(replay_episodes)
     checkpoint_path = teacher.save_checkpoint(

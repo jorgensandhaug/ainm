@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.splits.synthetic_benchmark import (
     build_default_benchmark_manifests,
     load_benchmark_manifest,
 )
-from astar.storage.manifests import RepoPaths
 from tests.conftest import ROUND_ID
 from tests.test_history_datasets import _write_replays_for_all_seeds
 

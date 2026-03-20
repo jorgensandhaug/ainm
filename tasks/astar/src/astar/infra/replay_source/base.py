@@ -5,7 +5,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.storage.io_raw import ReplayFileRecord
+from astar.infra.artifacts.store import ReplayFileRecord
 
 
 class ReplayRunHandle(BaseModel):

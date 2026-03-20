@@ -5,7 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
-from astar.domain.geometry import MapShape, Viewport, coverage_counts
+from astar.core.grid import MapShape, Viewport, coverage_counts
 
 
 def plot_query_coverage(map_shape: MapShape, viewports: list[Viewport], output_path: Path) -> Path:

@@ -95,15 +95,21 @@ def _settlement_means_from_observations(
         if settlement.population is not None
     ]
     foods = [
-        settlement.food for observation in observations for settlement in observation.settlements
+        settlement.food
+        for observation in observations
+        for settlement in observation.settlements
         if settlement.food is not None
     ]
     wealths = [
-        settlement.wealth for observation in observations for settlement in observation.settlements
+        settlement.wealth
+        for observation in observations
+        for settlement in observation.settlements
         if settlement.wealth is not None
     ]
     defenses = [
-        settlement.defense for observation in observations for settlement in observation.settlements
+        settlement.defense
+        for observation in observations
+        for settlement in observation.settlements
         if settlement.defense is not None
     ]
     if not populations:

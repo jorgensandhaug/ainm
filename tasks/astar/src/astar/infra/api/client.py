@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.api.auth import AuthConfig
+from astar.infra.api.auth import AuthConfig
 from astar.infra.api.dto import (
     AnalysisResponse,
     BudgetStatus,

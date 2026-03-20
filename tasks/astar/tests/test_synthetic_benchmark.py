@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.policy.interactive import build_interactive_policy
-from astar.storage.manifests import RepoPaths
-from astar.student.predictor.interactive import build_legacy_online_predictor
+from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from tests.conftest import ROUND_ID
 from tests.test_history_datasets import _write_replays_for_all_seeds
@@ -13,7 +13,7 @@ def test_synthetic_benchmark_runs_multiple_episode_seeds(sample_paths: RepoPaths
 
     result = run_synthetic_benchmark(
         sample_paths,
-        predictor=build_legacy_online_predictor("geometry_prior"),
+        predictor=build_online_predictor("geometry_prior"),
         policy=build_interactive_policy("coverage"),
         round_ids=[ROUND_ID],
         episode_seeds=[0, 1],

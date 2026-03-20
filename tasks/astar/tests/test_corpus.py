@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.materialize_episode import materialize_round_episode
 from tests.conftest import ROUND_ID

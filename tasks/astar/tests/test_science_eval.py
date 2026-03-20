@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from astar.eval.science import evaluate_teacher_science
 from astar.history.episodes.build import build_round_episode
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from tests.conftest import ROUND_ID

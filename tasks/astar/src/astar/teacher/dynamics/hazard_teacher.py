@@ -78,8 +78,7 @@ class HazardTeacher(BaseModel):
             raise ValueError("no replay-backed episodes available for hazard teacher")
 
         coefficient_rows = [
-            fit_round_semimechanistic_coefficients(episode)
-            for episode in replay_episodes
+            fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
         ]
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)

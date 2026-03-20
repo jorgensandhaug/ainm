@@ -5,7 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from astar.domain.scoring import entropy_map
+from astar.core.score import entropy_map
 
 
 def plot_entropy_heatmap(prediction: np.ndarray, output_path: Path) -> Path:

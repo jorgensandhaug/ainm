@@ -5,8 +5,8 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.infra.api.dto import RoundDetail
-from astar.observe.policies.base import BaseQueryPolicy
 from astar.observe.query_plan import QueryPlan, write_query_plan
+from astar.policy.query_plan import QueryPlanPolicy
 
 
 class PlannedPolicyRun(BaseModel):
@@ -20,7 +20,7 @@ class PlannedPolicyRun(BaseModel):
 
 
 def build_policy_plan(
-    policy: BaseQueryPolicy,
+    policy: QueryPlanPolicy,
     round_detail: RoundDetail,
     output_path: Path,
 ) -> PlannedPolicyRun:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from astar.api.schemas import StoredQueryRecord, StoredRoundRecord
+from astar.infra.api.dto import StoredQueryRecord, StoredRoundRecord
 from tests.conftest import ROUND_ID
 
 

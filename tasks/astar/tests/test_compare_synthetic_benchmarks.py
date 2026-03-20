@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.policy.interactive import build_interactive_policy
-from astar.storage.manifests import RepoPaths
-from astar.student.predictor.interactive import build_legacy_online_predictor
+from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from tests.conftest import ROUND_ID
@@ -14,7 +14,7 @@ def test_compare_synthetic_benchmarks_on_same_manifest(sample_paths: RepoPaths) 
 
     baseline = run_synthetic_benchmark(
         sample_paths,
-        predictor=build_legacy_online_predictor("geometry_prior"),
+        predictor=build_online_predictor("geometry_prior"),
         policy=build_interactive_policy("coverage"),
         round_ids=[ROUND_ID],
         episode_seeds=[0, 1],
@@ -23,7 +23,7 @@ def test_compare_synthetic_benchmarks_on_same_manifest(sample_paths: RepoPaths) 
     )
     candidate = run_synthetic_benchmark(
         sample_paths,
-        predictor=build_legacy_online_predictor("latent_regime"),
+        predictor=build_online_predictor("latent_regime"),
         policy=build_interactive_policy("coverage"),
         round_ids=[ROUND_ID],
         episode_seeds=[0, 1],

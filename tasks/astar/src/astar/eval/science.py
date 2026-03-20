@@ -125,16 +125,14 @@ def evaluate_teacher_science(
                 port_curve_mae=float(
                     np.mean(
                         np.abs(
-                            actual_aggregate.port_curve_mean
-                            - predicted_aggregate.port_curve_mean
+                            actual_aggregate.port_curve_mean - predicted_aggregate.port_curve_mean
                         ),
                     ),
                 ),
                 ruin_curve_mae=float(
                     np.mean(
                         np.abs(
-                            actual_aggregate.ruin_curve_mean
-                            - predicted_aggregate.ruin_curve_mean
+                            actual_aggregate.ruin_curve_mean - predicted_aggregate.ruin_curve_mean
                         ),
                     ),
                 ),

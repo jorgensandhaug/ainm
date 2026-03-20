@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from astar.storage.manifests import RepoPaths
+from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 
 ROUND_ID = "00000000-0000-0000-0000-000000000001"
 

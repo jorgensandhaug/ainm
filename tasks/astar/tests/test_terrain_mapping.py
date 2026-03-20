@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from astar.domain.terrain import collapse_internal_grid, map_internal_code
+from astar.core.terrain import collapse_internal_grid, map_internal_code
 
 
 def test_internal_codes_collapse_to_scored_classes() -> None:

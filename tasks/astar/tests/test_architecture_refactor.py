@@ -7,10 +7,10 @@ def test_mainline_planning_stack_is_not_yaml_driven() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     guarded_paths = [
         repo_root / "src" / "astar" / "cli.py",
-        repo_root / "src" / "astar" / "baselines" / "static_semantic.py",
+        repo_root / "src" / "astar" / "student" / "predictor" / "static_semantic.py",
         repo_root / "src" / "astar" / "features" / "motifs.py",
         *sorted((repo_root / "src" / "astar" / "observe").glob("*.py")),
-        *sorted((repo_root / "src" / "astar" / "observe" / "policies").glob("*.py")),
+        *sorted((repo_root / "src" / "astar" / "policy").glob("*.py")),
         *sorted((repo_root / "src" / "astar" / "workflows").glob("*.py")),
         *sorted((repo_root / "src" / "experiments").rglob("*.py")),
     ]
@@ -27,6 +27,7 @@ def test_new_bounded_contexts_do_not_import_legacy_layers_directly() -> None:
     disallowed = (
         "from astar.api",
         "from astar.domain",
+        "from astar.models",
         "from astar.storage",
         "from astar.policies",
     )
@@ -34,7 +35,6 @@ def test_new_bounded_contexts_do_not_import_legacy_layers_directly() -> None:
         repo_root / "src" / "astar" / "core",
         repo_root / "src" / "astar" / "features",
         repo_root / "src" / "astar" / "history",
-        repo_root / "src" / "astar" / "models",
         repo_root / "src" / "astar" / "eval",
         repo_root / "src" / "astar" / "observe",
         repo_root / "src" / "astar" / "teacher",
@@ -53,6 +53,7 @@ def test_workflows_do_not_import_api_domain_storage_directly() -> None:
     disallowed = (
         "from astar.api",
         "from astar.domain",
+        "from astar.models",
         "from astar.storage",
         "from astar.policies",
         "from astar.ops",

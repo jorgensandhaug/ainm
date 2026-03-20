@@ -1,1 +1,0 @@
-"""Explicit legacy compatibility shims."""
