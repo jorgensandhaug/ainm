@@ -97,6 +97,7 @@ Observed production/account variance:
   - `amountCurrencyOutstanding` first
   - otherwise `amountOutstanding`
 - exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`
+- exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`
 - exact-match production proof on 2026-03-20: prompt locator `32200` ex VAT for `System Development` still required `paidAmount=40250`
 - This avoids incorrect VAT assumptions and avoids partial/over-payments when reminders, alternate currencies, or non-standard VAT setups exist
 - Only send `paidAmountCurrency` when the invoice currency differs from the payment type currency and the endpoint requires both values
