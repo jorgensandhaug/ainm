@@ -49,6 +49,34 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create prerequisites:
   - explicit `userType`
   - often a department
+- Standard payroll note:
+  - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
+  - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
+
+## Salary
+- `/salary/type`
+  - `GET` search salary types
+- `/salary/transaction`
+  - `POST` create salary transaction
+- `/salary/transaction/{id}`
+  - `GET` read salary transaction
+  - `DELETE` delete salary transaction
+- `/salary/payslip`
+  - `GET` search payslips
+- `/salary/payslip/{id}`
+  - `GET` read payslip
+- Standard payroll prerequisites:
+  - exact employee id
+  - payroll-ready employee data
+  - resolved salary-type ids
+- Standard fast-path note:
+  - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
+  - the winning blocked path can be one decisive employee read
+  - the winning successful path is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
+- Standard verification note:
+  - `GET /salary/payslip/{id}?fields=*` is enough for `grossAmount`, `amount`, and `specifications.length`
+  - `GET /salary/payslip/{id}?fields=*` can still keep individual `specifications[]` as link-only objects
+  - for exact line-level verification, use `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`
 
 ## Product
 - `/product`

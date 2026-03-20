@@ -98,6 +98,7 @@ Authentication:
 | Create customer invoice credit note | `./trusted-standards/create-customer-invoice-credit-note.md` |
 | Create and send customer invoice | `./trusted-standards/create-and-send-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
+| Run employee payroll | `./trusted-standards/run-employee-payroll.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
 | Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
@@ -134,6 +135,7 @@ Authentication:
 - `/customer` and `/customer/{id}` — customer create/search/read/update/delete
 - `/department`, `/department/{id}`, and `/department/list` — department create/search/update/delete/batch-create
 - `/employee`, `/employee/{id}`, and `/employee/employment` — employee create/search/update and employment verification/create
+- `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, and `/salary/payslip/{id}` — salary-type lookup, payroll transaction create/read/delete, and payslip search/read
 - `/product` and `/product/{id}` — product create/search/update/delete
 - `/project` and `/project/{id}` — project create/search/update/delete
 - `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
@@ -243,8 +245,11 @@ Authentication:
 - Employee creation can also fail on `employments.division.id`; if validation says the employment must be tied to a business/sub-entity, resolve one existing `/division?count=1&fields=*` and reuse that `division.id` instead of guessing.
 - If employee start date is scored, plan one decisive `GET /employee/employment?employeeId=...&fields=*` unless the create response unexpectedly includes the actual `startDate`.
 - Payroll runs through `POST /salary/transaction` require a payroll-ready employee. One decisive `GET /employee?email=...&fields=*` should confirm at least `dateOfBirth` plus an employment covering the target period before the salary write. If those prerequisites are missing and the prompt does not provide the missing personal/business-setup data, treat the run as blocked instead of inventing them.
+- `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`; if `dateOfBirth` is present but the payroll-period check is still ambiguous, do one conditional `GET /employee/employment?employeeId=...&fields=*` before treating the run as blocked or ready.
+- `GET /employee/employment?employeeId=...&fields=*` can expand `startDate` and `division.id` while `employmentDetails[]` and `latestSalary` remain partly sparse; do not spend an automatic `GET /employee/employment/details` when active employment plus division-backed payroll setup is already clear enough to proceed.
 - For payroll tasks with manual salary lines, resolve salary types from `GET /salary/type?count=1000&fields=*` and use embedded `payslips[].specifications[]` on `POST /salary/transaction`. In accounts without department accounting, omitting `department` from that salary payload avoids `422 department: Selskapet har ikke aktivert avdelingsregnskap.`
 - When a successful `POST /salary/transaction` response is too sparse, the decisive verification branch is `GET /salary/transaction/{id}?fields=*` to get payslip ids, then `GET /salary/payslip/{id}?fields=*` for gross/net amounts and specification count.
+- `GET /salary/payslip/{id}?fields=*` can still keep `specifications[]` as link-only objects; for exact manual-line verification use `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`.
 - Project creation may require `startDate` even though the `Project` schema does not clearly mark it as required. Project manager assignment is also validated: a plain employee match may still be ineligible, so prefer resolving managers with `assignableProjectManagers=true`.
 - For fixed-price project partial-billing tasks, do not assume `PUT /order/{id}/:invoice?...createOnAccount=...` can invoice an order with no real order lines; sandbox returned `422` with `Fakturaen inneholder ingen ordrelinjer.`. The safer path is one real project-linked order line for the partial amount, then normal `:invoice` without `createOnAccount`.
 - In that fixed-price partial-billing flow, `POST /order` may still echo `orderLines=[]` even when the embedded line was created. If the invoice write response does not already prove the project link, one targeted `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` can confirm both the line and `orders[0].project.id`.
