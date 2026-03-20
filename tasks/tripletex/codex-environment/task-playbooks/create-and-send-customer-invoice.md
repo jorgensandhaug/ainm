@@ -100,6 +100,8 @@ This was verified in sandbox:
 - invoice creation succeeded after this update
 - the known-good minimal payload on the existing invoice account is `{ "bankAccountNumber": "12345678903" }`
 - do not burn calls on an improvised locally generated bank-account number unless this exact minimal repair itself fails
+- if you do need a different number, use a valid Norwegian mod-11 checksum with weights `5,4,3,2,7,6,5,4,3,2` across the first ten digits; the wrong weight order only burns a `422`
+- once that repair branch has already identified the invoice `account.id`, reuse it directly; do not spend a second `/ledger/account` read after a local repair-payload mistake
 - if the customer create already succeeded and you later lose local process state, resume on the existing-customer branch instead of repeating `POST /customer`
 
 ## Key Finding: Resolve VAT Type Dynamically
@@ -198,6 +200,8 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 4. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - update the existing invoice account with `PUT /ledger/account/{id}` and minimal payload `{ "bankAccountNumber": "12345678903" }`
+   - only if that exact value collides or is otherwise unusable, generate another checksum-valid unique number with the same `5,4,3,2,7,6,5,4,3,2` mod-11 rule
+   - if that repair branch already resolved the invoice `account.id`, reuse it instead of repeating the same `/ledger/account` read
    - retry the invoice write once
 5. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
 

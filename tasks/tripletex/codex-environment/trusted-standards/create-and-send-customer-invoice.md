@@ -28,6 +28,8 @@
 5. only if that invoice write fails with missing company bank account:
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - `PUT /ledger/account/{id}` on the existing invoice account (usually `1920`) with minimal payload `{ "bankAccountNumber": "12345678903" }`
+   - if you must generate a different number, keep it unique and checksum-valid; the working Norwegian mod-11 weights are `5,4,3,2,7,6,5,4,3,2` across the first ten digits
+   - once that repair branch has already identified the invoice `account.id`, reuse it directly; do not spend a second `/ledger/account` read after a local repair-payload mistake
    - retry the same `POST /invoice` once
 6. stop
 
@@ -76,6 +78,8 @@
 - the same exact no-VAT branch also covers Portuguese wording such as `sem IVA`; the 2026-03-20 production run for `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` used the same `3` calls and did not need `GET /customer` or `PUT /invoice/{id}/:send`
 - for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
 - if the first `POST /invoice` fails only on missing company bank account, do not let a local helper bug or ad hoc bank-number guess force a full script restart; the minimum recovery is still one valid `PUT /ledger/account/{id}` and one retry of the same invoice payload
+- do not invent the bank-account checksum branch during a scored run; production reflection on 2026-03-20 burned `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer` on the wrong weight order before the valid mod-11 routine was restored
+- once `GET /ledger/account?isBankAccount=true&fields=*` has already identified the invoice account, do not repeat that same read just because the first repair attempt failed locally; reuse the same `account.id`
 - if that first failed invoice happened after a successful customer create, do not blind-retry `POST /customer`; if you lost in-memory state, resume on the existing-customer branch instead
 - French wording such as `hors TVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` succeeded in the canonical `3` calls, while the same-day persistent sandbox still exposed only `0%`, produced a wrong untaxed `44750` total when `vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422`.
 - Norwegian wording such as `eksklusiv MVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 persistent-sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` still exposed only VAT code `6` (`0%`) on the filtered outgoing VAT read for `2026-03-20`, so that sandbox state remains blocked for the taxed branch rather than a valid lower-call shortcut.
