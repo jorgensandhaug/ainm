@@ -19,18 +19,19 @@
 - the prompt is too ambiguous to resolve the customer or manager decisively
 
 ## Standard Flow
-1. `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
-2. first try one decisive project-first resolver: `GET /project?name=...&count=50&fields=*,customer(*)`
-3. if that read leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the existing `startDate`, and skip a separate `GET /customer`
-4. otherwise, `GET /customer?organizationNumber=...&count=10&fields=*`
-5. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
+1. first try one decisive update-first resolver: `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`
+2. if that read leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt:
+   - reuse `project.id`, `customer.id`, and the existing `startDate`
+   - if nested `projectManager.email` also matches the prompt, reuse `projectManager.id` and skip a separate `GET /employee`
+   - otherwise resolve the manager with `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
+3. if the project-first read did not already prove the exact project and customer, resolve the customer with `GET /customer?organizationNumber=...&count=10&fields=*`
+4. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
+5. if the project-first read did not already prove the correct project manager, resolve the manager with `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
 6. `POST /project` if missing, otherwise `PUT /project/{id}`
 7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
 8. `POST /order` with one project-linked milestone line
-9. if this is likely the first outgoing invoice in a fresh-account run, `GET /ledger/account?isBankAccount=true&fields=*`
-10. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
-11. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-12. stop
+9. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+10. stop
 
 ## Payload Rules
 - on `POST /project` or `PUT /project/{id}`, include:
@@ -57,8 +58,10 @@
   - compute the exact 2-decimal partial amount and send that amount directly; do not round milestone amounts to whole NOK
 - compare returned `employee.email` exactly because the endpoint filter is containing
 - compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present
+- for update-shaped prompts, also compare nested `project.projectManager.email` exactly when `projectManager(*)` is expanded on the project search
 - if the prompt implies a normal taxable service and the filtered outgoing VAT result contains `25%`, use that `25%` row
 - if the filtered outgoing VAT result only exposes `0%`, use that one valid row instead of guessing another VAT code
+- for the exact update-first shape where that first `GET /project` already proves project + customer + manager, the canonical downstream path is `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` in `5` total calls; do not insert a default `/ledger/account` preflight between `POST /order` and `PUT /order/:invoice`
 - do not use `createOnAccount` on an order with no real order lines for this task shape
 
 ## Reuse From Write Response
@@ -83,11 +86,12 @@
 - only add `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` when the prompt explicitly scores linked project fields that the write response omits or later workflow truly depends on them
 
 ## Known Recovery Branches
-- if you intentionally skipped the fresh-account bank-account preflight and `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
   - do not create a second order or project
+- only take that `/ledger/account` read proactively when earlier steps in the same run already gave strong evidence that the company invoice bank account is missing; otherwise keep the 5-call optimistic path
 - if the filtered outgoing VAT result has no row that matches the prompt's intended taxable behavior and only unsupported rows remain, treat the task as blocked instead of guessing a VAT code
 
 ## OpenAPI / Sandbox Status
@@ -97,10 +101,16 @@
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` may expose only VAT code `6` (`0%`) in that account
   - `PUT /order/{id}/:invoice` can already prove totals and outstanding amount while still leaving nested project linkage sparse/null in the write response
 - persistent-sandbox optimization re-verification on 2026-03-20 additionally proved:
-  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*)` can already return enough nested customer data to skip a separate `GET /customer` when the project already exists and the nested `customer.organizationNumber` matches
+  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*),projectManager(*)` can already return enough nested customer and manager data to skip separate `GET /customer` and `GET /employee` calls when the project already exists, the nested `customer.organizationNumber` matches, and the nested `projectManager.email` matches
+  - that exact update-first branch completed successfully in `5` calls after fixture setup: project read, project update, VAT read, order create, invoice write
   - reusing that project read's `startDate` on `PUT /project/{id}` updated `fixedprice` successfully without changing the project's start date
   - `POST /order` plus `PUT /order/{id}/:invoice` preserved a percentage-derived decimal partial amount of `87662.5` exactly; do not round `25%` milestone amounts such as `350650 * 0.25`
   - omitting `orderLines[].vatType` on the same sandbox account also succeeded only because the filtered outgoing VAT list exposed a single `0%` row; do not generalize that as the trusted scored-run shortcut
 - exact production reflection on 2026-03-20 proved two score-relevant optimizations for this task shape:
   - the later `GET /invoice/{id}` was not part of the minimum scored path
   - on a fresh account with missing company invoice bank account number, proactive `/ledger/account` preflight before the first invoice write would have saved one Tripletex call and avoided one `422`
+- exact production reflection on 2026-03-20 for `Tindra AS` / `870827946` / `Nettbutikk-utvikling` / `kristian.nilsen@example.org` / `181650` / `50%` plus persistent-sandbox proof on the same date established the opposite branch for already-configured accounts:
+  - the production run finished correctly but scored `3.33/4` because it inserted a proactive `GET /ledger/account?isBankAccount=true&fields=*` before the invoice write
+  - that proactive read showed invoice account `1920` already had a valid `bankAccountNumber`
+  - persistent sandbox then re-proved the same update-first task shape succeeds in `5` measured calls without `/ledger/account` when the invoice account is already configured
+  - therefore the default exact-match path stays optimistic `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, with `/ledger/account` reserved for the specific missing-bank-account branch or for runs that already proved that prerequisite is missing

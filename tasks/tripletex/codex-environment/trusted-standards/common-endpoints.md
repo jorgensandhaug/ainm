@@ -79,9 +79,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - resolved salary-type ids
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
-  - the winning blocked path can be one decisive employee read; if that read already shows `dateOfBirth=null`, stop before `/employee/employment`, `/salary/type`, `/salary/settings`, or company-module investigation
-  - the winning successful path is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
-  - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response
+  - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
+  - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, but `GET /salary/type?count=1000&fields=*` succeeds, the lower-zero-risk path is salary-type read, one `GET /division?count=1&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
+  - do not add `POST /employee/employment/details` by default in that repair branch; persistent sandbox on 2026-03-20 proved payroll can succeed without it for manual salary lines
+  - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response from salary endpoints
 - Standard verification note:
   - `GET /salary/payslip/{id}?fields=*` is enough for `grossAmount`, `amount`, and `specifications.length`
   - `GET /salary/payslip/{id}?fields=*` can still keep individual `specifications[]` as link-only objects
@@ -136,7 +137,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
 - Standard search note:
   - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
+  - for update-shaped project tasks that also score the existing manager, `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` can often resolve the project, linked customer, and current manager in one read
   - when that expanded project search already leaves one exact `project.name` plus nested `customer.organizationNumber` and/or `customer.name` match, do not add a separate `GET /customer`
+  - when that same expanded row also shows nested `projectManager.email` matching the prompt, do not add a separate `GET /employee` just to re-resolve the same manager id
   - for fixed-price partial-billing update tasks, that same expanded project read can also supply the existing `startDate`; reuse it on `PUT /project/{id}` unless the prompt explicitly asks to change the start date
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
@@ -221,6 +224,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
   - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
   - if earlier steps in the same run already proved a valid company invoice bank account, skip that extra `/ledger/account` read
+  - for the exact project-first fixed-price partial-billing shape, keep the optimistic 5-call downstream path by default when the initial `GET /project` already proves project + customer + manager: `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`; the 2026-03-20 `Tindra AS` production run lost the efficiency point after a wasted proactive `/ledger/account` read that found account `1920` already had a valid `bankAccountNumber`
   - for fixed-price milestone tasks, `unitPriceExcludingVatCurrency` can be a real decimal such as `87662.5`; do not round percentage-derived milestone amounts to whole NOK just to make the payload look cleaner
 
 ## Invoice
@@ -326,8 +330,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
   - map a single generic prompt email to `email`
-  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and covers the 2026-03-20 `Skogheim AS` correctness miss
+  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirroring it into `invoiceEmail` in the same `POST /supplier` is still a reasonable hedge, but it is not a proven full fix by itself; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
+  - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
   - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
 

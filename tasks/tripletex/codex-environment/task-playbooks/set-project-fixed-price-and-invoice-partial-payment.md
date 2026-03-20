@@ -60,12 +60,17 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - `PUT /ledger/account/{id}` on the existing invoice account because `bankAccountNumber` was missing
   - one successful `PUT /order/{id}/:invoice?...`
 - persistent-sandbox optimization re-verification on 2026-03-20 for the update branch showed:
-  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*)` returned one exact project hit with nested `customer.organizationNumber`, `customer.id`, and the existing `startDate`
-  - that one project-first read was enough to skip a separate `GET /customer` before `PUT /project/{id}`
+  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*),projectManager(*)` returned one exact project hit with nested `customer.organizationNumber`, `customer.id`, `projectManager.email`, `projectManager.id`, and the existing `startDate`
+  - that one project-first read was enough to skip both a separate `GET /customer` and a separate `GET /employee` before `PUT /project/{id}` when the existing manager already matched the prompt
   - reusing the returned `startDate` on `PUT /project/{id}` updated `fixedprice` to `350650` without changing the project start date
   - `POST /order` then accepted a percentage-derived decimal line amount of `87662.5` for the `25%` milestone without rounding
   - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` succeeded directly in persistent sandbox without any `/ledger/account` preflight because that sandbox company already had a valid invoice bank account
   - omitting `orderLines[].vatType` on the same sandbox account also succeeded only because `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` exposed a single valid `0%` row; that omission is still not a trusted scored-run shortcut
+- exact production reflection on 2026-03-20 for `Tindra AS` / `870827946` / `Nettbutikk-utvikling` / `kristian.nilsen@example.org` / `181650` / `50%`, followed by sandbox re-proof on the same date, showed the concrete efficiency miss:
+  - the production run finished with perfect correctness but only `3.33/4` because it inserted `GET /ledger/account?isBankAccount=true&fields=*` before the invoice write
+  - that read returned invoice account `1920` with `bankAccountNumber=12345678903`, so the later invoice write already had the prerequisite it needed
+  - a new persistent-sandbox proof run for the same shape then measured `5` calls after fixture setup with no `/ledger/account` step: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - therefore this task shape should keep `/ledger/account` out of the default exact-match path unless earlier evidence already shows the bank-account prerequisite is missing
 
 ## Minimal Safe Flow
 
@@ -78,19 +83,20 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `GET /ledger/vatType`
    - `POST /order`
    - `PUT /order/{id}/:invoice`
-2. Resolve the project manager
-   - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`
-   - exact-match the email locally because the API filter is containing, not exact
-3. First try a project-first resolver for update-shaped prompts
-   - `GET /project?name=<project-name>&count=50&fields=*,customer(*)`
+2. First try a project-first resolver for update-shaped prompts
+   - `GET /project?name=<project-name>&count=50&fields=*,customer(*),projectManager(*)`
    - if that one read already leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the returned `startDate`
+   - if the same expanded row also shows nested `projectManager.email=<prompt-email>`, reuse `projectManager.id` too and skip a separate `GET /employee`
    - in that exact hit case, skip a separate `GET /customer`
-4. Resolve the customer only if the project-first read did not already prove it
+3. Resolve the customer only if the project-first read did not already prove it
    - usually `GET /customer?organizationNumber=...&count=10&fields=*`
    - if the prompt also gives the customer name, exact-match that locally too
-5. Create the customer only if it does not already exist
+4. Create the customer only if it does not already exist
    - if the prompt does not give invoice delivery details, prefer:
    - `invoiceSendMethod: "MANUAL"`
+5. Resolve the project manager only if the project-first read did not already prove the correct existing manager
+   - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`
+   - exact-match the email locally because the API filter is containing, not exact
 6. Resolve or update the project
    - if the project-first read already found the exact project, `PUT /project/{id}` directly
    - otherwise, if the customer is now known but the project is still unresolved, create it with `POST /project`
@@ -117,21 +123,17 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - `deliveryDate`
      - one embedded `orderLines[]` entry for the partial amount
    - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
-10. In fresh-account scored runs where this is likely the first outgoing invoice of the run, preflight the company invoice bank account before the first invoice write
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
-   - only if `bankAccountNumber` is missing, `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
-11. Invoice the order without sending it
+10. Invoice the order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-12. Only if you intentionally skipped that fresh-account preflight and the invoice write then fails with the company-bank-account validation, repair that prerequisite and retry the same order once
+11. Only if the invoice write fails with the company-bank-account validation, or earlier calls in the same run already proved that prerequisite is missing, repair that prerequisite and retry the same order once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
    - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
    - retry `PUT /order/{id}/:invoice?...` on the same order
-13. Verify from the write response first
+12. Verify from the write response first
    - reuse the invoice totals from `response.value`
-14. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
-15. Only for explicit linked-field verification or post-run research, do one decisive read
+13. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
+14. Only for explicit linked-field verification or post-run research, do one decisive read
    - `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
 
 ## Recommended Shapes
@@ -181,19 +183,18 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
   - full fixed price
   - partial-billing percentage or amount
 - the lower-call fresh-account flow is usually:
-  1. `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
-  2. `GET /project?name=...&count=50&fields=*,customer(*)`
-  3. if that read already proves the exact project and nested customer match, `PUT /project/{id}` directly using the returned `customer.id` and `startDate`
-  4. otherwise `GET /customer?organizationNumber=...&count=10&fields=*`
+ - the lower-call exact-match flow is usually:
+  1. `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`
+  2. if that read already proves the exact project, nested customer match, and nested manager email match, `PUT /project/{id}` directly using the returned `customer.id`, `projectManager.id`, and `startDate`
+  3. otherwise do one conditional `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
+  4. if the project-first read did not already prove the customer, `GET /customer?organizationNumber=...&count=10&fields=*`
   5. optional `POST /customer` with `invoiceSendMethod: "MANUAL"` if missing
   6. `POST /project` if missing, otherwise `PUT /project/{id}`
   7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
   8. `POST /order` with one embedded partial-billing line
-  9. `GET /ledger/account?isBankAccount=true&fields=*`
-  10. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
-  11. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
-- if the run already proved a valid company invoice bank account earlier, skip steps 8-9
-- if the project-first read already finds the exact project, this shape saves one API call versus customer-first lookup while still keeping the exact same write path
+  9. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+- only add `/ledger/account` between steps 8 and 9 when earlier evidence in the same run already proves the company invoice bank account is missing
+- if the project-first read already finds the exact project and exact existing manager, this shape saves two API calls versus always doing customer-first plus employee-first lookup while still keeping the exact same write path
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
 ## Verification Shape
@@ -234,3 +235,4 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order
 - Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
+- Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
