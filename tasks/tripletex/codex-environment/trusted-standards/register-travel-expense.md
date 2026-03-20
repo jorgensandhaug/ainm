@@ -8,12 +8,14 @@
 ## Exact Match
 - register one new travel expense for one existing employee identified by email
 - prompt provides the travel title/purpose, cost lines, and one or more per-diem allowances
+- prompt provides explicit `travelDetails.departureDate` and `travelDetails.returnDate`
 - prompt also gives `travelDetails.departureFrom`, or the mandatory employee read is expected to expose one concrete non-generic location field, or one conditional company read via `employee.companyId` is expected to expose one concrete non-generic company-address field that can be reused as `departureFrom`
 - if per diem spans overnight, the prompt also gives enough information to choose one overnight-accommodation branch, or a pre-approved deterministic inference exists
 - no attachment, approval, mileage, accommodation allowance, project linking, update, or delete flow
 
 ## Do Not Use This Standard If
 - task needs mileage allowance, accommodation allowance, or attachments
+- prompt gives only trip duration and not explicit travel dates
 - prompt omits `travelDetails.departureFrom` and neither the employee read nor one conditional company read via `employee.companyId` is likely to provide a concrete location
 - prompt needs overnight per diem but does not give enough information to choose an accommodation branch safely
 - employee identity is ambiguous or the employee must be created first
@@ -51,7 +53,7 @@
 - for each embedded cost in NOK, send both `amountCurrencyIncVat` and `amountNOKInclVAT`
 - do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ "id": 0 }` avoided later non-VAT-company delivery failure
 - preserve prompt text exactly in `title`, `travelDetails.purpose`, `travelDetails.detailedJourneyDescription`, and `costs[].comments`
-- if the prompt gives only trip duration and no explicit dates, use one deterministic inferred range rather than spending extra API calls; the default fallback is an inclusive range ending on the run date
+- do not encode a trusted default date inference for duration-only prompts; sandbox accepted several different delivered date ranges for the same Bergen probe, so omitted dates are not an exact-match trusted-standard case
 
 ## Reuse From Write Response
 - `travelExpense.id`
@@ -63,7 +65,7 @@
 
 ## Verification
 - do not treat the `POST /travelExpense` response alone as proof of full correctness for multi-day per-diem tasks; it can return an `OPEN` expense whose per-diem row is not deliverable
-- verify the final top-level travel-expense fields from the `PUT /travelExpense/:deliver` response
+- verify the final top-level travel-expense fields from `PUT /travelExpense/:deliver`; the operation returns `ListResponseTravelExpense`, so read the delivered object from `values[]`
 - for exact scored runs, do not add `/travelExpense/cost` or `/travelExpense/perDiemCompensation` follow-up reads just to reassure yourself unless the deliver response contradicts the intended child counts
 - do not rely on `GET /travelExpense/{id}?fields=*` for expanded child details; `costs[]` and `perDiemCompensations[]` can still be link-only `id`/`url`
 - do not use top-level `amount` or `paymentAmount` as proof of per-diem correctness; in sandbox those totals still reflected only embedded cost reimbursement even after successful delivery
@@ -85,12 +87,18 @@
   - `GET /company/{companyId}?fields=*,address(*)` expanded the company postal address, while `fields=*` alone left `company.address` as a link-only object
   - a no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that one company read produced concrete `departureFrom="Oslo"` from `company.address.city`
   - the 7-call branch `GET /employee` -> `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `state=DELIVERED`, `costs.length=2`, and `perDiemCompensations.length=1`
+  - `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered parent row under `values[]`, not `ResponseWrapperTravelExpense`
   - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned five usable `rateType` rows, but each `rateCategory` came back only as sparse `id`/`url`
   - using one of those returned sparse `rateType.id` values still allowed a delivered manual per-diem row to persist the prompt-scored `count`, `rate`, and `amount`
   - one `POST /travelExpense` with only manual per-diem `count`/`rate`/`amount` created the parent expense plus embedded rows, but left the expense in `state=OPEN`
   - that create-only branch also persisted `perDiemCompensations[].rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`
   - `PUT /travelExpense/:deliver` then failed until `travelDetails.departureFrom`, a compatible per-diem `rateType`, and delivery-safe cost `vatType` values were present
   - recreating with explicit `departureFrom`, `perDiemCompensations[].rateType`, `perDiemCompensations[].overnightAccommodation`, and zero-VAT cost rows allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`
+  - ambiguity probe script `sandbox_travel_expense_ambiguity_probe.ts` then created three delivered Bergen expenses with the same employee, cost rows, and per-diem row but different inferred values:
+    - `11145899`: `departureDate=2026-03-17`, `returnDate=2026-03-20`, `departureFrom=Oslo`
+    - `11145900`: `departureDate=2026-03-16`, `returnDate=2026-03-19`, `departureFrom=Oslo`
+    - `11145901`: `departureDate=2026-03-17`, `returnDate=2026-03-20`, `departureFrom=Drammen`
+  - Tripletex accepted all three as `state=DELIVERED`, so the API does not supply a trusted unique inference for duration-only + omitted-`departureFrom` prompts
   - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"` after the prompt omitted departureFrom and the employee read did not provide a concrete location; generic placeholders are not a trusted correctness path
   - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`
   - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step

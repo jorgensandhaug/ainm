@@ -6,6 +6,7 @@ Use for tasks like:
 - register one new travel expense for an existing employee identified by email
 - create travel costs such as flight, taxi, ferry, hotel, or similar reimbursement lines
 - include per-diem compensation in the same travel expense
+- prompt gives explicit travel dates, or some other non-Tripletex source already fixes those dates exactly
 - finish in one parent write plus only the verification reads that are actually needed
 
 Do not use for:
@@ -14,6 +15,7 @@ Do not use for:
 - attachments
 - standalone approval or delivery of an existing travel expense
 - project-linked or reinvoiced travel expenses
+- duration-only prompts that omit explicit travel dates; treat those as ambiguous investigation cases, not as an exact playbook match
 
 ## Key Findings
 
@@ -24,6 +26,7 @@ Verified in persistent sandbox on 2026-03-20:
 - `GET /company/{companyId}?fields=*,address(*)` expanded the company address in one read, while `fields=*` alone left `company.address` as a link-only object
 - one no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that company read yielded concrete `departureFrom="Oslo"` from `company.address.city`
 - the exact 7-call branch `GET /employee` -> conditional `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `2` costs and `1` per-diem row
+- `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered object inside `values[]`
 - that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`
 - one returned sparse `rateType.id` still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
 - `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
@@ -42,8 +45,15 @@ Verified in persistent sandbox on 2026-03-20:
 - top-level travel-expense `amount`/`paymentAmount` still reflected only reimbursable cost lines even after successful `:deliver`; those totals are not proof of per-diem correctness
 - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"`; when the prompt omits departureFrom, generic placeholders are correctness-risky and should not be upgraded into a trusted inference
 - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra `GET /employee` calls by stopping at `address=null` and only later adding the company fallback; future agents should switch to the company branch immediately after the first employee read reveals no address
+- ambiguity probe script `sandbox_travel_expense_ambiguity_probe.ts` then delivered three otherwise-identical Bergen expenses with different inferred values:
+  - `11145899`: `2026-03-17..2026-03-20`, `departureFrom=Oslo`
+  - `11145900`: `2026-03-16..2026-03-19`, `departureFrom=Oslo`
+  - `11145901`: `2026-03-17..2026-03-20`, `departureFrom=Drammen`
+- Tripletex accepted all three as `DELIVERED`, so the API does not tell you which date/departure inference is scorer-correct when the prompt omits those fields
 
 ## Lowest-Call Scored Flow
+
+This is the canonical flow only when the travel dates are explicit or otherwise fixed from outside Tripletex.
 
 1. Confirm these operations in `./openapi.json`
    - `GET /employee`
@@ -178,13 +188,14 @@ For the travel-expense create, the sandbox-proven shape was:
 - if those employee address fields are absent but the employee exposes `companyId`, use one conditional `GET /company/{companyId}?fields=*,address(*)` and infer from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
 - do not invent generic placeholders such as `Hjemsted`; if both employee and company reads lack a concrete location, this prompt shape is blocked
 - if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape
+- if the prompt omits explicit travel dates as well, this is not an exact playbook match; sandbox proved several delivered date/departure combinations are possible, so do not pretend one default inference is trusted
 
-## Date Inference For Underspecified Prompts
+## Date Ambiguity For Underspecified Prompts
 
-- if the prompt gives a trip duration but no explicit dates, do not burn API calls trying to derive dates from Tripletex
-- use one deterministic fallback range instead; the default is an inclusive range ending on the run date
-- for a `4` day trip on run date `2026-03-20`, the fallback range is `departureDate=2026-03-17` and `returnDate=2026-03-20`
-- keep cost dates internally consistent with that inferred range, for example departure-leg transport on `departureDate` and return-leg taxi on `returnDate`
+- do not encode a trusted default fallback for prompts that give only a duration
+- sandbox accepted both `2026-03-17..2026-03-20` and `2026-03-16..2026-03-19` for the same 4-day Bergen probe, and it also accepted different `departureFrom` values
+- because Tripletex accepts several delivered variants, omitted dates and omitted `departureFrom` are scorer ambiguities, not API-shape ambiguities
+- for that prompt family, the correct post-run learning action is to narrow the trusted standard, not to hardcode another guessed fallback date range
 
 ## Verification Shape
 

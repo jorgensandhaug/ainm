@@ -365,16 +365,18 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
   - the old 4-call create-only path (`GET /employee`, `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `POST /travelExpense`) can persist an `OPEN` expense but is no longer treated as a trusted full-correctness path for multi-day per-diem tasks
-  - for a deliverable multi-day per-diem travel-expense shape, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
+  - for a deliverable multi-day per-diem travel-expense shape with explicit travel dates, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
   - that filtered rate search can still return `rateCategory` only as `id`/`url`; trust the query filter itself and do not add `GET /travelExpense/rateCategory/{id}` to recover booleans
   - if the prompt omits `departureFrom`, first infer it from one concrete location already present on the employee object
-  - if `GET /employee?...fields=*` returns `address=null` but the employee does expose `companyId`, the lower-call full-correctness branch is one conditional `GET /company/{companyId}?fields=*,address(*)` and reuse of `company.address.city` / `addressLine1` / `displayName` / `addressAsString` as `departureFrom`
+  - if `GET /employee?...fields=*` returns `address=null` but the employee does expose `companyId`, the mechanical deliver branch is one conditional `GET /company/{companyId}?fields=*,address(*)` and reuse of `company.address.city` / `addressLine1` / `displayName` / `addressAsString` as `departureFrom`
   - `GET /company/{companyId}?fields=*` is not sufficient for that fallback; in persistent sandbox it left `company.address` as a link object, while `fields=*,address(*)` expanded `Oslo`
   - do not spend repeated employee reads once the first employee lookup already proved identity plus missing address, and do not invent generic placeholders such as `Hjemsted`
+  - if the prompt omits explicit dates as well as `departureFrom`, this is not a trusted exact-match path. Persistent sandbox accepted several delivered Bergen variants with different date ranges and different `departureFrom` values, so the API does not tell you which inferred final state is scorer-correct.
   - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
 - Standard verification note:
   - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`
   - do not trust the `POST /travelExpense` response alone as proof that multi-day per diem is fully correct; manual per-diem rows can persist with `rateType=null` and later fail `:deliver`
+  - `PUT /travelExpense/:deliver` returns `ListResponseTravelExpense`; read the delivered parent object from `values[]`
   - top-level `amount` and `paymentAmount` can still exclude per diem even after `:deliver`; they are not decisive proof of per-diem correctness
   - use those two child endpoints only as a conditional investigation branch when a later step needs expanded child fields or the live write response contradicts the intended child counts
 - Related action family also exists:
