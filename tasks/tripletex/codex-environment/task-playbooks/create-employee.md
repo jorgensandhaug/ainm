@@ -55,6 +55,7 @@ Persistent-sandbox reflection re-verification on 2026-03-20 showed:
 - the same prompt shape still hit the full repair ladder in the persistent sandbox: `422 department.id`, then `422 employments.division.id`, then success after reusing one active department and one division id
 - the sandbox path therefore remained `6` calls total including the final employment verification read
 - this is sandbox-only evidence for the repair branches, not a reason to pre-read `department` or `division` in fresh-account scored runs
+- a later same-session Portuguese analog `João Rodrigues Reflection 1774047088805` repeated that exact branch with reused department `837842` and division `108244566`, confirming that `/division` should still be read only after the second `422`, not immediately after the first one
 
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
@@ -140,6 +141,7 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not assume department is optional just because the schema has no `required` list
 - Do not default to `GET /department` before the first create attempt for an exact create-only task; that can waste a call on accounts that accept the write directly
 - Do not let the persistent sandbox's `6`-call repair branch trick you into paying `GET /department` or `GET /division` up front in fresh-account production runs
+- Do not read `/division` immediately after a first `422 department.id`; retry the employee create with the repaired department first, and only spend `GET /division` if the second write explicitly fails on `employments.division.id`
 - Do not assume `division` is never needed just because older sandbox runs accepted employments without it
 - Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on `422 message == "Validering feilet."` or on `Feltet må fylles ut.` alone; inspect `validationMessages[].field` before spending department/division repair calls

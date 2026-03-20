@@ -37,6 +37,7 @@
 - do not branch on the generic top-level `422 message`; it can stay `Validering feilet.` across different failures
 - for employee-create repair branches, key off `validationMessages[].field`
 - the current proven repair fields are `department.id` and `employments.division.id`
+- after a `department.id` failure, retry `POST /employee` with the repaired `department` before reading `/division`; the division requirement is still a second-stage branch, not a safe speculative pre-read
 
 ## Reuse From Write Response
 - `value.id`
@@ -66,3 +67,4 @@
 - scored production re-verification on 2026-03-20 for `João Rodrigues` confirmed that a Portuguese prompt with mixed-language date strings `5. September 1980` and `8. August 2026` still stays on the same fresh-account `2`-call branch after ISO normalization, and that the write/read path preserves Unicode employee names exactly
 - persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
 - a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`
+- a later same-session persistent-sandbox reflection run on 2026-03-20 for `João Rodrigues Reflection 1774047088805` repeated that exact repair order with existing department `837842` and division `108244566`, confirming again that `/division` should stay a second-stage reactive read rather than a speculative read after the first `422`
