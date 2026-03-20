@@ -83,7 +83,7 @@
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
   - hardcoded line `vatType.id=3` failed with `422 ... Ugyldig mva-kode.`
 - exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
-  - fresh-account-style branch: `POST /customer` with `name=Porto Alegre Lda`, `organizationNumber=826870192`, and `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` for `Design web` / `22700` succeeded
+  - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
   - the filtered VAT read returned only code `6` (`0%`)
   - the invoice write returned `amountExcludingVatCurrency=22700`, `amountCurrency=22700`, and an invoice number without any extra verification read
-  - once that customer existed, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
+  - on the exact `Porto Alegre Lda` / `826870192` task identity, once that customer existed in sandbox, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
