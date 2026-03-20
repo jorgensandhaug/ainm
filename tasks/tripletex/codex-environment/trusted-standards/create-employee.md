@@ -17,16 +17,17 @@
 - department/accounting state is unclear and prompt depends on it
 
 ## Standard Flow
-1. if department is clearly required by account/task, resolve department in one decisive `GET`
-2. if the payload includes `employments[]` and the account requires a business/sub-entity reference, resolve one existing `division` in one decisive `GET`
-3. `POST /employee`
-4. if scored fields are fully proven by write response, stop
-5. if employment start date is scored but response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
+1. `POST /employee` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
+2. if that write fails with `422` on `department.id`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, reuse the returned active department id, and retry once
+3. if the department repair branch finds no active department and department is clearly required, `POST /department` with a minimal name-only payload, then retry the same employee create once with that new department id
+4. if the employee write fails with `422` on `employments.division.id`, do one decisive `GET /division?count=1&fields=*`, reuse the returned division id inside the nested employment row, and retry once
+5. if scored fields are fully proven by the successful write response, stop
+6. if employment start date is scored but the create response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
 
 ## Payload Rules
 - send only prompt-required employee fields
-- if department functionality is enabled or required, include department reference
-- if the account validates `employments[].division.id`, include a real `division: { "id": ... }` inside each employment row
+- do not pre-read or prefill `department` by default for an exact create-only task; add it only when the prompt explicitly requires it or a validation repair branch proves it is needed
+- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
 - if prompt/task requires a user type/role field, include explicit `userType`
 - do not invent personal data not given by prompt
 
@@ -40,10 +41,11 @@
 - one employment read only when start-date/employment coverage is actually scored and missing from response
 
 ## Known Recovery Branches
-- department may be required if department functionality is enabled
+- some accounts reject the initial create without `department.id`; in that branch, resolve one active department or create a minimal one only if the read proves none exist
 - employment creation may also require `employments[].division.id`; if validation says so, resolve one existing `/division?count=1&fields=*` and retry once with that `division.id`
 - write response may echo sparse employment data only
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
-- sparse-employment and department gotchas documented from prior verified runs
+- sparse-employment, department, and division gotchas documented from prior verified runs
+- persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches, while scored production feedback the same day showed that automatic pre-reading of `department` can overpay calls on accounts that do not require it

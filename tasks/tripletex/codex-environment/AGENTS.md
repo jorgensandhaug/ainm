@@ -250,7 +250,8 @@ Authentication:
 - If the requested product VAT percentage is absent from that filtered `OUTGOING` result on the task date, treat the product-create task as blocked in that account; do not try a same-percentage code from the broader VAT catalog.
 - For product VAT selection, do not filter away base VAT codes by requiring `parentType` to be missing; standard code `3` (`25% Utgående avgift, høy sats`) still has `parentType.id=0`.
 - For exact `0%` product prompts such as books, do not search for a special book-only VAT endpoint or hardcode one sandbox's `0%` code; still choose the matching `0%` row from the filtered `OUTGOING` result in the current account.
-- Employee creation may require a department if department functionality is enabled in the account.
+- For exact create-only employee tasks, do not default to `GET /department` before the first `POST /employee`; scored production feedback on 2026-03-20 showed that pre-read can lose the call-efficiency bonus on accounts that accept the initial write without department repair.
+- Employee creation may require a department if department functionality is enabled in the account; when the initial create fails on `department.id`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, and only `POST /department` if that repair read proves no active department exists.
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may echo `userType: null` plus `employments` entries with only `id`/`url`, not the submitted `startDate`.
 - Employee creation can also fail on `employments.division.id`; if validation says the employment must be tied to a business/sub-entity, resolve one existing `/division?count=1&fields=*` and reuse that `division.id` instead of guessing.
 - If employee start date is scored, plan one decisive `GET /employee/employment?employeeId=...&fields=*` unless the create response unexpectedly includes the actual `startDate`.
