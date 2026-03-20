@@ -29,6 +29,7 @@
 - do not pre-read or prefill `department` by default for an exact create-only task; add it only when the prompt explicitly requires it or a validation repair branch proves it is needed
 - do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
 - if prompt/task requires a user type/role field, include explicit `userType`
+- normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - do not invent personal data not given by prompt
 
 ## Validation Rules
@@ -58,6 +59,7 @@
 - sparse-employment, department, and division gotchas documented from prior verified runs
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches, while scored production feedback the same day showed that automatic pre-reading of `department` can overpay calls on accounts that do not require it
 - scored production re-verification on 2026-03-20 for `Miguel Sánchez` confirmed the fresh-account winning branch: direct `POST /employee` succeeded without department or division repair, and one follow-up `GET /employee/employment?employeeId=...&fields=*` was still needed because the successful write response did not prove the requested `startDate`
+- scored production re-verification on 2026-03-20 for `Jules Bernard` confirmed that a French prompt with mixed-language dates `8. December 1982` and `27. December 2026` still stays on the same normalized employee-create shape after ISO conversion
 - scored production re-verification on 2026-03-20 for `Thomas Harris` confirmed the same fresh-account floor from an English prompt: direct `POST /employee` succeeded, the create response echoed only sparse `employments[]`, and one decisive `GET /employee/employment?employeeId=...&fields=*` finished the task in `2` calls
 - persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
 - a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`

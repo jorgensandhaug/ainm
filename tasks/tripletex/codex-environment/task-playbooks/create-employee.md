@@ -42,6 +42,10 @@ Scored production re-verification on 2026-03-20 for `Thomas Harris` showed:
 - the successful create response still returned sparse `employments[]`, so one decisive `GET /employee/employment?employeeId=...&fields=*` remained necessary
 - that run added no evidence for a one-call stop; it re-confirmed the `2`-call floor
 
+Scored production re-verification on 2026-03-20 for `Jules Bernard` showed:
+- a French-language prompt with mixed-language date strings `8. December 1982` and `27. December 2026` still fit the exact same employee-create task shape
+- normalizing those dates to `1982-12-08` and `2026-12-27` was sufficient; no alternate endpoint or extra read was justified by the prompt language
+
 Persistent-sandbox reflection re-verification on 2026-03-20 showed:
 - the same prompt shape still hit the full repair ladder in the persistent sandbox: `422 department.id`, then `422 employments.division.id`, then success after reusing one active department and one division id
 - the sandbox path therefore remained `6` calls total including the final employment verification read
