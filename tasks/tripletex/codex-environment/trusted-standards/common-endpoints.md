@@ -172,7 +172,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET` resolve project activities available for one employee on one date
 - Standard time-registration note:
   - for project hour tasks, prefer `/activity/>forTimeSheet` over a broad `/activity` search because it proves the activity is actually available on the project for that employee/date
-  - if the resolved activity is non-chargeable, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
+  - `/activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
+  - if that read returns `isChargeable=false`, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
   - for prompt shapes that only score requested hours registration plus the customer-facing project invoice, a non-chargeable activity is still not an automatic stop condition: skip the doomed project-specific-rate write, register the hours, and use the manual project-linked order/invoice fallback
 
 ## Project Hourly Rates
@@ -191,6 +192,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` update
   - `DELETE` delete
 - Standard time-registration note:
+  - only enter the hourly-rate branch when `/activity/>forTimeSheet` returned `isChargeable=true`
   - if `GET /project/hourlyRates?projectId=...` returns no holder for a chargeable project, create one with `POST /project/hourlyRates` before writing the employee/activity-specific rate
   - switching an existing project hourly-rate holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES` and then creating the employee+activity rate are separate writes
   - `GET /project/hourlyRates?projectId=...&fields=*,projectSpecificRates(*,employee(*),activity(*))` can expose enough nested data to detect an existing exact employee+activity rate without spending a second rate-search call
@@ -210,6 +212,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` approve week
 - Standard time-registration note:
   - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
+  - a timesheet write on a chargeable project activity can also succeed with `chargeable=true` and `hourlyRate=0` when the exact employee+activity rate is missing, so the write alone does not prove the prompt rate was applied
   - that non-chargeable timesheet response is only a true blocker when the prompt explicitly scores internal billability semantics or true project-hour reserve consumption
   - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
 

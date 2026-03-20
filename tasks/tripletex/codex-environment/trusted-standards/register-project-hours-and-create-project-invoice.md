@@ -23,7 +23,7 @@
    - use the expanded `project.customer.organizationNumber` and/or `project.customer.name` to satisfy the customer-identification part of the prompt
    - do not add a separate `GET /customer` when the project read already leaves one exact match
 3. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`
-4. if the resolved activity is chargeable:
+4. if the resolved activity has `isChargeable=true`:
    - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
    - if no holder exists for that project yet, `POST /project/hourlyRates` once with:
      - `project`
@@ -48,9 +48,11 @@
 
 ## Payload Rules
 - use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
+- `/activity/>forTimeSheet` exposes activity chargeability as `isChargeable`, not `chargeable`
 - do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes
+- when `activity.isChargeable=true`, spend `GET /project/hourlyRates` before the timesheet write; a chargeable timesheet can still succeed with `hourlyRate=0` if the exact employee+activity rate is missing
 - when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
-- if the resolved activity is non-chargeable, skip the project-hourly-rate writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
+- if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
 - the real invoice line should usually use:
   - `description` from the prompt activity or prompt billing text
   - `count` equal to the prompt hours
@@ -111,13 +113,17 @@
 ## OpenAPI / Sandbox Status
 - `/activity/>forTimeSheet`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`, `/timesheet/entry`, `/ledger/vatType`, `/order`, and `/order/{id}/:invoice` re-verified on 2026-03-20
 - persistent sandbox proved:
+  - `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`; do not key this task off a nonexistent `activity.chargeable`
   - `GET /project?name=...&count=50&fields=*,customer(*)` can return enough expanded customer data to replace a separate `GET /customer` in this exact task shape
   - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` can already expose the exact nested employee, activity, and hourly-rate data for an existing project-specific rate, so repeat/sandbox runs can skip a duplicate create write
   - when a newly created analog project had no hourly-rate holder yet, one `POST /project/hourlyRates` with `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the holder and the next `POST /project/hourlyRates/projectSpecificRates` plus `POST /timesheet/entry` succeeded normally
   - `PUT /project/hourlyRates/{id}` can switch the holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
   - `POST /project/hourlyRates/projectSpecificRates` succeeds for a chargeable activity and then `POST /timesheet/entry` returns `hourlyRate=<prompt rate>`
+  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Fakturerbart arbeid` + rate `1550`, the 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `GET /project/hourlyRates` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`
+  - on that same analog project, `POST /timesheet/entry` for chargeable activity `Fakturerbart arbeid` and employee `18565207` still succeeded with `chargeable=true` but `hourlyRate=0` when the exact employee+activity rate was missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe
   - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity
   - even on that non-chargeable branch, `POST /timesheet/entry` can still persist the requested hours on the requested activity while returning `chargeable=false` and `hourlyRate=0`
+  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`
   - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API
   - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing
   - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default

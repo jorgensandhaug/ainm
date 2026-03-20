@@ -16,6 +16,7 @@ Do not use for:
 ## Verified Findings
 
 Persistent-sandbox verification on 2026-03-20 showed:
+- `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
 - `GET /project?name=...&count=50&fields=*,customer(*)` returned enough expanded customer data to identify the linked customer without a separate `GET /customer`
 - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` returned enough nested data to identify an already-existing exact employee+activity rate and its `hourlyRate` without a second rate-search call
 - on a newly created analog project with no hourly-rate holder yet, `POST /project/hourlyRates` with `project`, `startDate`, and `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the missing holder, after which `POST /project/hourlyRates/projectSpecificRates` and `POST /timesheet/entry` succeeded normally
@@ -33,6 +34,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - `POST /timesheet/entry` on a non-chargeable project activity still succeeded even with `projectChargeableHours`, but the write response kept:
   - `chargeable=false`
   - `hourlyRate=0`
+- for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`
+- for the same analog project with `Fakturerbart arbeid` and existing exact rate `1550`, the 8-call branch that added `GET /project/hourlyRates` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`
+- on that same chargeable analog, `POST /timesheet/entry` can still succeed with `chargeable=true`, `hourlyRate=0` when the exact employee+activity rate is missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe
 - after that non-chargeable time write, `POST /order` with one real project-linked manual line and `PUT /order/{id}/:invoice?...sendToCustomer=false` still succeeded and produced the expected customer-facing invoice amount
 - `PUT /timesheet/week/:approve` returned `403` even for the token owner; do not make week approval a default step in this task shape
 - `GET /project/{id}/period/hourlistReport?...` can show those hours under `nonApprovedHours`
@@ -86,7 +90,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - only fall back to a separate `GET /customer` if the project read is ambiguous or unexpectedly sparse
 5. Resolve the applicable activity through the project-timesheet endpoint
    - `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*`
-6. If the resolved activity is chargeable, continue with the rate path
+   - branch on `activity.isChargeable`, not `activity.chargeable`
+6. If `activity.isChargeable===true`, continue with the rate path
+   - if `activity.isChargeable===false`, skip directly to the timesheet write and keep the exact branch at 7 calls
 7. Resolve the project hourly-rate holder
    - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
 8. If no holder exists yet, create it once
@@ -198,15 +204,19 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   1. `GET /employee?...`
   2. `GET /project?name=...&fields=*,customer(*)`
   3. `GET /activity/>forTimeSheet?...`
-  4. if chargeable: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
-  5. if chargeable and no holder exists yet: `POST /project/hourlyRates`
-  6. if needed: conditional `PUT /project/hourlyRates/{id}`
-  7. if chargeable and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
-  8. if chargeable and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
-  9. `POST /timesheet/entry`
-  10. `GET /ledger/vatType?...`
-  11. `POST /order` with one real project-linked line using prompt hours x prompt rate
-  12. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  4. if `activity.isChargeable=false`: `POST /timesheet/entry`
+  5. if `activity.isChargeable=false`: `GET /ledger/vatType?...`
+  6. if `activity.isChargeable=false`: `POST /order`
+  7. if `activity.isChargeable=false`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  8. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
+  9. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
+  10. if needed: conditional `PUT /project/hourlyRates/{id}`
+  11. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
+  12. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
+  13. if `activity.isChargeable=true`: `POST /timesheet/entry`
+  14. if `activity.isChargeable=true`: `GET /ledger/vatType?...`
+  15. if `activity.isChargeable=true`: `POST /order` with one real project-linked line using prompt hours x prompt rate
+  16. if `activity.isChargeable=true`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
 - do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
@@ -244,8 +254,10 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 ## Avoidable Mistakes
 
 - Do not assume `PUT /timesheet/week/:approve` is required or even permitted for this task shape
+- Do not branch on `activity.chargeable`; the field from `/activity/>forTimeSheet` is `isChargeable`, and the wrong key can silently skip the rate path on billable activities
 - Do not try to attach a project-specific rate to a non-chargeable activity; the server returns `422 activity.id: Ikke fakturerbar.`
 - Do not ignore already-expanded `projectSpecificRates` and then blindly `POST /project/hourlyRates/projectSpecificRates`; that can waste a write or trigger a duplicate-rate validation branch in persistent/repeat contexts
+- Do not assume a successful `POST /timesheet/entry` on a chargeable activity proves the prompt rate was applied; without the exact employee+activity rate it can still return `chargeable=true` and `hourlyRate=0`
 - Do not assume `projectChargeableHours` overrides a non-chargeable activity; the timesheet entry can still come back with `chargeable=false` and `hourlyRate=0`
 - Do not stop the run solely because of that non-chargeable timesheet response when the prompt only scores requested hours registration plus the invoice side effect; the scoring-first fallback is still the timesheet write plus a manual project-linked order/invoice
 - Do not assume a positive project invoicing reserve means the public API can actually charge those hours into an invoice
