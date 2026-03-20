@@ -1,0 +1,7 @@
+Create a customer named Sandbox Probe AS.
+
+Tripletex API base URL:
+https://kkpqfuj-amager.tripletex.dev/v2
+
+Tripletex session token:
+REDACTED

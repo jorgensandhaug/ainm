@@ -1,0 +1,14 @@
+{
+  "prompt": "EXACT API PROMPT",
+  "files": [
+    {
+      "filename": "a.txt",
+      "content_base64": "aGVsbG8K",
+      "mime_type": "text/plain"
+    }
+  ],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy.ainm.no/v2",
+    "session_token": "REDACTED"
+  }
+}

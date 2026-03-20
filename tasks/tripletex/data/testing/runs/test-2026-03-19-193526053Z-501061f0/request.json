@@ -1,0 +1,7 @@
+{
+  "prompt": "Create a customer named Logging Probe AS.",
+  "tripletex_credentials": {
+    "base_url": "https://ignore-me.example/v2",
+    "session_token": "REDACTED"
+  }
+}

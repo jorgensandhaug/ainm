@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a customer named Reflection Smoke Test AS with email post@reflection-smoke.no and organization number 999888777.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://example.invalid/v2",
+    "session_token": "REDACTED"
+  }
+}

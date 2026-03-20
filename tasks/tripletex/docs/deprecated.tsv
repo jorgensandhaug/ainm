@@ -1,0 +1,5 @@
+method	path	operationId	summary
+get	/crm/prospect	CrmProspect_search	Find prospects corresponding with sent data.
+get	/crm/prospect/{id}	CrmProspect_get	Get prospect by ID.
+get	/timesheet/month/byMonthNumber	TimesheetMonthByMonthNumber_getByMonthNumber	Find monthly status for given month.
+put	/token/session/:create	TokenSessionCreate_create	Create session token.

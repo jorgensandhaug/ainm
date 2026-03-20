@@ -1,0 +1,5 @@
+Prompt:
+EXACT API PROMPT
+
+Attachment paths:
+/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-183932465Z-b5a2d167/attachments/01-a.txt

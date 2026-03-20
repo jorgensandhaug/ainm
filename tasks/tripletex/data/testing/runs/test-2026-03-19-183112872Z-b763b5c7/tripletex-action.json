@@ -1,0 +1,13 @@
+{
+  "run_id": "test-2026-03-19-183112872Z-b763b5c7",
+  "status": "blocked",
+  "action": null,
+  "reason": "Attached file is not an invoice. The only attachment is plain text with content 'hello tripletex', so there is no supplier, invoice date, due date, amount, VAT, or line-item data to prepare a Tripletex action from.",
+  "files_read": [
+    {
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-183112872Z-b763b5c7/attachments/01-note.txt",
+      "mime_type": "text/plain",
+      "summary": "hello tripletex"
+    }
+  ]
+}

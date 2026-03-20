@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-211633572Z-2ec9eaf6/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Create a customer named Reflection Smoke Test AS with email post@reflection-smoke.no and organization number 999888777.
+
+Tripletex API base URL:
+https://kkpqfuj-amager.tripletex.dev/v2
+
+Tripletex session token:
+REDACTED
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-211633572Z-2ec9eaf6/scripts

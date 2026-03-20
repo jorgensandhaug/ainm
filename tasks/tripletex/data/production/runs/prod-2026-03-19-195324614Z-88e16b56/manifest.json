@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-03-19T19:53:24.616Z",
+  "run_id": "prod-2026-03-19-195324614Z-88e16b56",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-195324614Z-88e16b56",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-19-195324614Z-88e16b56",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "attachments": []
+}

@@ -1,0 +1,7 @@
+{
+  "prompt": "x",
+  "tripletex_credentials": {
+    "base_url": "https://x",
+    "session_token": "REDACTED"
+  }
+}

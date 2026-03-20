@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-03-19T22:18:13.445Z",
+  "run_id": "test-2026-03-19-221813444Z-3b3d3442",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-221813444Z-3b3d3442",
+  "storage_mode": "testing",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "test-2026-03-19-221813444Z-3b3d3442",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-221813444Z-3b3d3442/scripts",
+  "credentials_source": "sandbox",
+  "effective_base_url": "https://kkpqfuj-amager.tripletex.dev/v2",
+  "attachments": []
+}

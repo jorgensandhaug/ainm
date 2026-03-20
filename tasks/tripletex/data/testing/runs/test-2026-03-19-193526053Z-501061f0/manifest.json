@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-03-19T19:35:26.055Z",
+  "run_id": "test-2026-03-19-193526053Z-501061f0",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-193526053Z-501061f0",
+  "storage_mode": "testing",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "test-2026-03-19-193526053Z-501061f0",
+  "credentials_source": "sandbox",
+  "effective_base_url": "https://kkpqfuj-amager.tripletex.dev/v2",
+  "attachments": []
+}

@@ -1,0 +1,60 @@
+{
+  "fetchedAtUtc": "2026-03-19T16:53:34Z",
+  "prodSpecUrl": "https://tripletex.no/v2/openapi.json",
+  "testSpecUrl": "https://api-test.tripletex.tech/v2/openapi.json",
+  "version": "2.75.00",
+  "title": "Tripletex API",
+  "pathCount": 548,
+  "operationCount": 802,
+  "methodCounts": [
+    {
+      "method": "delete",
+      "count": 92
+    },
+    {
+      "method": "get",
+      "count": 365
+    },
+    {
+      "method": "post",
+      "count": 165
+    },
+    {
+      "method": "put",
+      "count": 180
+    }
+  ],
+  "operationTagCount": 190,
+  "schemaCount": 2176,
+  "actionPathCount": 67,
+  "deprecatedOperations": [
+    {
+      "method": "put",
+      "path": "/token/session/:create",
+      "operationId": "TokenSessionCreate_create",
+      "summary": "Create session token."
+    },
+    {
+      "method": "get",
+      "path": "/crm/prospect/{id}",
+      "operationId": "CrmProspect_get",
+      "summary": "Get prospect by ID."
+    },
+    {
+      "method": "get",
+      "path": "/crm/prospect",
+      "operationId": "CrmProspect_search",
+      "summary": "Find prospects corresponding with sent data."
+    },
+    {
+      "method": "get",
+      "path": "/timesheet/month/byMonthNumber",
+      "operationId": "TimesheetMonthByMonthNumber_getByMonthNumber",
+      "summary": "Find monthly status for given month."
+    }
+  ],
+  "prodAndTestPathsEqual": true,
+  "prodAndTestSchemasEqual": true,
+  "prodServerUrl": "https://tripletex.no/v2",
+  "testServerUrl": "https://api-test.tripletex.tech/v2"
+}

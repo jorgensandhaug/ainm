@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie den Kunden Bergwerk GmbH mit der Organisationsnummer 903944145. Die Adresse ist Solveien 52, 9008 Tromsø. E-Mail: post@bergwerk.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "REDACTED"
+  }
+}

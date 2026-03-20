@@ -1,0 +1,54 @@
+You are doing a post-run learning pass for this exact Codex session.
+Work fully autonomously until everything below is complete.
+Do not ask questions.
+Do not talk to the user.
+Do not stop early after reflection.
+
+Your final answer will be saved automatically to this canonical path: /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-220432798Z-55b4843e/codex-reflection.summary.md
+Treat that as the only final summary artifact for this follow-up run.
+
+All playbook and AGENTS.md edits must be written in English.
+
+You must complete this full sequence:
+1. Reflect on the original run: what went well, what went poorly, what mistakes happened, why they happened, and what the correct approach should have been.
+2. Then use the persistent sandbox to investigate and prove the correct solution path.
+3. Then update the task playbook system from what you learned.
+4. Then commit the AGENTS.md and playbook changes.
+5. Then write the final summary.
+
+Strict rules:
+- Do not continue the original competition task against its original credentials.
+- If you need to call Tripletex during this follow-up, use only the sandbox credentials provided below.
+- Put any sandbox API scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-220432798Z-55b4843e/scripts
+- Use TypeScript plus bun for API interaction.
+- Re-read ./AGENTS.md and inspect ./task-playbooks/ before deciding whether to update an existing playbook or create a new one.
+- If you create a new playbook, use a concise kebab-case filename in ./task-playbooks/.
+- If you create or rename a playbook, update the Task Playbooks table in ./AGENTS.md in the same change.
+- Edit only the relevant learning artifacts: ./AGENTS.md and files under ./task-playbooks/.
+- Use non-interactive git commands only.
+- Commit only the AGENTS.md and task-playbooks changes. Do not commit run artifacts.
+
+Commit requirements:
+- Make one git commit after the documentation/playbook work is complete.
+- Commit message format: tripletex playbook: <what changed>
+
+Final summary requirements:
+Write the final summary as Markdown with these exact sections:
+1. Task
+2. Reflection
+3. Root Causes
+4. Sandbox Verification
+5. Playbook Changes
+6. Commit
+7. Reusable Heuristics
+
+In the final summary:
+- Be specific about mistakes, wasted calls, weak assumptions, missing instructions, and corrected solution shape.
+- State whether you updated an existing playbook or created a new one.
+- List the exact playbook paths changed.
+- Include the git commit hash and commit message.
+
+Persistent sandbox credentials for investigation:
+- base_url: https://kkpqfuj-amager.tripletex.dev/v2
+- session_token: REDACTED
+- Basic Auth username: 0

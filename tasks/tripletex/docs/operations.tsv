@@ -1,0 +1,803 @@
+method	path	tags	operationId	deprecated	summary
+get	/accountantDashboard/news	accountantDashboard/news	AccountantDashboardNews_get	false	Get public news articles
+get	/accountantDashboard/news/tags	accountantDashboard/news	AccountantDashboardNewsTags_getTags	false	Get all existing news tags
+get	/accountingOffice/reconciliations/{reconciliationId}/control	accountingOffice/reconciliations/{reconciliationId}/control,accountingOffice/reconciliations	AccountingOfficeReconciliationsControl_get	false	Returns a list of reconciliation controls with the given reconciliationId
+put	/accountingOffice/reconciliations/{reconciliationId}/control/:controlReconciliation	accountingOffice/reconciliations/{reconciliationId}/control/:controlReconciliation,accountingOffice/reconciliations	AccountingOfficeReconciliationsControlControlReconciliation_controlReconciliation	false	Mark a reconciliation as controlled
+put	/accountingOffice/reconciliations/{reconciliationId}/control/:reconcile	accountingOffice/reconciliations/{reconciliationId}/control/:reconcile,accountingOffice/reconciliations	AccountingOfficeReconciliationsControlReconcile_reconcile	false	Mark a reconciliation as reconciled
+put	/accountingOffice/reconciliations/{reconciliationId}/control/:requestControl	accountingOffice/reconciliations/{reconciliationId}/control/:requestControl,accountingOffice/reconciliations	AccountingOfficeReconciliationsControlRequestControl_requestControl	false	Request control of a reconciliation
+get	/activity	activity	Activity_search	false	Find activities corresponding with sent data.
+post	/activity	activity	Activity_post	false	Add activity.
+get	/activity/>forTimeSheet	activity	ActivityForTimeSheet_getForTimeSheet	false	Find applicable time sheet activities for an employee on a specific day.
+post	/activity/list	activity	ActivityList_postList	false	Add multiple activities.
+get	/activity/{id}	activity	Activity_get	false	Find activity by ID.
+get	/asset	asset	Asset_search	false	Find assets corresponding with sent data.
+post	/asset	asset	Asset_post	false	Create one asset.
+get	/asset/assetsExist	asset	AssetAssetsExist_getAssetsExist	false	Get if AssetOverview details is empty.
+get	/asset/balanceAccountsSum	asset	AssetBalanceAccountsSum_balanceAccountsSum	false	Get balanceAccountsSum.
+get	/asset/canDelete/{id}	asset	AssetCanDelete_canDelete	false	Validate delete asset
+delete	/asset/deleteImport	asset	AssetDeleteImport_deleteImport	false	[BETA] Delete most recent assets import.
+delete	/asset/deleteStartingBalance	asset	AssetDeleteStartingBalance_deleteStartingBalance	false	[BETA] Delete the asset starting balance.
+post	/asset/duplicate/{id}	asset	AssetDuplicate_postDuplicate	false	Create copy of one asset
+post	/asset/list	asset	AssetList_postList	false	Create several assets.
+post	/asset/upload	asset	AssetUpload_upload	false	[BETA] Upload Excel file with Assets in the standard Tripletex defined format.
+delete	/asset/{id}	asset	Asset_delete	false	Delete asset.
+get	/asset/{id}	asset	Asset_get	false	Get asset by ID.
+put	/asset/{id}	asset	Asset_put	false	Update asset.
+get	/asset/{id}/postings	asset	AssetPostings_getPostings	false	Get postings associated with asset
+put	/attestation/:addApprover	attestation	AttestationAddApprover_addApprover	false	
+get	/attestation/addApproverPermission	attestation	AttestationAddApproverPermission_addApproverPermission	false	
+get	/attestation/companyModules	attestation_company_modules	AttestationCompanyModules_get	false	Get attestation company modules
+post	/balance/reconciliation/annual/context	balance/reconciliation	BalanceReconciliationAnnualContext_postAnnualContext	false	Create a annualBalance reconciliation context for a customer
+get	/balance/reconciliation/attachment/{attachmentId}/pdf	balance/reconciliation	BalanceReconciliationAttachmentPdf_getAttachment	false	
+get	/balance/reconciliation/{reconciliationId}/account/{accountId}/vouchers	balance/reconciliation	BalanceReconciliationAccountVouchers_getVouchers	false	
+get	/balanceSheet	balanceSheet	BalanceSheet_search	false	Get balance sheet (saldobalanse).
+get	/bank	bank	Bank_search	false	Find bank corresponding with sent data.
+get	/bank/reconciliation	bank/reconciliation	BankReconciliation_search	false	Find bank reconciliation corresponding with sent data.
+post	/bank/reconciliation	bank/reconciliation	BankReconciliation_post	false	Post a bank reconciliation.
+get	/bank/reconciliation/>last	bank/reconciliation	BankReconciliationLast_last	false	Get the last created reconciliation by account ID.
+get	/bank/reconciliation/>lastClosed	bank/reconciliation	BankReconciliationLastClosed_lastClosed	false	Get last closed reconciliation by account ID.
+get	/bank/reconciliation/closedWithUnmatchedTransactions	bank/reconciliation	BankReconciliationClosedWithUnmatchedTransactions_closedWithUnmatchedTransactions	false	Get the last closed reconciliation with unmached transactions by account ID.
+get	/bank/reconciliation/match	bank/reconciliation/match	BankReconciliationMatch_search	false	Find bank reconciliation match corresponding with sent data.
+post	/bank/reconciliation/match	bank/reconciliation/match	BankReconciliationMatch_post	false	Create a bank reconciliation match.
+put	/bank/reconciliation/match/:suggest	bank/reconciliation/match	BankReconciliationMatchSuggest_suggest	false	Suggest matches for a bank reconciliation by ID.
+get	/bank/reconciliation/match/count	bank/reconciliation/match	BankReconciliationMatchCount_count	false	Get the total number of matches
+get	/bank/reconciliation/match/query	bank/reconciliation/match	BankReconciliationMatchQuery_query	false	[INTERNAL] Wildcard search.
+delete	/bank/reconciliation/match/{id}	bank/reconciliation/match	BankReconciliationMatch_delete	false	Delete a bank reconciliation match by ID.
+get	/bank/reconciliation/match/{id}	bank/reconciliation/match	BankReconciliationMatch_get	false	Get bank reconciliation match by ID.
+put	/bank/reconciliation/match/{id}	bank/reconciliation/match	BankReconciliationMatch_put	false	Update a bank reconciliation match by ID.
+get	/bank/reconciliation/matches/counter	bank/reconciliation/match,bank/reconciliation/matches/counter	BankReconciliationMatchesCounter_get	false	[BETA] Get number of matches since last page access.
+post	/bank/reconciliation/matches/counter	bank/reconciliation/match,bank/reconciliation/matches/counter	BankReconciliationMatchesCounter_post	false	[BETA] Reset the number of matches after the page has been accessed.
+get	/bank/reconciliation/paymentType	bank/reconciliation/paymentType	BankReconciliationPaymentType_search	false	Find payment type corresponding with sent data.
+get	/bank/reconciliation/paymentType/{id}	bank/reconciliation/paymentType	BankReconciliationPaymentType_get	false	Get payment type by ID.
+get	/bank/reconciliation/settings	bank/reconciliation/settings	BankReconciliationSettings_get	false	Get bank reconciliation settings.
+post	/bank/reconciliation/settings	bank/reconciliation/settings	BankReconciliationSettings_post	false	Post bank reconciliation settings.
+put	/bank/reconciliation/settings/{id}	bank/reconciliation/settings	BankReconciliationSettings_put	false	Update bank reconciliation settings.
+put	/bank/reconciliation/transactions/unmatched:csv	bank/reconciliation	BankReconciliationTransactionsUnmatchedcsv_csvTransactions	false	Get all unmatched transactions in csv format
+delete	/bank/reconciliation/{id}	bank/reconciliation	BankReconciliation_delete	false	Delete bank reconciliation by ID.
+get	/bank/reconciliation/{id}	bank/reconciliation	BankReconciliation_get	false	Get bank reconciliation.
+put	/bank/reconciliation/{id}	bank/reconciliation	BankReconciliation_put	false	Update a bank reconciliation.
+put	/bank/reconciliation/{id}/:adjustment	bank/reconciliation	BankReconciliationAdjustment_adjustment	false	Add an adjustment to reconciliation by ID.
+get	/bank/statement	bank/statement	BankStatement_search	false	Find bank statement corresponding with sent data.
+post	/bank/statement/import	bank/statement	BankStatementImport_importBankStatement	false	Upload bank statement file.
+get	/bank/statement/transaction	bank/statement/transaction	BankStatementTransaction_search	false	Find bank transaction corresponding with sent data.
+get	/bank/statement/transaction/{id}	bank/statement/transaction	BankStatementTransaction_get	false	Get bank transaction by ID.
+get	/bank/statement/transaction/{id}/details	bank/statement/transaction	BankStatementTransactionDetails_getDetails	false	Get additional details about transaction by ID.
+delete	/bank/statement/{id}	bank/statement	BankStatement_delete	false	Delete bank statement by ID.
+get	/bank/statement/{id}	bank/statement	BankStatement_get	false	Get bank statement.
+get	/bank/{id}	bank	Bank_get	false	Get bank.
+put	/company	company	Company_put	false	Update company information.
+get	/company/>withLoginAccess	company	CompanyWithLoginAccess_getWithLoginAccess	false	Returns client customers (with accountant/auditor relation) where the current user has login access (proxy login).
+get	/company/divisions	company	CompanyDivisions_getDivisions	false	[DEPRECATED] Find divisions.
+get	/company/salesmodules	company/salesmodules	CompanySalesmodules_get	false	[BETA] Get active sales modules.
+post	/company/salesmodules	company/salesmodules	CompanySalesmodules_post	false	[BETA] Add (activate) a new sales module.
+get	/company/settings/altinn	company/altinn,company/settings/altinn	CompanySettingsAltinn_search	false	Find Altinn id for login in company.
+put	/company/settings/altinn	company/altinn,company/settings/altinn	CompanySettingsAltinn_put	false	Update AltInn id and password.
+get	/company/{id}	company	Company_get	false	Find company by ID.
+get	/contact	contact	Contact_search	false	Find contacts corresponding with sent data.
+post	/contact	contact	Contact_post	false	Create contact.
+delete	/contact/list	contact	ContactList_deleteByIds	false	[BETA] Delete multiple contacts.
+post	/contact/list	contact	ContactList_postList	false	Create multiple contacts.
+get	/contact/{id}	contact	Contact_get	false	Get contact by ID.
+put	/contact/{id}	contact	Contact_put	false	Update contact.
+get	/country	country	Country_search	false	Find countries corresponding with sent data.
+get	/country/{id}	country	Country_get	false	Get country by ID.
+get	/crm/prospect	crm/prospect	CrmProspect_search	true	Find prospects corresponding with sent data.
+get	/crm/prospect/{id}	crm/prospect	CrmProspect_get	true	Get prospect by ID.
+get	/currency	currency	Currency_search	false	Find currencies corresponding with sent data.
+get	/currency/{fromCurrencyID}/exchangeRate	currency	CurrencyExchangeRate_getAmountCurrency	false	Returns the amount in the company currency, where the input amount is in fromCurrency, using the newest exchange rate available for the given date
+get	/currency/{fromCurrencyID}/{toCurrencyID}/exchangeRate	currency	CurrencyExchangeRate_convertCurrencyAmount	false	Returns the amount in the specified currency, where the input amount is in fromCurrency, using the newest exchange rate available for the given date
+get	/currency/{id}	currency	Currency_get	false	Get currency by ID.
+get	/currency/{id}/rate	currency	CurrencyRate_getRate	false	Find currency exchange rate corresponding with sent data.
+get	/customer	customer	Customer_search	false	Find customers corresponding with sent data.
+post	/customer	customer	Customer_post	false	Create customer. Related customer addresses may also be created.
+get	/customer/category	customer/category	CustomerCategory_search	false	Find customer/supplier categories corresponding with sent data.
+post	/customer/category	customer/category	CustomerCategory_post	false	Add new customer/supplier category.
+get	/customer/category/{id}	customer/category	CustomerCategory_get	false	Find customer/supplier category by ID.
+put	/customer/category/{id}	customer/category	CustomerCategory_put	false	Update customer/supplier category.
+post	/customer/list	customer	CustomerList_postList	false	[BETA] Create multiple customers. Related supplier addresses may also be created.
+put	/customer/list	customer	CustomerList_putList	false	[BETA] Update multiple customers. Addresses can also be updated.
+delete	/customer/{id}	customer	Customer_delete	false	[BETA] Delete customer by ID
+get	/customer/{id}	customer	Customer_get	false	Get customer by ID.
+put	/customer/{id}	customer	Customer_put	false	Update customer. 
+get	/deliveryAddress	deliveryAddress	DeliveryAddress_search	false	Find addresses corresponding with sent data.
+get	/deliveryAddress/{id}	deliveryAddress	DeliveryAddress_get	false	Get address by ID.
+put	/deliveryAddress/{id}	deliveryAddress	DeliveryAddress_put	false	Update address.
+get	/department	department	Department_search	false	Find department corresponding with sent data.
+post	/department	department	Department_post	false	Add new department.
+post	/department/list	department	DepartmentList_postList	false	Register new departments.
+put	/department/list	department	DepartmentList_putList	false	Update multiple departments.
+get	/department/query	department	DepartmentQuery_query	false	Wildcard search.
+delete	/department/{id}	department	Department_delete	false	Delete department by ID
+get	/department/{id}	department	Department_get	false	Get department by ID.
+put	/department/{id}	department	Department_put	false	Update department.
+get	/discountPolicy	discountPolicy	DiscountPolicy_search	false	[BETA] Find discounts corresponding with sent data. Available for Logistics Basis and Wholesaler integration.
+get	/discountPolicy/{id}	discountPolicy	DiscountPolicy_get	false	[BETA] Get discount by ID. Available for Logistics Basis and Wholesaler integration.
+get	/division	division	Division_search	false	Get divisions.
+post	/division	division	Division_post	false	Create division.
+post	/division/list	division	DivisionList_postList	false	Create divisions.
+put	/division/list	division	DivisionList_putList	false	Update multiple divisions.
+put	/division/{id}	division	Division_put	false	Update division information.
+get	/document/{id}	document	Document_get	false	[BETA] Get document by ID.
+get	/document/{id}/content	document	DocumentContent_downloadContent	false	[BETA] Get content of document given by ID.
+get	/documentArchive/account/{id}	documentArchive	DocumentArchiveAccount_getAccount	false	[BETA] Find documents archived associated with account object type.
+post	/documentArchive/account/{id}	documentArchive	DocumentArchiveAccount_accountPost	false	[BETA] Upload file to Account Document Archive.
+get	/documentArchive/customer/{id}	documentArchive	DocumentArchiveCustomer_getCustomer	false	[BETA] Find documents archived associated with customer object type.
+post	/documentArchive/customer/{id}	documentArchive	DocumentArchiveCustomer_customerPost	false	[BETA] Upload file to Customer Document Archive.
+get	/documentArchive/dynamicControlForm/{id}	documentArchive	DocumentArchiveDynamicControlForm_getDynamicControlForm	false	[BETA] Find documents archived associated with control form object type.
+post	/documentArchive/dynamicControlForm/{id}	documentArchive	DocumentArchiveDynamicControlForm_dynamicControlFormPost	false	[BETA] Upload file to Control Form Document Archive.
+get	/documentArchive/employee/{id}	documentArchive	DocumentArchiveEmployee_getEmployee	false	[BETA] Find documents archived associated with employee object type.
+post	/documentArchive/employee/{id}	documentArchive	DocumentArchiveEmployee_employeePost	false	[BETA] Upload file to Employee Document Archive.
+get	/documentArchive/product/{id}	documentArchive	DocumentArchiveProduct_getProduct	false	[BETA] Find documents archived associated with product object type.
+post	/documentArchive/product/{id}	documentArchive	DocumentArchiveProduct_productPost	false	[BETA] Upload file to Product Document Archive.
+get	/documentArchive/project/{id}	documentArchive	DocumentArchiveProject_getProject	false	[BETA] Find documents archived associated with project object type.
+post	/documentArchive/project/{id}	documentArchive	DocumentArchiveProject_projectPost	false	[BETA] Upload file to Project Document Archive.
+post	/documentArchive/reception	documentArchive	DocumentArchiveReception_receptionPost	false	[BETA] Upload a file to the document archive reception. Send as multipart form.
+get	/documentArchive/supplier/{id}	documentArchive	DocumentArchiveSupplier_getSupplier	false	[BETA] Find documents archived associated with supplier object type.
+post	/documentArchive/supplier/{id}	documentArchive	DocumentArchiveSupplier_supplierPost	false	[BETA] Upload file to Supplier Document Archive.
+delete	/documentArchive/{id}	documentArchive	DocumentArchive_delete	false	[BETA] Delete document archive.
+put	/documentArchive/{id}	documentArchive	DocumentArchive_put	false	[BETA] Update document archive.
+get	/employee	employee	Employee_search	false	Find employees corresponding with sent data.
+post	/employee	employee	Employee_post	false	Create one employee.
+get	/employee/category	employee/category	EmployeeCategory_search	false	Find employee category corresponding with sent data.
+post	/employee/category	employee/category	EmployeeCategory_post	false	Create a new employee category.
+delete	/employee/category/list	employee/category	EmployeeCategoryList_deleteByIds	false	Delete multiple employee categories
+post	/employee/category/list	employee/category	EmployeeCategoryList_postList	false	Create new employee categories.
+put	/employee/category/list	employee/category	EmployeeCategoryList_putList	false	Update multiple employee categories.
+delete	/employee/category/{id}	employee/category	EmployeeCategory_delete	false	Delete employee category by ID
+get	/employee/category/{id}	employee/category	EmployeeCategory_get	false	Get employee category by ID.
+put	/employee/category/{id}	employee/category	EmployeeCategory_put	false	Update employee category information.
+get	/employee/employment	employee/employment	EmployeeEmployment_search	false	Find all employments for employee.
+post	/employee/employment	employee/employment	EmployeeEmployment_post	false	Create employment.
+get	/employee/employment/details	employee/employment/details	EmployeeEmploymentDetails_search	false	Find all employmentdetails for employment.
+post	/employee/employment/details	employee/employment/details	EmployeeEmploymentDetails_post	false	Create employment details.
+get	/employee/employment/details/{id}	employee/employment/details	EmployeeEmploymentDetails_get	false	Find employment details by ID.
+put	/employee/employment/details/{id}	employee/employment/details	EmployeeEmploymentDetails_put	false	Update employment details. 
+get	/employee/employment/employmentType	employee/employment/employmentType	EmployeeEmploymentEmploymentType_search	false	Find all employment type IDs.
+get	/employee/employment/employmentType/employmentEndReasonType	employee/employment/employmentType	EmployeeEmploymentEmploymentTypeEmploymentEndReasonType_getEmploymentEndReasonType	false	Find all employment end reason type IDs.
+get	/employee/employment/employmentType/employmentFormType	employee/employment/employmentType	EmployeeEmploymentEmploymentTypeEmploymentFormType_getEmploymentFormType	false	Find all employment form type IDs.
+get	/employee/employment/employmentType/maritimeEmploymentType	employee/employment/employmentType	EmployeeEmploymentEmploymentTypeMaritimeEmploymentType_getMaritimeEmploymentType	false	Find all maritime employment type IDs.
+get	/employee/employment/employmentType/salaryType	employee/employment/employmentType	EmployeeEmploymentEmploymentTypeSalaryType_getSalaryType	false	Find all salary type IDs.
+get	/employee/employment/employmentType/scheduleType	employee/employment/employmentType	EmployeeEmploymentEmploymentTypeScheduleType_getScheduleType	false	Find all schedule type IDs.
+get	/employee/employment/leaveOfAbsence	employee/employment/leaveOfAbsence	EmployeeEmploymentLeaveOfAbsence_search	false	Find all leave of absence corresponding with the sent data.
+post	/employee/employment/leaveOfAbsence	employee/employment/leaveOfAbsence	EmployeeEmploymentLeaveOfAbsence_post	false	Create leave of absence.
+post	/employee/employment/leaveOfAbsence/list	employee/employment/leaveOfAbsence	EmployeeEmploymentLeaveOfAbsenceList_postList	false	Create multiple leave of absences.
+get	/employee/employment/leaveOfAbsence/{id}	employee/employment/leaveOfAbsence	EmployeeEmploymentLeaveOfAbsence_get	false	Find leave of absence by ID.
+put	/employee/employment/leaveOfAbsence/{id}	employee/employment/leaveOfAbsence	EmployeeEmploymentLeaveOfAbsence_put	false	Update leave of absence.
+get	/employee/employment/leaveOfAbsenceType	employee/employment/leaveOfAbsenceType	EmployeeEmploymentLeaveOfAbsenceType_search	false	Find all leave of absence type IDs.
+get	/employee/employment/occupationCode	employee/employment/occupationCode	EmployeeEmploymentOccupationCode_search	false	Find all profession codes.
+get	/employee/employment/occupationCode/{id}	employee/employment/occupationCode	EmployeeEmploymentOccupationCode_get	false	Get occupation by ID.
+get	/employee/employment/remunerationType	employee/employment/remunerationType	EmployeeEmploymentRemunerationType_search	false	Find all remuneration type IDs.
+get	/employee/employment/workingHoursScheme	employee/employment/workingHoursScheme	EmployeeEmploymentWorkingHoursScheme_search	false	Find working hours scheme ID.
+get	/employee/employment/{id}	employee/employment	EmployeeEmployment_get	false	Find employment by ID.
+put	/employee/employment/{id}	employee/employment	EmployeeEmployment_put	false	Update employemnt. 
+get	/employee/entitlement	employee/entitlement	EmployeeEntitlement_search	false	Find all entitlements for user.
+put	/employee/entitlement/:grantClientEntitlementsByTemplate	employee/entitlement	EmployeeEntitlementGrantClientEntitlementsByTemplate_grantClientEntitlementsByTemplate	false	[BETA] Update employee entitlements in client account.
+put	/employee/entitlement/:grantEntitlementsByTemplate	employee/entitlement	EmployeeEntitlementGrantEntitlementsByTemplate_grantEntitlementsByTemplate	false	[BETA] Update employee entitlements.
+get	/employee/entitlement/client	employee/entitlement	EmployeeEntitlementClient_client	false	[BETA] Find all entitlements at client for user.
+get	/employee/entitlement/{id}	employee/entitlement	EmployeeEntitlement_get	false	Get entitlement by ID.
+get	/employee/hourlyCostAndRate	employee/hourlyCostAndRate	EmployeeHourlyCostAndRate_search	false	Find all hourly cost and rates for employee.
+post	/employee/hourlyCostAndRate	employee/hourlyCostAndRate	EmployeeHourlyCostAndRate_post	false	Create hourly cost and rate.
+get	/employee/hourlyCostAndRate/{id}	employee/hourlyCostAndRate	EmployeeHourlyCostAndRate_get	false	Find hourly cost and rate by ID.
+put	/employee/hourlyCostAndRate/{id}	employee/hourlyCostAndRate	EmployeeHourlyCostAndRate_put	false	Update hourly cost and rate. 
+post	/employee/list	employee	EmployeeList_postList	false	Create several employees.
+get	/employee/nextOfKin	employee/nextOfKin	EmployeeNextOfKin_search	false	Find all next of kin for employee.
+post	/employee/nextOfKin	employee/nextOfKin	EmployeeNextOfKin_post	false	Create next of kin.
+get	/employee/nextOfKin/{id}	employee/nextOfKin	EmployeeNextOfKin_get	false	Find next of kin by ID.
+put	/employee/nextOfKin/{id}	employee/nextOfKin	EmployeeNextOfKin_put	false	Update next of kin. 
+get	/employee/preferences	employee/preferences	EmployeePreferences_search	false	Find employee preferences corresponding with sent data.
+put	/employee/preferences/:changeLanguage	employee/preferences	EmployeePreferencesChangeLanguage_changeLanguage	false	Change current employees language to the given language
+get	/employee/preferences/>loggedInEmployeePreferences	employee/preferences	EmployeePreferencesLoggedInEmployeePreferences_loggedInEmployeePreferences	false	Get employee preferences for current user
+put	/employee/preferences/list	employee/preferences	EmployeePreferencesList_putList	false	Update multiple employee preferences.
+put	/employee/preferences/{id}	employee/preferences	EmployeePreferences_put	false	Update employee preferences information.
+get	/employee/searchForEmployeesAndContacts	employee	EmployeeSearchForEmployeesAndContacts_searchForEmployeesAndContacts	false	Get employees and contacts by parameters. Include contacts by default.
+get	/employee/standardTime	employee/standardTime	EmployeeStandardTime_search	false	Find all standard times for employee.
+post	/employee/standardTime	employee/standardTime	EmployeeStandardTime_post	false	Create standard time.
+get	/employee/standardTime/byDate	employee/standardTime	EmployeeStandardTimeByDate_getByDate	false	Find standard time for employee by date.
+get	/employee/standardTime/{id}	employee/standardTime	EmployeeStandardTime_get	false	Find standard time by ID.
+put	/employee/standardTime/{id}	employee/standardTime	EmployeeStandardTime_put	false	Update standard time. 
+get	/employee/{id}	employee	Employee_get	false	Get employee by ID.
+put	/employee/{id}	employee	Employee_put	false	Update employee.
+get	/event	event	Event_get	false	[BETA] Get all (WebHook) event keys.
+get	/event/subscription	event/subscription	EventSubscription_search	false	[BETA] Find all ongoing subscriptions.
+post	/event/subscription	event/subscription	EventSubscription_post	false	[BETA] Create a new subscription for current EmployeeToken.
+delete	/event/subscription/list	event/subscription	EventSubscriptionList_deleteByIds	false	[BETA] Delete multiple subscriptions.
+post	/event/subscription/list	event/subscription	EventSubscriptionList_postList	false	[BETA] Create multiple subscriptions for current EmployeeToken.
+put	/event/subscription/list	event/subscription	EventSubscriptionList_putList	false	[BETA] Update multiple subscription.
+delete	/event/subscription/{id}	event/subscription	EventSubscription_delete	false	[BETA] Delete the given subscription.
+get	/event/subscription/{id}	event/subscription	EventSubscription_get	false	[BETA] Get subscription by ID.
+put	/event/subscription/{id}	event/subscription	EventSubscription_put	false	[BETA] Change a current subscription, based on id.
+get	/event/{eventType}	event	Event_example	false	[BETA] Get example webhook payload
+post	/incomingInvoice	incomingInvoice	IncomingInvoice_post	false	[BETA] create an invoice
+get	/incomingInvoice/search	incomingInvoice	IncomingInvoiceSearch_search	false	[BETA] Get a list of invoices
+get	/incomingInvoice/{voucherId}	incomingInvoice	IncomingInvoice_get	false	[BETA] Get an invoice by voucherId
+put	/incomingInvoice/{voucherId}	incomingInvoice	IncomingInvoice_put	false	[BETA] update an invoice by voucherId
+post	/incomingInvoice/{voucherId}/addPayment	incomingInvoice	IncomingInvoiceAddPayment_addPayment	false	[BETA] create a payment for voucher/invoice
+get	/internal/debtCollector	debtCollector/internal,internal/debtCollector	InternalDebtCollector_get	false	Get last select debt collector
+delete	/internal/debtCollector/deactivate	debtCollector/internal,internal/debtCollector	InternalDebtCollectorDeactivate_deactivate	false	Deactivate debt collector relation
+put	/internal/nhoAdmin/:abort	internal/nhoAdmin	InternalNhoAdminAbort_abort	false	Aborts all scheduled NHO membership events
+get	/inventory	inventory	Inventory_search	false	Find inventory corresponding with sent data.
+post	/inventory	inventory	Inventory_post	false	Create new inventory.
+get	/inventory/inventories	inventory/inventories	InventoryInventories_search	false	Find inventories corresponding with sent data.
+get	/inventory/location	inventory/location	InventoryLocation_search	false	Find inventory locations by inventory ID. Only available for Logistics Basic.
+post	/inventory/location	inventory/location	InventoryLocation_post	false	Create new inventory location. Only available for Logistics Basic.
+delete	/inventory/location/list	inventory/location	InventoryLocationList_deleteByIds	false	Delete inventory location. Only available for Logistics Basic.
+post	/inventory/location/list	inventory/location	InventoryLocationList_postList	false	Add multiple inventory locations. Only available for Logistics Basic.
+put	/inventory/location/list	inventory/location	InventoryLocationList_putList	false	Update multiple inventory locations. Only available for Logistics Basic.
+delete	/inventory/location/{id}	inventory/location	InventoryLocation_delete	false	Delete inventory location. Only available for Logistics Basic.
+get	/inventory/location/{id}	inventory/location	InventoryLocation_get	false	Get inventory location by ID. Only available for Logistics Basic.
+put	/inventory/location/{id}	inventory/location	InventoryLocation_put	false	Update inventory location. Only available for Logistics Basic.
+get	/inventory/stocktaking	inventory/stocktaking	InventoryStocktaking_search	false	Find stocktaking corresponding with sent data.
+post	/inventory/stocktaking	inventory/stocktaking	InventoryStocktaking_post	false	Create new stocktaking.
+get	/inventory/stocktaking/productline	inventory/stocktaking/productline	InventoryStocktakingProductline_search	false	Find all order lines by stocktaking ID.
+post	/inventory/stocktaking/productline	inventory/stocktaking/productline	InventoryStocktakingProductline_post	false	Create order line. When creating several order lines, use /list for better performance.
+delete	/inventory/stocktaking/productline/{id}	inventory/stocktaking/productline	InventoryStocktakingProductline_delete	false	Delete order line.
+get	/inventory/stocktaking/productline/{id}	inventory/stocktaking/productline	InventoryStocktakingProductline_get	false	Get order line by ID.
+put	/inventory/stocktaking/productline/{id}	inventory/stocktaking/productline	InventoryStocktakingProductline_put	false	Update order line.
+put	/inventory/stocktaking/productline/{id}/:changeLocation	inventory/stocktaking/productline	InventoryStocktakingProductlineChangeLocation_changeLocation	false	[Beta] Change location on order line.
+delete	/inventory/stocktaking/{id}	inventory/stocktaking	InventoryStocktaking_delete	false	Delete stocktaking.
+get	/inventory/stocktaking/{id}	inventory/stocktaking	InventoryStocktaking_get	false	Get stocktaking by ID.
+put	/inventory/stocktaking/{id}	inventory/stocktaking	InventoryStocktaking_put	false	Update stocktaking.
+delete	/inventory/{id}	inventory	Inventory_delete	false	Delete inventory.
+get	/inventory/{id}	inventory	Inventory_get	false	Get inventory by ID.
+put	/inventory/{id}	inventory	Inventory_put	false	Update inventory.
+get	/invoice	invoice	Invoice_search	false	Find invoices corresponding with sent data. Includes charged outgoing invoices only.
+post	/invoice	invoice	Invoice_post	false	Create invoice. Related Order and OrderLines can be created first, or included as new objects inside the Invoice.
+get	/invoice/details	invoice/details	InvoiceDetails_search	false	Find ProjectInvoiceDetails corresponding with sent data.
+get	/invoice/details/{id}	invoice/details	InvoiceDetails_get	false	Get ProjectInvoiceDetails by ID.
+post	/invoice/list	invoice	InvoiceList_postList	false	[BETA] Create multiple invoices. Max 100 at a time.
+get	/invoice/paymentType	invoice/paymentType	InvoicePaymentType_search	false	Find payment type corresponding with sent data.
+get	/invoice/paymentType/{id}	invoice/paymentType	InvoicePaymentType_get	false	Get payment type by ID.
+get	/invoice/{id}	invoice	Invoice_get	false	Get invoice by ID.
+put	/invoice/{id}/:createCreditNote	invoice	InvoiceCreateCreditNote_createCreditNote	false	Creates a new Invoice representing a credit memo that nullifies the given invoice. Updates this invoice and any pre-existing inverse invoice.
+put	/invoice/{id}/:createReminder	invoice	InvoiceCreateReminder_createReminder	false	Create invoice reminder and sends it by the given dispatch type. Supports the reminder types SOFT_REMINDER, REMINDER and NOTICE_OF_DEBT_COLLECTION. DispatchType NETS_PRINT must have type NOTICE_OF_DEBT_COLLECTION. SMS and NETS_PRINT must be activated prior to usage in the API.
+put	/invoice/{id}/:payment	invoice	InvoicePayment_payment	false	Update invoice. The invoice is updated with payment information. The amount is in the invoice’s currency.
+put	/invoice/{id}/:send	invoice	InvoiceSend_send	false	Send invoice by ID and sendType. Optionally override email recipient.
+get	/invoice/{invoiceId}/pdf	invoice	InvoicePdf_downloadPdf	false	Get invoice document by invoice ID.
+get	/invoiceRemark/{id}	invoiceRemark	InvoiceRemark_get	false	Get invoice remark by ID.
+get	/ledger	ledger	Ledger_search	false	Get ledger (hovedbok).
+get	/ledger/account	ledger/account	LedgerAccount_search	false	Find accounts corresponding with sent data.
+post	/ledger/account	ledger/account	LedgerAccount_post	false	Create a new account.
+delete	/ledger/account/list	ledger/account	LedgerAccountList_deleteByIds	false	Delete multiple accounts.
+post	/ledger/account/list	ledger/account	LedgerAccountList_postList	false	Create several accounts.
+put	/ledger/account/list	ledger/account	LedgerAccountList_putList	false	Update multiple accounts.
+delete	/ledger/account/{id}	ledger/account	LedgerAccount_delete	false	Delete account.
+get	/ledger/account/{id}	ledger/account	LedgerAccount_get	false	Get account by ID.
+put	/ledger/account/{id}	ledger/account	LedgerAccount_put	false	Update account.
+get	/ledger/accountingDimensionName	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionName_getAll	false	Get all accounting dimension names.
+post	/ledger/accountingDimensionName	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionName_post	false	Create a new free (aka 'user defined') accounting dimension
+get	/ledger/accountingDimensionName/search	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionNameSearch_search	false	Search for accounting dimension names according to criteria.
+delete	/ledger/accountingDimensionName/{id}	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionName_delete	false	Delete an accounting dimension name by ID
+get	/ledger/accountingDimensionName/{id}	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionName_get	false	Get a single accounting dimension name by ID
+put	/ledger/accountingDimensionName/{id}	accountingDimensionName,ledger/accountingDimensionName	LedgerAccountingDimensionName_put	false	Update an accounting dimension
+post	/ledger/accountingDimensionValue	accountingDimensionValue,ledger/accountingDimensionValue	LedgerAccountingDimensionValue_post	false	Create a new value for one of the free (aka 'user defined') accounting dimensions
+put	/ledger/accountingDimensionValue/list	accountingDimensionValue,ledger/accountingDimensionValue	LedgerAccountingDimensionValueList_putList	false	Update accounting dimension values
+get	/ledger/accountingDimensionValue/search	accountingDimensionValue,ledger/accountingDimensionValue	LedgerAccountingDimensionValueSearch_searchAccountingDimensionValues	false	Search for accounting dimension values according to criteria.
+delete	/ledger/accountingDimensionValue/{id}	accountingDimensionValue,ledger/accountingDimensionValue	LedgerAccountingDimensionValue_delete	false	Delete an accounting dimension value.  Values that have been used in postings can not be deleted.
+get	/ledger/accountingDimensionValue/{id}	accountingDimensionValue,ledger/accountingDimensionValue	LedgerAccountingDimensionValue_get	false	Find accounting dimension values by ID.
+get	/ledger/accountingPeriod	ledger/accountingPeriod	LedgerAccountingPeriod_search	false	Find accounting periods corresponding with sent data.
+get	/ledger/accountingPeriod/{id}	ledger/accountingPeriod	LedgerAccountingPeriod_get	false	Get accounting period by ID.
+get	/ledger/annualAccount	ledger/annualAccount	LedgerAnnualAccount_search	false	Find annual accounts corresponding with sent data.
+get	/ledger/annualAccount/{id}	ledger/annualAccount	LedgerAnnualAccount_get	false	Get annual account by ID.
+get	/ledger/closeGroup	ledger/closeGroup	LedgerCloseGroup_search	false	Find close groups corresponding with sent data.
+get	/ledger/closeGroup/{id}	ledger/closeGroup	LedgerCloseGroup_get	false	Get close group by ID.
+get	/ledger/openPost	ledger	LedgerOpenPost_openPost	false	Find open posts corresponding with sent data.
+get	/ledger/paymentTypeOut	ledger/paymentTypeOut	LedgerPaymentTypeOut_search	false	[BETA] Gets payment types for outgoing payments
+post	/ledger/paymentTypeOut	ledger/paymentTypeOut	LedgerPaymentTypeOut_post	false	[BETA] Create new payment type for outgoing payments
+post	/ledger/paymentTypeOut/list	ledger/paymentTypeOut	LedgerPaymentTypeOutList_postList	false	[BETA] Create multiple payment types for outgoing payments at once
+put	/ledger/paymentTypeOut/list	ledger/paymentTypeOut	LedgerPaymentTypeOutList_putList	false	[BETA] Update multiple payment types for outgoing payments at once
+delete	/ledger/paymentTypeOut/{id}	ledger/paymentTypeOut	LedgerPaymentTypeOut_delete	false	[BETA] Delete payment type for outgoing payments by ID.
+get	/ledger/paymentTypeOut/{id}	ledger/paymentTypeOut	LedgerPaymentTypeOut_get	false	[BETA] Get payment type for outgoing payments by ID.
+put	/ledger/paymentTypeOut/{id}	ledger/paymentTypeOut	LedgerPaymentTypeOut_put	false	[BETA] Update existing payment type for outgoing payments
+get	/ledger/posting	ledger/posting	LedgerPosting_search	false	Find postings corresponding with sent data.
+put	/ledger/posting/:closePostings	ledger/posting	LedgerPostingClosePostings_closePostings	false	Close postings.
+get	/ledger/posting/openPost	ledger/posting	LedgerPostingOpenPost_openPost	false	Find open posts corresponding with sent data.
+get	/ledger/posting/{id}	ledger/posting	LedgerPosting_get	false	Find postings by ID.
+get	/ledger/postingByDate	ledger/postingByDate	LedgerPostingByDate_get	false	Get postings by date range with pagination. Returns the same PostingDTO as /ledger/posting. Simplified endpoint for better performance. Fields and Changes are not supported. Token must have access to all vouchers in the company, otherwise a validation error is returned. If access control for salary information is activated, the token must have access to salary information as well.
+get	/ledger/postingRules	ledger/postingRules	LedgerPostingRules_get	false	Get posting rules for current company.  The posting rules defined which accounts from the chart of accounts that are used for postings when the system creates postings.
+get	/ledger/vatSettings	ledger/vatSettings	LedgerVatSettings_get	false	Get VAT settings for the logged in company.
+put	/ledger/vatSettings	ledger/vatSettings	LedgerVatSettings_put	false	Update VAT settings for the logged in company.
+get	/ledger/vatType	ledger/vatType	LedgerVatType_search	false	Find vat types corresponding with sent data.
+put	/ledger/vatType/createRelativeVatType	ledger/vatType	LedgerVatTypeCreateRelativeVatType_createRelativeVatType	false	Create a new relative VAT Type. These are used if the company has 'forholdsmessig fradrag for inngående MVA'.
+get	/ledger/vatType/{id}	ledger/vatType	LedgerVatType_get	false	Get vat type by ID.
+get	/ledger/voucher	ledger/voucher	LedgerVoucher_search	false	Find vouchers corresponding with sent data.
+post	/ledger/voucher	ledger/voucher	LedgerVoucher_post	false	Add new voucher. IMPORTANT: Also creates postings. Only the gross amounts will be used. Amounts should be rounded to 2 decimals.
+get	/ledger/voucher/>externalVoucherNumber	ledger/voucher	LedgerVoucherExternalVoucherNumber_externalVoucherNumber	false	Find vouchers based on the external voucher number.
+get	/ledger/voucher/>nonPosted	ledger/voucher	LedgerVoucherNonPosted_nonPosted	false	Find non-posted vouchers.
+get	/ledger/voucher/>voucherReception	ledger/voucher	LedgerVoucherVoucherReception_voucherReception	false	Find vouchers in voucher reception.
+put	/ledger/voucher/historical/:closePostings	ledger/voucher/historical	LedgerVoucherHistoricalClosePostings_closePostings	false	[BETA] Close postings.
+put	/ledger/voucher/historical/:reverseHistoricalVouchers	ledger/voucher/historical	LedgerVoucherHistoricalReverseHistoricalVouchers_reverseHistoricalVouchers	false	[BETA] Deletes all historical vouchers. Requires the "All vouchers" and "Advanced Voucher" permissions.
+post	/ledger/voucher/historical/employee	ledger/voucher/historical	LedgerVoucherHistoricalEmployee_postEmployee	false	[BETA] Create one employee, based on import from external system. Validation is less strict, ie. employee department isn't required.
+post	/ledger/voucher/historical/historical	ledger/voucher/historical	LedgerVoucherHistoricalHistorical_postHistorical	false	API endpoint for creating historical vouchers. These are vouchers created outside Tripletex, and should be from closed accounting years. The intended usage is to get access to historical transcations in Tripletex. Also creates postings. All amount fields in postings will be used. VAT postings must be included, these are not generated automatically like they are for normal vouchers in Tripletex. Requires the \\"All vouchers\\" and \\"Advanced Voucher\\" permissions.
+post	/ledger/voucher/historical/{voucherId}/attachment	ledger/voucher/historical	LedgerVoucherHistoricalAttachment_uploadAttachment	false	Upload attachment to voucher. If the voucher already has an attachment the content will be appended to the existing attachment as new PDF page(s). Valid document formats are PDF, PNG, JPEG and TIFF. Non PDF formats will be converted to PDF. Send as multipart form.
+post	/ledger/voucher/importDocument	ledger/voucher	LedgerVoucherImportDocument_importDocument	false	Upload a document to create one or more vouchers. Valid document formats are PDF, PNG, JPEG and TIFF. EHF/XML is possible with agreement with Tripletex. Send as multipart form.
+post	/ledger/voucher/importGbat10	ledger/voucher	LedgerVoucherImportGbat10_importGbat10	false	Import GBAT10. Send as multipart form.
+put	/ledger/voucher/list	ledger/voucher	LedgerVoucherList_putList	false	Update multiple vouchers. Postings with guiRow==0 will be deleted and regenerated.
+delete	/ledger/voucher/openingBalance	ledger/voucher/openingBalance	LedgerVoucherOpeningBalance_delete	false	[BETA] Delete the opening balance. The correction voucher will also be deleted
+get	/ledger/voucher/openingBalance	ledger/voucher/openingBalance	LedgerVoucherOpeningBalance_get	false	[BETA] Get the voucher for the opening balance.
+post	/ledger/voucher/openingBalance	ledger/voucher/openingBalance	LedgerVoucherOpeningBalance_post	false	[BETA] Add an opening balance on the given date.  All movements before this date will be 'zeroed out' in a separate correction voucher. The opening balance must have the first day of a month as the date, and it's also recommended to have the first day of the year as the date. If the postings provided don't balance the voucher, the difference will automatically be posted to a help account
+get	/ledger/voucher/openingBalance/>correctionVoucher	ledger/voucher/openingBalance	LedgerVoucherOpeningBalanceCorrectionVoucher_correctionVoucher	false	[BETA] Get the correction voucher for the opening balance.
+delete	/ledger/voucher/{id}	ledger/voucher	LedgerVoucher_delete	false	Delete voucher by ID.
+get	/ledger/voucher/{id}	ledger/voucher	LedgerVoucher_get	false	Get voucher by ID.
+put	/ledger/voucher/{id}	ledger/voucher	LedgerVoucher_put	false	Update voucher. Postings with guiRow==0 will be deleted and regenerated.
+put	/ledger/voucher/{id}/:reverse	ledger/voucher	LedgerVoucherReverse_reverse	false	Reverses the voucher, and returns the reversed voucher. Supports reversing most voucher types, except salary transactions.
+put	/ledger/voucher/{id}/:sendToInbox	ledger/voucher	LedgerVoucherSendToInbox_sendToInbox	false	Send voucher to inbox.
+put	/ledger/voucher/{id}/:sendToLedger	ledger/voucher	LedgerVoucherSendToLedger_sendToLedger	false	Send voucher to ledger.
+get	/ledger/voucher/{id}/options	ledger/voucher	LedgerVoucherOptions_options	false	Returns a data structure containing meta information about operations that are available for this voucher. Currently only implemented for DELETE: It is possible to check if the voucher is deletable.
+delete	/ledger/voucher/{voucherId}/attachment	ledger/voucher	LedgerVoucherAttachment_deleteAttachment	false	Delete attachment.
+post	/ledger/voucher/{voucherId}/attachment	ledger/voucher	LedgerVoucherAttachment_uploadAttachment	false	Upload attachment to voucher. If the voucher already has an attachment the content will be appended to the existing attachment as new PDF page(s). Valid document formats are PDF, PNG, JPEG and TIFF. Non PDF formats will be converted to PDF. Send as multipart form.
+get	/ledger/voucher/{voucherId}/pdf	ledger/voucher	LedgerVoucherPdf_downloadPdf	false	Get PDF representation of voucher by ID.
+post	/ledger/voucher/{voucherId}/pdf/{fileName}	ledger/voucher	LedgerVoucherPdf_uploadPdf	false	[DEPRECATED] Use POST ledger/voucher/{voucherId}/attachment instead.
+get	/ledger/voucherType	ledger/voucherType	LedgerVoucherType_search	false	Find voucher types corresponding with sent data.
+get	/ledger/voucherType/{id}	ledger/voucherType	LedgerVoucherType_get	false	Get voucher type by ID.
+get	/municipality	municipality	Municipality_search	false	Get municipalities.
+get	/municipality/query	municipality	MunicipalityQuery_query	false	[BETA] Wildcard search.
+get	/order	order	Order_search	false	Find orders corresponding with sent data.
+post	/order	order	Order_post	false	Create order.
+put	/order/:invoiceMultipleOrders	order	OrderInvoiceMultipleOrders_invoiceMultipleOrders	false	[BETA] Charges a single customer invoice from multiple orders. The orders must be to the same customer, currency, due date, receiver email, attn. and smsNotificationNumber
+post	/order/list	order	OrderList_postList	false	[BETA] Create multiple Orders with OrderLines. Max 100 at a time.
+get	/order/orderConfirmation/{orderId}/pdf	order	OrderOrderConfirmationPdf_downloadPdf	false	Get PDF representation of order by ID.
+get	/order/orderGroup	order/orderGroup	OrderOrderGroup_search	false	Find orderGroups corresponding with sent data.
+post	/order/orderGroup	order/orderGroup	OrderOrderGroup_post	false	[Beta] Post orderGroup.
+put	/order/orderGroup	order/orderGroup	OrderOrderGroup_put	false	[Beta] Put orderGroup.
+delete	/order/orderGroup/{id}	order/orderGroup	OrderOrderGroup_delete	false	Delete orderGroup by ID.
+get	/order/orderGroup/{id}	order/orderGroup	OrderOrderGroup_get	false	Get orderGroup by ID. A orderGroup is a way to group orderLines, and add comments and subtotals
+post	/order/orderline	order/orderline	OrderOrderline_post	false	Create order line. When creating several order lines, use /list for better performance.
+post	/order/orderline/list	order/orderline	OrderOrderlineList_postList	false	Create multiple order lines.
+get	/order/orderline/orderLineTemplate	order/orderline	OrderOrderlineOrderLineTemplate_orderLineTemplate	false	[BETA] Get order line template from order and product
+delete	/order/orderline/{id}	order/orderline	OrderOrderline_delete	false	[BETA] Delete order line by ID.
+get	/order/orderline/{id}	order/orderline	OrderOrderline_get	false	Get order line by ID.
+put	/order/orderline/{id}	order/orderline	OrderOrderline_put	false	[BETA] Put order line
+put	/order/orderline/{id}/:pickLine	order/orderline	OrderOrderlinePickLine_pickLine	false	[BETA] Pick order line. This is only available for customers who have Logistics and who activated the available inventory functionality.
+put	/order/orderline/{id}/:unpickLine	order/orderline	OrderOrderlineUnpickLine_unpickLine	false	[BETA] Unpick order line.This is only available for customers who have Logistics and who activated the available inventory functionality.
+get	/order/packingNote/{orderId}/pdf	order	OrderPackingNotePdf_downloadPackingNotePdf	false	Get PDF representation of packing note by ID.
+put	/order/sendInvoicePreview/{orderId}	order	OrderSendInvoicePreview_postInvoicePreview	false	Send Invoice Preview to customer by email.
+put	/order/sendOrderConfirmation/{orderId}	order	OrderSendOrderConfirmation_postOrderConfirmation	false	Send Order Confirmation to customer by email.
+put	/order/sendPackingNote/{orderId}	order	OrderSendPackingNote_postPackingNote	false	Send Packing Note to customer by email.
+delete	/order/{id}	order	Order_delete	false	Delete order.
+get	/order/{id}	order	Order_get	false	Get order by ID.
+put	/order/{id}	order	Order_put	false	Update order.
+put	/order/{id}/:approveSubscriptionInvoice	order	OrderApproveSubscriptionInvoice_approveSubscriptionInvoice	false	To create a subscription invoice, first create a order with the subscription enabled, then approve it with this method. This approves the order for subscription invoicing.
+put	/order/{id}/:attach	order	OrderAttach_attach	false	Attach document to specified order ID.
+put	/order/{id}/:invoice	order	OrderInvoice_invoice	false	Create new invoice or subscription invoice from order.
+put	/order/{id}/:unApproveSubscriptionInvoice	order	OrderUnApproveSubscriptionInvoice_unApproveSubscriptionInvoice	false	Unapproves the order for subscription invoicing.
+get	/pension	pension	Pension_search	false	Find countries corresponding with sent data.
+get	/pickupPoint	pickupPoint	PickupPoint_search	false	[DEPRECATED] Search pickup points.
+get	/pickupPoint/{id}	pickupPoint	PickupPoint_get	false	[DEPRECATED] Find pickup point by ID.
+get	/product	product	Product_search	false	Find products corresponding with sent data.
+post	/product	product	Product_post	false	Create new product.
+get	/product/discountGroup	product/discountGroup	ProductDiscountGroup_search	false	Find discount groups corresponding with sent data.
+get	/product/discountGroup/{id}	product/discountGroup	ProductDiscountGroup_get	false	Get discount group by ID.
+get	/product/external	product/external	ProductExternal_search	false	[BETA] Find external products corresponding with sent data. The sorting-field is not in use on this endpoint.
+get	/product/external/{id}	product/external	ProductExternal_get	false	[BETA] Get external product by ID.
+get	/product/group	product/group	ProductGroup_search	false	Find product group with sent data. Only available for Logistics Basic.
+post	/product/group	product/group	ProductGroup_post	false	Create new product group. Only available for Logistics Basic.
+delete	/product/group/list	product/group	ProductGroupList_deleteByIds	false	Delete multiple product groups. Only available for Logistics Basic.
+post	/product/group/list	product/group	ProductGroupList_postList	false	Add multiple products groups. Only available for Logistics Basic.
+put	/product/group/list	product/group	ProductGroupList_putList	false	Update a list of product groups. Only available for Logistics Basic.
+get	/product/group/query	product/group	ProductGroupQuery_query	false	Wildcard search. Only available for Logistics Basic.
+delete	/product/group/{id}	product/group	ProductGroup_delete	false	Delete product group. Only available for Logistics Basic.
+get	/product/group/{id}	product/group	ProductGroup_get	false	Find product group by ID. Only available for Logistics Basic.
+put	/product/group/{id}	product/group	ProductGroup_put	false	Update product group. Only available for Logistics Basic.
+get	/product/groupRelation	product/groupRelation	ProductGroupRelation_search	false	Find product group relation with sent data. Only available for Logistics Basic.
+post	/product/groupRelation	product/groupRelation	ProductGroupRelation_post	false	Create new product group relation. Only available for Logistics Basic.
+delete	/product/groupRelation/list	product/groupRelation	ProductGroupRelationList_deleteList	false	Delete multiple product group relations. Only available for Logistics Basic.
+post	/product/groupRelation/list	product/groupRelation	ProductGroupRelationList_postList	false	Add multiple products group relations. Only available for Logistics Basic.
+delete	/product/groupRelation/{id}	product/groupRelation	ProductGroupRelation_delete	false	Delete product group relation. Only available for Logistics Basic.
+get	/product/groupRelation/{id}	product/groupRelation	ProductGroupRelation_get	false	Find product group relation by ID. Only available for Logistics Basic.
+get	/product/inventoryLocation	product/inventoryLocation	ProductInventoryLocation_search	false	Find inventory locations by product ID. Only available for Logistics Basic.
+post	/product/inventoryLocation	product/inventoryLocation	ProductInventoryLocation_post	false	Create new product inventory location. Only available for Logistics Basic.
+post	/product/inventoryLocation/list	product/inventoryLocation	ProductInventoryLocationList_postList	false	Add multiple product inventory locations. Only available for Logistics Basic.
+put	/product/inventoryLocation/list	product/inventoryLocation	ProductInventoryLocationList_putList	false	Update multiple product inventory locations. Only available for Logistics Basic.
+delete	/product/inventoryLocation/{id}	product/inventoryLocation	ProductInventoryLocation_delete	false	Delete product inventory location. Only available for Logistics Basic.
+get	/product/inventoryLocation/{id}	product/inventoryLocation	ProductInventoryLocation_get	false	Get inventory location by ID. Only available for Logistics Basic.
+put	/product/inventoryLocation/{id}	product/inventoryLocation	ProductInventoryLocation_put	false	Update product inventory location. Only available for Logistics Basic.
+post	/product/list	product	ProductList_postList	false	Add multiple products.
+put	/product/list	product	ProductList_putList	false	Update a list of products.
+get	/product/logisticsSettings	product/logisticsSettings	ProductLogisticsSettings_get	false	Get logistics settings for the logged in company.
+put	/product/logisticsSettings	product/logisticsSettings	ProductLogisticsSettings_put	false	Update logistics settings for the logged in company.
+get	/product/productPrice	product/productPrice	ProductProductPrice_search	false	Find prices for a product. Only available for Logistics Basic.
+get	/product/supplierProduct	product/supplierProduct	ProductSupplierProduct_search	false	Find products corresponding with sent data.
+post	/product/supplierProduct	product/supplierProduct	ProductSupplierProduct_post	false	Create new supplierProduct.
+post	/product/supplierProduct/getSupplierProductsByIds	product/supplierProduct	ProductSupplierProductGetSupplierProductsByIds_getSupplierProductsByIds	false	Find the products by ids. Method was added as a POST because GET request header has a maximum size that we can exceed with customers that a lot of products.
+post	/product/supplierProduct/list	product/supplierProduct	ProductSupplierProductList_postList	false	Create list of new supplierProduct.
+put	/product/supplierProduct/list	product/supplierProduct	ProductSupplierProductList_putList	false	Update a list of supplierProduct.
+delete	/product/supplierProduct/{id}	product/supplierProduct	ProductSupplierProduct_delete	false	Delete supplierProduct.
+get	/product/supplierProduct/{id}	product/supplierProduct	ProductSupplierProduct_get	false	Get supplierProduct by ID.
+put	/product/supplierProduct/{id}	product/supplierProduct	ProductSupplierProduct_put	false	Update supplierProduct.
+get	/product/unit	product/unit	ProductUnit_search	false	Find product units corresponding with sent data.
+post	/product/unit	product/unit	ProductUnit_post	false	Create new product unit.
+post	/product/unit/list	product/unit	ProductUnitList_postList	false	Create multiple product units.
+put	/product/unit/list	product/unit	ProductUnitList_putList	false	Update list of product units.
+get	/product/unit/master	product/unit/master	ProductUnitMaster_search	false	Find product units master corresponding with sent data.
+get	/product/unit/master/{id}	product/unit/master	ProductUnitMaster_get	false	Get product unit master by ID.
+get	/product/unit/query	product/unit	ProductUnitQuery_query	false	Wildcard search.
+delete	/product/unit/{id}	product/unit	ProductUnit_delete	false	Delete product unit by ID.
+get	/product/unit/{id}	product/unit	ProductUnit_get	false	Get product unit by ID.
+put	/product/unit/{id}	product/unit	ProductUnit_put	false	Update product unit.
+delete	/product/{id}	product	Product_delete	false	Delete product.
+get	/product/{id}	product	Product_get	false	Get product by ID.
+put	/product/{id}	product	Product_put	false	Update product.
+delete	/product/{id}/image	product	ProductImage_deleteImage	false	Delete image.
+post	/product/{id}/image	product	ProductImage_uploadImage	false	Upload image to product. Existing image on product will be replaced if exists
+delete	/project	project	Project_deleteList	false	[BETA] Delete multiple projects.
+get	/project	project	Project_search	false	Find projects corresponding with sent data.
+post	/project	project	Project_post	false	Add new project.
+get	/project/>forTimeSheet	project	ProjectForTimeSheet_getForTimeSheet	false	Find projects applicable for time sheet registration on a specific day.
+get	/project/batchPeriod/budgetStatusByProjectIds	project/batchPeriod	ProjectBatchPeriodBudgetStatusByProjectIds_budgetStatusByProjectIds	false	Get the budget status for the projects in the specific period.
+get	/project/batchPeriod/invoicingReserveByProjectIds	project/batchPeriod	ProjectBatchPeriodInvoicingReserveByProjectIds_invoicingReserveByProjectIds	false	Get the invoicing reserve for the projects in the specific period.
+get	/project/category	project/category	ProjectCategory_search	false	Find project categories corresponding with sent data.
+post	/project/category	project/category	ProjectCategory_post	false	Add new project category.
+get	/project/category/{id}	project/category	ProjectCategory_get	false	Find project category by ID.
+put	/project/category/{id}	project/category	ProjectCategory_put	false	Update project category.
+get	/project/controlForm	project/controlForm	ProjectControlForm_search	false	[BETA] Get project control forms by project ID.
+get	/project/controlForm/{id}	project/controlForm	ProjectControlForm_get	false	[BETA] Get project control form by ID.
+get	/project/controlFormType	project/controlFormType	ProjectControlFormType_search	false	[BETA] Get project control form types
+get	/project/controlFormType/{id}	project/controlFormType	ProjectControlFormType_get	false	[BETA] Get project control form type by ID.
+put	/project/dynamicControlForm/{id}/:copyFieldValuesFromLastEditedForm	project/dynamicControlForm	ProjectDynamicControlFormCopyFieldValuesFromLastEditedForm_copyFieldValuesFromLastEditedForm	false	Into each section in the specified form that only has empty or default values, and copyFieldValuesByDefault set as true in the form's template, copy field values from the equivalent section in the most recently edited control form. Signed or completed forms will not be affected.
+get	/project/hourlyRates	project/hourlyRates	ProjectHourlyRates_search	false	Find project hourly rates corresponding with sent data.
+post	/project/hourlyRates	project/hourlyRates	ProjectHourlyRates_post	false	Create a project hourly rate. 
+delete	/project/hourlyRates/deleteByProjectIds	project/hourlyRates	ProjectHourlyRatesDeleteByProjectIds_deleteByProjectIds	false	Delete project hourly rates by project id.
+delete	/project/hourlyRates/list	project/hourlyRates	ProjectHourlyRatesList_deleteByIds	false	Delete project hourly rates.
+post	/project/hourlyRates/list	project/hourlyRates	ProjectHourlyRatesList_postList	false	Create multiple project hourly rates.
+put	/project/hourlyRates/list	project/hourlyRates	ProjectHourlyRatesList_putList	false	Update multiple project hourly rates.
+get	/project/hourlyRates/projectSpecificRates	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRates_search	false	Find project specific rates corresponding with sent data.
+post	/project/hourlyRates/projectSpecificRates	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRates_post	false	Create new project specific rate. 
+delete	/project/hourlyRates/projectSpecificRates/list	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRatesList_deleteByIds	false	Delete project specific rates.
+post	/project/hourlyRates/projectSpecificRates/list	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRatesList_postList	false	Create multiple new project specific rates.
+put	/project/hourlyRates/projectSpecificRates/list	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRatesList_putList	false	Update multiple project specific rates.
+delete	/project/hourlyRates/projectSpecificRates/{id}	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRates_delete	false	Delete project specific rate 
+get	/project/hourlyRates/projectSpecificRates/{id}	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRates_get	false	Find project specific rate by ID.
+put	/project/hourlyRates/projectSpecificRates/{id}	project/hourlyRates/projectSpecificRates	ProjectHourlyRatesProjectSpecificRates_put	false	Update a project specific rate.
+put	/project/hourlyRates/updateOrAddHourRates	project/hourlyRates	ProjectHourlyRatesUpdateOrAddHourRates_updateOrAddHourRates	false	Update or add the same project hourly rate from project overview.
+delete	/project/hourlyRates/{id}	project/hourlyRates	ProjectHourlyRates_delete	false	Delete Project Hourly Rate 
+get	/project/hourlyRates/{id}	project/hourlyRates	ProjectHourlyRates_get	false	Find project hourly rate by ID.
+put	/project/hourlyRates/{id}	project/hourlyRates	ProjectHourlyRates_put	false	Update a project hourly rate.
+post	/project/import	project/import,project	ProjectImport_importProjectStatement	false	Upload project import file.
+delete	/project/list	project	ProjectList_deleteByIds	false	[BETA] Delete projects.
+post	/project/list	project	ProjectList_postList	false	[BETA] Register new projects. Multiple projects for different users can be sent in the same request.
+put	/project/list	project	ProjectList_putList	false	[BETA] Update multiple projects.
+get	/project/number/{number}	project	ProjectNumber_getByNumber	false	Find project by number.
+get	/project/orderline	project/orderline	ProjectOrderline_search	false	[BETA] Find all order lines for project.
+post	/project/orderline	project/orderline	ProjectOrderline_post	false	[BETA] Create order line. When creating several order lines, use /list for better performance.
+post	/project/orderline/list	project/orderline	ProjectOrderlineList_postList	false	[BETA] Create multiple order lines.
+get	/project/orderline/orderLineTemplate	project/orderline	ProjectOrderlineOrderLineTemplate_orderLineTemplate	false	[BETA] Get order line template from project and product
+get	/project/orderline/query	project/orderline	ProjectOrderlineQuery_query	false	[BETA] Wildcard search.
+delete	/project/orderline/{id}	project/orderline	ProjectOrderline_delete	false	Delete order line by ID.
+get	/project/orderline/{id}	project/orderline	ProjectOrderline_get	false	[BETA] Get order line by ID.
+put	/project/orderline/{id}	project/orderline	ProjectOrderline_put	false	[BETA] Update project orderline.
+post	/project/participant	project/participant	ProjectParticipant_post	false	[BETA] Add new project participant.
+delete	/project/participant/list	project/participant	ProjectParticipantList_deleteByIds	false	[BETA] Delete project participants.
+post	/project/participant/list	project/participant	ProjectParticipantList_postList	false	[BETA] Add new project participant. Multiple project participants can be sent in the same request.
+get	/project/participant/{id}	project/participant	ProjectParticipant_get	false	[BETA] Find project participant by ID.
+put	/project/participant/{id}	project/participant	ProjectParticipant_put	false	[BETA] Update project participant.
+post	/project/projectActivity	project/projectActivity	ProjectProjectActivity_post	false	Add project activity.
+delete	/project/projectActivity/list	project/projectActivity	ProjectProjectActivityList_deleteByIds	false	Delete project activities
+delete	/project/projectActivity/{id}	project/projectActivity	ProjectProjectActivity_delete	false	Delete project activity
+get	/project/projectActivity/{id}	project/projectActivity	ProjectProjectActivity_get	false	Find project activity by id
+get	/project/resourcePlanBudget	project/resourceplan,project/resourcePlanBudget	ProjectResourcePlanBudget_get	false	Get resource plan entries in the specified period.
+get	/project/settings	project/settings	ProjectSettings_get	false	Get project settings of logged in company.
+put	/project/settings	project/settings	ProjectSettings_put	false	Update project settings for company
+get	/project/subcontract	project/subcontract	ProjectSubcontract_search	false	Find project sub-contracts corresponding with sent data.
+post	/project/subcontract	project/subcontract	ProjectSubcontract_post	false	Add new project sub-contract.
+get	/project/subcontract/query	project/subcontract	ProjectSubcontractQuery_query	false	Wildcard search.
+delete	/project/subcontract/{id}	project/subcontract	ProjectSubcontract_delete	false	Delete project sub-contract by ID.
+get	/project/subcontract/{id}	project/subcontract	ProjectSubcontract_get	false	Find project sub-contract by ID.
+put	/project/subcontract/{id}	project/subcontract	ProjectSubcontract_put	false	Update project sub-contract.
+get	/project/task	project/task	ProjectTask_search	false	Find all tasks for project.
+get	/project/template/{id}	project/template	ProjectTemplate_get	false	Get project template by ID.
+delete	/project/{id}	project	Project_delete	false	[BETA] Delete project.
+get	/project/{id}	project	Project_get	false	Find project by ID.
+put	/project/{id}	project	Project_put	false	[BETA] Update project.
+get	/project/{id}/period/budgetStatus	project/period,project/{id}/period	ProjectPeriodBudgetStatus_getBudgetStatus	false	Get the budget status for the project period
+get	/project/{id}/period/hourlistReport	project/period,project/{id}/period	ProjectPeriodHourlistReport_hourlistReport	false	Find hourlist report by project period.
+get	/project/{id}/period/invoiced	project/period,project/{id}/period	ProjectPeriodInvoiced_invoiced	false	Find invoiced info by project period.
+get	/project/{id}/period/invoicingReserve	project/period,project/{id}/period	ProjectPeriodInvoicingReserve_invoicingReserve	false	Find invoicing reserve by project period.
+get	/project/{id}/period/monthlyStatus	project/period,project/{id}/period	ProjectPeriodMonthlyStatus_monthlyStatus	false	Find overall status by project period.
+get	/project/{id}/period/overallStatus	project/period,project/{id}/period	ProjectPeriodOverallStatus_overallStatus	false	Find overall status by project period.
+get	/purchaseOrder	purchaseOrder	PurchaseOrder_search	false	Find purchase orders with send data. Only available for Logistics Basic.
+post	/purchaseOrder	purchaseOrder	PurchaseOrder_post	false	Creates a new purchase order. Only available for Logistics Basic.
+get	/purchaseOrder/deviation	purchaseOrder/deviation	PurchaseOrderDeviation_search	false	Find handled deviations for purchase order. Only available for Logistics Basic.
+post	/purchaseOrder/deviation	purchaseOrder/deviation	PurchaseOrderDeviation_post	false	Register deviation on goods receipt. Only available for Logistics Basic.
+post	/purchaseOrder/deviation/list	purchaseOrder/deviation	PurchaseOrderDeviationList_postList	false	Register multiple deviations. Only available for Logistics Basic.
+put	/purchaseOrder/deviation/list	purchaseOrder/deviation	PurchaseOrderDeviationList_putList	false	Update multiple deviations. Only available for Logistics Basic.
+delete	/purchaseOrder/deviation/{id}	purchaseOrder/deviation	PurchaseOrderDeviation_delete	false	Delete goods receipt by purchase order ID. Only available for Logistics Basic.
+get	/purchaseOrder/deviation/{id}	purchaseOrder/deviation	PurchaseOrderDeviation_get	false	Get deviation by order line ID. Only available for Logistics Basic.
+put	/purchaseOrder/deviation/{id}	purchaseOrder/deviation	PurchaseOrderDeviation_put	false	Update deviation. Only available for Logistics Basic.
+put	/purchaseOrder/deviation/{id}/:approve	purchaseOrder/deviation	PurchaseOrderDeviationApprove_approve	false	Approve deviations. Only available for Logistics Basic.
+put	/purchaseOrder/deviation/{id}/:deliver	purchaseOrder/deviation	PurchaseOrderDeviationDeliver_deliver	false	Send deviations to approval. Only available for Logistics Basic.
+put	/purchaseOrder/deviation/{id}/:undeliver	purchaseOrder/deviation	PurchaseOrderDeviationUndeliver_undeliver	false	Set status to Not delivered for deviations. Only available for Logistics Basic.
+get	/purchaseOrder/goodsReceipt	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceipt_search	false	Get goods receipt. Only available for Logistics Basic.
+post	/purchaseOrder/goodsReceipt	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceipt_post	false	Register goods receipt without an existing purchase order. When registration of several goods receipt, use /list for better performance. Only available for Logistics Basic.
+delete	/purchaseOrder/goodsReceipt/list	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceiptList_deleteByIds	false	Delete multiple goods receipts by ID. Only available for Logistics Basic.
+post	/purchaseOrder/goodsReceipt/list	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceiptList_postList	false	Register multiple goods receipts without an existing purchase order. Only available for Logistics Basic.
+delete	/purchaseOrder/goodsReceipt/{id}	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceipt_delete	false	Delete goods receipt by ID. Only available for Logistics Basic.
+get	/purchaseOrder/goodsReceipt/{id}	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceipt_get	false	Get goods receipt by purchase order ID. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceipt/{id}	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceipt_put	false	Update goods receipt. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceipt/{id}/:confirm	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceiptConfirm_confirm	false	Confirm goods receipt. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceipt/{id}/:receiveAndConfirm	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceiptReceiveAndConfirm_receiveAndConfirm	false	 Receive all ordered products and approve goods receipt. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceipt/{id}/:registerGoodsReceipt	purchaseOrder/goodsReceipt	PurchaseOrderGoodsReceiptRegisterGoodsReceipt_registerGoodsReceipt	false	Register goods receipt. Quantity received on the products is set to the same as quantity ordered. To update the quantity received, use PUT /purchaseOrder/goodsReceiptLine/{id}. Only available for Logistics Basic.
+get	/purchaseOrder/goodsReceiptLine	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLine_search	false	Find goods receipt lines for purchase order. Only available for Logistics Basic.
+post	/purchaseOrder/goodsReceiptLine	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLine_post	false	Register new goods receipt; new product on an existing purchase order. When registration of several goods receipts, use /list for better performance. Only available for Logistics Basic.
+delete	/purchaseOrder/goodsReceiptLine/list	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLineList_deleteList	false	Delete goods receipt lines by ID. Only available for Logistics Basic.
+post	/purchaseOrder/goodsReceiptLine/list	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLineList_postList	false	Register multiple new goods receipts on an existing purchase order. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceiptLine/list	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLineList_putList	false	Update goods receipt lines on a goods receipt. Only available for Logistics Basic.
+delete	/purchaseOrder/goodsReceiptLine/{id}	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLine_delete	false	Delete goods receipt line by ID. Only available for Logistics Basic.
+get	/purchaseOrder/goodsReceiptLine/{id}	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLine_get	false	Get goods receipt line by purchase order line ID. Only available for Logistics Basic.
+put	/purchaseOrder/goodsReceiptLine/{id}	purchaseOrder/goodsReceiptLine	PurchaseOrderGoodsReceiptLine_put	false	Update a goods receipt line on a goods receipt. Only available for Logistics Basic.
+post	/purchaseOrder/orderline	purchaseOrder/orderline	PurchaseOrderOrderline_post	false	Creates purchase order line. Only available for Logistics Basic.
+delete	/purchaseOrder/orderline/list	purchaseOrder/orderline	PurchaseOrderOrderlineList_deleteList	false	Delete purchase order lines by ID. Only available for Logistics Basic.
+post	/purchaseOrder/orderline/list	purchaseOrder/orderline	PurchaseOrderOrderlineList_postList	false	Create list of new purchase order lines. Only available for Logistics Basic.
+put	/purchaseOrder/orderline/list	purchaseOrder/orderline	PurchaseOrderOrderlineList_putList	false	Update a list of purchase order lines. Only available for Logistics Basic.
+delete	/purchaseOrder/orderline/{id}	purchaseOrder/orderline	PurchaseOrderOrderline_delete	false	Delete purchase order line. Only available for Logistics Basic.
+get	/purchaseOrder/orderline/{id}	purchaseOrder/orderline	PurchaseOrderOrderline_get	false	Find purchase order line by ID. Only available for Logistics Basic.
+put	/purchaseOrder/orderline/{id}	purchaseOrder/orderline	PurchaseOrderOrderline_put	false	Updates purchase order line. Only available for Logistics Basic.
+get	/purchaseOrder/purchaseOrderIncomingInvoiceRelation	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelation_search	false	Find purchase order relation to voucher with sent data. Only available for Logistics Basic.
+post	/purchaseOrder/purchaseOrderIncomingInvoiceRelation	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelation_post	false	Create new relation between purchase order and a voucher. Only available for Logistics Basic.
+delete	/purchaseOrder/purchaseOrderIncomingInvoiceRelation/list	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelationList_deleteByIds	false	Delete multiple purchase order voucher relations. Only available for Logistics Basic.
+post	/purchaseOrder/purchaseOrderIncomingInvoiceRelation/list	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelationList_postList	false	Create a new list of relations between purchase order and voucher. Only available for Logistics Basic.
+delete	/purchaseOrder/purchaseOrderIncomingInvoiceRelation/{id}	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelation_delete	false	Delete purchase order voucher relation. Only available for Logistics Basic.
+get	/purchaseOrder/purchaseOrderIncomingInvoiceRelation/{id}	purchaseOrder/purchaseOrderIncomingInvoiceRelation	PurchaseOrderPurchaseOrderIncomingInvoiceRelation_get	false	Find purchase order relation to voucher by ID. Only available for Logistics Basic.
+delete	/purchaseOrder/{id}	purchaseOrder	PurchaseOrder_delete	false	 Delete purchase order. Only available for Logistics Basic.
+get	/purchaseOrder/{id}	purchaseOrder	PurchaseOrder_get	false	Find purchase order by ID. Only available for Logistics Basic.
+put	/purchaseOrder/{id}	purchaseOrder	PurchaseOrder_put	false	 Update purchase order. Only available for Logistics Basic.
+put	/purchaseOrder/{id}/:send	purchaseOrder	PurchaseOrderSend_send	false	Send purchase order by ID and sendType. Only available for Logistics Basic.
+put	/purchaseOrder/{id}/:sendByEmail	purchaseOrder	PurchaseOrderSendByEmail_sendByEmail	false	Send purchase order by customisable email. Only available for Logistics Basic.
+delete	/purchaseOrder/{id}/attachment	purchaseOrder	PurchaseOrderAttachment_deleteAttachment	false	Delete attachment. Only available for Logistics Basic.
+post	/purchaseOrder/{id}/attachment	purchaseOrder	PurchaseOrderAttachment_uploadAttachment	false	Upload attachment to purchase order. Only available for Logistics Basic.
+post	/purchaseOrder/{id}/attachment/list	purchaseOrder	PurchaseOrderAttachmentList_uploadAttachments	false	Upload multiple attachments to Purchase Order. Only available for Logistics Basic.
+get	/reminder	reminder	Reminder_search	false	Find reminders corresponding with sent data.
+get	/reminder/{id}	reminder	Reminder_get	false	Get reminder by ID.
+get	/reminder/{reminderId}/pdf	reminder	ReminderPdf_downloadPdf	false	Get reminder document by reminder ID.
+get	/resultbudget	resultbudget	Resultbudget_search	false	Find result budgets corresponding with sent data. Either specify the ids of the departments, projects, products or employees to return result budgets for, or use the boolean parameters includeAll***ResultBudgets to get all results budgets.
+get	/resultbudget/company	resultbudget	ResultbudgetCompany_getCompanyResultBudget	false	Get result budget for company
+get	/resultbudget/department/{id}	resultbudget	ResultbudgetDepartment_getDepartmentResultBudget	false	Get result budget associated with a departmentId
+get	/resultbudget/employee/{id}	resultbudget	ResultbudgetEmployee_getEmployeeResultBudget	false	Get result budget associated with an employeeId
+get	/resultbudget/product/{id}	resultbudget	ResultbudgetProduct_getProductResultBudget	false	Get result budget associated with a productId
+get	/resultbudget/project/{id}	resultbudget	ResultbudgetProject_getProjectResultBudget	false	Get result budget associated with a projectId
+get	/saft/exportSAFT	saft	SaftExportSAFT_exportSAFT	false	[BETA] Create SAF-T export for the Tripletex account.
+post	/saft/importSAFT	saft	SaftImportSAFT_importSAFT	false	[BETA] Import SAF-T. Send XML file as multipart form.
+get	/salary/compilation	salary/compilation	SalaryCompilation_get	false	Find salary compilation by employee.
+get	/salary/compilation/pdf	salary/compilation	SalaryCompilationPdf_downloadPdf	false	Find salary compilation (PDF document) by employee.
+post	/salary/financeTax/reconciliation/context	financeTax/reconciliation	SalaryFinanceTaxReconciliationContext_postContext	false	Create a financeTax reconciliation context for a customer
+get	/salary/financeTax/reconciliation/{reconciliationId}/overview	financeTax/reconciliation	SalaryFinanceTaxReconciliationOverview_getOverview	false	Get finance tax overview for a specific reconciliation term
+get	/salary/financeTax/reconciliation/{reconciliationId}/paymentsOverview	financeTax/reconciliation	SalaryFinanceTaxReconciliationPaymentsOverview_getPayments	false	Get finance tax payment overview from start of year to the current reconciliation term
+post	/salary/holidayAllowance/reconciliation/context	salary/holidayAllowance/reconciliation	SalaryHolidayAllowanceReconciliationContext_postContext	false	Create a holiday allowance reconciliation context for a customer
+get	/salary/holidayAllowance/reconciliation/{reconciliationId}/holidayAllowanceDetails	salary/holidayAllowance/reconciliation	SalaryHolidayAllowanceReconciliationHolidayAllowanceDetails_getHolidayAllowanceDetails	false	Get a holiday allowance details for the current reconciliation term
+get	/salary/holidayAllowance/reconciliation/{reconciliationId}/holidayAllowanceSummary	salary/holidayAllowance/reconciliation	SalaryHolidayAllowanceReconciliationHolidayAllowanceSummary_getHolidayAllowanceSummary	false	Salary holiday allowance reconciliation summary
+post	/salary/mandatoryDeduction/reconciliation/context	salary/mandatoryDeduction/reconciliation	SalaryMandatoryDeductionReconciliationContext_postContext	false	Create a mandatoryDeduction reconciliation context for a customer
+get	/salary/mandatoryDeduction/reconciliation/{reconciliationId}/overview	salary/mandatoryDeduction/reconciliation	SalaryMandatoryDeductionReconciliationOverview_getOverview	false	Salary mandatory deduction reconciliation overview
+get	/salary/mandatoryDeduction/reconciliation/{reconciliationId}/paymentsOverview	salary/mandatoryDeduction/reconciliation	SalaryMandatoryDeductionReconciliationPaymentsOverview_getPayments	false	Get mandatory deduction payments overview from start of year to the current reconciliation term
+post	/salary/payrollTax/reconciliation/context	salary/payrollTax/reconciliation	SalaryPayrollTaxReconciliationContext_postContext	false	Create a payroll tax reconciliation context for a customer
+get	/salary/payrollTax/reconciliation/{reconciliationId}/overview	salary/payrollTax/reconciliation	SalaryPayrollTaxReconciliationOverview_getOverview	false	Salary payroll tax reconciliation overview
+get	/salary/payrollTax/reconciliation/{reconciliationId}/paymentsOverview	salary/payrollTax/reconciliation	SalaryPayrollTaxReconciliationPaymentsOverview_getPayments	false	Get a payroll tax payments from start of year to the current reconciliation term
+get	/salary/payslip	salary/payslip	SalaryPayslip_search	false	Find payslips corresponding with sent data.
+get	/salary/payslip/{id}	salary/payslip	SalaryPayslip_get	false	Find payslip by ID.
+get	/salary/payslip/{id}/pdf	salary/payslip	SalaryPayslipPdf_downloadPdf	false	Find payslip (PDF document) by ID.
+get	/salary/settings	salary/settings	SalarySettings_get	false	Get salary settings of logged in company.
+put	/salary/settings	salary/settings	SalarySettings_put	false	Update settings of logged in company.
+get	/salary/settings/holiday	salary/settings/holiday	SalarySettingsHoliday_search	false	Find holiday settings of current logged in company.
+post	/salary/settings/holiday	salary/settings/holiday	SalarySettingsHoliday_post	false	Create a holiday setting of current logged in company.
+delete	/salary/settings/holiday/list	salary/settings/holiday	SalarySettingsHolidayList_deleteByIds	false	Delete multiple holiday settings of current logged in company.
+post	/salary/settings/holiday/list	salary/settings/holiday	SalarySettingsHolidayList_postList	false	Create multiple holiday settings of current logged in company.
+put	/salary/settings/holiday/list	salary/settings/holiday	SalarySettingsHolidayList_putList	false	Update multiple holiday settings of current logged in company.
+put	/salary/settings/holiday/{id}	salary/settings/holiday	SalarySettingsHoliday_put	false	Update a holiday setting of current logged in company.
+get	/salary/settings/pensionScheme	salary/settings/pensionScheme	SalarySettingsPensionScheme_search	false	Find pension schemes.
+post	/salary/settings/pensionScheme	salary/settings/pensionScheme	SalarySettingsPensionScheme_post	false	Create a Pension Scheme.
+delete	/salary/settings/pensionScheme/list	salary/settings/pensionScheme	SalarySettingsPensionSchemeList_deleteByIds	false	Delete multiple Pension Schemes.
+post	/salary/settings/pensionScheme/list	salary/settings/pensionScheme	SalarySettingsPensionSchemeList_postList	false	Create multiple Pension Schemes.
+put	/salary/settings/pensionScheme/list	salary/settings/pensionScheme	SalarySettingsPensionSchemeList_putList	false	Update multiple Pension Schemes.
+delete	/salary/settings/pensionScheme/{id}	salary/settings/pensionScheme	SalarySettingsPensionScheme_delete	false	Delete a Pension Scheme
+get	/salary/settings/pensionScheme/{id}	salary/settings/pensionScheme	SalarySettingsPensionScheme_get	false	Get Pension Scheme for a specific ID
+put	/salary/settings/pensionScheme/{id}	salary/settings/pensionScheme	SalarySettingsPensionScheme_put	false	Update a Pension Scheme
+get	/salary/settings/standardTime	salary/settings/standardTime	SalarySettingsStandardTime_search	false	Get all standard times.
+post	/salary/settings/standardTime	salary/settings/standardTime	SalarySettingsStandardTime_post	false	Create standard time.
+get	/salary/settings/standardTime/byDate	salary/settings/standardTime	SalarySettingsStandardTimeByDate_getByDate	false	Find standard time by date
+get	/salary/settings/standardTime/{id}	salary/settings/standardTime	SalarySettingsStandardTime_get	false	Find standard time by ID.
+put	/salary/settings/standardTime/{id}	salary/settings/standardTime	SalarySettingsStandardTime_put	false	Update standard time. 
+post	/salary/taxDeduction/reconciliation/context	salary/taxDeduction/reconciliation	SalaryTaxDeductionReconciliationContext_postContext	false	Create a taxDeduction reconciliation context for a customer
+get	/salary/taxDeduction/reconciliation/{reconciliationId}/balanceAndOwedAmount	salary/reconciliation/tax-deduction,salary/taxDeduction/reconciliation	SalaryTaxDeductionReconciliationBalanceAndOwedAmount_getTaxDeductionDetails	false	Get tax deduction details for a reconciliation
+get	/salary/taxDeduction/reconciliation/{reconciliationId}/overview	salary/taxDeduction/reconciliation	SalaryTaxDeductionReconciliationOverview_getOverview	false	Get salary tax deduction data for the reconciliation table
+get	/salary/taxDeduction/reconciliation/{reconciliationId}/paymentsOverview	salary/taxDeduction/reconciliation	SalaryTaxDeductionReconciliationPaymentsOverview_getPayments	false	Get salary tax deduction payment overview from start of year to the current reconciliation term
+post	/salary/transaction	salary/transaction	SalaryTransaction_post	false	Create a new salary transaction.
+delete	/salary/transaction/{id}	salary/transaction	SalaryTransaction_delete	false	Delete salary transaction by ID.
+get	/salary/transaction/{id}	salary/transaction	SalaryTransaction_get	false	Find salary transaction by ID.
+post	/salary/transaction/{id}/attachment	salary/transaction	SalaryTransactionAttachment_uploadAttachment	false	Upload an attachment to a salary transaction
+post	/salary/transaction/{id}/attachment/list	salary/transaction	SalaryTransactionAttachmentList_uploadAttachments	false	Upload multiple attachments to a salary transaction
+put	/salary/transaction/{id}/deleteAttachment	salary/transaction	SalaryTransactionDeleteAttachment_deleteAttachment	false	Delete attachment.
+get	/salary/type	salary/type	SalaryType_search	false	Find salary type corresponding with sent data.
+get	/salary/type/{id}	salary/type	SalaryType_get	false	Find salary type by ID.
+put	/subscription/cancel	subscription	SubscriptionCancel_cancel	false	Close account with/without read access
+get	/subscription/packages	subscription	SubscriptionPackages_getPackages	false	Returns the packages that can exist for an account.
+put	/subscription/reactivate	subscription	SubscriptionReactivate_reactivate	false	Reopen account with previous modules
+get	/supplier	supplier	Supplier_search	false	Find suppliers corresponding with sent data.
+post	/supplier	supplier	Supplier_post	false	Create supplier. Related supplier addresses may also be created.
+post	/supplier/list	supplier	SupplierList_postList	false	Create multiple suppliers. Related supplier addresses may also be created.
+put	/supplier/list	supplier	SupplierList_putList	false	Update multiple suppliers. Addresses can also be updated.
+delete	/supplier/{id}	supplier	Supplier_delete	false	Delete supplier by ID
+get	/supplier/{id}	supplier	Supplier_get	false	Get supplier by ID.
+put	/supplier/{id}	supplier	Supplier_put	false	Update supplier. 
+get	/supplierCustomer/search	supplierCustomer	SupplierCustomerSearch_search	false	Find all active suppliers and customers.
+get	/supplierInvoice	supplierInvoice	SupplierInvoice_search	false	Find supplierInvoices corresponding with sent data.
+put	/supplierInvoice/:addRecipient	supplierInvoice	SupplierInvoiceAddRecipient_addRecipientToMany	false	Add recipient.
+put	/supplierInvoice/:approve	supplierInvoice	SupplierInvoiceApprove_approveMany	false	Approve supplier invoices.
+put	/supplierInvoice/:reject	supplierInvoice	SupplierInvoiceReject_rejectMany	false	reject supplier invoices.
+get	/supplierInvoice/forApproval	supplierInvoice	SupplierInvoiceForApproval_getApprovalInvoices	false	Get supplierInvoices for approval
+put	/supplierInvoice/voucher/{id}/postings	supplierInvoice	SupplierInvoiceVoucherPostings_putPostings	false	[BETA] Put debit postings.
+get	/supplierInvoice/{id}	supplierInvoice	SupplierInvoice_get	false	Get supplierInvoice by ID.
+post	/supplierInvoice/{invoiceId}/:addPayment	supplierInvoice	SupplierInvoiceAddPayment_addPayment	false	Register payment, paymentType == 0 finds the last paymentType for this vendor.Use of this method requires setup done by Tripletex.
+put	/supplierInvoice/{invoiceId}/:addRecipient	supplierInvoice	SupplierInvoiceAddRecipient_addRecipient	false	Add recipient to supplier invoices.
+put	/supplierInvoice/{invoiceId}/:approve	supplierInvoice	SupplierInvoiceApprove_approve	false	Approve supplier invoice.
+put	/supplierInvoice/{invoiceId}/:changeDimension	supplierInvoice	SupplierInvoiceChangeDimension_changeDimensionMany	false	Change dimension on a supplier invoice.
+put	/supplierInvoice/{invoiceId}/:reject	supplierInvoice	SupplierInvoiceReject_reject	false	reject supplier invoice.
+get	/supplierInvoice/{invoiceId}/pdf	supplierInvoice	SupplierInvoicePdf_downloadPdf	false	Get supplierInvoice document by invoice ID.
+get	/supportDashboard/bankruptAndExcludedCustomers	supportDashboard	SupportDashboardBankruptAndExcludedCustomers_getBankruptAndExcludedCustomers	false	Returns the customers for support dashboard.
+get	/supportDashboard/export	supportDashboard	SupportDashboardExport_export	false	Export the customers table to a specific format
+get	/timesheet/allocated	timesheet/allocated	TimesheetAllocated_search	false	Find allocated hour entries corresponding with sent data.
+post	/timesheet/allocated	timesheet/allocated	TimesheetAllocated_post	false	Add new allocated hour entry. Only one entry per employee/date/activity/project combination is supported. Only holiday/vacation hours can receive comments. A notification will be sent to the entry's employee if the entry has a comment.
+put	/timesheet/allocated/:approveList	timesheet/allocated	TimesheetAllocatedApproveList_approveList	false	Only for allocated hours on the company's internal holiday/vacation activity. Mark the allocated hour entry/entries as approved. The hours will be copied to the time sheet if the relevant weeks/months are not approved, and there are no interfering time clocks that are active. Notifications will be sent to the entries' employees if the entries' approval statuses or comments have changed. If IDs are provided, the other args are ignored.
+put	/timesheet/allocated/:unapproveList	timesheet/allocated	TimesheetAllocatedUnapproveList_unapproveList	false	Only for allocated hours on the company's internal holiday/vacation activity. Mark the allocated hour entry/entries as unapproved. Notifications will be sent to the entries' employees if the entries' approval statuses or comments have changed. If IDs are provided, the other args are ignored.
+post	/timesheet/allocated/list	timesheet/allocated	TimesheetAllocatedList_postList	false	Add new allocated hour entry. Multiple objects for several users can be sent in the same request. Only holiday/vacation hours can receive comments. Notifications will be sent to the entries' employees if the entries have comments.
+put	/timesheet/allocated/list	timesheet/allocated	TimesheetAllocatedList_putList	false	Update allocated hour entry. Multiple objects for different users can be sent in the same request. Note: Allocated hour entry object fields which are present but not set, or set to 0, will be nulled. Only holiday/vacation hours can receive comments. Notifications will be sent to the entries' employees if the entries' comments have changed.
+delete	/timesheet/allocated/{id}	timesheet/allocated	TimesheetAllocated_delete	false	Delete allocated hour entry by ID.
+get	/timesheet/allocated/{id}	timesheet/allocated	TimesheetAllocated_get	false	Find allocated hour entry by ID.
+put	/timesheet/allocated/{id}	timesheet/allocated	TimesheetAllocated_put	false	Update allocated hour entry by ID. Note: Allocated hour entry object fields which are present but not set, or set to 0, will be nulled. Only holiday/vacation hours can receive comments. A notification will be sent to the entry's employee if the entry's comment has changed.
+put	/timesheet/allocated/{id}/:approve	timesheet/allocated	TimesheetAllocatedApprove_approve	false	Only for allocated hours on the company's internal holiday/vacation activity. Mark the allocated hour entry as approved. The hours will be copied to the time sheet if the relevant week/month is not approved, and there are no interfering time clocks that are active. A notification will be sent to the entry's employee if the entry's approval status or comment has changed.
+put	/timesheet/allocated/{id}/:unapprove	timesheet/allocated	TimesheetAllocatedUnapprove_unapprove	false	Only for allocated hours on the company's internal holiday/vacation activity. Mark the allocated hour entry as unapproved. A notification will be sent to the entry's employee if the entry's approval status or comment has changed.
+get	/timesheet/companyHoliday	timesheet/companyHoliday	TimesheetCompanyHoliday_search	false	[BETA] Search for company holidays by id or year.
+post	/timesheet/companyHoliday	timesheet/companyHoliday	TimesheetCompanyHoliday_post	false	[BETA] Create a company holiday
+delete	/timesheet/companyHoliday/{id}	timesheet/companyHoliday	TimesheetCompanyHoliday_delete	false	[BETA] Delete a company holiday
+get	/timesheet/companyHoliday/{id}	timesheet/companyHoliday	TimesheetCompanyHoliday_get	false	[BETA] Get company holiday by its ID
+put	/timesheet/companyHoliday/{id}	timesheet/companyHoliday	TimesheetCompanyHoliday_put	false	[BETA] Update a company holiday
+get	/timesheet/entry	timesheet/entry	TimesheetEntry_search	false	Find timesheet entry corresponding with sent data.
+post	/timesheet/entry	timesheet/entry	TimesheetEntry_post	false	Add new timesheet entry. Only one entry per employee/date/activity/project combination is supported.
+get	/timesheet/entry/>recentActivities	timesheet/entry	TimesheetEntryRecentActivities_getRecentActivities	false	Find recently used timesheet activities.
+get	/timesheet/entry/>recentProjects	timesheet/entry	TimesheetEntryRecentProjects_getRecentProjects	false	Find projects with recent activities (timesheet entry registered).
+get	/timesheet/entry/>totalHours	timesheet/entry	TimesheetEntryTotalHours_getTotalHours	false	Find total hours registered on an employee in a specific period.
+post	/timesheet/entry/list	timesheet/entry	TimesheetEntryList_postList	false	Add new timesheet entry. Multiple objects for several users can be sent in the same request.
+put	/timesheet/entry/list	timesheet/entry	TimesheetEntryList_putList	false	Update timesheet entry. Multiple objects for different users can be sent in the same request.
+delete	/timesheet/entry/{id}	timesheet/entry	TimesheetEntry_delete	false	Delete timesheet entry by ID.
+get	/timesheet/entry/{id}	timesheet/entry	TimesheetEntry_get	false	Find timesheet entry by ID.
+put	/timesheet/entry/{id}	timesheet/entry	TimesheetEntry_put	false	Update timesheet entry by ID. Note: Timesheet entry object fields which are present but not set, or set to 0, will be nulled.
+put	/timesheet/month/:approve	timesheet/month	TimesheetMonthApprove_approve	false	approve month(s).  If id is provided the other args are ignored
+put	/timesheet/month/:complete	timesheet/month	TimesheetMonthComplete_complete	false	complete month(s).  If id is provided the other args are ignored
+put	/timesheet/month/:reopen	timesheet/month	TimesheetMonthReopen_reopen	false	reopen month(s).  If id is provided the other args are ignored
+put	/timesheet/month/:unapprove	timesheet/month	TimesheetMonthUnapprove_unapprove	false	unapprove month(s).  If id is provided the other args are ignored
+get	/timesheet/month/byMonthNumber	timesheet/month	TimesheetMonthByMonthNumber_getByMonthNumber	true	Find monthly status for given month.
+get	/timesheet/month/byMonthNumberList	timesheet/month	TimesheetMonthByMonthNumberList_getByMonthNumberList	false	Find monthly status for given month list.
+get	/timesheet/month/{id}	timesheet/month	TimesheetMonth_get	false	Find monthly status entry by ID.
+get	/timesheet/salaryProjectTypeSpecification	timesheet/salaryProjectTypeSpecification	TimesheetSalaryProjectTypeSpecification_search	false	Get list of time sheet ProjectSalaryType specifications
+post	/timesheet/salaryProjectTypeSpecification	timesheet/salaryProjectTypeSpecification	TimesheetSalaryProjectTypeSpecification_post	false	Create a timesheet ProjectSalaryType specification
+delete	/timesheet/salaryProjectTypeSpecification/{id}	timesheet/salaryProjectTypeSpecification	TimesheetSalaryProjectTypeSpecification_delete	false	Delete a timesheet SalaryType specification
+get	/timesheet/salaryProjectTypeSpecification/{id}	timesheet/salaryProjectTypeSpecification	TimesheetSalaryProjectTypeSpecification_get	false	Get timesheet ProjectSalaryType specification for a specific ID
+put	/timesheet/salaryProjectTypeSpecification/{id}	timesheet/salaryProjectTypeSpecification	TimesheetSalaryProjectTypeSpecification_put	false	Update a timesheet ProjectSalaryType specification
+get	/timesheet/salaryTypeSpecification	timesheet/salaryTypeSpecification	TimesheetSalaryTypeSpecification_search	false	[BETA] Get list of timesheet SalaryType Specifications
+post	/timesheet/salaryTypeSpecification	timesheet/salaryTypeSpecification	TimesheetSalaryTypeSpecification_post	false	[BETA] Create a timesheet SalaryType Specification. Only one entry per employee/date/SalaryType
+delete	/timesheet/salaryTypeSpecification/{id}	timesheet/salaryTypeSpecification	TimesheetSalaryTypeSpecification_delete	false	[BETA] Delete a timesheet SalaryType Specification
+get	/timesheet/salaryTypeSpecification/{id}	timesheet/salaryTypeSpecification	TimesheetSalaryTypeSpecification_get	false	[BETA] Get timesheet SalaryType Specification for a specific ID
+put	/timesheet/salaryTypeSpecification/{id}	timesheet/salaryTypeSpecification	TimesheetSalaryTypeSpecification_put	false	[BETA] Update a timesheet SalaryType Specification
+get	/timesheet/settings	timesheet/settings	TimesheetSettings_get	false	[BETA] Get timesheet settings of logged in company.
+get	/timesheet/timeClock	timesheet/timeClock	TimesheetTimeClock_search	false	Find time clock entries corresponding with sent data.
+put	/timesheet/timeClock/:start	timesheet/timeClock	TimesheetTimeClockStart_start	false	Start time clock.
+get	/timesheet/timeClock/present	timesheet/timeClock	TimesheetTimeClockPresent_getPresent	false	Find a user’s present running time clock.
+get	/timesheet/timeClock/{id}	timesheet/timeClock	TimesheetTimeClock_get	false	Find time clock entry by ID.
+put	/timesheet/timeClock/{id}	timesheet/timeClock	TimesheetTimeClock_put	false	Update time clock by ID.
+put	/timesheet/timeClock/{id}/:stop	timesheet/timeClock	TimesheetTimeClockStop_stop	false	Stop time clock.
+get	/timesheet/week	timesheet/week	TimesheetWeek_search	false	Find weekly status By ID, week/year combination, employeeId or an approver
+put	/timesheet/week/:approve	timesheet/week	TimesheetWeekApprove_approve	false	Approve week. By ID or (ISO-8601 week and employeeId combination).
+put	/timesheet/week/:complete	timesheet/week	TimesheetWeekComplete_complete	false	Complete week. By ID or (ISO-8601 week and employeeId combination).
+put	/timesheet/week/:reopen	timesheet/week	TimesheetWeekReopen_reopen	false	Reopen week. By ID or (ISO-8601 week and employeeId combination).
+put	/timesheet/week/:unapprove	timesheet/week	TimesheetWeekUnapprove_unapprove	false	Unapprove week. By ID or (ISO-8601 week and employeeId combination).
+get	/token/consumer/byToken	token/consumer	TokenConsumerByToken_getByToken	false	Get consumer token by token string.
+put	/token/employee/:create	token/employee	TokenEmployeeCreate_create	false	Create an employee token. Only selected consumers are allowed
+post	/token/session/:create	token/session	TokenSessionCreate_createWithBody	false	Create session token.
+put	/token/session/:create	token/session	TokenSessionCreate_create	true	Create session token.
+get	/token/session/>whoAmI	token/session	TokenSessionWhoAmI_whoAmI	false	Find information about the current user.
+delete	/token/session/{token}	token/session	TokenSession_delete	false	Delete session token.
+get	/transportType	transportType	TransportType_search	false	[BETA] Search transport type by supplier.
+get	/transportType/{id}	transportType	TransportType_get	false	 [BETA] Find transport type by ID.
+get	/travelExpense	travelExpense	TravelExpense_search	false	Find travel expenses corresponding with sent data.
+post	/travelExpense	travelExpense	TravelExpense_post	false	Create travel expense.
+put	/travelExpense/:approve	travelExpense	TravelExpenseApprove_approve	false	Approve travel expenses.
+put	/travelExpense/:copy	travelExpense	TravelExpenseCopy_copy	false	Copy travel expense.
+put	/travelExpense/:createVouchers	travelExpense	TravelExpenseCreateVouchers_createVouchers	false	Create vouchers
+put	/travelExpense/:deliver	travelExpense	TravelExpenseDeliver_deliver	false	Deliver travel expenses.
+put	/travelExpense/:unapprove	travelExpense	TravelExpenseUnapprove_unapprove	false	Unapprove travel expenses.
+put	/travelExpense/:undeliver	travelExpense	TravelExpenseUndeliver_undeliver	false	Undeliver travel expenses.
+get	/travelExpense/accommodationAllowance	travelExpense/accommodationAllowance	TravelExpenseAccommodationAllowance_search	false	Find accommodation allowances corresponding with sent data.
+post	/travelExpense/accommodationAllowance	travelExpense/accommodationAllowance	TravelExpenseAccommodationAllowance_post	false	Create accommodation allowance.
+delete	/travelExpense/accommodationAllowance/{id}	travelExpense/accommodationAllowance	TravelExpenseAccommodationAllowance_delete	false	Delete accommodation allowance.
+get	/travelExpense/accommodationAllowance/{id}	travelExpense/accommodationAllowance	TravelExpenseAccommodationAllowance_get	false	Get travel accommodation allowance by ID.
+put	/travelExpense/accommodationAllowance/{id}	travelExpense/accommodationAllowance	TravelExpenseAccommodationAllowance_put	false	Update accommodation allowance.
+get	/travelExpense/cost	travelExpense/cost	TravelExpenseCost_search	false	Find costs corresponding with sent data.
+post	/travelExpense/cost	travelExpense/cost	TravelExpenseCost_post	false	Create cost.
+put	/travelExpense/cost/list	travelExpense/cost	TravelExpenseCostList_putList	false	Update costs.
+delete	/travelExpense/cost/{id}	travelExpense/cost	TravelExpenseCost_delete	false	Delete cost.
+get	/travelExpense/cost/{id}	travelExpense/cost	TravelExpenseCost_get	false	Get cost by ID.
+put	/travelExpense/cost/{id}	travelExpense/cost	TravelExpenseCost_put	false	Update cost.
+get	/travelExpense/costCategory	travelExpense/costCategory	TravelExpenseCostCategory_search	false	Find cost category corresponding with sent data.
+get	/travelExpense/costCategory/{id}	travelExpense/costCategory	TravelExpenseCostCategory_get	false	Get cost category by ID.
+post	/travelExpense/costParticipant	travelExpense/costParticipant	TravelExpenseCostParticipant_post	false	Create participant on cost.
+post	/travelExpense/costParticipant/createCostParticipantAdvanced	travelExpense/costParticipant	TravelExpenseCostParticipantCreateCostParticipantAdvanced_createCostParticipantAdvanced	false	Create participant on cost using explicit parameters
+delete	/travelExpense/costParticipant/list	travelExpense/costParticipant	TravelExpenseCostParticipantList_deleteList	false	Delete cost participants.
+post	/travelExpense/costParticipant/list	travelExpense/costParticipant	TravelExpenseCostParticipantList_postList	false	Create participants on cost.
+get	/travelExpense/costParticipant/{costId}/costParticipants	travelExpense/costParticipant	TravelExpenseCostParticipantCostParticipants_getCostParticipants	false	Get cost's participants by costId.
+delete	/travelExpense/costParticipant/{id}	travelExpense/costParticipant	TravelExpenseCostParticipant_delete	false	Delete cost participant.
+get	/travelExpense/costParticipant/{id}	travelExpense/costParticipant	TravelExpenseCostParticipant_get	false	Get cost participant by ID.
+post	/travelExpense/drivingStop	travelExpense/drivingStop	TravelExpenseDrivingStop_post	false	Create mileage allowance driving stop.
+delete	/travelExpense/drivingStop/{id}	travelExpense/drivingStop	TravelExpenseDrivingStop_delete	false	Delete mileage allowance stops.
+get	/travelExpense/drivingStop/{id}	travelExpense/drivingStop	TravelExpenseDrivingStop_get	false	Get driving stop by ID.
+get	/travelExpense/mileageAllowance	travelExpense/mileageAllowance	TravelExpenseMileageAllowance_search	false	Find mileage allowances corresponding with sent data.
+post	/travelExpense/mileageAllowance	travelExpense/mileageAllowance	TravelExpenseMileageAllowance_post	false	Create mileage allowance.
+delete	/travelExpense/mileageAllowance/{id}	travelExpense/mileageAllowance	TravelExpenseMileageAllowance_delete	false	Delete mileage allowance.
+get	/travelExpense/mileageAllowance/{id}	travelExpense/mileageAllowance	TravelExpenseMileageAllowance_get	false	Get mileage allowance by ID.
+put	/travelExpense/mileageAllowance/{id}	travelExpense/mileageAllowance	TravelExpenseMileageAllowance_put	false	Update mileage allowance.
+get	/travelExpense/passenger	travelExpense/passenger	TravelExpensePassenger_search	false	Find passengers corresponding with sent data.
+post	/travelExpense/passenger	travelExpense/passenger	TravelExpensePassenger_post	false	Create passenger.
+delete	/travelExpense/passenger/list	travelExpense/passenger	TravelExpensePassengerList_deleteList	false	Delete passengers.
+post	/travelExpense/passenger/list	travelExpense/passenger	TravelExpensePassengerList_postList	false	Create passengers.
+delete	/travelExpense/passenger/{id}	travelExpense/passenger	TravelExpensePassenger_delete	false	Delete passenger.
+get	/travelExpense/passenger/{id}	travelExpense/passenger	TravelExpensePassenger_get	false	Get passenger by ID.
+put	/travelExpense/passenger/{id}	travelExpense/passenger	TravelExpensePassenger_put	false	Update passenger.
+get	/travelExpense/paymentType	travelExpense/paymentType	TravelExpensePaymentType_search	false	Find payment type corresponding with sent data.
+get	/travelExpense/paymentType/{id}	travelExpense/paymentType	TravelExpensePaymentType_get	false	Get payment type by ID.
+get	/travelExpense/perDiemCompensation	travelExpense/perDiemCompensation	TravelExpensePerDiemCompensation_search	false	Find per diem compensations corresponding with sent data.
+post	/travelExpense/perDiemCompensation	travelExpense/perDiemCompensation	TravelExpensePerDiemCompensation_post	false	Create per diem compensation.
+delete	/travelExpense/perDiemCompensation/{id}	travelExpense/perDiemCompensation	TravelExpensePerDiemCompensation_delete	false	Delete per diem compensation.
+get	/travelExpense/perDiemCompensation/{id}	travelExpense/perDiemCompensation	TravelExpensePerDiemCompensation_get	false	Get per diem compensation by ID.
+put	/travelExpense/perDiemCompensation/{id}	travelExpense/perDiemCompensation	TravelExpensePerDiemCompensation_put	false	Update per diem compensation.
+get	/travelExpense/rate	travelExpense/rate	TravelExpenseRate_search	false	Find rates corresponding with sent data.
+get	/travelExpense/rate/{id}	travelExpense/rate	TravelExpenseRate_get	false	Get travel expense rate by ID.
+get	/travelExpense/rateCategory	travelExpense/rateCategory	TravelExpenseRateCategory_search	false	Find rate categories corresponding with sent data.
+get	/travelExpense/rateCategory/{id}	travelExpense/rateCategory	TravelExpenseRateCategory_get	false	Get travel expense rate category by ID.
+get	/travelExpense/rateCategoryGroup	travelExpense/rateCategoryGroup	TravelExpenseRateCategoryGroup_search	false	Find rate categoriy groups corresponding with sent data.
+get	/travelExpense/rateCategoryGroup/{id}	travelExpense/rateCategoryGroup	TravelExpenseRateCategoryGroup_get	false	Get travel report rate category group by ID.
+get	/travelExpense/settings	travelExpense/settings	TravelExpenseSettings_get	false	Get travel expense settings of logged in company.
+get	/travelExpense/zone	travelExpense/zone	TravelExpenseZone_search	false	Find travel expense zones corresponding with sent data.
+get	/travelExpense/zone/{id}	travelExpense/zone	TravelExpenseZone_get	false	Get travel expense zone by ID.
+delete	/travelExpense/{id}	travelExpense	TravelExpense_delete	false	Delete travel expense.
+get	/travelExpense/{id}	travelExpense	TravelExpense_get	false	Get travel expense by ID.
+put	/travelExpense/{id}	travelExpense	TravelExpense_put	false	Update travel expense.
+put	/travelExpense/{id}/convert	travelExpense	TravelExpenseConvert_convert	false	Convert travel to/from employee expense.
+delete	/travelExpense/{travelExpenseId}/attachment	travelExpense	TravelExpenseAttachment_deleteAttachment	false	Delete attachment.
+get	/travelExpense/{travelExpenseId}/attachment	travelExpense	TravelExpenseAttachment_downloadAttachment	false	Get attachment by travel expense ID.
+post	/travelExpense/{travelExpenseId}/attachment	travelExpense	TravelExpenseAttachment_uploadAttachment	false	Upload attachment to travel expense.
+post	/travelExpense/{travelExpenseId}/attachment/list	travelExpense	TravelExpenseAttachmentList_uploadAttachments	false	Upload multiple attachments to travel expense.
+post	/userLicense/export	userLicense	UserLicenseExport_export	false	Export the user licenses table to a specific format
+get	/vatReturns/comment	vatReturns/comment	VatReturnsComment_query	false	[BETA] - Get all structured comments related to a given vatCode
+get	/vatReturns/comment/>all	vatReturns/comment	VatReturnsCommentAll_all	false	[BETA] - Get all structured comments available
+get	/vatTermSizeSettings	vatTermSizeSettings	VatTermSizeSettings_query	false	Search for VatTermSizeSettings
+post	/vatTermSizeSettings	vatTermSizeSettings	VatTermSizeSettings_post	false	Create VatTermSizeSettings
+delete	/vatTermSizeSettings/{id}	vatTermSizeSettings	VatTermSizeSettings_delete	false	Delete VatTermSizeSettings
+get	/vatTermSizeSettings/{id}	vatTermSizeSettings	VatTermSizeSettings_get	false	Get VatTermSizeSettings by ID. VatTermSizeSettings is used to define VAT term lengths.
+put	/vatTermSizeSettings/{id}	vatTermSizeSettings	VatTermSizeSettings_put	false	Update VatTermSizeSettings.
+get	/voucherApprovalListElement/{id}	voucherApprovalListElement	VoucherApprovalListElement_get	false	Get by ID.
+get	/voucherInbox/emailAddress	voucherInbox	VoucherInboxEmailAddress_getEmailAddress	false	Get the email address for sending invoices and vouchers to the voucher inbox.
+get	/voucherInbox/inboxCount	voucherInbox	VoucherInboxInboxCount_getInboxCount	false	Get count of items in the Voucher Inbox
+get	/voucherMessage	voucherMessage	VoucherMessage_search	false	[BETA] Find voucherMessage (or a comment) put on a voucher by inputting voucher ids
+post	/voucherMessage	voucherMessage	VoucherMessage_post	false	[BETA] Post new voucherMessage.
+get	/voucherStatus	voucherStatus	VoucherStatus_search	false	Find voucherStatus corresponding with sent data. The voucherStatus is used to coordinate integration processes. Requires setup done by Tripletex, currently supports debt collection.
+post	/voucherStatus	voucherStatus	VoucherStatus_post	false	Post new voucherStatus.
+get	/voucherStatus/{id}	voucherStatus	VoucherStatus_get	false	Get voucherStatus by ID.
+get	/yearEnd/enumType/businessActivityTypes	yearEnd/enumType	YearEndEnumTypeBusinessActivityTypes_getBusinessActivityTypes	false	Get business activity types
+get	/yearEnd/penneo/casefiles	penneo	YearEndPenneoCasefiles_getCaseFiles	false	Get case files from Penneo for a specific year
+post	/yearEnd/penneo/casefiles	penneo	YearEndPenneoCasefiles_createCaseFile	false	Create a new case file in Penneo
+delete	/yearEnd/penneo/casefiles/{caseFileId}	penneo	YearEndPenneoCasefiles_deleteCaseFile	false	Delete a case file from Penneo
+post	/yearEnd/penneo/casefiles/{caseFileId}/activate	penneo	YearEndPenneoCasefilesActivate_activateCaseFile	false	Fully activate a case file for signing (links signers, configures emails, and activates)
+delete	/yearEnd/penneo/casefiles/{caseFileId}/signers/{signerId}	penneo	YearEndPenneoCasefilesSigners_deleteSigner	false	Delete a signer from a case file
+post	/yearEnd/penneo/casefiles/{caseFileId}/signers/{signerId}/reactivate	penneo	YearEndPenneoCasefilesSignersReactivate_reactivateSigner	false	Reactivate a signer in a case file
+post	/yearEnd/penneo/casefiles/{caseFileId}/signers/{signerId}/resend	penneo	YearEndPenneoCasefilesSignersResend_resendSignLink	false	Resend a sign link to a specific signer
+post	/yearEnd/penneo/documents	penneo	YearEndPenneoDocuments_createDocument	false	Add a document to an existing case file
+delete	/yearEnd/penneo/documents/{documentId}	penneo	YearEndPenneoDocuments_deleteDocument	false	Delete a document from a case file
+put	/yearEnd/penneo/documents/{documentId}	penneo	YearEndPenneoDocuments_updateDocument	false	Update an existing document in a case file
+get	/yearEnd/penneo/documents/{documentId}/download	penneo	YearEndPenneoDocumentsDownload_downloadDocument	false	Download a document from Penneo
+get	/yearEnd/penneo/recipients	penneo	YearEndPenneoRecipients_getRecipients	false	Get all recipients for a case file
+post	/yearEnd/penneo/recipients	penneo	YearEndPenneoRecipients_postRecipients	false	Add a copy recipient to a case file
+delete	/yearEnd/penneo/recipients/{id}	penneo	YearEndPenneoRecipients_deleteRecipients	false	Delete a recipient from a case file
+get	/yearEnd/penneo/session	penneo	YearEndPenneoSession_authenticateAndListCaseFiles	false	Authenticate and get case files from Penneo for a specific year
+post	/yearEnd/penneo/signature-lines	penneo	YearEndPenneoSignature-lines_createAndLinkSignatureLine	false	Create signature line, link signer, and configure email in one operation
+post	/yearEnd/penneo/sync	penneo	YearEndPenneoSync_sync	false	Synchronize database with current Penneo casefile state
+post	/yearEnd/penneo/updateCompletedStatus	penneo	YearEndPenneoUpdateCompletedStatus_updateCompletedStatus	false	Update completed status for current company's casefiles from global API
+delete	/yearEnd/researchAndDevelopment2024	internal,researchAndDevelopment2024,yearEnd	YearEndResearchAndDevelopment2024_deleteResearchAndDevelopment2024	false	Delete ResearchAndDevelopment 2024
+post	/yearEnd/researchAndDevelopment2024	internal,researchAndDevelopment2024,yearEnd	YearEndResearchAndDevelopment2024_postResearchAndDevelopment2024	false	Create ResearchAndDevelopment 2024
+put	/yearEnd/researchAndDevelopment2024	internal,researchAndDevelopment2024,yearEnd	YearEndResearchAndDevelopment2024_putResearchAndDevelopment2024	false	Update ResearchAndDevelopment 2024
+get	/yearEnd/{yearEndReportId}/researchAndDevelopment2024	internal,researchAndDevelopment2024,yearEnd	YearEndResearchAndDevelopment2024_get	false	Get ResearchAndDevelopment by corresponding data 2024

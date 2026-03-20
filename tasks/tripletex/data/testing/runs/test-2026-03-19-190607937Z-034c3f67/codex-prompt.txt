@@ -1,0 +1,10 @@
+EXACT API PROMPT
+
+Tripletex API base URL:
+https://kkpqfuj-amager.tripletex.dev/v2
+
+Tripletex session token:
+REDACTED
+
+Attachment paths:
+/home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-190607937Z-034c3f67/attachments/01-a.txt

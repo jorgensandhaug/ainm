@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Create the project "Implementation Ridgepoint" linked to the customer Ridgepoint Ltd (org no. 948050927). The project manager is Edward Brown (edward.brown@example.org).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+REDACTED
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/scripts

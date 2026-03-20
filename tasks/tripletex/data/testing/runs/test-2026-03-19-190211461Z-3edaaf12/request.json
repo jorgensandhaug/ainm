@@ -1,0 +1,7 @@
+{
+  "prompt": "Create a customer named Sandbox Probe AS.",
+  "tripletex_credentials": {
+    "base_url": "https://should-not-be-used.example/v2",
+    "session_token": "REDACTED"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "test-2026-03-19-184228370Z-f58452e5",
+  "status": "completed",
+  "action": {
+    "type": "tripletex_api_call",
+    "method": "POST",
+    "path": "/customer",
+    "body": {
+      "name": "Acme Test AS",
+      "email": "post@acmetest.no",
+      "invoiceEmail": "post@acmetest.no",
+      "organizationNumber": "999888777",
+      "invoiceSendMethod": "EMAIL"
+    }
+  },
+  "reason": "Prepared the Tripletex customer creation request from the prompt. Live execution was not possible here because the proxy host tx-proxy.ainm.no did not resolve from this shell, and organization number 999888777 does not satisfy the Norwegian checksum validation.",
+  "files_read": []
+}

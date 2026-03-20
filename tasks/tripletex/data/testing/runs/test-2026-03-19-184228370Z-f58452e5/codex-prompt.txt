@@ -1,0 +1,2 @@
+Prompt:
+Create a customer named Acme Test AS with email post@acmetest.no and organization number 999888777.

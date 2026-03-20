@@ -1,0 +1,20 @@
+You are handling a Tripletex task launched by the Bun HTTP server.
+Run id: test-2026-03-19-183112872Z-b763b5c7
+Storage mode: testing
+Run directory: /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-183112872Z-b763b5c7
+Full request JSON: /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-183112872Z-b763b5c7/request.json
+
+Task prompt:
+Read attached invoice and prepare the Tripletex action.
+
+Tripletex credentials:
+- base_url: https://tx-proxy.ainm.no/v2
+- session_token: REDACTED
+- Basic auth username is 0
+
+Files saved on disk:
+- /home/jorge/repos/ainm/tasks/tripletex/data/testing/runs/test-2026-03-19-183112872Z-b763b5c7/attachments/01-note.txt (text/plain, original name: note.txt)
+
+Read the files from disk before acting.
+This tmux window is intentionally kept around for manual steering during development.
+Do not delete the run directory.
