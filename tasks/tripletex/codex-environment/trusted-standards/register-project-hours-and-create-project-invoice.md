@@ -24,12 +24,14 @@
    - do not add a separate `GET /customer` when the project read already leaves one exact match
 3. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`
 4. if the resolved activity is chargeable:
-   - `GET /project/hourlyRates?projectId=...&count=100&fields=*`
+   - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
    - if needed, `PUT /project/hourlyRates/{id}` with:
      - `project`
      - `startDate`
      - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
-   - `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
+   - if the holder already exposes one exact employee+activity `projectSpecificRate` with the prompt hourly rate, reuse it and skip an extra rate write
+   - if the holder already exposes one exact employee+activity `projectSpecificRate` with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
+   - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
 5. `POST /timesheet/entry`
 6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
 7. `POST /order` with:
@@ -43,6 +45,7 @@
 ## Payload Rules
 - use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
 - do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes
+- when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
 - if the resolved activity is non-chargeable, skip the project-hourly-rate writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
 - the real invoice line should usually use:
   - `description` from the prompt activity or prompt billing text
@@ -56,6 +59,8 @@
   - the switched project-hourly-rate holder id
 - from `POST /project/hourlyRates/projectSpecificRates`:
   - the created project-specific-rate id
+- from `PUT /project/hourlyRates/projectSpecificRates/{id}`:
+  - the updated project-specific-rate id
 - from `POST /timesheet/entry`:
   - the created entry id
   - `hourlyRate`
@@ -101,6 +106,7 @@
 - `/activity/>forTimeSheet`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`, `/timesheet/entry`, `/ledger/vatType`, `/order`, and `/order/{id}/:invoice` re-verified on 2026-03-20
 - persistent sandbox proved:
   - `GET /project?name=...&count=50&fields=*,customer(*)` can return enough expanded customer data to replace a separate `GET /customer` in this exact task shape
+  - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` can already expose the exact nested employee, activity, and hourly-rate data for an existing project-specific rate, so repeat/sandbox runs can skip a duplicate create write
   - `PUT /project/hourlyRates/{id}` can switch the holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
   - `POST /project/hourlyRates/projectSpecificRates` succeeds for a chargeable activity and then `POST /timesheet/entry` returns `hourlyRate=<prompt rate>`
   - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity
@@ -108,3 +114,4 @@
   - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API
   - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing
   - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default
+  - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so an unconditional `/ledger/account` preflight would have been an extra call there; keep the bank-account branch conditional unless you intentionally take the fresh-account hedge
