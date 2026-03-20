@@ -73,6 +73,12 @@ The same rule is language-agnostic for explicit no-VAT prompts. The 2026-03-20 p
 
 So do not let prompt language push this shape onto an unnecessary existing-customer lookup branch.
 
+The same no-VAT branch also covers German wording such as `ohne MwSt.`. The 2026-03-20 production run for `Bergwerk GmbH` / `981122011` / `Datenberatung` / `45150` and the same-day persistent sandbox analog `Bergwerk Reflection 999518478 GmbH` both succeeded in the same `3` calls with `amountExcludingVatCurrency=amountCurrency=45150`:
+
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"`
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+3. `POST /invoice`
+
 ## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:

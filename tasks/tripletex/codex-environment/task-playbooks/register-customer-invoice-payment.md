@@ -52,6 +52,10 @@ Verified in production on 2026-03-20:
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27077955`
 - `PUT /invoice/2147540820/:payment?paymentDate=2026-03-20&paymentTypeId=27077955&paidAmount=40250` reduced the remaining outstanding amount to `0`
 - this second production run on the same exact task shape reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147540727` for customer `939210970` by `amountExcludingVatCurrency=23900`, line description `Manutenção`, and positive `amountCurrencyOutstanding=29875`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27116469`
+- `PUT /invoice/2147540727/:payment?paymentDate=2026-03-20&paymentTypeId=27116469&paidAmount=29875` reduced the remaining outstanding amount to `0`
+- this Portuguese production run reconfirmed that prompt language does not change the path and that a prompt saying `sem IVA` still uses the invoice object's live outstanding amount for `paidAmount`
 - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147541069` for customer `891380690` by `amountExcludingVatCurrency=10100`, line description `Konsulenttimer`, and positive `amountCurrencyOutstanding=12625`
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27093292`
 - `PUT /invoice/2147541069/:payment?paymentDate=2026-03-20&paymentTypeId=27093292&paidAmount=12625` reduced the remaining outstanding amount to `0`
@@ -62,6 +66,7 @@ Verified in production on 2026-03-20:
 - this third production run on the same exact task shape reconfirmed that prompt language does not change the path and that the prompt ex-VAT amount was only the locator, not the payment amount
 - same-day persistent sandbox re-proof on analog invoice `2147531840` (`907791616` + `6200` + `Fakturerbart arbeid sandbox proof`) again settled the invoice in exactly `3` calls; the invoice read exposed no payment-related keys at all, and `GET /invoice/paymentType` still returned usable incoming bank payment type `32813748` with `name=null`, `creditAccount=null`, `debitAccount.number=1920`, `isBankAccount=true`, and `isInvoiceAccount=true`
 - that same sandbox account contained `4` unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`, so persistent-sandbox duplicate noise is not proof that the fresh-account production task shape needs an extra resolver read
+- same-day persistent sandbox re-proof on invoice `2147551798` for customer `841254546`, ex-VAT amount `28500`, and line description `System Development` again finished in exactly `3` calls and used incoming bank payment type `32813748`
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
@@ -108,6 +113,7 @@ Observed production/account variance:
   - otherwise `amountOutstanding`
 - exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`
 - exact-match production proof on 2026-03-20: prompt locator `32200` ex VAT for `System Development` still required `paidAmount=40250`
+- exact-match production proof on 2026-03-20: Portuguese prompt locator `23900` ex VAT for `Manutenção` still required `paidAmount=29875`
 - This avoids incorrect VAT assumptions and avoids partial/over-payments when reminders, alternate currencies, or non-standard VAT setups exist
 - Only send `paidAmountCurrency` when the invoice currency differs from the payment type currency and the endpoint requires both values
 
