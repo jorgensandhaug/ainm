@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astar-island"
+version = "0.1.0"
+description = "CLI-first observatory for Astar Island rounds, queries, reports, and baseline submissions."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "duckdb>=1.4.1",
+  "httpx>=0.28.1",
+  "matplotlib>=3.10.1",
+  "numpy>=2.3.3",
+  "polars>=1.33.1",
+  "pyarrow>=21.0.0",
+  "pydantic>=2.11.9",
+  "pyyaml>=6.0.3",
+  "streamlit>=1.49.1",
+  "xarray>=2025.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.18.2",
+  "pytest>=8.4.2",
+  "ruff>=0.13.1",
+  "types-pyyaml>=6.0.12.20250915",
+]
+
+[project.scripts]
+astar = "astar.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["sitecustomize"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true

@@ -1,0 +1,111 @@
+{
+  "round_id": "00000000-0000-0000-0000-000000000001",
+  "round_number": 1,
+  "summary_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/summary.json",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/report.md",
+  "feature_names": [
+    "buildable",
+    "coast",
+    "coast_distance",
+    "coastal_exposure",
+    "forest_density",
+    "frontier_score",
+    "land",
+    "land_distance_to_settlement",
+    "maritime_access",
+    "mountain_density",
+    "sea_distance_to_port",
+    "settlement_basin_gap",
+    "settlement_proximity"
+  ],
+  "per_seed": [
+    {
+      "seed_index": 0,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "has_prediction": true,
+      "has_analysis": false
+    },
+    {
+      "seed_index": 1,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
+      "has_prediction": true,
+      "has_analysis": false
+    },
+    {
+      "seed_index": 2,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
+      "has_prediction": true,
+      "has_analysis": false
+    },
+    {
+      "seed_index": 3,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
+      "has_prediction": true,
+      "has_analysis": false
+    },
+    {
+      "seed_index": 4,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
+      "has_prediction": true,
+      "has_analysis": false
+    }
+  ],
+  "diagnostics": {
+    "summary": {
+      "round_id": "00000000-0000-0000-0000-000000000001",
+      "round_number": 1,
+      "status": "completed",
+      "seed_count": 5,
+      "query_count": 3,
+      "repeated_window_groups": 1,
+      "submission_count": 5,
+      "analysis_count": 0
+    },
+    "per_seed": [
+      {
+        "seed_index": 0,
+        "query_count": 2,
+        "coverage_min": 0,
+        "coverage_max": 2,
+        "repeated_window_groups": 1
+      },
+      {
+        "seed_index": 1,
+        "query_count": 1,
+        "coverage_min": 0,
+        "coverage_max": 1,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 2,
+        "query_count": 0,
+        "coverage_min": 0,
+        "coverage_max": 0,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 3,
+        "query_count": 0,
+        "coverage_min": 0,
+        "coverage_max": 0,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 4,
+        "query_count": 0,
+        "coverage_min": 0,
+        "coverage_max": 0,
+        "repeated_window_groups": 0
+      }
+    ],
+    "scored_seed_count": 0,
+    "mean_ground_truth_entropy": null,
+    "score_by_seed": {}
+  },
+  "backtest_result": null
+}

@@ -1,0 +1,469 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel
+
+from astar.api.schemas import RoundSummary, StoredRoundRecord
+from astar.domain.validation import SubmissionValidationReport
+from astar.eval.backtest import BacktestRoundResult
+from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
+from astar.eval.reports import (
+    render_backtest_round_report,
+    render_local_dataset_diagnostics,
+    render_round_episode_diagnostics,
+)
+from astar.models.latent_regime import RoundRegimePosterior
+from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
+from astar.ops.results import HarvestReplaysResult, RecordedReplayResult
+from astar.ops.round_report import RoundReportArtifacts
+from astar.workflows.corpus_summary import CorpusSummaryResult
+from astar.workflows.results import (
+    BuildSubmissionResult,
+    ExplorationRunResult,
+    FetchAnalysisResult,
+    FetchRoundAnalysesResult,
+    LiveRoundRunResult,
+    MaterializeEpisodeResult,
+    QueryPlanSummary,
+    ReplayRoundResult,
+    SubmitPredictionResult,
+    SyncRoundResult,
+)
+
+
+def _format_datetime(value: datetime | None) -> str:
+    if value is None:
+        return "n/a"
+    return value.isoformat()
+
+
+def _jsonable(value: object) -> Any:
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    return value
+
+
+def render_json(value: object) -> str:
+    return json.dumps(_jsonable(value), indent=2)
+
+
+def render_round_list(rounds: list[RoundSummary]) -> str:
+    if not rounds:
+        return "no rounds"
+    lines = [f"rounds: {len(rounds)}"]
+    for item in rounds:
+        lines.append(
+            " ".join(
+                [
+                    f"#{item.round_number}",
+                    item.status,
+                    item.id,
+                    f"{item.map_height}x{item.map_width}",
+                    f"window={item.prediction_window_minutes}m",
+                    f"closes={item.closes_at.isoformat()}",
+                    f"weight={item.round_weight}",
+                ]
+            ),
+        )
+    return "\n".join(lines)
+
+
+def render_round_summary(round_summary: RoundSummary) -> str:
+    return "\n".join(
+        [
+            f"active-round #{round_summary.round_number} {round_summary.id}",
+            f"status: {round_summary.status}",
+            f"map: {round_summary.map_height}x{round_summary.map_width}",
+            f"window: {round_summary.prediction_window_minutes}m",
+            f"started_at: {round_summary.started_at.isoformat()}",
+            f"closes_at: {round_summary.closes_at.isoformat()}",
+            f"round_weight: {round_summary.round_weight}",
+        ],
+    )
+
+
+def render_sync_round(result: SyncRoundResult) -> str:
+    return "\n".join(
+        [
+            f"sync-round #{result.round_number} {result.round_id}",
+            f"status: {result.status}",
+            f"map: {result.map_height}x{result.map_width}",
+            f"seeds: {result.seeds_count}",
+            f"closes_at: {_format_datetime(result.closes_at)}",
+            f"raw_round: {result.round_path}",
+        ],
+    )
+
+
+def render_stored_round(record: StoredRoundRecord, path: Path) -> str:
+    lines = [
+        f"show-round #{record.round.round_number} {record.round.id}",
+        f"status: {record.round.status}",
+        f"fetched_at: {_format_datetime(record.fetched_at)}",
+        f"map: {record.round.map_height}x{record.round.map_width}",
+        f"seeds: {record.round.seeds_count}",
+        f"started_at: {_format_datetime(record.round.started_at)}",
+        f"closes_at: {_format_datetime(record.round.closes_at)}",
+    ]
+    if record.round.round_weight is not None:
+        lines.append(f"round_weight: {record.round.round_weight}")
+    for seed_index, initial_state in enumerate(record.round.initial_states):
+        settlement_count = len(initial_state.settlements)
+        port_count = sum(1 for item in initial_state.settlements if item.has_port)
+        alive_count = sum(1 for item in initial_state.settlements if item.alive)
+        lines.append(
+            f"seed {seed_index}: settlements={settlement_count} "
+            f"ports={port_count} alive={alive_count}",
+        )
+    lines.append(f"raw_round: {path}")
+    return "\n".join(lines)
+
+
+def render_query_plan_summary(result: QueryPlanSummary) -> str:
+    seed_counts = ", ".join(
+        f"seed {seed_index}={count}"
+        for seed_index, count in sorted(result.seed_query_counts.items())
+    )
+    return "\n".join(
+        [
+            f"plan-queries {result.policy_name} {result.round_id}",
+            f"items: {result.item_count}",
+            f"total_queries: {result.total_queries}",
+            f"diagnostic_queries: {result.diagnostic_query_count}",
+            f"per_seed: {seed_counts}",
+            f"plan_path: {result.plan_path}",
+        ],
+    )
+
+
+def render_recorded_simulation(result: RecordedSimulationResult) -> str:
+    viewport = result.viewport
+    return "\n".join(
+        [
+            f"simulate-once {result.round_id} seed={result.seed_index}",
+            f"viewport: x={viewport.x} y={viewport.y} w={viewport.w} h={viewport.h}",
+            f"observed_grid: {result.observed_height}x{result.observed_width}",
+            f"settlements_logged: {result.settlements_logged}",
+            f"budget: {result.queries_used}/{result.queries_max}",
+            f"raw_query: {result.path}",
+        ],
+    )
+
+
+def render_recorded_replay(result: RecordedReplayResult) -> str:
+    return "\n".join(
+        [
+            f"fetch-replay {result.round_id} seed={result.seed_index}",
+            f"sim_seed: {result.sim_seed}",
+            f"frames: {result.frame_count}",
+            f"settlement_observations: {result.settlement_observation_count}",
+            f"raw_replay: {result.path}",
+        ],
+    )
+
+
+def render_query_plan_run(result: QueryPlanRunResult) -> str:
+    return "\n".join(
+        [
+            f"run-queries {result.policy_name} {result.round_id}",
+            f"planned: {result.total_planned_queries}",
+            f"executed: {result.executed_queries}",
+            f"reused: {result.reused_queries}",
+            f"query_dir: {result.query_dir}",
+        ],
+    )
+
+
+def render_harvest_replays(result: HarvestReplaysResult) -> str:
+    lines = [
+        "harvest-replays",
+        f"rounds: {result.rounds_considered}",
+        f"seeds: {result.seeds_considered}",
+        f"existing_replays: {result.existing_replays}",
+        f"captured_replays: {result.captured_replays}",
+        f"total_replays: {result.total_replays}",
+        f"rate_limit_cooldowns: {result.rate_limit_cooldowns}",
+        f"replay_root: {result.replay_root}",
+    ]
+    for item in result.seed_summaries:
+        lines.append(
+            " ".join(
+                [
+                    f"round={item.round_id}",
+                    f"seed={item.seed_index}",
+                    f"existing={item.existing_before}",
+                    f"captured={item.captured}",
+                    f"total={item.total_after}",
+                    f"dir={item.replay_dir}",
+                ],
+            ),
+        )
+    return "\n".join(lines)
+
+
+def render_replay_round(result: ReplayRoundResult) -> str:
+    return "\n".join(
+        [
+            f"replay-round {result.round_id}",
+            f"queries: {result.query_count}",
+            f"cell_observations: {result.cell_observation_count}",
+            f"settlement_observations: {result.settlement_observation_count}",
+            f"query_log: {result.query_log_path}",
+            f"cells: {result.cell_observations_path}",
+            f"settlements: {result.settlement_observations_path}",
+        ],
+    )
+
+
+def render_build_submission(result: BuildSubmissionResult) -> str:
+    prediction_dir = result.prediction_paths[0].parent if result.prediction_paths else "n/a"
+    submission_dir = (
+        result.submission_record_paths[0].parent
+        if result.submission_record_paths
+        else "n/a"
+    )
+    return "\n".join(
+        [
+            f"build-submission {result.round_id}",
+            f"model: {result.model_name}",
+            f"seeds_built: {result.seeds_built}",
+            f"prediction_dir: {prediction_dir}",
+            f"raw_submission_dir: {submission_dir}",
+        ],
+    )
+
+
+def render_validation(
+    round_id: str,
+    seed_index: int,
+    tensor_path: Path,
+    report: SubmissionValidationReport,
+) -> str:
+    return "\n".join(
+        [
+            f"validate-submission {round_id} seed={seed_index}",
+            f"shape: {report.height}x{report.width}x{report.classes}",
+            f"min_probability: {report.min_probability:.6f}",
+            f"max_probability: {report.max_probability:.6f}",
+            f"max_sum_deviation: {report.max_sum_deviation:.6f}",
+            f"tensor: {tensor_path}",
+        ],
+    )
+
+
+def render_submit_prediction(result: SubmitPredictionResult) -> str:
+    return "\n".join(
+        [
+            f"submit {result.round_id} seed={result.seed_index}",
+            f"status: {result.status}",
+            f"model: {result.model_name}",
+            f"raw_submission: {result.submission_record_path}",
+        ],
+    )
+
+
+def render_fetch_analysis(result: FetchAnalysisResult) -> str:
+    score = "n/a" if result.score is None else str(result.score)
+    return "\n".join(
+        [
+            f"fetch-analysis {result.round_id} seed={result.seed_index}",
+            f"shape: {result.height}x{result.width}",
+            f"score: {score}",
+            f"raw_analysis: {result.raw_path}",
+            f"tensor: {result.tensor_path}",
+        ],
+    )
+
+
+def render_round_report(artifacts: RoundReportArtifacts) -> str:
+    return "\n".join(
+        [
+            "round-report",
+            f"report: {artifacts.report_path}",
+            f"initial_map: {artifacts.initial_map_path}",
+            f"coverage: {artifacts.coverage_path}",
+            f"baseline: {artifacts.baseline_path}",
+            f"entropy: {artifacts.entropy_path}",
+        ],
+    )
+
+
+def render_exploration_run(result: ExplorationRunResult) -> str:
+    lines = [
+        f"explore-round #{result.round_number} {result.round_id}",
+        f"status: {result.sync_result.status}",
+        f"map: {result.sync_result.map_height}x{result.sync_result.map_width}",
+        f"seeds: {result.sync_result.seeds_count}",
+        f"planned_queries: {result.planned_queries}",
+        f"dry_run: {str(result.dry_run).lower()}",
+        f"plan_path: {result.plan_path}",
+        f"raw_round: {result.round_path}",
+    ]
+    if result.query_run_result is None:
+        lines.append("queries: not run")
+    else:
+        lines.append(
+            "queries: "
+            f"executed={result.query_run_result.executed_queries} "
+            f"reused={result.query_run_result.reused_queries} "
+            f"total={result.query_run_result.total_planned_queries}",
+        )
+        lines.append(f"query_dir: {result.query_run_result.query_dir}")
+    if result.replay_result is None:
+        lines.append("replay: not run")
+    else:
+        lines.append(
+            "replay: "
+            f"queries={result.replay_result.query_count} "
+            f"cells={result.replay_result.cell_observation_count} "
+            f"settlements={result.replay_result.settlement_observation_count}",
+        )
+        lines.append(f"query_log: {result.replay_result.query_log_path}")
+    if result.submission_build_result is None:
+        lines.append("submissions: not built")
+    else:
+        lines.append(
+            "submissions: "
+            f"model={result.submission_build_result.model_name} "
+            f"built={result.submission_build_result.seeds_built} "
+            f"submitted={len(result.submission_results)}",
+        )
+        if result.submission_build_result.prediction_paths:
+            lines.append(
+                f"prediction_dir: {result.submission_build_result.prediction_paths[0].parent}",
+            )
+    return "\n".join(lines)
+
+
+def render_regime_posterior(result: RoundRegimePosterior) -> str:
+    return (
+        "regime: "
+        f"expansion={result.expansion:.3f} "
+        f"maritime={result.maritime:.3f} "
+        f"conflict={result.conflict:.3f} "
+        f"winter={result.winter:.3f} "
+        f"reclamation={result.reclamation:.3f} "
+        f"evidence_queries={result.evidence_queries}"
+    )
+
+
+def render_live_round_run(result: LiveRoundRunResult) -> str:
+    lines = [
+        f"live-run {result.spec_name} #{result.round_number} {result.round_id}",
+        f"status: {result.sync_result.status}",
+        f"plan_path: {result.plan_path}",
+        f"raw_round: {result.sync_result.round_path}",
+    ]
+    if result.query_run_result is not None:
+        lines.append(
+            "queries: "
+            f"executed={result.query_run_result.executed_queries} "
+            f"reused={result.query_run_result.reused_queries} "
+            f"total={result.query_run_result.total_planned_queries}",
+        )
+    if result.replay_result is not None:
+        lines.append(
+            "replay: "
+            f"queries={result.replay_result.query_count} "
+            f"cells={result.replay_result.cell_observation_count} "
+            f"settlements={result.replay_result.settlement_observation_count}",
+        )
+    if result.regime_posterior is not None:
+        lines.append(render_regime_posterior(result.regime_posterior))
+    if result.model_name is not None:
+        lines.append(f"predictor: {result.model_name}")
+    if result.prediction_dir is not None:
+        lines.append(f"prediction_dir: {result.prediction_dir}")
+    lines.append(f"submitted_predictions: {len(result.submitted_predictions)}")
+    if result.episode_diagnostics is not None:
+        lines.append(
+            "episode: "
+            f"queries={result.episode_diagnostics.summary.query_count} "
+            f"repeats={result.episode_diagnostics.summary.repeated_window_groups} "
+            f"analyses={result.episode_diagnostics.summary.analysis_count}",
+        )
+    if result.materialized_episode is not None:
+        lines.append(f"episode_summary: {result.materialized_episode.summary_path}")
+        lines.append(f"episode_report: {result.materialized_episode.report_path}")
+    return "\n".join(lines)
+
+
+def render_fetch_round_analyses(result: FetchRoundAnalysesResult) -> str:
+    lines = [
+        f"fetch-round-analyses {result.round_id}",
+        f"seeds_fetched: {len(result.fetched_results)}",
+    ]
+    for item in result.fetched_results:
+        score = "n/a" if item.score is None else str(item.score)
+        lines.append(f"seed {item.seed_index}: score={score} tensor={item.tensor_path}")
+    if result.materialized_episode is not None:
+        lines.append(f"episode_summary: {result.materialized_episode.summary_path}")
+        lines.append(f"episode_report: {result.materialized_episode.report_path}")
+    return "\n".join(lines)
+
+
+def render_episode_diagnostics(diagnostics: RoundEpisodeDiagnostics) -> str:
+    return render_round_episode_diagnostics(diagnostics)
+
+
+def render_dataset_diagnostics(diagnostics: LocalDatasetDiagnostics) -> str:
+    return render_local_dataset_diagnostics(diagnostics)
+
+
+def render_backtest_round(result: BacktestRoundResult) -> str:
+    return render_backtest_round_report(result)
+
+
+def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
+    lines = [
+        f"materialize-episode #{result.round_number} {result.round_id}",
+        f"summary: {result.summary_path}",
+        f"report: {result.report_path}",
+        f"feature_names: {', '.join(result.feature_names)}",
+        (
+            "episode: "
+            f"queries={result.diagnostics.summary.query_count} "
+            f"repeats={result.diagnostics.summary.repeated_window_groups} "
+            f"submissions={result.diagnostics.summary.submission_count} "
+            f"analyses={result.diagnostics.summary.analysis_count}"
+        ),
+    ]
+    for item in result.per_seed:
+        lines.append(
+            " ".join(
+                [
+                    f"seed {item.seed_index}:",
+                    f"features={item.feature_path}",
+                    f"evidence={item.evidence_path}",
+                    f"prediction={str(item.has_prediction).lower()}",
+                    f"analysis={str(item.has_analysis).lower()}",
+                ],
+            ),
+        )
+    if result.backtest_result is not None:
+        lines.append(f"backtest_mean_score: {result.backtest_result.mean_score:.4f}")
+    return "\n".join(lines)
+
+
+def render_corpus_summary(result: CorpusSummaryResult) -> str:
+    lines = [
+        f"episodes: {result.episode_count}",
+        f"episodes_with_ground_truth: {result.analyzed_episode_count}",
+        f"leave_one_seed_out_tasks: {result.leave_one_seed_out_task_count}",
+        f"two_seed_holdout_tasks: {result.two_seed_holdout_task_count}",
+    ]
+    for item in sorted(result.corpus.summaries, key=lambda summary: summary.round_number):
+        lines.append(
+            f"episode #{item.round_number} {item.round_id}: "
+            f"status={item.status} seeds={item.seed_count} "
+            f"analyzed={item.analyzed_seed_count} queries={item.query_count}",
+        )
+    return "\n".join(lines)

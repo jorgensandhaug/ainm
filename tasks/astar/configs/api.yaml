@@ -1,0 +1,3 @@
+base_url: https://api.ainm.no/astar-island
+timeout_seconds: 30.0
+

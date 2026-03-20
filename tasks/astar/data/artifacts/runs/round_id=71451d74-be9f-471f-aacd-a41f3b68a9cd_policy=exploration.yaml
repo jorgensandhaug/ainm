@@ -1,0 +1,458 @@
+round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+policy_name: exploration_v1
+items:
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 15
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 15
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 15
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 15
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 15
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 25
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 25
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 25
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 25
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 25
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 0
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 0
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 0
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 0
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 0
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 25
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 25
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 25
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 25
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 25
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: coverage
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 0
+  viewport:
+    x: 0
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: diagnostic_repeat
+  diagnostic_score: 87.08184077877482
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 1
+  viewport:
+    x: 0
+    y: 0
+    w: 15
+    h: 15
+  repeats: 1
+  tag: diagnostic_repeat
+  diagnostic_score: 118.30767385034241
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 2
+  viewport:
+    x: 15
+    y: 25
+    w: 15
+    h: 15
+  repeats: 1
+  tag: diagnostic_repeat
+  diagnostic_score: 96.3244776209062
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 3
+  viewport:
+    x: 15
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: diagnostic_repeat
+  diagnostic_score: 132.31216182508388
+- round_id: 71451d74-be9f-471f-aacd-a41f3b68a9cd
+  seed_index: 4
+  viewport:
+    x: 25
+    y: 15
+    w: 15
+    h: 15
+  repeats: 1
+  tag: diagnostic_repeat
+  diagnostic_score: 129.80762638212462

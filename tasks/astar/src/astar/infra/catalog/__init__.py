@@ -1,0 +1,2 @@
+"""DuckDB-backed event catalog."""
+

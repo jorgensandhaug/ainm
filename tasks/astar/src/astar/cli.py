@@ -1,0 +1,496 @@
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+import httpx
+
+from astar.cli_output import (
+    render_backtest_round,
+    render_build_submission,
+    render_corpus_summary,
+    render_dataset_diagnostics,
+    render_episode_diagnostics,
+    render_exploration_run,
+    render_fetch_analysis,
+    render_fetch_round_analyses,
+    render_harvest_replays,
+    render_json,
+    render_live_round_run,
+    render_materialize_episode,
+    render_query_plan_run,
+    render_query_plan_summary,
+    render_recorded_replay,
+    render_recorded_simulation,
+    render_replay_round,
+    render_round_list,
+    render_round_report,
+    render_round_summary,
+    render_stored_round,
+    render_submit_prediction,
+    render_sync_round,
+    render_validation,
+)
+from astar.core.validation import SubmissionSpec, validate_prediction_tensor
+from astar.eval.backtest import backtest_round_from_saved_analyses
+from astar.eval.diagnostics import build_local_dataset_diagnostics, build_round_episode_diagnostics
+from astar.infra.api.auth import AuthConfig
+from astar.infra.api.client import AstarApiClient, ClientConfig
+from astar.infra.api.dto import ReplayRequest, SimulationRequest
+from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import load_prediction_tensor, read_round_record
+from astar.legacy.harvest_replays import harvest_replays, record_replay
+from astar.legacy.query_plan import read_any_query_plan
+from astar.legacy.round_report import build_round_report
+from astar.observe.executor import execute_query_plan, record_simulation
+from astar.observe.planner import build_policy_plan
+from astar.observe.policies.registry import build_named_policy
+from astar.spec_loader import load_object
+from astar.workflows.corpus_summary import summarize_learning_corpus
+from astar.workflows.exploration import explore_round
+from astar.workflows.fetch_analysis import fetch_analysis
+from astar.workflows.fetch_round_analyses import fetch_round_analyses
+from astar.workflows.live_round import run_live_round
+from astar.workflows.materialize_episode import materialize_round_episode
+from astar.workflows.replay_round import replay_round
+from astar.workflows.results import QueryPlanSummary
+from astar.workflows.specs import LiveRunSpec
+from astar.workflows.submissions import build_submission, submit_saved_prediction
+from astar.workflows.sync_round import sync_round
+
+
+def load_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="astar")
+    parser.add_argument("--root", default=".", help="repo root")
+    parser.add_argument("--json", action=argparse.BooleanOptionalAction, default=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sync_parser = subparsers.add_parser("sync-round")
+    sync_parser.add_argument("--round-id", required=True)
+
+    rounds_parser = subparsers.add_parser("list-rounds")
+    rounds_parser.add_argument(
+        "--status",
+        choices=["pending", "active", "scoring", "completed"],
+        default=None,
+    )
+
+    subparsers.add_parser("active-round")
+
+    show_parser = subparsers.add_parser("show-round")
+    show_parser.add_argument("--round-id", required=True)
+
+    explore_parser = subparsers.add_parser("explore-round")
+    explore_parser.add_argument("--round-id", required=True)
+    explore_parser.add_argument(
+        "--baseline-model",
+        choices=["uniform", "static_semantic"],
+        default="static_semantic",
+    )
+    explore_parser.add_argument(
+        "--submit-baseline",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    explore_parser.add_argument(
+        "--dry-run",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+
+    explore_current_parser = subparsers.add_parser("explore-current-round")
+    explore_current_parser.add_argument(
+        "--baseline-model",
+        choices=["uniform", "static_semantic"],
+        default="static_semantic",
+    )
+    explore_current_parser.add_argument(
+        "--submit-baseline",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    explore_current_parser.add_argument(
+        "--dry-run",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+
+    plan_parser = subparsers.add_parser("plan-queries")
+    plan_parser.add_argument("--round-id", required=True)
+    plan_parser.add_argument("--policy", default="coverage")
+
+    simulate_parser = subparsers.add_parser("simulate-once")
+    simulate_parser.add_argument("--round-id", required=True)
+    simulate_parser.add_argument("--seed-index", type=int, required=True)
+    simulate_parser.add_argument("--viewport-x", type=int, required=True)
+    simulate_parser.add_argument("--viewport-y", type=int, required=True)
+    simulate_parser.add_argument("--viewport-w", type=int, default=15)
+    simulate_parser.add_argument("--viewport-h", type=int, default=15)
+    simulate_parser.add_argument("--config-hash", default="manual")
+
+    replay_fetch_parser = subparsers.add_parser("fetch-replay")
+    replay_fetch_parser.add_argument("--round-id", required=True)
+    replay_fetch_parser.add_argument("--seed-index", type=int, required=True)
+
+    replay_harvest_parser = subparsers.add_parser("harvest-replays")
+    replay_harvest_parser.add_argument("--round-id", action="append", default=None)
+    replay_harvest_parser.add_argument(
+        "--status",
+        action="append",
+        choices=["pending", "active", "scoring", "completed"],
+        default=None,
+    )
+    replay_harvest_parser.add_argument("--samples-per-seed", type=int, default=1)
+    replay_harvest_parser.add_argument("--max-new-replays", type=int, default=None)
+    replay_harvest_parser.add_argument("--replay-rate-limit-per-second", type=float, default=1.0)
+    replay_harvest_parser.add_argument("--cooldown-seconds", type=float, default=30.0)
+    replay_harvest_parser.add_argument("--random-delay-min-seconds", type=float, default=0.0)
+    replay_harvest_parser.add_argument("--random-delay-max-seconds", type=float, default=0.0)
+
+    run_parser = subparsers.add_parser("run-queries")
+    run_parser.add_argument("--plan", required=True)
+    run_parser.add_argument("--config-hash", default="manual")
+
+    replay_parser = subparsers.add_parser("replay-round")
+    replay_parser.add_argument("--round-id", required=True)
+
+    build_parser_cmd = subparsers.add_parser("build-submission")
+    build_parser_cmd.add_argument("--round-id", required=True)
+    build_parser_cmd.add_argument("--model", choices=["uniform", "static_semantic"], required=True)
+
+    validate_parser = subparsers.add_parser("validate-submission")
+    validate_parser.add_argument("--round-id", required=True)
+    validate_parser.add_argument("--seed-index", type=int, required=True)
+
+    submit_parser = subparsers.add_parser("submit")
+    submit_parser.add_argument("--round-id", required=True)
+    submit_parser.add_argument("--seed-index", type=int, required=True)
+
+    analysis_parser = subparsers.add_parser("fetch-analysis")
+    analysis_parser.add_argument("--round-id", required=True)
+    analysis_parser.add_argument("--seed-index", type=int, required=True)
+
+    report_parser = subparsers.add_parser("round-report")
+    report_parser.add_argument("--round-id", required=True)
+    report_parser.add_argument("--seed-index", type=int, required=True)
+
+    live_run_parser = subparsers.add_parser("live-run")
+    live_run_parser.add_argument("--spec", default="experiments.live.explore_v1:spec")
+    live_run_parser.add_argument("--round-id", default=None)
+    live_run_parser.add_argument(
+        "--dry-run",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+
+    fetch_round_analyses_parser = subparsers.add_parser("fetch-round-analyses")
+    fetch_round_analyses_parser.add_argument("--round-id", required=True)
+
+    episode_summary_parser = subparsers.add_parser("episode-summary")
+    episode_summary_parser.add_argument("--round-id", required=True)
+
+    materialize_episode_parser = subparsers.add_parser("materialize-episode")
+    materialize_episode_parser.add_argument("--round-id", required=True)
+
+    backtest_round_parser = subparsers.add_parser("backtest-round")
+    backtest_round_parser.add_argument("--round-id", required=True)
+
+    subparsers.add_parser("dataset-summary")
+    subparsers.add_parser("corpus-summary")
+
+    return parser
+
+
+def _emit(json_mode: bool, payload: object, text: str) -> None:
+    if json_mode:
+        print(render_json(payload))
+        return
+    print(text)
+
+
+def _format_http_error(exc: httpx.HTTPStatusError) -> str:
+    response = exc.response
+    detail = ""
+    try:
+        payload = response.json()
+        if isinstance(payload, dict) and "detail" in payload:
+            detail = str(payload["detail"])
+    except ValueError:
+        detail = response.text.strip()
+    if not detail:
+        detail = response.text.strip()
+    status = f"http {response.status_code}"
+    if detail:
+        return f"{status}: {detail}"
+    return status
+
+
+def _build_query_plan_summary(plan_path: Path, policy: str, round_id: str) -> QueryPlanSummary:
+    plan = read_any_query_plan(plan_path)
+    seed_query_counts: dict[int, int] = {}
+    diagnostic_query_count = 0
+    total_queries = 0
+    for item in plan.items:
+        seed_query_counts[item.seed_index] = (
+            seed_query_counts.get(item.seed_index, 0) + item.repeats
+        )
+        total_queries += item.repeats
+        if item.tag == "diagnostic_repeat":
+            diagnostic_query_count += item.repeats
+    return QueryPlanSummary(
+        round_id=round_id,
+        policy_name=policy,
+        item_count=len(plan.items),
+        total_queries=total_queries,
+        diagnostic_query_count=diagnostic_query_count,
+        seed_query_counts=seed_query_counts,
+        plan_path=plan_path,
+    )
+
+
+def _main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+
+    paths = WorkspacePaths.from_root(args.root)
+    paths.ensure_layout()
+    load_env_file(paths.root / ".env")
+
+    if args.command in {"list-rounds", "active-round"}:
+        client = AstarApiClient(ClientConfig.from_env(), AuthConfig.from_env())
+        if args.command == "list-rounds":
+            rounds = client.list_rounds()
+            if args.status is not None:
+                rounds = [item for item in rounds if item.status == args.status]
+            _emit(args.json, rounds, render_round_list(rounds))
+            return 0
+        active_round = client.get_active_round()
+        _emit(args.json, active_round, render_round_summary(active_round))
+        return 0
+
+    if args.command == "show-round":
+        record = read_round_record(paths, args.round_id)
+        _emit(
+            args.json,
+            record,
+            render_stored_round(record, paths.raw_round_path(args.round_id)),
+        )
+        return 0
+
+    if args.command == "explore-round":
+        client = AstarApiClient(ClientConfig.from_env(), AuthConfig.from_env())
+        exploration_result = explore_round(
+            paths,
+            client,
+            args.round_id,
+            baseline_model=args.baseline_model,
+            submit_baseline=args.submit_baseline,
+            dry_run=args.dry_run,
+        )
+        _emit(args.json, exploration_result, render_exploration_run(exploration_result))
+        return 0
+
+    if args.command == "replay-round":
+        replay_result = replay_round(paths, args.round_id)
+        _emit(args.json, replay_result, render_replay_round(replay_result))
+        return 0
+
+    if args.command == "build-submission":
+        build_result = build_submission(paths, args.round_id, args.model)
+        _emit(args.json, build_result, render_build_submission(build_result))
+        return 0
+
+    if args.command == "validate-submission":
+        record = read_round_record(paths, args.round_id)
+        tensor_path = paths.prediction_tensor_path(args.round_id, args.seed_index)
+        tensor = load_prediction_tensor(
+            tensor_path,
+        )
+        report = validate_prediction_tensor(
+            tensor,
+            SubmissionSpec(height=record.round.map_height, width=record.round.map_width),
+        )
+        _emit(
+            args.json,
+            report,
+            render_validation(args.round_id, args.seed_index, tensor_path, report),
+        )
+        return 0
+
+    if args.command == "round-report":
+        artifacts = build_round_report(paths, args.round_id, args.seed_index)
+        _emit(args.json, artifacts, render_round_report(artifacts))
+        return 0
+
+    if args.command == "episode-summary":
+        episode_diagnostics = build_round_episode_diagnostics(paths, args.round_id)
+        _emit(args.json, episode_diagnostics, render_episode_diagnostics(episode_diagnostics))
+        return 0
+
+    if args.command == "materialize-episode":
+        materialized = materialize_round_episode(paths, args.round_id)
+        _emit(args.json, materialized, render_materialize_episode(materialized))
+        return 0
+
+    if args.command == "dataset-summary":
+        dataset_diagnostics = build_local_dataset_diagnostics(paths)
+        _emit(args.json, dataset_diagnostics, render_dataset_diagnostics(dataset_diagnostics))
+        return 0
+
+    if args.command == "corpus-summary":
+        corpus_summary = summarize_learning_corpus(paths)
+        _emit(args.json, corpus_summary, render_corpus_summary(corpus_summary))
+        return 0
+
+    if args.command == "backtest-round":
+        backtest_result = backtest_round_from_saved_analyses(paths, args.round_id)
+        _emit(args.json, backtest_result, render_backtest_round(backtest_result))
+        return 0
+
+    client_config = ClientConfig.from_env()
+    if args.command == "harvest-replays":
+        client_config = client_config.model_copy(
+            update={"replay_rate_limit_per_second": args.replay_rate_limit_per_second},
+        )
+    client = AstarApiClient(client_config, AuthConfig.from_env())
+
+    if args.command == "explore-current-round":
+        active_round = client.get_active_round()
+        exploration_result = explore_round(
+            paths,
+            client,
+            active_round.id,
+            baseline_model=args.baseline_model,
+            submit_baseline=args.submit_baseline,
+            dry_run=args.dry_run,
+        )
+        _emit(args.json, exploration_result, render_exploration_run(exploration_result))
+        return 0
+
+    if args.command == "live-run":
+        loaded = load_object(args.spec)
+        if not isinstance(loaded, LiveRunSpec):
+            msg = f"{args.spec!r} did not resolve to LiveRunSpec"
+            raise ValueError(msg)
+        round_id = args.round_id
+        if round_id is None:
+            round_id = client.get_active_round().id
+        live_result = run_live_round(
+            paths,
+            client,
+            loaded,
+            round_id=round_id,
+            dry_run=args.dry_run,
+        )
+        _emit(args.json, live_result, render_live_round_run(live_result))
+        return 0
+
+    if args.command == "fetch-round-analyses":
+        analyses_result = fetch_round_analyses(paths, client, args.round_id)
+        _emit(args.json, analyses_result, render_fetch_round_analyses(analyses_result))
+        return 0
+
+    if args.command == "sync-round":
+        sync_result = sync_round(paths, client, args.round_id)
+        _emit(args.json, sync_result, render_sync_round(sync_result))
+        return 0
+
+    if args.command == "plan-queries":
+        record = read_round_record(paths, args.round_id)
+        policy = build_named_policy(args.policy)
+        planned = build_policy_plan(
+            policy,
+            record.round,
+            paths.artifacts_dir / "runs" / f"round_id={args.round_id}_policy={args.policy}.json",
+        )
+        plan_result = _build_query_plan_summary(
+            planned.plan_path,
+            planned.policy_name,
+            args.round_id,
+        )
+        _emit(args.json, plan_result, render_query_plan_summary(plan_result))
+        return 0
+
+    if args.command == "simulate-once":
+        simulation_result = record_simulation(
+            paths,
+            client,
+            SimulationRequest(
+                round_id=args.round_id,
+                seed_index=args.seed_index,
+                viewport_x=args.viewport_x,
+                viewport_y=args.viewport_y,
+                viewport_w=args.viewport_w,
+                viewport_h=args.viewport_h,
+            ),
+            config_hash=args.config_hash,
+        )
+        _emit(args.json, simulation_result, render_recorded_simulation(simulation_result))
+        return 0
+
+    if args.command == "fetch-replay":
+        recorded_replay = record_replay(
+            paths,
+            client,
+            ReplayRequest(round_id=args.round_id, seed_index=args.seed_index),
+        )
+        _emit(args.json, recorded_replay, render_recorded_replay(recorded_replay))
+        return 0
+
+    if args.command == "harvest-replays":
+        statuses = None if args.status is None else set(args.status)
+        harvest_result = harvest_replays(
+            paths,
+            client,
+            round_ids=args.round_id,
+            statuses=statuses,
+            samples_per_seed=args.samples_per_seed,
+            max_new_replays=args.max_new_replays,
+            cooldown_seconds=args.cooldown_seconds,
+            random_delay_min_seconds=args.random_delay_min_seconds,
+            random_delay_max_seconds=args.random_delay_max_seconds,
+        )
+        _emit(args.json, harvest_result, render_harvest_replays(harvest_result))
+        return 0
+
+    if args.command == "run-queries":
+        plan = read_any_query_plan(Path(args.plan))
+        query_run_result = execute_query_plan(paths, client, plan, config_hash=args.config_hash)
+        _emit(args.json, query_run_result, render_query_plan_run(query_run_result))
+        return 0
+
+    if args.command == "submit":
+        submit_result = submit_saved_prediction(paths, client, args.round_id, args.seed_index)
+        _emit(args.json, submit_result, render_submit_prediction(submit_result))
+        return 0
+
+    if args.command == "fetch-analysis":
+        analysis_result = fetch_analysis(paths, client, args.round_id, args.seed_index)
+        _emit(args.json, analysis_result, render_fetch_analysis(analysis_result))
+        return 0
+
+    raise ValueError(f"unsupported command: {args.command}")
+
+
+def main() -> int:
+    try:
+        return _main()
+    except httpx.HTTPStatusError as exc:
+        print(_format_http_error(exc), file=sys.stderr)
+        return 1
+    except (ValueError, FileNotFoundError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1

@@ -1,0 +1,14 @@
+name: exploration_v1
+viewport_w: 15
+viewport_h: 15
+diagnostic_repeat_count_per_seed: 1
+settlement_weight: 8.0
+settlement_pair_weight: 6.0
+port_weight: 4.0
+coastal_settlement_weight: 3.0
+coastline_weight: 2.5
+terrain_entropy_weight: 2.0
+edge_density_weight: 2.0
+forest_weight: 0.75
+mountain_weight: 0.75
+ocean_penalty_weight: 3.0

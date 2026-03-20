@@ -1,0 +1,15 @@
+# local env + caches only
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Astar data is intentionally versioned and shared through git.
+!data/
+!data/**
