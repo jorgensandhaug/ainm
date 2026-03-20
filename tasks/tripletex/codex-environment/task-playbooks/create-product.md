@@ -28,6 +28,15 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - `POST /product` with `vatType: { "id": 31 }` still failed with `422` and `Internt felt (vatTypeId): Ugyldig mva-kode.`
 - therefore, if the requested percentage is absent from the filtered `OUTGOING` result, the task is blocked in that account; do not guess from the broader VAT catalog even when a same-percentage outgoing code exists there
 
+Persistent-sandbox verification on 2026-03-20 also showed:
+- `POST /product` without any `vatType` still succeeded and auto-filled the same sandbox default 0% outgoing VAT code `6`
+- this is not a trusted shortcut for scored exact-VAT tasks; it only proves that some accounts silently default the VAT on product create
+
+Fresh-account production verification on 2026-03-20 showed:
+- an exact "0% VAT for books" product-create task succeeded with the filtered `OUTGOING` 0% row `id=5` / `number="5"` (`Ingen utgående avgift (innenfor mva-loven)`)
+- therefore even exact 0% product tasks can map to different valid VAT ids across accounts (`5` in that fresh account, `6` in the persistent sandbox)
+- do not search for a book-specific VAT endpoint or hardcode the sandbox's `0%` code; the safe path is still to pick the matching `0%` row from the filtered `OUTGOING` result in the current account
+
 ## Minimal Safe Flow
 
 1. Confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
@@ -100,6 +109,7 @@ Use `number` for the product number and the VAT code id from the `OUTGOING` look
 - Do not `GET /product` first for a standard create task
 - Do not add sandbox idempotency checks to a scored create prompt
 - Do not browse multiple VAT endpoints once `typeOfVat=OUTGOING` already gives the needed valid code
+- Do not treat a sandbox success without `vatType` as proof that the one-call shortcut is safe in a fresh scored account
 
 ## Avoidable Mistakes
 
@@ -108,3 +118,5 @@ Use `number` for the product number and the VAT code id from the `OUTGOING` look
 - Do not filter out valid base VAT codes by checking `!parentType`
 - Do not send both excluding-VAT and including-VAT price fields unless the prompt clearly requires it
 - Do not burn a `POST /product` on a broader-catalog `15%` or `25%` code after the filtered `OUTGOING` read already proved that percentage is unavailable for product creation in the current account
+- Do not assume that "0% for books" needs anything more than the current account's filtered outgoing `0%` VAT row
+- Do not omit `vatType` for an exact-VAT prompt just because a persistent sandbox happened to default it correctly

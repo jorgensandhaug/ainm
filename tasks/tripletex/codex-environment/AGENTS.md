@@ -242,8 +242,10 @@ Authentication:
 - Treat localized generic email labels such as `Correo` the same as `Email`/`E-post` in create-customer tasks; they still map to `email`, not `invoiceEmail`.
 - If using a foreign organization number, country/address fields may need to be set consistently.
 - Product creation with VAT should resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, not from the unfiltered VAT catalog or `typeOfVat=LEDGER`; broader lists can expose codes that still fail `POST /product` with `Internt felt (vatTypeId): Ugyldig mva-kode.`
+- `POST /product` without `vatType` can succeed in some sandbox accounts by auto-filling an account default VAT type; do not treat that as a trusted shortcut for scored exact-VAT tasks.
 - If the requested product VAT percentage is absent from that filtered `OUTGOING` result on the task date, treat the product-create task as blocked in that account; do not try a same-percentage code from the broader VAT catalog.
 - For product VAT selection, do not filter away base VAT codes by requiring `parentType` to be missing; standard code `3` (`25% Utgående avgift, høy sats`) still has `parentType.id=0`.
+- For exact `0%` product prompts such as books, do not search for a special book-only VAT endpoint or hardcode one sandbox's `0%` code; still choose the matching `0%` row from the filtered `OUTGOING` result in the current account.
 - Employee creation may require a department if department functionality is enabled in the account.
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may echo `userType: null` plus `employments` entries with only `id`/`url`, not the submitted `startDate`.
 - Employee creation can also fail on `employments.division.id`; if validation says the employment must be tied to a business/sub-entity, resolve one existing `/division?count=1&fields=*` and reuse that `division.id` instead of guessing.

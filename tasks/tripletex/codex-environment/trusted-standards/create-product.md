@@ -30,8 +30,10 @@
   - `number` when the prompt gives a product number
   - `priceExcludingVatCurrency` or the exact corresponding price field required by prompt/playbook
 - if exact VAT is required, resolve `vatType` from filtered outgoing VAT list on the real date
+- do not rely on omitting `vatType` even if a sandbox account auto-fills a 0% default
 - do not hardcode VAT code `3`
 - do not use unfiltered VAT catalog
+- do not search for a book-specific product subtype or extra accounting field just because the prompt says "0% for books"; still pick the matching 0% row from the filtered `OUTGOING` result
 - if the requested VAT percentage is absent from the filtered `OUTGOING` result, treat the task as blocked in that account; do not substitute a same-percentage code from the broader catalog
 
 ## Reuse From Write Response
@@ -45,6 +47,7 @@
 ## Known Recovery Branches
 - if product create rejects VAT type, re-check against filtered `OUTGOING` VAT list only
 - if filtered `OUTGOING` still does not contain the requested percentage, stop instead of guessing another `vatType`
+- if a sandbox-only shortcut without `vatType` appears to auto-fill the desired VAT, do not promote that to the trusted path for scored exact-VAT tasks
 
 ## OpenAPI / Sandbox Status
 - `/product` verified in `./openapi.json`

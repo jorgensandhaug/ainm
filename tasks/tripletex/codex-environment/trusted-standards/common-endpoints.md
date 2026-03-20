@@ -89,6 +89,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create prerequisite:
   - resolve valid outgoing `vatType`
   - if the prompt requires an exact VAT percentage and that percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+- Standard create note:
+  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; do not use that as the trusted fast path when the prompt scores exact VAT
+  - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
   - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
