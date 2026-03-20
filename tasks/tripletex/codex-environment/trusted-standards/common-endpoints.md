@@ -255,11 +255,15 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - sometimes company bank-account repair through `/ledger/account/{id}`
   - for invoice-on-order prepayment, one valid incoming `paymentTypeId`
 - Standard explicit-VAT note:
+  - for exact existing-customer plus exact existing-product-number create-only invoice tasks, the lower-call default is customer read, exact-number product read, then invoice write; if the resolved products already return reusable `vatType.id`, either copy that id onto the line or omit explicit line `vatType` and inherit from the product
   - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
+  - that sparse `product.vatType` link is still enough for the 3-call exact-number path when the task is only to create the invoice, not to override the stored product VAT
   - when that same prompt also gives exact product names but the parenthetical numeric refs are not trustworthy search keys, the winning product read is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
   - numeric refs that merely look like normal product numbers are still not enough to justify the speculative `productNumber=` query when the prompt already gives exact names; the 2026-03-20 `851635874` invoice reflection showed that one such speculative read was wasted before the later catalog fallback settled the products
   - the same lesson was re-confirmed on 2026-03-20 for the `909722500` invoice prompt with `Analysis Report (9796)`, `Maintenance (2145)`, and `System Development (5995)`: the numeric refs looked like product numbers, but the lower-call replacement path was still one decisive catalog read because the prompt never explicitly guaranteed those refs were Tripletex `productNumber` values
   - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
+  - exhaustive persistent-sandbox reduction on 2026-03-20 with the exact-number analog `861379760` + `2109/1175/9974` proved that the tempting 2-call shortcut `GET /customer` -> `POST /invoice` with `product.number` is invalid for existing-product tasks: the write succeeded, but readback showed `product=null` on all lines
+  - the same reduction also proved that `GET /product` -> `POST /invoice` with inline `customer { name, organizationNumber }` is not a valid 2-call replacement either; Tripletex rejected it with `422` because the related order still required `customer.id`
   - if a speculative first product resolver is used anyway and returns only a partial subset, the broader catalog fallback should happen in the same script/callback chain; do not restart the flow and duplicate the customer read
   - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
   - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
@@ -328,7 +332,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
   - for ordinary supplier-invoice tasks phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`; if that lookup returns one exact hit, reuse it and do not create a duplicate supplier
-  - only use direct `POST /supplier` inside that supplier-invoice workflow when the lookup returns zero hits or the prompt explicitly says the supplier must be created first
+  - the supplier-invoice trusted path now assumes the target supplier may already exist even when the rest of the account looks fresh; only use direct `POST /supplier` inside that workflow when the lookup returns zero hits or the prompt explicitly says the supplier must be created first
   - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
@@ -456,8 +460,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - number-only account refs on voucher postings are not the trusted fast path
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
+  - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
-  - for the exact supplier-invoice ledger-voucher shape with an already-existing supplier, the minimal verified path is supplier lookup, expense-account read, incoming-VAT read, voucher-type read, then voucher write
-  - if that same supplier-invoice shape truly has no existing supplier, the create branch is one extra call: supplier lookup, supplier write, expense-account read, incoming-VAT read, voucher-type read, then voucher write
+  - for the exact supplier-invoice shape that scores a real supplier invoice, the trusted path is supplier lookup, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
+  - if that same supplier-invoice shape truly has no existing supplier, the create branch is one extra call: supplier lookup, supplier write, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
   - in that supplier-invoice shape, if the incoming-VAT read returns several rows with the requested percentage, prefer the plain numeric base code over derived rows such as `TAP-1`, and do that selection locally without restarting the workflow
+  - for the imported-voucher update branch, send only `version` and `postings`; imported header fields such as `description` and `vendorInvoiceNumber` are not safely mutable afterwards

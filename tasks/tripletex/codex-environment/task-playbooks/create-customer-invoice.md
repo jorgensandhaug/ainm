@@ -16,10 +16,11 @@ Do not use for:
 
 ## Verified Findings
 
-- reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`, names `Webdesign`, `Programvarelisens`, `Opplæring`, VAT `25%` / `15%` / `0%`) showed:
-  - the API path itself was already minimal and correct: `GET /customer?organizationNumber=...&fields=*` -> `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
-  - the only mistake happened after the successful write: local verification miscomputed the gross total as `61145` instead of the correct `60745`
-  - because the invoice write had already succeeded, that arithmetic bug should have been treated as a local reflection issue, not as a reason to retry or create another invoice
+- later 2026-03-20 reduction work showed that the older 4-call exact-product-number branch should not be treated as the floor for standard create-only existing-product invoices; when the resolved products already carry reusable `vatType.id`, the `/ledger/vatType` read is often unnecessary
+- production feedback on 2026-03-20 for the exact prompt shape `customer.organizationNumber=861379760`, products `2109`, `1175`, `9974`, names `Mantenimiento`, `Horas de consultoría`, `Informe de análisis`, VAT `25%` / `15%` / `0%` showed:
+  - the created invoice was fully correct, but the winning write path was still not efficiency-optimal because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+  - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=861379760&fields=*` -> `GET /product?productNumber=2109&productNumber=1175&productNumber=9974&fields=*` -> `POST /invoice?sendToCustomer=false`
+  - on that lower-call replacement, use `product: { id }` on each line and either reuse the resolved `product.vatType.id` explicitly or let the product VAT inherit; do not spend `/ledger/vatType` just because the prompt text repeats the VAT percentages
 - the production run for this exact task on 2026-03-20 stopped on the first call:
   - `GET /customer?organizationNumber=919172657&fields=*` returned `403 {"error":"Invalid or expired token"}`
   - that was a credential block, not an invoice-flow failure, so no further production API calls were justified
@@ -42,13 +43,19 @@ Do not use for:
   - the first invoice write hit the known bank-account validation and succeeded only after the documented `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` repair -> single retry branch
 - persistent-sandbox verification on 2026-03-20 showed:
   - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can return all requested products when the refs are real product numbers
-  - `GET /product?ids=<id>,<id>,<id>&fields=*` can also resolve the same set decisively when you already know the product IDs
   - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can still return each product `vatType` only as a sparse link object (`id`/`url`), not with `percentage`
-  - therefore product search alone does not always prove explicit prompt VAT percentages; when exact VAT matters, one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` may still be required before the invoice write
+  - for exact existing-product create-only invoices, that sparse `vatType` link can still be reusable: the returned `product.vatType.id` can be copied onto the line, or the line can inherit VAT from the resolved product, without spending `GET /ledger/vatType`
+  - reserve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` for direct-line invoices, ambiguous product VAT, or cases where the task must override the resolved product VAT
   - an existing-customer, existing-product invoice can be created directly with `POST /invoice?sendToCustomer=false` using `orderLines[].product = { "id": ... }`
   - the `POST /invoice` response returned `orderLines` only as sparse link objects with keys `id` and `url`, even though `orderLines.length` matched the requested line count and the response still included decisive totals
   - one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` returned the exact product numbers, descriptions, unit prices, and VAT data for the created lines
-  - a clean existing-customer plus existing-product proof path was re-proven in exactly four calls when the product VAT was already known from setup and exact line readback was still desired: `GET /customer` -> `GET /product` -> `POST /invoice?sendToCustomer=false` -> immediate `GET /invoice/{id}`
+  - a clean existing-customer plus existing-product proof path was re-proven in exactly three calls for the create-only path: `GET /customer` -> `GET /product` -> `POST /invoice?sendToCustomer=false`
+  - the same shape stayed at four calls only when an immediate `GET /invoice/{id}` was intentionally added for documentation-grade readback proof
+- exhaustive persistent-sandbox reduction on 2026-03-20 with the exact analog customer/product numbers `861379760` + `2109/1175/9974` showed:
+  - `GET /customer?organizationNumber=861379760&fields=*` -> `GET /product?productNumber=2109&productNumber=1175&productNumber=9974&fields=*` -> `POST /invoice?sendToCustomer=false` with `product.id` and no explicit line `vatType` succeeded and preserved linked product numbers on readback
+  - the same 3-call path also succeeded when each line explicitly reused the resolved `product.vatType.id`
+  - the tempting 2-call shortcut `GET /customer` -> `POST /invoice` with `product.number` created unlinked direct lines (`product=null` on readback), so it is not a valid existing-product shortcut
+  - the tempting 2-call shortcut `GET /product` -> `POST /invoice` with inline `customer { name, organizationNumber }` failed with `422` because the related order still required `customer.id`
 - persistent-sandbox verification on 2026-03-20 with the exact identifiers from this task shape (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`) showed:
   - `GET /customer?organizationNumber=827304212&fields=*` resolved the customer in one call
   - `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` resolved all three exact-number products in one call and again returned each product `vatType` only as an `id`/`url` link
@@ -96,9 +103,9 @@ Do not use for:
    - only if those earlier reads still do not uniquely resolve them, use one fallback `GET /product?ids=<ref>,<ref>&fields=*`
    - do not let a partial first resolver terminate the script and force a full rerun; keep the broader catalog fallback in the same script/callback chain so the customer read is not duplicated
 4. If the prompt gives exact VAT rates, inspect how much VAT detail the product read actually returned
-   - if each resolved product already proves the needed VAT safely, keep the fast path and skip `/ledger/vatType`
-   - if the product read leaves `vatType` sparse as only `id`/`url`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
-   - use that filtered VAT list either to confirm the resolved product `vatType.id` matches the prompt percentage or, if needed, to force the line with explicit `vatType: { "id": ... }`
+   - for exact existing-product create-only prompts, a sparse `product.vatType` link is still enough to keep the low-call branch: reuse `product.vatType.id` directly or omit explicit line `vatType` and inherit from the product
+   - only if the task must force VAT independently of the resolved product, or the product read lacks even a reusable `vatType.id`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+   - do not spend `/ledger/vatType` just because the prompt text repeats VAT percentages that are already implied by the exact resolved products
 5. Create the invoice directly
    - `POST /invoice?sendToCustomer=false`
    - include `invoiceDate`, `invoiceDueDate`, `customer`
@@ -124,9 +131,12 @@ Do not use for:
 - the winning path is usually:
   1. `GET /customer?organizationNumber=...&fields=*`
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
-  4. `POST /invoice?sendToCustomer=false`
+  3. `POST /invoice?sendToCustomer=false`
+  - on that write, use `product: { id }` and either:
+    - explicit `vatType: { id: product.vatType.id }` copied from the resolved product read, or
+    - no explicit line `vatType`, letting the invoice line inherit VAT from the resolved product
   - stop there if the write response totals match the intended line prices and VAT mix
+  - only add `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` when the task must override the resolved product VAT or the product read lacks reusable `vatType.id`
 - For a prompt that:
   - identifies an existing customer by organization number
   - identifies existing products by exact names plus ambiguous numeric refs in parentheses
@@ -203,9 +213,10 @@ on that `orderLines[]` item.
 ## VAT Rules
 
 - Do not hardcode invoice-line `vatType.id = 3`
-- If the resolved product/account combination already carries the intended VAT safely, the invoice write can succeed without an explicit line `vatType`
-- `GET /product?fields=*` may still expose `vatType` only as `id`/`url`; that alone does not prove the percentage on an explicit-VAT prompt
-- If the prompt gives exact VAT rates and the product lookup does not clearly prove matching VAT context, resolve `vatType` from:
+- For exact existing-product create-only invoices, reusing the resolved `product.vatType.id` is a valid low-call way to keep the line tied to the product VAT
+- If the resolved product/account combination already carries the intended VAT safely, the invoice write can also succeed without an explicit line `vatType`
+- `GET /product?fields=*` may still expose `vatType` only as `id`/`url`; that is not enough for a percentage proof, but it is still enough to reuse the same product VAT id on the invoice line
+- If the task is direct-line, the prompt requires overriding the product VAT, or the product lookup does not return a reusable `vatType.id`, resolve `vatType` from:
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
 - Choose from the filtered result for the actual invoice date
 - If the resolved product `vatType.id` already maps to the prompt percentage in that filtered result, you can keep the lower-call write shape and omit explicit line `vatType`
@@ -264,6 +275,9 @@ then the practical repair path is:
 - Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
 - Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
 - Do not replace a clear exact-product-number prompt with a broad catalog read; use `GET /product?productNumber=...` first and only broaden if that direct resolver is incomplete or ambiguous
+- Do not add `/ledger/vatType` by reflex on an exact existing-product-number create-only prompt when the resolved products already carry reusable `vatType.id`
+- Do not treat `product: { number: ... }` on `POST /invoice` as a safe existing-product shortcut; sandbox created unlinked lines even though the write succeeded
+- Do not assume `customer: { name, organizationNumber }` on `POST /invoice` removes the need for a customer read; sandbox still rejected the related order because `customer.id` was missing
 - Do not treat inline numeric refs such as `Analysis Report (9796)` as proven `productNumber` search keys when the prompt never explicitly says those numbers are the stored Tripletex product numbers; if exact names are present, one decisive catalog read is often the lower-call path
 - Do not spend both numeric product resolver reads when the prompt already gives exact names and one decisive catalog read would settle the products
 - Do not let a partial product-resolver miss abort the script and trigger a second full run; the broader resolver belongs in the same in-script callback/fallback path
