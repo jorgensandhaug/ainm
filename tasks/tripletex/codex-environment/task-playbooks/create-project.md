@@ -30,6 +30,8 @@ Persistent sandbox re-verification on 2026-03-20 additionally showed:
 Production verification on 2026-03-20 additionally showed:
 - the Portuguese prompt shape `create project + customer org number + manager email + omitted startDate` succeeded with the same 3-call path
 - the original run did not waste any API calls
+- the Norwegian prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Havbris AS` / `999148387` / `henrik.degard@example.org`
+- in that Norwegian production proof, the manager prompt name used `Ø` while the email local-part used ASCII `degard`; the exact-email match from the filtered employee read was still sufficient, so no extra name-based disambiguation read was needed
 
 ## Minimal Safe Flow
 
@@ -69,6 +71,7 @@ Use ISO date for `startDate`.
 - Do not assume any existing employee can be assigned as project manager
 - Prefer `assignableProjectManagers=true` on the lookup itself
 - Because `email` is a containing search, compare returned `employee.email` to the prompt email exactly in your script before reusing the id
+- Do not treat Unicode-versus-ASCII spelling differences between the prompt name and the email local-part as a mismatch that requires more reads; once the filtered result leaves one exact email hit, reuse it
 - If the filtered manager read already yields one exact-email hit, do not reject it just because the returned display name differs from the prompt name or is missing in the response
 - If plain email search finds an employee but the assignable-manager search does not, do not `POST /project` with that employee id unless the prompt explicitly indicates you must first enable or change project-manager access
 
