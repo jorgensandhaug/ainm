@@ -13,3 +13,4 @@ __pycache__/
 # Astar data is intentionally versioned and shared through git.
 !data/
 !data/**
+data/catalog.duckdb
