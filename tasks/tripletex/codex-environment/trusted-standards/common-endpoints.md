@@ -27,6 +27,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `POST` batch create
 - Standard create prerequisite:
   - none
+- Standard verification note:
+  - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
 
 ## Employee
 - `/employee`

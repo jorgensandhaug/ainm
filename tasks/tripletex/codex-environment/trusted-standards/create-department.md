@@ -1,0 +1,48 @@
+# Create Department
+
+## Trust Level
+- Trusted standard
+- Use directly for exact matches
+- Skip `./openapi.json` re-checking for exact matches
+
+## Exact Match
+- create one or more new departments
+- prompt directly provides department names
+- no update/delete/lookup flow
+
+## Do Not Use This Standard If
+- prompt requires modifying existing departments
+- prompt depends on department manager or other linked objects
+- task is not a pure create
+
+## Standard Flow
+1. if one department: `POST /department`
+2. if several departments: `POST /department/list`
+3. verify directly from write response
+4. stop
+
+## Payload Rules
+- one department:
+  - `{ "name": "..." }`
+- many departments:
+  - `[{"name":"..."}, ...]`
+- do not invent `departmentNumber`
+- do not invent `departmentManager`
+
+## Reuse From Write Response
+- `value.id` or `values[].id`
+- returned `name`, `displayName`, `isInactive`
+
+## Verification
+- zero extra calls by default
+- trust `201` write wrapper
+- for batch create, trust `values[]`
+- do not reject a successful batch write just because top-level `fullResultSize` is `0`
+
+## Known Recovery Branches
+- none for the standard create shape
+
+## OpenAPI / Sandbox Status
+- `/department` and `/department/list` verified in `./openapi.json`
+- sandbox-proven for one-call single and one-call batch create
+- sandbox re-verified on 2026-03-20: batch create returned correct `values[]` with `fullResultSize=0`

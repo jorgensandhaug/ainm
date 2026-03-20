@@ -16,6 +16,7 @@ Sandbox verification on 2026-03-19 showed:
 - the write responses already proved the created `id`, `name`, `displayName`, and `isInactive=false`
 - single create returned `{"value": {...}}`
 - batch create returned `{"values": [...]}` with all created departments
+- a successful batch-create response can still show top-level `fullResultSize=0`; verify from `values[]`, not that metadata
 
 ## Minimal Safe Flow
 
@@ -65,6 +66,7 @@ For a single department create, the winning payload is typically:
 - Batch create:
   - expect `201 Created`
   - expect `{"values": [...]}` in the same order as the submitted payload
+  - do not require `fullResultSize` to equal the number of created departments
 - Verify the requested names directly from the write response
 - Reuse returned ids only if a later step depends on them
 
