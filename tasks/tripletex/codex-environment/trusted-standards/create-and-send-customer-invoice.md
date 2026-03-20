@@ -44,6 +44,7 @@
 - do not hardcode output VAT code `3`
 - do not omit direct-line `vatType` just to save the VAT lookup; a successful write can still create the wrong VAT outcome
 - for explicit no-VAT / `0%` direct-line prompts, still resolve the current account's filtered outgoing `0%` VAT row instead of assuming omission is equivalent
+- for ordinary direct-line services explicitly priced excluding VAT / MVA, select an exact `25%` row from the filtered outgoing VAT result; if no such row exists, treat the task as blocked in that account instead of falling back to `0%`
 - if creating the customer with no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` and let the invoice create do the send attempt
 
 ## Reuse From Write Response
@@ -70,6 +71,7 @@
 - do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
 - do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
 - for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
+- for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
 
 ## OpenAPI / Sandbox Status
 - `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -82,6 +84,10 @@
   - `POST /invoice` without line `vatType` succeeded but created a no-VAT invoice (`amountExcludingVatCurrency=28500`, `amountCurrency=28500`)
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
   - hardcoded line `vatType.id=3` failed with `422 ... Ugyldig mva-kode.`
+- exact ordinary-service ex-VAT create-and-send shape re-confirmed across production plus sandbox on 2026-03-20:
+  - production run `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in the canonical `3` calls: `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+  - the production invoice write already proved the intended taxed outcome with `amountExcludingVatCurrency=20100` and `amountCurrency=25125`
+  - the persistent sandbox still exposed only VAT code `6` (`0%`) for the same date, so the exact same prompt shape would be blocked there for standard VAT rather than downgraded to `0%`
 - exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
   - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
   - the filtered VAT read returned only code `6` (`0%`)

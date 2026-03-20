@@ -130,6 +130,20 @@ Persistent sandbox re-verification on 2026-03-20 for `Porto Alegre Lda` / `82687
 - `POST /invoice` with that resolved `vatType.id=6` succeeded
 - the write response already proved the intended no-VAT outcome with `amountExcludingVatCurrency=22700` and `amountCurrency=22700`
 
+For ordinary direct-line service prompts that are explicitly priced excluding VAT / MVA, the same dynamic rule becomes an exact `25%` selector:
+
+- use the filtered outgoing VAT read
+- choose an exact `25%` row, not the first returned row
+- if the filtered result exposes only `0%`, treat the run as blocked in that account instead of downgrading the invoice to `0%`
+
+This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
+
+- the production run for `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in `3` calls: direct `POST /customer`, filtered outgoing VAT read, then `POST /invoice`
+- the production invoice write already proved the taxed outcome with `amountExcludingVatCurrency=20100` and `amountCurrency=25125`
+- the persistent sandbox on the same date still exposed only VAT code `6` (`0%`)
+- on that sandbox account, omitting `vatType` for the same `20100` / `Webdesign` line silently created `amountCurrency=20100`
+- on that sandbox account, hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
+
 ## Important Constraints
 
 - Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
@@ -152,6 +166,7 @@ Persistent sandbox re-verification on 2026-03-20 for `Porto Alegre Lda` / `82687
    - use a VAT type that actually exists in that filtered response
    - do not omit direct-line `vatType` just because the write may still succeed; that can silently produce a no-VAT invoice
    - this also applies to explicit no-VAT direct-line prompts; resolve the filtered outgoing `0%` row instead of assuming omission is equivalent
+   - for ordinary service prompts priced excluding VAT / MVA, require an exact `25%` row from that filtered result; if `25%` is absent, stop as blocked for that account
 3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
    - include required dates
    - include `orders`
