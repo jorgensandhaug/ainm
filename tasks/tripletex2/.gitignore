@@ -15,3 +15,6 @@ openapi.json
 
 # Node/Bun
 node_modules/
+
+# Local sandbox credentials
+.sandbox.env

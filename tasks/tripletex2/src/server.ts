@@ -6,6 +6,7 @@ import {
   type SolvePipelineOptions,
   runCompetitionSolvePipeline,
 } from "./runtime/solve-pipeline";
+import { loadSandboxCredentials } from "./sandbox-credentials";
 
 interface SolveRequestFilePayload {
   filename: string;
@@ -16,9 +17,20 @@ interface SolveRequestFilePayload {
 interface SolveRequestPayload {
   prompt: string;
   files?: readonly SolveRequestFilePayload[];
+  tripletex_credentials?: {
+    base_url?: string;
+    session_token?: string;
+    company_id?: string | number;
+    credential_source?: string;
+  };
+}
+
+interface ParsedSolveRequestPayload {
+  prompt: string;
+  files: CompetitionSolveRequest["files"];
   tripletex_credentials: {
-    base_url: string;
-    session_token: string;
+    base_url?: string;
+    session_token?: string;
     company_id?: string | number;
     credential_source?: string;
   };
@@ -32,6 +44,7 @@ export interface SolveServerOptions
   maxConcurrentSolveRequests?: number;
   dataRoot?: string;
   artifactRoot?: string;
+  sandboxEnvPath?: string;
   createRunId?: (input: { mode: string; now: Date }) => string;
   logger?: (
     level: "INFO" | "WARN" | "ERROR",
@@ -129,7 +142,10 @@ export function createSolveRequestHandler(
 
     let solveRequest: CompetitionSolveRequest;
     try {
-      solveRequest = parseSolveRequestPayload(await request.json());
+      solveRequest = await resolveSolveRequestPayload(await request.json(), {
+        mode,
+        sandboxEnvPath: options.sandboxEnvPath,
+      });
     } catch (error) {
       return jsonResponse(
         400,
@@ -242,7 +258,55 @@ function isJsonRequest(request: Request): boolean {
   return typeof contentType === "string" && contentType.startsWith("application/json");
 }
 
-function parseSolveRequestPayload(rawValue: unknown): CompetitionSolveRequest {
+async function resolveSolveRequestPayload(
+  rawValue: unknown,
+  options: {
+    mode: NonNullable<SolveServerOptions["mode"]>;
+    sandboxEnvPath?: string;
+  },
+): Promise<CompetitionSolveRequest> {
+  const parsed = parseSolveRequestPayload(rawValue);
+  const requestCredentials = parsed.tripletex_credentials;
+  const shouldUseSandboxFallback =
+    options.mode === "sandbox" &&
+    shouldFallbackToSandboxCredentials(requestCredentials);
+  const sandboxCredentials = shouldUseSandboxFallback
+    ? await loadSandboxCredentials({ sandboxEnvPath: options.sandboxEnvPath })
+    : undefined;
+
+  return {
+    prompt: parsed.prompt,
+    files: parsed.files,
+    tripletex_credentials: {
+      base_url:
+        sandboxCredentials?.base_url ??
+        requireConfiguredCredentialString(
+          requestCredentials.base_url,
+          'solve request field "tripletex_credentials.base_url"',
+        ),
+      session_token:
+        sandboxCredentials?.session_token ??
+        requireConfiguredCredentialString(
+          requestCredentials.session_token,
+          'solve request field "tripletex_credentials.session_token"',
+        ),
+      ...(requestCredentials.company_id !== undefined
+        ? { company_id: requestCredentials.company_id }
+        : {}),
+      ...((sandboxCredentials
+        ? "sandbox"
+        : requestCredentials.credential_source) !== undefined
+        ? {
+            credential_source: sandboxCredentials
+              ? "sandbox"
+              : requestCredentials.credential_source,
+          }
+        : {}),
+    },
+  };
+}
+
+function parseSolveRequestPayload(rawValue: unknown): ParsedSolveRequestPayload {
   const payload = requireRecord(rawValue, "solve request body");
   const allowedTopLevelKeys = new Set([
     "prompt",
@@ -271,14 +335,22 @@ function parseSolveRequestPayload(rawValue: unknown): CompetitionSolveRequest {
     prompt,
     files: parseSolveFiles(payload.files),
     tripletex_credentials: {
-      base_url: requireNonEmptyString(
-        tripletexCredentials.base_url,
-        'solve request field "tripletex_credentials.base_url"',
-      ),
-      session_token: requireNonEmptyString(
-        tripletexCredentials.session_token,
-        'solve request field "tripletex_credentials.session_token"',
-      ),
+      ...(tripletexCredentials.base_url !== undefined
+        ? {
+            base_url: parseOptionalString(
+              tripletexCredentials.base_url,
+              'solve request field "tripletex_credentials.base_url"',
+            ),
+          }
+        : {}),
+      ...(tripletexCredentials.session_token !== undefined
+        ? {
+            session_token: parseOptionalString(
+              tripletexCredentials.session_token,
+              'solve request field "tripletex_credentials.session_token"',
+            ),
+          }
+        : {}),
       ...(tripletexCredentials.company_id !== undefined
         ? { company_id: parseCompanyId(tripletexCredentials.company_id) }
         : {}),
@@ -397,6 +469,41 @@ function requireNonEmptyString(value: unknown, label: string): string {
   }
 
   return stringValue;
+}
+
+function parseOptionalString(value: unknown, label: string): string | undefined {
+  const stringValue = requireString(value, label).trim();
+  return stringValue.length > 0 ? stringValue : undefined;
+}
+
+function requireConfiguredCredentialString(
+  value: string | undefined,
+  label: string,
+): string {
+  if (value === undefined) {
+    throw new Error(`Expected ${label} to be a non-empty string.`);
+  }
+
+  if (isPlaceholderCredentialValue(value)) {
+    throw new Error(`Expected ${label} to be configured, not placeholder "replace-me".`);
+  }
+
+  return value;
+}
+
+function shouldFallbackToSandboxCredentials(
+  credentials: ParsedSolveRequestPayload["tripletex_credentials"],
+): boolean {
+  return (
+    credentials.base_url === undefined ||
+    credentials.session_token === undefined ||
+    isPlaceholderCredentialValue(credentials.base_url) ||
+    isPlaceholderCredentialValue(credentials.session_token)
+  );
+}
+
+function isPlaceholderCredentialValue(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() === "replace-me";
 }
 
 function rejectUnknownKeys(

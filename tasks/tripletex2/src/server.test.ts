@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -178,14 +178,19 @@ test("POST /solve enforces bearer auth", async () => {
 });
 
 test("POST /solve enforces the concurrency limit", async () => {
+  let signalFirstRequestStarted!: () => void;
   let releaseFirstRequest!: () => void;
   const firstRequestStarted = new Promise<void>((resolve) => {
+    signalFirstRequestStarted = resolve;
+  });
+  const firstRequestReleased = new Promise<void>((resolve) => {
     releaseFirstRequest = resolve;
   });
   const blockingFetch: TripletexFetch = async (input, init) => {
     const url = new URL(input);
     if (init.method === "GET" && url.pathname === "/customer") {
-      await firstRequestStarted;
+      signalFirstRequestStarted();
+      await firstRequestReleased;
       return createResponse(200, {
         values: [
           {
@@ -250,7 +255,7 @@ test("POST /solve enforces the concurrency limit", async () => {
       requestId: "req-http-concurrency-1",
     }),
   );
-  await Promise.resolve();
+  await firstRequestStarted;
 
   const secondResponse = await handler(
     createSolveRequest({
@@ -269,9 +274,97 @@ test("POST /solve enforces the concurrency limit", async () => {
   assert.equal(firstResponse.status, 200);
 });
 
+test("POST /solve in sandbox mode falls back to .sandbox.env credentials for placeholder requests", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const sandboxEnvPath = path.join(tempRoot, ".sandbox.env");
+  await writeFile(
+    sandboxEnvPath,
+    [
+      "TRIPLETEX_TEST_BASE_URL=https://sandbox-file.invalid/v2",
+      "TRIPLETEX_TEST_SESSION_TOKEN=sandbox-session-token",
+      "",
+    ].join("\n"),
+  );
+  const seenRequests: Array<{ url: string; authorization: string | undefined }> = [];
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    sandboxEnvPath,
+    now: () => new Date("2026-03-20T23:20:00.000Z"),
+    createRunId: () => "sandbox-http-fallback",
+    dataRoot: path.join(tempRoot, "data"),
+    artifactRoot: path.join(tempRoot, "runs"),
+    taskUnderstanding: {
+      result: {
+        status: "resolved",
+        taskId: "create-and-send-invoice",
+        input: {
+          customerName: "Nordhav AS",
+          organizationNumber: "876520427",
+          lineDescription: "Analyserapport",
+          quantity: 1,
+          unitPriceExcludingVatNok: 7850,
+        },
+      } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+      taskSource: "manual-label",
+      inputSource: "fixture",
+    },
+    fetch: async (input, init) => {
+      seenRequests.push({
+        url: input,
+        authorization:
+          init.headers.Authorization ??
+          init.headers.authorization,
+      });
+      return createFixtureTripletexFetch()(input, init);
+    },
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-fallback",
+      tripletexCredentials: {
+        base_url: "",
+        session_token: "replace-me",
+      },
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(seenRequests.length > 0, true);
+  assert.equal(seenRequests[0]?.url.startsWith("https://sandbox-file.invalid/v2/"), true);
+  assert.equal(
+    seenRequests[0]?.authorization,
+    `Basic ${Buffer.from("0:sandbox-session-token").toString("base64")}`,
+  );
+
+  const artifactPath = path.join(
+    tempRoot,
+    "runs",
+    "2026-03-20",
+    "run-sandbox-http-fallback.json",
+  );
+  const artifact = JSON.parse(await readFile(artifactPath, "utf8")) as {
+    request: { credentialSource?: string };
+  };
+  assert.equal(artifact.request.credentialSource, "sandbox");
+});
+
 function createSolveRequest(input: {
   authorization: string;
   requestId?: string;
+  tripletexCredentials?: {
+    base_url?: string;
+    session_token?: string;
+    credential_source?: string;
+  };
 }): Request {
   return new Request("http://tripletex2.test/solve", {
     method: "POST",
@@ -284,11 +377,12 @@ function createSolveRequest(input: {
       prompt:
         "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
       files: [],
-      tripletex_credentials: {
-        base_url: "https://example.invalid",
-        session_token: "redacted-for-test",
-        credential_source: "fixture",
-      },
+      tripletex_credentials:
+        input.tripletexCredentials ?? {
+          base_url: "https://example.invalid",
+          session_token: "redacted-for-test",
+          credential_source: "fixture",
+        },
     }),
   });
 }
