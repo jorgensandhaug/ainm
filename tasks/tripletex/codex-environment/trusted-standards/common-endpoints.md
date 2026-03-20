@@ -94,6 +94,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
+  - for invoice/order tasks where the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, the lower-call product resolver is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
+  - only spend `GET /product?productNumber=...` and `GET /product?ids=...` after that if the catalog read is ambiguous, truncated for the account, or the prompt lacks exact product names
   - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
 
 ## Project
@@ -213,6 +215,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - sometimes company bank-account repair through `/ledger/account/{id}`
 - Standard explicit-VAT note:
   - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
+  - when that same prompt also gives exact product names but the parenthetical numeric refs are not trustworthy search keys, the winning product read is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
   - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
   - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
   - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
