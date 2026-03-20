@@ -21,10 +21,8 @@
 2. `GET /travelExpense/costCategory?count=1000&fields=*`
 3. `GET /travelExpense/paymentType?count=1000&fields=*`
 4. `POST /travelExpense` with embedded `costs[]` and `perDiemCompensations[]`
-5. verify top-level travel-expense fields from the write response
-6. `GET /travelExpense/cost?travelExpenseId=...&count=20&fields=*`
-7. `GET /travelExpense/perDiemCompensation?travelExpenseId=...&count=20&fields=*`
-8. stop
+5. verify the parent fields and child id counts from the write response
+6. stop
 
 ## Payload Rules
 - resolve one exact employee by exact email match; prefer `allowInformationRegistration=true` when multiple exact-email matches exist
@@ -45,13 +43,16 @@
 - linked `employee.id`
 - `travelDetails` fields
 - returned `department.id` if Tripletex inherits it from the employee
-- embedded child ids if present, but expect them to be sparse
+- embedded child ids and child counts, but expect them to be sparse
 
 ## Verification
 - verify top-level travel-expense fields directly from the `POST /travelExpense` response
-- do not rely on `GET /travelExpense/{id}?fields=*` alone for exact child verification; `costs[]` and `perDiemCompensations[]` can still be link-only `id`/`url`
-- verify exact cost lines from `GET /travelExpense/cost?travelExpenseId=...&fields=*`
-- verify exact per-diem rows from `GET /travelExpense/perDiemCompensation?travelExpenseId=...&fields=*`
+- for exact create-only scored runs, do not add `/travelExpense/cost` or `/travelExpense/perDiemCompensation` follow-up reads just to reassure yourself; the canonical path stops after the write
+- do not rely on `GET /travelExpense/{id}?fields=*` for expanded child details; `costs[]` and `perDiemCompensations[]` can still be link-only `id`/`url`
+- only use `GET /travelExpense/cost?travelExpenseId=...&fields=*` and `GET /travelExpense/perDiemCompensation?travelExpenseId=...&fields=*` as a conditional investigation branch when:
+  - the prompt materially differs from the embedded-create standard
+  - a later step truly needs expanded child fields
+  - the live write response contradicts the intended child counts
 
 ## Known Recovery Branches
 - if `POST /travelExpense` fails on `costs.amountCurrencyIncVat`, add `amountCurrencyIncVat` on every embedded cost row
@@ -62,5 +63,5 @@
 - persistent sandbox re-verified on 2026-03-20:
   - one `POST /travelExpense` created the parent expense plus embedded costs and per-diem rows
   - the same `POST /travelExpense` succeeded without an explicit `department` payload field when the linked employee already belonged to a department
-  - the write response returned top-level fields plus child arrays as sparse `id`/`url`
-  - `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` returned the exact child values needed for final verification
+  - the write response returned top-level fields plus child arrays as sparse `id`/`url`, but still exposed enough parent fields and child ids/counts for the exact create-only scored path to stop after the write
+  - conditional `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` re-confirmed the exact child values during post-run investigation

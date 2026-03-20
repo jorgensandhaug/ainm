@@ -25,20 +25,19 @@ Verified in persistent sandbox on 2026-03-20:
 - embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`
 - embedded `perDiemCompensations[]` failed with `422` while `travelDetails.isCompensationFromRates=false`
 - changing `travelDetails.isCompensationFromRates` to `true` allowed the same embedded per-diem row to persist with manual `count`, `rate`, and `amount`
-- the `POST /travelExpense` response already proved the parent fields, but `costs[]` and `perDiemCompensations[]` came back only as `id`/`url`
+- the `POST /travelExpense` response already proved the parent fields and returned child ids/counts, but `costs[]` and `perDiemCompensations[]` came back only as `id`/`url`
 - `GET /travelExpense/{id}?fields=*` still kept those child arrays sparse
 - `GET /travelExpense/cost?travelExpenseId=...&count=20&fields=*` returned full cost objects with comments, amounts, category ids, and payment-type ids
 - `GET /travelExpense/perDiemCompensation?travelExpenseId=...&count=20&fields=*` returned full per-diem objects with `location`, `count`, `rate`, and `amount`
+- post-run re-verification showed the exact create-only scored path can stop after `POST /travelExpense`; the two child reads are an investigation branch, not part of the canonical scoring path
 
-## Minimal Safe Flow
+## Lowest-Call Scored Flow
 
 1. Confirm these operations in `./openapi.json`
    - `GET /employee`
    - `GET /travelExpense/costCategory`
    - `GET /travelExpense/paymentType`
    - `POST /travelExpense`
-   - `GET /travelExpense/cost`
-   - `GET /travelExpense/perDiemCompensation`
 2. Locate the employee with one decisive read
    - usually `GET /employee?email=<prompt-email>&count=10&fields=*`
    - filter locally to one exact-email employee
@@ -53,16 +52,23 @@ Verified in persistent sandbox on 2026-03-20:
    - embed `perDiemCompensations[]`
    - embed `costs[]`
    - omit `department` unless the prompt explicitly scores a different department or validation demands it
-5. Verify the parent fields from the write response
+5. Reuse the write response and stop
    - `title`
    - `employee.id`
    - `travelDetails.departureDate`
    - `travelDetails.returnDate`
    - `travelDetails.destination`
-6. Verify child rows with the dedicated child endpoints
-   - `GET /travelExpense/cost?travelExpenseId=<id>&count=20&fields=*`
-   - `GET /travelExpense/perDiemCompensation?travelExpenseId=<id>&count=20&fields=*`
-7. Stop
+   - `costs.length`
+   - `perDiemCompensations.length`
+6. Stop
+
+## Conditional Investigation Branch
+
+Use the dedicated child reads only when the prompt materially differs from the standard embedded-create shape, a later step truly needs expanded child fields, or the live write response contradicts the intended child counts.
+
+1. `GET /travelExpense/cost?travelExpenseId=<id>&count=20&fields=*`
+2. `GET /travelExpense/perDiemCompensation?travelExpenseId=<id>&count=20&fields=*`
+3. Stop
 
 ## Winning Payload Shape
 
@@ -141,14 +147,14 @@ For the travel-expense create, the sandbox-proven shape was:
   - the parent `id`
   - the linked `employee.id`
   - the requested `travelDetails`
-  - `costs[].id/url` only
-  - `perDiemCompensations[].id/url` only
-- `GET /travelExpense/cost?...` is the decisive cost verification branch
-- `GET /travelExpense/perDiemCompensation?...` is the decisive per-diem verification branch
-- prefer those two child reads over `GET /travelExpense/{id}` when the task scores nested travel-expense rows
+  - `costs[].id/url` plus count
+  - `perDiemCompensations[].id/url` plus count
+- for the exact create-only scored task shape, that write response is enough to stop
+- `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` remain the decisive investigation branch when expanded child verification is genuinely needed
 
 ## When Not To Add Extra Reads
 
 - do not add a pre-read of `/travelExpense` for a pure create task
-- do not add `GET /travelExpense/{id}` if the write response already proves the parent fields and you are already doing the two child verification reads
+- do not add `GET /travelExpense/cost` or `GET /travelExpense/perDiemCompensation` in the exact create-only scored flow just to double-check child persistence
+- do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch
 - do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape

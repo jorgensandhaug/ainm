@@ -285,9 +285,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if per diem is included, `travelDetails.isCompensationFromRates=true`
 - Standard fast-path note:
   - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
+  - for the exact create-only existing-employee travel-expense shape, the canonical scoring path is `GET /employee?email=...&count=10&fields=*`, `GET /travelExpense/costCategory?count=1000&fields=*`, `GET /travelExpense/paymentType?count=1000&fields=*`, then `POST /travelExpense`
   - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
 - Standard verification note:
-  - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`; use `/travelExpense/cost?...` and `/travelExpense/perDiemCompensation?...` for exact child verification
+  - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`
+  - for the exact create-only scored flow, do not add `/travelExpense/cost?...` or `/travelExpense/perDiemCompensation?...` just to double-check embedded child persistence
+  - use those two child endpoints only as a conditional investigation branch when a later step needs expanded child fields or the live write response contradicts the intended child counts
 - Related action family also exists:
   - `/travelExpense/{id}/:deliver`
   - `/travelExpense/{id}/:approve`
