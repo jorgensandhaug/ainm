@@ -100,6 +100,8 @@
   - `POST /order`
   - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`
   - the invoice write returned `amountCurrencyOutstanding=0` directly, so the extra `PUT /invoice/{id}/:payment` call was unnecessary
+- same-day production re-verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` completed in the same 5-call path with payment type `36030207` and no `/ledger/account` repair branch
+- that paired production+sandbox proof confirms the flow is stable but the incoming `paymentTypeId` is still account-specific; do not hardcode the earlier sandbox id `32813748` into production or another environment
 - the same sandbox proof also showed that `GET /product?productNumber=...&fields=*` can return the matched product ref under `number` instead of `productNumber`; resolvers must normalize both
 - additional production re-verification on 2026-03-20 for customer `989093630` with product refs `5981` and `6784` had earlier completed in the same 6-call split-tail path with no `/ledger/account` hedge, and the created invoice outstanding was `63000` even though the prompt ex-VAT sum was `50400`
 - production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance

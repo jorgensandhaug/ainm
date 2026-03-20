@@ -40,6 +40,14 @@ Exact-match tasks should now prefer the trusted standard:
 - additional production verification on 2026-03-20 showed two more traps:
   - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice
+- same-day production verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` confirmed the canonical 5-call path directly:
+  - `GET /customer?organizationNumber=975687821&fields=*`
+  - `GET /product?productNumber=4366&productNumber=3402&fields=*`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=36030207&paidAmount=0.01&paymentTypeIdRestAmount=36030207`
+  - that run needed no `/ledger/account` repair branch and the invoice write returned outstanding `0`
+- paired with the same-day persistent-sandbox proof for the same customer/product refs, this also confirmed that `paymentTypeId` is environment-specific: sandbox used `32813748`, production used `36030207`; keep resolving `/invoice/paymentType` dynamically unless the same run already holds a proven reusable id
 - persistent-sandbox verification on 2026-03-20 showed a lower-call replacement for the old split invoice/payment tail:
   - `PUT /order/{id}/:invoice` accepts `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
   - `paidAmount=0` was rejected as effectively missing even when `paymentTypeId` was present
