@@ -40,9 +40,16 @@ Verified in sandbox on 2026-03-19:
   - despite `creditAccount=null`, `PUT /invoice/{id}/:payment?...` with that payment type still reduced `remainingOutstanding` to `0`
   - `PUT /invoice/{id}/:payment?...` without `paymentTypeId` failed with `422` and validation message `paymentTypeId: Kan ikke være null.`
   - ordinary `GET /invoice?...fields=*` responses did not expose a reusable incoming payment-type id, so there is no proven public 2-call standalone shortcut from invoice read alone
+  - same-day persistent sandbox re-proof on invoice `2147531841` again settled the invoice in exactly `3` calls, and the invoice read still had no reusable `paymentTypeId`
+
+Verified in production on 2026-03-20:
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147540787` for customer `866440034` by `amountExcludingVatCurrency=30000`, line description `Almacenamiento en la nube`, and positive `amountCurrencyOutstanding=37500`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27076191`
+- `PUT /invoice/2147540787/:payment?paymentDate=2026-03-20&paymentTypeId=27076191&paidAmount=37500` reduced the remaining outstanding amount to `0`
+- this production run reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount
 
 Observed production/account variance:
-- payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, and sandbox `32813748`
+- payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, and sandbox `32813748`
 - therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache
 
 ## Minimal Flow
@@ -84,6 +91,7 @@ Observed production/account variance:
 - Use the outstanding amount returned by the located invoice:
   - `amountCurrencyOutstanding` first
   - otherwise `amountOutstanding`
+- exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`
 - This avoids incorrect VAT assumptions and avoids partial/over-payments when reminders, alternate currencies, or non-standard VAT setups exist
 - Only send `paidAmountCurrency` when the invoice currency differs from the payment type currency and the endpoint requires both values
 
