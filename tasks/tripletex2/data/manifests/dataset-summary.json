@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-03-20T14:18:33Z",
+  "source_runs_dir": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs",
+  "raw_runs_dir": "data/raw/runs",
+  "curated_examples_path": "data/curated/examples.jsonl",
+  "raw_run_count": 18,
+  "curated_example_count": 18,
+  "runs_with_scripts": 12,
+  "runs_with_trace_bundle": 12,
+  "runs_with_reflection_bundle": 12,
+  "unique_prompt_count": 18,
+  "duplicate_prompt_count": 0,
+  "attachment_count": 0,
+  "request_file_count": 0,
+  "dedupe_policy": {
+    "raw_runs": "Never dedupe raw imports; preserve one directory per source run_id.",
+    "curated_examples": "Dedupe only intentionally and record all contributing source_run_id values. The current snapshot retains all runs because every prompt hash is unique."
+  }
+}

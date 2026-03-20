@@ -1,0 +1,7 @@
+Registe o fornecedor Floresta Lda com número de organização 981154614. E-mail: faktura@florestalda.no.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+REDACTED

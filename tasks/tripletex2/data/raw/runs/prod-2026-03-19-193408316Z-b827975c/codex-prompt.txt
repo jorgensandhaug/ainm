@@ -1,0 +1,7 @@
+Crea y envía una factura al cliente Solmar SL (org. nº 967736430) por 11700 NOK sin IVA. La factura es por Informe de análisis.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+REDACTED
