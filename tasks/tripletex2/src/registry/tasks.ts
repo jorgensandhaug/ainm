@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { ActiveStrategySelectionConfig } from "../runtime/contracts";
 import {
   createActiveStrategyResolver,
@@ -64,7 +67,10 @@ export const taskRegistrations = CANONICAL_TASK_REGISTRY.map((canonicalTask) => 
   return registration;
 });
 export const DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH =
-  "configs/active-strategies.json";
+  path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../configs/active-strategies.json",
+  );
 
 export const taskRegistry = createTaskRegistry(taskRegistrations);
 

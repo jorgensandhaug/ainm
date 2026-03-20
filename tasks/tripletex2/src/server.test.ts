@@ -361,12 +361,16 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
   assert.equal(artifact.request.credentialSource, "sandbox");
 });
 
-test("POST /solve in sandbox mode uses the tmux backend and waits for task_complete", async (t) => {
+test(
+  "POST /solve in sandbox mode uses the tmux backend and waits for task_complete",
+  { concurrency: false },
+  async (t) => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
   const dataRoot = path.join(tempRoot, "data");
   const codexHomeDir = path.join(tempRoot, ".codex");
   const codexEnvironmentDir = "/repo/tasks/tripletex2";
   const tmuxCommands: string[][] = [];
+  let leaderboardFetchCount = 0;
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "sandbox",
@@ -377,10 +381,36 @@ test("POST /solve in sandbox mode uses the tmux backend and waits for task_compl
     env: {
       CODEX_HOME: codexHomeDir,
       HOME: tempRoot,
+      TRIPLETEX_LEADERBOARD_DELAY_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS: "1000",
       TRIPLETEX_STORAGE_MODE: "testing",
     },
     now: () => new Date("2026-03-20T23:30:00.000Z"),
     sandboxEnvPath: path.join(tempRoot, ".sandbox.env"),
+    tmuxLeaderboardFetch: async () => {
+      leaderboardFetchCount += 1;
+      return new Response(
+        JSON.stringify([
+          {
+            tx_task_id: "08",
+            best_score: leaderboardFetchCount === 1 ? 0.8 : 0.9,
+            total_attempts: leaderboardFetchCount === 1 ? 3 : 4,
+            rolling_scores: [0.9],
+            last_attempt_at:
+              leaderboardFetchCount === 1
+                ? "2026-03-20T23:29:00.000Z"
+                : "2026-03-20T23:30:10.000Z",
+          },
+        ]),
+        {
+          headers: {
+            "content-type": "application/json",
+          },
+          status: 200,
+        },
+      );
+    },
     tmuxRunCommand: async (cmd) => {
       tmuxCommands.push([...cmd]);
       if (cmd[1] === "new-window") {
@@ -476,6 +506,7 @@ test("POST /solve in sandbox mode uses the tmux backend and waits for task_compl
   await stat(path.join(runDir, "request.json"));
   await stat(path.join(runDir, "manifest.json"));
   await stat(path.join(runDir, "result.json"));
+  await stat(path.join(runDir, "leaderboard.before.json"));
   await stat(path.join(runDir, "attachments", "01-note.txt"));
   await stat(path.join(runDir, "scripts"));
 
@@ -488,9 +519,126 @@ test("POST /solve in sandbox mode uses the tmux backend and waits for task_compl
   assert.equal(resultJson.runtimeStatus, "completed");
   assert.equal(resultJson.matchedSession?.sessionId, "session-123");
 
+  const taskAttribution = await waitForJsonFile(path.join(runDir, "task-attribution.json"));
+  assert.equal(taskAttribution.inference_status, "unique_attempt_delta");
+  assert.equal(taskAttribution.tx_task_id, "08");
+
   assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-session"), true);
   assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-window"), true);
-});
+  },
+);
+
+test(
+  "POST /solve in competition mode stages the tmux run under production storage by default",
+  { concurrency: false },
+  async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const dataRoot = path.join(tempRoot, "data");
+  const codexHomeDir = path.join(tempRoot, ".codex");
+  const codexEnvironmentDir = "/repo/tasks/tripletex2";
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "competition",
+    codexEnvironmentDir,
+    codexHomeDir,
+    createRunId: () => "competition-http-tmux",
+    dataRoot,
+    env: {
+      CODEX_HOME: codexHomeDir,
+      HOME: tempRoot,
+    },
+    now: () => new Date("2026-03-20T23:35:00.000Z"),
+    tmuxRunCommand: async (cmd) => {
+      if (cmd[1] === "new-window") {
+        const launchScriptPath = cmd[cmd.length - 1]!;
+        const runDir = path.dirname(launchScriptPath);
+        const stagedPrompt = await readFile(
+          path.join(runDir, "codex-prompt.txt"),
+          "utf8",
+        );
+        const sessionsDir = path.join(
+          codexHomeDir,
+          "sessions",
+          "2026",
+          "03",
+          "20",
+        );
+        await mkdir(sessionsDir, { recursive: true });
+        await writeFile(
+          path.join(sessionsDir, "session.jsonl"),
+          [
+            JSON.stringify({
+              type: "session_meta",
+              payload: {
+                id: "session-competition-1",
+                timestamp: "2026-03-20T23:35:00.000Z",
+                cwd: codexEnvironmentDir,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-20T23:35:00.100Z",
+              payload: {
+                type: "user_message",
+                message: stagedPrompt,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-20T23:35:01.000Z",
+              payload: {
+                type: "task_complete",
+              },
+            }),
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      return "";
+    },
+    tmuxSessionExists: async () => false,
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-competition",
+      tripletexCredentials: {
+        base_url: "https://api.example.invalid/v2",
+        session_token: "live-session-token",
+      },
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-tripletex2-run-id"), "competition-http-tmux");
+  assert.equal(response.headers.get("x-tripletex2-runtime-status"), "completed");
+
+  const runDir = path.join(dataRoot, "production", "runs", "competition-http-tmux");
+  await stat(path.join(runDir, "request.json"));
+  await stat(path.join(runDir, "manifest.json"));
+  await stat(path.join(runDir, "result.json"));
+  await stat(path.join(runDir, "scripts"));
+
+  const manifest = JSON.parse(
+    await readFile(path.join(runDir, "manifest.json"), "utf8"),
+  ) as {
+    request_id: string;
+    run_dir: string;
+    storage_mode: string;
+  };
+  assert.equal(manifest.request_id, "req-http-competition");
+  assert.equal(manifest.run_dir, runDir);
+  assert.equal(manifest.storage_mode, "production");
+  },
+);
 
 function createSolveRequest(input: {
   authorization: string;
@@ -569,6 +717,18 @@ function createFixtureTripletexFetch(): TripletexFetch {
 
     throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
   };
+}
+
+async function waitForJsonFile(filePath: string): Promise<Record<string, unknown>> {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      return JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
+
+  throw new Error(`Timed out waiting for ${filePath}`);
 }
 
 function createResponse(

@@ -7,6 +7,7 @@ import {
   runCompetitionSolvePipeline,
 } from "./runtime/solve-pipeline";
 import {
+  continuePostRunProcessing,
   resolveStorageMode,
   runTmuxSolvePipeline,
   type TmuxSolveRequest,
@@ -50,6 +51,7 @@ export interface SolveServerOptions
   tmuxSessionName?: string;
   tmuxRunCommand?: (cmd: readonly string[]) => Promise<string>;
   tmuxSleep?: (ms: number) => Promise<void>;
+  tmuxLeaderboardFetch?: typeof fetch;
   logger?: (
     level: "INFO" | "WARN" | "ERROR",
     message: string,
@@ -74,6 +76,7 @@ export function createSolveRequestHandler(
   const mode = options.mode ?? "sandbox";
   const solveBackend = options.solveBackend ?? resolveSolveBackend(mode);
   const env = options.env ?? Bun.env;
+  const storageMode = resolveStorageMode(env.TRIPLETEX_STORAGE_MODE);
   const dataRoot = path.resolve(process.cwd(), options.dataRoot ?? "data");
   const artifactRoot = path.resolve(process.cwd(), options.artifactRoot ?? "runs");
   const maxConcurrentSolveRequests =
@@ -173,11 +176,11 @@ export function createSolveRequestHandler(
       activeSolveRequests,
       backend: solveBackend,
       mode,
+      storageMode,
     });
 
     try {
       if (solveBackend === "tmux") {
-        const storageMode = resolveStorageMode(env.TRIPLETEX_STORAGE_MODE);
         const result = await runTmuxSolvePipeline(
           toTmuxSolveRequest(parsedRequest),
           requestId,
@@ -191,6 +194,7 @@ export function createSolveRequestHandler(
               : undefined,
             dataRoot,
             env,
+            leaderboardFetch: options.tmuxLeaderboardFetch,
             logger: log,
             now: () => now,
             runCommand: options.tmuxRunCommand,
@@ -212,7 +216,14 @@ export function createSolveRequestHandler(
           storageMode,
         });
 
-        void continuePostRunProcessingStub(result.preparedRun.runId, log);
+        void continuePostRunProcessing(result, {
+          dataRoot,
+          env,
+          leaderboardFetch: options.tmuxLeaderboardFetch,
+          logger: log,
+          now: options.now,
+          sleep: options.tmuxSleep,
+        });
 
         return jsonResponse(
           200,
@@ -293,6 +304,7 @@ export function startSolveServer(options: SolveServerOptions = {}) {
   (options.logger ?? defaultLogger)("INFO", "Tripletex2 sandbox solve server listening.", {
     port,
     mode: options.mode ?? "sandbox",
+    storageMode: resolveStorageMode((options.env ?? Bun.env).TRIPLETEX_STORAGE_MODE),
   });
 
   return server;
@@ -505,19 +517,6 @@ function toTmuxSolveRequest(parsed: ParsedSolveRequestPayload): TmuxSolveRequest
       ...parsed.tripletex_credentials,
     },
   };
-}
-
-function continuePostRunProcessingStub(
-  runId: string,
-  log: (
-    level: "INFO" | "WARN" | "ERROR",
-    message: string,
-    details?: Record<string, unknown>,
-  ) => void,
-): void {
-  log("INFO", "Post-run processing stub invoked.", {
-    runId,
-  });
 }
 
 function jsonResponse(
