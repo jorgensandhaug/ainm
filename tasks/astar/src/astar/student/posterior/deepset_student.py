@@ -179,6 +179,6 @@ class SummaryBankStudent(BaseModel):
     def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
         posterior = self.infer_regime(context)
         return self.teacher.posterior_predictive(
-            context.round_episode.seeds[seed_index],
+            context.round_context.seeds[seed_index],
             posterior,
         )

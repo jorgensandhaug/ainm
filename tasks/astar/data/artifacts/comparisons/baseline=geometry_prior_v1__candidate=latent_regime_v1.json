@@ -1,0 +1,28 @@
+{
+  "baseline_predictor_name": "geometry_prior_v1",
+  "candidate_predictor_name": "latent_regime_v1",
+  "policy_name": "coverage",
+  "episode_count": 1,
+  "mean_score_delta": 2.53598096282926,
+  "mean_weighted_kl_delta": -0.1081306536420591,
+  "win_rate": 1.0,
+  "loss_rate": 0.0,
+  "tie_rate": 0.0,
+  "score_delta_ci_low": 2.53598096282926,
+  "score_delta_ci_high": 2.53598096282926,
+  "episodes": [
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "episode_seed": 0,
+      "baseline_score": 6.808162215520285,
+      "candidate_score": 9.344143178349546,
+      "score_delta": 2.53598096282926,
+      "baseline_weighted_kl": 0.9039932508839948,
+      "candidate_weighted_kl": 0.7958625972419358,
+      "weighted_kl_delta": -0.1081306536420591
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/comparisons/baseline=geometry_prior_v1__candidate=latent_regime_v1.json",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/comparisons/baseline=geometry_prior_v1__candidate=latent_regime_v1.md"
+}

@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
-from datetime import UTC, datetime
 
-from astar.core.types import FloatArray
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.eval.diagnostics import build_round_episode_diagnostics
 from astar.features.geometry import compute_round_features
 from astar.infra.api.client import AstarApiClient
-from astar.infra.api.dto import StoredSubmissionRecord, SubmissionRequest
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.infra.artifacts.store import (
-    read_round_record,
-    save_prediction_tensor,
-    write_submission_record,
-)
+from astar.infra.artifacts.store import read_round_record
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.observe.evidence import build_round_evidence
@@ -26,36 +18,13 @@ from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.replay_round import replay_round
 from astar.workflows.results import FetchAnalysisResult, LiveRoundRunResult
 from astar.workflows.specs import LiveRunSpec
-from astar.workflows.submissions import submit_saved_prediction
+from astar.workflows.submissions import persist_prediction_bundle, submit_saved_prediction
 from astar.workflows.sync_round import sync_round
 
 
 def _spec_hash(spec: LiveRunSpec) -> str:
     payload = f"{spec.name}:{spec.policy.__class__.__name__}:{spec.predictor.__class__.__name__}"
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
-
-
-def _persist_prediction_bundle(
-    paths: WorkspacePaths,
-    round_id: str,
-    model_name: str,
-    predictions_by_seed: Mapping[int, FloatArray],
-) -> list[int]:
-    saved_seed_indexes: list[int] = []
-    for seed_index, prediction in sorted(predictions_by_seed.items()):
-        save_prediction_tensor(paths.prediction_tensor_path(round_id, seed_index), prediction)
-        record = StoredSubmissionRecord(
-            created_at=datetime.now(UTC),
-            model_name=model_name,
-            request=SubmissionRequest(
-                round_id=round_id,
-                seed_index=seed_index,
-                prediction=prediction.tolist(),
-            ),
-        )
-        write_submission_record(paths, round_id, seed_index, record)
-        saved_seed_indexes.append(seed_index)
-    return saved_seed_indexes
 
 
 def run_live_round(
@@ -138,7 +107,7 @@ def run_live_round(
                     width=round_record.round.map_width,
                 ),
             )
-        _persist_prediction_bundle(
+        persist_prediction_bundle(
             paths,
             round_id,
             prediction_bundle.model_name,

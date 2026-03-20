@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.grid import MapShape, coverage_counts
 from astar.core.terrain import CLASS_COUNT, map_internal_code
+from astar.core.trajectory import LiveQueryObs
+from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import (
     QueryFileRecord,
@@ -83,6 +85,93 @@ def _settlement_means(
     )
 
 
+def _settlement_means_from_observations(
+    observations: list[LiveQueryObs],
+) -> tuple[float | None, float | None, float | None, float | None]:
+    populations = [
+        settlement.population
+        for observation in observations
+        for settlement in observation.settlements
+        if settlement.population is not None
+    ]
+    foods = [
+        settlement.food for observation in observations for settlement in observation.settlements
+        if settlement.food is not None
+    ]
+    wealths = [
+        settlement.wealth for observation in observations for settlement in observation.settlements
+        if settlement.wealth is not None
+    ]
+    defenses = [
+        settlement.defense for observation in observations for settlement in observation.settlements
+        if settlement.defense is not None
+    ]
+    if not populations:
+        return (None, None, None, None)
+    return (
+        float(fmean(populations)),
+        float(fmean(foods)) if foods else None,
+        float(fmean(wealths)) if wealths else None,
+        float(fmean(defenses)) if defenses else None,
+    )
+
+
+def _build_seed_evidence_bundle(
+    *,
+    round_id: str,
+    seed_index: int,
+    map_width: int,
+    map_height: int,
+    observations: list[LiveQueryObs],
+) -> SeedEvidenceBundle:
+    viewports = [item.viewport for item in observations]
+    coverage = coverage_counts(
+        MapShape(width=map_width, height=map_height),
+        viewports,
+    )
+    count_tensor = np.zeros((map_height, map_width, CLASS_COUNT), dtype=np.int64)
+    class_counts = np.zeros(CLASS_COUNT, dtype=np.int64)
+    repeat_counts: dict[tuple[int, int, int, int, int], int] = {}
+    for observation in observations:
+        viewport = observation.viewport
+        key = (
+            seed_index,
+            viewport.x,
+            viewport.y,
+            viewport.w,
+            viewport.h,
+        )
+        repeat_counts[key] = repeat_counts.get(key, 0) + 1
+        for local_y, row in enumerate(observation.grid):
+            for local_x, code in enumerate(row.tolist()):
+                class_index = map_internal_code(int(code))
+                global_y = viewport.y + local_y
+                global_x = viewport.x + local_x
+                count_tensor[global_y, global_x, class_index] += 1
+                class_counts[class_index] += 1
+    class_total = int(class_counts.sum())
+    frequencies = np.zeros(CLASS_COUNT, dtype=np.float64)
+    if class_total > 0:
+        frequencies = class_counts.astype(np.float64) / float(class_total)
+    mean_population, mean_food, mean_wealth, mean_defense = _settlement_means_from_observations(
+        observations,
+    )
+    return SeedEvidenceBundle(
+        round_id=round_id,
+        seed_index=seed_index,
+        query_count=len(observations),
+        repeated_window_groups=sum(1 for count in repeat_counts.values() if count > 1),
+        coverage_counts=coverage,
+        observed_class_counts=class_counts,
+        observed_class_frequencies=frequencies,
+        observed_class_count_tensor=count_tensor,
+        mean_population=mean_population,
+        mean_food=mean_food,
+        mean_wealth=mean_wealth,
+        mean_defense=mean_defense,
+    )
+
+
 def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceBundle:
     round_record = read_round_record(paths, round_id)
     query_records = read_query_records(paths, round_id)
@@ -136,3 +225,25 @@ def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceB
         )
 
     return RoundEvidenceBundle(round_id=round_id, per_seed=per_seed)
+
+
+def build_round_evidence_from_observations(
+    round_detail: RoundDetail,
+    observations: tuple[LiveQueryObs, ...] | list[LiveQueryObs],
+) -> RoundEvidenceBundle:
+    grouped: dict[int, list[LiveQueryObs]] = {
+        seed_index: [] for seed_index in range(round_detail.seeds_count)
+    }
+    for observation in observations:
+        grouped.setdefault(observation.seed_index, []).append(observation)
+    per_seed = {
+        seed_index: _build_seed_evidence_bundle(
+            round_id=round_detail.id,
+            seed_index=seed_index,
+            map_width=round_detail.map_width,
+            map_height=round_detail.map_height,
+            observations=seed_observations,
+        )
+        for seed_index, seed_observations in grouped.items()
+    }
+    return RoundEvidenceBundle(round_id=round_detail.id, per_seed=per_seed)

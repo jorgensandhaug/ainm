@@ -1,0 +1,83 @@
+{
+  "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+  "round_number": 1,
+  "oracle_name": "synthetic_active_oracle",
+  "predictor_name": "latent_regime_v1",
+  "policy_name": "coverage",
+  "episode_seed": 1,
+  "budget": 3,
+  "executed_queries": 3,
+  "mean_score": 8.028640805949449,
+  "mean_weighted_kl": 0.8476020667948843,
+  "score_by_seed": {
+    "0": {
+      "weighted_kl": 0.7664062359822861,
+      "score": 10.033720576849719,
+      "entropy_sum": 695.8632285769597,
+      "nonzero_entropy_cells": 1129
+    },
+    "1": {
+      "weighted_kl": 0.9204915091789644,
+      "score": 6.319851167600659,
+      "entropy_sum": 866.8861972219051,
+      "nonzero_entropy_cells": 1273
+    },
+    "2": {
+      "weighted_kl": 0.9179905132267474,
+      "score": 6.367447267361967,
+      "entropy_sum": 756.3250377380825,
+      "nonzero_entropy_cells": 1206
+    },
+    "3": {
+      "weighted_kl": 0.8616235633350778,
+      "score": 7.5405829698165325,
+      "entropy_sum": 912.0408716270824,
+      "nonzero_entropy_cells": 1315
+    },
+    "4": {
+      "weighted_kl": 0.7714985122513458,
+      "score": 9.881602048118369,
+      "entropy_sum": 723.3516043227544,
+      "nonzero_entropy_cells": 1121
+    }
+  },
+  "query_trace": [
+    {
+      "query_index": 0,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 46,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 1,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 33,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 2,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 26,
+      "rationale": "coverage"
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/runs/synthetic_tournament__round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd__policy=coverage__predictor=latent_regime_v1__episode_seed=1.json"
+}

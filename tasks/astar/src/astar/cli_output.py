@@ -8,6 +8,7 @@ from typing import Any
 from astar.api.schemas import RoundSummary, StoredRoundRecord
 from astar.domain.validation import SubmissionValidationReport
 from astar.eval.backtest import BacktestRoundResult
+from astar.eval.competition import PairedBenchmarkComparison
 from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
 from astar.eval.reports import (
     render_backtest_round_report,
@@ -21,10 +22,13 @@ from astar.models.latent_regime import RoundRegimePosterior
 from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
 from astar.ops.results import HarvestReplaysResult, RecordedReplayResult
 from astar.ops.round_report import RoundReportArtifacts
+from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
 from astar.workflows.corpus_summary import CorpusSummaryResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
+from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.results import (
     BuildSubmissionResult,
+    EvaluateTeacherScienceResult,
     ExplorationRunResult,
     FetchAnalysisResult,
     FetchRoundAnalysesResult,
@@ -36,6 +40,8 @@ from astar.workflows.results import (
     SubmitPredictionResult,
     SummarizeReplaysResult,
     SyncRoundResult,
+    SyntheticBenchmarkResult,
+    SyntheticTournamentResult,
     TrainHazardTeacherResult,
     TrainSummaryStudentResult,
 )
@@ -341,6 +347,24 @@ def render_train_summary_student(result: TrainSummaryStudentResult) -> str:
     )
 
 
+def render_teacher_science(result: EvaluateTeacherScienceResult) -> str:
+    lines = [
+        f"evaluate-teacher-science {result.model_name}",
+        f"train_rounds: {len(result.train_round_ids)}",
+        f"eval_rounds: {len(result.eval_round_ids)}",
+        f"reports: {result.report_count}",
+        f"mean_terminal_l1: {result.mean_terminal_l1:.6f}",
+        f"mean_alive_curve_mae: {result.mean_alive_curve_mae:.6f}",
+        f"mean_port_curve_mae: {result.mean_port_curve_mae:.6f}",
+        f"mean_ruin_curve_mae: {result.mean_ruin_curve_mae:.6f}",
+        f"mean_owner_flip_mae: {result.mean_owner_flip_mae:.6f}",
+        f"mean_coefficient_l2: {result.mean_coefficient_l2:.6f}",
+        f"artifact: {result.artifact_path}",
+        f"report: {result.report_path}",
+    ]
+    return "\n".join(lines)
+
+
 def render_build_submission(result: BuildSubmissionResult) -> str:
     prediction_dir = result.prediction_paths[0].parent if result.prediction_paths else "n/a"
     submission_dir = (
@@ -574,6 +598,114 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
         )
     if result.backtest_result is not None:
         lines.append(f"backtest_mean_score: {result.backtest_result.mean_score:.4f}")
+    return "\n".join(lines)
+
+
+def render_synthetic_tournament(result: SyntheticTournamentResult) -> str:
+    lines = [
+        (
+            f"synthetic-tournament #{result.round_number} {result.round_id}"
+            if result.round_number is not None
+            else f"synthetic-tournament {result.round_id}"
+        ),
+        f"oracle: {result.oracle_name}",
+        f"predictor: {result.predictor_name}",
+        f"policy: {result.policy_name}",
+        f"episode_seed: {result.episode_seed}",
+        f"queries: {result.executed_queries}/{result.budget}",
+        f"mean_score: {result.mean_score:.4f}",
+        f"mean_weighted_kl: {result.mean_weighted_kl:.6f}",
+        f"artifact: {result.artifact_path}",
+    ]
+    for seed_index, breakdown in sorted(result.score_by_seed.items()):
+        lines.append(
+            f"seed {seed_index}: score={breakdown.score:.4f} kl={breakdown.weighted_kl:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_synthetic_benchmark(result: SyntheticBenchmarkResult) -> str:
+    lines = [
+        "synthetic-benchmark",
+        f"name: {result.benchmark_name}",
+        f"predictor: {result.predictor_name}",
+        f"policy: {result.policy_name}",
+        f"manifest: {result.manifest_path}",
+        f"budget: {result.budget}",
+        f"episodes: {result.aggregate.episode_count}",
+        f"mean_score: {result.aggregate.mean_score:.4f}",
+        f"mean_weighted_kl: {result.aggregate.mean_weighted_kl:.6f}",
+        f"score_range: {result.aggregate.min_score:.4f}..{result.aggregate.max_score:.4f}",
+        f"artifact: {result.artifact_path}",
+        f"report: {result.report_path}",
+    ]
+    for item in result.episodes:
+        round_prefix = (
+            f"#{item.round_number} {item.round_id}"
+            if item.round_number is not None
+            else item.round_id
+        )
+        lines.append(
+            f"{round_prefix} episode_seed={item.episode_seed} "
+            f"score={item.mean_score:.4f} kl={item.mean_weighted_kl:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_build_benchmark_manifests(result: BuildBenchmarkManifestsResult) -> str:
+    lines = [
+        "build-benchmark-manifests",
+        f"rounds: {result.round_count}",
+        f"manifests: {len(result.manifest_paths)}",
+    ]
+    for path in result.manifest_paths:
+        lines.append(str(path))
+    return "\n".join(lines)
+
+
+def render_paired_benchmark_comparison(result: PairedBenchmarkComparison) -> str:
+    lines = [
+        "compare-synthetic-benchmarks",
+        f"baseline: {result.baseline_predictor_name}",
+        f"candidate: {result.candidate_predictor_name}",
+        f"policy: {result.policy_name}",
+        f"episodes: {result.episode_count}",
+        f"mean_score_delta: {result.mean_score_delta:.4f}",
+        f"mean_weighted_kl_delta: {result.mean_weighted_kl_delta:.6f}",
+        f"win_rate: {result.win_rate:.3f}",
+        f"loss_rate: {result.loss_rate:.3f}",
+        f"tie_rate: {result.tie_rate:.3f}",
+        f"score_delta_ci95: [{result.score_delta_ci_low:.4f}, {result.score_delta_ci_high:.4f}]",
+        f"artifact: {result.artifact_path}",
+        f"report: {result.report_path}",
+    ]
+    for item in result.episodes:
+        round_prefix = (
+            f"#{item.round_number} {item.round_id}"
+            if item.round_number is not None
+            else item.round_id
+        )
+        lines.append(
+            f"{round_prefix} episode_seed={item.episode_seed} "
+            f"delta={item.score_delta:.4f} kl_delta={item.weighted_kl_delta:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_live_online_run(result: LiveOnlineRunResult) -> str:
+    lines = [
+        (
+            f"run-live-online #{result.round_number} {result.round_id}"
+            if result.round_number is not None
+            else f"run-live-online {result.round_id}"
+        ),
+        f"oracle: {result.oracle_name}",
+        f"predictor: {result.predictor_name}",
+        f"policy: {result.policy_name}",
+        f"queries: {result.executed_queries}/{result.budget}",
+        f"prediction_dir: {result.prediction_dir}",
+        f"submitted_predictions: {result.submitted_predictions}",
+    ]
     return "\n".join(lines)
 
 

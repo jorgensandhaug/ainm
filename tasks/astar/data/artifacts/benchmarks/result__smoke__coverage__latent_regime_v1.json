@@ -1,0 +1,32 @@
+{
+  "benchmark_name": "smoke__coverage__latent_regime_v1",
+  "predictor_name": "latent_regime_v1",
+  "policy_name": "coverage",
+  "manifest_path": "data/artifacts/benchmarks/smoke.json",
+  "budget": 50,
+  "round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd"
+  ],
+  "episode_seeds": [
+    0
+  ],
+  "aggregate": {
+    "episode_count": 1,
+    "mean_score": 9.344143178349546,
+    "mean_weighted_kl": 0.7958625972419358,
+    "min_score": 9.344143178349546,
+    "max_score": 9.344143178349546
+  },
+  "episodes": [
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "episode_seed": 0,
+      "mean_score": 9.344143178349546,
+      "mean_weighted_kl": 0.7958625972419358,
+      "tournament_artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/runs/synthetic_tournament__round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd__policy=coverage__predictor=latent_regime_v1__episode_seed=0.json"
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/result__smoke__coverage__latent_regime_v1.json",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/result__smoke__coverage__latent_regime_v1.md"
+}

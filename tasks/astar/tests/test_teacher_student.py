@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from astar.envs.conversion import round_context_to_online_episode
+from astar.envs.types import build_round_context_from_detail
 from astar.features.geometry import compute_round_features
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.episodes.build import build_round_episode
@@ -57,8 +59,17 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
     student = SummaryBankStudent.fit_from_dataset(dataset, teacher, k_neighbors=1)
 
     round_record = read_round_record(sample_paths, ROUND_ID)
+    round_context = build_round_context_from_detail(round_record.round)
+    transcript_observations = (
+        round_episode.live_transcript.observations
+        if round_episode.live_transcript is not None
+        else ()
+    )
     context = LiveInferenceContext(
-        round_episode=round_episode,
+        online_episode=round_context_to_online_episode(
+            round_context,
+            transcript_observations,
+        ),
         geometry_bundle=compute_round_features(round_record.round),
         evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
     )
@@ -69,6 +80,8 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
     assert posterior.mean.ndim == 1
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)
+    assert not hasattr(context.online_episode.round_context.seeds[0], "replay_runs")
+    assert not hasattr(context.online_episode.round_context.seeds[0], "terminal_truth")
 
     env = OfflinePolicyEnv(round_episode=round_episode, sample_index=0)
     assert round_episode.live_transcript is not None

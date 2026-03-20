@@ -1,0 +1,167 @@
+{
+  "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+  "round_number": 1,
+  "oracle_name": "synthetic_active_oracle",
+  "predictor_name": "legacy_round_predictor_adapter",
+  "policy_name": "coverage",
+  "episode_seed": 0,
+  "budget": 10,
+  "executed_queries": 10,
+  "mean_score": 7.972277495338514,
+  "mean_weighted_kl": 0.8497488410619756,
+  "score_by_seed": {
+    "0": {
+      "weighted_kl": 0.7700919802576324,
+      "score": 9.923386511186411,
+      "entropy_sum": 695.8632285769597,
+      "nonzero_entropy_cells": 1129
+    },
+    "1": {
+      "weighted_kl": 0.921662318898711,
+      "score": 6.297692076977225,
+      "entropy_sum": 866.8861972219051,
+      "nonzero_entropy_cells": 1273
+    },
+    "2": {
+      "weighted_kl": 0.9191009333954167,
+      "score": 6.346270933282143,
+      "entropy_sum": 756.3250377380825,
+      "nonzero_entropy_cells": 1206
+    },
+    "3": {
+      "weighted_kl": 0.863427220423431,
+      "score": 7.499891282104483,
+      "entropy_sum": 912.0408716270824,
+      "nonzero_entropy_cells": 1315
+    },
+    "4": {
+      "weighted_kl": 0.774461752334687,
+      "score": 9.79414667314231,
+      "entropy_sum": 723.3516043227544,
+      "nonzero_entropy_cells": 1121
+    }
+  },
+  "query_trace": [
+    {
+      "query_index": 0,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 1,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 41,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 2,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 23,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 3,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 18,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 4,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 37,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 5,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 6,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 35,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 7,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 33,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 8,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 9,
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 22,
+      "rationale": "coverage"
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/runs/synthetic_tournament__round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd__policy=coverage__predictor=legacy_round_predictor_adapter__episode_seed=0.json"
+}

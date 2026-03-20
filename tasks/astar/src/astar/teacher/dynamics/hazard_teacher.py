@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
-from astar.history.episodes.models import RoundEpisode, SeedEpisode
+from astar.history.episodes.models import RoundEpisode
 from astar.history.summaries.round_coefficients import (
     fit_round_semimechanistic_coefficients,
     round_regime_summary_vector,
@@ -15,6 +15,7 @@ from astar.history.summaries.round_coefficients import (
     seed_feature_matrix,
 )
 from astar.infra.serialization.json_utils import to_jsonable
+from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
 
 
@@ -186,7 +187,7 @@ class HazardTeacher(BaseModel):
 
     def _decode_terminal_tensor(
         self,
-        seed: SeedEpisode,
+        seed: SeedLike,
         coefficient_vector: np.ndarray,
     ) -> np.ndarray:
         (
@@ -281,14 +282,15 @@ class HazardTeacher(BaseModel):
 
     def rollout(
         self,
-        seed: SeedEpisode,
+        seed: SeedLike,
         regime: np.ndarray,
         n_rollouts: int,
         horizon: int = 50,
     ) -> list[ReplayRun]:
         del horizon
-        if seed.replay_runs:
-            source_runs = list(seed.replay_runs)
+        seed_replay_runs = tuple(getattr(seed, "replay_runs", ()))
+        if seed_replay_runs:
+            source_runs = list(seed_replay_runs)
         else:
             source_runs = [
                 run
@@ -301,7 +303,7 @@ class HazardTeacher(BaseModel):
 
     def terminal_tensor(
         self,
-        seed: SeedEpisode,
+        seed: SeedLike,
         regime: np.ndarray,
         n_rollouts: int = 256,
     ) -> np.ndarray:
@@ -311,7 +313,7 @@ class HazardTeacher(BaseModel):
 
     def posterior_predictive(
         self,
-        seed: SeedEpisode,
+        seed: SeedLike,
         posterior: RegimePosteriorState,
         n_rollouts: int = 256,
     ) -> np.ndarray:

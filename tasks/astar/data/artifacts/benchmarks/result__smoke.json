@@ -1,0 +1,30 @@
+{
+  "predictor_name": "geometry_prior_v1",
+  "policy_name": "coverage",
+  "manifest_path": "data/artifacts/benchmarks/smoke.json",
+  "budget": 50,
+  "round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd"
+  ],
+  "episode_seeds": [
+    0
+  ],
+  "aggregate": {
+    "episode_count": 1,
+    "mean_score": 6.830216218556245,
+    "mean_weighted_kl": 0.9032336556488276,
+    "min_score": 6.830216218556245,
+    "max_score": 6.830216218556245
+  },
+  "episodes": [
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "episode_seed": 0,
+      "mean_score": 6.830216218556245,
+      "mean_weighted_kl": 0.9032336556488276,
+      "tournament_artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/runs/synthetic_tournament__round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd__policy=coverage__predictor=geometry_prior_v1__episode_seed=0.json"
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/result__smoke.json"
+}

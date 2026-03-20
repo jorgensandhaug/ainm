@@ -1,0 +1,611 @@
+{
+  "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+  "policy_name": "exploration_v2",
+  "items": [
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "diagnostic_repeat",
+      "diagnostic_score": 175.00088397733057
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "diagnostic_repeat",
+      "diagnostic_score": 128.41557135577528
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "diagnostic_repeat",
+      "diagnostic_score": 127.46465546277186
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "diagnostic_repeat",
+      "diagnostic_score": 121.79299970159765
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "diagnostic_repeat",
+      "diagnostic_score": 111.38669263240004
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "repeats": 1,
+      "tag": "coverage"
+    }
+  ]
+}

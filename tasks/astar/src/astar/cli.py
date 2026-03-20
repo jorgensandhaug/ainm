@@ -9,6 +9,7 @@ import httpx
 
 from astar.cli_output import (
     render_backtest_round,
+    render_build_benchmark_manifests,
     render_build_submission,
     render_corpus_summary,
     render_dataset_diagnostics,
@@ -22,8 +23,10 @@ from astar.cli_output import (
     render_ingest_replays,
     render_inspect_replays,
     render_json,
+    render_live_online_run,
     render_live_round_run,
     render_materialize_episode,
+    render_paired_benchmark_comparison,
     render_query_plan_run,
     render_query_plan_summary,
     render_recorded_replay,
@@ -36,6 +39,9 @@ from astar.cli_output import (
     render_submit_prediction,
     render_summarize_replays,
     render_sync_round,
+    render_synthetic_benchmark,
+    render_synthetic_tournament,
+    render_teacher_science,
     render_train_hazard_teacher,
     render_train_summary_student,
     render_validation,
@@ -56,12 +62,18 @@ from astar.observe.executor import execute_query_plan, record_simulation
 from astar.observe.planner import build_policy_plan
 from astar.observe.policies.registry import build_named_policy
 from astar.observe.query_plan import read_any_query_plan
+from astar.policy import build_interactive_policy
 from astar.spec_loader import load_object
+from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
+from astar.student.predictor.interactive import build_legacy_online_predictor
+from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
+from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.exploration import explore_round
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
+from astar.workflows.live_online import run_live_online_round
 from astar.workflows.live_round import run_live_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
@@ -72,6 +84,8 @@ from astar.workflows.specs import LiveRunSpec
 from astar.workflows.submissions import build_submission, submit_saved_prediction
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.sync_round import sync_round
+from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
+from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
 
@@ -244,6 +258,56 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_live_parser.add_argument("--policy", default="coverage")
     synthetic_live_parser.add_argument("--samples-per-round", type=int, default=1)
 
+    synthetic_tournament_parser = subparsers.add_parser("run-synthetic-tournament")
+    synthetic_tournament_parser.add_argument("--round-id", required=True)
+    synthetic_tournament_parser.add_argument(
+        "--model",
+        choices=["geometry_prior", "latent_regime"],
+        default="latent_regime",
+    )
+    synthetic_tournament_parser.add_argument("--policy", default="coverage")
+    synthetic_tournament_parser.add_argument("--budget", type=int, default=50)
+    synthetic_tournament_parser.add_argument("--episode-seed", type=int, default=0)
+
+    synthetic_benchmark_parser = subparsers.add_parser("run-synthetic-benchmark")
+    synthetic_benchmark_parser.add_argument("--round-id", action="append", default=None)
+    synthetic_benchmark_parser.add_argument("--manifest", default=None)
+    synthetic_benchmark_parser.add_argument(
+        "--model",
+        choices=["geometry_prior", "latent_regime"],
+        default="latent_regime",
+    )
+    synthetic_benchmark_parser.add_argument("--policy", default="coverage")
+    synthetic_benchmark_parser.add_argument("--budget", type=int, default=50)
+    synthetic_benchmark_parser.add_argument(
+        "--episode-seed",
+        action="append",
+        type=int,
+        default=None,
+    )
+
+    live_online_parser = subparsers.add_parser("run-live-online")
+    live_online_parser.add_argument("--round-id", default=None)
+    live_online_parser.add_argument(
+        "--model",
+        choices=["geometry_prior", "latent_regime"],
+        default="latent_regime",
+    )
+    live_online_parser.add_argument("--policy", default="coverage")
+    live_online_parser.add_argument("--budget", type=int, default=50)
+    live_online_parser.add_argument(
+        "--submit-predictions",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+
+    subparsers.add_parser("build-benchmark-manifests")
+
+    compare_benchmarks_parser = subparsers.add_parser("compare-synthetic-benchmarks")
+    compare_benchmarks_parser.add_argument("--baseline", required=True)
+    compare_benchmarks_parser.add_argument("--candidate", required=True)
+    compare_benchmarks_parser.add_argument("--bootstrap-samples", type=int, default=500)
+
     train_teacher_parser = subparsers.add_parser("train-hazard-teacher")
     train_teacher_parser.add_argument("--round-id", action="append", default=None)
     train_teacher_parser.add_argument("--model-name", default="hazard_teacher_v1")
@@ -254,6 +318,12 @@ def build_parser() -> argparse.ArgumentParser:
     train_student_parser.add_argument("--samples-per-round", type=int, default=1)
     train_student_parser.add_argument("--k-neighbors", type=int, default=5)
     train_student_parser.add_argument("--model-name", default="summary_bank_student_v1")
+
+    science_parser = subparsers.add_parser("evaluate-teacher-science")
+    science_parser.add_argument("--eval-round-id", action="append", default=None)
+    science_parser.add_argument("--train-round-id", action="append", default=None)
+    science_parser.add_argument("--model-name", default="hazard_teacher_v1")
+    science_parser.add_argument("--n-rollouts", type=int, default=None)
 
     backtest_round_parser = subparsers.add_parser("backtest-round")
     backtest_round_parser.add_argument("--round-id", required=True)
@@ -469,6 +539,73 @@ def _main() -> int:
         )
         return 0
 
+    if args.command == "evaluate-teacher-science":
+        science_result = evaluate_hazard_teacher_science(
+            paths,
+            eval_round_ids=args.eval_round_id,
+            train_round_ids=args.train_round_id,
+            model_name=args.model_name,
+            n_rollouts=args.n_rollouts,
+        )
+        _emit(args.json, science_result, render_teacher_science(science_result))
+        return 0
+
+    if args.command == "run-synthetic-tournament":
+        tournament_result = run_synthetic_tournament(
+            paths,
+            round_id=args.round_id,
+            predictor=build_legacy_online_predictor(args.model),
+            policy=build_interactive_policy(args.policy),
+            budget=args.budget,
+            episode_seed=args.episode_seed,
+        )
+        _emit(
+            args.json,
+            tournament_result,
+            render_synthetic_tournament(tournament_result),
+        )
+        return 0
+
+    if args.command == "run-synthetic-benchmark":
+        benchmark_result = run_synthetic_benchmark(
+            paths,
+            predictor=build_legacy_online_predictor(args.model),
+            policy=build_interactive_policy(args.policy),
+            manifest_path=(Path(args.manifest) if args.manifest is not None else None),
+            round_ids=args.round_id,
+            episode_seeds=args.episode_seed,
+            budget=args.budget,
+        )
+        _emit(
+            args.json,
+            benchmark_result,
+            render_synthetic_benchmark(benchmark_result),
+        )
+        return 0
+
+    if args.command == "build-benchmark-manifests":
+        manifest_result = build_default_benchmark_manifests(paths)
+        _emit(
+            args.json,
+            manifest_result,
+            render_build_benchmark_manifests(manifest_result),
+        )
+        return 0
+
+    if args.command == "compare-synthetic-benchmarks":
+        comparison_result = compare_benchmark_artifacts(
+            paths,
+            baseline_path=Path(args.baseline),
+            candidate_path=Path(args.candidate),
+            n_bootstrap=args.bootstrap_samples,
+        )
+        _emit(
+            args.json,
+            comparison_result,
+            render_paired_benchmark_comparison(comparison_result),
+        )
+        return 0
+
     if args.command == "dataset-summary":
         dataset_diagnostics = build_local_dataset_diagnostics(paths)
         _emit(args.json, dataset_diagnostics, render_dataset_diagnostics(dataset_diagnostics))
@@ -520,6 +657,22 @@ def _main() -> int:
             dry_run=args.dry_run,
         )
         _emit(args.json, live_result, render_live_round_run(live_result))
+        return 0
+
+    if args.command == "run-live-online":
+        round_id = args.round_id
+        if round_id is None:
+            round_id = client.get_active_round().id
+        live_online_result = run_live_online_round(
+            paths,
+            client,
+            round_id=round_id,
+            predictor=build_legacy_online_predictor(args.model),
+            policy=build_interactive_policy(args.policy),
+            budget=args.budget,
+            submit_predictions=args.submit_predictions,
+        )
+        _emit(args.json, live_online_result, render_live_online_run(live_online_result))
         return 0
 
     if args.command == "fetch-round-analyses":

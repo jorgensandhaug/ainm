@@ -1,0 +1,19 @@
+{
+  "name": "full",
+  "description": "full replay-backed benchmark",
+  "created_at": "2026-03-20T14:34:20.050176+00:00",
+  "round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "episode_seeds": [
+    0,
+    1,
+    2
+  ],
+  "budget": 50
+}

@@ -57,6 +57,8 @@ class WorkspacePaths(BaseModel):
             self.artifacts_dir / "runs",
             self.artifacts_dir / "episodes",
             self.artifacts_dir / "live_specs",
+            self.artifacts_dir / "benchmarks",
+            self.artifacts_dir / "comparisons",
         ]
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
@@ -138,6 +140,21 @@ class WorkspacePaths(BaseModel):
 
     def live_spec_path(self, round_id: str, spec_name: str) -> Path:
         return self.artifacts_dir / "live_specs" / round_id / f"{spec_name}.json"
+
+    def benchmark_dir(self) -> Path:
+        return self.artifacts_dir / "benchmarks"
+
+    def benchmark_manifest_path(self, name: str) -> Path:
+        return self.benchmark_dir() / f"{name}.json"
+
+    def benchmark_result_path(self, name: str) -> Path:
+        return self.benchmark_dir() / f"result__{name}.json"
+
+    def comparison_dir(self) -> Path:
+        return self.artifacts_dir / "comparisons"
+
+    def comparison_result_path(self, name: str) -> Path:
+        return self.comparison_dir() / f"{name}.json"
 
 
 __all__ = ["WorkspacePaths"]

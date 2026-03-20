@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,8 @@ def to_jsonable(value: object) -> Any:
         return value.tolist()
     if isinstance(value, np.generic):
         return value.item()
+    if isinstance(value, datetime | date):
+        return value.isoformat()
     if isinstance(value, Path):
         return str(value)
     if isinstance(value, dict):

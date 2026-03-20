@@ -1,0 +1,27 @@
+{
+  "baseline_predictor_name": "latent_regime_v1",
+  "candidate_predictor_name": "latent_regime_v1",
+  "policy_name": "coverage",
+  "episode_count": 1,
+  "mean_score_delta": 0.0,
+  "mean_weighted_kl_delta": 0.0,
+  "win_rate": 0.0,
+  "loss_rate": 0.0,
+  "tie_rate": 1.0,
+  "score_delta_ci_low": 0.0,
+  "score_delta_ci_high": 0.0,
+  "episodes": [
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "episode_seed": 0,
+      "baseline_score": 9.366466385141933,
+      "candidate_score": 9.366466385141933,
+      "score_delta": 0.0,
+      "baseline_weighted_kl": 0.7953086015343983,
+      "candidate_weighted_kl": 0.7953086015343983,
+      "weighted_kl_delta": 0.0
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/comparisons/baseline=latent_regime_v1__candidate=latent_regime_v1.json"
+}

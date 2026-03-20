@@ -1,0 +1,587 @@
+{
+  "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+  "round_number": 1,
+  "oracle_name": "synthetic_active_oracle",
+  "predictor_name": "latent_regime_v1",
+  "policy_name": "coverage",
+  "episode_seed": 0,
+  "budget": 50,
+  "executed_queries": 45,
+  "mean_score": 9.344143178349546,
+  "mean_weighted_kl": 0.7958625972419358,
+  "score_by_seed": {
+    "0": {
+      "weighted_kl": 0.7238653503865861,
+      "score": 11.399552894245799,
+      "entropy_sum": 699.9457514974378,
+      "nonzero_entropy_cells": 1141
+    },
+    "1": {
+      "weighted_kl": 0.8640509520800577,
+      "score": 7.485870645026502,
+      "entropy_sum": 879.7666550206918,
+      "nonzero_entropy_cells": 1280
+    },
+    "2": {
+      "weighted_kl": 0.8624059357739612,
+      "score": 7.522905091093635,
+      "entropy_sum": 762.1355447810562,
+      "nonzero_entropy_cells": 1213
+    },
+    "3": {
+      "weighted_kl": 0.8022469856355021,
+      "score": 9.010848398667568,
+      "entropy_sum": 921.2450809663621,
+      "nonzero_entropy_cells": 1321
+    },
+    "4": {
+      "weighted_kl": 0.7267437623335717,
+      "score": 11.301538862714224,
+      "entropy_sum": 726.5798812564013,
+      "nonzero_entropy_cells": 1130
+    }
+  },
+  "query_trace": [
+    {
+      "query_index": 0,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 1,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 41,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 2,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 23,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 3,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 18,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 4,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 37,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 5,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 6,
+      "seed_index": 0,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 35,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 7,
+      "seed_index": 0,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 33,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 8,
+      "seed_index": 0,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 9,
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 22,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 10,
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 31,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 11,
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 32,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 12,
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 37,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 13,
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 35,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 14,
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 34,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 15,
+      "seed_index": 1,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 48,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 16,
+      "seed_index": 1,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 32,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 17,
+      "seed_index": 1,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 39,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 18,
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 15,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 19,
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 34,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 20,
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 47,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 21,
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 24,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 22,
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 42,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 23,
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 43,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 24,
+      "seed_index": 2,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 32,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 25,
+      "seed_index": 2,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 38,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 26,
+      "seed_index": 2,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 31,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 27,
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 29,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 28,
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 37,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 29,
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 50,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 30,
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 39,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 31,
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 45,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 32,
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 41,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 33,
+      "seed_index": 3,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 36,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 34,
+      "seed_index": 3,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 52,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 35,
+      "seed_index": 3,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 32,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 36,
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 35,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 37,
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 28,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 38,
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 0,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 20,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 39,
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 23,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 40,
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 26,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 41,
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 15,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 62,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 42,
+      "seed_index": 4,
+      "viewport": {
+        "x": 0,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 36,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 43,
+      "seed_index": 4,
+      "viewport": {
+        "x": 15,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 29,
+      "rationale": "coverage"
+    },
+    {
+      "query_index": 44,
+      "seed_index": 4,
+      "viewport": {
+        "x": 25,
+        "y": 25,
+        "w": 15,
+        "h": 15
+      },
+      "settlement_count": 25,
+      "rationale": "coverage"
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/runs/synthetic_tournament__round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd__policy=coverage__predictor=latent_regime_v1__episode_seed=0.json"
+}

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from astar.eval.backtest import BacktestRoundResult
+from astar.eval.competition import PairedBenchmarkComparison
 from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
+from astar.eval.science import ScienceRoundReport
+from astar.workflows.results import EvaluateTeacherScienceResult, SyntheticBenchmarkResult
 
 
 def render_round_episode_diagnostics(diagnostics: RoundEpisodeDiagnostics) -> str:
@@ -65,5 +68,91 @@ def render_backtest_round_report(result: BacktestRoundResult) -> str:
         lines.append(
             f"seed {item.seed_index}: score={item.score_breakdown.score:.4f} "
             f"weighted_kl={item.score_breakdown.weighted_kl:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_synthetic_benchmark_report(result: SyntheticBenchmarkResult) -> str:
+    lines = [
+        f"synthetic-benchmark {result.benchmark_name}",
+        f"predictor: {result.predictor_name}",
+        f"policy: {result.policy_name}",
+        f"manifest: {result.manifest_path}",
+        f"budget: {result.budget}",
+        f"episodes: {result.aggregate.episode_count}",
+        f"mean_score: {result.aggregate.mean_score:.4f}",
+        f"mean_weighted_kl: {result.aggregate.mean_weighted_kl:.6f}",
+        f"score_range: {result.aggregate.min_score:.4f}..{result.aggregate.max_score:.4f}",
+    ]
+    for item in result.episodes:
+        lines.append(
+            f"round={item.round_id} episode_seed={item.episode_seed} "
+            f"score={item.mean_score:.4f} weighted_kl={item.mean_weighted_kl:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_paired_benchmark_comparison_report(result: PairedBenchmarkComparison) -> str:
+    lines = [
+        "paired-benchmark-comparison",
+        f"baseline: {result.baseline_predictor_name}",
+        f"candidate: {result.candidate_predictor_name}",
+        f"policy: {result.policy_name}",
+        f"episodes: {result.episode_count}",
+        f"mean_score_delta: {result.mean_score_delta:.4f}",
+        f"mean_weighted_kl_delta: {result.mean_weighted_kl_delta:.6f}",
+        f"win_rate: {result.win_rate:.3f}",
+        f"loss_rate: {result.loss_rate:.3f}",
+        f"tie_rate: {result.tie_rate:.3f}",
+        f"score_delta_ci95: [{result.score_delta_ci_low:.4f}, {result.score_delta_ci_high:.4f}]",
+    ]
+    for item in result.episodes:
+        lines.append(
+            f"round={item.round_id} episode_seed={item.episode_seed} "
+            f"delta={item.score_delta:.4f} kl_delta={item.weighted_kl_delta:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_science_round_report(result: ScienceRoundReport) -> str:
+    lines = [
+        f"science-round {result.round_id}",
+        f"teacher: {result.teacher_name}",
+        f"regime_dim: {result.regime_dim}",
+        f"mean_terminal_l1: {result.mean_terminal_l1:.6f}",
+        f"mean_alive_curve_mae: {result.mean_alive_curve_mae:.6f}",
+        f"mean_port_curve_mae: {result.mean_port_curve_mae:.6f}",
+        f"mean_ruin_curve_mae: {result.mean_ruin_curve_mae:.6f}",
+        f"mean_owner_flip_mae: {result.mean_owner_flip_mae:.6f}",
+        f"mean_coefficient_l2: {result.mean_coefficient_l2:.6f}",
+    ]
+    for item in result.seed_reports:
+        lines.append(
+            f"seed={item.seed_index} terminal_l1={item.terminal_l1:.6f} "
+            f"alive_mae={item.alive_curve_mae:.6f} port_mae={item.port_curve_mae:.6f} "
+            f"ruin_mae={item.ruin_curve_mae:.6f} coeff_l2={item.coefficient_l2:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_teacher_science_report(result: EvaluateTeacherScienceResult) -> str:
+    lines = [
+        f"teacher-science {result.model_name}",
+        f"train_rounds: {len(result.train_round_ids)}",
+        f"eval_rounds: {len(result.eval_round_ids)}",
+        f"reports: {result.report_count}",
+        f"mean_terminal_l1: {result.mean_terminal_l1:.6f}",
+        f"mean_alive_curve_mae: {result.mean_alive_curve_mae:.6f}",
+        f"mean_port_curve_mae: {result.mean_port_curve_mae:.6f}",
+        f"mean_ruin_curve_mae: {result.mean_ruin_curve_mae:.6f}",
+        f"mean_owner_flip_mae: {result.mean_owner_flip_mae:.6f}",
+        f"mean_coefficient_l2: {result.mean_coefficient_l2:.6f}",
+    ]
+    for item in result.reports:
+        lines.append(
+            f"round={item.round_id} terminal_l1={item.mean_terminal_l1:.6f} "
+            f"alive_mae={item.mean_alive_curve_mae:.6f} "
+            f"port_mae={item.mean_port_curve_mae:.6f} "
+            f"ruin_mae={item.mean_ruin_curve_mae:.6f}",
         )
     return "\n".join(lines)

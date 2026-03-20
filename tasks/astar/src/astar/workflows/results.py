@@ -5,8 +5,12 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.core.grid import Viewport
+from astar.core.score import ScoreBreakdown
 from astar.eval.backtest import BacktestRoundResult
+from astar.eval.competition import CompetitionAggregate
 from astar.eval.diagnostics import RoundEpisodeDiagnostics
+from astar.eval.science import ScienceRoundReport
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
 from astar.history.summaries.hazards import ReplayHazardRoundSummary
@@ -195,3 +199,76 @@ class TrainSummaryStudentResult(BaseModel):
     sample_count: int = Field(ge=0)
     summary_dim: int = Field(ge=1)
     regime_dim: int = Field(ge=1)
+
+
+class EvaluateTeacherScienceResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    train_round_ids: list[str]
+    eval_round_ids: list[str]
+    report_count: int = Field(ge=0)
+    mean_terminal_l1: float = Field(ge=0.0)
+    mean_alive_curve_mae: float = Field(ge=0.0)
+    mean_port_curve_mae: float = Field(ge=0.0)
+    mean_ruin_curve_mae: float = Field(ge=0.0)
+    mean_owner_flip_mae: float = Field(ge=0.0)
+    mean_coefficient_l2: float = Field(ge=0.0)
+    reports: list[ScienceRoundReport]
+    artifact_path: Path
+    report_path: Path
+
+
+class TournamentQueryTrace(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    query_index: int = Field(ge=0)
+    seed_index: int = Field(ge=0)
+    viewport: Viewport
+    settlement_count: int = Field(ge=0)
+    rationale: str | None = None
+
+
+class SyntheticTournamentResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int | None = None
+    oracle_name: str
+    predictor_name: str
+    policy_name: str
+    episode_seed: int = Field(ge=0)
+    budget: int = Field(ge=0)
+    executed_queries: int = Field(ge=0)
+    mean_score: float
+    mean_weighted_kl: float
+    score_by_seed: dict[int, ScoreBreakdown]
+    query_trace: list[TournamentQueryTrace]
+    artifact_path: Path
+
+
+class SyntheticBenchmarkEpisodeResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int | None = None
+    episode_seed: int = Field(ge=0)
+    mean_score: float
+    mean_weighted_kl: float
+    tournament_artifact_path: Path
+
+
+class SyntheticBenchmarkResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    benchmark_name: str
+    predictor_name: str
+    policy_name: str
+    manifest_path: Path | None = None
+    budget: int = Field(ge=0)
+    round_ids: list[str]
+    episode_seeds: list[int]
+    aggregate: CompetitionAggregate
+    episodes: list[SyntheticBenchmarkEpisodeResult]
+    artifact_path: Path
+    report_path: Path

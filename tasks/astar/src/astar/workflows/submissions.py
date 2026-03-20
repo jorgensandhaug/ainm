@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from astar.baselines.static_semantic import (
     default_static_semantic_config,
 )
 from astar.baselines.uniform import build_uniform_prediction
+from astar.core.types import FloatArray
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.infra.api.client import AstarApiClient
 from astar.infra.api.dto import StoredSubmissionRecord, SubmissionRequest
@@ -20,6 +22,29 @@ from astar.infra.artifacts.store import (
     write_submission_record,
 )
 from astar.workflows.results import BuildSubmissionResult, SubmitPredictionResult
+
+
+def persist_prediction_bundle(
+    paths: WorkspacePaths,
+    round_id: str,
+    model_name: str,
+    predictions_by_seed: Mapping[int, FloatArray],
+) -> list[int]:
+    saved_seed_indexes: list[int] = []
+    for seed_index, prediction in sorted(predictions_by_seed.items()):
+        save_prediction_tensor(paths.prediction_tensor_path(round_id, seed_index), prediction)
+        record = StoredSubmissionRecord(
+            created_at=datetime.now(UTC),
+            model_name=model_name,
+            request=SubmissionRequest(
+                round_id=round_id,
+                seed_index=seed_index,
+                prediction=prediction.tolist(),
+            ),
+        )
+        write_submission_record(paths, round_id, seed_index, record)
+        saved_seed_indexes.append(seed_index)
+    return saved_seed_indexes
 
 
 def build_submission(
