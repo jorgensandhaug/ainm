@@ -105,6 +105,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - customer id
   - often assignable project manager id
   - `startDate`
+- Standard fast-path note:
+  - for the exact create-one-project shape with an existing customer identified by `organizationNumber` and an existing manager identified by `email`, the winning path is usually `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`
+  - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
+  - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
+- Standard verification note:
+  - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
 
 ## Activity
 - `/activity`

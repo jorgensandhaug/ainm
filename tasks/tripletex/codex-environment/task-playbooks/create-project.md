@@ -18,6 +18,10 @@ Sandbox verification on 2026-03-19 showed:
 - `GET /employee?email=...&assignableProjectManagers=true&fields=*` successfully finds an eligible manager when the employee really is assignable
 - the successful `POST /project` response already contained `name`, `startDate`, `customer.id`, and `projectManager.id`, so no follow-up `GET` was needed for verification
 
+Sandbox verification on 2026-03-20 additionally showed:
+- when the prompt omits `startDate`, using the run date as `startDate` succeeds on `POST /project`
+- the exact task shape with existing customer-by-organization-number plus existing manager-by-email still needs only two reads and one write
+
 ## Minimal Safe Flow
 
 1. Confirm `GET /customer`, `GET /employee`, and `POST /project` in `./openapi.json`
@@ -27,6 +31,7 @@ Sandbox verification on 2026-03-19 showed:
 3. Resolve the project manager with one decisive read
    - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`
    - exact-match the email locally because the API filter is containing, not exact
+   - if the prompt also gives the manager name, use it only as a local tie-breaker
 4. `POST /project` with:
    - `name`
    - `startDate`
@@ -38,6 +43,7 @@ Sandbox verification on 2026-03-19 showed:
 ## Recommended Payload Shape
 
 Use ISO date for `startDate`.
+- if the prompt omits `startDate`, default it to the run date instead of omitting the field
 
 ```json
 {
@@ -71,5 +77,6 @@ Use ISO date for `startDate`.
 ## Avoidable Mistakes
 
 - Do not omit `startDate` just because `openapi.json` does not clearly mark it required
+- Do not treat a missing prompt date as permission to skip `startDate`; default it to the run date
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try the write blindly
 - Do not spend a verification read if the `POST /project` response already proves the requested links

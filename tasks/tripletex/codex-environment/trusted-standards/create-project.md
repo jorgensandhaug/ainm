@@ -9,6 +9,7 @@
 - create one project
 - prompt provides project name and basic fields directly
 - any required customer or project manager is already clearly known or resolvable in one read each
+- prompt may omit `startDate`
 - no invoicing in the same task
 
 ## Do Not Use This Standard If
@@ -17,8 +18,8 @@
 - task is update/delete/search-heavy
 
 ## Standard Flow
-1. resolve customer if needed with one decisive `GET /customer?...&fields=*`
-2. resolve project manager only if needed with one decisive `GET /employee?...assignableProjectManagers=true&fields=*`
+1. resolve customer if needed with one decisive `GET /customer?organizationNumber=...&count=10&fields=*`
+2. resolve project manager only if needed with one decisive `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
 3. `POST /project`
 4. verify directly from write response
 5. stop
@@ -29,8 +30,12 @@
   - `startDate`
   - `customer: { "id": ... }` if customer is part of task
   - `projectManager: { "id": ... }` if manager is part of task
-- include `startDate` when prompt gives or implies it
+- always include `startDate`
+- if the prompt omits `startDate` for a create-only project task, default it to the run date in ISO `YYYY-MM-DD`
 - prefer assignable project managers, not any arbitrary employee
+- keep uniqueness checks local:
+  - compare returned `customer.organizationNumber` exactly, and use prompt `customer.name` only as a local tie-breaker when present
+  - compare returned `employee.email` exactly because the endpoint filter is containing, and use prompt manager name only as a local tie-breaker when present
 
 ## Reuse From Write Response
 - `value.id`
@@ -40,7 +45,7 @@
 
 ## Verification
 - default verification is zero extra calls
-- trust the write response if it already proves the scored fields
+- trust the write response if it already proves `name`, `startDate`, `customer.id`, and `projectManager.id`
 
 ## Known Recovery Branches
 - if project-manager assignment is validated strictly, resolve with `assignableProjectManagers=true`
@@ -48,3 +53,4 @@
 ## OpenAPI / Sandbox Status
 - `/project` verified in `./openapi.json`
 - required `startDate` and manager-eligibility gotchas proven in existing playbooks
+- sandbox create on `2026-03-20` succeeded with omitted-prompt `startDate` mapped to the run date
