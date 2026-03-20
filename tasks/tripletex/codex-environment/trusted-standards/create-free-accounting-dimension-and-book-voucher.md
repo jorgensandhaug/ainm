@@ -79,6 +79,7 @@
 - if `GET /ledger/account?number=<target-account>,1920&fields=*` does not return `1920`, do one fallback `GET /ledger/account?isBankAccount=true&fields=*` and choose the existing invoice or bank account from that result
 - `GET /ledger/account?number=<target-account>,1920&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally, or you can falsely conclude the target account is missing and burn extra recovery calls
 - if dimension creation fails because all three free dimensions are already in use, treat the run as blocked by account state rather than guessing an update or reuse flow
+- if a persistent sandbox used for post-run research already has all three free-dimension slots occupied, do not back-port search/reuse workarounds into the scored create-only standard; that blocker is a sandbox-state artifact, not evidence against the fresh-account five-call path
 - if dimension creation fails because the free-dimension feature is disabled, treat the run as blocked by missing module or feature state unless the prompt explicitly instructs an activation step
 
 ## OpenAPI / Sandbox Status
@@ -92,3 +93,5 @@
   - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=6590,1920&fields=*`
   - later same-day re-verification with dimension `KS154433946` assigned `dimensionIndex=3`, created values `Innkjøp` and `Logistikk`, and returned the linked value on `freeAccountingDimension3.id` in the successful voucher write response
   - a same-day voucher-path re-verification on existing sandbox dimension value `15253` confirmed that `GET /ledger/account?number=6860,1920&fields=*` returns both account rows with integer `number` fields and that the next `POST /ledger/voucher` succeeded with the linked `freeAccountingDimension1.id`
+  - the 2026-03-20 production run for exact prompt `Marked` / `Privat` / `Offentlig` / `6300` / `44950` succeeded on the first attempt with the standard five-call path and returned `dimensionIndex=1`, created value `Offentlig`, and a successful voucher write linked to that new value
+  - a same-day persistent-sandbox re-proof for account `6300` reused existing dimension value `15253` only because the sandbox was already full on free dimensions, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only voucher shortcut, then succeeded immediately after `GET /ledger/account?number=6300,1920&fields=*` with an id-based voucher write

@@ -32,6 +32,7 @@ Verified in persistent sandbox on 2026-03-20:
   - `postings.account.name: Kan ikke være null.`
 - the same number-only failure reproduced again with ordinary expense account `6590`
 - the same number-only failure reproduced again with ordinary expense account `6860`
+- the same number-only failure reproduced again with ordinary expense account `6300`
 - one decisive `GET /ledger/account?number=7000,1920&fields=*` resolved the safe account ids
 - that account lookup returns `account.number` as an integer in the response; local filters must compare numerically, not as strings
 - `POST /ledger/voucher` then succeeded with:
@@ -45,6 +46,8 @@ Verified in persistent sandbox on 2026-03-20:
   - linked posting field `freeAccountingDimension3={ "id": 15519 }`
   - voucher `608827949`
 - later same-day re-verification for the exact `6860` task shape reused existing dimension value `15253`, confirmed the same `422 postings.account.name: Kan ikke være null.` on the number-only shortcut, then succeeded immediately after `GET /ledger/account?number=6860,1920&fields=*` with voucher `608829214`
+- the 2026-03-20 production run for exact prompt `Marked` / `Privat` / `Offentlig` / `6300` / `44950` succeeded on the first attempt with the standard five-call path, created the new dimension and both new values, and posted the voucher against the newly created `Offentlig` value
+- a same-day persistent-sandbox re-proof for account `6300` had to reuse an existing dimension value only because all three sandbox free-dimension slots were already occupied; the number-only voucher shortcut still failed with `422 postings.account.name: Kan ikke være null.`, and the next id-based voucher write succeeded with voucher `608864963`
 - the successful voucher write response already proved the linked free-dimension value id and the booked amounts
 - the persistent sandbox later returned `422 Maximum of 3 accounting dimensions allowed` on `POST /ledger/accountingDimensionName` once all three free-dimension slots were occupied; that is a real account-state blocker, not a cue to add search/update/delete calls in a production create-only run
 
@@ -84,6 +87,7 @@ Verified in persistent sandbox on 2026-03-20:
 - do not try `account.number` directly on voucher postings just to save the account lookup; that path was re-tested and failed, so there is no trusted four-call shortcut for this exact task shape
 - do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only and does not reduce the call count for this task shape
 - do not add a speculative `GET /ledger/accountingDimensionName` or `GET /ledger/accountingDimensionValue/search` in a fresh-account create task just to guard against local script bugs; the minimal production path is still five calls, and local filtering bugs should be fixed in code rather than repaired with extra Tripletex reads
+- if a persistent sandbox is already full on free dimensions during reflection, keep any search/reuse branch confined to the research script; it is not part of the scored fresh-account playbook
 
 ## Winning Payload Shape
 
