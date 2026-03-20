@@ -98,7 +98,9 @@ PUT /ledger/account/{id}
 This was verified in sandbox:
 - invoice creation failed before this update
 - invoice creation succeeded after this update
-- not every 11-digit string is accepted in practice; use a checksum-valid unique 11-digit number
+- the known-good minimal payload on the existing invoice account is `{ "bankAccountNumber": "12345678903" }`
+- do not burn calls on an improvised locally generated bank-account number unless this exact minimal repair itself fails
+- if the customer create already succeeded and you later lose local process state, resume on the existing-customer branch instead of repeating `POST /customer`
 
 ## Key Finding: Resolve VAT Type Dynamically
 
@@ -195,7 +197,7 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
    - include `orderLines` inside the order, not directly on invoice input
 4. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
    - `GET /ledger/account?isBankAccount=true&fields=*`
-   - update the existing invoice account with `PUT /ledger/account/{id}`
+   - update the existing invoice account with `PUT /ledger/account/{id}` and minimal payload `{ "bankAccountNumber": "12345678903" }`
    - retry the invoice write once
 5. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
 
@@ -256,3 +258,5 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - Do not assume organization number alone makes EHF available; the production run for this task shape reproduced `422 Faktura kan ikke sendes via EHF`
 - Do not assume a successful direct-line invoice write without explicit `vatType` means the VAT is correct; persistent sandbox on 2026-03-20 accepted that shape and produced a no-VAT invoice (`28500` total on a `28500` ex-VAT line)
 - Do not spend `GET /customer` first on the exact fresh-account shape that only gives `name + organizationNumber` for a new customer; the 2026-03-20 sandbox re-verification proved the lower-call path is direct `POST /customer`, then filtered `GET /ledger/vatType`, then `POST /invoice`
+- If the first `POST /invoice` fails only on missing company bank account, do not turn that branch into a full rerun by guessing a new bank number or restarting from customer creation; the minimum recovery is one valid `PUT /ledger/account/{id}` and one retry of the same invoice payload
+- If that failed invoice already came after a successful customer create and you no longer hold the customer id locally, resume with `GET /customer?organizationNumber=...&fields=*`, then the same filtered VAT read, then `POST /invoice`

@@ -14,16 +14,10 @@ Create one employee from a Portuguese prompt: `João Rodrigues`, birth date `5. 
 # Call Efficiency
 
 - This run was minimal-call for the exact fresh-account task shape.
-- Realistic minimum safe path for this shape remains exactly `2` calls:
-  1. `POST /employee` with `firstName`, `lastName`, `dateOfBirth`, `email`, `userType: "NO_ACCESS"`, `employments: [{ startDate }]`
-  2. `GET /employee/employment?employeeId=<newId>&fields=*`
+- Realistic minimum safe path for this shape remains exactly `2` calls: `POST /employee` with `firstName`, `lastName`, `dateOfBirth`, `email`, `userType: "NO_ACCESS"`, `employments: [{ startDate }]`, then `GET /employee/employment?employeeId=<newId>&fields=*`.
 - Wasted calls: none.
 - Lower-call replacement path: none proven. A one-call stop after `POST /employee` is still unsafe because the successful write response commonly returns sparse `employments[]` without the scored `startDate`.
-- Calls that would have been wasted for this exact production shape:
-  - `GET /department` before the first `POST /employee`
-  - `GET /division` before a live `422 employments.division.id`
-  - any employee search/read before create
-  - `POST /employee/employment` as a first move instead of nested `employments` on create
+- Calls that would have been wasted for this exact production shape: `GET /department` before the first `POST /employee`; `GET /division` before a live `422 employments.division.id`; any employee search/read before create; `POST /employee/employment` as a first move instead of nested `employments` on create.
 
 # Root Causes
 
@@ -35,32 +29,15 @@ Create one employee from a Portuguese prompt: `João Rodrigues`, birth date `5. 
 # Sandbox Verification
 
 - I proved the repair branch in the persistent sandbox using a disposable employee with the same shape and Unicode first name: `João Rodrigues Reflection 1774046808818`, email `joao.rodrigues.1774046808818@example.org`.
-- Sandbox credentials used:
-  - base URL `https://kkpqfuj-amager.tripletex.dev/v2`
-  - Basic auth username `0`
-- Verified sandbox path was `6` calls total:
-  1. `POST /employee` -> `422` with `validationMessages[].field == "department.id"`
-  2. `GET /department?isInactive=false&count=1&fields=*` -> reused department `837842`
-  3. `POST /employee` with `department.id` -> `422` with `validationMessages[].field == "employments.division.id"`
-  4. `GET /division?count=1&fields=*` -> reused division `108244566`
-  5. `POST /employee` with `department.id` and `division.id` -> `201`, employee `18591608`
-  6. `GET /employee/employment?employeeId=18591608&fields=*` -> proved `startDate: 2026-08-08`
-- The sandbox proof re-confirmed two important facts:
-  - sandbox repair behavior is real, but repair reads must stay conditional
-  - even after success, the create response still did not prove `startDate`
+- Sandbox credentials used: base URL `https://kkpqfuj-amager.tripletex.dev/v2`; Basic auth username `0`.
+- Verified sandbox path was `6` calls total: `POST /employee` -> `422 department.id`; `GET /department?isInactive=false&count=1&fields=*` -> department `837842`; `POST /employee` with `department.id` -> `422 employments.division.id`; `GET /division?count=1&fields=*` -> division `108244566`; `POST /employee` with `department.id` and `division.id` -> `201`, employee `18591608`; `GET /employee/employment?employeeId=18591608&fields=*` -> `startDate: 2026-08-08`.
+- The sandbox proof re-confirmed two facts: sandbox repair behavior is real, but repair reads must stay conditional; even after success, the create response still did not prove `startDate`.
 
 # Playbook Changes
 
 - Updated existing trusted standards and playbook; created no new files.
-- Changed paths:
-  - `./AGENTS.md`
-  - `./trusted-standards/common-endpoints.md`
-  - `./trusted-standards/create-employee.md`
-  - `./task-playbooks/create-employee.md`
-- What changed:
-  - documented that Portuguese employee-create prompts with mixed-language date strings still use the same exact `2`-call fresh-account path
-  - documented that Unicode employee names such as `João` must be preserved exactly
-  - reinforced that no lower-call path than `POST /employee` -> `GET /employee/employment` is yet trusted for start-date-scored employee creates
+- Changed paths: `./AGENTS.md`, `./trusted-standards/common-endpoints.md`, `./trusted-standards/create-employee.md`, `./task-playbooks/create-employee.md`.
+- What changed: documented that Portuguese employee-create prompts with mixed-language date strings still use the same exact `2`-call fresh-account path; documented that Unicode employee names such as `João` must be preserved exactly; reinforced that no lower-call path than `POST /employee` -> `GET /employee/employment` is yet trusted for start-date-scored employee creates.
 
 # Commit
 
