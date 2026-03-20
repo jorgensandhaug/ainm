@@ -30,6 +30,7 @@ Persistent sandbox re-verification on 2026-03-20 additionally showed:
 Production verification on 2026-03-20 additionally showed:
 - the Portuguese prompt shape `create project + customer org number + manager email + omitted startDate` succeeded with the same 3-call path
 - the original run did not waste any API calls
+- the Portuguese production run `Análise Porto` / `Porto Alegre Lda` / `996943305` / `lucas.oliveira@example.org` also stayed on the same 3-call path; the Unicode `á` in the project name did not justify any extra resolver or verification read
 - the Norwegian prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Havbris AS` / `999148387` / `henrik.degard@example.org`
 - in that Norwegian production proof, the manager prompt name used `Ø` while the email local-part used ASCII `degard`; the exact-email match from the filtered employee read was still sufficient, so no extra name-based disambiguation read was needed
 - the French prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Migration Lumière` / `Lumière SARL` / `849572458` / `nathan.dubois@example.org`

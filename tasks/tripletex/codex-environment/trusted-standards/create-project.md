@@ -65,5 +65,6 @@
 - persistent sandbox re-proof on `2026-03-20` confirmed the exact `3`-call path remains minimal: one exact customer read, one assignable-manager read, one project write
 - that same re-proof also showed the tempting nested-customer shortcut is dangerous because `POST /project` can succeed while silently dropping the customer link
 - production create on `2026-03-20` for customer `986713344` plus manager `bruno.pereira@example.org` also succeeded with the exact 3-call path and no follow-up reads
+- production create on `2026-03-20` for project `Análise Porto` / customer `Porto Alegre Lda` (`996943305`) plus `lucas.oliveira@example.org` also succeeded with the same exact `3`-call path and no follow-up reads; the Unicode `á` in the project name was not a reason to add any extra resolver or verification read
 - production create on `2026-03-20` for `Porto Alegre Lda` / `884811686` plus `lucas.silva@example.org` also succeeded with the same exact `3`-call path and no follow-up reads
 - production create on `2026-03-20` for `Havbris AS` / `999148387` plus `henrik.degard@example.org` also succeeded with the same exact `3`-call path and no follow-up reads; the prompt manager name used `Ø` while the email local-part used ASCII `degard`, and that was not a reason to add disambiguation calls once the filtered employee read left one exact email hit
