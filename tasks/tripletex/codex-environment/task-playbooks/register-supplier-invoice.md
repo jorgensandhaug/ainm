@@ -54,6 +54,22 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - therefore write-response verification should key off known ids and amounts, not human-readable linked fields
 - sending root-level `voucher.vendorInvoiceNumber` did not persist that value in sandbox verification
   - the reliable place for the supplier invoice number in this flow is the supplier posting field `invoiceNumber`
+- persistent sandbox re-check on 2026-03-20 also proved the existing-supplier branch in `5` API calls for the same `6300 / 25% / 59800` voucher shape:
+  - `GET /supplier?organizationNumber=321000002&fields=*`
+  - `GET /ledger/account?number=6300&isApplicableForSupplierInvoice=true&fields=*`
+  - `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+  - `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
+  - `POST /ledger/voucher`
+- a production miss on 2026-03-20 showed why the existing-supplier branch must be the default for ordinary supplier-invoice prompts:
+  - direct `POST /supplier` booked the invoice against a newly created duplicate supplier instead of the intended existing supplier
+  - the run then got `0/8` correctness even though the voucher accounting shape itself was valid
+  - the prompt wording `from the supplier ...` was not enough evidence that the supplier was absent
+  - the corrected rule is: resolve by `organizationNumber` first, create only on a zero-hit lookup
+- a different production miss on 2026-03-20 showed an extra failure mode after a supplier create:
+  - the first script attempt created the supplier successfully, then aborted before the voucher write because the VAT resolver assumed the filtered `INCOMING` list would contain exactly one `25%` row
+  - the rerun then searched suppliers by `organizationNumber`, found duplicates, and guessed with a newest-id heuristic
+  - that heuristic is not correctness-safe for scored runs because the prompt did not identify the supplier by Tripletex id
+  - the correct repair is to keep the fallback inside the original script, reuse the already-created `supplier.id`, and finish the voucher write without a second supplier-resolution phase
 
 ## Minimal Safe Flow
 
@@ -65,14 +81,16 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `POST /ledger/voucher`
    - optional `GET /ledger/voucher/{id}`
 2. Resolve or create the supplier
-   - in a fresh-account create-like task where the prompt only gives one supplier identity and there is no evidence it already exists, use direct `POST /supplier`
-   - treat `GET /supplier?organizationNumber=...&fields=*` as a fallback only when the prompt or prior run state already indicates an existing-supplier lookup problem
-   - after `POST /supplier`, reuse `supplier.id` and `supplier.ledgerAccount.id` from the write response
+  - for ordinary prompts phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`
+  - if that lookup returns one exact hit, reuse it directly and do not create a supplier
+  - if that lookup returns zero hits, `POST /supplier` once and reuse `supplier.id` and `supplier.ledgerAccount.id` from the write response
+  - if that lookup returns several hits, continue only if exact `organizationNumber` plus exact `name` leaves one unique candidate; otherwise treat the run state as ambiguous
+  - if a later branch fails after a supplier write, keep the repair inside the same process; do not restart from scratch and do not replace the captured supplier id with a search result
 3. Resolve the expense account
-   - usually `GET /ledger/account?number=<account-number>&isApplicableForSupplierInvoice=true&fields=*`
+  - usually `GET /ledger/account?number=<account-number>&isApplicableForSupplierInvoice=true&fields=*`
 4. Resolve a valid incoming VAT type for the voucher date
-   - `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<voucher-date>&fields=*`
-   - choose the requested percentage
+  - `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<voucher-date>&fields=*`
+  - choose the requested percentage
    - if several same-percentage candidates exist, prefer the plain numeric base code over derived codes such as `TAP-1`
 5. Resolve the supplier-invoice voucher type
    - `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
@@ -161,25 +179,30 @@ In real tasks, replace the IDs with the values resolved in the current account. 
   - one gross amount
   - one expense account number
   - one explicit VAT percentage
-- the winning flow is minimal-call for this create-like shape:
-  1. `POST /supplier`
+- the winning flow is minimal-call for the common existing-supplier shape:
+  1. `GET /supplier?organizationNumber=...&fields=*`
   2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
   3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`
   4. `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
   5. `POST /ledger/voucher`
-- do not add `GET /supplier?...` ahead of that sequence unless the prompt explicitly indicates an existing-supplier lookup problem
+- only switch to `POST /supplier` when that first supplier lookup returns zero hits
+- do not skip the supplier lookup just because the account is otherwise fresh-seeming; the prompt may still target an already-existing supplier
+- do not restart the script after a successful supplier create just because a later local resolver needs refinement; keep that refinement in-script and preserve the captured supplier id
 - stop from the write response if it already proves the scored fields by ids and amounts
 - do not spend an automatic verification `GET` unless the response is unexpectedly sparse
 
 ## Avoidable Mistakes
 
 - Do not default to `POST /incomingInvoice`; it can be unavailable even when the voucher path works
+- Do not default to `POST /supplier` for an ordinary register-supplier-invoice prompt when the prompt identifies `the supplier` by organization number; that can create a duplicate and miss the intended target supplier
 - Do not use `typeOfVat=INCOMING_INVOICE` for ledger-voucher VAT selection
 - Do not send `amountVat` on `POST /ledger/voucher`
 - Do not place the supplier invoice number only on root `voucher.vendorInvoiceNumber`
 - Do not create the supplier liability posting without `supplier: { "id": ... }`
 - Do not book the supplier liability line to a general liability account without also linking the supplier object
-- Do not add a pre-read for the supplier in a fresh-account task when direct `POST /supplier` is already the lower-risk winning prerequisite
+- Do not skip a decisive `GET /supplier?organizationNumber=...&fields=*` when the task is to register an invoice from a named supplier and the prompt does not explicitly say the supplier must be created
+- Do not restart from scratch after `POST /supplier` succeeds; keep later repair branches such as VAT-type disambiguation inside the same script
+- Do not search suppliers and guess by newest id, active flag, or name tie-break once duplicate prompt-matching suppliers exist; that state is ambiguous unless you already captured the exact supplier id earlier in the same run
 
 ## Verification Shape
 

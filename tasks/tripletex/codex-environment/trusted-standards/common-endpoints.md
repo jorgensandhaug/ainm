@@ -289,12 +289,16 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for the exact one-supplier create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical path is one `POST /supplier`
   - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
-  - for the exact fresh-account supplier-invoice booking shape, prefer direct `POST /supplier` and do not spend a supplier search read first
+  - for ordinary supplier-invoice tasks phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`; if that lookup returns one exact hit, reuse it and do not create a duplicate supplier
+  - only use direct `POST /supplier` inside that supplier-invoice workflow when the lookup returns zero hits or the prompt explicitly says the supplier must be created first
+  - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
   - map a single generic prompt email to `email`, not `invoiceEmail`
   - an invoice-looking contact address such as `faktura@...` is still just `email` unless the prompt explicitly asks for a separate invoice/billing email field
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
+  - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
+  - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
 
 ## Travel Expense
 - `/travelExpense`
@@ -410,4 +414,6 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
-  - for the exact supplier-invoice ledger-voucher shape, the minimal verified create path is supplier write, expense-account read, incoming-VAT read, voucher-type read, then voucher write
+  - for the exact supplier-invoice ledger-voucher shape with an already-existing supplier, the minimal verified path is supplier lookup, expense-account read, incoming-VAT read, voucher-type read, then voucher write
+  - if that same supplier-invoice shape truly has no existing supplier, the create branch is one extra call: supplier lookup, supplier write, expense-account read, incoming-VAT read, voucher-type read, then voucher write
+  - in that supplier-invoice shape, if the incoming-VAT read returns several rows with the requested percentage, prefer the plain numeric base code over derived rows such as `TAP-1`, and do that selection locally without restarting the workflow
