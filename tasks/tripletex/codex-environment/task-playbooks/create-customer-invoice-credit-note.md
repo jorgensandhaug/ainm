@@ -30,6 +30,14 @@ Verified on 2026-03-20:
 - original production run succeeded in two API calls:
   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+- the exact successful production prompt shape was:
+  - `customer.organizationNumber=900993560`
+  - `amountExcludingVatCurrency=30500`
+  - `description="Maintenance"`
+- that production run was already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no voucher lookup or reversal
 - persistent-sandbox re-verification created a fixture invoice and then proved that:
   - one `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` was enough to locate the unique target invoice by:
     - `customer.organizationNumber`
@@ -43,6 +51,8 @@ Verified on 2026-03-20:
     - `creditedInvoice=<original invoice id>`
     - its own credit-note `id`
     - its own credit-note `invoiceNumber`
+  - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` again proved the same two-call core after setup
+  - on that exact-identifier fixture, the locate read still showed duplicate `Maintenance` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
 
 ## Minimal Flow
 
@@ -78,6 +88,7 @@ Verified on 2026-03-20:
   1. `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
   2. `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
 - that two-call path is already minimal for this prompt shape
+- for the exact `900993560` + `Maintenance` + `30500` prompt shape, do not try to improve it with a separate customer lookup; that only adds waste
 - only skip step 1 when the prompt already provides the exact invoice id
 - do not insert:
   - `GET /customer`

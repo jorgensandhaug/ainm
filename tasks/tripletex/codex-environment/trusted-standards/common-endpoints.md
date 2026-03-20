@@ -248,6 +248,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
+  - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case on 2026-03-20, that two-call path is already minimal; do not add `GET /customer`
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
   - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
 - Standard search note:
@@ -261,6 +262,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard credit-note note:
   - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`
   - default to `sendToCustomer=false` unless the prompt explicitly requires sending the credit note
+  - when one invoice search already matches on `customer.organizationNumber`, exact ex-VAT amount, and exact line description, treat that read as the resolver; do not spend a follow-up `GET /customer`
   - the write response can already prove success with `isCreditNote=true` and `creditedInvoice=<original invoice id>`, so an extra `GET /invoice/{id}` is not part of the trusted fast path
 - Standard project-invoice note:
   - `GET /invoice/details/{id}?fields=*` is useful for diagnosing whether a preliminary project invoice has `includeHours=false`
