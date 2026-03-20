@@ -116,6 +116,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning path is usually invoice read, voucher reverse, invoice verify
+- Standard search note:
+  - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
+  - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
 - Standard credit-note note:

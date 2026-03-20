@@ -24,11 +24,26 @@
 3. verify from the credit-note write response
 4. stop
 
+## Exact-Match Fast Path
+- if the prompt gives:
+  - customer organization number
+  - exact ex-VAT amount
+  - exact service or line description
+  - no exact invoice id
+- the minimal realistic path is exactly two API calls:
+  1. one decisive `GET /invoice?...`
+  2. one `PUT /invoice/{id}/:createCreditNote?...`
+- only reduce this to one API call when the prompt already gives the exact invoice id
+- do not spend a separate `GET /customer` or `GET /invoice/{id}` in the standard shape
+
 ## Payload Rules
 - locate the invoice by prompt facts such as:
   - `customer.organizationNumber`
   - exact ex-VAT amount
   - exact service/line description
+- if the prompt gives no invoice date, prefer one wide but bounded invoice search window such as:
+  - `invoiceDateFrom=2000-01-01`
+  - `invoiceDateTo=<run-date-plus-one-day>`
 - filter out:
   - `isCreditNote=true`
   - `isCredited=true`
@@ -57,5 +72,10 @@
 ## OpenAPI / Sandbox Status
 - `/invoice` and `/invoice/{id}/:createCreditNote` verified in `./openapi.json`
 - re-verified on 2026-03-20 in persistent sandbox:
+  - a fresh fixture customer plus invoice could still be credited through the same standard two-call core of:
+    - `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+    - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+  - the locate step matched the created fixture invoice exactly by organization number, `amountExcludingVatCurrency=10400`, and nested order-line description
+  - the write response returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>`
   - one decisive `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the target invoice by organization number, exact ex-VAT amount, and exact line description
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>`

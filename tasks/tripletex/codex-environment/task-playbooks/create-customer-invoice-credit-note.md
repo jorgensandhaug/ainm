@@ -23,6 +23,8 @@ Do not use for:
 - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
 - a single decisive invoice read can often replace a separate `GET /customer` if the prompt already gives enough identifying facts
 - the credit-note write returns `ResponseWrapperInvoice`, and in sandbox it returned the created credit note itself, not just the updated original invoice
+- for prompts without an exact invoice id, two API calls are the minimal realistic path
+- a one-call path exists only when the prompt already gives the exact invoice id
 
 Verified on 2026-03-20:
 - original production run succeeded in two API calls:
@@ -48,6 +50,7 @@ Verified on 2026-03-20:
    - `PUT /invoice/{id}/:createCreditNote`
 2. Locate the original invoice with one decisive read
    - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   - if the prompt gives no invoice date, default to one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>`
 3. Filter locally to the single correct invoice
    - exact customer organization number if provided
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
@@ -72,6 +75,8 @@ Verified on 2026-03-20:
 - the winning path is:
   1. `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
   2. `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
+- that two-call path is already minimal for this prompt shape
+- only skip step 1 when the prompt already provides the exact invoice id
 - do not insert:
   - `GET /customer`
   - `GET /invoice/{id}`
