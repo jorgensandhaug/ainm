@@ -244,6 +244,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
   - map a single generic prompt email to `email`, not `invoiceEmail`
+  - an invoice-looking contact address such as `faktura@...` is still just `email` unless the prompt explicitly asks for a separate invoice/billing email field
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
 
 ## Travel Expense
