@@ -77,6 +77,7 @@ Authentication:
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
@@ -182,6 +183,9 @@ Authentication:
 - Employee creation may require a department if department functionality is enabled in the account.
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may echo `userType: null` plus `employments` entries with only `id`/`url`, not the submitted `startDate`.
 - If employee start date is scored, plan one decisive `GET /employee/employment?employeeId=...&fields=*` unless the create response unexpectedly includes the actual `startDate`.
+- Payroll runs through `POST /salary/transaction` require a payroll-ready employee. One decisive `GET /employee?email=...&fields=*` should confirm at least `dateOfBirth` plus an employment covering the target period before the salary write. If those prerequisites are missing and the prompt does not provide the missing personal/business-setup data, treat the run as blocked instead of inventing them.
+- For payroll tasks with manual salary lines, resolve salary types from `GET /salary/type?count=1000&fields=*` and use embedded `payslips[].specifications[]` on `POST /salary/transaction`. In accounts without department accounting, omitting `department` from that salary payload avoids `422 department: Selskapet har ikke aktivert avdelingsregnskap.`
+- When a successful `POST /salary/transaction` response is too sparse, the decisive verification branch is `GET /salary/transaction/{id}?fields=*` to get payslip ids, then `GET /salary/payslip/{id}?fields=*` for gross/net amounts and specification count.
 - Project creation may require `startDate` even though the `Project` schema does not clearly mark it as required. Project manager assignment is also validated: a plain employee match may still be ineligible, so prefer resolving managers with `assignableProjectManagers=true`.
 - For fixed-price project partial-billing tasks, do not assume `PUT /order/{id}/:invoice?...createOnAccount=...` can invoice an order with no real order lines; sandbox returned `422` with `Fakturaen inneholder ingen ordrelinjer.`. The safer path is one real project-linked order line for the partial amount, then normal `:invoice` without `createOnAccount`.
 - In that fixed-price partial-billing flow, `POST /order` may still echo `orderLines=[]` even when the embedded line was created. If the invoice write response does not already prove the project link, one targeted `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` can confirm both the line and `orders[0].project.id`.
