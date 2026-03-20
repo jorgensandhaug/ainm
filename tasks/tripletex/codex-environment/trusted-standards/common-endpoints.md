@@ -227,13 +227,15 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
-  - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning path is usually invoice read, voucher reverse, invoice verify
+  - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
+  - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
 - Standard search note:
   - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
   - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
   - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
+  - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative customer-ledger posting, often `account.number=1500` with payment text such as `Betaling: ...`
   - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`
 - Standard credit-note note:
   - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`

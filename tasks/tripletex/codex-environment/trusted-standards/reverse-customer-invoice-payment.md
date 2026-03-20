@@ -18,28 +18,30 @@
 ## Standard Flow
 1. `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` to identify the exact paid invoice and extract its payment voucher id
 2. `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
-3. `GET /invoice?...&id=<invoiceId>&fields=*,postings(*,voucher(*))` to verify the invoice outstanding amount reopened
-4. stop
+3. stop
+4. only if the task or local uncertainty truly requires explicit balance proof, `GET /invoice?...&id=<invoiceId>&fields=*,postings(*,voucher(*))` to verify the invoice outstanding amount reopened
 
 ## Payload Rules
 - identify the invoice from prompt facts such as customer organization number, ex-VAT amount, and service text
 - treat a prompt ex-VAT amount as a locate key, not as the post-reversal verification target
 - prefer the prompt-provided reversal date; otherwise use the task date
 - extract the payment voucher id from `postings[]`, not from a guessed invoice field
-- for single-payment invoices, the payment voucher is usually the unique voucher referenced by postings with `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`, or by negative payment postings
+- for single-payment invoices, the payment voucher is usually the unique voucher referenced by postings with `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
+- if no such typed posting exists, accept the unique negative customer-ledger payment posting instead, typically `account.number=1500` with payment-style text such as `Betaling: ...`; the payment posting `type` can be `null`
 
 ## Reuse From Read / Write Responses
 - from the first invoice read:
   - `invoice.id`
-  - the expected reopened outstanding amount from the invoice object itself, usually `amountCurrency` or `amount`
   - `paymentVoucherId`
+  - only if you plan the optional verification read, the expected reopened outstanding amount from the invoice object itself, usually `amountCurrency` or `amount`
 - from `PUT /ledger/voucher/{id}/:reverse`:
   - `value.id` of the reverse voucher
 
 ## Verification
-- do one decisive invoice re-read after the reversal
-- verify `amountCurrencyOutstanding` or `amountOutstanding` equals the expected reopened balance captured from the first invoice read, not the prompt lookup amount
-- do not spend an extra voucher read if the invoice verification already proves the scored state
+- for exact-match scored runs, the default fast path is no verification read after the successful reverse write
+- only do one decisive invoice re-read after the reversal when the prompt explicitly requires balance proof or the locate step left enough ambiguity that the extra read materially reduces risk
+- on that optional re-read, verify `amountCurrencyOutstanding` or `amountOutstanding` equals the expected reopened balance captured from the first invoice read, not the prompt lookup amount
+- do not spend an extra voucher read if the optional invoice verification already proves the scored state
 
 ## Known Recovery Branches
 - if the first invoice read yields multiple paid invoices, narrow locally with the prompt identifiers before writing
@@ -48,5 +50,7 @@
 ## OpenAPI / Sandbox Status
 - `/invoice` and `/ledger/voucher/{id}/:reverse` verified in `./openapi.json`
 - exact reverse-payment flow re-proven on 2026-03-20 in sandbox and production
-- sandbox re-proof on 2026-03-20 again confirmed the 3-call reversal path once the paid invoice already existed: locate invoice, reverse payment voucher, re-read invoice
+- sandbox re-proof on 2026-03-20 confirmed the score-optimal 2-call exact-match path once the paid invoice already existed: locate invoice, reverse payment voucher, stop
+- the same sandbox proof on 2026-03-20 also confirmed the optional third-call verification branch: a later invoice read showed the outstanding amount reopened correctly after the reverse write
+- persistent sandbox fixture invoice `38` / invoice id `2147531258` showed the payment posting as `amountCurrency=-1000`, `account.number=1500`, `description="Betaling: Faktura nummer 38 til Montanha Lda (10042)"`, `voucherId=608828379`, and `type=null`
 - `GET /invoice` for outgoing invoices rejects `fields=...payments(...)`; use `postings(...)` instead

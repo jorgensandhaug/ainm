@@ -19,8 +19,10 @@ Do not use for:
 - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
 - For outgoing invoices, payment voucher discovery works from `postings(...)`
 - `fields=...payments(...)` on `GET /invoice` can fail with `400 Illegal field in fields filter: payments ... InvoiceDTO`
+- The score-optimal exact-match path is usually 2 Tripletex API calls, not 3: one decisive invoice read, then the voucher-reverse write, then stop
 - A prompt ex-VAT amount can be only a locate key; the post-reversal verification target should come from the invoice object's own pre-reversal total, usually `amountCurrency` or `amount`
-- The voucher-reverse response does not itself prove the invoice balance reopened; one final `GET /invoice?...id=<invoiceId>` is the decisive verification
+- A final `GET /invoice?...id=<invoiceId>` is only an optional proof branch; it is not part of the score-optimal exact-match path
+- Payment-voucher detection must not rely only on `posting.type`; the payment posting can be `type=null` while still being the unique negative `1500` customer-ledger posting with `description` like `Betaling: ...`
 
 Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/order fixture:
 - created customer `108245278`
@@ -42,6 +44,17 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture:
 - `PUT /ledger/voucher/608827344/:reverse?date=2026-03-20` returned reverse voucher `608827345`
 - the final `GET /invoice?...id=2147529999&fields=*,postings(*,voucher(*))` showed `amountCurrencyOutstanding=1000` again
 
+Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture focused on call efficiency:
+- created order `401960687`
+- invoiced it as invoice `2147531258` / invoice number `38`
+- paid it with payment type `32813747`
+- the locate read showed two relevant customer-ledger postings:
+  - invoice posting `voucherId=608828378`, `type=OUTGOING_INVOICE_CUSTOMER_POSTING`, `amountCurrency=1000`
+  - payment posting `voucherId=608828379`, `type=null`, `amountCurrency=-1000`, `account.number=1500`, `description="Betaling: Faktura nummer 38 til Montanha Lda (10042)"`
+- `PUT /ledger/voucher/608828379/:reverse?date=2026-03-20` returned reverse voucher `608828380`
+- one later proof-only `GET /invoice?...id=2147531258&fields=*,postings(*,voucher(*))` showed `amountCurrencyOutstanding=1000` again
+- therefore the score-optimal exact-match production path is 2 calls, while the 3rd invoice read remains only an optional proof branch outside the minimum path
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -54,21 +67,23 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture:
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
    - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].invoiceComment`, or nearby invoice text fields
    - fully paid state before reversal: `amountCurrencyOutstanding = 0` or `amountOutstanding = 0`
-   - capture the expected reopened balance from the located invoice itself, usually `amountCurrency` or `amount`
 4. Extract one payment voucher id from `postings[]`
    - prefer vouchers referenced by `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
-   - if needed, accept the unique voucher referenced by negative payment postings
+   - if no such typed posting exists, accept the unique negative customer-ledger payment posting instead
+   - in practice that fallback is often `account.number=1500` plus payment text such as `Betaling: ...`, even when `posting.type` is `null`
 5. Reverse that voucher
    - `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
-6. Verify the invoice balance reopened
+6. Stop for the score-optimal exact-match path
+7. Only if explicit proof is needed, verify the invoice balance reopened
    - `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&id=<invoiceId>&fields=*,postings(*,voucher(*))`
    - confirm `amountCurrencyOutstanding` or `amountOutstanding` equals the pre-reversal invoice balance from the first invoice read, not the prompt ex-VAT lookup amount
 
 ## Exact-Match Fast Path
 
-- For a standard prompt that names one paid outgoing invoice strongly enough, the winning path is usually 3 Tripletex API calls:
+- For a standard prompt that names one paid outgoing invoice strongly enough, the winning score-first path is usually 2 Tripletex API calls:
   1. `GET /invoice`
   2. `PUT /ledger/voucher/{paymentVoucherId}/:reverse`
+- Only add the third call below when explicit proof is worth the extra score cost:
   3. `GET /invoice`
 - Do not add `GET /customer`, `GET /ledger/voucher/{id}`, or `GET /ledger/posting` unless the first invoice read is genuinely ambiguous
 
@@ -81,17 +96,19 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture:
 ## Verification Shape
 
 - Expect the reverse write to return `ResponseWrapperVoucher`
-- Expect the final invoice verification read to return `ListResponseInvoice`
 - Reuse the first invoice read for:
   - invoice id
-  - expected reopened outstanding amount
   - payment voucher id
-- Do not add another voucher read if the final invoice read already proves the reopened balance
+- only if you choose the optional proof branch, also reuse the first invoice read for the expected reopened outstanding amount
+- if you do choose the optional proof branch, expect the final invoice verification read to return `ListResponseInvoice`
+- do not add another voucher read if the optional final invoice read already proves the reopened balance
 
 ## Avoidable Mistakes
 
 - Do not call `PUT /invoice/{id}/:payment` to undo a payment
 - Do not send `fields=...payments(...)` on `GET /invoice`
 - Do not reverse the original invoice voucher when the prompt is about the payment voucher
+- Do not assume the payment voucher will always surface under `posting.type=INCOMING_PAYMENT`; a real matching payment posting can have `type=null`
+- Do not spend an automatic final `GET /invoice` in an exact-match scored run once the right payment voucher has been isolated and successfully reversed
 - Do not verify the reopened balance against the prompt ex-VAT amount when the invoice object itself carries the true gross/pre-reversal balance
-- Do not skip the final invoice verification; the reverse-voucher response alone does not prove the invoice outstanding amount reopened
+- Do not add separate `GET /ledger/voucher/{id}` or `GET /ledger/posting` reads when the first invoice read already isolates one payment voucher
