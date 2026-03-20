@@ -289,6 +289,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if a speculative first product resolver is used anyway and returns only a partial subset, the broader catalog fallback should happen in the same script/callback chain; do not restart the flow and duplicate the customer read
   - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
   - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
+  - if the first `POST /invoice` on an exact-number existing-product create-only path fails only on the missing-company-bank-account validation, repair `/ledger/account/{id}` and retry the exact same invoice payload once; do not re-read customer, products, or `/ledger/vatType`
 - Standard direct-line VAT note:
   - for simple direct `orders[].orderLines[]` invoice writes without a product, do not omit line `vatType` just to save the `GET /ledger/vatType` call when the prompt implies a taxable service
   - persistent sandbox on 2026-03-20 accepted that lower-call write shape but created a no-VAT invoice (`amountCurrency == amountExcludingVatCurrency`)

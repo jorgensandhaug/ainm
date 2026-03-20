@@ -65,6 +65,7 @@
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update existing invoice account with `PUT /ledger/account/{id}`
   - retry invoice write once
+  - keep the same invoice payload on that retry; do not re-read customer, products, or `vatType` after a bank-account-only validation failure
 - if the one-shot product catalog read is ambiguous or incomplete, use the documented numeric recovery chain instead of guessing from approximate matches
 - if a speculative `GET /product?productNumber=...` returns only a partial subset on a name-rich prompt, do the broader catalog fallback in the same script; do not re-read the customer or rerun the whole flow from the top
 

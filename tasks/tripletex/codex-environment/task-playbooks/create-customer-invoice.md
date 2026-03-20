@@ -275,6 +275,7 @@ then the practical repair path is:
 ```
 
 4. retry `POST /invoice` once
+5. keep the same invoice payload on that retry; do not re-read customer, products, or `vatType` if the only failure was the company-bank-account validation
 
 ## Avoidable Mistakes
 
