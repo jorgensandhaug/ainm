@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-101321096Z-4ed95059/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Sett fastpris 374900 kr på prosjektet "Datasikkerhet" for Snøhetta AS (org.nr 840786692). Prosjektleder er Jonas Larsen (jonas.larsen@example.org). Fakturer kunden for 75 % av fastprisen som en delbetaling.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+xurXcOgd-z9nUn-_UiMNakbwLTa4kYH9Fg-eZBliSRI
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-101321096Z-4ed95059/scripts

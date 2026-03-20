@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-132045439Z-f59b2940/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Me har motteke faktura INV-2026-4995 frå leverandøren Fossekraft AS (org.nr 949805727) på 62850 kr inklusiv MVA. Beløpet gjeld kontortenester (konto 7000). Registrer leverandørfakturaen med korrekt inngåande MVA (25 %).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+4VfN5H4b6EP8_8f6tOZSxCGO1L4rz-B4lSXkSkA4CVg
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-132045439Z-f59b2940/scripts

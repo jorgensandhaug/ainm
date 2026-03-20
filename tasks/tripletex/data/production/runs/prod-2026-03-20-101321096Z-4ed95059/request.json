@@ -1,0 +1,8 @@
+{
+  "prompt": "Sett fastpris 374900 kr på prosjektet \"Datasikkerhet\" for Snøhetta AS (org.nr 840786692). Prosjektleder er Jonas Larsen (jonas.larsen@example.org). Fakturer kunden for 75 % av fastprisen som en delbetaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "xurXcOgd-z9nUn-_UiMNakbwLTa4kYH9Fg-eZBliSRI"
+  }
+}

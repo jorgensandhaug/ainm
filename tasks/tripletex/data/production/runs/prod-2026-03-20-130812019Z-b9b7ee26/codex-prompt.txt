@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-130812019Z-b9b7ee26/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Crea un pedido para el cliente Río Verde SL (org. nº 951612936) con los productos Informe de análisis (4430) a 20900 NOK y Sesión de formación (7773) a 18350 NOK. Convierte el pedido en factura y registra el pago completo.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+AuygPY-0MkpxnniD-txAfZyz_KhI_d-gl_hhry-GG90
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-130812019Z-b9b7ee26/scripts

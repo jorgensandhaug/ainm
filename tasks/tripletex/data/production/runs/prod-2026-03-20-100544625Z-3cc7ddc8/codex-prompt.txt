@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-100544625Z-3cc7ddc8/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Create a customer named Debug Test AS with email debug@example.no and organization number 999888771.
+
+Tripletex API base URL:
+https://example.invalid/v2
+
+Tripletex session token:
+dummy
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-100544625Z-3cc7ddc8/scripts

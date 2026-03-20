@@ -1,0 +1,7 @@
+{
+  "prompt": "Create a customer named Ngrok Debug AS with email ngrok-debug@example.no and organization number 999888772.",
+  "tripletex_credentials": {
+    "base_url": "https://example.invalid/v2",
+    "session_token": "dummy"
+  }
+}

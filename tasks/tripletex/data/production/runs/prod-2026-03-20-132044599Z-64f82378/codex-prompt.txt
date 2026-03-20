@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-132044599Z-64f82378/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Opprett ein ordre for kunden Nordlys AS (org.nr 951788031) med produkta Datarådgjeving (9057) til 36900 kr og Programvarelisens (4573) til 19450 kr. Konverter ordren til faktura og registrer full betaling.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+l9NdbCaPYC34iakW7AYPmJRiWo1DPRgjI5-GuQ_vnt0
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-132044599Z-64f82378/scripts

@@ -1,0 +1,8 @@
+{
+  "prompt": "Set a fixed price of 428550 NOK on the project \"CRM Integration\" for Ironbridge Ltd (org no. 832020141). The project manager is Ella Williams (ella.williams@example.org). Invoice the customer for 25% of the fixed price as a milestone payment.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "fYqFTMm2cJ3OOAMyx3JRqVhc7OxN0KPdwlMXsP8yO04"
+  }
+}

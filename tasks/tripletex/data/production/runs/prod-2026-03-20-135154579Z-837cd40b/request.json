@@ -1,0 +1,8 @@
+{
+  "prompt": "The payment from Brightstone Ltd (org no. 993125393) for the invoice \"Data Advisory\" (27100 NOK excl. VAT) was returned by the bank. Reverse the payment so the invoice shows the outstanding amount again.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "GUiqZ7T76aFkwObpPDFKjaZWFcgLMRgwZvRVeYMqr08"
+  }
+}

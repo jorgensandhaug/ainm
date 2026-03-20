@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie uma fatura para o cliente Floresta Lda (org. nº 944182802) com três linhas de produto: Relatório de análise (2039) a 19600 NOK com 25 % IVA, Design web (3304) a 12450 NOK com 15 % IVA (alimentos), e Licença de software (1599) a 9150 NOK com 0 % IVA (isento).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "WX91iLwjlEOLe9shlY4oZRAP_us-syvD3jdsnR3T4z0"
+  }
+}

@@ -23,11 +23,6 @@ type StorageMode = "testing" | "production";
 
 type SolveResponse = {
   status: "completed";
-  run_id: string;
-  run_dir: string;
-  tmux_session: string;
-  tmux_window: string;
-  storage_mode: StorageMode;
 };
 
 type ErrorResponse = {
@@ -51,6 +46,7 @@ type PreparedRun = {
   files: StoredSolveFile[];
   launchScriptPath: string;
   promptFilePath: string;
+  requestId: string;
   requestFilePath: string;
   runDir: string;
   runId: string;
@@ -857,22 +853,32 @@ function buildReflectionPrompt(
     "",
     "You must complete this full sequence:",
     "1. Reflect on the original run: what went well, what went poorly, what mistakes happened, why they happened, and what the correct approach should have been.",
-    "2. Then use the persistent sandbox to investigate and prove the correct solution path.",
-    "3. Then update the task playbook system from what you learned.",
-    "4. Then commit the AGENTS.md and playbook changes.",
-    "5. Then write the final summary.",
+    "2. Then explicitly audit whether the run used the fewest API calls realistically possible for that exact task shape.",
+    "3. Then use the persistent sandbox to investigate and prove the correct solution path.",
+    "4. Then identify the lower-call path that the next agent should use for the same or very similar task, and list the specific API-call pitfalls that should be avoided.",
+    "5. Then update the trusted-standard and playbook system from what you learned, certain earlier trusted standards or playbooks may be inefficient or not the optimal API execution paths.",
+    "6. Then commit the AGENTS.md, trusted-standard, and playbook changes.",
+    "7. Then write the final summary.",
     "",
     "Strict rules:",
     "- Do not continue the original competition task against its original credentials.",
     "- If you need to call Tripletex during this follow-up, use only the sandbox credentials provided below.",
     `- Put any sandbox API scripts only in this run scripts directory: ${scriptsDir}`,
     "- Use TypeScript plus bun for API interaction.",
-    "- Re-read ./AGENTS.md and inspect ./task-playbooks/ before deciding whether to update an existing playbook or create a new one.",
+    "- If creation of certain objects are needed in the Sandbox but were not needed in the production task, omit these or any mention of verification of objects from the playbook. These will already be there when the production task comes next time",
+    "- Re-read ./AGENTS.md and inspect ./trusted-standards/ and ./task-playbooks/ before deciding what to update.",
+    "- If the task was an exact common task shape and you proved a better or corrected standard path, update the relevant file in ./trusted-standards/.",
+    "- If you changed a common endpoint shape, prerequisite rule, or canonical low-call path, also update ./trusted-standards/common-endpoints.md.",
+    "- Always think in terms of minimum API calls needed for perfect correctness.",
+    "- If the run used extra calls, explain exactly which calls were unnecessary and what the lower-call replacement path is.",
+    "- Record specific pitfalls that would make a future agent waste calls or trigger avoidable 4xx errors.",
     "- If you create a new playbook, use a concise kebab-case filename in ./task-playbooks/.",
+    "- If you create a new trusted standard, use a concise kebab-case filename in ./trusted-standards/.",
     "- If you create or rename a playbook, update the Task Playbooks table in ./AGENTS.md in the same change.",
-    "- Edit only the relevant learning artifacts: ./AGENTS.md and files under ./task-playbooks/.",
+    "- If you create or rename a trusted standard, update the Trusted Standards table in ./AGENTS.md in the same change.",
+    "- Edit only the relevant learning artifacts: ./AGENTS.md, files under ./trusted-standards/, and files under ./task-playbooks/.",
     "- Use non-interactive git commands only.",
-    "- Commit only the AGENTS.md and task-playbooks changes. Do not commit run artifacts.",
+    "- Commit only the AGENTS.md, trusted-standards, and task-playbooks changes. Do not commit run artifacts.",
     "",
     "Commit requirements:",
     "- Make one git commit after the documentation/playbook work is complete.",
@@ -882,16 +888,18 @@ function buildReflectionPrompt(
     "Write the final summary as Markdown with these exact sections:",
     "1. Task",
     "2. Reflection",
-    "3. Root Causes",
-    "4. Sandbox Verification",
-    "5. Playbook Changes",
-    "6. Commit",
-    "7. Reusable Heuristics",
+    "3. Call Efficiency",
+    "4. Root Causes",
+    "5. Sandbox Verification",
+    "6. Playbook Changes",
+    "7. Commit",
+    "8. Reusable Heuristics",
     "",
     "In the final summary:",
     "- Be specific about mistakes, wasted calls, weak assumptions, missing instructions, and corrected solution shape.",
-    "- State whether you updated an existing playbook or created a new one.",
-    "- List the exact playbook paths changed.",
+    "- In the Call Efficiency section, state whether the run was minimal-call or not, list wasted calls if any, and give the exact lower-call path the next agent should follow.",
+    "- State whether you updated an existing trusted standard or playbook, or created a new one.",
+    "- List the exact trusted-standard and playbook paths changed.",
     "- Include the git commit hash and commit message.",
   ];
 
@@ -963,26 +971,70 @@ function findTaskCompleteAfterCount(
   return undefined;
 }
 
-async function injectPromptIntoTmuxCodexPane(windowName: string, prompt: string): Promise<void> {
-  const bufferName = `tripletex-reflect-${randomUUID().slice(0, 8)}`;
-  const tempPromptPath = join(dataRootDir, `${bufferName}.txt`);
-  await writeFile(tempPromptPath, prompt);
+function buildReflectionLaunchScript(
+  preparedRun: PreparedRun,
+  matchedSession: MatchedCodexSession,
+  reflectionPromptPath: string,
+): string {
+  return `#!/usr/bin/env zsh
+set -u
 
-  try {
-    await runCommand(["tmux", "load-buffer", "-b", bufferName, tempPromptPath]);
-    await runCommand(["tmux", "paste-buffer", "-d", "-b", bufferName, "-t", `${tmuxSessionName}:${windowName}`]);
-    await sleep(2000);
-    await runCommand(["tmux", "send-keys", "-t", `${tmuxSessionName}:${windowName}`, "Enter"]);
-    await sleep(400);
-    await runCommand(["tmux", "send-keys", "-t", `${tmuxSessionName}:${windowName}`, "Enter"]);
-    await sleep(400);
-    await runCommand(["tmux", "send-keys", "-t", `${tmuxSessionName}:${windowName}`, "Enter"]);
-  } finally {
-    await Bun.file(tempPromptPath).delete().catch(() => undefined);
-  }
+cd ${shellQuote(codexEnvironmentDir)}
+
+PROMPT_FILE=${shellQuote(reflectionPromptPath)}
+SESSION_ID=${shellQuote(matchedSession.sessionMeta.id)}
+
+codex resume -m gpt-5.4 -c model_reasoning_effort='"high"' -c service_tier='"fast"' --yolo --no-alt-screen "$SESSION_ID" "$(cat "$PROMPT_FILE")"
+status=$?
+
+print
+print "codex reflection resume exited with status $status"
+print "run id: ${preparedRun.runId}"
+print "run dir: ${preparedRun.runDir}"
+print "session id: ${matchedSession.sessionMeta.id}"
+exec zsh -i
+`;
 }
 
-async function finalizeInjectedReflectionRun(
+function buildReflectionWindowName(preparedRun: PreparedRun): string {
+  return `${preparedRun.tmuxWindow.slice(0, 40)}-reflect`;
+}
+
+async function launchReflectionRun(
+  preparedRun: PreparedRun,
+  matchedSession: MatchedCodexSession,
+  reflectionPromptPath: string,
+): Promise<{ launchScriptPath: string; tmuxWindow: string }> {
+  const reflectionTmuxWindow = buildReflectionWindowName(preparedRun);
+  const reflectionLaunchScriptPath = join(preparedRun.runDir, "launch-codex-reflection.zsh");
+  await writeFile(
+    reflectionLaunchScriptPath,
+    buildReflectionLaunchScript(preparedRun, matchedSession, reflectionPromptPath),
+  );
+  await chmod(reflectionLaunchScriptPath, 0o755);
+
+  await withTmuxLaunchLock(async () => {
+    await runCommand([
+      "tmux",
+      "new-window",
+      "-d",
+      "-t",
+      tmuxSessionName,
+      "-n",
+      reflectionTmuxWindow,
+      "-c",
+      codexEnvironmentDir,
+      reflectionLaunchScriptPath,
+    ]);
+  });
+
+  return {
+    launchScriptPath: reflectionLaunchScriptPath,
+    tmuxWindow: reflectionTmuxWindow,
+  };
+}
+
+async function finalizeReflectionRun(
   preparedRun: PreparedRun,
   matchedSession: MatchedCodexSession,
   baselineLineCount: number,
@@ -1078,17 +1130,25 @@ async function maybeLaunchReflectionRun(
   const baselineLineCount = sessionLines.length;
   const baselineTaskCompleteCount = countTaskCompleteEvents(sessionLines);
   const reflectionEventsPath = join(preparedRun.runDir, "codex-reflection.events.jsonl");
-  const reflectionPrompt = await readFile(reflectionPromptPath, "utf8");
-  await injectPromptIntoTmuxCodexPane(preparedRun.tmuxWindow, reflectionPrompt);
+  const launchedReflectionRun = await launchReflectionRun(preparedRun, matchedSession, reflectionPromptPath);
+
+  log("INFO", "Launched same-session reflection run", {
+    requestId: preparedRun.requestId,
+    runId: preparedRun.runId,
+    sessionId: matchedSession.sessionMeta.id,
+    reflectionTmuxWindow: launchedReflectionRun.tmuxWindow,
+    reflectionLaunchScriptPath: launchedReflectionRun.launchScriptPath,
+  });
 
   await writeFile(
     join(preparedRun.runDir, "codex-reflection.status.json"),
     JSON.stringify(
         {
-          status: "injected",
-          injected_at: nowIso(),
+          status: "launched",
+          launched_at: nowIso(),
           session_id: matchedSession.sessionMeta.id,
-          tmux_window: preparedRun.tmuxWindow,
+          tmux_window: launchedReflectionRun.tmuxWindow,
+          launch_script_path: launchedReflectionRun.launchScriptPath,
           reflection_summary_path: reflectionSummaryPath,
           reflection_events_path: reflectionEventsPath,
           baseline_task_complete_count: baselineTaskCompleteCount,
@@ -1099,7 +1159,7 @@ async function maybeLaunchReflectionRun(
     ),
   );
 
-  void finalizeInjectedReflectionRun(
+  void finalizeReflectionRun(
     preparedRun,
     matchedSession,
     baselineLineCount,
@@ -1117,7 +1177,7 @@ cd ${shellQuote(codexEnvironmentDir)}
 
 PROMPT_FILE=${shellQuote(preparedRun.promptFilePath)}
 
-codex --yolo --no-alt-screen "$(cat "$PROMPT_FILE")"
+codex -m gpt-5.4 -c model_reasoning_effort='"high"' -c service_tier='"fast"' --yolo --no-alt-screen "$(cat "$PROMPT_FILE")"
 status=$?
 
 print
@@ -1129,7 +1189,7 @@ exec zsh -i
 `;
 }
 
-async function prepareRun(input: SolveRequest): Promise<PreparedRun> {
+async function prepareRun(input: SolveRequest, requestId: string): Promise<PreparedRun> {
   const storageMode = resolveStorageMode(Bun.env.TRIPLETEX_STORAGE_MODE);
   const effectiveCredentials = await resolveEffectiveCredentials(input, storageMode);
   const runId = buildRunId(storageMode);
@@ -1138,6 +1198,7 @@ async function prepareRun(input: SolveRequest): Promise<PreparedRun> {
   const scriptsDir = join(runDir, "scripts");
 
   log("INFO", "Preparing run directory", {
+    requestId,
     runId,
     storageMode,
     runDir,
@@ -1180,6 +1241,7 @@ async function prepareRun(input: SolveRequest): Promise<PreparedRun> {
     files: storedFiles,
     launchScriptPath,
     promptFilePath,
+    requestId,
     requestFilePath,
     runDir,
     runId,
@@ -1195,6 +1257,7 @@ async function prepareRun(input: SolveRequest): Promise<PreparedRun> {
     JSON.stringify(
       {
         created_at: createdAt,
+        request_id: requestId,
         run_id: runId,
         run_dir: runDir,
         storage_mode: storageMode,
@@ -1213,6 +1276,7 @@ async function prepareRun(input: SolveRequest): Promise<PreparedRun> {
   await chmod(launchScriptPath, 0o755);
 
   log("INFO", "Run prepared", {
+    requestId,
     runId,
     requestFilePath,
     promptFilePath,
@@ -1242,6 +1306,7 @@ async function launchTmuxRun(preparedRun: PreparedRun): Promise<void> {
       await runCommand(["tmux", "set-option", "-t", tmuxSessionName, "remain-on-exit", "on"]);
 
       log("INFO", "Created tmux session", {
+        requestId: preparedRun.requestId,
         tmuxSession: tmuxSessionName,
         codexEnvironmentDir,
       });
@@ -1261,6 +1326,7 @@ async function launchTmuxRun(preparedRun: PreparedRun): Promise<void> {
     ]);
 
     log("INFO", "Created tmux window", {
+      requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tmuxSession: tmuxSessionName,
       tmuxWindow: preparedRun.tmuxWindow,
@@ -1272,6 +1338,7 @@ async function launchTmuxRun(preparedRun: PreparedRun): Promise<void> {
 
 async function waitForSolveCompletion(preparedRun: PreparedRun): Promise<WaitForSolveResult> {
   log("INFO", "Waiting for solve completion or timeout", {
+    requestId: preparedRun.requestId,
     runId: preparedRun.runId,
     waitMs: solveTimeoutMs,
   });
@@ -1288,6 +1355,7 @@ async function waitForSolveCompletion(preparedRun: PreparedRun): Promise<WaitFor
       const completion = await readInteractiveTaskCompletion(matchedSession);
       if (completion) {
         log("INFO", "Detected solve completion from session trace", {
+          requestId: preparedRun.requestId,
           runId: preparedRun.runId,
           sessionId: matchedSession.sessionMeta.id,
           sessionPath: matchedSession.path,
@@ -1305,6 +1373,7 @@ async function waitForSolveCompletion(preparedRun: PreparedRun): Promise<WaitFor
   }
 
   log("INFO", "Solve wait hit timeout", {
+    requestId: preparedRun.requestId,
     runId: preparedRun.runId,
     sessionId: matchedSession?.sessionMeta.id,
   });
@@ -1323,25 +1392,51 @@ async function continuePostRunProcessing(
     const tracedSession = await persistCodexTraceArtifacts(preparedRun, matchedSession);
     await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
     log("INFO", "Post-run processing completed", {
+      requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tracedSessionId: (tracedSession ?? matchedSession)?.sessionMeta.id,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log("ERROR", "Post-run processing failed", {
+      requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       error: message,
     });
   }
 }
 
-async function handleSolve(input: SolveRequest): Promise<SolveResponse> {
-  const preparedRun = await prepareRun(input);
+async function handleSolve(input: SolveRequest, requestId: string): Promise<SolveResponse> {
+  const startedAtMs = Date.now();
+  const preparedRun = await prepareRun(input, requestId);
+  log("INFO", "Solve phase: run prepared", {
+    requestId,
+    runId: preparedRun.runId,
+    storageMode: preparedRun.storageMode,
+    runDir: preparedRun.runDir,
+  });
+
   await launchTmuxRun(preparedRun);
+  log("INFO", "Solve phase: tmux launched", {
+    requestId,
+    runId: preparedRun.runId,
+    tmuxSession: tmuxSessionName,
+    tmuxWindow: preparedRun.tmuxWindow,
+  });
+
   const waitResult = await waitForSolveCompletion(preparedRun);
+  log("INFO", "Solve phase: main agent finished", {
+    requestId,
+    runId: preparedRun.runId,
+    completionReason: waitResult.reason,
+    taskCompleteTimestamp: waitResult.taskCompleteTimestamp,
+    elapsedMs: Date.now() - startedAtMs,
+  });
+
   void continuePostRunProcessing(preparedRun, waitResult.matchedSession);
 
   log("INFO", "Solve request completed", {
+    requestId,
     runId: preparedRun.runId,
     storageMode: preparedRun.storageMode,
     runDir: preparedRun.runDir,
@@ -1349,15 +1444,11 @@ async function handleSolve(input: SolveRequest): Promise<SolveResponse> {
     tmuxWindow: preparedRun.tmuxWindow,
     completionReason: waitResult.reason,
     taskCompleteTimestamp: waitResult.taskCompleteTimestamp,
+    elapsedMs: Date.now() - startedAtMs,
   });
 
   return {
     status: "completed",
-    run_id: preparedRun.runId,
-    run_dir: preparedRun.runDir,
-    tmux_session: tmuxSessionName,
-    tmux_window: preparedRun.tmuxWindow,
-    storage_mode: preparedRun.storageMode,
   };
 }
 
@@ -1468,14 +1559,13 @@ Bun.serve({
     });
 
     try {
-      const result = await handleSolve(input);
+      const startedAtMs = Date.now();
+      const result = await handleSolve(input, requestId);
       log("INFO", "Responding 200", {
         ...requestLogContext,
         activeSolveRequests: activeSolveRequests,
-        runId: result.run_id,
-        runDir: result.run_dir,
-        tmuxSession: result.tmux_session,
-        tmuxWindow: result.tmux_window,
+        responseStatus: result.status,
+        elapsedMs: Date.now() - startedAtMs,
       });
       return json(200, result);
     } catch (error) {

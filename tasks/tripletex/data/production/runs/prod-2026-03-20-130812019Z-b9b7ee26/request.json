@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea un pedido para el cliente Río Verde SL (org. nº 951612936) con los productos Informe de análisis (4430) a 20900 NOK y Sesión de formación (7773) a 18350 NOK. Convierte el pedido en factura y registra el pago completo.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "AuygPY-0MkpxnniD-txAfZyz_KhI_d-gl_hhry-GG90"
+  }
+}

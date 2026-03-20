@@ -1,0 +1,7 @@
+{
+  "prompt": "restart local smoke test",
+  "tripletex_credentials": {
+    "base_url": "https://example.invalid/v2",
+    "session_token": "dummy"
+  }
+}

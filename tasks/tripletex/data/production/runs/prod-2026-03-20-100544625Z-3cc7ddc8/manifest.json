@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-03-20T10:05:44.625Z",
+  "run_id": "prod-2026-03-20-100544625Z-3cc7ddc8",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-100544625Z-3cc7ddc8",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-20-100544625Z-3cc7ddc8",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-100544625Z-3cc7ddc8/scripts",
+  "credentials_source": "request",
+  "effective_base_url": "https://example.invalid/v2",
+  "attachments": []
+}

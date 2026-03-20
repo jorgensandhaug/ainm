@@ -1,0 +1,7 @@
+{
+  "prompt": "Create a customer named Debug Test AS with email debug@example.no and organization number 999888771.",
+  "tripletex_credentials": {
+    "base_url": "https://example.invalid/v2",
+    "session_token": "dummy"
+  }
+}

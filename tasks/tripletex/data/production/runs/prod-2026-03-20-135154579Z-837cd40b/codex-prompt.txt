@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-135154579Z-837cd40b/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+The payment from Brightstone Ltd (org no. 993125393) for the invoice "Data Advisory" (27100 NOK excl. VAT) was returned by the bank. Reverse the payment so the invoice shows the outstanding amount again.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+GUiqZ7T76aFkwObpPDFKjaZWFcgLMRgwZvRVeYMqr08
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-135154579Z-837cd40b/scripts
