@@ -90,6 +90,7 @@ If that lookup-first branch returns zero hits:
 
 Fresh-account-like re-proof:
 - 2026-03-20 persistent sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` gross / `6500` / `25%` completed in the lower-call `5`-call create-first branch
+- 2026-03-20 persistent sandbox re-proof for this session's exact amount/account shape `Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` gross / `6340` / `25%` also completed in the same lower-call `5`-call create-first branch
 - 2026-03-20 persistent sandbox re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` gross / `6300` / `25%` took exactly this `6`-call zero-hit branch
 - no extra `GET /supplierInvoice` or `GET /ledger/voucher/{id}` was needed; the final `PUT /ledger/voucher/{id}` response already proved the expense row, supplier row, and auto VAT row
 
@@ -279,6 +280,17 @@ Proven outcome:
   - expense row on `6300` with `vatType.id=1`, `amount=57880`, `amountGross=72350`
   - supplier row `-72350` linked to the created supplier id
   - system VAT row `14470`
+- 2026-03-20 persistent-sandbox re-proof for this session's exact amount/account shape (`Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` / `6340` / `25%`) also succeeded
+- that re-proof used the same lower-call `5`-call branch:
+  1. `POST /supplier`
+  2. `GET /ledger/account?number=6340&isApplicableForSupplierInvoice=true&fields=*`
+  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+  4. `POST /ledger/voucher/importDocument`
+  5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+- final write response proved:
+  - expense row on `6340` with `vatType.id=1`, `amount=49280`, `amountGross=61600`
+  - supplier row `-61600` linked to the created supplier id
+  - system VAT row `12320`
 
 ## Reusable Heuristics
 

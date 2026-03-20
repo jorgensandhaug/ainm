@@ -149,6 +149,26 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
     - expense row on `6300` with `vatType.id=1`, `amount=57880`, `amountGross=72350`
     - supplier row `-72350` linked to the created supplier id
     - system VAT row `14470`
+- 2026-03-20 persistent-sandbox re-proof for this session's exact amount/account shape:
+  - supplier `Minimal Proof Supplier 007945 AS` / `910079457`
+  - invoice number `INV-SANDBOX-MIN-007945`
+  - description `kontortjenester`
+  - gross `61600`
+  - net `49280`
+  - VAT `25%`
+  - expense account `6340`
+  - path used exactly `5` calls:
+    1. `POST /supplier`
+    2. `GET /ledger/account?number=6340&isApplicableForSupplierInvoice=true&fields=*`
+    3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+    4. `POST /ledger/voucher/importDocument`
+    5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+  - created supplier `108283334`
+  - voucher `608865450`
+  - final voucher update returned:
+    - expense row on `6340` with `vatType.id=1`, `amount=49280`, `amountGross=61600`
+    - supplier row `-61600` linked to the created supplier id
+    - system VAT row `12320`
 - 2026-03-20 persistent-sandbox re-proof for the exact fresh-account-like French office-services shape showed the lower-call branch:
   - supplier `Océan Reflection SARL 321000010` / `321000010`
   - invoice number `INV-SANDBOX-4914-321000010`

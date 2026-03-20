@@ -360,9 +360,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
   - for exact supplier-invoice prompts in real fresh accounts that give supplier business fields but do not say the supplier already exists, the lower-call default is to reuse the same create-one-supplier primitive: `POST /supplier`, then continue the invoice workflow with the returned supplier ids
-  - 2026-03-20 production for `Océan SARL` / `853705209` / `INV-2026-4914` / `56300` / `6500` / `25%` proved the old lookup-first zero-hit branch wasted one call because the supplier did not exist and still had to be created
+  - 2026-03-20 production for `Stormberg AS` / `877462137` / `INV-2026-9382` / `61600` / `6340` / `25%` repeated the same miss: the old lookup-first zero-hit branch wasted one call because the supplier did not exist and still had to be created
   - use the lookup-first supplier-invoice branch only when the prompt explicitly says the supplier already exists or the run context is retry/persistent enough that duplicate suppliers are a real risk
-  - same-day persistent-sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` gross / `6500` / `25%` confirmed the create-first supplier-invoice branch closes correctly in `5` calls with no default verification read
+  - same-day persistent-sandbox re-proof for `Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` gross / `6340` / `25%` confirmed the create-first supplier-invoice branch closes correctly in `5` calls with no default verification read
   - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
