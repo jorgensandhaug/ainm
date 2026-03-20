@@ -35,7 +35,7 @@
   2. one `PUT /invoice/{id}/:createCreditNote?...`
 - only reduce this to one API call when the prompt already gives the exact invoice id
 - do not spend a separate `GET /customer` or `GET /invoice/{id}` in the standard shape
-- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, and `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, that two-call path was the successful production path on 2026-03-20
+- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, and `organizationNumber=962075754`, `description="Analysebericht"`, `amountExcludingVatCurrency=30200`, that two-call path was the successful production path on 2026-03-20
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
@@ -90,6 +90,10 @@
   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
   - the run succeeded with no extra resolver read and no extra verification read
+- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=962075754`, `description="Analysebericht"`, `amountExcludingVatCurrency=30200`:
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+  - the run succeeded with no extra resolver read and no extra verification read
 - re-verified on 2026-03-20 in persistent sandbox:
   - a fresh fixture customer plus invoice could still be credited through the same standard two-call core of:
     - `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
@@ -104,3 +108,4 @@
   - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`; the locate read again showed the same exact description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
   - on that exact-identifier French fixture, `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and needed no follow-up read
   - re-verified again on 2026-03-20 in persistent sandbox with a disposable analog matching the same task shape `description="Opplæring"` and `amountExcludingVatCurrency=13100`; after setup, one decisive `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the fixture invoice by organization number + amount + line description, and `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned `isCreditNote=true` with `creditedInvoice=<original id>` and no follow-up read
+  - re-verified again on 2026-03-20 in persistent sandbox with a disposable analog matching the same task shape `description="Analysebericht"` and `amountExcludingVatCurrency=30200`; after setup, one decisive `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the fixture invoice by organization number + amount + line description, and `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned `isCreditNote=true` with `creditedInvoice=<original id>` and no follow-up read
