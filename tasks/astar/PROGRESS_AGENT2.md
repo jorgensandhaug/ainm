@@ -253,6 +253,15 @@
   - `exploration_v2` spends full `50` with `5` diagnostic repeats
   - this is the cleanest immediate policy-only test before altering model logic
 
+### Interruption recovery note
+
+- The first `exploration` run was interrupted by the user turn abort.
+- Verified after resuming:
+  - no surviving background process for `agent2_dev_query_residual_3rounds_exploration_20260320`
+  - no benchmark artifact files created under `data/artifacts/benchmarks/agent2_dev_query_residual_3rounds_exploration_20260320/`
+- Action:
+  - restart the benchmark from a clean state after pushing current verified checkpoint commit `fbfa76c`
+
 ## Immediate Next Actions
 
 1. Run an existing baseline historical benchmark end-to-end and record score, runtime, and artifacts.
