@@ -21,6 +21,9 @@ Verified in persistent sandbox on 2026-03-20:
 - `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`
 - `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`
 - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned the live per-diem `rateType` options needed for a deliverable overnight trip
+- `GET /company/{companyId}?fields=*,address(*)` expanded the company address in one read, while `fields=*` alone left `company.address` as a link-only object
+- one no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that company read yielded concrete `departureFrom="Oslo"` from `company.address.city`
+- the exact 7-call branch `GET /employee` -> conditional `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `2` costs and `1` per-diem row
 - that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`
 - one returned sparse `rateType.id` still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
 - `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
@@ -38,11 +41,13 @@ Verified in persistent sandbox on 2026-03-20:
 - `PUT /travelExpense/:approve` returned `403` for the sandbox token even with `overrideApprovalFlow=true`; approval is not a trusted default follow-up step
 - top-level travel-expense `amount`/`paymentAmount` still reflected only reimbursable cost lines even after successful `:deliver`; those totals are not proof of per-diem correctness
 - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"`; when the prompt omits departureFrom, generic placeholders are correctness-risky and should not be upgraded into a trusted inference
+- the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra `GET /employee` calls by stopping at `address=null` and only later adding the company fallback; future agents should switch to the company branch immediately after the first employee read reveals no address
 
 ## Lowest-Call Scored Flow
 
 1. Confirm these operations in `./openapi.json`
    - `GET /employee`
+   - `GET /company/{id}`
    - `GET /travelExpense/costCategory`
    - `GET /travelExpense/paymentType`
    - `GET /travelExpense/rate`
@@ -52,14 +57,18 @@ Verified in persistent sandbox on 2026-03-20:
    - usually `GET /employee?email=<prompt-email>&count=10&fields=*`
    - filter locally to one exact-email employee
    - prefer `allowInformationRegistration=true` when several exact-email hits exist
-3. Resolve one travel payment type, the required cost categories, and a compatible per-diem rate type
+3. If the prompt omits `departureFrom` and the employee read lacks a concrete address but exposes `companyId`, do one conditional company read
+   - `GET /company/{companyId}?fields=*,address(*)`
+   - prefer `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
+   - if both employee and company location fields are absent, treat the run as blocked instead of inventing a placeholder
+4. Resolve one travel payment type, the required cost categories, and a compatible per-diem rate type
    - `GET /travelExpense/costCategory?count=1000&fields=*`
    - `GET /travelExpense/paymentType?count=1000&fields=*`
    - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=<departureDate>&dateTo=<returnDate>&count=1000&fields=*`
    - filter locally on `showOnTravelExpenses=true`
    - do not locally require `rateCategory.isValidDomestic` or `rateCategory.isRequiresOvernightAccommodation` after that filtered rate call; the response can be sparse link-only data
    - prefer a returned `rate` equal to the prompt day rate when such a row exists; otherwise reuse any returned `rateType.id`
-4. Create the travel expense in one write
+5. Create the travel expense in one write
    - `POST /travelExpense`
    - embed top-level `travelDetails`
    - embed `perDiemCompensations[]`
@@ -69,9 +78,9 @@ Verified in persistent sandbox on 2026-03-20:
    - include `perDiemCompensations[].rateType`
    - include `perDiemCompensations[].overnightAccommodation` when the trip spans overnight
    - omit `department` unless the prompt explicitly scores a different department or validation demands it
-5. Deliver the expense
+6. Deliver the expense
    - `PUT /travelExpense/:deliver?id=<travelExpenseId>`
-6. Reuse the deliver response and stop
+7. Reuse the deliver response and stop
    - `title`
    - `employee.id`
    - `travelDetails.departureDate`
@@ -80,7 +89,7 @@ Verified in persistent sandbox on 2026-03-20:
    - `state=DELIVERED`
    - `costs.length`
    - `perDiemCompensations.length`
-7. Stop
+8. Stop
 
 ## Conditional Investigation Branch
 
@@ -144,6 +153,8 @@ For the travel-expense create, the sandbox-proven shape was:
 - do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
 - do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
 - do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
+- do not rerun `GET /employee` after the first read already proved the employee identity and `address=null`; switch directly to the conditional company-address branch
+- do not use `GET /company/{companyId}?fields=*` for the fallback; it leaves `company.address` as a link-only object in sandbox, so use `fields=*,address(*)`
 - do not trust a successful `POST /travelExpense` with manual per-diem `count`/`rate`/`amount` as a fully correct final state; that row can still persist with `rateType=null`
 - do not rely on the category default VAT if the expense may need `:deliver`; explicit zero-VAT cost rows were required in sandbox for a non-VAT-registered company
 - do not assume approval is available after delivery; sandbox `PUT /travelExpense/:approve` returned `403`
@@ -164,7 +175,8 @@ For the travel-expense create, the sandbox-proven shape was:
 - preserve the prompt's scored `count`, `rate`, and `amount`, but still include a compatible `rateType` so the row is deliverable
 - if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`
 - if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
-- do not invent generic placeholders such as `Hjemsted`; if the employee read also lacks a concrete location, this prompt shape is no longer an exact trusted match
+- if those employee address fields are absent but the employee exposes `companyId`, use one conditional `GET /company/{companyId}?fields=*,address(*)` and infer from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
+- do not invent generic placeholders such as `Hjemsted`; if both employee and company reads lack a concrete location, this prompt shape is blocked
 - if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape
 
 ## Date Inference For Underspecified Prompts
@@ -189,6 +201,7 @@ For the travel-expense create, the sandbox-proven shape was:
 ## When Not To Add Extra Reads
 
 - do not add a pre-read of `/travelExpense` for a pure create task
+- do not repeat `GET /employee`; for omitted-`departureFrom` tasks the full resolver branch is one employee read plus, if needed, one company read
 - do not add `GET /travelExpense/cost` or `GET /travelExpense/perDiemCompensation` in the standard scored flow just to double-check child persistence
 - do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch
 - do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape

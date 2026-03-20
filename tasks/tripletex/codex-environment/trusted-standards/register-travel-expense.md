@@ -8,26 +8,27 @@
 ## Exact Match
 - register one new travel expense for one existing employee identified by email
 - prompt provides the travel title/purpose, cost lines, and one or more per-diem allowances
-- prompt also gives `travelDetails.departureFrom`, or the mandatory employee read is expected to expose one concrete non-generic location field that can be reused as `departureFrom`
+- prompt also gives `travelDetails.departureFrom`, or the mandatory employee read is expected to expose one concrete non-generic location field, or one conditional company read via `employee.companyId` is expected to expose one concrete non-generic company-address field that can be reused as `departureFrom`
 - if per diem spans overnight, the prompt also gives enough information to choose one overnight-accommodation branch, or a pre-approved deterministic inference exists
 - no attachment, approval, mileage, accommodation allowance, project linking, update, or delete flow
 
 ## Do Not Use This Standard If
 - task needs mileage allowance, accommodation allowance, or attachments
-- prompt omits `travelDetails.departureFrom` and the employee read is unlikely to provide a concrete location
+- prompt omits `travelDetails.departureFrom` and neither the employee read nor one conditional company read via `employee.companyId` is likely to provide a concrete location
 - prompt needs overnight per diem but does not give enough information to choose an accommodation branch safely
 - employee identity is ambiguous or the employee must be created first
 - prompt is not a create-only travel-expense registration task
 
 ## Standard Flow
 1. `GET /employee?email=...&count=10&fields=*`
-2. `GET /travelExpense/costCategory?count=1000&fields=*`
-3. `GET /travelExpense/paymentType?count=1000&fields=*`
-4. `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` when the prompt includes domestic per diem
-5. `POST /travelExpense` with embedded `costs[]` and `perDiemCompensations[]`
-6. `PUT /travelExpense/:deliver?id=...`
-7. verify the delivered parent fields and child id counts from the deliver response
-8. stop
+2. If the prompt omits `departureFrom` and the employee read has no concrete address field but does expose `companyId`, `GET /company/{companyId}?fields=*,address(*)`
+3. `GET /travelExpense/costCategory?count=1000&fields=*`
+4. `GET /travelExpense/paymentType?count=1000&fields=*`
+5. `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` when the prompt includes domestic per diem
+6. `POST /travelExpense` with embedded `costs[]` and `perDiemCompensations[]`
+7. `PUT /travelExpense/:deliver?id=...`
+8. verify the delivered parent fields and child id counts from the deliver response
+9. stop
 
 ## Payload Rules
 - resolve one exact employee by exact email match; prefer `allowInformationRegistration=true` when multiple exact-email matches exist
@@ -36,7 +37,10 @@
 - resolve one active travel payment type from `showOnTravelExpenses=true`; in sandbox the ordinary reimbursement type was `Privat utlegg`
 - do not send `department` on a normal existing-employee travel expense unless the prompt explicitly scores a different department or live validation requires it
 - include `travelDetails.departureFrom`; leaving it empty can still let `POST /travelExpense` succeed but later block `PUT /travelExpense/:deliver`
-- if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`; do not invent generic placeholders such as `Hjemsted`
+- if the prompt omits `departureFrom`, first infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
+- if those employee address fields are absent but the same employee object exposes `companyId`, do one conditional `GET /company/{companyId}?fields=*,address(*)` and infer `departureFrom` from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
+- `GET /company/{companyId}?fields=*` alone is not sufficient for this branch; in sandbox it left `company.address` as a link object
+- if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`
 - when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`
 - for multi-day or overnight per diem, resolve one compatible `perDiemCompensations[].rateType` from `/travelExpense/rate`; do not leave `rateType`/`rateCategory` null
 - the filtered `/travelExpense/rate?...fields=*` response can still return `rateCategory` only as `id`/`url`; do not locally require `rateCategory.isValidDomestic` or `isRequiresOvernightAccommodation` after the query already filtered the set
@@ -78,6 +82,9 @@
 ## OpenAPI / Sandbox Status
 - `/travelExpense`, `/travelExpense/:deliver`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, `/travelExpense/paymentType`, and `/travelExpense/rate` verified in `./openapi.json`
 - persistent sandbox re-verified on 2026-03-20:
+  - `GET /company/{companyId}?fields=*,address(*)` expanded the company postal address, while `fields=*` alone left `company.address` as a link-only object
+  - a no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that one company read produced concrete `departureFrom="Oslo"` from `company.address.city`
+  - the 7-call branch `GET /employee` -> `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `state=DELIVERED`, `costs.length=2`, and `perDiemCompensations.length=1`
   - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned five usable `rateType` rows, but each `rateCategory` came back only as sparse `id`/`url`
   - using one of those returned sparse `rateType.id` values still allowed a delivered manual per-diem row to persist the prompt-scored `count`, `rate`, and `amount`
   - one `POST /travelExpense` with only manual per-diem `count`/`rate`/`amount` created the parent expense plus embedded rows, but left the expense in `state=OPEN`
@@ -85,4 +92,5 @@
   - `PUT /travelExpense/:deliver` then failed until `travelDetails.departureFrom`, a compatible per-diem `rateType`, and delivery-safe cost `vatType` values were present
   - recreating with explicit `departureFrom`, `perDiemCompensations[].rateType`, `perDiemCompensations[].overnightAccommodation`, and zero-VAT cost rows allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`
   - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"` after the prompt omitted departureFrom and the employee read did not provide a concrete location; generic placeholders are not a trusted correctness path
+  - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`
   - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step

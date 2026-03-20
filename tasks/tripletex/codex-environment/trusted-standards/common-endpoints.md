@@ -366,7 +366,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the old 4-call create-only path (`GET /employee`, `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `POST /travelExpense`) can persist an `OPEN` expense but is no longer treated as a trusted full-correctness path for multi-day per-diem tasks
   - for a deliverable multi-day per-diem travel-expense shape, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
   - that filtered rate search can still return `rateCategory` only as `id`/`url`; trust the query filter itself and do not add `GET /travelExpense/rateCategory/{id}` to recover booleans
-  - if the prompt omits `departureFrom`, only infer it from one concrete location already present on the employee object; generic placeholders such as `Hjemsted` are not a trusted correctness path
+  - if the prompt omits `departureFrom`, first infer it from one concrete location already present on the employee object
+  - if `GET /employee?...fields=*` returns `address=null` but the employee does expose `companyId`, the lower-call full-correctness branch is one conditional `GET /company/{companyId}?fields=*,address(*)` and reuse of `company.address.city` / `addressLine1` / `displayName` / `addressAsString` as `departureFrom`
+  - `GET /company/{companyId}?fields=*` is not sufficient for that fallback; in persistent sandbox it left `company.address` as a link object, while `fields=*,address(*)` expanded `Oslo`
+  - do not spend repeated employee reads once the first employee lookup already proved identity plus missing address, and do not invent generic placeholders such as `Hjemsted`
   - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
 - Standard verification note:
   - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`
