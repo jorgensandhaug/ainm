@@ -41,6 +41,7 @@ class ModelSeedEvaluationContext(BaseModel):
     training_analyzed_seed_count: int = Field(ge=0)
     training_cell_count: int = Field(ge=0)
     policy_name: str | None = None
+    samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
     episode_seed: int | None = Field(default=None, ge=0)
     executed_queries: int | None = Field(default=None, ge=0)
@@ -96,6 +97,7 @@ class ModelSeedEvaluationContext(BaseModel):
             training_analyzed_seed_count=self.training_analyzed_seed_count,
             training_cell_count=self.training_cell_count,
             policy_name=self.policy_name,
+            samples_per_round=self.samples_per_round,
             budget=self.budget,
             episode_seed=self.episode_seed,
             executed_queries=self.executed_queries,
@@ -168,6 +170,7 @@ def _build_prediction_bundle(
     model_name: str,
     *,
     training_round_ids: Sequence[str],
+    samples_per_round: int,
 ) -> tuple[PredictionBundle, dict[int, dict[str, np.ndarray]], int, int]:
     round_detail = read_round_record(paths, round_id).round
     normalized = model_name.strip().lower()
@@ -220,6 +223,7 @@ def _build_prediction_bundle(
         predictor = QueryResidualPredictor.fit_from_workspace(
             paths,
             round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
         )
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (
@@ -247,6 +251,7 @@ def _build_online_prediction_bundle(
     *,
     training_round_ids: Sequence[str],
     policy_name: str,
+    samples_per_round: int,
     budget: int,
     episode_seed: int,
 ) -> tuple[
@@ -261,6 +266,7 @@ def _build_online_prediction_bundle(
         paths=paths,
         historical_round_ids=training_round_ids,
         policy_name=policy_name,
+        samples_per_round=samples_per_round,
     )
     policy = build_interactive_policy(policy_name)
     online_episode: OnlineEpisodeRun = run_online_episode(
@@ -338,6 +344,7 @@ def evaluate_model_on_round(
     training_round_ids: Sequence[str],
     mode: str = "prior_only",
     policy_name: str | None = None,
+    samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
 ) -> list[ModelSeedEvaluationContext]:
@@ -351,9 +358,11 @@ def evaluate_model_on_round(
                 round_id,
                 model_name,
                 training_round_ids=training_round_ids,
+                samples_per_round=samples_per_round,
             )
         )
         resolved_policy_name = None
+        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0
@@ -372,10 +381,12 @@ def evaluate_model_on_round(
             model_name,
             training_round_ids=training_round_ids,
             policy_name=policy_name,
+            samples_per_round=samples_per_round,
             budget=budget,
             episode_seed=episode_seed,
         )
         resolved_policy_name = build_interactive_policy(policy_name).name
+        resolved_samples_per_round = samples_per_round
         resolved_budget = budget
         resolved_episode_seed = episode_seed
     else:
@@ -400,6 +411,7 @@ def evaluate_model_on_round(
                 training_analyzed_seed_count=training_analyzed_seed_count,
                 training_cell_count=training_cell_count,
                 policy_name=resolved_policy_name,
+                samples_per_round=resolved_samples_per_round,
                 budget=resolved_budget,
                 episode_seed=resolved_episode_seed,
                 executed_queries=executed_queries,

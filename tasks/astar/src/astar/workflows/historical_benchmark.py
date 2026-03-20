@@ -97,6 +97,7 @@ def run_historical_benchmark(
     round_ids: list[str] | None = None,
     mode: str = "prior_only",
     policy_name: str = "coverage",
+    samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
     visualization_policy: str = "top",
@@ -120,6 +121,7 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
+    resolved_samples_per_round = samples_per_round if normalized_model_name == "query_residual" else None
     if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
@@ -131,6 +133,9 @@ def run_historical_benchmark(
     resolved_policy_name = (
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
+    model_suffix = ""
+    if normalized_model_name == "query_residual":
+        model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
         interactive_suffix = (
@@ -141,6 +146,7 @@ def run_historical_benchmark(
 
     run_name = benchmark_name or (
         f"historical__{mode}__{model_name}"
+        f"{model_suffix}"
         f"{interactive_suffix}"
         f"__rounds={len(selected_round_ids)}"
     )
@@ -168,6 +174,7 @@ def run_historical_benchmark(
             training_round_ids=training_round_ids,
             mode=mode,
             policy_name=policy_name if mode == "online_interactive" else None,
+            samples_per_round=samples_per_round,
             budget=budget,
             episode_seed=episode_seed,
         )
@@ -236,6 +243,7 @@ def run_historical_benchmark(
                 round_id=round_id,
                 round_number=round_seed_results[0].round_number,
                 policy_name=round_seed_results[0].policy_name,
+                samples_per_round=round_seed_results[0].samples_per_round,
                 budget=round_seed_results[0].budget,
                 episode_seed=round_seed_results[0].episode_seed,
                 executed_queries=round_seed_results[0].executed_queries,
@@ -271,6 +279,7 @@ def run_historical_benchmark(
         model_name=model_name,
         mode=mode,
         policy_name=resolved_policy_name,
+        samples_per_round=resolved_samples_per_round,
         budget=None if mode == "prior_only" else budget,
         episode_seed=None if mode == "prior_only" else episode_seed,
         round_ids=[item.round_id for item in round_results],
@@ -321,6 +330,7 @@ def run_historical_benchmark(
                 "round_count": len(result.rounds),
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,
+                "samples_per_round": result.samples_per_round,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,

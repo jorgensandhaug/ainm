@@ -113,6 +113,7 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
         round_ids=[ROUND_ID, TRAIN_ROUND_ID],
         mode="online_interactive",
         policy_name="coverage",
+        samples_per_round=2,
         budget=4,
         episode_seed=1,
         visualization_policy="none",
@@ -121,10 +122,15 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
 
     assert result.mode == "online_interactive"
     assert result.policy_name == "coverage"
+    assert result.samples_per_round == 2
     assert result.budget == 4
     assert result.episode_seed == 1
     assert result.evaluated_seed_count == 2
     assert result.artifact_path.exists()
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 2
+        for seed_result in round_result.seed_results:
+            assert seed_result.samples_per_round == 2
 
 
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:

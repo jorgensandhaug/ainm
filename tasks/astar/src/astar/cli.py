@@ -247,6 +247,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
+    synthetic_tournament_parser.add_argument("--samples-per-round", type=int, default=1)
     synthetic_tournament_parser.add_argument("--budget", type=int, default=50)
     synthetic_tournament_parser.add_argument("--episode-seed", type=int, default=0)
 
@@ -259,6 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
+    synthetic_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     synthetic_benchmark_parser.add_argument("--budget", type=int, default=50)
     synthetic_benchmark_parser.add_argument(
         "--episode-seed",
@@ -286,6 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     historical_benchmark_parser.add_argument("--round-id", action="append", default=None)
     historical_benchmark_parser.add_argument("--policy", default="coverage")
+    historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     historical_benchmark_parser.add_argument("--budget", type=int, default=50)
     historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
     historical_benchmark_parser.add_argument(
@@ -308,6 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")
+    live_online_parser.add_argument("--samples-per-round", type=int, default=1)
     live_online_parser.add_argument(
         "--budget",
         type=int,
@@ -574,7 +578,12 @@ def _main() -> int:
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=args.policy,
+                samples_per_round=args.samples_per_round,
+            ),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             episode_seed=args.episode_seed,
@@ -589,7 +598,12 @@ def _main() -> int:
     if args.command == "run-synthetic-benchmark":
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=args.policy,
+                samples_per_round=args.samples_per_round,
+            ),
             policy=build_interactive_policy(args.policy),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
@@ -610,6 +624,7 @@ def _main() -> int:
             round_ids=args.round_id,
             mode=args.mode,
             policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
             budget=args.budget,
             episode_seed=args.episode_seed,
             visualization_policy=args.with_png,
@@ -689,7 +704,12 @@ def _main() -> int:
             paths,
             client,
             round_id=round_id,
-            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=args.policy,
+                samples_per_round=args.samples_per_round,
+            ),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             allow_empty_queries=args.allow_empty_queries,

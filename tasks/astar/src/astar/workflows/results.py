@@ -318,6 +318,7 @@ class HistoricalBenchmarkSeedResult(BaseModel):
     training_analyzed_seed_count: int = Field(ge=0)
     training_cell_count: int = Field(ge=0)
     policy_name: str | None = None
+    samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
     episode_seed: int | None = Field(default=None, ge=0)
     executed_queries: int | None = Field(default=None, ge=0)
@@ -348,6 +349,7 @@ class HistoricalBenchmarkRoundResult(BaseModel):
     round_id: str
     round_number: int | None = None
     policy_name: str | None = None
+    samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
     episode_seed: int | None = Field(default=None, ge=0)
     executed_queries: int | None = Field(default=None, ge=0)
@@ -367,6 +369,7 @@ class HistoricalBenchmarkResult(BaseModel):
     model_name: str
     mode: str
     policy_name: str | None = None
+    samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
     episode_seed: int | None = Field(default=None, ge=0)
     round_ids: list[str]

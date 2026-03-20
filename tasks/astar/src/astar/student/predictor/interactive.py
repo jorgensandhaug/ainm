@@ -67,6 +67,7 @@ def build_online_predictor(
     paths: WorkspacePaths | None = None,
     historical_round_ids: Sequence[str] | None = None,
     policy_name: str | None = None,
+    samples_per_round: int = 1,
 ) -> RoundPredictorAdapter:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":
@@ -109,10 +110,11 @@ def build_online_predictor(
                 workspace_paths,
                 round_ids=list(historical_round_ids),
                 policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v7__policy={resolved_policy_name}",
+                f"query_residual_v7__policy={resolved_policy_name}__samples={samples_per_round}",
             )
             checkpoint_path = checkpoint_dir / "checkpoint.json"
             if checkpoint_path.exists():
@@ -121,6 +123,7 @@ def build_online_predictor(
                 predictor = QueryResidualPredictor.fit_from_workspace(
                     workspace_paths,
                     policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
                 )
                 predictor.save_checkpoint(checkpoint_path)
         return RoundPredictorAdapter(

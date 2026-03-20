@@ -27,6 +27,7 @@ class LiveOnlineRunResult(BaseModel):
     oracle_name: str
     predictor_name: str
     policy_name: str
+    samples_per_round: int | None = Field(default=None, ge=1)
     budget: int = Field(ge=0)
     loaded_queries: int = Field(ge=0)
     executed_queries: int = Field(ge=0)
@@ -174,6 +175,11 @@ def run_live_online_round(
         oracle_name=oracle.name,
         predictor_name=predictor.name,
         policy_name=policy.name,
+        samples_per_round=getattr(
+            getattr(predictor, "predictor", predictor),
+            "samples_per_round",
+            None,
+        ),
         budget=budget,
         loaded_queries=loaded_queries,
         executed_queries=executed_queries,
