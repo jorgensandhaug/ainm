@@ -37,6 +37,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with the exact prompt payload `Debug Test AS`, `debug@example.no`, and `999888771`; the single `POST /customer` returned customer `id=108240642` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Post Run 372928 AS`, `codex-post-run-372928@example.no`, and `999372928`; the single `POST /customer` returned customer `id=108240652` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 269241 AS`, `codex-reflection-269241@example.no`, `999269241`, and `postalAddress`; the single `POST /customer` returned customer `id=108245322`, preserved `Sjøgata 85` and `Trondheim`, and also auto-returned a sparse `physicalAddress` link without needing any extra read
+- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 722064 AS`, `codex-reflection-722064@example.no`, and `999722064`; the single `POST /customer` returned customer `id=108246240` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 
 ## Minimal Flow
 
@@ -48,6 +49,7 @@ This was verified in sandbox:
 
 ## Exact-Match Fast Path
 
+- If `./trusted-standards/create-customer.md` already matches exactly, that trusted standard is enough for the scored run; do not spend extra time re-reading this playbook before the write
 - If the prompt only asks to create one customer and gives `name`, `email`, and `organizationNumber`, send exactly those fields
 - Confirm only the exact `POST /customer` operation and its referenced request/response schemas
 - Navigate the spec narrowly:
@@ -56,6 +58,7 @@ This was verified in sandbox:
   - inspect `#/components/schemas/ResponseWrapperCustomer`
 - Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
 - Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
+- Do not add a post-create `GET /customer/{id}` when the `201` body already includes the scored fields
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
 - Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
 - Do not transliterate prompt text; preserve Unicode in customer and city names exactly as given

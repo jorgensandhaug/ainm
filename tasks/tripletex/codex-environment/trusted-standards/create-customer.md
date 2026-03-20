@@ -24,6 +24,13 @@
 2. verify directly from `response.value`
 3. stop
 
+## Exact-Match Fast Path
+- for the plain Norwegian create-customer shape, the winning API path is exactly one write:
+  - `POST /customer`
+- do not spend a pre-read on `/customer`
+- do not spend a follow-up read on `/customer/{id}` when `response.value` already contains the scored fields
+- do not spend scored-run time re-checking `./task-playbooks/create-customer.md` or `./openapi.json` when this trusted standard already matches exactly
+
 ## Payload Rules
 - send only prompt-required fields
 - normal default shape:
@@ -54,7 +61,13 @@
 - customer delivery validation if prompt explicitly implies EHF/invoice delivery constraints
 - country/address consistency for foreign organization numbers
 
+## Pitfalls To Avoid
+- do not add duplicate-check logic for fresh-account create tasks
+- do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
+- do not treat the returned default delivery fields as a reason to fetch the customer again
+
 ## OpenAPI / Sandbox Status
 - endpoint family verified in `./openapi.json`
 - repeatedly sandbox-proven as one-call create
 - re-verified on 2026-03-20 in persistent sandbox with `postalAddress`; the same one-call write returned the scored postal fields plus a sparse auto-generated `physicalAddress` link
+- re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`

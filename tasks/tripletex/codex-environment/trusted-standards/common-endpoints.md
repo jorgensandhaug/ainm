@@ -14,6 +14,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard create prerequisite:
   - none
+- Standard fast-path note:
+  - for the exact one-customer create shape with prompt-provided `name`, `email`, and Norwegian `organizationNumber`, the canonical path is one `POST /customer`
+  - no `GET /customer` pre-read and no `GET /customer/{id}` follow-up read are part of the trusted fast path
 - Standard verification note:
   - `POST /customer` can return a sparse auto-generated `physicalAddress` link object even when the payload only sent `postalAddress`; verify the prompt-scored fields from `value` and do not add a follow-up read just for that link
 
