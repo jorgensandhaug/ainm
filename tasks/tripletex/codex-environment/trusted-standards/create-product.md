@@ -27,10 +27,12 @@
 - send only prompt-required fields
 - usually:
   - `name`
-  - `salesPriceExcludingVatCurrency` or the exact corresponding sales-price field required by prompt/playbook
+  - `number` when the prompt gives a product number
+  - `priceExcludingVatCurrency` or the exact corresponding price field required by prompt/playbook
 - if exact VAT is required, resolve `vatType` from filtered outgoing VAT list on the real date
 - do not hardcode VAT code `3`
 - do not use unfiltered VAT catalog
+- if the requested VAT percentage is absent from the filtered `OUTGOING` result, treat the task as blocked in that account; do not substitute a same-percentage code from the broader catalog
 
 ## Reuse From Write Response
 - `value.id`
@@ -42,6 +44,7 @@
 
 ## Known Recovery Branches
 - if product create rejects VAT type, re-check against filtered `OUTGOING` VAT list only
+- if filtered `OUTGOING` still does not contain the requested percentage, stop instead of guessing another `vatType`
 
 ## OpenAPI / Sandbox Status
 - `/product` verified in `./openapi.json`

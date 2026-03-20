@@ -88,6 +88,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard create prerequisite:
   - resolve valid outgoing `vatType`
+  - if the prompt requires an exact VAT percentage and that percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
   - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write

@@ -22,12 +22,19 @@ Persistent-sandbox verification on 2026-03-19 showed:
 - `POST /product` failed with `422` and `Internt felt (vatTypeId): Ugyldig mva-kode.` when using VAT code `3` picked from the broader unfiltered VAT catalog
 - therefore, the unfiltered VAT catalog and `typeOfVat=LEDGER` can contain codes that are not valid for product creation in the current account configuration
 
+Persistent-sandbox verification on 2026-03-20 showed:
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` still returned only VAT code `6` (`0% Ingen utgående avgift`)
+- the broader `GET /ledger/vatType?fields=*` catalog still exposed `15%` entries including outgoing code `31` (`Utgående avgift, middels sats`)
+- `POST /product` with `vatType: { "id": 31 }` still failed with `422` and `Internt felt (vatTypeId): Ugyldig mva-kode.`
+- therefore, if the requested percentage is absent from the filtered `OUTGOING` result, the task is blocked in that account; do not guess from the broader VAT catalog even when a same-percentage outgoing code exists there
+
 ## Minimal Safe Flow
 
 1. Confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
 2. Resolve the product VAT code with one decisive read:
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<task-date-or-today>&fields=*`
 3. From that filtered result, select the VAT type that matches the requested percentage
+   - if no matching percentage exists there, stop and treat the task as blocked in that account
 4. `POST /product` with only the requested fields plus `vatType: { "id": ... }`
 5. Verify directly from `response.value`
 6. Stop
@@ -67,6 +74,7 @@ Use `number` for the product number and the VAT code id from the `OUTGOING` look
 - Those broader lists can expose VAT codes that still fail product creation in the current account
 - For product creation, the authoritative candidate set is the `typeOfVat=OUTGOING` result on the task date
 - If the requested percentage is not present in that `OUTGOING` result, do not substitute a same-percentage code from the broader catalog
+- If `OUTGOING` omits the requested percentage entirely, treat the create as blocked for that account instead of probing extra VAT variants
 
 ## Parent Type Trap
 
@@ -99,3 +107,4 @@ Use `number` for the product number and the VAT code id from the `OUTGOING` look
 - Do not assume `typeOfVat=OUTGOING` and `typeOfVat=LEDGER` are interchangeable for product writes
 - Do not filter out valid base VAT codes by checking `!parentType`
 - Do not send both excluding-VAT and including-VAT price fields unless the prompt clearly requires it
+- Do not burn a `POST /product` on a broader-catalog `15%` or `25%` code after the filtered `OUTGOING` read already proved that percentage is unavailable for product creation in the current account
