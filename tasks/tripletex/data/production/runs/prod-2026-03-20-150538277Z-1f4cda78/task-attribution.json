@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-150538277Z-1f4cda78",
+  "request_id": "d016491b",
+  "prompt_raw": "Der Kunde Sonnental GmbH (Org.-Nr. 809303829) hat die Rechnung für \"Systementwicklung\" (10400 NOK ohne MwSt.) reklamiert. Erstellen Sie eine vollständige Gutschrift, die die gesamte Rechnung storniert.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T15:06:21.587Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T15:05:39.324Z",
+  "after_captured_at": "2026-03-20T15:07:22.509Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T15:07:22.510Z"
+}

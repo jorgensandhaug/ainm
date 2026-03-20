@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea el cliente Solmar SL con número de organización 879505631. La dirección es Parkveien 49, 4611 Kristiansand. Correo: post@solmar.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "V7RoMKVpWfy3v68gQWZBdAS50-1h2DNoarawBsNltXE"
+  }
+}

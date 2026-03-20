@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-150924105Z-0739668d/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Processe o salário de João Santos (joao.santos@example.org) para este mês. O salário base é de 40350 NOK. Adicione um bónus único de 5850 NOK além do salário base.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+IG9ZJuZV0CKZNPiReTmatdsJyv3Hx-Mi27tjcez34Zw
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-150924105Z-0739668d/scripts

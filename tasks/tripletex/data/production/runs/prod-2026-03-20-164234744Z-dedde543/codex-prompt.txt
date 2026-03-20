@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164234744Z-dedde543/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+The customer Ridgepoint Ltd (org no. 900993560) has complained about the invoice for "Maintenance" (30500 NOK excl. VAT). Issue a full credit note that reverses the entire invoice.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+ExxqRqKtLyQnTEU2-T3iSJHHjrZfVGaJzU0JgalPUSA
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164234744Z-dedde543/scripts

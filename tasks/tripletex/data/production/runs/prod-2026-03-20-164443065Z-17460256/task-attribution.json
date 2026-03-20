@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-164443065Z-17460256",
+  "request_id": "5d25ac5d",
+  "prompt_raw": "Opprett en faktura til kunden Lysgård AS (org.nr 851635874) med tre produktlinjer: Analyserapport (2934) til 29800 kr med 25 % MVA, Datarådgivning (8699) til 5200 kr med 15 % MVA (næringsmiddel), og Nettverkstjeneste (1355) til 18050 kr med 0 % MVA (avgiftsfri).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:46:27.933Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T16:44:43.115Z",
+  "after_captured_at": "2026-03-20T16:47:29.194Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "09",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:47:29.196Z"
+}

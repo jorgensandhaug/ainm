@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-162059824Z-e71cd397/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Créez une commande pour le client Forêt SARL (nº org. 962176127) avec les produits Maintenance (2417) à 32250 NOK et Développement système (7053) à 16900 NOK. Convertissez la commande en facture et enregistrez le paiement intégral.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+Tm72JUXYZnOXWD_Ofz0QE6pkqj7vpUNzw8IhOyJNb14
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-162059824Z-e71cd397/scripts

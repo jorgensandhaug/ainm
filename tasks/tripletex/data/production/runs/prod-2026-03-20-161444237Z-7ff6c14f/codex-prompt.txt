@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-161444237Z-7ff6c14f/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Temos um novo funcionário chamado André Almeida, nascido em 9. April 1980. Crie-o como funcionário com o e-mail andre.almeida@example.org e data de início 22. September 2026.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+H_MXpgjpgro230tkE1vzSoxvO1ugRReshPKbwPRFB94
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-161444237Z-7ff6c14f/scripts

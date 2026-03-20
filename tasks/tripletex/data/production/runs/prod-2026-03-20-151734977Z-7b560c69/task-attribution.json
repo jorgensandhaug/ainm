@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-151734977Z-7b560c69",
+  "request_id": "b3de4d3c",
+  "prompt_raw": "Le paiement de Étoile SARL (nº org. 835510131) pour la facture \"Session de formation\" (19650 NOK HT) a été retourné par la banque. Annulez le paiement afin que la facture affiche à nouveau le montant impayé.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T15:19:03.254Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T15:17:35.392Z",
+  "after_captured_at": "2026-03-20T15:20:04.150Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T15:20:04.154Z"
+}

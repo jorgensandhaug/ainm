@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a custom accounting dimension \"Marked\" with the values \"Offentlig\" and \"Privat\". Then post a voucher on account 7300 for 37250 NOK, linked to the dimension value \"Privat\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "HhLGewN4hhC1auP2F61TAD_k4uvN5uH3Jx1xnovoY50"
+  }
+}

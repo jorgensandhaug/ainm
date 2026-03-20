@@ -1,0 +1,8 @@
+{
+  "prompt": "Temos um novo funcionário chamado André Almeida, nascido em 9. April 1980. Crie-o como funcionário com o e-mail andre.almeida@example.org e data de início 22. September 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "H_MXpgjpgro230tkE1vzSoxvO1ugRReshPKbwPRFB94"
+  }
+}

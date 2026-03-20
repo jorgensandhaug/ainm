@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer 5 timer for Silje Strand (silje.strand@example.org) på aktiviteten \"Design\" i prosjektet \"Skytjeneste-oppsett\" for Nordhav AS (org.nr 912074005). Timesats: 1750 kr/t. Generer en prosjektfaktura til kunden basert på de registrerte timene.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "NUsNLJT9mYHWlHUz3V-ChC38Y-I8JqEiyK_gEF-W2uk"
+  }
+}

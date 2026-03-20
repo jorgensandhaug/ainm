@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-151341519Z-53e2b675",
+  "request_id": "76bb29c9",
+  "prompt_raw": "Registrieren Sie den Lieferanten Sonnental GmbH mit der Organisationsnummer 957072445. E-Mail: faktura@sonnentalgmbh.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T15:14:32.557Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T15:13:43.320Z",
+  "after_captured_at": "2026-03-20T15:15:35.831Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "04",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T15:15:35.835Z"
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-162453083Z-f4543b2f",
+  "request_id": "2eb8bf38",
+  "prompt_raw": "Opprett ein faktura til kunden Bølgekraft AS (org.nr 827304212) med tre produktlinjer: Webdesign (6744) til 27000 kr med 25 % MVA, Programvarelisens (2584) til 9300 kr med 15 % MVA (næringsmiddel), og Opplæring (3739) til 16300 kr med 0 % MVA (avgiftsfri).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:27:21.874Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T16:24:53.137Z",
+  "after_captured_at": "2026-03-20T16:28:22.191Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "09",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:28:22.196Z"
+}

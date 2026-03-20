@@ -1,0 +1,12 @@
+{
+  "status": "captured",
+  "captured_at": "2026-03-20T16:51:29.773Z",
+  "session_id": "019d0c25-d8b2-7f50-bb29-7b21c2cde67a",
+  "session_file": "/home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T17-48-20-019d0c25-d8b2-7f50-bb29-7b21c2cde67a.jsonl",
+  "summary": {
+    "assistant_message_count": 9,
+    "tool_call_count": 28,
+    "tool_result_count": 28,
+    "user_message_count": 1
+  }
+}

@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165556973Z-643ba711/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Registe uma despesa de viagem para Bruno Santos (bruno.santos@example.org) referente a "Conferência Drammen". A viagem durou 3 dias com ajudas de custo (taxa diária 800 NOK). Despesas: bilhete de avião 5950 NOK e táxi 600 NOK.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+tViIsB6ANvh6gKhhJjP98RZfVOppmoyCaotv80bqFNc
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165556973Z-643ba711/scripts

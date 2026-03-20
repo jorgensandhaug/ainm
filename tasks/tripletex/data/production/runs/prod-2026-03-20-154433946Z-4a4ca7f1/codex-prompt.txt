@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-154433946Z-4a4ca7f1/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Opprett en fri regnskapsdimensjon "Kostsenter" med verdiene "Innkjøp" og "Logistikk". Bokfør deretter et bilag på konto 6590 for 34250 kr, knyttet til dimensjonsverdien "Innkjøp".
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+dZVCwOBIH5104n5HIbhoFCmE_bBf6wiN_qDlspT0c_g
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-154433946Z-4a4ca7f1/scripts

@@ -25,6 +25,10 @@
 3. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`
 4. if the resolved activity is chargeable:
    - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
+   - if no holder exists for that project yet, `POST /project/hourlyRates` once with:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
    - if needed, `PUT /project/hourlyRates/{id}` with:
      - `project`
      - `startDate`
@@ -57,6 +61,8 @@
 ## Reuse From Write Response
 - from `PUT /project/hourlyRates/{id}`:
   - the switched project-hourly-rate holder id
+- from `POST /project/hourlyRates`:
+  - the created project-hourly-rate holder id
 - from `POST /project/hourlyRates/projectSpecificRates`:
   - the created project-specific-rate id
 - from `PUT /project/hourlyRates/projectSpecificRates/{id}`:
@@ -107,6 +113,7 @@
 - persistent sandbox proved:
   - `GET /project?name=...&count=50&fields=*,customer(*)` can return enough expanded customer data to replace a separate `GET /customer` in this exact task shape
   - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` can already expose the exact nested employee, activity, and hourly-rate data for an existing project-specific rate, so repeat/sandbox runs can skip a duplicate create write
+  - when a newly created analog project had no hourly-rate holder yet, one `POST /project/hourlyRates` with `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the holder and the next `POST /project/hourlyRates/projectSpecificRates` plus `POST /timesheet/entry` succeeded normally
   - `PUT /project/hourlyRates/{id}` can switch the holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
   - `POST /project/hourlyRates/projectSpecificRates` succeeds for a chargeable activity and then `POST /timesheet/entry` returns `hourlyRate=<prompt rate>`
   - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity

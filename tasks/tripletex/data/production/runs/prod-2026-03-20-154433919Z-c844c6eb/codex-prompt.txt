@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-154433919Z-c844c6eb/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Crie uma fatura para o cliente Floresta Lda (org. nº 919172657) com três linhas de produto: Sessão de formação (4783) a 24900 NOK com 25 % IVA, Armazenamento na nuvem (3343) a 14050 NOK com 15 % IVA (alimentos), e Serviço de rede (4380) a 15750 NOK com 0 % IVA (isento).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+bwGpg9jgCbTaiMqpoxHVCV8xv14HEnbuGI-qViY9zzM
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-154433919Z-c844c6eb/scripts

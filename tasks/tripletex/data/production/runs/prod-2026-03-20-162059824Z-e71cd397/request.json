@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une commande pour le client Forêt SARL (nº org. 962176127) avec les produits Maintenance (2417) à 32250 NOK et Développement système (7053) à 16900 NOK. Convertissez la commande en facture et enregistrez le paiement intégral.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Tm72JUXYZnOXWD_Ofz0QE6pkqj7vpUNzw8IhOyJNb14"
+  }
+}

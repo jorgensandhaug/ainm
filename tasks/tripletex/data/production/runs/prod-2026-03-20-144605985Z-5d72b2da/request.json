@@ -1,0 +1,8 @@
+{
+  "prompt": "Register a travel expense for Lucy Walker (lucy.walker@example.org) for \"Client visit Trondheim\". The trip lasted 4 days with per diem (daily rate 800 NOK). Expenses: flight ticket 7200 NOK and taxi 650 NOK.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "k6bgYM1wXWAA2fPbKWsLN6EKx3WBRI2yBrq7sT5F7CE"
+  }
+}

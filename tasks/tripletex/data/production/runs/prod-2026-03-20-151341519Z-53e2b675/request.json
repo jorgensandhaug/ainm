@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrieren Sie den Lieferanten Sonnental GmbH mit der Organisationsnummer 957072445. E-Mail: faktura@sonnentalgmbh.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "mcpjoDnqcGP8nUw3QXFerzMCHNWi0B47BCorhxCeWVA"
+  }
+}

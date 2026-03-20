@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-164819684Z-afc5fde0",
+  "request_id": "1ca0f433",
+  "prompt_raw": "Registrer 11 timar for Sigrid Haugen (sigrid.haugen@example.org) på aktiviteten \"Rådgivning\" i prosjektet \"Nettbutikk-utvikling\" for Strandvik AS (org.nr 906155605). Timesats: 1500 kr/t. Generer ein prosjektfaktura til kunden basert på dei registrerte timane.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:51:49.970Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T16:48:19.756Z",
+  "after_captured_at": "2026-03-20T16:52:51.012Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "09",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:52:51.013Z"
+}

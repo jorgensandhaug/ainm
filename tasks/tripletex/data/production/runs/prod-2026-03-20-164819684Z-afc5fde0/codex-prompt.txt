@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164819684Z-afc5fde0/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Registrer 11 timar for Sigrid Haugen (sigrid.haugen@example.org) på aktiviteten "Rådgivning" i prosjektet "Nettbutikk-utvikling" for Strandvik AS (org.nr 906155605). Timesats: 1500 kr/t. Generer ein prosjektfaktura til kunden basert på dei registrerte timane.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+ElD_OHTBCllX8tzi1rDnnaBqFz4AT0qs7QOBUG-Q6qg
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164819684Z-afc5fde0/scripts

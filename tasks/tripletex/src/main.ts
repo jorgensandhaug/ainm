@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { chmod, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { appendFile, chmod, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
 type TripletexSolveFile = {
@@ -50,6 +50,7 @@ type PreparedRun = {
   requestFilePath: string;
   runDir: string;
   runId: string;
+  solvePrompt: string;
   scriptsDir: string;
   storageMode: StorageMode;
   tmuxWindow: string;
@@ -125,6 +126,75 @@ type WaitForSolveResult = {
   taskCompleteTimestamp?: string;
 };
 
+type LeaderboardEntry = {
+  best_score: number;
+  last_attempt_at?: string;
+  rolling_scores: unknown[];
+  total_attempts: number;
+  tx_task_id: string;
+};
+
+type LeaderboardSnapshot = {
+  captured_at: string;
+  entries: LeaderboardEntry[];
+  run_id: string;
+  source: string;
+  url: string;
+};
+
+type LeaderboardDiffEntry = {
+  attempt_delta: number;
+  best_score_after: number | undefined;
+  best_score_before: number | undefined;
+  last_attempt_after: string | undefined;
+  last_attempt_before: string | undefined;
+  total_attempts_after: number | undefined;
+  total_attempts_before: number | undefined;
+  tx_task_id: string;
+};
+
+type SubmissionFeedback = {
+  checks?: string[];
+  comment?: string;
+};
+
+type SubmissionEntry = {
+  completed_at: string | null;
+  duration_ms: number | null;
+  feedback?: SubmissionFeedback;
+  id: string;
+  normalized_score: number | null;
+  queued_at: string;
+  score_max: number | null;
+  score_raw: number | null;
+  status: string;
+};
+
+type SubmissionSnapshot = {
+  captured_at: string;
+  entries: SubmissionEntry[];
+  run_id: string;
+  source: string;
+  url: string;
+};
+
+type SubmissionMatch = {
+  candidate_count: number;
+  inference_status:
+    | "ambiguous"
+    | "existing_processing_still_running"
+    | "existing_processing_transition"
+    | "new_submission_completed"
+    | "new_submission_processing"
+    | "no_candidate";
+  submission?: SubmissionEntry;
+};
+
+type ReflectionRunResult = {
+  completedAt?: string;
+  status: "completed" | "skipped" | "timed_out";
+};
+
 const port = Number(Bun.env.PORT ?? 3000);
 const requiredBearerToken = Bun.env.API_KEY ?? "HALLAGUTTA123";
 const tmuxSessionName = "ainm-tripletex-sessions";
@@ -133,6 +203,18 @@ const codexEnvironmentDir = resolve(tripletexRootDir, "codex-environment");
 const codexHomeDir = resolve(Bun.env.CODEX_HOME ?? `${Bun.env.HOME ?? "~"}/.codex`);
 const dataRootDir = resolve(tripletexRootDir, "data");
 const sandboxEnvPath = resolve(tripletexRootDir, ".sandbox.env");
+const leaderboardApiUrl =
+  Bun.env.TRIPLETEX_LEADERBOARD_URL ??
+  "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516";
+const leaderboardAttributionDelayMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_DELAY_MS ?? 1 * 60 * 1000);
+const leaderboardPollIntervalMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS ?? 15 * 1000);
+const leaderboardPollWindowMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS ?? 2 * 60 * 1000);
+const submissionsApiUrl =
+  Bun.env.TRIPLETEX_MY_SUBMISSIONS_URL ?? "https://api.ainm.no/tripletex/my/submissions";
+const submissionsAccessToken = Bun.env.TRIPLETEX_SUBMISSIONS_ACCESS_TOKEN ?? "";
+const submissionsPollIntervalMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_INTERVAL_MS ?? 10 * 1000);
+const submissionsPollWindowMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_WINDOW_MS ?? 3 * 60 * 1000);
+const submissionsQueuedAtSkewMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_QUEUE_SKEW_MS ?? 2 * 60 * 1000);
 const solveTimeoutMs = 5 * 60 * 1000;
 const maxConcurrentSolveRequests = 3;
 let activeSolveRequests = 0;
@@ -237,6 +319,41 @@ function isSolveRequest(value: unknown): value is SolveRequest {
   );
 }
 
+function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
+  return (
+    isRecord(value) &&
+    typeof value.tx_task_id === "string" &&
+    typeof value.best_score === "number" &&
+    typeof value.total_attempts === "number" &&
+    Array.isArray(value.rolling_scores) &&
+    (value.last_attempt_at === undefined || typeof value.last_attempt_at === "string")
+  );
+}
+
+function isSubmissionFeedback(value: unknown): value is SubmissionFeedback {
+  return (
+    isRecord(value) &&
+    (value.comment === undefined || typeof value.comment === "string") &&
+    (value.checks === undefined ||
+      (Array.isArray(value.checks) && value.checks.every((item) => typeof item === "string")))
+  );
+}
+
+function isSubmissionEntry(value: unknown): value is SubmissionEntry {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.status === "string" &&
+    typeof value.queued_at === "string" &&
+    (value.completed_at === null || typeof value.completed_at === "string") &&
+    (value.score_raw === null || typeof value.score_raw === "number") &&
+    (value.score_max === null || typeof value.score_max === "number") &&
+    (value.normalized_score === null || typeof value.normalized_score === "number") &&
+    (value.duration_ms === null || typeof value.duration_ms === "number") &&
+    (value.feedback === undefined || isSubmissionFeedback(value.feedback))
+  );
+}
+
 function resolveStorageMode(rawMode: string | undefined): StorageMode {
   switch (rawMode?.toLowerCase()) {
     case "production":
@@ -260,6 +377,179 @@ function sanitizeFilename(filename: string): string {
 
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+async function appendJsonl(path: string, value: unknown): Promise<void> {
+  await appendFile(path, `${JSON.stringify(value)}\n`);
+}
+
+function buildLeaderboardDiff(
+  beforeEntries: LeaderboardEntry[],
+  afterEntries: LeaderboardEntry[],
+): LeaderboardDiffEntry[] {
+  const beforeByTaskId = new Map(beforeEntries.map((entry) => [entry.tx_task_id, entry]));
+  const afterByTaskId = new Map(afterEntries.map((entry) => [entry.tx_task_id, entry]));
+  const taskIds = new Set([...beforeByTaskId.keys(), ...afterByTaskId.keys()]);
+  const diff: LeaderboardDiffEntry[] = [];
+
+  for (const txTaskId of [...taskIds].sort()) {
+    const before = beforeByTaskId.get(txTaskId);
+    const after = afterByTaskId.get(txTaskId);
+    const attemptDelta = (after?.total_attempts ?? 0) - (before?.total_attempts ?? 0);
+    const bestScoreBefore = before?.best_score;
+    const bestScoreAfter = after?.best_score;
+    const lastAttemptBefore = before?.last_attempt_at;
+    const lastAttemptAfter = after?.last_attempt_at;
+
+    if (
+      attemptDelta !== 0 ||
+      bestScoreBefore !== bestScoreAfter ||
+      lastAttemptBefore !== lastAttemptAfter
+    ) {
+      diff.push({
+        tx_task_id: txTaskId,
+        attempt_delta: attemptDelta,
+        best_score_before: bestScoreBefore,
+        best_score_after: bestScoreAfter,
+        last_attempt_before: lastAttemptBefore,
+        last_attempt_after: lastAttemptAfter,
+        total_attempts_before: before?.total_attempts,
+        total_attempts_after: after?.total_attempts,
+      });
+    }
+  }
+
+  return diff;
+}
+
+function inferLeaderboardTask(diff: LeaderboardDiffEntry[]): {
+  attempt_delta: number | undefined;
+  inference_status: "ambiguous" | "metadata_changed" | "no_change_detected" | "unique_attempt_delta";
+  tx_task_id?: string;
+} {
+  const attemptCandidates = diff.filter((entry) => entry.attempt_delta > 0);
+  if (attemptCandidates.length === 1) {
+    return {
+      inference_status: "unique_attempt_delta",
+      tx_task_id: attemptCandidates[0].tx_task_id,
+      attempt_delta: attemptCandidates[0].attempt_delta,
+    };
+  }
+
+  if (attemptCandidates.length > 1) {
+    return {
+      inference_status: "ambiguous",
+    };
+  }
+
+  if (diff.length === 1) {
+    return {
+      inference_status: "metadata_changed",
+      tx_task_id: diff[0].tx_task_id,
+      attempt_delta: diff[0].attempt_delta,
+    };
+  }
+
+  return {
+    inference_status: "no_change_detected",
+  };
+}
+
+function parseIsoTimestampMs(value: string | null | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function isSubmissionScored(entry: SubmissionEntry): boolean {
+  return entry.completed_at !== null && entry.score_raw !== null && entry.score_max !== null;
+}
+
+function inferSubmissionMatch(
+  beforeEntries: SubmissionEntry[],
+  afterEntries: SubmissionEntry[],
+  runCreatedAt: string,
+  reflectionCompletedAt: string | undefined,
+): SubmissionMatch {
+  const beforeById = new Map(beforeEntries.map((entry) => [entry.id, entry]));
+  const runStartMs = parseIsoTimestampMs(runCreatedAt) ?? 0;
+  const windowStartMs = runStartMs - submissionsQueuedAtSkewMs;
+  const windowEndMs = (parseIsoTimestampMs(reflectionCompletedAt) ?? Number.POSITIVE_INFINITY) + submissionsQueuedAtSkewMs;
+  const recentAfterEntries = afterEntries.filter((entry) => {
+    const queuedAtMs = parseIsoTimestampMs(entry.queued_at);
+    return queuedAtMs !== undefined && queuedAtMs >= windowStartMs && queuedAtMs <= windowEndMs;
+  });
+
+  const transitionedExisting = recentAfterEntries.filter((entry) => {
+    const before = beforeById.get(entry.id);
+    return before && !isSubmissionScored(before) && isSubmissionScored(entry);
+  });
+  if (transitionedExisting.length === 1) {
+    return {
+      inference_status: "existing_processing_transition",
+      candidate_count: 1,
+      submission: transitionedExisting[0],
+    };
+  }
+  if (transitionedExisting.length > 1) {
+    return {
+      inference_status: "ambiguous",
+      candidate_count: transitionedExisting.length,
+    };
+  }
+
+  const trackedExisting = recentAfterEntries.filter((entry) => {
+    const before = beforeById.get(entry.id);
+    return before && !isSubmissionScored(before);
+  });
+  if (trackedExisting.length === 1) {
+    return {
+      inference_status: isSubmissionScored(trackedExisting[0])
+        ? "existing_processing_transition"
+        : "existing_processing_still_running",
+      candidate_count: 1,
+      submission: trackedExisting[0],
+    };
+  }
+  if (trackedExisting.length > 1) {
+    return {
+      inference_status: "ambiguous",
+      candidate_count: trackedExisting.length,
+    };
+  }
+
+  const newRecentEntries = recentAfterEntries.filter((entry) => !beforeById.has(entry.id));
+  if (newRecentEntries.length === 1) {
+    return {
+      inference_status: isSubmissionScored(newRecentEntries[0])
+        ? "new_submission_completed"
+        : "new_submission_processing",
+      candidate_count: 1,
+      submission: newRecentEntries[0],
+    };
+  }
+  if (newRecentEntries.length > 1) {
+    return {
+      inference_status: "ambiguous",
+      candidate_count: newRecentEntries.length,
+    };
+  }
+
+  return {
+    inference_status: "no_candidate",
+    candidate_count: 0,
+  };
+}
+
+function computeSubmissionCorrectness(entry: SubmissionEntry | undefined): number | undefined {
+  if (!entry || entry.score_raw === null || entry.score_max === null || entry.score_max <= 0) {
+    return undefined;
+  }
+
+  return entry.score_raw / entry.score_max;
 }
 
 function parseEnvFile(raw: string): Record<string, string> {
@@ -311,6 +601,118 @@ async function runCommand(cmd: string[]): Promise<string> {
   }
 
   return stdout.trim();
+}
+
+async function fetchLeaderboardSnapshot(preparedRun: PreparedRun, source: string): Promise<LeaderboardSnapshot> {
+  const response = await fetch(leaderboardApiUrl, {
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`leaderboard fetch failed with ${response.status} ${response.statusText}`);
+  }
+
+  const body = await response.json();
+  if (!Array.isArray(body) || !body.every(isLeaderboardEntry)) {
+    throw new Error("leaderboard response did not match expected schema");
+  }
+
+  return {
+    captured_at: nowIso(),
+    run_id: preparedRun.runId,
+    source,
+    url: leaderboardApiUrl,
+    entries: body,
+  };
+}
+
+async function persistLeaderboardSnapshot(
+  preparedRun: PreparedRun,
+  source: "before" | "after",
+): Promise<LeaderboardSnapshot | undefined> {
+  try {
+    const snapshot = await fetchLeaderboardSnapshot(preparedRun, source);
+    await writeFile(join(preparedRun.runDir, `leaderboard.${source}.json`), JSON.stringify(snapshot, null, 2));
+    await appendJsonl(join(dataRootDir, "leaderboard-history.jsonl"), snapshot);
+    return snapshot;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await writeFile(
+      join(preparedRun.runDir, `leaderboard.${source}.error.json`),
+      JSON.stringify(
+        {
+          captured_at: nowIso(),
+          run_id: preparedRun.runId,
+          source,
+          url: leaderboardApiUrl,
+          error: message,
+        },
+        null,
+        2,
+      ),
+    );
+    return undefined;
+  }
+}
+
+async function fetchSubmissionSnapshot(preparedRun: PreparedRun, source: string): Promise<SubmissionSnapshot> {
+  const response = await fetch(submissionsApiUrl, {
+    headers: {
+      accept: "application/json",
+      cookie: `access_token=${submissionsAccessToken}`,
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`submissions fetch failed with ${response.status} ${response.statusText}`);
+  }
+
+  const body = await response.json();
+  if (!Array.isArray(body) || !body.every(isSubmissionEntry)) {
+    throw new Error("submissions response did not match expected schema");
+  }
+
+  return {
+    captured_at: nowIso(),
+    run_id: preparedRun.runId,
+    source,
+    url: submissionsApiUrl,
+    entries: body,
+  };
+}
+
+async function persistSubmissionSnapshot(
+  preparedRun: PreparedRun,
+  source: "before" | "after",
+): Promise<SubmissionSnapshot | undefined> {
+  if (!submissionsAccessToken) {
+    return undefined;
+  }
+
+  try {
+    const snapshot = await fetchSubmissionSnapshot(preparedRun, source);
+    await writeFile(join(preparedRun.runDir, `submissions.${source}.json`), JSON.stringify(snapshot, null, 2));
+    await appendJsonl(join(dataRootDir, "submissions-history.jsonl"), snapshot);
+    return snapshot;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await writeFile(
+      join(preparedRun.runDir, `submissions.${source}.error.json`),
+      JSON.stringify(
+        {
+          captured_at: nowIso(),
+          run_id: preparedRun.runId,
+          source,
+          url: submissionsApiUrl,
+          error: message,
+        },
+        null,
+        2,
+      ),
+    );
+    return undefined;
+  }
 }
 
 async function tmuxSessionExists(sessionName: string): Promise<boolean> {
@@ -919,6 +1321,57 @@ function buildReflectionPrompt(
   return lines.join("\n");
 }
 
+function buildScoreReflectionPrompt(
+  summaryPath: string,
+  taskAttributionPath: string,
+  submissionScorePath: string,
+  leaderboardBeforePath: string,
+  leaderboardAfterPath: string,
+  priorReflectionSummaryPath: string,
+): string {
+  return [
+    "You are doing the score-aware follow-up for this exact Tripletex run.",
+    "This happens after the earlier post-review completed and after the official submission score became available.",
+    "Work fully autonomously.",
+    "Do not ask questions.",
+    "Do not talk to the user.",
+    "Do not call Tripletex again.",
+    "Do not edit code, playbooks, or AGENTS.md in this phase.",
+    "Do not commit anything in this phase.",
+    "",
+    `Write your final answer to this path: ${summaryPath}`,
+    "",
+    "Artifacts to read first:",
+    `- prior reflection summary: ${priorReflectionSummaryPath}`,
+    `- task attribution: ${taskAttributionPath}`,
+    `- submission score: ${submissionScorePath}`,
+    `- leaderboard before: ${leaderboardBeforePath}`,
+    `- leaderboard after: ${leaderboardAfterPath}`,
+    "",
+    "Required analysis:",
+    "1. Identify the attributed task id from task attribution if available.",
+    "2. Read submission-score.json and determine whether correctness was perfect.",
+    "3. If correctness was not perfect, explain what the run likely did wrong in the final Tripletex state or payload mapping.",
+    "4. If correctness was perfect, use normalized_score together with the attributed leaderboard entry to judge whether the run was likely inefficient.",
+    "5. If correctness was perfect but score lagged the leaderboard best for that task, treat that as an efficiency/error signal rather than a correctness signal.",
+    "6. Use the existing Codex trace and prior reflection to identify likely wasted API calls, avoidable reads, retries, or 4xx-causing mistakes.",
+    "7. State clearly what the run did right, what it did wrong, and what the next agent should change.",
+    "",
+    "Output requirements:",
+    "Write Markdown with these exact sections:",
+    "1. Task Attribution",
+    "2. Correctness Verdict",
+    "3. Efficiency Verdict",
+    "4. Likely Root Cause",
+    "5. What Went Right",
+    "6. What To Change Next Time",
+    "",
+    "Decision rule:",
+    "- correctness < 1 means wrong data, wrong intent execution, or missing/incorrect side effects.",
+    "- correctness = 1 with weaker score means the likely issue is extra API calls, retries, or avoidable 4xx/errors rather than wrong final state.",
+  ].join("\n");
+}
+
 async function readSessionLines(path: string): Promise<string[]> {
   const raw = await readFile(path, "utf8").catch(() => "");
   return raw ? raw.split("\n").filter(Boolean) : [];
@@ -1000,6 +1453,10 @@ function buildReflectionWindowName(preparedRun: PreparedRun): string {
   return `${preparedRun.tmuxWindow.slice(0, 40)}-reflect`;
 }
 
+function buildScoreReflectionWindowName(preparedRun: PreparedRun): string {
+  return `${preparedRun.tmuxWindow.slice(0, 38)}-score-review`;
+}
+
 async function launchReflectionRun(
   preparedRun: PreparedRun,
   matchedSession: MatchedCodexSession,
@@ -1034,6 +1491,40 @@ async function launchReflectionRun(
   };
 }
 
+async function launchScoreReflectionRun(
+  preparedRun: PreparedRun,
+  matchedSession: MatchedCodexSession,
+  reflectionPromptPath: string,
+): Promise<{ launchScriptPath: string; tmuxWindow: string }> {
+  const reflectionTmuxWindow = buildScoreReflectionWindowName(preparedRun);
+  const reflectionLaunchScriptPath = join(preparedRun.runDir, "launch-codex-score-reflection.zsh");
+  await writeFile(
+    reflectionLaunchScriptPath,
+    buildReflectionLaunchScript(preparedRun, matchedSession, reflectionPromptPath),
+  );
+  await chmod(reflectionLaunchScriptPath, 0o755);
+
+  await withTmuxLaunchLock(async () => {
+    await runCommand([
+      "tmux",
+      "new-window",
+      "-d",
+      "-t",
+      tmuxSessionName,
+      "-n",
+      reflectionTmuxWindow,
+      "-c",
+      codexEnvironmentDir,
+      reflectionLaunchScriptPath,
+    ]);
+  });
+
+  return {
+    launchScriptPath: reflectionLaunchScriptPath,
+    tmuxWindow: reflectionTmuxWindow,
+  };
+}
+
 async function finalizeReflectionRun(
   preparedRun: PreparedRun,
   matchedSession: MatchedCodexSession,
@@ -1041,7 +1532,7 @@ async function finalizeReflectionRun(
   baselineTaskCompleteCount: number,
   reflectionSummaryPath: string,
   reflectionEventsPath: string,
-): Promise<void> {
+): Promise<ReflectionRunResult> {
   const deadline = Date.now() + solveTimeoutMs;
 
   while (Date.now() < deadline) {
@@ -1073,7 +1564,10 @@ async function finalizeReflectionRun(
           2,
         ),
       );
-      return;
+      return {
+        status: "completed",
+        completedAt: completion.timestamp,
+      };
     }
 
     await sleep(1000);
@@ -1094,12 +1588,16 @@ async function finalizeReflectionRun(
       2,
     ),
   );
+
+  return {
+    status: "timed_out",
+  };
 }
 
 async function maybeLaunchReflectionRun(
   preparedRun: PreparedRun,
   matchedSession: MatchedCodexSession | undefined,
-): Promise<void> {
+): Promise<ReflectionRunResult> {
   const sandboxCredentials = await loadSandboxCredentials();
   const reflectionSummaryPath = join(preparedRun.runDir, "codex-reflection.summary.md");
   const reflectionPromptPath = join(preparedRun.runDir, "codex-reflection.prompt.txt");
@@ -1123,7 +1621,9 @@ async function maybeLaunchReflectionRun(
         2,
       ),
     );
-    return;
+    return {
+      status: "skipped",
+    };
   }
 
   const sessionLines = await readSessionLines(matchedSession.path);
@@ -1143,23 +1643,198 @@ async function maybeLaunchReflectionRun(
   await writeFile(
     join(preparedRun.runDir, "codex-reflection.status.json"),
     JSON.stringify(
-        {
-          status: "launched",
-          launched_at: nowIso(),
-          session_id: matchedSession.sessionMeta.id,
-          tmux_window: launchedReflectionRun.tmuxWindow,
-          launch_script_path: launchedReflectionRun.launchScriptPath,
-          reflection_summary_path: reflectionSummaryPath,
-          reflection_events_path: reflectionEventsPath,
-          baseline_task_complete_count: baselineTaskCompleteCount,
-          sandbox_credentials_available: Boolean(sandboxCredentials),
-        },
-        null,
-        2,
+      {
+        status: "launched",
+        launched_at: nowIso(),
+        session_id: matchedSession.sessionMeta.id,
+        tmux_window: launchedReflectionRun.tmuxWindow,
+        launch_script_path: launchedReflectionRun.launchScriptPath,
+        reflection_summary_path: reflectionSummaryPath,
+        reflection_events_path: reflectionEventsPath,
+        baseline_task_complete_count: baselineTaskCompleteCount,
+        sandbox_credentials_available: Boolean(sandboxCredentials),
+      },
+      null,
+      2,
     ),
   );
 
-  void finalizeReflectionRun(
+  return finalizeReflectionRun(
+    preparedRun,
+    matchedSession,
+    baselineLineCount,
+    baselineTaskCompleteCount,
+    reflectionSummaryPath,
+    reflectionEventsPath,
+  );
+}
+
+async function finalizeScoreReflectionRun(
+  preparedRun: PreparedRun,
+  matchedSession: MatchedCodexSession,
+  baselineLineCount: number,
+  baselineTaskCompleteCount: number,
+  reflectionSummaryPath: string,
+  reflectionEventsPath: string,
+): Promise<ReflectionRunResult> {
+  const deadline = Date.now() + solveTimeoutMs;
+
+  while (Date.now() < deadline) {
+    const lines = await readSessionLines(matchedSession.path);
+    if (lines.length > baselineLineCount) {
+      const appendedLines = lines.slice(baselineLineCount).join("\n");
+      await writeFile(reflectionEventsPath, appendedLines ? `${appendedLines}\n` : "");
+    }
+
+    const completion = findTaskCompleteAfterCount(lines, baselineTaskCompleteCount);
+    if (completion) {
+      if (completion.lastAgentMessage) {
+        await writeFile(reflectionSummaryPath, completion.lastAgentMessage);
+      }
+
+      await writeFile(
+        join(preparedRun.runDir, "codex-score-reflection.status.json"),
+        JSON.stringify(
+          {
+            status: "completed",
+            completed_at: nowIso(),
+            session_id: matchedSession.sessionMeta.id,
+            tmux_window: preparedRun.tmuxWindow,
+            reflection_summary_path: reflectionSummaryPath,
+            reflection_events_path: reflectionEventsPath,
+            reflection_task_complete_timestamp: completion.timestamp,
+          },
+          null,
+          2,
+        ),
+      );
+      return {
+        status: "completed",
+        completedAt: completion.timestamp,
+      };
+    }
+
+    await sleep(1000);
+  }
+
+  await writeFile(
+    join(preparedRun.runDir, "codex-score-reflection.status.json"),
+    JSON.stringify(
+      {
+        status: "timed_out",
+        timed_out_at: nowIso(),
+        session_id: matchedSession.sessionMeta.id,
+        tmux_window: preparedRun.tmuxWindow,
+        reflection_summary_path: reflectionSummaryPath,
+        reflection_events_path: reflectionEventsPath,
+      },
+      null,
+      2,
+    ),
+  );
+
+  return {
+    status: "timed_out",
+  };
+}
+
+async function maybeLaunchScoreReflectionRun(
+  preparedRun: PreparedRun,
+  matchedSession: MatchedCodexSession | undefined,
+): Promise<ReflectionRunResult> {
+  const reflectionSummaryPath = join(preparedRun.runDir, "codex-score-reflection.summary.md");
+  const reflectionPromptPath = join(preparedRun.runDir, "codex-score-reflection.prompt.txt");
+  const reflectionEventsPath = join(preparedRun.runDir, "codex-score-reflection.events.jsonl");
+  const taskAttributionPath = join(preparedRun.runDir, "task-attribution.json");
+  const submissionScorePath = join(preparedRun.runDir, "submission-score.json");
+  const leaderboardBeforePath = join(preparedRun.runDir, "leaderboard.before.json");
+  const leaderboardAfterPath = join(preparedRun.runDir, "leaderboard.after.json");
+  const priorReflectionSummaryPath = join(preparedRun.runDir, "codex-reflection.summary.md");
+
+  if (!matchedSession) {
+    await writeFile(
+      join(preparedRun.runDir, "codex-score-reflection.status.json"),
+      JSON.stringify(
+        {
+          status: "skipped",
+          reason: "missing_session",
+          reflection_summary_path: reflectionSummaryPath,
+          created_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return {
+      status: "skipped",
+    };
+  }
+
+  const submissionScoreRaw = await readFile(submissionScorePath, "utf8").catch(() => "");
+  const taskAttributionRaw = await readFile(taskAttributionPath, "utf8").catch(() => "");
+  if (!submissionScoreRaw || !taskAttributionRaw) {
+    await writeFile(
+      join(preparedRun.runDir, "codex-score-reflection.status.json"),
+      JSON.stringify(
+        {
+          status: "skipped",
+          reason: !submissionScoreRaw ? "missing_submission_score" : "missing_task_attribution",
+          reflection_summary_path: reflectionSummaryPath,
+          created_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return {
+      status: "skipped",
+    };
+  }
+
+  await writeFile(
+    reflectionPromptPath,
+    buildScoreReflectionPrompt(
+      reflectionSummaryPath,
+      taskAttributionPath,
+      submissionScorePath,
+      leaderboardBeforePath,
+      leaderboardAfterPath,
+      priorReflectionSummaryPath,
+    ),
+  );
+
+  const sessionLines = await readSessionLines(matchedSession.path);
+  const baselineLineCount = sessionLines.length;
+  const baselineTaskCompleteCount = countTaskCompleteEvents(sessionLines);
+  const launchedReflectionRun = await launchScoreReflectionRun(preparedRun, matchedSession, reflectionPromptPath);
+
+  log("INFO", "Launched score-aware reflection run", {
+    requestId: preparedRun.requestId,
+    runId: preparedRun.runId,
+    sessionId: matchedSession.sessionMeta.id,
+    reflectionTmuxWindow: launchedReflectionRun.tmuxWindow,
+    reflectionLaunchScriptPath: launchedReflectionRun.launchScriptPath,
+  });
+
+  await writeFile(
+    join(preparedRun.runDir, "codex-score-reflection.status.json"),
+    JSON.stringify(
+      {
+        status: "launched",
+        launched_at: nowIso(),
+        session_id: matchedSession.sessionMeta.id,
+        tmux_window: launchedReflectionRun.tmuxWindow,
+        launch_script_path: launchedReflectionRun.launchScriptPath,
+        reflection_summary_path: reflectionSummaryPath,
+        reflection_events_path: reflectionEventsPath,
+        baseline_task_complete_count: baselineTaskCompleteCount,
+      },
+      null,
+      2,
+    ),
+  );
+
+  return finalizeScoreReflectionRun(
     preparedRun,
     matchedSession,
     baselineLineCount,
@@ -1245,11 +1920,14 @@ async function prepareRun(input: SolveRequest, requestId: string): Promise<Prepa
     requestFilePath,
     runDir,
     runId,
+    solvePrompt: input.prompt,
     scriptsDir,
     storageMode,
     tmuxWindow,
   };
 
+  const leaderboardBeforeSnapshot = await persistLeaderboardSnapshot(preparedRun, "before");
+  const submissionsBeforeSnapshot = await persistSubmissionSnapshot(preparedRun, "before");
   await writeFile(requestFilePath, JSON.stringify(input, null, 2));
   await writeFile(promptFilePath, codexPrompt);
   await writeFile(
@@ -1266,6 +1944,8 @@ async function prepareRun(input: SolveRequest, requestId: string): Promise<Prepa
         scripts_dir: scriptsDir,
         credentials_source: effectiveCredentials.source,
         effective_base_url: effectiveCredentials.baseUrl,
+        leaderboard_before_captured: Boolean(leaderboardBeforeSnapshot),
+        submissions_before_captured: Boolean(submissionsBeforeSnapshot),
         attachments: storedFiles.map(({ content_base64: _contentBase64, ...file }) => file),
       },
       null,
@@ -1387,14 +2067,51 @@ async function waitForSolveCompletion(preparedRun: PreparedRun): Promise<WaitFor
 async function continuePostRunProcessing(
   preparedRun: PreparedRun,
   matchedSession: MatchedCodexSession | undefined,
+  waitResult: WaitForSolveResult,
 ): Promise<void> {
   try {
     const tracedSession = await persistCodexTraceArtifacts(preparedRun, matchedSession);
-    await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
+    const leaderboardPromise = attributeRunToLeaderboardTask(
+      preparedRun,
+      waitResult.reason,
+      waitResult.taskCompleteTimestamp,
+    ).catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      log("ERROR", "Leaderboard attribution failed", {
+        requestId: preparedRun.requestId,
+        runId: preparedRun.runId,
+        error: message,
+      });
+    });
+    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
+    await attributeRunToSubmissionScore(preparedRun, reflectionResult).catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      log("ERROR", "Submission score attribution failed", {
+        requestId: preparedRun.requestId,
+        runId: preparedRun.runId,
+        error: message,
+      });
+    });
+    await leaderboardPromise;
+    const scoreReflectionResult = await maybeLaunchScoreReflectionRun(preparedRun, tracedSession ?? matchedSession).catch(
+      (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        log("ERROR", "Score-aware reflection failed", {
+          requestId: preparedRun.requestId,
+          runId: preparedRun.runId,
+          error: message,
+        });
+        return {
+          status: "skipped",
+        } satisfies ReflectionRunResult;
+      },
+    );
     log("INFO", "Post-run processing completed", {
       requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tracedSessionId: (tracedSession ?? matchedSession)?.sessionMeta.id,
+      reflectionStatus: reflectionResult.status,
+      scoreReflectionStatus: scoreReflectionResult.status,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -1404,6 +2121,306 @@ async function continuePostRunProcessing(
       error: message,
     });
   }
+}
+
+async function attributeRunToLeaderboardTask(
+  preparedRun: PreparedRun,
+  completionReason: WaitForSolveResult["reason"],
+  taskCompleteTimestamp: string | undefined,
+): Promise<void> {
+  const beforePath = join(preparedRun.runDir, "leaderboard.before.json");
+  const beforeRaw = await readFile(beforePath, "utf8").catch(() => "");
+  if (!beforeRaw) {
+    await writeFile(
+      join(preparedRun.runDir, "task-attribution.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          completed_reason: completionReason,
+          task_complete_timestamp: taskCompleteTimestamp,
+          status: "skipped",
+          reason: "missing_leaderboard_before_snapshot",
+          leaderboard_url: leaderboardApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const parsedBefore = safeJsonParse(beforeRaw);
+  if (
+    !isRecord(parsedBefore) ||
+    !Array.isArray(parsedBefore.entries) ||
+    !parsedBefore.entries.every(isLeaderboardEntry)
+  ) {
+    await writeFile(
+      join(preparedRun.runDir, "task-attribution.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          completed_reason: completionReason,
+          task_complete_timestamp: taskCompleteTimestamp,
+          status: "skipped",
+          reason: "invalid_leaderboard_before_snapshot",
+          leaderboard_url: leaderboardApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const beforeSnapshot = parsedBefore as LeaderboardSnapshot;
+
+  log("INFO", "Leaderboard attribution waiting before refetch", {
+    requestId: preparedRun.requestId,
+    runId: preparedRun.runId,
+    delayMs: leaderboardAttributionDelayMs,
+  });
+  await sleep(leaderboardAttributionDelayMs);
+
+  const deadline = Date.now() + leaderboardPollWindowMs;
+  let afterSnapshot: LeaderboardSnapshot | undefined;
+  let diff: LeaderboardDiffEntry[] = [];
+  let inference = inferLeaderboardTask(diff);
+
+  while (Date.now() <= deadline) {
+    afterSnapshot = await persistLeaderboardSnapshot(preparedRun, "after");
+    if (afterSnapshot) {
+      diff = buildLeaderboardDiff(beforeSnapshot.entries, afterSnapshot.entries);
+      inference = inferLeaderboardTask(diff);
+
+      await writeFile(join(preparedRun.runDir, "leaderboard.diff.json"), JSON.stringify(diff, null, 2));
+
+      if (inference.inference_status !== "no_change_detected") {
+        break;
+      }
+    }
+
+    if (Date.now() + leaderboardPollIntervalMs > deadline) {
+      break;
+    }
+
+    await sleep(leaderboardPollIntervalMs);
+  }
+
+  const attribution = {
+    run_id: preparedRun.runId,
+    request_id: preparedRun.requestId,
+    prompt_raw: preparedRun.solvePrompt,
+    completion_reason: completionReason,
+    task_complete_timestamp: taskCompleteTimestamp,
+    leaderboard_url: leaderboardApiUrl,
+    leaderboard_delay_ms: leaderboardAttributionDelayMs,
+    poll_window_ms: leaderboardPollWindowMs,
+    poll_interval_ms: leaderboardPollIntervalMs,
+    before_captured_at: beforeSnapshot.captured_at,
+    after_captured_at: afterSnapshot?.captured_at,
+    diff_entry_count: diff.length,
+    inference_status: inference.inference_status,
+    tx_task_id: inference.tx_task_id,
+    attempt_delta: inference.attempt_delta,
+    generated_at: nowIso(),
+  };
+
+  await writeFile(join(preparedRun.runDir, "task-attribution.json"), JSON.stringify(attribution, null, 2));
+
+  if (inference.tx_task_id) {
+    await appendJsonl(join(dataRootDir, "prompt-task-labels.jsonl"), attribution);
+  }
+
+  log("INFO", "Leaderboard attribution finished", {
+    requestId: preparedRun.requestId,
+    runId: preparedRun.runId,
+    inferenceStatus: inference.inference_status,
+    txTaskId: inference.tx_task_id,
+    attemptDelta: inference.attempt_delta,
+  });
+}
+
+async function attributeRunToSubmissionScore(
+  preparedRun: PreparedRun,
+  reflectionResult: ReflectionRunResult,
+): Promise<void> {
+  if (!submissionsAccessToken) {
+    await writeFile(
+      join(preparedRun.runDir, "submission-score.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          status: "skipped",
+          reason: "missing_submissions_access_token",
+          submissions_url: submissionsApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  if (reflectionResult.status !== "completed") {
+    await writeFile(
+      join(preparedRun.runDir, "submission-score.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          status: "skipped",
+          reason: "reflection_not_completed",
+          reflection_status: reflectionResult.status,
+          submissions_url: submissionsApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const beforePath = join(preparedRun.runDir, "submissions.before.json");
+  const beforeRaw = await readFile(beforePath, "utf8").catch(() => "");
+  if (!beforeRaw) {
+    await writeFile(
+      join(preparedRun.runDir, "submission-score.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          status: "skipped",
+          reason: "missing_submissions_before_snapshot",
+          submissions_url: submissionsApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const parsedBefore = safeJsonParse(beforeRaw);
+  if (
+    !isRecord(parsedBefore) ||
+    !Array.isArray(parsedBefore.entries) ||
+    !parsedBefore.entries.every(isSubmissionEntry)
+  ) {
+    await writeFile(
+      join(preparedRun.runDir, "submission-score.json"),
+      JSON.stringify(
+        {
+          run_id: preparedRun.runId,
+          request_id: preparedRun.requestId,
+          status: "skipped",
+          reason: "invalid_submissions_before_snapshot",
+          submissions_url: submissionsApiUrl,
+          generated_at: nowIso(),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const beforeSnapshot = parsedBefore as SubmissionSnapshot;
+  const deadline = Date.now() + submissionsPollWindowMs;
+  let afterSnapshot: SubmissionSnapshot | undefined;
+  let match = inferSubmissionMatch(
+    beforeSnapshot.entries,
+    [],
+    preparedRun.createdAt,
+    reflectionResult.completedAt,
+  );
+
+  while (Date.now() <= deadline) {
+    afterSnapshot = await persistSubmissionSnapshot(preparedRun, "after");
+    if (afterSnapshot) {
+      match = inferSubmissionMatch(
+        beforeSnapshot.entries,
+        afterSnapshot.entries,
+        preparedRun.createdAt,
+        reflectionResult.completedAt,
+      );
+
+      if (match.inference_status === "ambiguous") {
+        break;
+      }
+
+      if (match.submission && isSubmissionScored(match.submission)) {
+        break;
+      }
+    }
+
+    if (Date.now() + submissionsPollIntervalMs > deadline) {
+      break;
+    }
+
+    await sleep(submissionsPollIntervalMs);
+  }
+
+  const correctness = computeSubmissionCorrectness(match.submission);
+  const checks = match.submission?.feedback?.checks;
+  const allChecksPassed =
+    checks && checks.length > 0 ? checks.every((check) => /passed/i.test(check)) : undefined;
+
+  await writeFile(
+    join(preparedRun.runDir, "submission-score.json"),
+    JSON.stringify(
+      {
+        run_id: preparedRun.runId,
+        request_id: preparedRun.requestId,
+        status:
+          match.inference_status === "ambiguous"
+            ? "ambiguous"
+            : match.submission && isSubmissionScored(match.submission)
+              ? "completed"
+              : "timed_out",
+        reflection_completed_at: reflectionResult.completedAt,
+        submissions_url: submissionsApiUrl,
+        submissions_poll_window_ms: submissionsPollWindowMs,
+        submissions_poll_interval_ms: submissionsPollIntervalMs,
+        before_captured_at: beforeSnapshot.captured_at,
+        after_captured_at: afterSnapshot?.captured_at,
+        inference_status: match.inference_status,
+        candidate_count: match.candidate_count,
+        submission_id: match.submission?.id,
+        submission_status: match.submission?.status,
+        queued_at: match.submission?.queued_at,
+        completed_at: match.submission?.completed_at,
+        score_raw: match.submission?.score_raw,
+        score_max: match.submission?.score_max,
+        correctness,
+        normalized_score: match.submission?.normalized_score,
+        duration_ms: match.submission?.duration_ms,
+        feedback_comment: match.submission?.feedback?.comment,
+        feedback_checks: checks,
+        all_checks_passed: allChecksPassed,
+        generated_at: nowIso(),
+      },
+      null,
+      2,
+    ),
+  );
+
+  log("INFO", "Submission score attribution finished", {
+    requestId: preparedRun.requestId,
+    runId: preparedRun.runId,
+    inferenceStatus: match.inference_status,
+    submissionId: match.submission?.id,
+    correctness,
+    allChecksPassed,
+  });
 }
 
 async function handleSolve(input: SolveRequest, requestId: string): Promise<SolveResponse> {
@@ -1433,7 +2450,7 @@ async function handleSolve(input: SolveRequest, requestId: string): Promise<Solv
     elapsedMs: Date.now() - startedAtMs,
   });
 
-  void continuePostRunProcessing(preparedRun, waitResult.matchedSession);
+  void continuePostRunProcessing(preparedRun, waitResult.matchedSession, waitResult);
 
   log("INFO", "Solve request completed", {
     requestId,

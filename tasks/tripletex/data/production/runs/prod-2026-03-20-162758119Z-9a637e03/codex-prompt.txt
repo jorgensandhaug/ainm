@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-162758119Z-9a637e03/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Create a custom accounting dimension "Marked" with the values "Offentlig" and "Privat". Then post a voucher on account 7300 for 37250 NOK, linked to the dimension value "Privat".
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+HhLGewN4hhC1auP2F61TAD_k4uvN5uH3Jx1xnovoY50
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-162758119Z-9a637e03/scripts

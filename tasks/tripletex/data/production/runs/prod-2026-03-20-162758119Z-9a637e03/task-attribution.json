@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-162758119Z-9a637e03",
+  "request_id": "7c9ca303",
+  "prompt_raw": "Create a custom accounting dimension \"Marked\" with the values \"Offentlig\" and \"Privat\". Then post a voucher on account 7300 for 37250 NOK, linked to the dimension value \"Privat\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:30:20.727Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T16:27:58.171Z",
+  "after_captured_at": "2026-03-20T16:31:21.176Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "17",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:31:21.181Z"
+}

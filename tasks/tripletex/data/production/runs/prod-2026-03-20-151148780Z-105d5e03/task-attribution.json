@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-151148780Z-105d5e03",
+  "request_id": "6375f268",
+  "prompt_raw": "Le client Étoile SARL (nº org. 955361490) a réclamé concernant la facture pour \"Maintenance\" (45550 NOK HT). Émettez un avoir complet qui annule l'intégralité de la facture.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T15:12:56.896Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T15:11:50.680Z",
+  "after_captured_at": "2026-03-20T15:13:57.357Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T15:13:57.358Z"
+}

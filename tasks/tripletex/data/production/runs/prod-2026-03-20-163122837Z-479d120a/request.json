@@ -1,0 +1,8 @@
+{
+  "prompt": "Führen Sie die Gehaltsabrechnung für Marie Becker (marie.becker@example.org) für diesen Monat durch. Das Grundgehalt beträgt 44150 NOK. Fügen Sie einen einmaligen Bonus von 16200 NOK zum Grundgehalt hinzu.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "XO8U7C3AezcDTI4MuZHm1P1aslB7D44Pxs2xu7ERYlQ"
+  }
+}

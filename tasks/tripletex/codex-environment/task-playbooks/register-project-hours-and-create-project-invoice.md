@@ -18,6 +18,7 @@ Do not use for:
 Persistent-sandbox verification on 2026-03-20 showed:
 - `GET /project?name=...&count=50&fields=*,customer(*)` returned enough expanded customer data to identify the linked customer without a separate `GET /customer`
 - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` returned enough nested data to identify an already-existing exact employee+activity rate and its `hourlyRate` without a second rate-search call
+- on a newly created analog project with no hourly-rate holder yet, `POST /project/hourlyRates` with `project`, `startDate`, and `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the missing holder, after which `POST /project/hourlyRates/projectSpecificRates` and `POST /timesheet/entry` succeeded normally
 - `PUT /project/hourlyRates/{id}` can switch an existing project hourly-rate holder from `TYPE_FIXED_HOURLY_RATE` to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
 - after that model switch, `POST /project/hourlyRates/projectSpecificRates` with:
   - `projectHourlyRate`
@@ -88,17 +89,23 @@ Persistent-sandbox verification on 2026-03-20 showed:
 6. If the resolved activity is chargeable, continue with the rate path
 7. Resolve the project hourly-rate holder
    - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
-8. If needed, switch the holder to project-specific rates
+8. If no holder exists yet, create it once
+   - `POST /project/hourlyRates`
+   - send:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
+9. If needed, switch the holder to project-specific rates
    - `PUT /project/hourlyRates/{id}`
    - send:
      - `project`
      - `startDate`
      - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
-9. Reuse or write the exact employee+activity rate
+10. Reuse or write the exact employee+activity rate
    - if that holder read already exposes one exact employee+activity rate with the prompt hourly rate, reuse it and skip an extra write
    - if it exposes one exact employee+activity rate with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
    - otherwise `POST /project/hourlyRates/projectSpecificRates`
-10. Register the hours
+11. Register the hours
    - `POST /timesheet/entry`
    - send:
      - `employee`
@@ -108,9 +115,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - `hours`
      - `projectChargeableHours`
    - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
-11. Resolve a valid outgoing VAT type for the invoice date
+12. Resolve a valid outgoing VAT type for the invoice date
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
-12. Create a real project-linked order line derived from the prompt hours and rate
+13. Create a real project-linked order line derived from the prompt hours and rate
    - `POST /order`
    - include:
      - `customer`
@@ -118,9 +125,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - `orderDate`
      - `deliveryDate`
      - one embedded `orderLines[]` row using the prompt hours and prompt rate
-13. Invoice that order without sending it
+14. Invoice that order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-14. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
+15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
 
 ## Recommended Shapes
 
@@ -192,13 +199,14 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   2. `GET /project?name=...&fields=*,customer(*)`
   3. `GET /activity/>forTimeSheet?...`
   4. if chargeable: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
-  5. if needed: conditional `PUT /project/hourlyRates/{id}`
-  6. if chargeable and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
-  7. if chargeable and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
-  8. `POST /timesheet/entry`
-  9. `GET /ledger/vatType?...`
-  10. `POST /order` with one real project-linked line using prompt hours x prompt rate
-  11. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  5. if chargeable and no holder exists yet: `POST /project/hourlyRates`
+  6. if needed: conditional `PUT /project/hourlyRates/{id}`
+  7. if chargeable and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
+  8. if chargeable and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
+  9. `POST /timesheet/entry`
+  10. `GET /ledger/vatType?...`
+  11. `POST /order` with one real project-linked line using prompt hours x prompt rate
+  12. `PUT /order/{id}/:invoice?...sendToCustomer=false`
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
 - do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-155931143Z-6a1ac6b0",
+  "request_id": "9408e30f",
+  "prompt_raw": "Register a travel expense for Lucy Walker (lucy.walker@example.org) for \"Client visit Trondheim\". The trip lasted 4 days with per diem (daily rate 800 NOK). Expenses: flight ticket 7200 NOK and taxi 650 NOK.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:00:35.510Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T15:59:31.753Z",
+  "after_captured_at": "2026-03-20T16:01:37.122Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "13",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:01:37.124Z"
+}

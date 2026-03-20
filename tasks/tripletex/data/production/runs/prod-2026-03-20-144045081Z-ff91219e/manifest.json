@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-03-20T14:40:45.082Z",
+  "request_id": "7fcb3af0",
+  "run_id": "prod-2026-03-20-144045081Z-ff91219e",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-144045081Z-ff91219e",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-20-144045081Z-ff91219e",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-144045081Z-ff91219e/scripts",
+  "credentials_source": "request",
+  "effective_base_url": "https://kkpqfuj-amager.tripletex.dev/v2",
+  "leaderboard_before_captured": true,
+  "attachments": []
+}

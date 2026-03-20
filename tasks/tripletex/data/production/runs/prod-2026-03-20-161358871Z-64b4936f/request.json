@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett kunden Fjordkraft AS med organisasjonsnummer 843216285. Adressen er Fjordveien 129, 2317 Hamar. E-post: post@fjordkraft.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "6mKkUVZzAWZ2A3pdSA9u__rJekiz9gMQzq9HzDK0YcY"
+  }
+}

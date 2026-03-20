@@ -68,6 +68,15 @@ Exact-match tasks should now prefer the trusted standard:
   - `PUT /invoice/{id}/:payment?...`
   - the invoice response exposed `paidAmount=12650`, payment type `32813748` (`Betalt til bank` / debit account `1920`), and the payment write settled the invoice to `0`
 
+- additional production verification on 2026-03-20 confirmed the same exact-match path for customer `989093630` and products `5981` / `6784`:
+  - `GET /customer?organizationNumber=989093630&fields=*`
+  - `GET /product?productNumber=5981&productNumber=6784&fields=*`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `PUT /invoice/{id}/:payment?...`
+  - the prompt line-price sum excluding VAT was `50400`, but the actual payment amount from the invoice response was `63000`; this exact Spanish-language prompt again confirmed that payment must use invoice outstanding, not prompt arithmetic
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`

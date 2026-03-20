@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-151148780Z-105d5e03/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Le client Étoile SARL (nº org. 955361490) a réclamé concernant la facture pour "Maintenance" (45550 NOK HT). Émettez un avoir complet qui annule l'intégralité de la facture.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+gQppDrbTPR_aH-E_S7aRCfFkvmvO6MdHQ3BT82t08_k
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-151148780Z-105d5e03/scripts

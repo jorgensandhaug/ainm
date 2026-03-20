@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-161046877Z-7a5a61d5",
+  "request_id": "3653cfe1",
+  "prompt_raw": "Set a fixed price of 428550 NOK on the project \"CRM Integration\" for Ironbridge Ltd (org no. 832020141). The project manager is Ella Williams (ella.williams@example.org). Invoice the customer for 25% of the fixed price as a milestone payment.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T16:13:27.356Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T16:10:46.930Z",
+  "after_captured_at": "2026-03-20T16:14:28.087Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T16:14:28.088Z"
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Registre una nota de gastos de viaje para Pablo Rodríguez (pablo.rodriguez@example.org) por \"Conferencia Ålesund\". El viaje duró 5 días con dietas (tarifa diaria 800 NOK). Gastos: billete de avión 2750 NOK y taxi 700 NOK.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "AfFLQ9Jed32CoG2lrwu4IoudytZ4grTAmSPYEoexEP4"
+  }
+}

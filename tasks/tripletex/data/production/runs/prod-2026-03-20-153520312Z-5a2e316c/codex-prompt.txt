@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-153520312Z-5a2e316c/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Crie o produto "Pão integral" com número de produto 1871. O preço é 28350 NOK sem IVA, utilizando a taxa de IVA para alimentos de 15 %.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+GfNhrIN1mnpk3lZk6hstyEgJ91GNb3w2IcQuaMwK_Lo
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-153520312Z-5a2e316c/scripts

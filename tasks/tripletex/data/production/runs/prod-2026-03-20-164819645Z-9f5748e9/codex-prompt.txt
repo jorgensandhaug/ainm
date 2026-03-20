@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164819645Z-9f5748e9/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Create an invoice for the customer Oakwood Ltd (org no. 909722500) with three product lines: Analysis Report (9796) at 27700 NOK with 25% VAT, Maintenance (2145) at 12700 NOK with 15% VAT (food), and System Development (5995) at 7050 NOK with 0% VAT (exempt).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+NtGgm6k63w7euqRN3qF_98eCFO3FBn0WiuBg97lFikA
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-164819645Z-9f5748e9/scripts

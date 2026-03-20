@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-161046877Z-7a5a61d5/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Set a fixed price of 428550 NOK on the project "CRM Integration" for Ironbridge Ltd (org no. 832020141). The project manager is Ella Williams (ella.williams@example.org). Invoice the customer for 25% of the fixed price as a milestone payment.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+BOvbwZ3nMBndmtw0Uh-bkZJ4oGUZlvLMfIN8LBKeXkQ
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-161046877Z-7a5a61d5/scripts

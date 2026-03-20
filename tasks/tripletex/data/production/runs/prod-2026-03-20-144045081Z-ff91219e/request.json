@@ -1,0 +1,7 @@
+{
+  "prompt": "Create a customer named Leaderboard Attribution Test AS with email leaderboard-attribution@example.no and organization number 999888770.",
+  "tripletex_credentials": {
+    "base_url": "https://kkpqfuj-amager.tripletex.dev/v2",
+    "session_token": "eyJ0b2tlbklkIjoyMTQ3NjI4NDYxLCJ0b2tlbiI6IjU2NDRjNDljLWU0YzYtNGU2OC05MWU5LWU0MzBhMWRiYTMzYSJ9"
+  }
+}

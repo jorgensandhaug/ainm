@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-145823778Z-b5869355/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+O cliente Estrela Lda (org. nº 890872492) reclamou sobre a fatura referente a "Consultoria de dados" (12000 NOK sem IVA). Emita uma nota de crédito completa que reverta toda a fatura.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+7yrKlysCrzgz9R1w0qqvKS5pn-JJ3WIIXXbArdyLsgo
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-145823778Z-b5869355/scripts
