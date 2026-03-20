@@ -75,6 +75,14 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - after fixture setup, the update-first proof path again completed in `5` measured calls with no `/ledger/account` preflight
   - the percentage-derived amount `123832.5` (`375250 * 0.33`) was accepted directly on `orderLines[].unitPriceExcludingVatCurrency`
   - the sandbox still exposed only filtered outgoing VAT code `6` (`0%`), yet the invoice write still proved `amountExcludingVatCurrency=123832.5` and `amountCurrencyOutstanding=123832.5`
+- post-run scoring on 2026-03-20 for `Soleil SARL` / `931336738` / `Mise à niveau infrastructure` / `nathan.thomas@example.org` / `125550` / `25%` showed:
+  - the production run was correct (`8/8`) but still one call above the true minimum (`3.5/4` efficiency), so one write had been unnecessary
+  - the remaining likely waste was `PUT /project`, because the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proved the exact project, nested customer, and nested manager email
+  - that production account exposed outgoing VAT `25%`, so the successful invoice write returned `amountExcludingVatCurrency=31387.5` and `amountCurrencyOutstanding=39234.38`; the milestone amount check belongs on the excluding-VAT field
+- persistent-sandbox analog re-proof on 2026-03-20 with the same `125550 * 25% = 31387.5` arithmetic showed the missing optimization:
+  - after fixture setup, when the first `GET /project` already also proved `fixedprice=125550`, the measured winning path was only `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - that sandbox still exposed only outgoing VAT `0%`, so the analog invoice returned `amountExcludingVatCurrency=31387.5` and `amountCurrencyOutstanding=31387.5`
+  - therefore the shorter branch is to skip `PUT /project` whenever the initial project read already proves the target fixed-price + manager state, and keep the older `5`-call branch only for real project mutations
 
 ## Minimal Safe Flow
 
@@ -91,6 +99,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `GET /project?name=<project-name>&count=50&fields=*,customer(*),projectManager(*)`
    - if that one read already leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the returned `startDate`
    - if the same expanded row also shows nested `projectManager.email=<prompt-email>`, reuse `projectManager.id` too and skip a separate `GET /employee`
+   - if that same row also already shows `fixedprice=<prompt-fixed-price>` and the manager already matches, skip the project write entirely and continue from the VAT lookup
    - in that exact hit case, skip a separate `GET /customer`
 3. Resolve the customer only if the project-first read did not already prove it
    - usually `GET /customer?organizationNumber=...&count=10&fields=*`
@@ -102,7 +111,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`
    - exact-match the email locally because the API filter is containing, not exact
 6. Resolve or update the project
-   - if the project-first read already found the exact project, `PUT /project/{id}` directly
+   - if the project-first read already found the exact project and already proves the target fixed-price + manager state, skip the project write
+   - otherwise, if the project-first read already found the exact project, `PUT /project/{id}` directly
    - otherwise, if the customer is now known but the project is still unresolved, create it with `POST /project`
 7. Set the project fixed-price fields
    - `startDate`
@@ -186,19 +196,19 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
   - project manager email
   - full fixed price
   - partial-billing percentage or amount
-- the lower-call fresh-account flow is usually:
- - the lower-call exact-match flow is usually:
+- the lower-call exact-match flow is usually:
   1. `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`
-  2. if that read already proves the exact project, nested customer match, and nested manager email match, `PUT /project/{id}` directly using the returned `customer.id`, `projectManager.id`, and `startDate`
+  2. if that read already proves the exact project, nested customer match, nested manager email match, and `fixedprice=<prompt-fixed-price>`, skip the project write and go straight to:
+     `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /order` -> `PUT /order/{id}/:invoice?...`
   3. otherwise do one conditional `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
   4. if the project-first read did not already prove the customer, `GET /customer?organizationNumber=...&count=10&fields=*`
   5. optional `POST /customer` with `invoiceSendMethod: "MANUAL"` if missing
-  6. `POST /project` if missing, otherwise `PUT /project/{id}`
+  6. `POST /project` if missing, otherwise `PUT /project/{id}` when a real project mutation is still required
   7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
   8. `POST /order` with one embedded partial-billing line
   9. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
 - only add `/ledger/account` between steps 8 and 9 when earlier evidence in the same run already proves the company invoice bank account is missing
-- if the project-first read already finds the exact project and exact existing manager, this shape saves two API calls versus always doing customer-first plus employee-first lookup while still keeping the exact same write path
+- if the project-first read already finds the exact project, exact existing manager, and the target fixed price, this shape saves three API calls versus always doing customer-first plus employee-first lookup plus unconditional `PUT /project`
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
 ## Verification Shape
@@ -240,3 +250,5 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
 - Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
+- Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
+- Do not assert the prompt-derived milestone amount against `amountCurrencyOutstanding` on taxable accounts; for the 2026-03-20 `Soleil SARL` production run, the correct `25%` milestone was `amountExcludingVatCurrency=31387.5` while `amountCurrencyOutstanding=39234.38` because VAT was included there
