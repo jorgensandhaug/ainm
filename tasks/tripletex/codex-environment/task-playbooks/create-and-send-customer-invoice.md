@@ -32,6 +32,39 @@ The same sandbox session also showed:
 
 For the common "new customer, no email/address in prompt" variant, the invoice create itself is the trusted send step.
 
+## Key Finding: Fresh-Account Customer Identity Is Not The Same As Existing-Customer Proof
+
+For exact create-and-send prompts that only give customer business identity such as:
+
+- exact `name`
+- exact `organizationNumber`
+- no email
+- no postal address
+- no explicit wording that the customer already exists
+
+do not spend a speculative:
+
+`GET /customer?organizationNumber=...&fields=*`
+
+first.
+
+Persistent sandbox re-verification on 2026-03-20 showed the lower-call path for that fresh-account shape is:
+
+1. `POST /customer` with:
+   - `name`
+   - `organizationNumber`
+   - `invoiceSendMethod: "MANUAL"`
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+3. `POST /invoice`
+
+The same sandbox account then re-verified the existing-customer branch with:
+
+1. `GET /customer?organizationNumber=...&fields=*`
+2. `GET /ledger/vatType?...`
+3. `POST /invoice`
+
+So the pre-read is only part of the trusted path when the prompt explicitly implies an already-existing customer or the run context is not the normal fresh-account shape.
+
 ## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:
@@ -86,6 +119,17 @@ Persistent sandbox re-verification on 2026-03-20 showed:
 
 So the lower-call omission path can silently create a no-VAT invoice instead of the intended taxable-service invoice. For this task shape, the dynamic filtered VAT lookup remains the minimum safe path.
 
+For exact direct-line no-VAT prompts, the same rule still applies:
+
+- do not omit `orderLines[].vatType`
+- resolve the filtered outgoing `0%` VAT row that actually exists in the current account
+
+Persistent sandbox re-verification on 2026-03-20 for `Porto Alegre Lda` / `826870192` / `Design web` / `22700` showed:
+
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6`
+- `POST /invoice` with that resolved `vatType.id=6` succeeded
+- the write response already proved the intended no-VAT outcome with `amountExcludingVatCurrency=22700` and `amountCurrency=22700`
+
 ## Important Constraints
 
 - Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
@@ -102,10 +146,12 @@ So the lower-call omission path can silently create a no-VAT invoice instead of 
    - for the normal fresh-account new-customer variant, skip the pre-read and `POST /customer` directly
    - if creating a new customer and the prompt gives no email or postal address, prefer `invoiceSendMethod: "MANUAL"`
    - only use `GET /customer?organizationNumber=...&fields=*` when the prompt or environment actually implies an existing customer lookup
+   - prompt wording like `invoice customer <name> (<organizationNumber>)` is not, by itself, enough reason to spend that pre-read in a fresh-account run
 2. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
    - use a VAT type that actually exists in that filtered response
    - do not omit direct-line `vatType` just because the write may still succeed; that can silently produce a no-VAT invoice
+   - this also applies to explicit no-VAT direct-line prompts; resolve the filtered outgoing `0%` row instead of assuming omission is equivalent
 3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
    - include required dates
    - include `orders`
@@ -172,3 +218,4 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - Do not assume sparse customer address links mean `PAPER` send is available; persistent sandbox reproduced `422 Faktura kan ikke sendes via PAPER`
 - Do not assume organization number alone makes EHF available; the production run for this task shape reproduced `422 Faktura kan ikke sendes via EHF`
 - Do not assume a successful direct-line invoice write without explicit `vatType` means the VAT is correct; persistent sandbox on 2026-03-20 accepted that shape and produced a no-VAT invoice (`28500` total on a `28500` ex-VAT line)
+- Do not spend `GET /customer` first on the exact fresh-account shape that only gives `name + organizationNumber` for a new customer; the 2026-03-20 sandbox re-verification proved the lower-call path is direct `POST /customer`, then filtered `GET /ledger/vatType`, then `POST /invoice`

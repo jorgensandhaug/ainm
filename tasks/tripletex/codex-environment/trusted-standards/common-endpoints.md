@@ -259,6 +259,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `POST /invoice` defaults `sendToCustomer=true`
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
+  - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
+  - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`
+  - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
   - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production run `812449982` + `45300` + `Datarådgjeving`, that two-call path is already minimal; do not add `GET /customer`

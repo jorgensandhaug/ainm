@@ -18,7 +18,7 @@
 - task is payment, reversal, or correction
 
 ## Standard Flow
-1. if the prompt shape and account context imply a fresh-account new customer, create the customer directly; otherwise resolve the customer in one decisive `GET /customer?...&fields=*`
+1. if the prompt explicitly identifies an already-existing customer, resolve that customer in one decisive `GET /customer?...&fields=*`; otherwise, in the normal fresh-account variant, create the customer directly
 2. if creating a new customer and the prompt gives no email or postal address, `POST /customer` with:
    - `name`
    - `organizationNumber`
@@ -42,7 +42,8 @@
   - `orders[].orderLines`
 - create lines under `orders[].orderLines`, not `invoice.orderLines`
 - do not hardcode output VAT code `3`
-- do not omit direct-line `vatType` just to save the VAT lookup when the prompt implies a normal taxable service; a successful write can still create a no-VAT invoice
+- do not omit direct-line `vatType` just to save the VAT lookup; a successful write can still create the wrong VAT outcome
+- for explicit no-VAT / `0%` direct-line prompts, still resolve the current account's filtered outgoing `0%` VAT row instead of assuming omission is equivalent
 - if creating the customer with no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` and let the invoice create do the send attempt
 
 ## Reuse From Write Response
@@ -63,10 +64,12 @@
 
 ## Known Pitfalls
 - do not spend `GET /customer` first on the normal fresh-account new-customer variant
+- do not treat wording like `invoice customer <name> (<organizationNumber>)` as proof that the customer already exists; when the prompt only supplies business identity and the environment implies a fresh account, the winning path is still direct `POST /customer`
 - do not branch into `PUT /invoice/{id}/:send?sendType=MANUAL` as the default path; sandbox reproduced `500` on 2026-03-20 while the same task shape succeeded through `POST /invoice` with default send behavior
 - do not assume sparse `postalAddress` or `physicalAddress` links on the customer prove that `PAPER` send is available; sandbox returned `422 Faktura kan ikke sendes via PAPER`
 - do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
 - do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
+- for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
 
 ## OpenAPI / Sandbox Status
 - `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -79,3 +82,8 @@
   - `POST /invoice` without line `vatType` succeeded but created a no-VAT invoice (`amountExcludingVatCurrency=28500`, `amountCurrency=28500`)
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
   - hardcoded line `vatType.id=3` failed with `422 ... Ugyldig mva-kode.`
+- exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
+  - fresh-account-style branch: `POST /customer` with `name=Porto Alegre Lda`, `organizationNumber=826870192`, and `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` for `Design web` / `22700` succeeded
+  - the filtered VAT read returned only code `6` (`0%`)
+  - the invoice write returned `amountExcludingVatCurrency=22700`, `amountCurrency=22700`, and an invoice number without any extra verification read
+  - once that customer existed, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
