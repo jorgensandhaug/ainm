@@ -56,3 +56,5 @@
 - persistent sandbox re-check on 2026-03-20 confirmed `PUT /invoice/{id}/:payment` fails with `422 paymentTypeId: Kan ikke være null.` when `paymentTypeId` is omitted
 - same-day persistent sandbox re-proof on invoice `2147531841` confirmed `GET /invoice?...fields=*` still did not expose a reusable incoming `paymentTypeId`, so the standalone public path is still `3` calls unless the same run already cached one
 - 2026-03-20 production run for `866440034` + `30000` + `Almacenamiento en la nube` confirmed the exact `3`-call path `GET /invoice` -> `GET /invoice/paymentType` -> `PUT /invoice/{id}/:payment` and proved again that the paid amount must come from `amountCurrencyOutstanding`/`amountOutstanding` (`37500` there), not from the prompt lookup amount
+- same-day persistent sandbox re-proof on invoice `2147551675` again settled the invoice in exactly `3` calls and the locate read exposed no reusable payment-related fields at all
+- 2026-03-20 production run for `830362894` + `32200` + `System Development` confirmed the same exact `3`-call path and again required paying the invoice object's live outstanding amount (`40250` there), not the prompt lookup amount
