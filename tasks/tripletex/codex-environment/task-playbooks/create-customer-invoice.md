@@ -21,6 +21,10 @@ Do not use for:
   - the created invoice was fully correct, but the winning write path was still not efficiency-optimal because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
   - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=861379760&fields=*` -> `GET /product?productNumber=2109&productNumber=1175&productNumber=9974&fields=*` -> `POST /invoice?sendToCustomer=false`
   - on that lower-call replacement, use `product: { id }` on each line and either reuse the resolved `product.vatType.id` explicitly or let the product VAT inherit; do not spend `/ledger/vatType` just because the prompt text repeats the VAT percentages
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=977448239`, lines `Konsulenttimer (6390)`, `Systemutvikling (1652)`, `Webdesign (3273)`, VAT `25%` / `15%` / `0%` showed:
+  - the run created the correct invoice, but it was not minimal-call because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` before the first invoice write even though the exact-number product read already returned reusable `product.vatType.id`
+  - the same run then hit the known missing-company-bank-account validation on the first `POST /invoice`, so the realistic minimal successful production path for that exact account state was six calls: `GET /customer?organizationNumber=977448239&fields=*` -> `GET /product?productNumber=6390&productNumber=1652&productNumber=3273&fields=*` -> `POST /invoice?sendToCustomer=false` -> conditional `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> single retry
+  - do not let the presence of reduced VAT `15%` trick you into an automatic `/ledger/vatType` read on an exact-number existing-product create-only prompt; reuse `product.vatType.id` unless the task explicitly overrides the product VAT or the product lookup lacks a reusable vatType id
 - the production run for this exact task on 2026-03-20 stopped on the first call:
   - `GET /customer?organizationNumber=919172657&fields=*` returned `403 {"error":"Invalid or expired token"}`
   - that was a credential block, not an invoice-flow failure, so no further production API calls were justified
@@ -56,6 +60,10 @@ Do not use for:
   - the same 3-call path also succeeded when each line explicitly reused the resolved `product.vatType.id`
   - the tempting 2-call shortcut `GET /customer` -> `POST /invoice` with `product.number` created unlinked direct lines (`product=null` on readback), so it is not a valid existing-product shortcut
   - the tempting 2-call shortcut `GET /product` -> `POST /invoice` with inline `customer { name, organizationNumber }` failed with `422` because the related order still required `customer.id`
+- persistent-sandbox re-proof on 2026-03-20 with disposable analog customer `977448240` and exact-number products `96390`, `91652`, `93273` showed:
+  - after setup, the proof path itself was `GET /customer?organizationNumber=977448240&fields=*` -> `GET /product?productNumber=96390&productNumber=91652&productNumber=93273&fields=*` -> `POST /invoice?sendToCustomer=false`
+  - the immediate documentation readback `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` showed linked product numbers `96390`, `91652`, `93273`
+  - that sandbox account still exposed only outgoing VAT `0%`, so the analog proved the lower-call exact-number product-linking branch and the lack of any need for `/ledger/vatType` in the proof path itself, but not the mixed `25%` / `15%` / `0%` percentages
 - persistent-sandbox verification on 2026-03-20 with the exact identifiers from this task shape (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`) showed:
   - `GET /customer?organizationNumber=827304212&fields=*` resolved the customer in one call
   - `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` resolved all three exact-number products in one call and again returned each product `vatType` only as an `id`/`url` link

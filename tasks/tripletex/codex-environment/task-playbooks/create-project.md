@@ -22,9 +22,14 @@ Sandbox verification on 2026-03-20 additionally showed:
 - when the prompt omits `startDate`, using the run date as `startDate` succeeds on `POST /project`
 - the exact task shape with existing customer-by-organization-number plus existing manager-by-email still needs only two reads and one write
 
+Persistent sandbox re-verification on 2026-03-20 additionally showed:
+- `POST /project` with nested `customer { name, organizationNumber }` plus a valid `projectManager.id` can still return `201` while leaving `customer=null`; that is not a valid shortcut
+- `POST /project` with nested manager details but without `projectManager.id` still fails validation, so the manager read cannot be skipped safely
+- the exact create-project shape therefore still has no safe `2`-call branch; the minimal safe path remains `GET /customer` -> `GET /employee?assignableProjectManagers=true` -> `POST /project`
+
 Production verification on 2026-03-20 additionally showed:
 - the Portuguese prompt shape `create project + customer org number + manager email + omitted startDate` succeeded with the same 3-call path
-- the original run did not waste any API calls; the only avoidable work was extra local `openapi.json` inspection before the first write on an exact trusted-standard match
+- the original run did not waste any API calls
 
 ## Minimal Safe Flow
 
@@ -84,6 +89,8 @@ Use ISO date for `startDate`.
 - Do not omit `startDate` just because `openapi.json` does not clearly mark it required
 - Do not treat a missing prompt date as permission to skip `startDate`; default it to the run date
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try the write blindly
+- Do not try to save one call by sending nested customer details on `POST /project`; that branch can return `201` and still leave the project unlinked from the customer
+- Do not try to save one call by sending manager name/email fields without `projectManager.id`; current sandbox proof still rejects that branch
 - Do not spend pre-write `./openapi.json` re-checking when the trusted standard already matches this exact task shape
 - Do not make prompt `customer.name` or manager name a hard requirement once one exact `organizationNumber` or exact `email` hit already exists; that only creates avoidable false negatives and repeat reads
 - Do not spend a verification read if the `POST /project` response already proves the requested links

@@ -93,7 +93,10 @@
   - update the existing invoice account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
   - do not create a second order or project
-- only take that `/ledger/account` read proactively when earlier steps in the same run already gave strong evidence that the company invoice bank account is missing; otherwise keep the project-first `4`/`5`-call branch and repair only on the proven validation error
+- for the exact update-needed project-first branch, the hedge tradeoff is now explicit:
+  - optimistic branch: `5` calls when the invoice account is already configured, `8` calls when the company bank account is missing and the run has to recover after the failed invoice write
+  - proactive hedge branch: `6` calls when the invoice account is already configured, `7` calls when the company bank account is missing
+- because same-day production proved both states for this exact task family, there is still no universal winner; only take that proactive `/ledger/account` read when the run evidence makes a missing company bank account more likely than an already-configured invoice account
 - if the filtered outgoing VAT result has no row that matches the prompt's intended taxable behavior and only unsupported rows remain, treat the task as blocked instead of guessing a VAT code
 
 ## OpenAPI / Sandbox Status
@@ -127,3 +130,8 @@
   - when the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proved the exact project, nested customer, nested manager email, and `fixedprice=125550`, the measured winning path was only `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - that sandbox still exposed only outgoing VAT `0%`, so the analog invoice returned `amountExcludingVatCurrency=31387.5` and `amountCurrencyOutstanding=31387.5`
   - therefore the new canonical exact-match branch is conditional: skip `PUT /project` whenever the first project read already proves the target project state, and use the older `5`-call branch only when a project mutation is still required
+- later production reflection on 2026-03-20 for `Sjøbris AS` / `825338756` / `Automatiseringsprosjekt` / `knut.kvamme@example.org` / `316000` / `50%`, plus a same-day persistent-sandbox analog proof, sharpened the remaining bank-account heuristic on the update-needed branch:
+  - the production run used the exact project-first update branch and the first invoice write failed with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+  - the successful production path became `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> failed `PUT /order/:invoice` -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice` for `8` total calls
+  - the same-day persistent sandbox still had invoice account `1920` with `bankAccountNumber=12345678903`, and an analog proof run measured the configured-account update branch at `5` calls plus the already-known skip-`PUT` branch at `4` calls
+  - therefore the remaining decision is not a new canonical path but an explicit tradeoff for the update-needed branch: optimistic path `5/8`, proactive hedge `6/7`; choose from run evidence about whether the company invoice bank account is likely missing

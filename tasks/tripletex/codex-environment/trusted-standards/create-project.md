@@ -27,6 +27,9 @@
 ## Keep It Minimal
 - for an exact match, do not re-check `./openapi.json` before the first call
 - do not add `GET /project`, `GET /customer/{id}`, or `GET /employee/{id}` verification reads unless the write response unexpectedly omits a scored field
+- there is still no safe `2`-call shortcut for the exact `existing customer by organizationNumber + existing manager by email` shape
+- do not try to skip the customer read by sending nested `customer { name, organizationNumber }` on `POST /project`; persistent sandbox on `2026-03-20` returned `201` but left `value.customer == null`
+- do not try to skip the manager read by sending project-manager details without `id`; persistent sandbox on `2026-03-20` still validated that branch as missing/invalid project manager data
 
 ## Payload Rules
 - usually include:
@@ -59,4 +62,7 @@
 - `/project` verified in `./openapi.json`
 - required `startDate` and manager-eligibility gotchas proven in existing playbooks
 - sandbox create on `2026-03-20` succeeded with omitted-prompt `startDate` mapped to the run date
+- persistent sandbox re-proof on `2026-03-20` confirmed the exact `3`-call path remains minimal: one exact customer read, one assignable-manager read, one project write
+- that same re-proof also showed the tempting nested-customer shortcut is dangerous because `POST /project` can succeed while silently dropping the customer link
 - production create on `2026-03-20` for customer `986713344` plus manager `bruno.pereira@example.org` also succeeded with the exact 3-call path and no follow-up reads
+- production create on `2026-03-20` for `Porto Alegre Lda` / `884811686` plus `lucas.silva@example.org` also succeeded with the same exact `3`-call path and no follow-up reads
