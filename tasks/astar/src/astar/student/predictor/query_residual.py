@@ -1289,15 +1289,21 @@ class QueryResidualPredictor(BaseRoundPredictor):
             delta *= np.asarray(self.residual_class_scale, dtype=np.float64)[None, None, :]
             logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -4.0, 4.0)
             prediction = softmax_logits(logits)
+            exact_counts = np.asarray(derived.exact_counts[seed_index], dtype=np.float64)
             prediction = self._exact_cell_blend(
                 prediction,
-                np.asarray(derived.exact_counts[seed_index], dtype=np.float64),
+                exact_counts,
                 prior,
             )
             if self.temperature != 1.0:
                 prediction = softmax_logits(_safe_log_probs(prediction, self.probability_floor) / self.temperature)
             if self.teacher_blend > 0.0:
-                prediction = ((1.0 - self.teacher_blend) * prediction) + (self.teacher_blend * teacher_prior)
+                teacher_weight = np.where(
+                    np.sum(exact_counts, axis=-1, keepdims=True) > 0.0,
+                    0.0,
+                    self.teacher_blend,
+                )
+                prediction = ((1.0 - teacher_weight) * prediction) + (teacher_weight * teacher_prior)
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
