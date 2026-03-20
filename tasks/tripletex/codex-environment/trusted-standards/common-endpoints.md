@@ -119,6 +119,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard search note:
   - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
   - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
+  - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
 - Standard credit-note note:

@@ -41,6 +41,8 @@
   - `customer.organizationNumber`
   - exact ex-VAT amount
   - exact service/line description
+- check both `orderLines[].description` and `orders[].orderLines[].description`
+- if the same exact description appears in both places on one invoice, treat that as one invoice match, not as ambiguity
 - if the prompt gives no invoice date, prefer one wide but bounded invoice search window such as:
   - `invoiceDateFrom=2000-01-01`
   - `invoiceDateTo=<run-date-plus-one-day>`
@@ -79,3 +81,4 @@
   - the write response returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>`
   - one decisive `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the target invoice by organization number, exact ex-VAT amount, and exact line description
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>`
+  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the production-style facts `description="Maintenance"` and `amountExcludingVatCurrency=45550`; the locate read returned the same description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness

@@ -37,6 +37,7 @@ Verified on 2026-03-20:
     - exact `orderLines[].description` / `orders[].orderLines[].description`
     - `isCreditNote != true`
     - `isCredited != true`
+  - the same exact line description can appear in both `orderLines[]` and `orders[].orderLines[]` on that one invoice; keep uniqueness at the invoice id level instead of treating duplicate line hits as ambiguity
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned a new invoice object with:
     - `isCreditNote=true`
     - `creditedInvoice=<original invoice id>`
@@ -55,6 +56,7 @@ Verified on 2026-03-20:
    - exact customer organization number if provided
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
    - exact prompt text match in `orderLines[].description` or `orders[].orderLines[].description`
+   - if the same exact description appears in both arrays on one invoice, still count that as one invoice candidate
    - exclude `isCreditNote=true`
    - exclude `isCredited=true`
 4. Create the full credit note
@@ -88,6 +90,7 @@ Verified on 2026-03-20:
 - `GET /invoice` only returns charged outgoing invoices, which is the right family for this task shape
 - use a wide but bounded date window
 - when filtering locally, check both invoice-level and nested line-level fields
+- if the same description appears in both top-level and nested line arrays on one invoice, dedupe at the invoice level
 - prefer exact string matching on the prompt’s description before broader fuzzy matching
 - if the locate result is ambiguous, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
 
@@ -104,6 +107,7 @@ Verified on 2026-03-20:
 
 - do not guess the action path as `:credit`; the verified endpoint is `:createCreditNote`
 - do not fetch the customer separately when one `GET /invoice` already contains `customer.organizationNumber`
+- do not treat duplicate description hits from `orderLines[]` plus `orders[].orderLines[]` on the same invoice as proof that multiple invoices matched
 - do not use a voucher reversal for this task shape; voucher reversal belongs to payment-reversal workflows
 - do not create a manual negative invoice as a substitute for the built-in credit-note action
 - do not leave `sendToCustomer` at the default when the task only asks to issue the credit note, not send it
