@@ -99,9 +99,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - resolve valid outgoing `vatType`
   - if the prompt requires an exact VAT percentage and that percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
 - Standard create fast-path note:
-  - for the exact create-one-product shape with prompt-provided `name`, `number`, one exact price field, and one exact VAT percentage, the canonical path is one filtered outgoing VAT read followed by one `POST /product`
-  - do not re-check `./openapi.json` for that exact trusted-standard match
-  - do not add `GET /product` pre-reads or `GET /product/{id}` verification reads when the `POST /product` response already proves the scored fields
+  - for the exact fresh-account create-one-product shape with prompt-provided `name`, `number`, excluding-VAT price, and standard `25%` VAT wording, the canonical winning path is one `POST /product` with no explicit `vatType`
+  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`
+  - for exact `0%`, reduced-rate, or otherwise non-standard VAT prompts, fall back to one filtered outgoing VAT read followed by `POST /product`
+  - do not re-check `./openapi.json` for an exact trusted-standard match, and do not add `GET /product` pre-reads or `GET /product/{id}` verification reads when the write response already proves the scored fields
 - Standard create note:
   - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; do not use that as the trusted fast path when the prompt scores exact VAT
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account

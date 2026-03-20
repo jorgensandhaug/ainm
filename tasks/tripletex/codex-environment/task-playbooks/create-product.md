@@ -43,25 +43,38 @@ Fresh-account production verification on 2026-03-20 also showed:
 - the `201` write response already proved the created `id`, `name`, `number`, `priceExcludingVatCurrency`, computed `priceIncludingVatCurrency`, and `vatType.id`
 - therefore this exact task shape does not need `GET /product`, `GET /product/{id}`, or an `openapi.json` re-check once the trusted standard already matches
 
+Scoring feedback on 2026-03-20 later clarified that the same `Stockage cloud` run was still not minimal-call:
+- the extra `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` cost the efficiency half-point
+- the lower-call winning path for that exact fresh-account shape was one `POST /product` with `name`, `number`, and `priceExcludingVatCurrency`, omitting explicit `vatType`
+- therefore the trusted shortcut for the exact fresh-account standard-`25%` product-create shape is one write call, not two
+
+Persistent-sandbox verification on 2026-03-20 also showed:
+- `POST /product` without any `vatType` still succeeded and auto-filled sandbox default `0%` VAT code `6`
+- the write response showed `priceIncludingVatCurrency == priceExcludingVatCurrency`, proving that the inherited VAT default is account-dependent
+- therefore the one-call shortcut must stay scoped to the exact fresh-account standard-`25%` shape and must not be generalized to exact `0%`, reduced-rate, or other non-standard VAT prompts
+
 ## Minimal Safe Flow
 
-1. If the task is an exact trusted-standard match, skip `./openapi.json` re-checking and start with the VAT read below
-2. Otherwise confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
-3. Resolve the product VAT code with one decisive read:
+1. If the task is the exact fresh-account create-one-product shape with standard `25%` VAT wording, do one `POST /product` with only `name`, `number`, and the prompt-required price field
+2. Verify directly from `response.value` that the returned `priceIncludingVatCurrency` reflects `25%` VAT and that a `vatType` was assigned
+3. Stop
+4. Otherwise, if the task is an exact trusted-standard match but the VAT is exact `0%`, reduced-rate, or otherwise non-standard, skip `./openapi.json` re-checking and start with the VAT read below
+5. Otherwise confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
+6. Resolve the product VAT code with one decisive read:
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<task-date-or-today>&fields=*`
-4. From that filtered result, select the VAT type that matches the requested percentage
+7. From that filtered result, select the VAT type that matches the requested percentage
    - if no matching percentage exists there, stop and treat the task as blocked in that account
-5. `POST /product` with only the requested fields plus `vatType: { "id": ... }`
-6. Verify directly from `response.value`
-7. Stop
+8. `POST /product` with only the requested fields plus `vatType: { "id": ... }`
+9. Verify directly from `response.value`
+10. Stop
 
 ## Exact-Match Fast Path
 
 - If the prompt asks to create one product with a product number, a price excluding VAT, and standard 25% VAT, the winning flow is usually:
-  1. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<today>&fields=*`
-  2. pick the returned `25%` sales VAT code, typically `number="3"` when present
-  3. `POST /product`
-- for an exact trusted-standard match, that is the full path; do not spend an extra `openapi.json` check before those two API calls
+  1. `POST /product` with `name`, `number`, and `priceExcludingVatCurrency`
+  2. let the fresh-account default VAT fill the standard `25%` rate
+  3. verify from the `201` response that `priceIncludingVatCurrency` is the `25%` computation and that `vatType` was assigned
+- for an exact trusted-standard match, that one write call is the full path; do not spend an extra `openapi.json` check or a `GET /ledger/vatType` before it
 - Do not add a pre-read on `/product` for a pure create task
 - Do not fetch the product again if the `201` body already proves the scored fields
 
@@ -116,15 +129,17 @@ Use `number` for the product number and the VAT code id from the `OUTGOING` look
 
 - Do not `GET /product` first for a standard create task
 - Do not add sandbox idempotency checks to a scored create prompt
-- Do not browse multiple VAT endpoints once `typeOfVat=OUTGOING` already gives the needed valid code
-- Do not treat a sandbox success without `vatType` as proof that the one-call shortcut is safe in a fresh scored account
+- Do not spend `GET /ledger/vatType` first for the exact fresh-account standard-`25%` create-product shape; scoring feedback showed that call is wasted there
+- Do not browse multiple VAT endpoints once `typeOfVat=OUTGOING` already gives the needed valid code for a non-standard-VAT task
+- Do not treat a sandbox success without `vatType` as proof that the inherited VAT value is portable across accounts
 
 ## Avoidable Mistakes
 
+- Do not spend a filtered outgoing VAT read on the exact fresh-account standard-`25%` create-product shape; that was the wasted call in the `Stockage cloud` run
 - Do not choose `vatType` from the unfiltered VAT catalog just because the percentage matches
 - Do not assume `typeOfVat=OUTGOING` and `typeOfVat=LEDGER` are interchangeable for product writes
 - Do not filter out valid base VAT codes by checking `!parentType`
 - Do not send both excluding-VAT and including-VAT price fields unless the prompt clearly requires it
 - Do not burn a `POST /product` on a broader-catalog `15%` or `25%` code after the filtered `OUTGOING` read already proved that percentage is unavailable for product creation in the current account
 - Do not assume that "0% for books" needs anything more than the current account's filtered outgoing `0%` VAT row
-- Do not omit `vatType` for an exact-VAT prompt just because a persistent sandbox happened to default it correctly
+- Do not generalize the one-call omitted-`vatType` shortcut from the exact fresh-account standard-`25%` shape to `0%`, reduced-rate, or other exact-VAT prompts
