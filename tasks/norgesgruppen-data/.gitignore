@@ -3,3 +3,5 @@ yolo/dataset/
 runs/
 
 yolo*.pt
+
+.venv/

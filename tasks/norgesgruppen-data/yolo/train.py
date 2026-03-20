@@ -9,9 +9,9 @@ def main() -> None:
     model = YOLO("yolo26x.pt")
     model.train(
         data=str(root / "data" / "yolo" / "data.yaml"),
-        single_cls=True,
+        single_cls=False,
         project=str(root / "runs"),
-        name="detect",
+        name="cls",
         device=device,
     )
 
