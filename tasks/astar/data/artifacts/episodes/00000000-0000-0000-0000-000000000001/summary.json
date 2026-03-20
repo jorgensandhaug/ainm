@@ -3,6 +3,7 @@
   "round_number": 1,
   "summary_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/summary.json",
   "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/report.md",
+  "replay_report_path": null,
   "feature_names": [
     "buildable",
     "coast",
@@ -23,6 +24,8 @@
       "seed_index": 0,
       "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
       "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
@@ -30,6 +33,8 @@
       "seed_index": 1,
       "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
       "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
@@ -37,6 +42,8 @@
       "seed_index": 2,
       "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
       "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
@@ -44,6 +51,8 @@
       "seed_index": 3,
       "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
       "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
@@ -51,6 +60,8 @@
       "seed_index": 4,
       "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
       "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     }
@@ -64,7 +75,10 @@
       "query_count": 3,
       "repeated_window_groups": 1,
       "submission_count": 5,
-      "analysis_count": 0
+      "analysis_count": 0,
+      "replay_run_count": 0,
+      "replay_seed_count": 0,
+      "replay_summary_count": 0
     },
     "per_seed": [
       {
@@ -107,5 +121,6 @@
     "mean_ground_truth_entropy": null,
     "score_by_seed": {}
   },
+  "replay_round_summary": null,
   "backtest_result": null
 }

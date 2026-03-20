@@ -29,5 +29,7 @@ class CatalogDatasetSummary(BaseModel):
     query_event_count: int = Field(ge=0)
     submission_event_count: int = Field(ge=0)
     analysis_event_count: int = Field(ge=0)
+    replay_event_count: int = Field(ge=0)
+    replay_summary_event_count: int = Field(ge=0)
     live_run_event_count: int = Field(ge=0)
     materialized_event_count: int = Field(ge=0)

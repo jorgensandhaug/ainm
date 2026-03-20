@@ -27,8 +27,7 @@ def test_exploration_plan_adds_one_repeat_per_seed(sample_paths: WorkspacePaths)
     assert all(item.diagnostic_score is not None for item in repeat_items)
 
     coverage_pairs = {
-        (item.seed_index, item.viewport.x, item.viewport.y)
-        for item in coverage_items
+        (item.seed_index, item.viewport.x, item.viewport.y) for item in coverage_items
     }
     repeat_pairs = {(item.seed_index, item.viewport.x, item.viewport.y) for item in repeat_items}
     assert repeat_pairs.issubset(coverage_pairs)

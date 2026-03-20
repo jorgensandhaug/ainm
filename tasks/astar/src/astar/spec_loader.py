@@ -14,4 +14,3 @@ def load_object(import_path: str) -> object:
     except AttributeError as exc:
         msg = f"module {module_name!r} has no attribute {object_name!r}"
         raise ValueError(msg) from exc
-

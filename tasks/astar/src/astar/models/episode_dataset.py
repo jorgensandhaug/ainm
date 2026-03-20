@@ -29,6 +29,12 @@ class SeedLearningArrays(BaseModel):
     observed_class_counts: np.ndarray
     observed_class_frequencies: np.ndarray
     observed_class_count_tensor: np.ndarray
+    replay_run_count: int = Field(default=0, ge=0)
+    replay_mean_terminal_probs: np.ndarray | None = None
+    replay_build_hit_rate: np.ndarray | None = None
+    replay_port_hit_rate: np.ndarray | None = None
+    replay_ruin_hit_rate: np.ndarray | None = None
+    replay_coefficient_vector: np.ndarray | None = None
     submitted_prediction: np.ndarray | None = None
     ground_truth: np.ndarray | None = None
 
@@ -53,6 +59,10 @@ class RoundLearningEpisode(BaseModel):
     def query_count(self) -> int:
         return sum(item.query_count for item in self.per_seed.values())
 
+    @property
+    def replay_run_count(self) -> int:
+        return sum(item.replay_run_count for item in self.per_seed.values())
+
     def with_hidden_evidence(self, hidden_seed_indexes: Iterable[int]) -> RoundLearningEpisode:
         hidden = set(hidden_seed_indexes)
         masked: dict[int, SeedLearningArrays] = {}
@@ -72,6 +82,12 @@ class RoundLearningEpisode(BaseModel):
                 observed_class_counts=np.zeros_like(item.observed_class_counts),
                 observed_class_frequencies=np.zeros_like(item.observed_class_frequencies),
                 observed_class_count_tensor=np.zeros_like(item.observed_class_count_tensor),
+                replay_run_count=item.replay_run_count,
+                replay_mean_terminal_probs=item.replay_mean_terminal_probs,
+                replay_build_hit_rate=item.replay_build_hit_rate,
+                replay_port_hit_rate=item.replay_port_hit_rate,
+                replay_ruin_hit_rate=item.replay_ruin_hit_rate,
+                replay_coefficient_vector=item.replay_coefficient_vector,
                 submitted_prediction=item.submitted_prediction,
                 ground_truth=item.ground_truth,
             )
@@ -103,6 +119,11 @@ def load_round_learning_episode(
             if prediction_path.exists():
                 submitted_prediction = load_prediction_tensor(prediction_path)
 
+        replay_payload = None
+        replay_summary_path = paths.replay_summary_path(round_id, seed_index)
+        if replay_summary_path.exists():
+            replay_payload = load_named_arrays(replay_summary_path)
+
         ground_truth = None
         if seed_index in analyses:
             ground_truth = np.asarray(analyses[seed_index].analysis.ground_truth, dtype=np.float64)
@@ -127,6 +148,34 @@ def load_round_learning_episode(
             observed_class_count_tensor=np.asarray(
                 evidence_payload["observed_class_count_tensor"],
                 dtype=np.int64,
+            ),
+            replay_run_count=(
+                int(replay_payload["replay_run_count"][0]) if replay_payload is not None else 0
+            ),
+            replay_mean_terminal_probs=(
+                np.asarray(replay_payload["mean_terminal_probs"], dtype=np.float64)
+                if replay_payload is not None
+                else None
+            ),
+            replay_build_hit_rate=(
+                np.asarray(replay_payload["build_hit_rate"], dtype=np.float64)
+                if replay_payload is not None
+                else None
+            ),
+            replay_port_hit_rate=(
+                np.asarray(replay_payload["port_hit_rate"], dtype=np.float64)
+                if replay_payload is not None
+                else None
+            ),
+            replay_ruin_hit_rate=(
+                np.asarray(replay_payload["ruin_hit_rate"], dtype=np.float64)
+                if replay_payload is not None
+                else None
+            ),
+            replay_coefficient_vector=(
+                np.asarray(replay_payload["coefficient_vector"], dtype=np.float64)
+                if replay_payload is not None
+                else None
             ),
             submitted_prediction=submitted_prediction,
             ground_truth=ground_truth,

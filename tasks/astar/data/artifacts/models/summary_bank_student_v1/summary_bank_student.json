@@ -1,0 +1,10 @@
+{
+  "name": "summary_bank_student_v1",
+  "dataset_name": "synthetic_live_coverage_v1",
+  "checkpoint_npz_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/models/summary_bank_student_v1/bank.npz",
+  "teacher_checkpoint_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/models/hazard_teacher_v1/checkpoint.json",
+  "k_neighbors": 5,
+  "sample_count": 6,
+  "summary_dim": 55,
+  "regime_dim": 12
+}

@@ -27,4 +27,3 @@ def test_bad_sum_fails() -> None:
     prediction = np.zeros((1, 1, 6), dtype=np.float64)
     with pytest.raises(SubmissionValidationError):
         validate_prediction_tensor(prediction, SubmissionSpec(height=1, width=1))
-

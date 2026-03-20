@@ -17,6 +17,7 @@ class CorpusEpisodeSummary(BaseModel):
     seed_count: int = Field(ge=0)
     analyzed_seed_count: int = Field(ge=0)
     query_count: int = Field(ge=0)
+    replay_run_count: int = Field(default=0, ge=0)
 
 
 class SupportQueryTask(BaseModel):
@@ -48,6 +49,7 @@ class LearningCorpus(BaseModel):
                 seed_count=len(episode.per_seed),
                 analyzed_seed_count=episode.analyzed_seed_count,
                 query_count=episode.query_count,
+                replay_run_count=episode.replay_run_count,
             )
             for episode in self.episodes.values()
         ]
@@ -66,9 +68,7 @@ class LearningCorpus(BaseModel):
                 ):
                     continue
                 support_seed_indexes = [
-                    seed_index
-                    for seed_index in all_seed_indexes
-                    if seed_index != hidden_seed_index
+                    seed_index for seed_index in all_seed_indexes if seed_index != hidden_seed_index
                 ]
                 tasks.append(
                     SupportQueryTask(

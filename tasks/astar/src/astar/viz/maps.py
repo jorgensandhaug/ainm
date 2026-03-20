@@ -58,4 +58,3 @@ def plot_argmax_prediction(prediction: NDArray[np.float64], output_path: Path) -
     figure.savefig(output_path, dpi=160)
     plt.close(figure)
     return output_path
-

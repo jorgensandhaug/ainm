@@ -188,4 +188,6 @@ def write_round_tables(paths: RepoPaths, record: StoredRoundRecord) -> None:
 def write_query_tables(paths: RepoPaths, round_id: str, query_files: list[QueryFileRecord]) -> None:
     build_query_log_frame(query_files).write_parquet(paths.query_log_path(round_id))
     build_cell_observations_frame(query_files).write_parquet(paths.cell_observations_path(round_id))
-    build_settlement_observations_frame(query_files).write_parquet(paths.settlement_observations_path(round_id))
+    build_settlement_observations_frame(query_files).write_parquet(
+        paths.settlement_observations_path(round_id)
+    )

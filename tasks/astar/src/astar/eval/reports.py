@@ -12,6 +12,9 @@ def render_round_episode_diagnostics(diagnostics: RoundEpisodeDiagnostics) -> st
         f"repeated_window_groups: {diagnostics.summary.repeated_window_groups}",
         f"submissions: {diagnostics.summary.submission_count}",
         f"analyses: {diagnostics.summary.analysis_count}",
+        f"replay_runs: {diagnostics.summary.replay_run_count}",
+        f"replay_seeds: {diagnostics.summary.replay_seed_count}",
+        f"replay_summaries: {diagnostics.summary.replay_summary_count}",
     ]
     if diagnostics.mean_ground_truth_entropy is not None:
         lines.append(f"mean_ground_truth_entropy: {diagnostics.mean_ground_truth_entropy:.4f}")
@@ -30,9 +33,14 @@ def render_local_dataset_diagnostics(diagnostics: LocalDatasetDiagnostics) -> st
         f"rounds_with_queries: {diagnostics.rounds_with_queries}",
         f"rounds_with_submissions: {diagnostics.rounds_with_submissions}",
         f"rounds_with_analyses: {diagnostics.rounds_with_analyses}",
+        f"rounds_with_replays: {diagnostics.rounds_with_replays}",
+        f"rounds_with_replay_summaries: {diagnostics.rounds_with_replay_summaries}",
         f"rounds_with_features: {diagnostics.rounds_with_features}",
         f"rounds_with_evidence: {diagnostics.rounds_with_evidence}",
         f"rounds_materialized: {diagnostics.rounds_materialized}",
+        f"datasets: {diagnostics.dataset_count}",
+        f"models: {diagnostics.model_count}",
+        f"replay_manifolds: {diagnostics.replay_manifold_count}",
     ]
     if diagnostics.catalog is not None:
         lines.append(
@@ -40,6 +48,8 @@ def render_local_dataset_diagnostics(diagnostics: LocalDatasetDiagnostics) -> st
             f"queries={diagnostics.catalog.query_event_count} "
             f"submissions={diagnostics.catalog.submission_event_count} "
             f"analyses={diagnostics.catalog.analysis_event_count} "
+            f"replays={diagnostics.catalog.replay_event_count} "
+            f"replay_summaries={diagnostics.catalog.replay_summary_event_count} "
             f"live_runs={diagnostics.catalog.live_run_event_count} "
             f"materialized={diagnostics.catalog.materialized_event_count}",
         )

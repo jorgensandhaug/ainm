@@ -33,9 +33,13 @@ def test_new_bounded_contexts_do_not_import_legacy_layers_directly() -> None:
     guarded_roots = [
         repo_root / "src" / "astar" / "core",
         repo_root / "src" / "astar" / "features",
+        repo_root / "src" / "astar" / "history",
         repo_root / "src" / "astar" / "models",
         repo_root / "src" / "astar" / "eval",
         repo_root / "src" / "astar" / "observe",
+        repo_root / "src" / "astar" / "teacher",
+        repo_root / "src" / "astar" / "student",
+        repo_root / "src" / "astar" / "policy",
     ]
     for root in guarded_roots:
         for path in sorted(root.rglob("*.py")):
@@ -68,6 +72,7 @@ def test_cli_avoids_direct_legacy_ops_and_api_surface() -> None:
         "from astar.api.client",
         "from astar.api.schemas",
         "from astar.ops.",
+        "from astar.legacy.",
     )
     for prefix in disallowed:
         assert prefix not in text, f"{path}: found {prefix}"

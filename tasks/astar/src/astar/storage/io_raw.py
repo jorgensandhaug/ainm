@@ -37,11 +37,7 @@ def _write_json(path: Path, payload: BaseModel) -> Path:
 
 def _replay_filename(record: StoredReplayRecord) -> str:
     timestamp = record.requested_at.astimezone(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
-    return (
-        f"{timestamp}"
-        f"__sim_seed={record.response.sim_seed}"
-        f"__capture_id={record.capture_id}.json"
-    )
+    return f"{timestamp}__sim_seed={record.response.sim_seed}__capture_id={record.capture_id}.json"
 
 
 def write_round_record(paths: RepoPaths, record: StoredRoundRecord) -> Path:

@@ -20,4 +20,3 @@ def test_zero_probability_assignment_collapses_score() -> None:
     breakdown = score_prediction(truth, prediction)
     assert math.isinf(breakdown.weighted_kl)
     assert breakdown.score == 0.0
-

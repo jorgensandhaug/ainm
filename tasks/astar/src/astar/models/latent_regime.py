@@ -65,9 +65,7 @@ class HeuristicLatentRegimeInferer(BaseModel):
         residual = observed_frequencies - expected_frequencies
 
         mean_food = (
-            float(np.mean(mean_food_values))
-            if mean_food_values
-            else self.winter_food_center
+            float(np.mean(mean_food_values)) if mean_food_values else self.winter_food_center
         )
         winter_signal = (self.winter_food_center - mean_food) / max(self.winter_food_center, 1e-6)
 

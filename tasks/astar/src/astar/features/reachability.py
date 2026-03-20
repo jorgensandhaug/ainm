@@ -62,4 +62,3 @@ def normalize_distances(distances: np.ndarray) -> np.ndarray:
     normalized = np.ones(distances.shape, dtype=np.float64)
     normalized[finite_mask] = distances[finite_mask].astype(np.float64) / float(max_distance)
     return normalized
-

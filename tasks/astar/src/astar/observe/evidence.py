@@ -63,14 +63,10 @@ def _settlement_means(
         for settlement in record.record.response.settlements
     ]
     foods = [
-        settlement.food
-        for record in records
-        for settlement in record.record.response.settlements
+        settlement.food for record in records for settlement in record.record.response.settlements
     ]
     wealths = [
-        settlement.wealth
-        for record in records
-        for settlement in record.record.response.settlements
+        settlement.wealth for record in records for settlement in record.record.response.settlements
     ]
     defenses = [
         settlement.defense
@@ -91,8 +87,7 @@ def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceB
     round_record = read_round_record(paths, round_id)
     query_records = read_query_records(paths, round_id)
     grouped: dict[int, list[QueryFileRecord]] = {
-        seed_index: []
-        for seed_index in range(round_record.round.seeds_count)
+        seed_index: [] for seed_index in range(round_record.round.seeds_count)
     }
     for query_record in query_records:
         grouped[query_record.record.request.seed_index].append(query_record)

@@ -1,0 +1,83 @@
+from __future__ import annotations
+
+import numpy as np
+
+from astar.features.geometry import compute_round_features
+from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+from astar.history.episodes.build import build_round_episode
+from astar.observe.evidence import build_round_evidence
+from astar.policy.offline_env import OfflinePolicyEnv
+from astar.storage.io_raw import read_round_record
+from astar.storage.manifests import RepoPaths
+from astar.student.predictor.base import LiveInferenceContext
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher
+from astar.workflows.train_student import train_summary_bank_student
+from astar.workflows.train_teacher import train_hazard_teacher
+from tests.conftest import ROUND_ID
+from tests.test_history_datasets import _write_replays_for_all_seeds
+
+
+def test_hazard_teacher_and_summary_bank_student_smoke(sample_paths: RepoPaths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    teacher_result = train_hazard_teacher(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        model_name="hazard_teacher_test",
+    )
+    student_result = train_summary_bank_student(
+        sample_paths,
+        dataset_name="synthetic_live_student_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        k_neighbors=3,
+        model_name="summary_bank_student_test",
+    )
+
+    assert teacher_result.embedding_dim >= 1
+    assert teacher_result.checkpoint_path.exists()
+    assert student_result.sample_count >= 1
+    assert student_result.checkpoint_path.exists()
+
+
+def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: RepoPaths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_test").fit([round_episode])
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_summary_test",
+    )
+    from astar.student.posterior.deepset_student import SummaryBankStudent
+
+    student = SummaryBankStudent.fit_from_dataset(dataset, teacher, k_neighbors=1)
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    context = LiveInferenceContext(
+        round_episode=round_episode,
+        geometry_bundle=compute_round_features(round_record.round),
+        evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
+    )
+
+    posterior = student.infer_regime(context)
+    prediction = student.predict_seed(context, 0)
+
+    assert posterior.mean.ndim == 1
+    assert prediction.shape[-1] == 6
+    assert np.allclose(prediction.sum(axis=-1), 1.0)
+
+    env = OfflinePolicyEnv(round_episode=round_episode, sample_index=0)
+    assert round_episode.live_transcript is not None
+    query = env.sample_query(
+        seed_index=0,
+        viewport=round_episode.live_transcript.observations[0].viewport,
+        query_index=0,
+    )
+    scores = env.score_predictions({0: prediction})
+
+    assert query.seed_index == 0
+    assert 0 in scores

@@ -29,3 +29,6 @@ class RoundEpisodeSummary(BaseModel):
     repeated_window_groups: int = Field(ge=0)
     submission_count: int = Field(ge=0)
     analysis_count: int = Field(ge=0)
+    replay_run_count: int = Field(default=0, ge=0)
+    replay_seed_count: int = Field(default=0, ge=0)
+    replay_summary_count: int = Field(default=0, ge=0)

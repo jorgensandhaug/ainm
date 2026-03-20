@@ -29,4 +29,3 @@ class AuthConfig(BaseModel):
         if self.access_token is None:
             return {}
         return {"access_token": self.access_token.get_secret_value()}
-

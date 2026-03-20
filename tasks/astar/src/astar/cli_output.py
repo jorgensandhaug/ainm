@@ -5,8 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
-
 from astar.api.schemas import RoundSummary, StoredRoundRecord
 from astar.domain.validation import SubmissionValidationReport
 from astar.eval.backtest import BacktestRoundResult
@@ -16,22 +14,30 @@ from astar.eval.reports import (
     render_local_dataset_diagnostics,
     render_round_episode_diagnostics,
 )
+from astar.history.datasets.base import DatasetRef, SyntheticEpisodeDatasetRef
+from astar.history.replay.ingest import IngestReplaysResult
+from astar.infra.serialization.json_utils import to_jsonable
 from astar.models.latent_regime import RoundRegimePosterior
 from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
 from astar.ops.results import HarvestReplaysResult, RecordedReplayResult
 from astar.ops.round_report import RoundReportArtifacts
 from astar.workflows.corpus_summary import CorpusSummaryResult
+from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
 from astar.workflows.results import (
     BuildSubmissionResult,
     ExplorationRunResult,
     FetchAnalysisResult,
     FetchRoundAnalysesResult,
+    InspectReplaysResult,
     LiveRoundRunResult,
     MaterializeEpisodeResult,
     QueryPlanSummary,
     ReplayRoundResult,
     SubmitPredictionResult,
+    SummarizeReplaysResult,
     SyncRoundResult,
+    TrainHazardTeacherResult,
+    TrainSummaryStudentResult,
 )
 
 
@@ -42,13 +48,7 @@ def _format_datetime(value: datetime | None) -> str:
 
 
 def _jsonable(value: object) -> Any:
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json")
-    if isinstance(value, list):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _jsonable(item) for key, item in value.items()}
-    return value
+    return to_jsonable(value)
 
 
 def render_json(value: object) -> str:
@@ -88,6 +88,24 @@ def render_round_summary(round_summary: RoundSummary) -> str:
             f"round_weight: {round_summary.round_weight}",
         ],
     )
+
+
+def render_dataset_ref(dataset: DatasetRef) -> str:
+    lines = [
+        f"{dataset.dataset_kind} {dataset.dataset_name}",
+        f"rounds: {dataset.round_count}",
+        f"rows: {dataset.row_count}",
+        f"dir: {dataset.dataset_dir}",
+        f"summary: {dataset.summary_path}",
+    ]
+    if dataset.index_path is not None:
+        lines.append(f"index: {dataset.index_path}")
+    if isinstance(dataset, SyntheticEpisodeDatasetRef):
+        lines.append(f"policy: {dataset.policy_name}")
+        lines.append(f"episodes: {dataset.episode_count}")
+        lines.append(f"total_queries: {dataset.total_query_count}")
+        lines.append(f"samples_per_round: {dataset.samples_per_round}")
+    return "\n".join(lines)
 
 
 def render_sync_round(result: SyncRoundResult) -> str:
@@ -223,12 +241,110 @@ def render_replay_round(result: ReplayRoundResult) -> str:
     )
 
 
+def render_ingest_replays(result: IngestReplaysResult) -> str:
+    lines = [
+        "ingest-replays",
+        f"rounds: {result.rounds_considered}",
+        f"replay_runs: {result.replay_run_count}",
+    ]
+    for item in result.per_seed:
+        lines.append(
+            f"round={item.round_id} seed={item.seed_index} runs={item.replay_run_count}",
+        )
+    return "\n".join(lines)
+
+
+def render_inspect_replays(result: InspectReplaysResult) -> str:
+    lines = [
+        "inspect-replays",
+        f"root: {result.inspection.source_summary.root_dir}",
+        f"rounds: {len(result.inspection.source_summary.round_ids)}",
+        f"runs: {result.inspection.source_summary.run_count}",
+    ]
+    for round_id in result.inspection.source_summary.round_ids:
+        lines.append(
+            f"round {round_id}: {result.inspection.source_summary.per_round_counts[round_id]} runs",
+        )
+    if result.round_inspection is not None:
+        lines.append(f"selected_round: {result.round_inspection.round_id}")
+        for item in result.round_inspection.per_seed:
+            lines.append(f"seed {item.seed_index}: replay_runs={item.replay_run_count}")
+    return "\n".join(lines)
+
+
+def render_summarize_replays(result: SummarizeReplaysResult) -> str:
+    lines = [
+        f"summarize-replays #{result.round_number} {result.round_id}",
+        f"replay_seed_count: {result.replay_seed_count}",
+        f"replay_run_count: {result.replay_run_count}",
+        f"round_summary: {result.round_summary_path}",
+        f"report: {result.report_path}",
+        f"coefficient_mean: {result.hazard_summary.coefficient_mean.tolist()}",
+    ]
+    for seed_summary, summary_path in zip(
+        result.hazard_summary.seed_summaries,
+        result.summary_paths,
+        strict=True,
+    ):
+        lines.append(
+            " ".join(
+                [
+                    f"seed {seed_summary.seed_index}:",
+                    f"runs={seed_summary.replay_run_count}",
+                    f"built={seed_summary.built_hit_rate_mean:.4f}",
+                    f"port={seed_summary.port_hit_rate_mean:.4f}",
+                    f"ruin={seed_summary.ruin_hit_rate_mean:.4f}",
+                    f"owner_flips={seed_summary.owner_flip_mean:.4f}",
+                    f"summary={summary_path}",
+                ],
+            ),
+        )
+    return "\n".join(lines)
+
+
+def render_factorize_round_summaries(result: FactorizeRoundSummariesResult) -> str:
+    return "\n".join(
+        [
+            "factorize-round-summaries",
+            f"rounds: {result.round_count}",
+            f"effective_rank: {result.effective_rank}",
+            f"explained_variance_ratio: {result.manifold.explained_variance_ratio.tolist()}",
+            f"summary: {result.summary_path}",
+            f"basis: {result.basis_path}",
+        ],
+    )
+
+
+def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:
+    return "\n".join(
+        [
+            f"train-hazard-teacher {result.model_name}",
+            f"replay_episodes: {result.replay_episode_count}",
+            f"replay_runs: {result.replay_run_count}",
+            f"embedding_dim: {result.embedding_dim}",
+            f"checkpoint: {result.checkpoint_path}",
+        ],
+    )
+
+
+def render_train_summary_student(result: TrainSummaryStudentResult) -> str:
+    return "\n".join(
+        [
+            f"train-summary-student {result.model_name}",
+            f"dataset: {result.dataset.dataset_name}",
+            f"samples: {result.sample_count}",
+            f"summary_dim: {result.summary_dim}",
+            f"regime_dim: {result.regime_dim}",
+            f"teacher_checkpoint: {result.teacher_checkpoint_path}",
+            f"checkpoint: {result.checkpoint_path}",
+        ],
+    )
+
+
 def render_build_submission(result: BuildSubmissionResult) -> str:
     prediction_dir = result.prediction_paths[0].parent if result.prediction_paths else "n/a"
     submission_dir = (
-        result.submission_record_paths[0].parent
-        if result.submission_record_paths
-        else "n/a"
+        result.submission_record_paths[0].parent if result.submission_record_paths else "n/a"
     )
     return "\n".join(
         [
@@ -433,7 +549,8 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
             f"queries={result.diagnostics.summary.query_count} "
             f"repeats={result.diagnostics.summary.repeated_window_groups} "
             f"submissions={result.diagnostics.summary.submission_count} "
-            f"analyses={result.diagnostics.summary.analysis_count}"
+            f"analyses={result.diagnostics.summary.analysis_count} "
+            f"replay_runs={result.diagnostics.summary.replay_run_count}"
         ),
     ]
     for item in result.per_seed:
@@ -443,10 +560,17 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
                     f"seed {item.seed_index}:",
                     f"features={item.feature_path}",
                     f"evidence={item.evidence_path}",
+                    f"replay_summary={item.replay_summary_path}",
+                    f"replay_runs={item.replay_run_count}",
                     f"prediction={str(item.has_prediction).lower()}",
                     f"analysis={str(item.has_analysis).lower()}",
                 ],
             ),
+        )
+    if result.replay_round_summary is not None:
+        lines.append(f"replay_report: {result.replay_report_path}")
+        lines.append(
+            f"replay_coefficients_mean: {result.replay_round_summary.coefficient_mean.tolist()}",
         )
     if result.backtest_result is not None:
         lines.append(f"backtest_mean_score: {result.backtest_result.mean_score:.4f}")
@@ -457,6 +581,7 @@ def render_corpus_summary(result: CorpusSummaryResult) -> str:
     lines = [
         f"episodes: {result.episode_count}",
         f"episodes_with_ground_truth: {result.analyzed_episode_count}",
+        f"episodes_with_replays: {result.replay_episode_count}",
         f"leave_one_seed_out_tasks: {result.leave_one_seed_out_task_count}",
         f"two_seed_holdout_tasks: {result.two_seed_holdout_task_count}",
     ]
@@ -464,6 +589,7 @@ def render_corpus_summary(result: CorpusSummaryResult) -> str:
         lines.append(
             f"episode #{item.round_number} {item.round_id}: "
             f"status={item.status} seeds={item.seed_count} "
-            f"analyzed={item.analyzed_seed_count} queries={item.query_count}",
+            f"analyzed={item.analyzed_seed_count} queries={item.query_count} "
+            f"replays={item.replay_run_count}",
         )
     return "\n".join(lines)

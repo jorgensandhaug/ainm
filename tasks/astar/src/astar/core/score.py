@@ -74,6 +74,7 @@ def score_prediction(ground_truth: object, prediction: object) -> ScoreBreakdown
         nonzero_entropy_cells=int(np.count_nonzero(weights > 0.0)),
     )
 
+
 __all__ = [
     "ScoreBreakdown",
     "cellwise_kl_divergence",

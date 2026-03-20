@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-import astar.ops.harvest_replays as harvest_replays_module
+import pytest
+
 from astar.api.schemas import (
     ReplayFrame,
     ReplayRequest,
@@ -134,17 +135,17 @@ def test_harvest_replays_is_resumable_and_round_robins(sample_paths: RepoPaths) 
 
 def test_harvest_replays_applies_randomized_inter_replay_delay(
     sample_paths: RepoPaths,
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client = FakeReplayClient(sample_paths)
     sleep_calls: list[float] = []
+    progress_messages: list[str] = []
 
     monkeypatch.setattr(
-        harvest_replays_module.random,
-        "uniform",
+        "astar.ops.harvest_replays.random.uniform",
         lambda lower, upper: (lower + upper) / 2.0,
     )
-    monkeypatch.setattr(harvest_replays_module.time, "sleep", sleep_calls.append)
+    monkeypatch.setattr("astar.ops.harvest_replays.time.sleep", sleep_calls.append)
 
     result = harvest_replays(
         sample_paths,
@@ -155,7 +156,16 @@ def test_harvest_replays_applies_randomized_inter_replay_delay(
         cooldown_seconds=0.0,
         random_delay_min_seconds=60.0,
         random_delay_max_seconds=180.0,
+        progress=progress_messages.append,
     )
 
     assert result.captured_replays == 2
     assert sleep_calls == [120.0]
+    assert progress_messages[0] == f"synced-round round={ROUND_ID} status=completed seeds=5"
+    assert progress_messages[1].startswith(
+        f"captured-replay round={ROUND_ID} seed=0 sim_seed=1001 frames=2 saved=",
+    )
+    assert progress_messages[2] == "sleeping-next-replay seconds=120.0"
+    assert progress_messages[3].startswith(
+        f"captured-replay round={ROUND_ID} seed=1 sim_seed=1002 frames=2 saved=",
+    )

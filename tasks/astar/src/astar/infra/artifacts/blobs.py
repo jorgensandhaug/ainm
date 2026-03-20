@@ -38,4 +38,3 @@ def write_json_blob(path: Path, payload: object) -> BlobRecord:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return describe_blob(path)
-

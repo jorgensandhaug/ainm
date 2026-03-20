@@ -16,15 +16,12 @@ from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
 
 def current_git_sha() -> str:
     try:
-        return (
-            subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            .stdout.strip()
-        )
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
     except Exception:
         return "unknown"
 

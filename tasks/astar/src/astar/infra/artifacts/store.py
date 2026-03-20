@@ -5,19 +5,23 @@ from pathlib import Path
 from astar.infra.api.dto import (
     StoredAnalysisRecord,
     StoredQueryRecord,
+    StoredReplayRecord,
     StoredRoundRecord,
     StoredSubmissionRecord,
 )
 from astar.storage.io_raw import (
     QueryFileRecord,
+    ReplayFileRecord,
     read_analysis_record,
     read_analysis_records,
     read_query_records,
+    read_replay_records,
     read_round_record,
     read_submission_record,
     read_submission_records,
     write_analysis_record,
     write_query_record,
+    write_replay_record,
     write_round_record,
     write_submission_record,
 )
@@ -32,8 +36,10 @@ from astar.storage.io_tensors import (
 __all__ = [
     "Path",
     "QueryFileRecord",
+    "ReplayFileRecord",
     "StoredAnalysisRecord",
     "StoredQueryRecord",
+    "StoredReplayRecord",
     "StoredRoundRecord",
     "StoredSubmissionRecord",
     "load_named_arrays",
@@ -41,6 +47,7 @@ __all__ = [
     "read_analysis_record",
     "read_analysis_records",
     "read_query_records",
+    "read_replay_records",
     "read_round_record",
     "read_submission_record",
     "read_submission_records",
@@ -49,6 +56,7 @@ __all__ = [
     "save_prediction_tensor",
     "write_analysis_record",
     "write_query_record",
+    "write_replay_record",
     "write_round_record",
     "write_submission_record",
 ]

@@ -24,4 +24,3 @@ def normalized_coast_distance(grid: np.ndarray) -> np.ndarray:
     coast_sources = [tuple(index) for index in np.argwhere(coast)]
     distances = multi_source_distance(land, coast_sources)
     return normalize_distances(distances)
-

@@ -16,8 +16,7 @@ def replay_round(paths: WorkspacePaths, round_id: str) -> ReplayRoundResult:
         for query_file in query_files
     )
     settlement_count = sum(
-        len(query_file.record.response.settlements)
-        for query_file in query_files
+        len(query_file.record.response.settlements) for query_file in query_files
     )
     return ReplayRoundResult(
         round_id=round_id,

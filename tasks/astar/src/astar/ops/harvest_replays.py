@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -83,6 +84,7 @@ def harvest_replays(
     cooldown_seconds: float = 30.0,
     random_delay_min_seconds: float = 0.0,
     random_delay_max_seconds: float = 0.0,
+    progress: Callable[[str], None] | None = None,
 ) -> HarvestReplaysResult:
     if samples_per_seed < 1:
         raise ValueError("samples_per_seed must be >= 1")
@@ -126,6 +128,17 @@ def harvest_replays(
     for round_summary in round_summaries:
         ordered_round_ids.append(round_summary.id)
         sync_result = sync_round(paths, client, round_summary.id)
+        if progress is not None:
+            progress(
+                " ".join(
+                    [
+                        "synced-round",
+                        f"round={sync_result.round_id}",
+                        f"status={sync_result.status}",
+                        f"seeds={sync_result.seeds_count}",
+                    ],
+                ),
+            )
         for seed_index in range(sync_result.seeds_count):
             existing_before = _count_existing_replays(paths, round_summary.id, seed_index)
             existing_replays += existing_before
@@ -153,7 +166,7 @@ def harvest_replays(
                 break
 
             try:
-                record_replay(
+                replay_result = record_replay(
                     paths,
                     client,
                     ReplayRequest(round_id=target.round_id, seed_index=target.seed_index),
@@ -163,11 +176,36 @@ def harvest_replays(
                     raise
                 rate_limit_cooldowns += 1
                 rate_limited = True
+                if progress is not None:
+                    progress(
+                        " ".join(
+                            [
+                                "rate-limited",
+                                f"round={target.round_id}",
+                                f"seed={target.seed_index}",
+                                f"cooldown_seconds={cooldown_seconds:.1f}",
+                            ],
+                        ),
+                    )
                 break
 
             target.remaining -= 1
             target.captured += 1
             captured_replays += 1
+            if progress is not None:
+                progress(
+                    " ".join(
+                        [
+                            "captured-replay",
+                            f"round={replay_result.round_id}",
+                            f"seed={replay_result.seed_index}",
+                            f"sim_seed={replay_result.sim_seed}",
+                            f"frames={replay_result.frame_count}",
+                            f"saved={replay_result.path}",
+                            f"new_total={captured_replays}",
+                        ],
+                    ),
+                )
 
             if max_new_replays is not None and captured_replays >= max_new_replays:
                 continue
@@ -179,6 +217,8 @@ def harvest_replays(
                 random_delay_max_seconds,
             )
             if delay_seconds > 0.0:
+                if progress is not None:
+                    progress(f"sleeping-next-replay seconds={delay_seconds:.1f}")
                 time.sleep(delay_seconds)
 
         if rate_limited and cooldown_seconds > 0.0:

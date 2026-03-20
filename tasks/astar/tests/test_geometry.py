@@ -10,4 +10,3 @@ def test_tiling_covers_full_map() -> None:
     assert len(viewports) == 9
     assert int(coverage.min()) >= 1
     assert int(coverage.max()) >= 1
-

@@ -6,6 +6,9 @@ queries: 3
 repeated_window_groups: 1
 submissions: 5
 analyses: 0
+replay_runs: 0
+replay_seeds: 0
+replay_summaries: 0
 seed 0: queries=2 coverage_min=0 coverage_max=2 repeats=1
 seed 1: queries=1 coverage_min=0 coverage_max=1 repeats=0
 seed 2: queries=0 coverage_min=0 coverage_max=0 repeats=0

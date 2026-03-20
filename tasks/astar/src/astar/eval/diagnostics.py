@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.episode import RoundEpisodeSummary
 from astar.core.grid import MapShape, summarize_coverage
 from astar.core.score import entropy_map
+from astar.history.replay.inspect import inspect_round_replays
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import (
     read_analysis_records,
@@ -45,9 +46,14 @@ class LocalDatasetDiagnostics(BaseModel):
     rounds_with_queries: int = Field(ge=0)
     rounds_with_submissions: int = Field(ge=0)
     rounds_with_analyses: int = Field(ge=0)
+    rounds_with_replays: int = Field(ge=0)
+    rounds_with_replay_summaries: int = Field(ge=0)
     rounds_with_features: int = Field(ge=0)
     rounds_with_evidence: int = Field(ge=0)
     rounds_materialized: int = Field(ge=0)
+    dataset_count: int = Field(ge=0)
+    model_count: int = Field(ge=0)
+    replay_manifold_count: int = Field(ge=0)
     catalog: CatalogDatasetSummary | None = None
 
 
@@ -60,10 +66,15 @@ def build_round_episode_diagnostics(
     submissions = read_submission_records(paths, round_id)
     analyses = read_analysis_records(paths, round_id)
     evidence = build_round_evidence(paths, round_id)
+    round_replays = inspect_round_replays(paths, round_id)
 
     repeated_window_groups = sum(
-        bundle.repeated_window_groups
-        for bundle in evidence.per_seed.values()
+        bundle.repeated_window_groups for bundle in evidence.per_seed.values()
+    )
+    replay_summary_count = sum(
+        1
+        for seed_index in range(round_record.round.seeds_count)
+        if paths.replay_summary_path(round_id, seed_index).exists()
     )
     summary = RoundEpisodeSummary(
         round_id=round_id,
@@ -74,6 +85,9 @@ def build_round_episode_diagnostics(
         repeated_window_groups=repeated_window_groups,
         submission_count=len(submissions),
         analysis_count=len(analyses),
+        replay_run_count=round_replays.replay_run_count,
+        replay_seed_count=len(round_replays.per_seed),
+        replay_summary_count=replay_summary_count,
     )
     per_seed = []
     for seed_index, bundle in sorted(evidence.per_seed.items()):
@@ -122,9 +136,14 @@ def build_local_dataset_diagnostics(paths: WorkspacePaths) -> LocalDatasetDiagno
     rounds_with_queries = 0
     rounds_with_submissions = 0
     rounds_with_analyses = 0
+    rounds_with_replays = 0
+    rounds_with_replay_summaries = 0
     rounds_with_features = 0
     rounds_with_evidence = 0
     rounds_materialized = 0
+    dataset_count = 0
+    model_count = 0
+    replay_manifold_count = 0
     for round_id in round_ids:
         if paths.raw_query_dir(round_id).exists() and any(
             paths.raw_query_dir(round_id).glob("*.json"),
@@ -138,6 +157,14 @@ def build_local_dataset_diagnostics(paths: WorkspacePaths) -> LocalDatasetDiagno
             paths.raw_analysis_dir(round_id).glob("seed_index=*.json"),
         ):
             rounds_with_analyses += 1
+        if paths.raw_dir.joinpath("replays", round_id).exists() and any(
+            paths.raw_dir.joinpath("replays", round_id).glob("seed_index=*/*.json"),
+        ):
+            rounds_with_replays += 1
+        if paths.replay_summary_dir(round_id).exists() and any(
+            paths.replay_summary_dir(round_id).glob("seed_index=*.npz"),
+        ):
+            rounds_with_replay_summaries += 1
         if paths.feature_dir(round_id).exists() and any(
             paths.feature_dir(round_id).glob("seed_index=*.npz"),
         ):
@@ -150,6 +177,14 @@ def build_local_dataset_diagnostics(paths: WorkspacePaths) -> LocalDatasetDiagno
         if episode_summary_path.exists():
             rounds_materialized += 1
 
+    if paths.datasets_dir().exists():
+        dataset_count = sum(1 for item in paths.datasets_dir().iterdir() if item.is_dir())
+    if paths.models_dir().exists():
+        model_count = sum(1 for item in paths.models_dir().iterdir() if item.is_dir())
+    replay_manifold_dir = paths.artifacts_dir / "replays" / "manifold"
+    if replay_manifold_dir.exists():
+        replay_manifold_count = sum(1 for item in replay_manifold_dir.glob("*.json"))
+
     catalog = None
     if paths.catalog_path.exists():
         catalog = CatalogDB(paths.catalog_path).summarize_dataset()
@@ -159,8 +194,13 @@ def build_local_dataset_diagnostics(paths: WorkspacePaths) -> LocalDatasetDiagno
         rounds_with_queries=rounds_with_queries,
         rounds_with_submissions=rounds_with_submissions,
         rounds_with_analyses=rounds_with_analyses,
+        rounds_with_replays=rounds_with_replays,
+        rounds_with_replay_summaries=rounds_with_replay_summaries,
         rounds_with_features=rounds_with_features,
         rounds_with_evidence=rounds_with_evidence,
         rounds_materialized=rounds_materialized,
+        dataset_count=dataset_count,
+        model_count=model_count,
+        replay_manifold_count=replay_manifold_count,
         catalog=catalog,
     )

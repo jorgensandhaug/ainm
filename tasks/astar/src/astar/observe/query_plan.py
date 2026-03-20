@@ -42,3 +42,12 @@ def write_query_plan(path: Path, plan: QueryPlan) -> Path:
 
 def read_query_plan(path: Path) -> QueryPlan:
     return QueryPlan.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def read_any_query_plan(path: Path) -> QueryPlan:
+    try:
+        return read_query_plan(path)
+    except Exception:
+        from astar.legacy.query_plan import read_any_query_plan as read_legacy_query_plan
+
+        return read_legacy_query_plan(path)

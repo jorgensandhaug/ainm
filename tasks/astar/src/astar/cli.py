@@ -12,11 +12,15 @@ from astar.cli_output import (
     render_build_submission,
     render_corpus_summary,
     render_dataset_diagnostics,
+    render_dataset_ref,
     render_episode_diagnostics,
     render_exploration_run,
+    render_factorize_round_summaries,
     render_fetch_analysis,
     render_fetch_round_analyses,
     render_harvest_replays,
+    render_ingest_replays,
+    render_inspect_replays,
     render_json,
     render_live_round_run,
     render_materialize_episode,
@@ -30,35 +34,46 @@ from astar.cli_output import (
     render_round_summary,
     render_stored_round,
     render_submit_prediction,
+    render_summarize_replays,
     render_sync_round,
+    render_train_hazard_teacher,
+    render_train_summary_student,
     render_validation,
 )
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.eval.backtest import backtest_round_from_saved_analyses
 from astar.eval.diagnostics import build_local_dataset_diagnostics, build_round_episode_diagnostics
+from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
+from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
+from astar.history.replay.ingest import ingest_replays
 from astar.infra.api.auth import AuthConfig
 from astar.infra.api.client import AstarApiClient, ClientConfig
 from astar.infra.api.dto import ReplayRequest, SimulationRequest
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import load_prediction_tensor, read_round_record
-from astar.legacy.harvest_replays import harvest_replays, record_replay
-from astar.legacy.query_plan import read_any_query_plan
-from astar.legacy.round_report import build_round_report
 from astar.observe.executor import execute_query_plan, record_simulation
 from astar.observe.planner import build_policy_plan
 from astar.observe.policies.registry import build_named_policy
+from astar.observe.query_plan import read_any_query_plan
 from astar.spec_loader import load_object
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.exploration import explore_round
+from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
 from astar.workflows.live_round import run_live_round
 from astar.workflows.materialize_episode import materialize_round_episode
+from astar.workflows.replay_capture import fetch_replay, harvest_replays
 from astar.workflows.replay_round import replay_round
 from astar.workflows.results import QueryPlanSummary
+from astar.workflows.round_report import build_round_report
 from astar.workflows.specs import LiveRunSpec
 from astar.workflows.submissions import build_submission, submit_saved_prediction
+from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.sync_round import sync_round
+from astar.workflows.train_student import train_summary_bank_student
+from astar.workflows.train_teacher import train_hazard_teacher
 
 
 def load_env_file(path: Path) -> None:
@@ -167,6 +182,15 @@ def build_parser() -> argparse.ArgumentParser:
     replay_parser = subparsers.add_parser("replay-round")
     replay_parser.add_argument("--round-id", required=True)
 
+    ingest_replays_parser = subparsers.add_parser("ingest-replays")
+    ingest_replays_parser.add_argument("--round-id", default=None)
+
+    inspect_replays_parser = subparsers.add_parser("inspect-replays")
+    inspect_replays_parser.add_argument("--round-id", default=None)
+
+    summarize_replays_parser = subparsers.add_parser("summarize-replays")
+    summarize_replays_parser.add_argument("--round-id", required=True)
+
     build_parser_cmd = subparsers.add_parser("build-submission")
     build_parser_cmd.add_argument("--round-id", required=True)
     build_parser_cmd.add_argument("--model", choices=["uniform", "static_semantic"], required=True)
@@ -204,6 +228,32 @@ def build_parser() -> argparse.ArgumentParser:
 
     materialize_episode_parser = subparsers.add_parser("materialize-episode")
     materialize_episode_parser.add_argument("--round-id", required=True)
+
+    factorize_rounds_parser = subparsers.add_parser("factorize-round-summaries")
+    factorize_rounds_parser.add_argument("--round-id", action="append", default=None)
+    factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
+
+    teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
+    teacher_transition_parser.add_argument("--round-id", action="append", default=None)
+
+    teacher_terminal_parser = subparsers.add_parser("build-teacher-terminal-dataset")
+    teacher_terminal_parser.add_argument("--round-id", action="append", default=None)
+
+    synthetic_live_parser = subparsers.add_parser("build-synthetic-live-dataset")
+    synthetic_live_parser.add_argument("--round-id", action="append", default=None)
+    synthetic_live_parser.add_argument("--policy", default="coverage")
+    synthetic_live_parser.add_argument("--samples-per-round", type=int, default=1)
+
+    train_teacher_parser = subparsers.add_parser("train-hazard-teacher")
+    train_teacher_parser.add_argument("--round-id", action="append", default=None)
+    train_teacher_parser.add_argument("--model-name", default="hazard_teacher_v1")
+
+    train_student_parser = subparsers.add_parser("train-summary-student")
+    train_student_parser.add_argument("--dataset-name", default="synthetic_live_v1")
+    train_student_parser.add_argument("--policy", default="coverage")
+    train_student_parser.add_argument("--samples-per-round", type=int, default=1)
+    train_student_parser.add_argument("--k-neighbors", type=int, default=5)
+    train_student_parser.add_argument("--model-name", default="summary_bank_student_v1")
 
     backtest_round_parser = subparsers.add_parser("backtest-round")
     backtest_round_parser.add_argument("--round-id", required=True)
@@ -308,6 +358,21 @@ def _main() -> int:
         _emit(args.json, replay_result, render_replay_round(replay_result))
         return 0
 
+    if args.command == "ingest-replays":
+        ingest_result = ingest_replays(paths, args.round_id)
+        _emit(args.json, ingest_result, render_ingest_replays(ingest_result))
+        return 0
+
+    if args.command == "inspect-replays":
+        inspection_result = inspect_replays(paths, args.round_id)
+        _emit(args.json, inspection_result, render_inspect_replays(inspection_result))
+        return 0
+
+    if args.command == "summarize-replays":
+        summarize_result = summarize_round_replays(paths, args.round_id)
+        _emit(args.json, summarize_result, render_summarize_replays(summarize_result))
+        return 0
+
     if args.command == "build-submission":
         build_result = build_submission(paths, args.round_id, args.model)
         _emit(args.json, build_result, render_build_submission(build_result))
@@ -343,6 +408,65 @@ def _main() -> int:
     if args.command == "materialize-episode":
         materialized = materialize_round_episode(paths, args.round_id)
         _emit(args.json, materialized, render_materialize_episode(materialized))
+        return 0
+
+    if args.command == "factorize-round-summaries":
+        factorized = factorize_round_summaries(
+            paths,
+            round_ids=args.round_id,
+            max_rank=args.max_rank,
+        )
+        _emit(args.json, factorized, render_factorize_round_summaries(factorized))
+        return 0
+
+    if args.command == "build-teacher-transition-dataset":
+        dataset = build_teacher_transition_dataset(paths, round_ids=args.round_id)
+        _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "build-teacher-terminal-dataset":
+        dataset = build_teacher_terminal_dataset(paths, round_ids=args.round_id)
+        _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "build-synthetic-live-dataset":
+        dataset = build_synthetic_live_dataset(
+            paths,
+            policy_name=args.policy,
+            round_ids=args.round_id,
+            samples_per_round=args.samples_per_round,
+            dataset_name=f"synthetic_live_{args.policy}_v1",
+        )
+        _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "train-hazard-teacher":
+        teacher_result = train_hazard_teacher(
+            paths,
+            round_ids=args.round_id,
+            model_name=args.model_name,
+        )
+        _emit(
+            args.json,
+            teacher_result,
+            render_train_hazard_teacher(teacher_result),
+        )
+        return 0
+
+    if args.command == "train-summary-student":
+        student_result = train_summary_bank_student(
+            paths,
+            dataset_name=args.dataset_name,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+            k_neighbors=args.k_neighbors,
+            model_name=args.model_name,
+        )
+        _emit(
+            args.json,
+            student_result,
+            render_train_summary_student(student_result),
+        )
         return 0
 
     if args.command == "dataset-summary":
@@ -442,7 +566,7 @@ def _main() -> int:
         return 0
 
     if args.command == "fetch-replay":
-        recorded_replay = record_replay(
+        recorded_replay = fetch_replay(
             paths,
             client,
             ReplayRequest(round_id=args.round_id, seed_index=args.seed_index),
@@ -452,6 +576,13 @@ def _main() -> int:
 
     if args.command == "harvest-replays":
         statuses = None if args.status is None else set(args.status)
+        progress = None
+        if not args.json:
+
+            def _print_progress(message: str) -> None:
+                print(message, file=sys.stderr, flush=True)
+
+            progress = _print_progress
         harvest_result = harvest_replays(
             paths,
             client,
@@ -462,6 +593,7 @@ def _main() -> int:
             cooldown_seconds=args.cooldown_seconds,
             random_delay_min_seconds=args.random_delay_min_seconds,
             random_delay_max_seconds=args.random_delay_max_seconds,
+            progress=progress,
         )
         _emit(args.json, harvest_result, render_harvest_replays(harvest_result))
         return 0

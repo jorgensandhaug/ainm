@@ -11,6 +11,7 @@ class CorpusSummaryResult(BaseModel):
 
     episode_count: int = Field(ge=0)
     analyzed_episode_count: int = Field(ge=0)
+    replay_episode_count: int = Field(ge=0)
     leave_one_seed_out_task_count: int = Field(ge=0)
     two_seed_holdout_task_count: int = Field(ge=0)
     corpus: LearningCorpus
@@ -22,13 +23,15 @@ def summarize_learning_corpus(
 ) -> CorpusSummaryResult:
     corpus = load_learning_corpus(paths, require_ground_truth=require_ground_truth)
     analyzed_episode_count = sum(
-        1
-        for episode in corpus.episodes.values()
-        if episode.analyzed_seed_count > 0
+        1 for episode in corpus.episodes.values() if episode.analyzed_seed_count > 0
+    )
+    replay_episode_count = sum(
+        1 for episode in corpus.episodes.values() if episode.replay_run_count > 0
     )
     return CorpusSummaryResult(
         episode_count=len(corpus.episodes),
         analyzed_episode_count=analyzed_episode_count,
+        replay_episode_count=replay_episode_count,
         leave_one_seed_out_task_count=len(
             corpus.leave_one_seed_out_tasks(require_ground_truth=require_ground_truth),
         ),

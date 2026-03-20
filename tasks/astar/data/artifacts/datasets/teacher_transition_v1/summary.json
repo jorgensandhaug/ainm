@@ -1,0 +1,8 @@
+{
+  "dataset_name": "teacher_transition_v1",
+  "dataset_kind": "teacher_transition",
+  "row_count": 8300,
+  "round_count": 7,
+  "replay_run_count": 166,
+  "index_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/datasets/teacher_transition_v1/transitions.parquet"
+}

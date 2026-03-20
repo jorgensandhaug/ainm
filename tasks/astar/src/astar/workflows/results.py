@@ -7,6 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astar.eval.backtest import BacktestRoundResult
 from astar.eval.diagnostics import RoundEpisodeDiagnostics
+from astar.history.datasets.base import SyntheticEpisodeDatasetRef
+from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
+from astar.history.summaries.hazards import ReplayHazardRoundSummary
 from astar.models.latent_regime import RoundRegimePosterior
 from astar.observe.results import QueryPlanRunResult
 
@@ -105,6 +108,8 @@ class MaterializedSeedArtifacts(BaseModel):
     seed_index: int = Field(ge=0)
     feature_path: Path
     evidence_path: Path
+    replay_summary_path: Path | None = None
+    replay_run_count: int = Field(default=0, ge=0)
     has_prediction: bool
     has_analysis: bool
 
@@ -116,9 +121,11 @@ class MaterializeEpisodeResult(BaseModel):
     round_number: int
     summary_path: Path
     report_path: Path
+    replay_report_path: Path | None = None
     feature_names: list[str]
     per_seed: list[MaterializedSeedArtifacts]
     diagnostics: RoundEpisodeDiagnostics
+    replay_round_summary: ReplayHazardRoundSummary | None = None
     backtest_result: BacktestRoundResult | None = None
 
 
@@ -147,3 +154,44 @@ class FetchRoundAnalysesResult(BaseModel):
     fetched_results: list[FetchAnalysisResult]
     materialized_episode: MaterializeEpisodeResult | None = None
 
+
+class InspectReplaysResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    inspection: ReplayInspection
+    round_inspection: ReplayRoundInspection | None = None
+
+
+class SummarizeReplaysResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int
+    replay_run_count: int = Field(ge=0)
+    replay_seed_count: int = Field(ge=0)
+    summary_paths: list[Path]
+    round_summary_path: Path
+    report_path: Path
+    hazard_summary: ReplayHazardRoundSummary
+
+
+class TrainHazardTeacherResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    replay_episode_count: int = Field(ge=0)
+    replay_run_count: int = Field(ge=0)
+    checkpoint_path: Path
+    embedding_dim: int = Field(ge=1)
+
+
+class TrainSummaryStudentResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    dataset: SyntheticEpisodeDatasetRef
+    checkpoint_path: Path
+    teacher_checkpoint_path: Path
+    sample_count: int = Field(ge=0)
+    summary_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)

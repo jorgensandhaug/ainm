@@ -41,22 +41,14 @@ class GeometryPriorPredictor(BaseRoundPredictor):
             )
             logits[..., 0] = 1.8 + 1.0 * (1.0 - buildable) + 0.7 * (1.0 - settlement_proximity)
             logits[..., 1] = (
-                0.8
-                + 2.4 * settlement_proximity
-                + 0.8 * frontier_score
-                + 0.2 * forest_density
+                0.8 + 2.4 * settlement_proximity + 0.8 * frontier_score + 0.2 * forest_density
             )
             logits[..., 2] = 0.3 + 3.0 * coastal_exposure * maritime_access * settlement_proximity
             logits[..., 3] = (
-                0.2
-                + 1.6 * frontier_score
-                + 0.5 * settlement_proximity
-                + 0.4 * mountain_density
+                0.2 + 1.6 * frontier_score + 0.5 * settlement_proximity + 0.4 * mountain_density
             )
             logits[..., 4] = (
-                0.3
-                + 2.6 * (scored_grid == 4)
-                + 0.8 * forest_density * (1.0 - settlement_proximity)
+                0.3 + 2.6 * (scored_grid == 4) + 0.8 * forest_density * (1.0 - settlement_proximity)
             )
             logits[..., 5] = 0.1 + 6.0 * (scored_grid == 5) + 0.4 * mountain_density
 

@@ -14,4 +14,3 @@ spec = LiveRunSpec(
     predictor=LatentRegimePredictor(),
     submit_predictions=True,
 )
-

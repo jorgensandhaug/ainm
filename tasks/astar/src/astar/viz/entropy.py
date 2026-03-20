@@ -21,4 +21,3 @@ def plot_entropy_heatmap(prediction: np.ndarray, output_path: Path) -> Path:
     figure.savefig(output_path, dpi=160)
     plt.close(figure)
     return output_path
-

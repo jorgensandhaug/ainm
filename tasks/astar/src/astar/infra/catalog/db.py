@@ -7,6 +7,7 @@ from pathlib import Path
 import duckdb
 
 from astar.infra.catalog.schema import CatalogDatasetSummary, CatalogEvent
+from astar.infra.serialization.json_utils import to_jsonable
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS event_log (
@@ -65,7 +66,7 @@ class CatalogDB:
                     event.spec_name,
                     event.status,
                     None if event.artifact_path is None else str(event.artifact_path),
-                    json.dumps(event.payload_json, sort_keys=True),
+                    json.dumps(to_jsonable(event.payload_json), sort_keys=True),
                 ],
             )
 
@@ -76,6 +77,8 @@ class CatalogDB:
                 query_event_count=0,
                 submission_event_count=0,
                 analysis_event_count=0,
+                replay_event_count=0,
+                replay_summary_event_count=0,
                 live_run_event_count=0,
                 materialized_event_count=0,
             )
@@ -96,6 +99,12 @@ class CatalogDB:
                         WHERE event_kind = 'prediction_submitted'
                     ) AS submission_event_count,
                     COUNT(*) FILTER (WHERE event_kind = 'analysis_fetched') AS analysis_event_count,
+                    COUNT(*) FILTER (
+                        WHERE event_kind = 'replay_runs_ingested'
+                    ) AS replay_event_count,
+                    COUNT(*) FILTER (
+                        WHERE event_kind = 'replay_summary_built'
+                    ) AS replay_summary_event_count,
                     COUNT(*) FILTER (WHERE event_kind = 'live_run') AS live_run_event_count,
                     COUNT(*) FILTER (
                         WHERE event_kind = 'episode_materialized'
@@ -109,6 +118,8 @@ class CatalogDB:
             query_event_count=int(row[1]),
             submission_event_count=int(row[2]),
             analysis_event_count=int(row[3]),
-            live_run_event_count=int(row[4]),
-            materialized_event_count=int(row[5]),
+            replay_event_count=int(row[4]),
+            replay_summary_event_count=int(row[5]),
+            live_run_event_count=int(row[6]),
+            materialized_event_count=int(row[7]),
         )

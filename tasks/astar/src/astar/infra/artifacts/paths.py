@@ -44,12 +44,16 @@ class WorkspacePaths(BaseModel):
             self.derived_dir / "query_log",
             self.derived_dir / "cell_observations",
             self.derived_dir / "settlement_observations",
+            self.derived_dir / "replay_summaries",
             self.derived_dir / "features",
             self.derived_dir / "evidence",
             self.derived_dir / "predictions",
             self.derived_dir / "analyses",
             self.artifacts_dir / "reports",
             self.artifacts_dir / "plots",
+            self.artifacts_dir / "datasets",
+            self.artifacts_dir / "models",
+            self.artifacts_dir / "replays",
             self.artifacts_dir / "runs",
             self.artifacts_dir / "episodes",
             self.artifacts_dir / "live_specs",
@@ -87,6 +91,12 @@ class WorkspacePaths(BaseModel):
     def feature_dir(self, round_id: str) -> Path:
         return self.derived_dir / "features" / f"round_id={round_id}"
 
+    def replay_summary_dir(self, round_id: str) -> Path:
+        return self.derived_dir / "replay_summaries" / f"round_id={round_id}"
+
+    def replay_summary_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_summary_dir(round_id) / f"seed_index={seed_index}.npz"
+
     def feature_tensor_path(self, round_id: str, seed_index: int) -> Path:
         return self.feature_dir(round_id) / f"seed_index={seed_index}.npz"
 
@@ -110,6 +120,21 @@ class WorkspacePaths(BaseModel):
 
     def episode_dir(self, round_id: str) -> Path:
         return self.artifacts_dir / "episodes" / round_id
+
+    def replay_artifact_dir(self, round_id: str) -> Path:
+        return self.artifacts_dir / "replays" / round_id
+
+    def datasets_dir(self) -> Path:
+        return self.artifacts_dir / "datasets"
+
+    def dataset_dir(self, dataset_name: str) -> Path:
+        return self.datasets_dir() / dataset_name
+
+    def models_dir(self) -> Path:
+        return self.artifacts_dir / "models"
+
+    def model_dir(self, model_name: str) -> Path:
+        return self.models_dir() / model_name
 
     def live_spec_path(self, round_id: str, spec_name: str) -> Path:
         return self.artifacts_dir / "live_specs" / round_id / f"{spec_name}.json"

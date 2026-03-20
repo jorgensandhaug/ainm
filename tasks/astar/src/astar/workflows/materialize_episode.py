@@ -11,6 +11,7 @@ from astar.eval.reports import (
     render_round_episode_diagnostics,
 )
 from astar.features.geometry import compute_round_features
+from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import (
     read_analysis_records,
@@ -19,11 +20,13 @@ from astar.infra.artifacts.store import (
 )
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
+from astar.infra.serialization.json_utils import to_jsonable
 from astar.observe.evidence import build_round_evidence
 from astar.workflows.results import (
     MaterializedSeedArtifacts,
     MaterializeEpisodeResult,
 )
+from astar.workflows.summarize_replays import summarize_round_replays
 
 
 def _feature_payload(
@@ -87,6 +90,13 @@ def materialize_round_episode(
     evidence = build_round_evidence(paths, round_id)
     diagnostics = build_round_episode_diagnostics(paths, round_id)
     analyses = read_analysis_records(paths, round_id)
+    round_episode = build_round_episode(paths, round_id)
+    replay_round_summary = None
+    replay_report_path = None
+    if round_episode.replay_run_count > 0:
+        replay_result = summarize_round_replays(paths, round_id)
+        replay_round_summary = replay_result.hazard_summary
+        replay_report_path = replay_result.report_path
 
     feature_names: list[str] | None = None
     per_seed: list[MaterializedSeedArtifacts] = []
@@ -141,6 +151,12 @@ def materialize_round_episode(
                 seed_index=seed_index,
                 feature_path=feature_path,
                 evidence_path=evidence_path,
+                replay_summary_path=(
+                    paths.replay_summary_path(round_id, seed_index)
+                    if paths.replay_summary_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_run_count=len(round_episode.seeds[seed_index].replay_runs),
                 has_prediction=paths.prediction_tensor_path(round_id, seed_index).exists(),
                 has_analysis=seed_index in analyses,
             ),
@@ -148,8 +164,7 @@ def materialize_round_episode(
 
     backtest_result = None
     if analyses and all(
-        paths.prediction_tensor_path(round_id, seed_index).exists()
-        for seed_index in analyses
+        paths.prediction_tensor_path(round_id, seed_index).exists() for seed_index in analyses
     ):
         backtest_result = backtest_round_from_saved_analyses(paths, round_id)
 
@@ -158,14 +173,16 @@ def materialize_round_episode(
         round_number=round_record.round.round_number,
         summary_path=paths.episode_dir(round_id) / "summary.json",
         report_path=paths.episode_dir(round_id) / "report.md",
+        replay_report_path=replay_report_path,
         feature_names=feature_names or [],
         per_seed=per_seed,
         diagnostics=diagnostics,
+        replay_round_summary=replay_round_summary,
         backtest_result=backtest_result,
     )
     result.summary_path.parent.mkdir(parents=True, exist_ok=True)
     result.summary_path.write_text(
-        json.dumps(result.model_dump(mode="json"), indent=2),
+        json.dumps(to_jsonable(result), indent=2),
         encoding="utf-8",
     )
 
@@ -176,6 +193,16 @@ def materialize_round_episode(
         "",
         f"feature_names: {', '.join(result.feature_names)}",
     ]
+    if replay_round_summary is not None:
+        report_lines.extend(
+            [
+                "",
+                f"replay_seed_count: {replay_round_summary.replay_seed_count}",
+                f"replay_run_count: {replay_round_summary.replay_run_count}",
+                f"replay_report: {replay_report_path}",
+                f"replay_coefficients_mean: {replay_round_summary.coefficient_mean.tolist()}",
+            ],
+        )
     if backtest_result is not None:
         report_lines.extend(["", render_backtest_round_report(backtest_result)])
     result.report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
@@ -187,7 +214,7 @@ def materialize_round_episode(
             round_id=round_id,
             status="ok",
             artifact_path=result.summary_path,
-            payload_json=result.model_dump(mode="json"),
+            payload_json=to_jsonable(result),
         ),
     )
     return result
