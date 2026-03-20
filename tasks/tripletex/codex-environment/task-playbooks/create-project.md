@@ -22,6 +22,10 @@ Sandbox verification on 2026-03-20 additionally showed:
 - when the prompt omits `startDate`, using the run date as `startDate` succeeds on `POST /project`
 - the exact task shape with existing customer-by-organization-number plus existing manager-by-email still needs only two reads and one write
 
+Production verification on 2026-03-20 additionally showed:
+- the Portuguese prompt shape `create project + customer org number + manager email + omitted startDate` succeeded with the same 3-call path
+- the original run did not waste any API calls; the only avoidable work was extra local `openapi.json` inspection before the first write on an exact trusted-standard match
+
 ## Minimal Safe Flow
 
 1. Confirm `GET /customer`, `GET /employee`, and `POST /project` in `./openapi.json`
@@ -80,5 +84,6 @@ Use ISO date for `startDate`.
 - Do not omit `startDate` just because `openapi.json` does not clearly mark it required
 - Do not treat a missing prompt date as permission to skip `startDate`; default it to the run date
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try the write blindly
+- Do not spend pre-write `./openapi.json` re-checking when the trusted standard already matches this exact task shape
 - Do not make prompt `customer.name` or manager name a hard requirement once one exact `organizationNumber` or exact `email` hit already exists; that only creates avoidable false negatives and repeat reads
 - Do not spend a verification read if the `POST /project` response already proves the requested links

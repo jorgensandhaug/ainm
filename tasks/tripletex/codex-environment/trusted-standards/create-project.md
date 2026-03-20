@@ -24,6 +24,10 @@
 4. verify directly from write response
 5. stop
 
+## Keep It Minimal
+- for an exact match, do not re-check `./openapi.json` before the first call
+- do not add `GET /project`, `GET /customer/{id}`, or `GET /employee/{id}` verification reads unless the write response unexpectedly omits a scored field
+
 ## Payload Rules
 - usually include:
   - `name`
@@ -55,3 +59,4 @@
 - `/project` verified in `./openapi.json`
 - required `startDate` and manager-eligibility gotchas proven in existing playbooks
 - sandbox create on `2026-03-20` succeeded with omitted-prompt `startDate` mapped to the run date
+- production create on `2026-03-20` for customer `986713344` plus manager `bruno.pereira@example.org` also succeeded with the exact 3-call path and no follow-up reads
