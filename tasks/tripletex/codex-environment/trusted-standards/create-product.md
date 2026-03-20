@@ -44,6 +44,7 @@
 - do not rely on omitting `vatType` even if a sandbox account auto-fills a 0% default
 - do not hardcode VAT code `3`
 - do not use unfiltered VAT catalog
+- do not pick the first broad-catalog row whose `percentage` matches; the 2026-03-20 persistent sandbox broad list surfaced `15%` rows `11`, `31`, `551`, and `556`, where the first hit `11` was incoming VAT rather than the product-usable outgoing base code
 - do not search for a book-specific product subtype or extra accounting field just because the prompt says "0% for books"; still pick the matching 0% row from the filtered `OUTGOING` result
 - if the requested VAT percentage is absent from the filtered `OUTGOING` result, treat the task as blocked in that account; do not substitute a same-percentage code from the broader catalog
 

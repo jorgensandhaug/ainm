@@ -54,6 +54,7 @@
 - `invoice.value.id`
 - `invoice.value.invoiceNumber`
 - totals from the invoice write response
+- keep the resolved `customer.id` and filtered outgoing `vatType.id` in memory until the invoice write has either succeeded or been conclusively blocked; a local helper bug is not a reason to repeat those reads in the same run
 
 ## Verification
 - default verification is zero extra calls

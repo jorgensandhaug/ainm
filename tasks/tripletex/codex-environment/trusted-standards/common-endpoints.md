@@ -137,6 +137,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create note:
   - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; the persistent sandbox still auto-filled `0%` VAT code `6` on 2026-03-20 and produced `priceIncludingVatCurrency == priceExcludingVatCurrency`, so do not use that as the trusted fast path when the prompt scores exact VAT outside the exact fresh-account standard-`25%` shortcut
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
+  - the same persistent sandbox still omitted `15%` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, exposed `id=31` only in the broader `/ledger/vatType?fields=*` catalog, and rejected `POST /product` with `vatType.id=31` as `422 Ugyldig mva-kode.`; if the filtered outgoing list omits the requested reduced rate, treat the task as blocked in that account
+  - that same broad catalog also surfaced several `15%` rows (`11`, `31`, `551`, `556`), and the first percentage hit was incoming code `11`; never resolve exact-VAT product creates by taking the first broad-catalog percentage match
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
   - `GET /product?productNumber=...&fields=*` can return the matched identifier under `number` rather than `productNumber`; normalize both keys before deciding a direct numeric resolver failed

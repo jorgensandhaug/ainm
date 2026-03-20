@@ -25,6 +25,7 @@ Persistent-sandbox verification on 2026-03-19 showed:
 Persistent-sandbox verification on 2026-03-20 showed:
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` still returned only VAT code `6` (`0% Ingen utgående avgift`)
 - the broader `GET /ledger/vatType?fields=*` catalog still exposed `15%` entries including outgoing code `31` (`Utgående avgift, middels sats`)
+- that same broad catalog returned several distinct `15%` rows (`11`, `31`, `551`, `556`), and the first percentage hit was incoming code `11`; broad-catalog "first 15%" selection is therefore unsafe even before the write validation branch
 - `POST /product` with `vatType: { "id": 31 }` still failed with `422` and `Internt felt (vatTypeId): Ugyldig mva-kode.`
 - therefore, if the requested percentage is absent from the filtered `OUTGOING` result, the task is blocked in that account; do not guess from the broader VAT catalog even when a same-percentage outgoing code exists there
 

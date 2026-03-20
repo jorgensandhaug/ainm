@@ -197,6 +197,7 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
    - include required dates
    - include `orders`
    - include `orderLines` inside the order, not directly on invoice input
+   - once customer resolution and filtered VAT resolution have succeeded, keep `customer.id` and `vatType.id` in memory; a local request-construction bug is not a reason to repeat either call in the same run
 4. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - update the existing invoice account with `PUT /ledger/account/{id}` and minimal payload `{ "bankAccountNumber": "12345678903" }`
