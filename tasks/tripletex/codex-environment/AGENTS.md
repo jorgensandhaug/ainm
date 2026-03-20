@@ -79,6 +79,7 @@ Authentication:
 | Create project | `./task-playbooks/create-project.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
+| Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
 
 ## Common Endpoints
 - `/employee` — `GET`, `POST`, `PUT` — employees
@@ -190,6 +191,10 @@ Authentication:
 - `GET /invoice/paymentType` can also return perfectly usable incoming payment types with `creditAccount=null`. Do not reject `Betalt til bank` just because there is no `15xx` credit account in the response; prefer a payment type whose debit account is `19xx` and marked `isBankAccount=true` or `isInvoiceAccount=true`.
 - If a multi-step order/invoice/payment flow already created the order and invoice but failed before payment registration, do not restart from `POST /order`. Resume by locating the unpaid invoice with one decisive `GET /invoice` and finish the payment on that existing invoice.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
+- Do not default supplier-invoice registration to `POST /incomingInvoice`; follow-up verification on 2026-03-20 showed that endpoint can fail with `403 You do not have permission to access this feature.` on an ordinary account even when generic ledger-voucher booking is allowed.
+- For supplier-invoice registration through `POST /ledger/voucher`, resolve VAT from `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`, not `INCOMING_INVOICE`; the standard deductible 25% code can be present in `INCOMING` while missing from `INCOMING_INVOICE`.
+- For `POST /ledger/voucher`, do not send `amountVat` even though nearby schemas/documentation mention it; sandbox mapping rejected that field on 2026-03-20. Send `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` and let Tripletex generate the VAT posting.
+- In that supplier-voucher flow, place the vendor invoice number on the supplier liability posting as `invoiceNumber`; sending root-level `voucher.vendorInvoiceNumber` did not persist it in sandbox verification.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.
 
