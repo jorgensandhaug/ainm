@@ -264,17 +264,18 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
-  - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production run `812449982` + `45300` + `Datarådgjeving`, that two-call path is already minimal; do not add `GET /customer`
+- for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production runs `812449982` + `45300` + `Datarådgjeving` and `973999966` + `40800` + `Conseil en données`, that two-call path is already minimal; do not add `GET /customer`
   - once that trusted-standard shape matches, do not spend extra local `openapi.json` confirmation time before acting; follow the standard directly
   - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
   - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
   - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
 - Standard search note:
-  - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
-  - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
-  - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
-  - persistent sandbox proof on 2026-03-20 showed that a freshly created paid invoice could be readable on `GET /invoice/{id}` before it appeared in the broader `/invoice?...count=1000...` search; treat that as sandbox proof noise rather than a production reason to add extra resolver calls to exact-match invoice-reversal tasks
+- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
+- if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
+- the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
+- keep exact Unicode when matching localized descriptions on invoice reads; do not ASCII-normalize strings such as `Conseil en données`
+- persistent sandbox proof on 2026-03-20 showed that a freshly created paid invoice could be readable on `GET /invoice/{id}` before it appeared in the broader `/invoice?...count=1000...` search; treat that as sandbox proof noise rather than a production reason to add extra resolver calls to exact-match invoice-reversal tasks
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
   - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`

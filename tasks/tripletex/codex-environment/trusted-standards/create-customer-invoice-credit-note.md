@@ -35,7 +35,7 @@
   2. one `PUT /invoice/{id}/:createCreditNote?...`
 - only reduce this to one API call when the prompt already gives the exact invoice id
 - do not spend a separate `GET /customer` or `GET /invoice/{id}` in the standard shape
-- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` and `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, that two-call path was the successful production path on 2026-03-20
+- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, and `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, that two-call path was the successful production path on 2026-03-20
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
@@ -82,6 +82,10 @@
   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
   - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
   - the run succeeded with no extra resolver read and no extra verification read
+- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`:
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+  - the run succeeded with no extra resolver read and no extra verification read
 - re-verified on 2026-03-20 in persistent sandbox:
   - a fresh fixture customer plus invoice could still be credited through the same standard two-call core of:
     - `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
@@ -93,3 +97,5 @@
   - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the production-style facts `description="Datarådgjeving"` and `amountExcludingVatCurrency=45300`; the locate read produced two identical description hits across top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
   - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the production-style facts `description="Maintenance"` and `amountExcludingVatCurrency=45550`; the locate read returned the same description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
   - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`; the same two-call core located the created invoice and the credit-note write response alone proved success with `isCreditNote=true` and `creditedInvoice=<original id>`
+  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`; the locate read again showed the same exact description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
+  - on that exact-identifier French fixture, `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and needed no follow-up read

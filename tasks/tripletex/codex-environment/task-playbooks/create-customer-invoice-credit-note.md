@@ -46,6 +46,14 @@ Verified on 2026-03-20:
   - no `GET /customer`
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+- a third production run on 2026-03-20 again succeeded in the same two API calls for:
+  - `customer.organizationNumber=973999966`
+  - `amountExcludingVatCurrency=40800`
+  - `description="Conseil en données"`
+- that third production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
 - persistent-sandbox re-verification created a fixture invoice and then proved that:
   - one `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` was enough to locate the unique target invoice by:
     - `customer.organizationNumber`
@@ -63,6 +71,8 @@ Verified on 2026-03-20:
   - on that disposable `Datarådgjeving` fixture, the locate read showed two identical description hits across top-level and nested line arrays on the same invoice; dedupe at the invoice id and keep the flow at two API calls
   - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` again proved the same two-call core after setup
   - on that exact-identifier fixture, the locate read still showed duplicate `Maintenance` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
+  - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800` again proved the same two-call core after setup
+  - on that exact-identifier French fixture, the locate read still showed duplicate `Conseil en données` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
 
 ## Minimal Flow
 
@@ -113,6 +123,7 @@ Verified on 2026-03-20:
 - when filtering locally, check both invoice-level and nested line-level fields
 - if the same description appears in both top-level and nested line arrays on one invoice, dedupe at the invoice level
 - prefer exact string matching on the prompt’s description before broader fuzzy matching
+- preserve exact Unicode in the prompt description; do not ASCII-normalize strings such as `Conseil en données`
 - if the locate result is ambiguous, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
 
 ## Send And Verification Rules
