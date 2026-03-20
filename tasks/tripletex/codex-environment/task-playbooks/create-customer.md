@@ -36,6 +36,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 with only `name`, `email`, and `organizationNumber`; the single `201` response again returned the created customer plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with the exact prompt payload `Debug Test AS`, `debug@example.no`, and `999888771`; the single `POST /customer` returned customer `id=108240642` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Post Run 372928 AS`, `codex-post-run-372928@example.no`, and `999372928`; the single `POST /customer` returned customer `id=108240652` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 269241 AS`, `codex-reflection-269241@example.no`, `999269241`, and `postalAddress`; the single `POST /customer` returned customer `id=108245322`, preserved `Sjøgata 85` and `Trondheim`, and also auto-returned a sparse `physicalAddress` link without needing any extra read
 
 ## Minimal Flow
 
@@ -91,6 +92,7 @@ This was verified in sandbox:
 - Expect `201 Created`
 - Expect a wrapper of shape `{"value": {...}}`
 - Verify the requested scored fields directly from `value`
+- If `value.physicalAddress` appears as an `id`/`url` link after you only sent `postalAddress`, ignore it for standard create verification
 - Reuse the returned `id` if any follow-up step unexpectedly depends on it
 
 ## Address Mapping For Standard Customer Creates
@@ -111,6 +113,7 @@ This was verified in sandbox:
 
 - Do not guess `physicalAddress` as well unless the prompt explicitly distinguishes a separate visiting/physical address
 - The `201` response can already prove the stored address fields, so no follow-up `GET` is needed
+- Tripletex can still auto-return a sparse `physicalAddress` link object in that same `201` response; that is not a signal to add `physicalAddress` to the payload or to fetch the customer again
 
 ## Email Mapping For Standard Customer Creates
 
