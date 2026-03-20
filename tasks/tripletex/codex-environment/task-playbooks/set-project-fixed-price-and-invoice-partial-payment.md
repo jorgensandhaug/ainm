@@ -20,6 +20,10 @@ Do not use for:
 Persistent-sandbox verification on 2026-03-20 showed:
 - `PUT /order/{id}/:invoice?...createOnAccount=WITHOUT_VAT&amountOnAccount=...` on an order with no order lines failed with `422` and validation message `Fakturaen inneholder ingen ordrelinjer.`
 - `POST /order` with embedded `orderLines` still echoed `orderLines=[]` in `response.value`, but the later invoice succeeded, and one decisive `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` confirmed the created order line and the linked project
+- production verification on 2026-03-20 showed an additional invoice-stage failure mode:
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` failed with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+  - `GET /ledger/account?isBankAccount=true&fields=*`, then `PUT /ledger/account/{id}` on the existing invoice bank account `1920`, then retrying the same `PUT /order/{id}/:invoice` succeeded
+  - therefore this branch should resume from the already-created order, not restart from `POST /project` or `POST /order`
 - creating the customer with `invoiceSendMethod: "MANUAL"` worked without inventing email or address fields when the prompt did not provide them
 - `POST /project` succeeded with:
   - `startDate`
@@ -36,6 +40,13 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - `amountExcludingVatCurrency=281175`
   - `amountCurrency=281175`
   - `orders[0].project.id=<projectId>` on the verification read
+- additional persistent-sandbox verification on 2026-03-20 showed:
+  - `POST /project` followed by `PUT /project/{id}` successfully updated a fixed-price project from `170400` to `170500`
+  - `POST /order` with one project-linked partial-billing line for `56265` succeeded
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` then succeeded and one decisive `GET /invoice/{id}?fields=*,customer(*),orders(*,project(*,customer(*),projectManager(*)),orderLines(*)),orderLines(*)` proved:
+    - `amountExcludingVatCurrency=56265`
+    - `orders[0].project.fixedprice=170500`
+    - `orders[0].project.projectManager.email=<resolved-assignable-project-manager-email>`
 - `invoice.projectInvoiceDetails` was `null` in this working flow, so do not rely on that collection to prove the project link
 
 ## Minimal Safe Flow
@@ -81,9 +92,14 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - one embedded `orderLines[]` entry for the partial amount
 9. Invoice the order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-10. Verify from the write response first
+10. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+   - retry `PUT /order/{id}/:invoice?...` on the same order
+11. Verify from the write response first
    - reuse the invoice totals from `response.value`
-11. If the write response does not clearly prove the project linkage, do one decisive read
+12. If the write response does not clearly prove the project linkage, do one decisive read
    - `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
 
 ## Recommended Shapes
@@ -141,6 +157,8 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
   6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
   7. `POST /order` with one embedded partial-billing line
   8. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+- do not insert an unconditional `GET /ledger/account` before the first invoice write
+- if that invoice write fails only because the company bank account number is missing, repair `/ledger/account` and retry the same order once
 - add the final `GET /invoice/{id}` only if the invoice write response does not clearly prove the project linkage
 
 ## Verification Shape
@@ -175,3 +193,4 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not hardcode VAT code `3`; the filtered account-specific outgoing VAT list may only expose another code such as `6`
 - Do not rely on `invoice.projectInvoiceDetails` for verification; it can be `null` even when the invoice is correctly linked to the project through `orders[0].project`
 - Do not invent customer email or address fields when the prompt does not provide them; `invoiceSendMethod: "MANUAL"` is the safer customer-create default for this unsent-invoice flow
+- Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order

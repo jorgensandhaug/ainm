@@ -162,6 +162,7 @@ Authentication:
 ## Tripletex Gotchas
 - Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
+- If `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`, repair the existing invoice bank account under `/ledger/account` and retry the same order invoice once; do not create a second order or project.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
 - In invoice payment tasks, the prompt may identify the invoice by an excluding-VAT line amount, but the payment write still needs the current outstanding invoice balance from the invoice object. Locate by the prompt identifiers, then pay `amountCurrencyOutstanding` or `amountOutstanding`, not the prompt's lookup amount.
 - `POST /invoice` can succeed while returning `orderLines` only as link objects (`id`/`url`). Do not treat that sparse write response as evidence that line creation failed; if exact line-level verification is needed, do one immediate `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`.

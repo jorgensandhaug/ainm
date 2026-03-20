@@ -24,6 +24,10 @@ Do not use for:
   - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` on an order created that way succeeded directly
   - the invoice response returned `amountExcludingVatCurrency=20450` and `amountCurrencyOutstanding=20450`
   - `PUT /invoice/{id}/:payment?...` reduced the remaining outstanding amount to `0`
+- additional production verification on 2026-03-20 showed:
+  - `PUT /order/{id}/:invoice?...` can fail after a successful `POST /order` with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+  - `GET /ledger/account?isBankAccount=true&fields=*`, then `PUT /ledger/account/{id}` on the existing invoice bank account `1920`, then retrying the same `PUT /order/{id}/:invoice` succeeded
+  - therefore the recovery branch must resume from the already-created order; do not create a second order
 - product lookup verification on 2026-03-20 showed:
   - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` returned both target products
   - `GET /product?ids=<id-a>,<id-b>&fields=*` also returned both target products
@@ -47,15 +51,17 @@ Do not use for:
    - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
    - if that does not uniquely resolve the products, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
    - if both numeric lookups fail and the prompt also gives exact product names, do one final decisive fallback `GET /product?count=1000&fields=*` and filter locally by exact prompt names
-4. Only if the first invoice write fails with a company-bank-account validation, repair that prerequisite
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - if the invoice account bank number is missing, update that existing invoice account with `PUT /ledger/account/{id}`
-5. Create the order with embedded lines
+4. Create the order with embedded lines
    - `POST /order`
    - send `customer`, `orderDate`, `deliveryDate`
    - embed `orderLines` with `product: { id }`, `description`, `count`, and the requested unit price
-6. Convert the order into an invoice without sending it
+5. Convert the order into an invoice without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+6. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+   - retry `PUT /order/{id}/:invoice?...` on the same order
 7. Reuse the invoice write response
    - use `amountCurrencyOutstanding` first, otherwise `amountOutstanding`
    - use invoice totals/lines in that response as verification where available
@@ -87,6 +93,7 @@ Do not use for:
   8. `PUT /invoice/{id}/:payment?...`
 - Do not insert an automatic `GET /order/{id}` just because `POST /order` echoed empty `orderLines`
 - Do not insert an automatic `GET /ledger/account` before the first invoice write
+- If `PUT /order/{id}/:invoice` fails only because the company bank account number is missing, repair `/ledger/account` and retry the same order instead of creating a new one
 - If the invoice response already proves the charged lines/totals and outstanding amount, that later write response is often enough
 
 ## Order Payload Notes
@@ -163,6 +170,11 @@ Do not use for:
 
 ## Recovery Rule After Partial Success
 
+- If `POST /order` succeeded but `PUT /order/{id}/:invoice` failed only because the company bank account number is missing:
+  - do `GET /ledger/account?isBankAccount=true&fields=*`
+  - update the existing invoice bank account with `PUT /ledger/account/{id}`
+  - retry the same `PUT /order/{id}/:invoice?...`
+  - do not restart from `POST /order`
 - If `POST /order` and `PUT /order/{id}/:invoice` already succeeded but payment registration failed, do not start over with a new order
 - Locate the existing unpaid invoice with one decisive read such as:
   - `GET /invoice?customerId=<id>&invoiceDateFrom=<date>&invoiceDateTo=<next-date>&count=1000&fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))`
