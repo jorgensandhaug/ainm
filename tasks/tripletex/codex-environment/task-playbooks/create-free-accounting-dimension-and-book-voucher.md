@@ -32,6 +32,7 @@ Verified in persistent sandbox on 2026-03-20:
   - `postings.account.name: Kan ikke være null.`
 - the same number-only failure reproduced again with ordinary expense account `6590`
 - one decisive `GET /ledger/account?number=7000,1920&fields=*` resolved the safe account ids
+- that account lookup returns `account.number` as an integer in the response; local filters must compare numerically, not as strings
 - `POST /ledger/voucher` then succeeded with:
   - `voucherType=null`
   - a debit posting on `7000`
@@ -43,6 +44,7 @@ Verified in persistent sandbox on 2026-03-20:
   - linked posting field `freeAccountingDimension3={ "id": 15519 }`
   - voucher `608827949`
 - the successful voucher write response already proved the linked free-dimension value id and the booked amounts
+- the persistent sandbox later returned `422 Maximum of 3 accounting dimensions allowed` on `POST /ledger/accountingDimensionName` once all three free-dimension slots were occupied; that is a real account-state blocker, not a cue to add search/update/delete calls in a production create-only run
 
 ## Minimal Safe Flow
 
@@ -79,6 +81,7 @@ Verified in persistent sandbox on 2026-03-20:
 - do not spend a pre-read of existing dimensions in a scored create task
 - do not try `account.number` directly on voucher postings just to save the account lookup; that path was re-tested and failed, so there is no trusted four-call shortcut for this exact task shape
 - do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only and does not reduce the call count for this task shape
+- do not add a speculative `GET /ledger/accountingDimensionName` or `GET /ledger/accountingDimensionValue/search` in a fresh-account create task just to guard against local script bugs; the minimal production path is still five calls, and local filtering bugs should be fixed in code rather than repaired with extra Tripletex reads
 
 ## Winning Payload Shape
 
@@ -142,12 +145,14 @@ Replace the ids and amounts with the values resolved in the current account. The
 ## Validation Traps
 
 - do not send voucher posting accounts only as `account.number`; sandbox returned `422 postings.account.name: Kan ikke være null.`
+- do not compare `/ledger/account` response `account.number` as a string; Tripletex returns it as an integer, and a string comparison can trigger a false missing-account branch after a correct lookup
 - do not spend a speculative `GET /ledger/accountingDimensionName` in a pure create task; the create response already gives the needed `dimensionIndex`
 - do not assume the created free dimension will be slot `1`; persistent sandbox assigned slot `2` on re-verification
 - do not invent dimension-value `number` or `position` fields unless the prompt explicitly scores them
 - do not attach the dimension value to both voucher postings unless the prompt explicitly requires that
 - do not add `vatType` for the standard zero-VAT manual-voucher shape
 - do not append sandbox-only uniqueness suffixes that push `dimensionName` past `20` characters
+- if `POST /ledger/accountingDimensionName` fails with `422 Maximum of 3 accounting dimensions allowed`, stop and treat the run as blocked by account state unless the prompt explicitly requests a reuse/update path
 
 ## Verification Shape
 

@@ -338,6 +338,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard prerequisite note:
   - this is the canonical bank-account repair endpoint
   - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000`, `6590`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+  - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
 
 ## Ledger Accounting Dimension Name
 - `/ledger/accountingDimensionName`
@@ -355,6 +356,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create note:
   - `dimensionName` is validated at max length `20`
   - the create response can assign `dimensionIndex` `1`, `2`, or `3`; reuse that returned index instead of assuming `1`
+  - if all three free-dimension slots are already occupied, `POST /ledger/accountingDimensionName` can fail with `422` and validation message `Maximum of 3 accounting dimensions allowed`; for create-only tasks, treat that as blocked by account state
 
 ## Ledger Accounting Dimension Value
 - `/ledger/accountingDimensionValue`

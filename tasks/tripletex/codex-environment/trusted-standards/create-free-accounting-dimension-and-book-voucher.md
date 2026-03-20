@@ -77,6 +77,7 @@
 
 ## Known Recovery Branches
 - if `GET /ledger/account?number=<target-account>,1920&fields=*` does not return `1920`, do one fallback `GET /ledger/account?isBankAccount=true&fields=*` and choose the existing invoice or bank account from that result
+- `GET /ledger/account?number=<target-account>,1920&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally, or you can falsely conclude the target account is missing and burn extra recovery calls
 - if dimension creation fails because all three free dimensions are already in use, treat the run as blocked by account state rather than guessing an update or reuse flow
 - if dimension creation fails because the free-dimension feature is disabled, treat the run as blocked by missing module or feature state unless the prompt explicitly instructs an activation step
 
@@ -84,8 +85,10 @@
 - `/ledger/accountingDimensionName`, `/ledger/accountingDimensionValue`, `/ledger/account`, and `/ledger/voucher` verified in `./openapi.json`
 - persistent sandbox re-verified on 2026-03-20:
   - `POST /ledger/accountingDimensionName` returned `422` when `dimensionName` exceeded `20` characters
+  - the same endpoint also returned `422` with validation message `Maximum of 3 accounting dimensions allowed` when the persistent sandbox already had all three free-dimension slots occupied
   - `POST /ledger/accountingDimensionValue` succeeded with only `dimensionIndex`, `displayName`, `active`, and `showInVoucherRegistration`
   - `PUT /ledger/accountingDimensionValue/list` is batch update only, so it is not a lower-call shortcut for creating the requested values
   - `POST /ledger/voucher` with `account: { "number": "7000" }` and again with `account: { "number": "6590" }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
   - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=6590,1920&fields=*`
   - later same-day re-verification with dimension `KS154433946` assigned `dimensionIndex=3`, created values `Innkjøp` and `Logistikk`, and returned the linked value on `freeAccountingDimension3.id` in the successful voucher write response
+  - a same-day voucher-path re-verification on existing sandbox dimension value `15253` confirmed that `GET /ledger/account?number=7300,1920&fields=*` returns both account rows with integer `number` fields and that the next `POST /ledger/voucher` succeeded with the linked `freeAccountingDimension1.id`
