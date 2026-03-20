@@ -1,0 +1,8 @@
+{
+  "prompt": "The customer Windmill Ltd (org no. 859444598) has an outstanding invoice for 37550 NOK excluding VAT for \"Maintenance\". Register full payment on this invoice.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "REDACTED",
+    "session_token": "REDACTED"
+  }
+}
