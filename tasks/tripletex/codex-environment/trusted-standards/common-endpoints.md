@@ -209,7 +209,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - sometimes company bank-account repair through `/ledger/account/{id}`
 - Standard explicit-VAT note:
   - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
-  - in that case, the safe low-call path is customer read, product read, one filtered outgoing `vatType` read, invoice write, and one immediate invoice read only if exact line-level proof is still needed
+  - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
+  - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
+  - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
 - Standard direct-line VAT note:
   - for simple direct `orders[].orderLines[]` invoice writes without a product, do not omit line `vatType` just to save the `GET /ledger/vatType` call when the prompt implies a taxable service
   - persistent sandbox on 2026-03-20 accepted that lower-call write shape but created a no-VAT invoice (`amountCurrency == amountExcludingVatCurrency`)

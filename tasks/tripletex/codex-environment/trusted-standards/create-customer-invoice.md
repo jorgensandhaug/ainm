@@ -22,7 +22,7 @@
 2. resolve existing products only if prompt clearly references existing products
 3. if the prompt gives exact VAT rates and the resolved product read does not itself expose enough VAT detail, resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
 4. `POST /invoice?sendToCustomer=false`
-5. only if line-level proof is still needed and write response is sparse, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+5. only if the write response omits decisive totals or later logic truly needs readback-only line details, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
 6. stop
 
 ## Payload Rules
@@ -44,10 +44,12 @@
 - `value.invoiceNumber`
 - totals from invoice write response
 - sparse line objects still prove line count, not full line details
+- if the payload already fixed `product`, `description`, `count`, `unitPriceExcludingVatCurrency`, and explicit line `vatType`, and the write response returns decisive totals (`amountExcludingVatCurrency` / `amountCurrency`), that is enough to stop on a create-only task
 
 ## Verification
 - default verification is zero extra calls if invoice totals/existence are enough
-- use one immediate expanded `GET /invoice/{id}` only when exact scored line details still need proof
+- sparse `orderLines` alone are not a reason to fetch the invoice again when the payload already fixed the line data and the write response totals match the intended VAT mix
+- use one immediate expanded `GET /invoice/{id}` only when exact scored line details still need proof or the write response is too thin to prove the financial outcome
 
 ## Known Recovery Branches
 - if the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop; the run is blocked by unusable credentials, not by invoice-flow uncertainty
@@ -61,3 +63,4 @@
 - `/invoice`, `/ledger/account`, and related invoice family endpoints verified in `./openapi.json`
 - flow and bank-account repair proven in sandbox/playbooks
 - re-verified on 2026-03-20 in persistent sandbox that `GET /product?productNumber=...&fields=*` can return `vatType` only as a link object (`id`/`url`), so explicit-VAT prompts may still need one filtered outgoing `vatType` lookup before the invoice write
+- re-verified on 2026-03-20 in persistent sandbox that `POST /invoice?sendToCustomer=false` can return sparse `orderLines` while still returning decisive totals; when the create payload already fixes the scored line fields, that write response is enough for the minimal create-only path
