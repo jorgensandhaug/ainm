@@ -27,6 +27,10 @@ Do not use for:
   - the run succeeded, but it spent two extra product-resolution reads before a later `GET /product?count=1000&fields=*` settled the products
   - because the prompt already gave exact product names, the lower-call resolver for that exact shape should have been one decisive catalog read with local exact filtering by product `number` and/or exact product `name`, not `GET /product?productNumber=...` followed by `GET /product?ids=...`
   - the same run also hit the known missing-company-bank-account validation on the first invoice write, so the realistic minimal successful production path for that account state was seven API calls: `GET /customer` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType` -> `POST /invoice` -> conditional bank-account `GET` -> bank-account `PUT` -> single invoice retry
+- reflection on the production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=851635874`, product labels `(2934)`, `(8699)`, `(1355)`, names `Analyserapport`, `Datarådgivning`, `Nettverkstjeneste`, VAT `25%` / `15%` / `0%`) showed:
+  - correctness was fine, but the run lost the efficiency point because it used a speculative `GET /product?productNumber=2934&productNumber=8699&productNumber=1355&fields=*` before a later broader catalog read settled the products
+  - the script then aborted on that partial resolver result and restarted the whole flow, which duplicated the already-successful customer read; that control-flow mistake is exactly the kind of avoidable non-minimal behavior that should stay inside one in-script callback/fallback branch instead
+  - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=851635874&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
 - the original production run on 2026-03-20 succeeded with:
   - `GET /customer?organizationNumber=...&fields=*`
   - an initial `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` returned only a partial subset, so the script had to continue through the documented fallback chain instead of stopping
@@ -60,6 +64,11 @@ Do not use for:
   - after setup, the proof path itself was exactly four calls: `GET /customer?organizationNumber=925760838&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
   - the proof invoice succeeded with `amountExcludingVatCurrency=33950` and `amountCurrency=33950`
   - because that sandbox account still exposed only `0%` outgoing VAT, the analog proved the product-resolution and create-only-path lesson, but not the mixed `25%` / `15%` / `0%` VAT combination itself
+- persistent-sandbox follow-up on 2026-03-20 with a disposable analog for the `851635874` task shape proved the callback/fallback lesson directly:
+  - setup used an analog customer `organizationNumber=851635875` and exact-name products whose stored product numbers were intentionally different from prompt-like refs `2934`, `8699`, and `1355`
+  - after setup, the winning proof path itself was exactly four calls: `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+  - that proof invoice succeeded with `amountExcludingVatCurrency=53050` and `amountCurrency=53050`
+  - because the sandbox still exposed only `0%` outgoing VAT, this analog proved the product-resolution and single-script callback/fallback lesson, but not the exact mixed `25%` / `15%` / `0%` VAT combination itself
 
 ## Minimal Flow
 
@@ -76,6 +85,7 @@ Do not use for:
    - if the prompt also gives exact product names but the parenthetical refs are not guaranteed Tripletex lookup keys, start instead with one decisive `GET /product?count=1000&fields=*` and filter locally by exact product `number` and/or exact product `name`
    - only if the first resolver is ambiguous, truncated for the account, or the prompt lacks exact product names, continue to the next resolver
    - only if those earlier reads still do not uniquely resolve them, use one fallback `GET /product?ids=<ref>,<ref>&fields=*`
+   - do not let a partial first resolver terminate the script and force a full rerun; keep the broader catalog fallback in the same script/callback chain so the customer read is not duplicated
 4. If the prompt gives exact VAT rates, inspect how much VAT detail the product read actually returned
    - if each resolved product already proves the needed VAT safely, keep the fast path and skip `/ledger/vatType`
    - if the product read leaves `vatType` sparse as only `id`/`url`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
@@ -133,6 +143,7 @@ Do not use for:
   4. `POST /invoice?sendToCustomer=false`
   5. immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
 - if the catalog read is ambiguous or step 2 still does not uniquely settle the products, then use the documented numeric fallback chain before deciding the refs are unresolved
+- if a speculative first product resolver misses one line, do not restart from `GET /customer`; continue in the same script and reuse already-known ids/results
 - Do not insert an automatic `GET /ledger/account` before the first invoice write
 - Do not call `PUT /invoice/{id}/:send`
 - Do not add a delayed verification read in a separate later script/session if you already know you need line-level proof; do the one decisive `GET /invoice/{id}` immediately while the same token is still in use
@@ -245,6 +256,7 @@ then the practical repair path is:
 - Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
 - Do not replace a clear exact-product-number prompt with a broad catalog read; use `GET /product?productNumber=...` first and only broaden if that direct resolver is incomplete or ambiguous
 - Do not spend both numeric product resolver reads when the prompt already gives exact names and one decisive catalog read would settle the products
+- Do not let a partial product-resolver miss abort the script and trigger a second full run; the broader resolver belongs in the same in-script callback/fallback path
 - Do not postpone a needed verification read into a later separate script/session
 - Do not stop after a partial or ambiguous product resolver result; continue the documented fallback chain in the same script
 - Do not keep probing after a first-call `403 {"error":"Invalid or expired token"}`

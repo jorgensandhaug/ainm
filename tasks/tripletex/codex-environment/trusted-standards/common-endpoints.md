@@ -234,7 +234,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard explicit-VAT note:
   - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
   - when that same prompt also gives exact product names but the parenthetical numeric refs are not trustworthy search keys, the winning product read is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
+  - numeric refs that merely look like normal product numbers are still not enough to justify the speculative `productNumber=` query when the prompt already gives exact names; the 2026-03-20 `851635874` invoice reflection showed that one such speculative read was wasted before the later catalog fallback settled the products
   - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
+  - if a speculative first product resolver is used anyway and returns only a partial subset, the broader catalog fallback should happen in the same script/callback chain; do not restart the flow and duplicate the customer read
   - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
   - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
 - Standard direct-line VAT note:
