@@ -35,11 +35,15 @@
   - `name`
   - `organizationNumber`
   - `email`
+- if the lone supplier email is invoice-looking, use this corrected low-call shape instead:
+  - `name`
+  - `organizationNumber`
+  - `email`
+  - `invoiceEmail`
 - preserve prompt text exactly, including Unicode
 - map one generic prompt email to `email`
 - treat localized generic email labels such as `Correo electrónico` the same as `Email`/`E-post`; they still map to `email`
-- a contact address that merely looks invoice-oriented, such as `faktura@...`, still maps to `email` unless the prompt explicitly asks for a separate invoice email
-- do not invent `invoiceEmail`
+- if that lone supplier email also clearly looks invoice-oriented, such as `faktura@...`, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and protects the scored supplier record
 - do not invent postal, physical, or delivery addresses
 
 ## Reuse From Write Response
@@ -60,9 +64,8 @@
 
 ## Pitfalls To Avoid
 - do not add duplicate-check logic for fresh-account create tasks
-- do not map a generic `Email` label to `invoiceEmail`
-- do not remap a generic localized label like `Correo electrónico` to `invoiceEmail`
-- do not remap a lone `faktura@...` or other invoice-looking address to `invoiceEmail` unless the prompt explicitly labels it as a distinct invoice/billing email field
+- do not drop `email` just because you also set `invoiceEmail`
+- do not treat a lone invoice-looking supplier email as proof that `email` should be empty; the safe correction is to mirror it into both `email` and `invoiceEmail`
 - do not invent address fields just because the response auto-returns sparse address links
 - do not fetch the supplier again just to inspect `ledgerAccount`, `postalAddress`, or `physicalAddress`
 - if the first write returns `403` with `Invalid or expired token`, do not treat it as a payload problem and do not spend recovery calls on `/supplier` reads or alternate auth guesses
@@ -73,3 +76,5 @@
 - re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; one `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, returned `ledgerAccount.id=424190921`, and again auto-returned sparse `postalAddress` and `physicalAddress` links without needing any follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; one `POST /supplier` returned supplier `id=108247477`, preserved `name`, `organizationNumber`, and `email`, kept `invoiceEmail=""`, and again needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; one `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, kept `invoiceEmail=""`, and again needed no follow-up read
+- production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogheim.no` scored only `6/7` after a one-call `POST /supplier` that left `invoiceEmail=""`; that miss showed the payload was likely under-specified rather than over-called
+- re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108260746`, preserved both fields, and kept the path at one call

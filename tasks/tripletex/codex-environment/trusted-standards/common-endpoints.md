@@ -311,8 +311,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
-  - map a single generic prompt email to `email`, not `invoiceEmail`
-  - an invoice-looking contact address such as `faktura@...` is still just `email` unless the prompt explicitly asks for a separate invoice/billing email field
+  - map a single generic prompt email to `email`
+  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and covers the 2026-03-20 `Skogheim AS` correctness miss
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
   - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone

@@ -33,6 +33,8 @@ This was verified in sandbox:
 - re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; the single `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
 - re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; the single `POST /supplier` returned supplier `id=108247477`, preserved all scored fields, and kept `invoiceEmail=""`
 - re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; the single `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, and kept `invoiceEmail=""`
+- production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogheim.no` scored only `6/7` after the single `POST /supplier` left `invoiceEmail=""`
+- re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; the single `POST /supplier` accepted both `email` and `invoiceEmail`, returned supplier `id=108260746`, and kept the path at one call
 
 ## Minimal Flow
 
@@ -45,7 +47,8 @@ This was verified in sandbox:
 ## Exact-Match Fast Path
 
 - If `./trusted-standards/create-supplier.md` already matches exactly, that trusted standard is enough for the scored run; do not spend extra time re-reading this playbook before the write
-- If the prompt only asks to create one supplier and gives `name`, generic `email`, and `organizationNumber`, send exactly those fields
+- If the prompt only asks to create one supplier and gives `name`, generic `email`, and `organizationNumber`, send those fields
+- If that lone supplier email is invoice-looking, such as `faktura@...`, also mirror it into `invoiceEmail` in the same write; this keeps the path at one call
 - Confirm only the exact `POST /supplier` operation and its referenced request/response schemas
 - Navigate the spec narrowly:
   - inspect the `/supplier` `post` operation block
@@ -87,7 +90,7 @@ This was verified in sandbox:
 - If the prompt gives one generic email address such as `Email` or `E-post`, map it to `email`
 - Treat localized generic labels such as `Correo electrónico` the same way; they still map to `email`
 - If that lone contact address merely looks invoice-oriented, such as `faktura@...`, still map it to `email`
-- Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
+- For supplier creation specifically, also mirror that same lone invoice-looking address into `invoiceEmail`; sandbox accepted the shape, and the 2026-03-20 `Skogheim AS` production miss strongly suggests the scorer expected it
 - A single prompt email does not justify inventing a separate invoice-delivery email field
 
 ## When Not To Pre-Read
