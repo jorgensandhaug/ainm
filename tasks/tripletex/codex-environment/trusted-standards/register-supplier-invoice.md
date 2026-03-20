@@ -8,6 +8,7 @@
 ## Exact Match
 - register one supplier invoice as a ledger voucher
 - prompt gives one supplier, one invoice number, one amount, one expense account, and VAT context
+- prompt identifies the supplier by ordinary business fields such as `name` and `organizationNumber`, not by a known Tripletex supplier id
 - task is a standard supplier-invoice booking, not a broader accounting workflow
 
 ## Do Not Use This Standard If
@@ -16,13 +17,17 @@
 - prompt is missing the core accounting facts
 
 ## Standard Flow
-1. create or resolve supplier
+1. `POST /supplier`
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
 3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<date>&fields=*`
 4. `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
 5. `POST /ledger/voucher`
 6. verify from write response
 7. stop
+
+## Minimal-Call Claim
+- for the exact fresh-account task shape above, the canonical path is `5` API calls
+- `GET /supplier?organizationNumber=...` is not part of the trusted fast path and is a wasted call unless the prompt explicitly implies an existing-object lookup problem
 
 ## Payload Rules
 - prefer `POST /supplier` in fresh-account create-like tasks when supplier clearly does not exist yet
@@ -31,6 +36,7 @@
 - do not send `amountVat`
 - put supplier invoice number on the supplier posting `invoiceNumber`, not only on root voucher object
 - let Tripletex generate the VAT posting automatically
+- if the prompt omits both invoice date and due date, use the current run date for voucher `date` and supplier-posting `termOfPayment`
 
 ## Reuse From Write Response
 - supplier id

@@ -128,6 +128,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - none
 - Standard fast-path note:
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
+  - for the exact fresh-account supplier-invoice booking shape, prefer direct `POST /supplier` and do not spend a supplier search read first
 
 ## Travel Expense
 - `/travelExpense`
@@ -225,3 +226,4 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
+  - for the exact supplier-invoice ledger-voucher shape, the minimal verified create path is supplier write, expense-account read, incoming-VAT read, voucher-type read, then voucher write

@@ -16,6 +16,12 @@ Do not use for:
 ## Verified Findings
 
 Persistent-sandbox verification on 2026-03-20 showed:
+- the exact create-like path for a `21100` gross / `6300` expense / `25%` VAT supplier invoice succeeded end-to-end in `5` API calls with no follow-up verification read:
+  - `POST /supplier`
+  - `GET /ledger/account?number=6300&isApplicableForSupplierInvoice=true&fields=*`
+  - `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+  - `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
+  - `POST /ledger/voucher`
 - `POST /incomingInvoice` is not a safe default path for this task shape
   - a production attempt first failed with `422` because `orderLines[].externalId` was required
   - after fixing that field, the same endpoint failed with `403 You do not have permission to access this feature.`
@@ -59,8 +65,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `POST /ledger/voucher`
    - optional `GET /ledger/voucher/{id}`
 2. Resolve or create the supplier
-   - in a fresh-account create-like task where the prompt only gives one supplier identity and there is no evidence it already exists, prefer direct `POST /supplier`
-   - otherwise use one decisive `GET /supplier?organizationNumber=...&fields=*`
+   - in a fresh-account create-like task where the prompt only gives one supplier identity and there is no evidence it already exists, use direct `POST /supplier`
+   - treat `GET /supplier?organizationNumber=...&fields=*` as a fallback only when the prompt or prior run state already indicates an existing-supplier lookup problem
    - after `POST /supplier`, reuse `supplier.id` and `supplier.ledgerAccount.id` from the write response
 3. Resolve the expense account
    - usually `GET /ledger/account?number=<account-number>&isApplicableForSupplierInvoice=true&fields=*`
@@ -75,6 +81,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `POST /ledger/voucher`
    - use one expense posting and one supplier liability posting
    - do not send `amountVat`
+   - if the prompt omits both invoice date and due date, use the run date for both voucher `date` and supplier posting `termOfPayment`
 7. Verify from the write response first
    - reuse `voucherType.id`
    - verify posting count
@@ -154,12 +161,13 @@ In real tasks, replace the IDs with the values resolved in the current account. 
   - one gross amount
   - one expense account number
   - one explicit VAT percentage
-- the winning flow is usually:
+- the winning flow is minimal-call for this create-like shape:
   1. `POST /supplier`
   2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
   3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`
   4. `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
   5. `POST /ledger/voucher`
+- do not add `GET /supplier?...` ahead of that sequence unless the prompt explicitly indicates an existing-supplier lookup problem
 - stop from the write response if it already proves the scored fields by ids and amounts
 - do not spend an automatic verification `GET` unless the response is unexpectedly sparse
 
