@@ -128,6 +128,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `startDate`
 - Standard fast-path note:
   - for the exact create-one-project shape with an existing customer identified by `organizationNumber` and an existing manager identified by `email`, the winning path is usually `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`
+  - 2026-03-20 production re-confirmed that the same 3-call path is still minimal for a Portuguese prompt that omitted `startDate`; using the run date in the write payload succeeded directly
   - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
   - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
@@ -136,6 +137,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - when that expanded project search already leaves one exact `project.name` plus nested `customer.organizationNumber` and/or `customer.name` match, do not add a separate `GET /customer`
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
+  - in that exact create-project shape, do not add `GET /customer/{id}` or `GET /employee/{id}` after the filtered resolver reads; the search responses plus the project write response already prove the scored linkage
 
 ## Activity
 - `/activity`
@@ -269,6 +271,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
   - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
   - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
+  - persistent sandbox proof on 2026-03-20 showed that a freshly created paid invoice could be readable on `GET /invoice/{id}` before it appeared in the broader `/invoice?...count=1000...` search; treat that as sandbox proof noise rather than a production reason to add extra resolver calls to exact-match invoice-reversal tasks
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
   - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
