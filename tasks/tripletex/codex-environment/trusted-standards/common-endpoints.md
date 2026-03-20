@@ -355,6 +355,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
   - for ordinary supplier-invoice tasks phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`; if that lookup returns one exact hit, reuse it and do not create a duplicate supplier
   - the supplier-invoice trusted path now assumes the target supplier may already exist even when the rest of the account looks fresh; only use direct `POST /supplier` inside that workflow when the lookup returns zero hits or the prompt explicitly says the supplier must be created first
+  - same-day persistent-sandbox re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` gross / `6300` / `25%` still took the lookup-first branch and then the one-call supplier-create repair after zero hits; do not skip the initial lookup just because the prompt does not explicitly say `existing supplier`
   - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
@@ -488,5 +489,6 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
   - for the exact supplier-invoice shape that scores a real supplier invoice, the trusted path is supplier lookup, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
   - if that same supplier-invoice shape truly has no existing supplier, the create branch is one extra call: supplier lookup, supplier write, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
+  - the 2026-03-20 persistent-sandbox re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` / `6300` / `25%` confirmed that zero-hit branch at `6` calls and again showed no default verification read is needed after the final voucher write
   - in that supplier-invoice shape, if the incoming-VAT read returns several rows with the requested percentage, prefer the plain numeric base code over derived rows such as `TAP-1`, and do that selection locally without restarting the workflow
   - for the imported-voucher update branch, send only `version` and `postings`; imported header fields such as `description` and `vendorInvoiceNumber` are not safely mutable afterwards
