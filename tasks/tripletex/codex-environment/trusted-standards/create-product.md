@@ -8,7 +8,9 @@
 ## Exact Match
 - create one new product
 - prompt directly gives name and price
+- prompt directly gives the product number when one is required
 - product is a standard outgoing-sales product
+- localized excluding-VAT wording such as Portuguese `sem IVA` still clearly maps to the excluding-VAT price field
 - task does not require advanced product setup
 
 ## Do Not Use This Standard If
@@ -63,5 +65,7 @@
 - VAT selection rule proven in sandbox/playbooks
 - scoring feedback on 2026-03-20 confirmed that the exact `Stockage cloud` `25%` product-create task lost efficiency when it spent a filtered `OUTGOING` VAT read before `POST /product`; the lower-call winning path for that exact fresh-account shape is one `POST /product`
 - fresh-account production verification on 2026-03-20 for `Softwarelizenz` / `7986` / `24900` excluding VAT confirmed that the one-call path still returns the correct `25%` outcome directly from the write response (`priceIncludingVatCurrency=31125`, `vatType.id=3`)
+- fresh-account production verification on 2026-03-20 for the Portuguese prompt `Sessão de formação` / `6378` / `37050` `sem IVA` / standard `25%` also succeeded with one `POST /product`, returning `priceIncludingVatCurrency=46312.5` and `vatType.id=3`
 - persistent-sandbox verification on 2026-03-20 showed that `POST /product` without `vatType` auto-filled `0%` VAT code `6`, so the one-call shortcut is account-dependent and must stay scoped to the exact fresh-account standard-`25%` shape
 - persistent-sandbox re-verification on 2026-03-20 still exposed only `0%` on the filtered `OUTGOING` VAT read, and the omitted-`vatType` create still produced `priceIncludingVatCurrency == priceExcludingVatCurrency`; that account remains blocked for explicit `25%` VAT resolution
+- persistent-sandbox re-verification later on 2026-03-20 with the same `37050` price and Portuguese naming still returned only `OUTGOING` VAT row `id=6` / `0%`, and the omitted-`vatType` create again auto-filled `vatType.id=6` with `priceIncludingVatCurrency=37050`
