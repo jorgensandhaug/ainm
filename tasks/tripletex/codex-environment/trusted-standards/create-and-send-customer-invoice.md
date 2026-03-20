@@ -42,6 +42,7 @@
   - `orders[].orderLines`
 - create lines under `orders[].orderLines`, not `invoice.orderLines`
 - do not hardcode output VAT code `3`
+- do not omit direct-line `vatType` just to save the VAT lookup when the prompt implies a normal taxable service; a successful write can still create a no-VAT invoice
 - if creating the customer with no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` and let the invoice create do the send attempt
 
 ## Reuse From Write Response
@@ -65,6 +66,7 @@
 - do not branch into `PUT /invoice/{id}/:send?sendType=MANUAL` as the default path; sandbox reproduced `500` on 2026-03-20 while the same task shape succeeded through `POST /invoice` with default send behavior
 - do not assume sparse `postalAddress` or `physicalAddress` links on the customer prove that `PAPER` send is available; sandbox returned `422 Faktura kan ikke sendes via PAPER`
 - do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
+- do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
 
 ## OpenAPI / Sandbox Status
 - `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -73,3 +75,7 @@
   - `POST /invoice` with default `sendToCustomer=true` succeeded for the same customer
   - explicit later `PUT /invoice/{id}/:send?sendType=MANUAL` reproduced `500`
   - explicit later `PUT /invoice/{id}/:send?sendType=PAPER` reproduced `422`
+- VAT handling re-verified in persistent sandbox on 2026-03-20 for the same one-line service invoice shape:
+  - `POST /invoice` without line `vatType` succeeded but created a no-VAT invoice (`amountExcludingVatCurrency=28500`, `amountCurrency=28500`)
+  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+  - hardcoded line `vatType.id=3` failed with `422 ... Ugyldig mva-kode.`

@@ -74,6 +74,18 @@ This was re-verified in sandbox on 2026-03-19:
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-19&fields=*` returned only VAT code `6`
 - invoice creation succeeded after using the dynamically resolved VAT type from that filtered result
 
+## Key Finding: Omitting Line VAT Is A Fake Optimization
+
+Do not try to save the `GET /ledger/vatType` call for a simple direct service line by omitting `orderLines[].vatType`.
+
+Persistent sandbox re-verification on 2026-03-20 showed:
+- `POST /invoice` without line `vatType` still succeeded
+- the resulting invoice had `amountExcludingVatCurrency=28500` and `amountCurrency=28500`
+- in that sandbox account, the filtered outgoing VAT result for the same date only exposed VAT code `6` (`0%`)
+- hardcoding `vatType.id = 3` still failed with `422 ... Ugyldig mva-kode.`
+
+So the lower-call omission path can silently create a no-VAT invoice instead of the intended taxable-service invoice. For this task shape, the dynamic filtered VAT lookup remains the minimum safe path.
+
 ## Important Constraints
 
 - Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
@@ -93,6 +105,7 @@ This was re-verified in sandbox on 2026-03-19:
 2. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
    - use a VAT type that actually exists in that filtered response
+   - do not omit direct-line `vatType` just because the write may still succeed; that can silently produce a no-VAT invoice
 3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
    - include required dates
    - include `orders`
@@ -158,3 +171,4 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - Do not assume `PUT /invoice/{id}/:send?sendType=MANUAL` is the safe fallback for customers created without email/address; persistent sandbox reproduced `500` on 2026-03-20
 - Do not assume sparse customer address links mean `PAPER` send is available; persistent sandbox reproduced `422 Faktura kan ikke sendes via PAPER`
 - Do not assume organization number alone makes EHF available; the production run for this task shape reproduced `422 Faktura kan ikke sendes via EHF`
+- Do not assume a successful direct-line invoice write without explicit `vatType` means the VAT is correct; persistent sandbox on 2026-03-20 accepted that shape and produced a no-VAT invoice (`28500` total on a `28500` ex-VAT line)
