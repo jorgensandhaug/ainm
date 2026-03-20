@@ -37,16 +37,23 @@ Fresh-account production verification on 2026-03-20 showed:
 - therefore even exact 0% product tasks can map to different valid VAT ids across accounts (`5` in that fresh account, `6` in the persistent sandbox)
 - do not search for a book-specific VAT endpoint or hardcode the sandbox's `0%` code; the safe path is still to pick the matching `0%` row from the filtered `OUTGOING` result in the current account
 
+Fresh-account production verification on 2026-03-20 also showed:
+- an exact create-product prompt for `Stockage cloud`, product number `8912`, `26850 NOK` excluding VAT, and standard `25%` VAT succeeded with exactly two API calls
+- the winning path was `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, pick the `25%` row `id=3`, then `POST /product`
+- the `201` write response already proved the created `id`, `name`, `number`, `priceExcludingVatCurrency`, computed `priceIncludingVatCurrency`, and `vatType.id`
+- therefore this exact task shape does not need `GET /product`, `GET /product/{id}`, or an `openapi.json` re-check once the trusted standard already matches
+
 ## Minimal Safe Flow
 
-1. Confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
-2. Resolve the product VAT code with one decisive read:
+1. If the task is an exact trusted-standard match, skip `./openapi.json` re-checking and start with the VAT read below
+2. Otherwise confirm `GET /ledger/vatType` and `POST /product` in `./openapi.json`
+3. Resolve the product VAT code with one decisive read:
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<task-date-or-today>&fields=*`
-3. From that filtered result, select the VAT type that matches the requested percentage
+4. From that filtered result, select the VAT type that matches the requested percentage
    - if no matching percentage exists there, stop and treat the task as blocked in that account
-4. `POST /product` with only the requested fields plus `vatType: { "id": ... }`
-5. Verify directly from `response.value`
-6. Stop
+5. `POST /product` with only the requested fields plus `vatType: { "id": ... }`
+6. Verify directly from `response.value`
+7. Stop
 
 ## Exact-Match Fast Path
 
@@ -54,6 +61,7 @@ Fresh-account production verification on 2026-03-20 showed:
   1. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<today>&fields=*`
   2. pick the returned `25%` sales VAT code, typically `number="3"` when present
   3. `POST /product`
+- for an exact trusted-standard match, that is the full path; do not spend an extra `openapi.json` check before those two API calls
 - Do not add a pre-read on `/product` for a pure create task
 - Do not fetch the product again if the `201` body already proves the scored fields
 

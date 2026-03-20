@@ -98,6 +98,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create prerequisite:
   - resolve valid outgoing `vatType`
   - if the prompt requires an exact VAT percentage and that percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+- Standard create fast-path note:
+  - for the exact create-one-product shape with prompt-provided `name`, `number`, one exact price field, and one exact VAT percentage, the canonical path is one filtered outgoing VAT read followed by one `POST /product`
+  - do not re-check `./openapi.json` for that exact trusted-standard match
+  - do not add `GET /product` pre-reads or `GET /product/{id}` verification reads when the `POST /product` response already proves the scored fields
 - Standard create note:
   - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; do not use that as the trusted fast path when the prompt scores exact VAT
   - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
