@@ -163,6 +163,37 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard prerequisite note:
   - this is the canonical bank-account repair endpoint
+  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000` and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+
+## Ledger Accounting Dimension Name
+- `/ledger/accountingDimensionName`
+  - `GET` list
+  - `POST` create
+- `/ledger/accountingDimensionName/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/ledger/accountingDimensionName/search`
+  - `GET` search
+- Standard create prerequisites:
+  - free-dimension feature enabled
+  - at least one free-dimension slot available
+
+## Ledger Accounting Dimension Value
+- `/ledger/accountingDimensionValue`
+  - `POST` create
+- `/ledger/accountingDimensionValue/{id}`
+  - `GET` read
+  - `DELETE` delete
+- `/ledger/accountingDimensionValue/list`
+  - `PUT` batch update
+- `/ledger/accountingDimensionValue/search`
+  - `GET` search
+- Standard create prerequisite:
+  - `dimensionIndex` from the dimension-name create or read flow
+- Standard create note:
+  - the proven minimal create payload can omit `number` and `position`
+  - set `showInVoucherRegistration=true` when the next step is voucher registration
 
 ## Ledger Posting
 - `/ledger/posting`
@@ -180,5 +211,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` reverse
 - Standard correction note:
   - prefer reverse over ad hoc mutation when task allows
+- Standard create note:
+  - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
+  - number-only account refs on voucher postings are not the trusted fast path
+  - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields

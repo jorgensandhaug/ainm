@@ -91,6 +91,7 @@ Authentication:
 | Create product | `./trusted-standards/create-product.md` |
 | Create project | `./trusted-standards/create-project.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
+| Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
@@ -114,6 +115,7 @@ Authentication:
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
 | Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
@@ -133,6 +135,8 @@ Authentication:
 - `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
 - `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` — travel-expense create/search/update/delete plus child-line and lookup endpoints
 - `/ledger/account` and `/ledger/account/{id}` — chart-of-accounts search/create/update/delete
+- `/ledger/accountingDimensionName`, `/ledger/accountingDimensionName/{id}`, and `/ledger/accountingDimensionName/search` — free-dimension name create/search/read/update/delete
+- `/ledger/accountingDimensionValue`, `/ledger/accountingDimensionValue/{id}`, `/ledger/accountingDimensionValue/list`, and `/ledger/accountingDimensionValue/search` — free-dimension value create/search/read/update/delete/batch-update
 - `/ledger/posting` — ledger postings search/read
 - `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
 
@@ -248,6 +252,9 @@ Authentication:
 - For `POST /ledger/voucher`, do not send `amountVat` even though nearby schemas/documentation mention it; sandbox mapping rejected that field on 2026-03-20. Send `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` and let Tripletex generate the VAT posting.
 - In that supplier-voucher flow, place the vendor invoice number on the supplier liability posting as `invoiceNumber`; sending root-level `voucher.vendorInvoiceNumber` did not persist it in sandbox verification.
 - `POST /ledger/voucher` can return supplier-invoice postings with enough ids and amounts to prove the fast path, while linked human-readable fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber` stay sparse. Verify the write response by ids plus amounts first; only spend `GET /ledger/voucher/{id}?fields=*` when the scored task specifically needs expanded linked fields.
+- Free accounting dimension create tasks can use `POST /ledger/accountingDimensionName` followed by one `POST /ledger/accountingDimensionValue` per value. Persistent sandbox verification on 2026-03-20 showed that `AccountingDimensionValue.number` and `position` can be omitted; Tripletex accepted the minimal payload and auto-assigned ordering.
+- For manual voucher tasks, do not assume `account: { "number": "7000" }` is enough on `POST /ledger/voucher`; persistent sandbox returned `422 postings.account.name: Kan ikke være null.` on 2026-03-20. Resolve voucher account ids with one decisive `GET /ledger/account?number=...&fields=*` and use `account: { "id": ... }`.
+- For manual vouchers that only score one target ledger-account posting and do not specify the balancing account, a simple two-line voucher against existing bank account `1920` succeeded in persistent sandbox on 2026-03-20.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.
 
