@@ -12,6 +12,7 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
+from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -49,6 +50,9 @@ class RoundPredictorAdapter(BaseModel):
             belief.round_context,
             belief.observations,
         )
+        build_from_context = getattr(self.predictor, "build_prediction_bundle_from_context", None)
+        if callable(build_from_context):
+            return build_from_context(inference_context)
         round_detail = belief.round_context.to_round_detail()
         return self.predictor.build_prediction_bundle(
             round_detail,
@@ -62,6 +66,7 @@ def build_online_predictor(
     *,
     paths: WorkspacePaths | None = None,
     historical_round_ids: Sequence[str] | None = None,
+    policy_name: str | None = None,
 ) -> RoundPredictorAdapter:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":
@@ -95,6 +100,32 @@ def build_online_predictor(
         return RoundPredictorAdapter(
             predictor=latent_predictor,
             name=latent_predictor.name,
+        )
+    if normalized == "query_residual":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        if historical_round_ids is not None:
+            predictor = QueryResidualPredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                f"query_residual_v5__policy={resolved_policy_name}",
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = QueryResidualPredictor.fit_from_workspace(
+                    workspace_paths,
+                    policy_name=resolved_policy_name,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
         )
     msg = f"unsupported online predictor: {model_name}"
     raise ValueError(msg)

@@ -110,10 +110,17 @@ def compare_historical_benchmark_artifacts(
 ) -> HistoricalBenchmarkComparison:
     baseline = load_historical_benchmark_result(baseline_path)
     candidate = load_historical_benchmark_result(candidate_path)
+    same_model_names = baseline.model_name == candidate.model_name
+    run_suffix = (
+        f"__baseline_run={baseline.benchmark_name}__candidate_run={candidate.benchmark_name}"
+        if same_model_names
+        else ""
+    )
     comparison_name = (
         f"historical__mode={candidate.mode}"
         f"{'' if candidate.policy_name is None else f'__policy={candidate.policy_name}__budget={candidate.budget}__episode_seed={candidate.episode_seed}'}"
         f"__baseline={baseline.model_name}__candidate={candidate.model_name}"
+        f"{run_suffix}"
     )
     artifact_path = paths.comparison_result_path(comparison_name)
     result = compare_historical_benchmarks(

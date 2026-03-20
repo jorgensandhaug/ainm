@@ -20,6 +20,7 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
+from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -215,6 +216,19 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
+    if normalized == "query_residual":
+        predictor = QueryResidualPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -246,6 +260,7 @@ def _build_online_prediction_bundle(
         model_name,
         paths=paths,
         historical_round_ids=training_round_ids,
+        policy_name=policy_name,
     )
     policy = build_interactive_policy(policy_name)
     online_episode: OnlineEpisodeRun = run_online_episode(

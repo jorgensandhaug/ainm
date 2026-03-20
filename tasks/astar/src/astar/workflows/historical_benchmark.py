@@ -104,11 +104,24 @@ def run_historical_benchmark(
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
+    if mode == "online_interactive":
+        missing_replays = [
+            round_id
+            for round_id in selected_round_ids
+            if not paths.raw_dir.joinpath("replays", round_id).is_dir()
+        ]
+        if missing_replays:
+            raise ValueError(
+                "online_interactive historical benchmark requires replay-backed rounds; "
+                f"missing replay dirs for: {', '.join(missing_replays)}",
+            )
     if model_name.strip().lower() == "historical_bucket_prior" and len(selected_round_ids) < 2:
         raise ValueError(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
+    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
+        raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":

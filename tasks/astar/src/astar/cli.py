@@ -205,6 +205,7 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "query_residual",
         ],
         required=True,
     )
@@ -242,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -254,7 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -269,7 +270,13 @@ def build_parser() -> argparse.ArgumentParser:
     historical_benchmark_parser = subparsers.add_parser("run-historical-benchmark")
     historical_benchmark_parser.add_argument(
         "--model",
-        choices=["static_semantic", "geometry_prior", "historical_bucket_prior", "latent_regime"],
+        choices=[
+            "static_semantic",
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "query_residual",
+        ],
         required=True,
     )
     historical_benchmark_parser.add_argument(
@@ -294,10 +301,10 @@ def build_parser() -> argparse.ArgumentParser:
     compare_historical_parser.add_argument("--bootstrap-samples", type=int, default=500)
 
     live_online_parser = subparsers.add_parser("run-live-online")
-    live_online_parser.add_argument("--round-id", default=None)
+    live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")
@@ -306,6 +313,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=50,
         help="new live queries to spend this run; use 0 to load saved local raw queries only",
+    )
+    live_online_parser.add_argument(
+        "--allow-empty-queries",
+        action="store_true",
+        help="allow --budget 0 even with no saved raw queries; predicts from prior only",
     )
     live_online_parser.add_argument(
         "--submit-predictions",
@@ -562,7 +574,7 @@ def _main() -> int:
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=build_online_predictor(args.model, paths=paths),
+            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             episode_seed=args.episode_seed,
@@ -577,7 +589,7 @@ def _main() -> int:
     if args.command == "run-synthetic-benchmark":
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=build_online_predictor(args.model, paths=paths),
+            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
             policy=build_interactive_policy(args.policy),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
@@ -677,9 +689,10 @@ def _main() -> int:
             paths,
             client,
             round_id=round_id,
-            predictor=build_online_predictor(args.model, paths=paths),
+            predictor=build_online_predictor(args.model, paths=paths, policy_name=args.policy),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
+            allow_empty_queries=args.allow_empty_queries,
             submit_predictions=args.submit_predictions,
         )
         _emit(args.json, live_online_result, render_live_online_run(live_online_result))

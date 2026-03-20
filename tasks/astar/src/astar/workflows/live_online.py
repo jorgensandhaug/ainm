@@ -98,6 +98,7 @@ def run_live_online_round(
     predictor: OnlinePredictor,
     policy: InteractiveQueryPolicy,
     budget: int = 50,
+    allow_empty_queries: bool = False,
     submit_predictions: bool = True,
 ) -> LiveOnlineRunResult:
     if budget < 0:
@@ -105,10 +106,10 @@ def run_live_online_round(
 
     saved_observations = _build_live_observations_from_saved_queries(paths, round_id)
     if budget == 0:
-        if not saved_observations:
+        if not saved_observations and not allow_empty_queries:
             msg = (
                 f"budget=0 requested for round {round_id}, but no saved local raw queries exist; "
-                "run with a positive --budget first"
+                "re-run with --allow-empty-queries to predict from prior only"
             )
             raise ValueError(msg)
     elif saved_observations:

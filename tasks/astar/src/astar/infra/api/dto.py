@@ -80,7 +80,7 @@ class RoundDetail(StrictModel):
 
 
 class BudgetStatus(StrictModel):
-    round_id: str
+    round_id: str | None = None
     queries_used: int = Field(ge=0)
     queries_max: int = Field(ge=0)
     active: bool

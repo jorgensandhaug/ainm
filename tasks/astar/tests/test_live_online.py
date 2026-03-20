@@ -138,6 +138,34 @@ def test_run_live_online_round_budget_zero_uses_saved_queries(
     assert sample_paths.prediction_tensor_path(ROUND_ID, 0).exists()
 
 
+def test_run_live_online_round_budget_zero_allows_prior_only_without_saved_queries(
+    tmp_path: Path,
+    repo_root: Path,
+) -> None:
+    paths = _paths_with_round_only(tmp_path, repo_root)
+    client, calls = _make_stub_client(
+        read_round_record(paths, ROUND_ID).round,
+        budget_error=AssertionError("get_budget should not be called for budget=0 prior-only"),
+    )
+
+    result = run_live_online_round(
+        paths,
+        client,
+        round_id=ROUND_ID,
+        predictor=UniformOnlinePredictor(),
+        policy=NoQueryPolicy(),
+        budget=0,
+        allow_empty_queries=True,
+        submit_predictions=False,
+    )
+
+    assert result.loaded_queries == 0
+    assert result.executed_queries == 0
+    assert calls["get_budget"] == 0
+    assert calls["simulate"] == 0
+    assert paths.prediction_tensor_path(ROUND_ID, 0).exists()
+
+
 def test_run_live_online_round_fails_before_queries_when_budget_exceeds_remaining(
     tmp_path: Path,
     repo_root: Path,
@@ -161,6 +189,36 @@ def test_run_live_online_round_fails_before_queries_when_budget_exceeds_remainin
             predictor=UniformOnlinePredictor(),
             policy=NoQueryPolicy(),
             budget=10,
+            submit_predictions=False,
+        )
+
+    assert calls["get_budget"] == 1
+    assert calls["simulate"] == 0
+
+
+def test_run_live_online_round_fails_cleanly_when_no_active_live_budget(
+    tmp_path: Path,
+    repo_root: Path,
+) -> None:
+    paths = _paths_with_round_only(tmp_path, repo_root)
+    client, calls = _make_stub_client(
+        read_round_record(paths, ROUND_ID).round,
+        budget_status=BudgetStatus(
+            round_id=None,
+            queries_used=0,
+            queries_max=50,
+            active=False,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="is not the active round for live querying"):
+        run_live_online_round(
+            paths,
+            client,
+            round_id=ROUND_ID,
+            predictor=UniformOnlinePredictor(),
+            policy=NoQueryPolicy(),
+            budget=1,
             submit_predictions=False,
         )
 
