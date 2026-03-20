@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "prompt": "Opprett produktet \"Avis\" med produktnummer 2061. Prisen er 4150 kr eksklusiv MVA, og MVA-sats p\u00e5 0 % for aviser skal nyttast.",
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

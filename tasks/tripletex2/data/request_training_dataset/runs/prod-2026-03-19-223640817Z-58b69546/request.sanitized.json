@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "prompt": "Nous avons un nouvel employ\u00e9 nomm\u00e9 Nathan Moreau, n\u00e9 le 17. April 1981. Veuillez le cr\u00e9er en tant qu'employ\u00e9 avec l'e-mail nathan.moreau@example.org et la date de d\u00e9but 6. January 2026.",
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

@@ -1,7 +1,0 @@
-Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.
-
-Tripletex API base URL:
-https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
-
-Tripletex session token:
-REDACTED

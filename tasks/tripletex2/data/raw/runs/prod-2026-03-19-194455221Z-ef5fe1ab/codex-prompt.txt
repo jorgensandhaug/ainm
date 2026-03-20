@@ -1,7 +1,0 @@
-Crie o projeto "Integração Porto" vinculado ao cliente Porto Alegre Lda (org. nº 872798277). O gerente de projeto é André Oliveira (andre.oliveira@example.org).
-
-Tripletex API base URL:
-https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
-
-Tripletex session token:
-REDACTED

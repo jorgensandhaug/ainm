@@ -1,8 +1,0 @@
-{
-  "prompt": "Opprett kunden Fjordkraft AS med organisasjonsnummer 974938901. Adressen er Sjøgata 51, 9008 Tromsø. E-post: post@fjordkraft.no.",
-  "files": [],
-  "tripletex_credentials": {
-    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
-    "session_token": "REDACTED"
-  }
-}

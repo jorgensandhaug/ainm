@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "prompt": "Crea un pedido para el cliente Viento SL (org. n\u00ba 924480505) con los productos Sesi\u00f3n de formaci\u00f3n (8488) a 5700 NOK y Horas de consultor\u00eda (3787) a 14750 NOK. Convierte el pedido en factura y registra el pago completo.",
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

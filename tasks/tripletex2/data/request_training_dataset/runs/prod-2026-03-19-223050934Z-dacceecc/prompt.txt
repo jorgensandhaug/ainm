@@ -1,1 +1,0 @@
-Opprett produktet "Konsulenttimar" med produktnummer 3923. Prisen er 26400 kr eksklusiv MVA, og standard MVA-sats på 25 % skal nyttast.

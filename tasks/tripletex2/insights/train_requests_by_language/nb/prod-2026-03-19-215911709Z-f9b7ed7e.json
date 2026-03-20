@@ -1,0 +1,8 @@
+{
+  "prompt": "Vi har en ny ansatt som heter Astrid Johansen, født 10. June 1989. Opprett vedkommende som ansatt med e-post astrid.johansen@example.org og startdato 25. October 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "REDACTED",
+    "session_token": "REDACTED"
+  }
+}

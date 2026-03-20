@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "prompt": "Crie tr\u00eas departamentos no Tripletex: \"\u00d8konomi\", \"Innkj\u00f8p\" e \"Regnskap\".",
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

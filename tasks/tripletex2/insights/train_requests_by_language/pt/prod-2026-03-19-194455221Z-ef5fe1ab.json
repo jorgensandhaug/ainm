@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie o projeto \"Integração Porto\" vinculado ao cliente Porto Alegre Lda (org. nº 872798277). O gerente de projeto é André Oliveira (andre.oliveira@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "REDACTED",
+    "session_token": "REDACTED"
+  }
+}

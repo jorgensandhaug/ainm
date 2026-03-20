@@ -1,8 +1,0 @@
-{
-  "prompt": "Crea y envía una factura al cliente Solmar SL (org. nº 967736430) por 11700 NOK sin IVA. La factura es por Informe de análisis.",
-  "files": [],
-  "tripletex_credentials": {
-    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
-    "session_token": "REDACTED"
-  }
-}

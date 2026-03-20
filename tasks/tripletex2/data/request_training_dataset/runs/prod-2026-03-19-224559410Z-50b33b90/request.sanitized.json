@@ -1,8 +1,0 @@
-{
-  "files": [],
-  "prompt": "Kunden Polaris AS (org.nr 896571559) har en utest\u00e5ende faktura p\u00e5 15200 kr eksklusiv MVA for \"Datar\u00e5dgivning\". Registrer full betaling p\u00e5 denne fakturaen.",
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}
