@@ -27,6 +27,8 @@ Production and sandbox re-verification on 2026-03-20 showed:
 - one sandbox `POST /department/list` with `Lager`, `Økonomi`, and `Drift`-shaped names returned the same names in `values[]`
 - an exact Norwegian prompt asking for `HR`, `Salg`, and `Økonomi` was the same exact-match flow
 - the production run and same-day persistent-sandbox re-proof both stayed on the one-call floor: `POST /department/list` only
+- an exact Norwegian prompt asking for `Lager`, `Regnskap`, and `Kvalitetskontroll` was the same exact-match flow
+- one same-day persistent-sandbox `POST /department/list` with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created names in `values[]` while top-level `fullResultSize` stayed `0`
 
 ## Minimal Safe Flow
 

@@ -50,6 +50,8 @@
 - sandbox-proven for one-call single and one-call batch create
 - sandbox re-verified on 2026-03-20: batch create returned correct `values[]` with `fullResultSize=0`
 - sandbox re-verified on 2026-03-20 with `Lager`, `Økonomi`, `Drift`-shaped names: one `POST /department/list` preserved the exact Unicode names in `values[]`
+- sandbox re-verified on 2026-03-20 with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2`: one `POST /department/list` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
 - production re-confirmed on 2026-03-20 with a German three-department prompt: one `POST /department/list` created all requested departments with no prerequisite reads
 - production re-confirmed on 2026-03-20 with a Spanish three-department prompt for `Lager`, `Økonomi`, and `Drift`: one `POST /department/list` created all requested departments with no prerequisite reads
 - production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `HR`, `Salg`, and `Økonomi`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
+- production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `Lager`, `Regnskap`, and `Kvalitetskontroll`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`

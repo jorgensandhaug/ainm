@@ -34,6 +34,7 @@ Verified in persistent sandbox on 2026-03-20:
 - the same number-only failure reproduced again with ordinary expense account `6860`
 - the same number-only failure reproduced again with ordinary expense account `6300`
 - the same number-only failure reproduced again with ordinary expense account `7300`
+- the same number-only failure reproduced again with ordinary expense account `6340`
 - one decisive `GET /ledger/account?number=7000,1920&fields=*` resolved the safe account ids
 - that account lookup returns `account.number` as an integer in the response; local filters must compare numerically, not as strings
 - `POST /ledger/voucher` then succeeded with:
@@ -51,6 +52,8 @@ Verified in persistent sandbox on 2026-03-20:
 - a same-day persistent-sandbox re-proof for account `6300` had to reuse an existing dimension value only because all three sandbox free-dimension slots were already occupied; the number-only voucher shortcut still failed with `422 postings.account.name: Kan ikke være null.`, and the next id-based voucher write succeeded with voucher `608864963`
 - the later 2026-03-20 production run for exact prompt `Marked` / `Offentlig` / `Privat` / `7300` / `37250` also succeeded on the first attempt with the same five-call path and linked the voucher posting to the newly created `Privat` value
 - a later same-day persistent-sandbox re-proof for account `7300` also found the sandbox already full on free dimensions, reused existing value `15253` only for voucher-path verification, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only shortcut, then succeeded immediately after `GET /ledger/account?number=7300,1920&fields=*` with voucher `608867443`
+- the later 2026-03-20 production run for exact prompt `Marked` / `Offentlig` / `Privat` / `6340` / `25200` also succeeded on the first attempt with the same five-call path and linked the voucher posting to the newly created `Offentlig` value
+- a later same-day persistent-sandbox reflection for account `6340` also found the sandbox already full on free dimensions, reused existing value `15253` only for voucher-path verification, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only shortcut, then succeeded immediately after `GET /ledger/account?number=6340,1920&fields=*` with voucher `608868815`
 - the successful voucher write response already proved the linked free-dimension value id and the booked amounts
 - the persistent sandbox later returned `422 Maximum of 3 accounting dimensions allowed` on `POST /ledger/accountingDimensionName` once all three free-dimension slots were occupied; that is a real account-state blocker, not a cue to add search/update/delete calls in a production create-only run
 

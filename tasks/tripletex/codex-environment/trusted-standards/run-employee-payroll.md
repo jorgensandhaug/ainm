@@ -26,11 +26,11 @@
    - if the employee read shows `dateOfBirth=null` and `employments=[]`, use the score-first repair branch below
    - otherwise do one conditional `GET /employee/employment?employeeId=...&count=20&fields=*`
 4. if the employee is already proven underconfigured by `dateOfBirth=null` plus `employments=[]`, resolve one decisive `GET /division?count=1&fields=*` before any salary-type lookup
-5. resolve salary types through `GET /salary/type?count=1000&fields=*` once the employee is either payroll-ready already or the repair branch is still feasible after the division check
-6. if the employee still has no active employment in the payroll period, repair once when the missing state is only placeholder-able payroll prerequisite data:
+5. if the employee still has no active employment in the payroll period, repair once when the missing state is only placeholder-able payroll prerequisite data:
    - reuse the division from step `4` when that branch already ran, otherwise do one decisive `GET /division?count=1&fields=*`
    - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` when the employee still has no birth date
    - `POST /employee/employment` with `division.id`, the first day of the payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
+6. resolve salary types through `GET /salary/type?count=1000&fields=*` once the employee is payroll-ready already or the repair branch has actually succeeded
 7. `POST /salary/transaction` with embedded `payslips[].specifications[]`
 8. verify from the write response first
 9. if the write response is too sparse, `GET /salary/transaction/{id}?fields=*`
@@ -45,10 +45,11 @@
 - underconfigured-employee branch:
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do not stop
-  - do `GET /division?count=1&fields=*` before `GET /salary/type`
-  - if that division read returns one usable division, continue with `GET /salary/type?count=1000&fields=*`
+  - do `GET /division?count=1&fields=*` before any salary-type lookup
+  - if that division read returns one usable division, repair the employee first
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment`
+  - `GET /salary/type?count=1000&fields=*`
   - `POST /salary/transaction`
 - explicit-fallback no-division branch:
   - `GET /employee?email=...&count=10&fields=*`
@@ -123,11 +124,11 @@
 
 ## Known Recovery Branches
 - if `GET /employee?fields=*` returns employments as sparse stubs with null `startDate`/`division`, do one conditional `GET /employee/employment?employeeId=...&fields=*`
-- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, but `GET /salary/type` succeeds, repair the employee once instead of stopping:
+- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns one usable row, repair the employee before spending the salary-type read:
   - `GET /division?count=1&fields=*`
-  - `GET /salary/type?count=1000&fields=*`
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment` with `division.id`, first day of payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
+  - `GET /salary/type?count=1000&fields=*`
 - if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt explicitly allows manual vouchers, switch directly to:
   - `GET /ledger/account?number=5000,1920&fields=*`
   - `POST /ledger/voucher`
@@ -145,6 +146,7 @@
 - do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - do not include `department` blindly
 - when the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
+- when the employee is already proven underconfigured and the division read does return a usable row, do not spend `GET /salary/type` before the minimal `PUT /employee` + `POST /employee/employment` repair; the later 2026-03-20 sandbox proof showed the reordered repair-first branch still succeeds and avoids that salary-type read if the repair unexpectedly fails
 - do not assume `POST /division` with only a generated name is a low-risk escape hatch after that zero-row division result; live sandbox validation proved extra required fields that the exact payroll prompt and standard reads do not supply
 - do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - do not rely on `GET /salary/payslip/{id}?fields=*` alone for exact per-line verification
@@ -179,6 +181,16 @@
   - `POST /salary/transaction` created `salaryTransaction.id=6956950`
   - `GET /salary/transaction/6956950?fields=*` returned `payslip.id=32627968`
   - `GET /salary/payslip/32627968?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `amount=47950`, and the exact lines `Fastlønn amount=33550` and `Bonus amount=14400`
+- later same-day persistent sandbox re-proof for the exact `49100` + `11200` shape confirmed that the reordered underconfigured branch remains correct:
+  - disposable employee `id=18591984` was created underconfigured
+  - `GET /employee?email=...&count=10&fields=*` re-found the exact employee with `dateOfBirth=null` and `employments=[]`
+  - `GET /division?count=1&fields=*` returned `division.id=108244566`
+  - `PUT /employee/18591984` with `dateOfBirth: "1990-01-01"` succeeded
+  - `POST /employee/employment` created `employment.id=2806626`
+  - only then did `GET /salary/type?count=1000&fields=*` resolve `Fastlønn id=69031179` and `Bonus id=69031348`
+  - `POST /salary/transaction` created `salaryTransaction.id=6956971`
+  - `GET /salary/transaction/6956971?fields=*` returned `payslip.id=32627989`
+  - `GET /salary/payslip/32627989?fields=*,specifications(*,salaryType(*))` proved `grossAmount=60300`, `amount=60300`, and the exact lines `Fastlønn amount=49100` and `Bonus amount=11200`
 - production reflection on 2026-03-20 for `Jonas Hansen` / `jonas.hansen@example.org` / `40000` + `10600` exposed a new fallback branch:
   - `GET /employee?email=jonas.hansen@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
   - the next decisive `GET /division?count=1&fields=*` returned zero rows, so the payroll repair branch could not be completed in that account

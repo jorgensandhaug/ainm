@@ -38,7 +38,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
   - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
-  - 2026-03-20 production re-confirmed that the same one-call branch remained minimal for a Norwegian prompt creating `HR`, `Salg`, and `Økonomi`; the write response alone still proved correctness
+  - 2026-03-20 production re-confirmed that the same one-call branch remained minimal for Norwegian prompts creating `HR`, `Salg`, and `Økonomi` and for `Lager`, `Regnskap`, and `Kvalitetskontroll`; the write response alone still proved correctness
+  - same-day persistent-sandbox re-proof with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
 
 ## Division
 - `/division`
@@ -462,7 +463,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard prerequisite note:
   - this is the canonical bank-account repair endpoint
-  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, `6300`, `7300`, `6340`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
 
 ## Ledger Accounting Dimension Name
@@ -518,7 +519,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - prefer reverse over ad hoc mutation when task allows
 - Standard create note:
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
-  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, and `6860`, so there is no trusted lower-call shortcut that skips the account-id lookup
+  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
   - for payroll fallback prompts that explicitly allow manual vouchers on the `5000` series, the proven low-call resolver is `GET /ledger/account?number=5000,1920&fields=*` and the proven payload is a balanced two-line voucher with the gross salary amount on account `5000` and the negative balancing line on `1920`
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
