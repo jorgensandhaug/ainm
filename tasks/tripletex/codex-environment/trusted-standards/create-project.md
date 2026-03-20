@@ -36,6 +36,7 @@
 - keep uniqueness checks local:
   - compare returned `customer.organizationNumber` exactly, and use prompt `customer.name` only as a local tie-breaker when present
   - compare returned `employee.email` exactly because the endpoint filter is containing, and use prompt manager name only as a local tie-breaker when present
+  - if the filtered read already yields exactly one exact-`organizationNumber` hit or one exact-`email` hit, do not require the prompt name to match before reusing that id
 
 ## Reuse From Write Response
 - `value.id`

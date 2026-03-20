@@ -27,11 +27,11 @@ Sandbox verification on 2026-03-20 additionally showed:
 1. Confirm `GET /customer`, `GET /employee`, and `POST /project` in `./openapi.json`
 2. Resolve the customer with one decisive read
    - usually `GET /customer?organizationNumber=...&count=10&fields=*`
-   - if the prompt also gives the customer name, exact-match that locally too
+   - if the prompt also gives the customer name, use it only as a local tie-breaker when multiple exact-`organizationNumber` hits remain
 3. Resolve the project manager with one decisive read
    - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`
    - exact-match the email locally because the API filter is containing, not exact
-   - if the prompt also gives the manager name, use it only as a local tie-breaker
+   - if the prompt also gives the manager name, use it only as a local tie-breaker when multiple exact-email hits remain
 4. `POST /project` with:
    - `name`
    - `startDate`
@@ -60,6 +60,7 @@ Use ISO date for `startDate`.
 - Do not assume any existing employee can be assigned as project manager
 - Prefer `assignableProjectManagers=true` on the lookup itself
 - Because `email` is a containing search, compare returned `employee.email` to the prompt email exactly in your script before reusing the id
+- If the filtered manager read already yields one exact-email hit, do not reject it just because the returned display name differs from the prompt name or is missing in the response
 - If plain email search finds an employee but the assignable-manager search does not, do not `POST /project` with that employee id unless the prompt explicitly indicates you must first enable or change project-manager access
 
 ## Verification Shape
@@ -79,4 +80,5 @@ Use ISO date for `startDate`.
 - Do not omit `startDate` just because `openapi.json` does not clearly mark it required
 - Do not treat a missing prompt date as permission to skip `startDate`; default it to the run date
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try the write blindly
+- Do not make prompt `customer.name` or manager name a hard requirement once one exact `organizationNumber` or exact `email` hit already exists; that only creates avoidable false negatives and repeat reads
 - Do not spend a verification read if the `POST /project` response already proves the requested links
