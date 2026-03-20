@@ -18,6 +18,11 @@ Sandbox verification on 2026-03-19 showed:
 - batch create returned `{"values": [...]}` with all created departments
 - a successful batch-create response can still show top-level `fullResultSize=0`; verify from `values[]`, not that metadata
 
+Production and sandbox re-verification on 2026-03-20 showed:
+- an exact German prompt asking for three named departments was still a pure exact-match create flow
+- one `POST /department/list` remained sufficient for perfect correctness
+- no language-specific branch, pre-read, or follow-up verification read was needed
+
 ## Minimal Safe Flow
 
 1. Confirm `POST /department` and `POST /department/list` in `./openapi.json`
@@ -41,6 +46,7 @@ Sandbox verification on 2026-03-19 showed:
 - Use `POST /department/list`
 - Do not spend a discovery `GET`
 - Do not split the work into repeated `POST /department` calls unless the prompt only asks for a single department
+- Do not change the endpoint choice just because the prompt is written in German, French, or another supported language
 
 ## Single-Create Payload Shape
 
@@ -75,6 +81,7 @@ For a single department create, the winning payload is typically:
 - Do not `GET /department` first for a normal create task
 - Do not add sandbox idempotency reads to a scored create prompt
 - Do not fetch departments again if the write response already proves the scored fields
+- Do not treat duplicate-looking names in a persistent sandbox as a reason to pre-read during a fresh-account production run; the standard production path is still the direct create write
 
 ## Extra Fields Only When The Prompt Implies Them
 

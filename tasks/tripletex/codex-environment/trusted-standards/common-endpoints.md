@@ -36,6 +36,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - none
 - Standard verification note:
   - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
+  - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
 
 ## Employee
 - `/employee`

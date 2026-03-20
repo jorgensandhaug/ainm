@@ -226,6 +226,7 @@ Authentication:
 
 ## Tripletex Gotchas
 - Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
+- Prompt language does not change that department-create path; the 2026-03-20 production German three-department run and same-day persistent-sandbox proof both confirmed the one-call branch `POST /department/list` with direct verification from `values[]`.
 - `POST /department/list` can return a successful batch-create wrapper with `values[]` populated while top-level list metadata still shows `fullResultSize=0`; for create verification, trust `values[]` plus the returned department fields, not `fullResultSize`.
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - For create-and-send customer-invoice tasks, the lowest-call default is usually `POST /invoice` with the default `sendToCustomer=true`; do not automatically split this into `POST /invoice?sendToCustomer=false` plus `PUT /invoice/{id}/:send`.

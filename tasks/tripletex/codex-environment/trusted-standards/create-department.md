@@ -9,6 +9,7 @@
 - create one or more new departments
 - prompt directly provides department names
 - no update/delete/lookup flow
+- prompt language does not matter for this shape; German, Norwegian, French, etc. still use the same endpoint choice
 
 ## Do Not Use This Standard If
 - prompt requires modifying existing departments
@@ -17,7 +18,7 @@
 
 ## Standard Flow
 1. if one department: `POST /department`
-2. if several departments: `POST /department/list`
+2. if several departments: `POST /department/list` once with the full array
 3. verify directly from write response
 4. stop
 
@@ -38,6 +39,7 @@
 - trust `201` write wrapper
 - for batch create, trust `values[]`
 - do not reject a successful batch write just because top-level `fullResultSize` is `0`
+- do not add a follow-up `GET /department` or split the work into repeated `POST /department` calls for a plain multi-create prompt
 
 ## Known Recovery Branches
 - none for the standard create shape
@@ -46,3 +48,4 @@
 - `/department` and `/department/list` verified in `./openapi.json`
 - sandbox-proven for one-call single and one-call batch create
 - sandbox re-verified on 2026-03-20: batch create returned correct `values[]` with `fullResultSize=0`
+- production re-confirmed on 2026-03-20 with a German three-department prompt: one `POST /department/list` created all requested departments with no prerequisite reads
