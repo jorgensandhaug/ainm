@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "tripletex2.active-strategy-selection.v1",
+  "selectionConfigId": "active-strategies-2026-03-20-a",
+  "taskStrategies": {
+    "create-and-send-invoice": "create-and-send-invoice.order-then-invoice-send.v1"
+  }
+}

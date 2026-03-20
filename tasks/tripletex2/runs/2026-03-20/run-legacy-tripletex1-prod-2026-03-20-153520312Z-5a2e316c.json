@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-153520312Z-5a2e316c",
+  "createdAt": "2026-03-20T15:35:20.315Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "create-product",
+    "taskName": "Create product",
+    "taskConfidence": "high",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-multi-script-run",
+    "strategyName": "Legacy multi-script run",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-153520312Z-5a2e316c/scripts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-153520312Z-5a2e316c/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:54214f1f3192c0aed033999630b00f7fabdef14bb45040e4ff2def02c0280d2c",
+    "promptText": "Crie o produto \"Pão integral\" com número de produto 1871. O preço é 28350 NOK sem IVA, utilizando a taxa de IVA para alimentos de 15 %.",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T15:35:20.315Z",
+    "completedAt": "2026-03-20T15:36:16.140Z",
+    "durationMs": 55825,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "create-product",
+    "source": "leaderboard-diff",
+    "confidence": "high",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 03",
+        "legacy inference_status unique_attempt_delta",
+        "Both observed runs wrote product-creation scripts with VAT-rate variants and no semantic conflicts.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:549c441cbe480b263e37df801d1d9aaaf34ad52057ef9ede30844e42e8b7853d",
+      "leaderboardAfterFingerprint": "lb-after:82a4154c16e70895a496e1b9c6cf29472418aa1aad9fc69a006226dd7f17b776",
+      "leaderboardDiffFingerprint": "lb-diff:4467519d51c5401029f7f46e97c04efe1e905ced2bce5d1a123367e5fb91087c"
+    },
+    "observedAt": "2026-03-20T15:37:16.493Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T15:37:16.493Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:b77c0075a945bbc64200f5d3721b6419da7698ae5b2ad207d1aa398239905587",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-153520312Z-5a2e316c.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:37:16.493Z",
+      "sha256": "sha256:ad12114b273b4a4a591699f9a85725266b3fe05e6cd12cdd7238c22db88f6428",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-153520312Z-5a2e316c.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:37:16.493Z",
+      "sha256": "sha256:413c6eb3daba04c1b42e8a3e1c3a7c2a8e7b4483a4713f0ea27fbebf21ff2ceb",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from 4 non-sandbox legacy scripts; precise legacy strategy identity is intentionally left coarse."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

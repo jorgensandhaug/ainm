@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-144045081Z-ff91219e",
+  "sidecarId": "attrib-1",
+  "kind": "attribution-evidence",
+  "createdAt": "2026-03-20T14:46:20.298Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-144045081Z-ff91219e",
+    "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots.",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id missing",
+        "legacy inference_status no_change_detected",
+        "No legacy task id was present, so the bridge cannot map into the canonical registry.",
+        "legacy leaderboard diff_entry_count 0"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:a4c1b9db588fbb9f259360c6d5c2ad4b079c5d4b493167fff7234eff0866d133",
+      "leaderboardAfterFingerprint": "lb-after:60d3760da6d3008fd4670659672d8bef303311e409c5ac551ccc7e0f103ba9f0",
+      "leaderboardDiffFingerprint": "lb-diff:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "legacyOutcome": {
+      "completionReason": "completed",
+      "inferenceStatus": "no_change_detected",
+      "diffEntryCount": 0,
+      "beforeCapturedAt": "2026-03-20T14:40:45.949Z",
+      "afterCapturedAt": "2026-03-20T14:46:20.293Z"
+    },
+    "bridge": {},
+    "leaderboard": {
+      "diff": []
+    }
+  }
+}

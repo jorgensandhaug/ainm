@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-201018525Z-fbd1bcee",
+  "sidecarId": "attrib-1",
+  "kind": "attribution-evidence",
+  "createdAt": "2026-03-20T20:11:22.229Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-201018525Z-fbd1bcee",
+    "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots.",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 02",
+        "legacy inference_status unique_attempt_delta",
+        "Observed run wrote create-customer scripts and matched the customer-creation prompt surface.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:f69cc2143022bd0468d4cc5cf58bbbad7c79eb3acbe6a81cb1162a6a4df5cafa",
+      "leaderboardAfterFingerprint": "lb-after:1d8f3670c161ff585fedab19c4487f8400f725ab02ca2e71a39c35a6f9e654d1",
+      "leaderboardDiffFingerprint": "lb-diff:c741e616ef024824e9e87bcb0338eb4046ae210416f987d15e70b3851ae83b09"
+    },
+    "legacyOutcome": {
+      "completionReason": "completed",
+      "inferenceStatus": "unique_attempt_delta",
+      "txTaskId": "02",
+      "diffEntryCount": 1,
+      "beforeCapturedAt": "2026-03-20T20:10:18.576Z",
+      "afterCapturedAt": "2026-03-20T20:11:22.227Z"
+    },
+    "bridge": {
+      "legacyTaskId": "02",
+      "canonicalTaskId": "create-customer",
+      "mappingConfidence": "high",
+      "status": "mapped",
+      "notes": [
+        "Observed run wrote create-customer scripts and matched the customer-creation prompt surface."
+      ]
+    },
+    "leaderboard": {
+      "diff": [
+        {
+          "tx_task_id": "02",
+          "attempt_delta": 1,
+          "best_score_before": 2,
+          "best_score_after": 2,
+          "last_attempt_before": "2026-03-20T19:07:32.200617+00:00",
+          "last_attempt_after": "2026-03-20T20:10:53.651300+00:00",
+          "total_attempts_before": 9,
+          "total_attempts_after": 10
+        }
+      ],
+      "beforeEntry": {
+        "tx_task_id": "02",
+        "best_score": 2,
+        "rolling_scores": [],
+        "total_attempts": 9,
+        "last_attempt_at": "2026-03-20T19:07:32.200617+00:00"
+      },
+      "afterEntry": {
+        "tx_task_id": "02",
+        "best_score": 2,
+        "rolling_scores": [],
+        "total_attempts": 10,
+        "last_attempt_at": "2026-03-20T20:10:53.651300+00:00"
+      }
+    }
+  }
+}

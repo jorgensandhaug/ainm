@@ -1,0 +1,213 @@
+{
+  "reportSchemaVersion": "tripletex2.run-reports.v1",
+  "generatedAt": "2026-03-20T21:44:07.679Z",
+  "source": {
+    "runsDir": "runs",
+    "canonicalArtifactCount": 51,
+    "nativeArtifactCount": 19,
+    "legacyImportArtifactCount": 32,
+    "observedTaskCount": 13,
+    "registeredTaskCount": 17
+  },
+  "scoringPolicy": {
+    "taskBucketing": "Use attribution.attributedTaskId only when attribution.status is matched; otherwise keep the declared task.taskId.",
+    "bestKnownRanking": [
+      "Prefer taskSolved=true over unsolved or unknown outcomes.",
+      "When correctnessScore exists, higher correctnessScore ranks first.",
+      "When scoreTotal exists, higher scoreTotal ranks first.",
+      "Lower apiCallCount ranks ahead of higher apiCallCount when score metrics tie.",
+      "Direct scored evidence ranks above estimated evidence, which ranks above unscored runs when metrics tie or are absent.",
+      "Completed runs rank above failed, timeout, aborted, or not-run outcomes.",
+      "Lower durationMs breaks remaining ties.",
+      "Newer createdAt and then lexical runId make ties deterministic."
+    ],
+    "scoreEvidence": {
+      "scored": "Direct score evidence recorded in the canonical evaluation block.",
+      "estimated": "Estimated score evidence. This includes legacy leaderboard-delta imports and local estimates, and it is never counted as direct verification.",
+      "unscored": "No comparable score evidence was recorded in the canonical evaluation block."
+    }
+  },
+  "task": {
+    "taskId": "issue-full-credit-note",
+    "taskName": "Issue full credit note",
+    "status": "attempted-unscored",
+    "openReason": "Runs exist, but no comparable score evidence has been recorded yet.",
+    "bestKnownRun": {
+      "runId": "legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a",
+      "createdAt": "2026-03-20T20:17:02.225Z",
+      "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a.json",
+      "mode": "competition",
+      "origin": "legacy-import",
+      "strategyId": "legacy-tripletex1-multi-script-run",
+      "strategyName": "Legacy multi-script run",
+      "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201702224Z-93727a4a/scripts",
+      "strategyStatus": "baseline",
+      "declaredTaskId": "issue-full-credit-note",
+      "effectiveTaskId": "issue-full-credit-note",
+      "attributionStatus": "matched",
+      "evidenceClass": "unscored",
+      "evaluationStatus": "not-available",
+      "evaluationSource": "competition-ui",
+      "scoreTotal": null,
+      "correctnessScore": null,
+      "tier": null,
+      "taskSolved": null,
+      "runtimeStatus": "completed",
+      "apiCallCount": 0,
+      "durationMs": 42311
+    },
+    "bestVerifiedRun": null,
+    "frontier": [
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a",
+        "createdAt": "2026-03-20T20:17:02.225Z",
+        "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a.json",
+        "origin": "legacy-import",
+        "mode": "competition",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "strategyName": "Legacy multi-script run",
+        "evidenceClass": "unscored",
+        "evaluationStatus": "not-available",
+        "evaluationSource": "competition-ui",
+        "scoreTotal": null,
+        "correctnessScore": null,
+        "tier": null,
+        "taskSolved": null,
+        "runtimeStatus": "completed",
+        "apiCallCount": 0,
+        "durationMs": 42311,
+        "declaredTaskId": "issue-full-credit-note",
+        "attributionStatus": "matched",
+        "attributedTaskId": "issue-full-credit-note"
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78",
+        "createdAt": "2026-03-20T15:05:38.278Z",
+        "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78.json",
+        "origin": "legacy-import",
+        "mode": "competition",
+        "strategyId": "legacy-tripletex1-script-create-credit-note",
+        "strategyName": "Legacy script create-credit-note.ts",
+        "evidenceClass": "unscored",
+        "evaluationStatus": "not-available",
+        "evaluationSource": "competition-ui",
+        "scoreTotal": null,
+        "correctnessScore": null,
+        "tier": null,
+        "taskSolved": null,
+        "runtimeStatus": "completed",
+        "apiCallCount": 0,
+        "durationMs": 43309,
+        "declaredTaskId": "issue-full-credit-note",
+        "attributionStatus": "matched",
+        "attributedTaskId": "issue-full-credit-note"
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-151148780Z-105d5e03",
+        "createdAt": "2026-03-20T15:11:48.784Z",
+        "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-151148780Z-105d5e03.json",
+        "origin": "legacy-import",
+        "mode": "competition",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "strategyName": "Legacy multi-script run",
+        "evidenceClass": "unscored",
+        "evaluationStatus": "not-available",
+        "evaluationSource": "competition-ui",
+        "scoreTotal": null,
+        "correctnessScore": null,
+        "tier": null,
+        "taskSolved": null,
+        "runtimeStatus": "completed",
+        "apiCallCount": 0,
+        "durationMs": 68112,
+        "declaredTaskId": "issue-full-credit-note",
+        "attributionStatus": "matched",
+        "attributedTaskId": "issue-full-credit-note"
+      }
+    ],
+    "strategyFrontier": [
+      {
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "strategyName": "Legacy multi-script run",
+        "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201702224Z-93727a4a/scripts",
+        "strategyStatus": "baseline",
+        "runCount": 2,
+        "nativeRunCount": 0,
+        "legacyImportRunCount": 2,
+        "modes": [
+          "competition"
+        ],
+        "evidenceClasses": [
+          "unscored"
+        ],
+        "latestRunId": "legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a",
+        "bestKnownRun": {
+          "runId": "legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a",
+          "createdAt": "2026-03-20T20:17:02.225Z",
+          "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201702224Z-93727a4a.json",
+          "mode": "competition",
+          "origin": "legacy-import",
+          "strategyId": "legacy-tripletex1-multi-script-run",
+          "strategyName": "Legacy multi-script run",
+          "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201702224Z-93727a4a/scripts",
+          "strategyStatus": "baseline",
+          "declaredTaskId": "issue-full-credit-note",
+          "effectiveTaskId": "issue-full-credit-note",
+          "attributionStatus": "matched",
+          "evidenceClass": "unscored",
+          "evaluationStatus": "not-available",
+          "evaluationSource": "competition-ui",
+          "scoreTotal": null,
+          "correctnessScore": null,
+          "tier": null,
+          "taskSolved": null,
+          "runtimeStatus": "completed",
+          "apiCallCount": 0,
+          "durationMs": 42311
+        },
+        "bestVerifiedRun": null
+      },
+      {
+        "strategyId": "legacy-tripletex1-script-create-credit-note",
+        "strategyName": "Legacy script create-credit-note.ts",
+        "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-150538277Z-1f4cda78/scripts/create-credit-note.ts",
+        "strategyStatus": "baseline",
+        "runCount": 1,
+        "nativeRunCount": 0,
+        "legacyImportRunCount": 1,
+        "modes": [
+          "competition"
+        ],
+        "evidenceClasses": [
+          "unscored"
+        ],
+        "latestRunId": "legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78",
+        "bestKnownRun": {
+          "runId": "legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78",
+          "createdAt": "2026-03-20T15:05:38.278Z",
+          "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78.json",
+          "mode": "competition",
+          "origin": "legacy-import",
+          "strategyId": "legacy-tripletex1-script-create-credit-note",
+          "strategyName": "Legacy script create-credit-note.ts",
+          "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-150538277Z-1f4cda78/scripts/create-credit-note.ts",
+          "strategyStatus": "baseline",
+          "declaredTaskId": "issue-full-credit-note",
+          "effectiveTaskId": "issue-full-credit-note",
+          "attributionStatus": "matched",
+          "evidenceClass": "unscored",
+          "evaluationStatus": "not-available",
+          "evaluationSource": "competition-ui",
+          "scoreTotal": null,
+          "correctnessScore": null,
+          "tier": null,
+          "taskSolved": null,
+          "runtimeStatus": "completed",
+          "apiCallCount": 0,
+          "durationMs": 43309
+        },
+        "bestVerifiedRun": null
+      }
+    ]
+  }
+}

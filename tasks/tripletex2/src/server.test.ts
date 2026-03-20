@@ -1,0 +1,355 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+
+import type {
+  TaskUnderstandingResolved,
+  TripletexFetch,
+  TripletexFetchResponse,
+} from "./runtime/contracts";
+import { createSolveRequestHandler } from "./server";
+
+test("POST /solve writes staging plus a canonical success artifact and respects caller run identity", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    now: () => new Date("2026-03-20T23:00:00.000Z"),
+    createRunId: () => "sandbox-http-success",
+    dataRoot: path.join(tempRoot, "data"),
+    artifactRoot: path.join(tempRoot, "runs"),
+    taskUnderstanding: {
+      result: {
+        status: "resolved",
+        taskId: "create-and-send-invoice",
+        input: {
+          customerName: "Nordhav AS",
+          organizationNumber: "876520427",
+          lineDescription: "Analyserapport",
+          quantity: 1,
+          unitPriceExcludingVatNok: 7850,
+        },
+      } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+      taskSource: "manual-label",
+      inputSource: "fixture",
+      notes: ["HTTP success fixture."],
+    },
+    fetch: createFixtureTripletexFetch(),
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-success",
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "completed" });
+  assert.equal(response.headers.get("x-request-id"), "req-http-success");
+  assert.equal(response.headers.get("x-tripletex2-run-id"), "sandbox-http-success");
+  assert.equal(
+    response.headers.get("x-tripletex2-runtime-status"),
+    "completed",
+  );
+
+  const artifactPath = path.join(
+    tempRoot,
+    "runs",
+    "2026-03-20",
+    "run-sandbox-http-success.json",
+  );
+  const tracePath = path.join(
+    tempRoot,
+    "runs",
+    "2026-03-20",
+    "run-sandbox-http-success.trace.json",
+  );
+  const stageDirectory = path.join(
+    tempRoot,
+    "data",
+    "sandbox",
+    "runs",
+    "sandbox-http-success",
+  );
+
+  await stat(artifactPath);
+  await stat(tracePath);
+  await stat(path.join(stageDirectory, "request.json"));
+  await stat(path.join(stageDirectory, "result.json"));
+
+  const stageRequest = JSON.parse(
+    await readFile(path.join(stageDirectory, "request.json"), "utf8"),
+  ) as {
+    requestId: string;
+    request: {
+      tripletexCredentials: Record<string, unknown>;
+    };
+  };
+  assert.equal(stageRequest.requestId, "req-http-success");
+  assert.equal(
+    "session_token" in stageRequest.request.tripletexCredentials,
+    false,
+  );
+
+  const stageResult = JSON.parse(
+    await readFile(path.join(stageDirectory, "result.json"), "utf8"),
+  ) as {
+    artifactPath: string;
+    runtimeStatus: string;
+  };
+  assert.equal(stageResult.artifactPath, artifactPath);
+  assert.equal(stageResult.runtimeStatus, "completed");
+});
+
+test("POST /solve returns after writing a canonical not-run artifact for unresolved task understanding", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    now: () => new Date("2026-03-20T23:10:00.000Z"),
+    createRunId: () => "sandbox-http-unresolved",
+    dataRoot: path.join(tempRoot, "data"),
+    artifactRoot: path.join(tempRoot, "runs"),
+    classifierExtractor: async () => ({
+      status: "unresolved",
+      code: "ambiguous-task",
+      message: "The prompt could describe multiple Tripletex tasks.",
+    }),
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-unresolved",
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "completed" });
+  assert.equal(response.headers.get("x-tripletex2-runtime-status"), "not-run");
+
+  const artifactPath = path.join(
+    tempRoot,
+    "runs",
+    "2026-03-20",
+    "run-sandbox-http-unresolved.json",
+  );
+  const artifact = JSON.parse(await readFile(artifactPath, "utf8")) as {
+    input: { status: string };
+    execution: { runtimeStatus: string };
+  };
+  assert.equal(artifact.input.status, "ambiguous");
+  assert.equal(artifact.execution.runtimeStatus, "not-run");
+});
+
+test("POST /solve enforces bearer auth", async () => {
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    logger() {
+      // Silence test logs.
+    },
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer wrong-token",
+    }),
+  );
+
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), {
+    error: "Invalid bearer token.",
+  });
+});
+
+test("POST /solve enforces the concurrency limit", async () => {
+  let releaseFirstRequest!: () => void;
+  const firstRequestStarted = new Promise<void>((resolve) => {
+    releaseFirstRequest = resolve;
+  });
+  const blockingFetch: TripletexFetch = async (input, init) => {
+    const url = new URL(input);
+    if (init.method === "GET" && url.pathname === "/customer") {
+      await firstRequestStarted;
+      return createResponse(200, {
+        values: [
+          {
+            id: 42,
+            name: "Nordhav AS",
+            organizationNumber: "876520427",
+          },
+        ],
+      });
+    }
+
+    if (init.method === "GET" && url.pathname === "/ledger/vatType") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 3,
+            percentage: 25,
+          },
+        ],
+      });
+    }
+
+    if (init.method === "POST" && url.pathname === "/invoice") {
+      return createResponse(200, {
+        value: {
+          id: 9001,
+          invoiceNumber: 110045,
+        },
+      });
+    }
+
+    throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
+  };
+
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    maxConcurrentSolveRequests: 1,
+    taskUnderstanding: {
+      result: {
+        status: "resolved",
+        taskId: "create-and-send-invoice",
+        input: {
+          customerName: "Nordhav AS",
+          organizationNumber: "876520427",
+          lineDescription: "Analyserapport",
+          quantity: 1,
+          unitPriceExcludingVatNok: 7850,
+        },
+      } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+      taskSource: "manual-label",
+      inputSource: "fixture",
+    },
+    fetch: blockingFetch,
+    logger() {
+      // Silence test logs.
+    },
+  });
+
+  const firstResponsePromise = handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-concurrency-1",
+    }),
+  );
+  await Promise.resolve();
+
+  const secondResponse = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-concurrency-2",
+    }),
+  );
+
+  assert.equal(secondResponse.status, 503);
+  assert.deepEqual(await secondResponse.json(), {
+    error: "Server is at solve concurrency limit.",
+  });
+
+  releaseFirstRequest();
+  const firstResponse = await firstResponsePromise;
+  assert.equal(firstResponse.status, 200);
+});
+
+function createSolveRequest(input: {
+  authorization: string;
+  requestId?: string;
+}): Request {
+  return new Request("http://tripletex2.test/solve", {
+    method: "POST",
+    headers: {
+      authorization: input.authorization,
+      "content-type": "application/json",
+      ...(input.requestId ? { "x-request-id": input.requestId } : {}),
+    },
+    body: JSON.stringify({
+      prompt:
+        "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+      files: [],
+      tripletex_credentials: {
+        base_url: "https://example.invalid",
+        session_token: "redacted-for-test",
+        credential_source: "fixture",
+      },
+    }),
+  });
+}
+
+function createFixtureTripletexFetch(): TripletexFetch {
+  return async (input, init) => {
+    const url = new URL(input);
+    if (init.method === "GET" && url.pathname === "/customer") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 42,
+            name: "Nordhav AS",
+            organizationNumber: "876520427",
+            invoiceSendMethod: "EMAIL",
+          },
+        ],
+      });
+    }
+
+    if (init.method === "GET" && url.pathname === "/ledger/vatType") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 3,
+            percentage: 25,
+          },
+        ],
+      });
+    }
+
+    if (init.method === "POST" && url.pathname === "/invoice") {
+      return createResponse(200, {
+        value: {
+          id: 9001,
+          invoiceNumber: 110045,
+        },
+      });
+    }
+
+    if (init.method === "PUT" && url.pathname === "/invoice/9001/:send") {
+      return createResponse(200, {});
+    }
+
+    throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
+  };
+}
+
+function createResponse(
+  status: number,
+  body: unknown,
+): TripletexFetchResponse {
+  return {
+    status,
+    headers: {
+      get() {
+        return null;
+      },
+    },
+    async text() {
+      return JSON.stringify(body);
+    },
+  };
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-150729812Z-1a23bc86",
+  "createdAt": "2026-03-20T15:07:29.813Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "create-accounting-dimension-and-post-voucher",
+    "taskName": "Create accounting dimension and post voucher",
+    "taskConfidence": "medium",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-script-create-dimension-and-voucher",
+    "strategyName": "Legacy script create-dimension-and-voucher.ts",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-150729812Z-1a23bc86/scripts/create-dimension-and-voucher.ts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-150729812Z-1a23bc86/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:d38ea193f151cae1786651933b2f70f537ed51b4f7c10ea4c56f41379061aeb9",
+    "promptText": "Créez une dimension comptable personnalisée \"Kostsenter\" avec les valeurs \"IT\" et \"HR\". Puis comptabilisez une pièce sur le compte 6590 pour 38100 NOK, liée à la valeur de dimension \"HR\".",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T15:07:29.813Z",
+    "completedAt": "2026-03-20T15:08:24.274Z",
+    "durationMs": 54461,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "create-accounting-dimension-and-post-voucher",
+    "source": "leaderboard-diff",
+    "confidence": "medium",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 17",
+        "legacy inference_status unique_attempt_delta",
+        "Most observed runs match free-dimension creation and voucher posting, but one checked-in prompt ledger row on tx_task_id 17 is semantically closer to customer-invoice creation.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:c7c800c2144e55466058f7aa5ee9f5b239f97dd22bd7c42c7ae383b7039a9dcd",
+      "leaderboardAfterFingerprint": "lb-after:80a1907b1e03997a8c5b464a4f0f36d745341681b1a9feb9ac040beb3745aaa9",
+      "leaderboardDiffFingerprint": "lb-diff:57c61c5d90a24345b35df6f3ba0243e3c042cddca5d6bef1b481e6c1a636e12e"
+    },
+    "observedAt": "2026-03-20T15:09:24.768Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T15:09:24.768Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:474b616414435717eee9b5020e2062b01a8b4cd9aa4dab7932a206a956f08360",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-150729812Z-1a23bc86.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:09:24.768Z",
+      "sha256": "sha256:934dc2c54d6698492721311221667a0b0cfb153baf792972bf6c75740e6356a8",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-150729812Z-1a23bc86.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:09:24.768Z",
+      "sha256": "sha256:7dc529560b63be40e8526346512c860239cad09e1b955d56bb7f626d5b42ed18",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from the single non-sandbox legacy script create-dimension-and-voucher.ts."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

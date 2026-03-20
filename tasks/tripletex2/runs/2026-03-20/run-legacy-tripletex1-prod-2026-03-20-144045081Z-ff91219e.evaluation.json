@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-144045081Z-ff91219e",
+  "sidecarId": "score-1",
+  "kind": "evaluation-evidence",
+  "createdAt": "2026-03-20T14:46:20.298Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-144045081Z-ff91219e",
+    "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably.",
+    "evidence": {
+      "notes": [
+        "Legacy run had no tx_task_id, so no per-task score evidence can be assigned."
+      ]
+    }
+  }
+}

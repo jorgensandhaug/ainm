@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-190747583Z-f812be55",
+  "sidecarId": "attrib-1",
+  "kind": "attribution-evidence",
+  "createdAt": "2026-03-20T19:09:15.709Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-190747583Z-f812be55",
+    "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots.",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 18",
+        "legacy inference_status unique_attempt_delta",
+        "Observed runs consistently matched reversing customer invoice payments.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:8cb74def59a9f692c872f4d3b8edf181b43f3098a97ffeb20b8c6cbeb895c23d",
+      "leaderboardAfterFingerprint": "lb-after:2169325906ac05c955a4b7fbd7587879d8d000fc397dc1794ce44fd1ae4add2f",
+      "leaderboardDiffFingerprint": "lb-diff:7720140d2587d6cb00c716f8ce555c4f7b2e3f9df4d99177381b4aff19280ade"
+    },
+    "legacyOutcome": {
+      "completionReason": "completed",
+      "inferenceStatus": "unique_attempt_delta",
+      "txTaskId": "18",
+      "diffEntryCount": 1,
+      "beforeCapturedAt": "2026-03-20T19:07:47.645Z",
+      "afterCapturedAt": "2026-03-20T19:09:15.708Z"
+    },
+    "bridge": {
+      "legacyTaskId": "18",
+      "canonicalTaskId": "reverse-customer-invoice-payment",
+      "mappingConfidence": "high",
+      "status": "mapped",
+      "notes": [
+        "Observed runs consistently matched reversing customer invoice payments."
+      ]
+    },
+    "leaderboard": {
+      "diff": [
+        {
+          "tx_task_id": "18",
+          "attempt_delta": 1,
+          "best_score_before": 4,
+          "best_score_after": 4,
+          "last_attempt_before": "2026-03-20T18:53:13.360027+00:00",
+          "last_attempt_after": "2026-03-20T19:08:50.231800+00:00",
+          "total_attempts_before": 7,
+          "total_attempts_after": 8
+        }
+      ],
+      "beforeEntry": {
+        "tx_task_id": "18",
+        "best_score": 4,
+        "rolling_scores": [],
+        "total_attempts": 7,
+        "last_attempt_at": "2026-03-20T18:53:13.360027+00:00"
+      },
+      "afterEntry": {
+        "tx_task_id": "18",
+        "best_score": 4,
+        "rolling_scores": [],
+        "total_attempts": 8,
+        "last_attempt_at": "2026-03-20T19:08:50.231800+00:00"
+      }
+    }
+  }
+}

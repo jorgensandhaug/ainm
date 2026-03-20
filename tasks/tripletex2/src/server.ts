@@ -1,0 +1,415 @@
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+
+import {
+  type CompetitionSolveRequest,
+  type SolvePipelineOptions,
+  runCompetitionSolvePipeline,
+} from "./runtime/solve-pipeline";
+
+interface SolveRequestFilePayload {
+  filename: string;
+  content_base64: string;
+  mime_type?: string;
+}
+
+interface SolveRequestPayload {
+  prompt: string;
+  files?: readonly SolveRequestFilePayload[];
+  tripletex_credentials: {
+    base_url: string;
+    session_token: string;
+    company_id?: string | number;
+    credential_source?: string;
+  };
+}
+
+export interface SolveServerOptions
+  extends Omit<SolvePipelineOptions, "mode" | "requestId" | "runContext"> {
+  bearerToken?: string;
+  port?: number;
+  mode?: "sandbox" | "competition" | "replay" | "dry-run";
+  maxConcurrentSolveRequests?: number;
+  dataRoot?: string;
+  artifactRoot?: string;
+  createRunId?: (input: { mode: string; now: Date }) => string;
+  logger?: (
+    level: "INFO" | "WARN" | "ERROR",
+    message: string,
+    details?: Record<string, unknown>,
+  ) => void;
+}
+
+interface SolveRequestHandler {
+  (request: Request): Promise<Response>;
+}
+
+const DEFAULT_PORT = Number(Bun.env.PORT ?? 3000);
+const DEFAULT_BEARER_TOKEN = Bun.env.API_KEY ?? "HALLAGUTTA123";
+const DEFAULT_MAX_CONCURRENCY = Number(
+  Bun.env.TRIPLETEX2_MAX_CONCURRENT_SOLVES ?? 3,
+);
+
+export function createSolveRequestHandler(
+  options: SolveServerOptions = {},
+): SolveRequestHandler {
+  const bearerToken = options.bearerToken ?? DEFAULT_BEARER_TOKEN;
+  const mode = options.mode ?? "sandbox";
+  const dataRoot = path.resolve(process.cwd(), options.dataRoot ?? "data");
+  const artifactRoot = path.resolve(process.cwd(), options.artifactRoot ?? "runs");
+  const maxConcurrentSolveRequests =
+    options.maxConcurrentSolveRequests ?? DEFAULT_MAX_CONCURRENCY;
+  const log = options.logger ?? defaultLogger;
+  let activeSolveRequests = 0;
+
+  return async (request: Request): Promise<Response> => {
+    const requestId = request.headers.get("x-request-id") ?? randomUUID();
+    const pathname = new URL(request.url).pathname;
+
+    if (pathname !== "/solve") {
+      return jsonResponse(
+        404,
+        { error: "Not found." },
+        {
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    if (request.method !== "POST") {
+      return jsonResponse(
+        405,
+        { error: "Method not allowed." },
+        {
+          Allow: "POST",
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    const authError = authorizeRequest(request, bearerToken);
+    if (authError) {
+      log("WARN", "Rejected unauthorized /solve request.", {
+        requestId,
+      });
+      return jsonResponse(
+        401,
+        { error: authError },
+        {
+          "x-request-id": requestId,
+          "www-authenticate": 'Bearer realm="tripletex2-sandbox"',
+        },
+      );
+    }
+
+    if (!isJsonRequest(request)) {
+      return jsonResponse(
+        415,
+        { error: "Expected application/json request body." },
+        {
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    if (activeSolveRequests >= maxConcurrentSolveRequests) {
+      log("WARN", "Rejected /solve request at concurrency limit.", {
+        requestId,
+        activeSolveRequests,
+        maxConcurrentSolveRequests,
+      });
+      return jsonResponse(
+        503,
+        { error: "Server is at solve concurrency limit." },
+        {
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    let solveRequest: CompetitionSolveRequest;
+    try {
+      solveRequest = parseSolveRequestPayload(await request.json());
+    } catch (error) {
+      return jsonResponse(
+        400,
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Invalid /solve request body.",
+        },
+        {
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    const now = options.now ? options.now() : new Date();
+    const runId =
+      options.createRunId?.({ mode, now }) ??
+      createDefaultRunId(mode, now);
+    const runContext = {
+      runId,
+      stageDirectory: path.join(dataRoot, mode, "runs", runId),
+      artifactRoot,
+    };
+
+    activeSolveRequests += 1;
+    log("INFO", "Accepted /solve request.", {
+      requestId,
+      runId,
+      activeSolveRequests,
+    });
+
+    try {
+      const result = await runCompetitionSolvePipeline(solveRequest, {
+        ...options,
+        mode,
+        requestId,
+        runContext,
+      });
+
+      log("INFO", "Completed /solve request.", {
+        requestId,
+        runId,
+        runtimeStatus: result.artifact.execution.runtimeStatus,
+        artifactPath: result.artifactPath,
+      });
+
+      return jsonResponse(
+        200,
+        { status: "completed" },
+        {
+          "x-request-id": requestId,
+          "x-tripletex2-run-id": runId,
+          "x-tripletex2-runtime-status": result.artifact.execution.runtimeStatus,
+        },
+      );
+    } catch (error) {
+      log("ERROR", "Failed /solve request.", {
+        requestId,
+        runId,
+        error:
+          error instanceof Error ? { name: error.name, message: error.message } : error,
+      });
+      return jsonResponse(
+        500,
+        { error: "Solve request failed before a canonical artifact could be written." },
+        {
+          "x-request-id": requestId,
+          "x-tripletex2-run-id": runId,
+        },
+      );
+    } finally {
+      activeSolveRequests = Math.max(activeSolveRequests - 1, 0);
+    }
+  };
+}
+
+export function startSolveServer(options: SolveServerOptions = {}) {
+  const port = options.port ?? DEFAULT_PORT;
+  const handler = createSolveRequestHandler(options);
+  const server = Bun.serve({
+    port,
+    fetch: handler,
+  });
+
+  (options.logger ?? defaultLogger)("INFO", "Tripletex2 sandbox solve server listening.", {
+    port,
+    mode: options.mode ?? "sandbox",
+  });
+
+  return server;
+}
+
+function authorizeRequest(request: Request, bearerToken: string): string | undefined {
+  const authorization = request.headers.get("authorization");
+  if (!authorization) {
+    return "Missing Authorization header.";
+  }
+
+  const [scheme, token] = authorization.split(" ", 2);
+  if (scheme !== "Bearer" || token !== bearerToken) {
+    return "Invalid bearer token.";
+  }
+
+  return undefined;
+}
+
+function isJsonRequest(request: Request): boolean {
+  const contentType = request.headers.get("content-type");
+  return typeof contentType === "string" && contentType.startsWith("application/json");
+}
+
+function parseSolveRequestPayload(rawValue: unknown): CompetitionSolveRequest {
+  const payload = requireRecord(rawValue, "solve request body");
+  const allowedTopLevelKeys = new Set([
+    "prompt",
+    "files",
+    "tripletex_credentials",
+  ]);
+  rejectUnknownKeys(payload, allowedTopLevelKeys, "solve request body");
+
+  const prompt = requireNonEmptyString(payload.prompt, 'solve request field "prompt"');
+  const tripletexCredentials = requireRecord(
+    payload.tripletex_credentials,
+    'solve request field "tripletex_credentials"',
+  );
+  rejectUnknownKeys(
+    tripletexCredentials,
+    new Set([
+      "base_url",
+      "session_token",
+      "company_id",
+      "credential_source",
+    ]),
+    'solve request field "tripletex_credentials"',
+  );
+
+  return {
+    prompt,
+    files: parseSolveFiles(payload.files),
+    tripletex_credentials: {
+      base_url: requireNonEmptyString(
+        tripletexCredentials.base_url,
+        'solve request field "tripletex_credentials.base_url"',
+      ),
+      session_token: requireNonEmptyString(
+        tripletexCredentials.session_token,
+        'solve request field "tripletex_credentials.session_token"',
+      ),
+      ...(tripletexCredentials.company_id !== undefined
+        ? { company_id: parseCompanyId(tripletexCredentials.company_id) }
+        : {}),
+      ...(tripletexCredentials.credential_source !== undefined
+        ? {
+            credential_source: requireNonEmptyString(
+              tripletexCredentials.credential_source,
+              'solve request field "tripletex_credentials.credential_source"',
+            ),
+          }
+        : {}),
+    },
+  };
+}
+
+function parseSolveFiles(rawValue: unknown): CompetitionSolveRequest["files"] {
+  if (rawValue === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(rawValue)) {
+    throw new Error('Expected solve request field "files" to be an array.');
+  }
+
+  return rawValue.map((entry, index) => {
+    const file = requireRecord(entry, `solve request file[${index}]`);
+    rejectUnknownKeys(
+      file,
+      new Set(["filename", "content_base64", "mime_type"]),
+      `solve request file[${index}]`,
+    );
+
+    return {
+      fileName: requireNonEmptyString(
+        file.filename,
+        `solve request file[${index}].filename`,
+      ),
+      textContent: Buffer.from(
+        requireString(file.content_base64, `solve request file[${index}].content_base64`),
+        "base64",
+      ).toString("utf8"),
+      ...(file.mime_type !== undefined
+        ? {
+            mediaType: requireNonEmptyString(
+              file.mime_type,
+              `solve request file[${index}].mime_type`,
+            ),
+          }
+        : {}),
+    };
+  });
+}
+
+function parseCompanyId(value: unknown): string | number {
+  if (typeof value === "string" || typeof value === "number") {
+    return value;
+  }
+
+  throw new Error(
+    'Expected solve request field "tripletex_credentials.company_id" to be a string or number.',
+  );
+}
+
+function createDefaultRunId(mode: string, now: Date): string {
+  return `${mode}-${now.toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`;
+}
+
+function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response {
+  return new Response(`${JSON.stringify(body)}\n`, {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...headers,
+    },
+  });
+}
+
+function defaultLogger(
+  level: "INFO" | "WARN" | "ERROR",
+  message: string,
+  details?: Record<string, unknown>,
+): void {
+  const prefix = `[${new Date().toISOString()}] [${level}]`;
+  if (details && Object.keys(details).length > 0) {
+    console.log(`${prefix} ${message}`, details);
+    return;
+  }
+
+  console.log(`${prefix} ${message}`);
+}
+
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Expected ${label} to be an object.`);
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function requireString(value: unknown, label: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`Expected ${label} to be a string.`);
+  }
+
+  return value;
+}
+
+function requireNonEmptyString(value: unknown, label: string): string {
+  const stringValue = requireString(value, label).trim();
+  if (stringValue.length === 0) {
+    throw new Error(`Expected ${label} to be a non-empty string.`);
+  }
+
+  return stringValue;
+}
+
+function rejectUnknownKeys(
+  record: Record<string, unknown>,
+  allowedKeys: ReadonlySet<string>,
+  label: string,
+): void {
+  const unknownKeys = Object.keys(record).filter((key) => !allowedKeys.has(key));
+  if (unknownKeys.length > 0) {
+    throw new Error(`${label} contained unknown keys: ${unknownKeys.join(", ")}.`);
+  }
+}
+
+if (import.meta.main) {
+  startSolveServer();
+}

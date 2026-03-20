@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-154433946Z-4a4ca7f1",
+  "sidecarId": "attrib-1",
+  "kind": "attribution-evidence",
+  "createdAt": "2026-03-20T15:46:31.646Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-154433946Z-4a4ca7f1",
+    "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots.",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 17",
+        "legacy inference_status unique_attempt_delta",
+        "Most observed runs match free-dimension creation and voucher posting, but one checked-in prompt ledger row on tx_task_id 17 is semantically closer to customer-invoice creation.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:1981bc64413f230d21ad58c632305042c15408fe9dc999bd1257fc0e843f04c8",
+      "leaderboardAfterFingerprint": "lb-after:1a2267168c1b7e7cd77cf81596136e3d88026bea394f253031e081186d6ccf6e",
+      "leaderboardDiffFingerprint": "lb-diff:6bb25d028af6c3e3084f79076a0a3c183e15ed321de67ff599fd361072e0c0d5"
+    },
+    "legacyOutcome": {
+      "completionReason": "completed",
+      "inferenceStatus": "unique_attempt_delta",
+      "txTaskId": "17",
+      "diffEntryCount": 1,
+      "beforeCapturedAt": "2026-03-20T15:44:34.040Z",
+      "afterCapturedAt": "2026-03-20T15:46:31.645Z"
+    },
+    "bridge": {
+      "legacyTaskId": "17",
+      "canonicalTaskId": "create-accounting-dimension-and-post-voucher",
+      "mappingConfidence": "medium",
+      "status": "mapped",
+      "notes": [
+        "Most observed runs match free-dimension creation and voucher posting, but one checked-in prompt ledger row on tx_task_id 17 is semantically closer to customer-invoice creation."
+      ]
+    },
+    "leaderboard": {
+      "diff": [
+        {
+          "tx_task_id": "17",
+          "attempt_delta": 1,
+          "best_score_before": 4,
+          "best_score_after": 4,
+          "last_attempt_before": "2026-03-20T15:08:28.657834+00:00",
+          "last_attempt_after": "2026-03-20T15:45:32.870001+00:00",
+          "total_attempts_before": 3,
+          "total_attempts_after": 4
+        }
+      ],
+      "beforeEntry": {
+        "tx_task_id": "17",
+        "best_score": 4,
+        "rolling_scores": [],
+        "total_attempts": 3,
+        "last_attempt_at": "2026-03-20T15:08:28.657834+00:00"
+      },
+      "afterEntry": {
+        "tx_task_id": "17",
+        "best_score": 4,
+        "rolling_scores": [],
+        "total_attempts": 4,
+        "last_attempt_at": "2026-03-20T15:45:32.870001+00:00"
+      }
+    }
+  }
+}

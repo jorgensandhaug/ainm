@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "sandbox-2026-03-20T21-31-25-247Z-8e597c3b",
+  "createdAt": "2026-03-20T21:31:25.247Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "create-and-send-invoice",
+    "taskName": "Create and send invoice",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "create-and-send-invoice.order-then-invoice-send.v1",
+    "strategyName": "Order then invoice+send",
+    "strategyPath": "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-20-a",
+    "selectionConfigPath": "configs/active-strategies.json",
+    "requestedTaskId": "create-and-send-invoice"
+  },
+  "request": {
+    "requestFingerprint": "req:0d0ea1f309074a11fd2a167b38af46ef50cd8a89782b22b5fb1f0f59de06aee3",
+    "promptText": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "promptSummary": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "files": [],
+    "credentialSource": "fixture"
+  },
+  "input": {
+    "inputSchemaId": "create-and-send-invoice.v1",
+    "status": "resolved",
+    "source": "fixture",
+    "value": {
+      "customerName": "Nordhav AS",
+      "lineDescription": "Analyserapport",
+      "organizationNumber": "876520427",
+      "quantity": 1,
+      "unitPriceExcludingVatNok": 7850
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-20T21:31:25.248Z",
+    "completedAt": "2026-03-20T21:31:25.249Z",
+    "durationMs": 1,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 3,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "id,name,organizationNumber",
+          "organizationNumber": "876520427"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200,
+        "durationMs": 0
+      },
+      {
+        "index": 2,
+        "method": "POST",
+        "path": "/order",
+        "requestSummary": "create order with customer, orderDate, orderLines",
+        "responseSummary": "orderId 7001",
+        "status": 200,
+        "durationMs": 0,
+        "entityIds": {
+          "orderId": 7001
+        }
+      },
+      {
+        "index": 3,
+        "method": "PUT",
+        "path": "/order/7001/:invoice",
+        "query": {
+          "invoiceDate": "2026-03-20",
+          "sendToCustomer": true
+        },
+        "requestSummary": "update invoice by invoiceDate, sendToCustomer",
+        "responseSummary": "invoiceId 9001",
+        "status": 200,
+        "durationMs": 0,
+        "entityIds": {
+          "invoiceId": 9001
+        }
+      }
+    ],
+    "result": {
+      "createdEntityIds": {
+        "customerId": 42,
+        "invoiceId": 9001,
+        "orderId": 7001
+      },
+      "notes": [],
+      "verification": {
+        "invoiceDate": "2026-03-20",
+        "invoiceNumber": 110045,
+        "sendToCustomerRequested": true
+      }
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-sandbox-2026-03-20T21-31-25-247Z-8e597c3b.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T21:31:25.247Z",
+      "sha256": "sha256:2e259f41d93033ef6f46108f30a9ea6374395fbca42d44939738d88e3bb67198",
+      "summary": "Sanitized trace for create-and-send-invoice.order-then-invoice-send.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}

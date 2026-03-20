@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-145823778Z-b5869355",
+  "createdAt": "2026-03-20T14:58:23.780Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "legacy-tripletex1-unattributed",
+    "taskName": "Legacy Tripletex1 unattributed task",
+    "taskConfidence": "low",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-multi-script-run",
+    "strategyName": "Legacy multi-script run",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-145823778Z-b5869355/scripts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-145823778Z-b5869355/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:247ba3fecdc708dcaf8bb46e0ece188f03d0ddf408c077e5ab18b5339b3d306c",
+    "promptText": "O cliente Estrela Lda (org. nº 890872492) reclamou sobre a fatura referente a \"Consultoria de dados\" (12000 NOK sem IVA). Emita uma nota de crédito completa que reverta toda a fatura.",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T14:58:23.780Z",
+    "completedAt": "2026-03-20T14:59:55.805Z",
+    "durationMs": 92025,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "ambiguous",
+    "source": "leaderboard-diff",
+    "confidence": "low",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id missing",
+        "legacy inference_status ambiguous",
+        "No legacy task id was present, so the bridge cannot map into the canonical registry.",
+        "legacy leaderboard diff_entry_count 2"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:409653dc6f3f10ec36fcd973ab90fde3a2514b2ced095b56810cc3242e9ec202",
+      "leaderboardAfterFingerprint": "lb-after:13fb2243322a0a1e201698b807924d54c4067d631254d334ae7e900be6ec917a",
+      "leaderboardDiffFingerprint": "lb-diff:b1cd63b14043f2c37724f66197bfb282420cab5c89972c0459cbcff0481b30dc"
+    },
+    "observedAt": "2026-03-20T15:03:01.865Z",
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T15:03:01.865Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "Legacy run had no tx_task_id, so no per-task score evidence can be assigned."
+    ],
+    "evidence": {
+      "notes": [
+        "Legacy run had no tx_task_id, so no per-task score evidence can be assigned."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-145823778Z-b5869355.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:03:01.865Z",
+      "sha256": "sha256:088a52efd82f65ec9dcc698903c8bc1346b7cc9d4988984aef0dc7bdb108041a",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-145823778Z-b5869355.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:03:01.865Z",
+      "sha256": "sha256:945beaf376748aa52559036253d77d8074bb7d7797566407997e1bf2ec455ad8",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from 2 non-sandbox legacy scripts; precise legacy strategy identity is intentionally left coarse.",
+      "No reliable canonical task mapping was available, so the run remains in a legacy unattributed bucket."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

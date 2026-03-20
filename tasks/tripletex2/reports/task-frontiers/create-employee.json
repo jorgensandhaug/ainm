@@ -1,0 +1,128 @@
+{
+  "reportSchemaVersion": "tripletex2.run-reports.v1",
+  "generatedAt": "2026-03-20T21:44:07.679Z",
+  "source": {
+    "runsDir": "runs",
+    "canonicalArtifactCount": 51,
+    "nativeArtifactCount": 19,
+    "legacyImportArtifactCount": 32,
+    "observedTaskCount": 13,
+    "registeredTaskCount": 17
+  },
+  "scoringPolicy": {
+    "taskBucketing": "Use attribution.attributedTaskId only when attribution.status is matched; otherwise keep the declared task.taskId.",
+    "bestKnownRanking": [
+      "Prefer taskSolved=true over unsolved or unknown outcomes.",
+      "When correctnessScore exists, higher correctnessScore ranks first.",
+      "When scoreTotal exists, higher scoreTotal ranks first.",
+      "Lower apiCallCount ranks ahead of higher apiCallCount when score metrics tie.",
+      "Direct scored evidence ranks above estimated evidence, which ranks above unscored runs when metrics tie or are absent.",
+      "Completed runs rank above failed, timeout, aborted, or not-run outcomes.",
+      "Lower durationMs breaks remaining ties.",
+      "Newer createdAt and then lexical runId make ties deterministic."
+    ],
+    "scoreEvidence": {
+      "scored": "Direct score evidence recorded in the canonical evaluation block.",
+      "estimated": "Estimated score evidence. This includes legacy leaderboard-delta imports and local estimates, and it is never counted as direct verification.",
+      "unscored": "No comparable score evidence was recorded in the canonical evaluation block."
+    }
+  },
+  "task": {
+    "taskId": "create-employee",
+    "taskName": "Create employee",
+    "status": "attempted-unscored",
+    "openReason": "Runs exist, but no comparable score evidence has been recorded yet.",
+    "bestKnownRun": {
+      "runId": "legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f",
+      "createdAt": "2026-03-20T20:11:51.100Z",
+      "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f.json",
+      "mode": "competition",
+      "origin": "legacy-import",
+      "strategyId": "legacy-tripletex1-script-create-employee",
+      "strategyName": "Legacy script create-employee.ts",
+      "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201151100Z-8fe4b18f/scripts/create-employee.ts",
+      "strategyStatus": "baseline",
+      "declaredTaskId": "create-employee",
+      "effectiveTaskId": "create-employee",
+      "attributionStatus": "matched",
+      "evidenceClass": "unscored",
+      "evaluationStatus": "not-available",
+      "evaluationSource": "competition-ui",
+      "scoreTotal": null,
+      "correctnessScore": null,
+      "tier": null,
+      "taskSolved": null,
+      "runtimeStatus": "completed",
+      "apiCallCount": 0,
+      "durationMs": 66133
+    },
+    "bestVerifiedRun": null,
+    "frontier": [
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f",
+        "createdAt": "2026-03-20T20:11:51.100Z",
+        "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f.json",
+        "origin": "legacy-import",
+        "mode": "competition",
+        "strategyId": "legacy-tripletex1-script-create-employee",
+        "strategyName": "Legacy script create-employee.ts",
+        "evidenceClass": "unscored",
+        "evaluationStatus": "not-available",
+        "evaluationSource": "competition-ui",
+        "scoreTotal": null,
+        "correctnessScore": null,
+        "tier": null,
+        "taskSolved": null,
+        "runtimeStatus": "completed",
+        "apiCallCount": 0,
+        "durationMs": 66133,
+        "declaredTaskId": "create-employee",
+        "attributionStatus": "matched",
+        "attributedTaskId": "create-employee"
+      }
+    ],
+    "strategyFrontier": [
+      {
+        "strategyId": "legacy-tripletex1-script-create-employee",
+        "strategyName": "Legacy script create-employee.ts",
+        "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201151100Z-8fe4b18f/scripts/create-employee.ts",
+        "strategyStatus": "baseline",
+        "runCount": 1,
+        "nativeRunCount": 0,
+        "legacyImportRunCount": 1,
+        "modes": [
+          "competition"
+        ],
+        "evidenceClasses": [
+          "unscored"
+        ],
+        "latestRunId": "legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f",
+        "bestKnownRun": {
+          "runId": "legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f",
+          "createdAt": "2026-03-20T20:11:51.100Z",
+          "artifactPath": "runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-201151100Z-8fe4b18f.json",
+          "mode": "competition",
+          "origin": "legacy-import",
+          "strategyId": "legacy-tripletex1-script-create-employee",
+          "strategyName": "Legacy script create-employee.ts",
+          "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-201151100Z-8fe4b18f/scripts/create-employee.ts",
+          "strategyStatus": "baseline",
+          "declaredTaskId": "create-employee",
+          "effectiveTaskId": "create-employee",
+          "attributionStatus": "matched",
+          "evidenceClass": "unscored",
+          "evaluationStatus": "not-available",
+          "evaluationSource": "competition-ui",
+          "scoreTotal": null,
+          "correctnessScore": null,
+          "tier": null,
+          "taskSolved": null,
+          "runtimeStatus": "completed",
+          "apiCallCount": 0,
+          "durationMs": 66133
+        },
+        "bestVerifiedRun": null
+      }
+    ]
+  }
+}

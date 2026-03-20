@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-153900671Z-45ae2eea",
+  "createdAt": "2026-03-20T15:39:00.672Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "create-project",
+    "taskName": "Create project",
+    "taskConfidence": "high",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-script-create-project",
+    "strategyName": "Legacy script create-project.ts",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-153900671Z-45ae2eea/scripts/create-project.ts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-153900671Z-45ae2eea/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:9b0097fedbcb6ecdda7d9a44c46b3674ec8271f4ce086b1150da5f430b71a4dd",
+    "promptText": "Crea el proyecto \"Actualización Dorada\" vinculado al cliente Dorada SL (org. nº 800043328). El director del proyecto es Carmen Rodríguez (carmen.rodriguez@example.org).",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T15:39:00.672Z",
+    "completedAt": "2026-03-20T15:39:49.947Z",
+    "durationMs": 49275,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "create-project",
+    "source": "leaderboard-diff",
+    "confidence": "high",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 08",
+        "legacy inference_status unique_attempt_delta",
+        "Observed runs consistently matched project creation prompts and script names.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:6ed49aaedd41aa15e61d74a4d6a0c1f55cd84dba281e84c7ff79fd898bb5115c",
+      "leaderboardAfterFingerprint": "lb-after:56cbab90f719616d1610d4e30b5a3a27539926b4efa8c7036f64d10b13e1b5c4",
+      "leaderboardDiffFingerprint": "lb-diff:c663fb5f1ae78a7a71b0b6cb2225877b7e5994c7b6f59e50946a196a2d61b015"
+    },
+    "observedAt": "2026-03-20T15:40:51.509Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "estimated",
+    "observedAt": "2026-03-20T15:40:51.509Z",
+    "source": "competition-ui",
+    "scoreTotal": 2,
+    "taskSolved": false,
+    "rawNotes": [
+      "Leaderboard best_score increased on the uniquely attributed task row, so the imported score is treated as an estimate of this run's score."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:b7fd0af68219741730316557574ae13e94105c7e3940c059b0cf8598a78fcc70",
+      "notes": [
+        "Leaderboard best_score increased on the uniquely attributed task row, so the imported score is treated as an estimate of this run's score."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-153900671Z-45ae2eea.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:40:51.509Z",
+      "sha256": "sha256:c3e29e4330af038b0a578d7e8bcc9ad54ac9a497e5949fd809bcc79e1d9a2f75",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-153900671Z-45ae2eea.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:40:51.509Z",
+      "sha256": "sha256:ea3d5aa83c3ea5d8ea35cf14d0a37186826a5bca4b4829150e3675df79123b4d",
+      "summary": "Sanitized legacy leaderboard evidence used to estimate a run score."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from the single non-sandbox legacy script create-project.ts."
+    ]
+  }
+}

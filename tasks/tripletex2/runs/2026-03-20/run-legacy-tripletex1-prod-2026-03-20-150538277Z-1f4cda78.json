@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78",
+  "createdAt": "2026-03-20T15:05:38.278Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "issue-full-credit-note",
+    "taskName": "Issue full credit note",
+    "taskConfidence": "high",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-script-create-credit-note",
+    "strategyName": "Legacy script create-credit-note.ts",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-150538277Z-1f4cda78/scripts/create-credit-note.ts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-150538277Z-1f4cda78/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:ee380f969b82dd9b1271d492a5b51090ae61f0f27f31e43a09b774af7a74561d",
+    "promptText": "Der Kunde Sonnental GmbH (Org.-Nr. 809303829) hat die Rechnung für \"Systementwicklung\" (10400 NOK ohne MwSt.) reklamiert. Erstellen Sie eine vollständige Gutschrift, die die gesamte Rechnung storniert.",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T15:05:38.278Z",
+    "completedAt": "2026-03-20T15:06:21.587Z",
+    "durationMs": 43309,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "issue-full-credit-note",
+    "source": "leaderboard-diff",
+    "confidence": "high",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 14",
+        "legacy inference_status unique_attempt_delta",
+        "Observed runs consistently matched full credit-note prompts and script names.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:eb2e7ec73d0ac36faa82e5abf059b2ce5e8c84efc8265b7393bd336e31c66c0c",
+      "leaderboardAfterFingerprint": "lb-after:940bf49d1bfea128e22b0e14eba16d603d1bfa729cd2428b050a139a9a08550f",
+      "leaderboardDiffFingerprint": "lb-diff:230fe59ff745a9a9e55581a5c40d8fda558c0cefcd9b31b4de950e434b8e2fc6"
+    },
+    "observedAt": "2026-03-20T15:07:22.510Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T15:07:22.510Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:78602260c3e566010643f3f9bd26e604ce4fedb612500ec3a957952176cdfac2",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:07:22.510Z",
+      "sha256": "sha256:0a58a2ae6c687889e487641aaabd319eed9a2ad5d2f9f7e61459d6811838acca",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-150538277Z-1f4cda78.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T15:07:22.510Z",
+      "sha256": "sha256:b14e8d6787bc81a22181ecf73bcba61a25051cdcee6fd87d33978f49a95c4940",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from the single non-sandbox legacy script create-credit-note.ts."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

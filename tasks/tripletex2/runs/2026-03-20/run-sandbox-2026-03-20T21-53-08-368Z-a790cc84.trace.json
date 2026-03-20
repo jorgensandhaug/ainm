@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "sandbox-2026-03-20T21-53-08-368Z-a790cc84",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-20T21:53:08.368Z",
+  "payload": {
+    "notes": [
+      "Captured 2 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 1,
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "id,name,organizationNumber",
+          "organizationNumber": "876520427"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 0,
+        "errorCode": "network-error",
+        "index": 2,
+        "method": "GET",
+        "path": "/ledger/vatType",
+        "query": {
+          "fields": "id,percentage",
+          "typeOfVat": "OUTGOING",
+          "vatDate": "2026-03-20"
+        },
+        "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+        "responseSummary": "network error"
+      }
+    ]
+  }
+}

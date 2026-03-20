@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-190852606Z-d16e2731",
+  "createdAt": "2026-03-20T19:08:52.606Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "reverse-customer-invoice-payment",
+    "taskName": "Reverse customer invoice payment",
+    "taskConfidence": "high",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-multi-script-run",
+    "strategyName": "Legacy multi-script run",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-190852606Z-d16e2731/scripts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-190852606Z-d16e2731/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:479b651bd586c097bba41e9f8383ed6ee5bb1ab99836d6d256495c513cc20945",
+    "promptText": "Betalingen fra Havbris AS (org.nr 998536561) for fakturaen \"Programvarelisens\" (32350 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T19:08:52.606Z",
+    "completedAt": "2026-03-20T19:09:45.182Z",
+    "durationMs": 52576,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "reverse-customer-invoice-payment",
+    "source": "leaderboard-diff",
+    "confidence": "high",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 18",
+        "legacy inference_status unique_attempt_delta",
+        "Observed runs consistently matched reversing customer invoice payments.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:e4908fb56ba3b5f3fb54e0d7d93ac997e87792c72140b96871d31ac9a629fe36",
+      "leaderboardAfterFingerprint": "lb-after:12c854f2f8225ab385a1a2394ba95ccee376a5d27c12f55a897a3856d5ed2506",
+      "leaderboardDiffFingerprint": "lb-diff:03dc79be13662aaf998247476371d369297383a57a956e1aacf3867b5d04cf96"
+    },
+    "observedAt": "2026-03-20T19:10:18.068Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T19:10:18.068Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:534f158a6556b5128dc55af9de2a0246198e3120131b01a350fc04a6f54d0082",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-190852606Z-d16e2731.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T19:10:18.068Z",
+      "sha256": "sha256:e7b04bb03bfaf5b9a0712f689dab16c1ea7e4bc8723c6fa2742c915622a2cb5e",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-190852606Z-d16e2731.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T19:10:18.068Z",
+      "sha256": "sha256:f2147be8ad860986407a56568f19b91f01034761b1345196912f7d1339cff86f",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from 2 non-sandbox legacy scripts; precise legacy strategy identity is intentionally left coarse."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

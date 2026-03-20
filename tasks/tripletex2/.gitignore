@@ -1,0 +1,18 @@
+# Beads task tracker local state
+.beads/
+.bv/
+
+# Mutable per-run staging (request snapshots, result pointers)
+data/
+
+# Scratch space for strategy comparison experiments
+tmp/
+
+# Internal orchestration learnings (not for handover)
+.learnings/
+
+# Tripletex OpenAPI spec (3.6MB, fetch from sandbox if needed)
+openapi.json
+
+# Node/Bun
+node_modules/

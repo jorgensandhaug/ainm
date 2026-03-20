@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "sandbox-create-and-send-invoice-2026-03-20T20-29-30-796Z-0d0ea1f3",
+  "createdAt": "2026-03-20T20:29:30.796Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "create-and-send-invoice",
+    "taskName": "Create and send invoice",
+    "taskConfidence": "high",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "create-and-send-invoice.order-then-invoice-send.v1",
+    "strategyName": "Order then invoice+send",
+    "strategyPath": "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-20-a",
+    "selectionConfigPath": "configs/active-strategies.json",
+    "requestedTaskId": "create-and-send-invoice"
+  },
+  "request": {
+    "requestFingerprint": "req:0d0ea1f309074a11fd2a167b38af46ef50cd8a89782b22b5fb1f0f59de06aee3",
+    "promptText": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "promptSummary": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "files": [],
+    "credentialSource": "fixture"
+  },
+  "input": {
+    "inputSchemaId": "create-and-send-invoice.v1",
+    "status": "resolved",
+    "source": "fixture",
+    "confidence": "high",
+    "value": {
+      "customerName": "Nordhav AS",
+      "lineDescription": "Analyserapport",
+      "organizationNumber": "876520427",
+      "quantity": 1,
+      "unitPriceExcludingVatNok": 7850
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-20T20:29:30.805Z",
+    "completedAt": "2026-03-20T20:29:30.809Z",
+    "durationMs": 4,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 3,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "id,name,organizationNumber",
+          "organizationNumber": "876520427"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200,
+        "durationMs": 0
+      },
+      {
+        "index": 2,
+        "method": "POST",
+        "path": "/order",
+        "requestSummary": "create order with customer, orderDate, orderLines",
+        "responseSummary": "orderId 7001",
+        "status": 200,
+        "durationMs": 0,
+        "entityIds": {
+          "orderId": 7001
+        }
+      },
+      {
+        "index": 3,
+        "method": "PUT",
+        "path": "/order/7001/:invoice",
+        "query": {
+          "invoiceDate": "2026-03-20",
+          "sendToCustomer": true
+        },
+        "requestSummary": "update invoice by invoiceDate, sendToCustomer",
+        "responseSummary": "invoiceId 9001",
+        "status": 200,
+        "durationMs": 0,
+        "entityIds": {
+          "invoiceId": 9001
+        }
+      }
+    ],
+    "result": {
+      "createdEntityIds": {
+        "customerId": 42,
+        "invoiceId": 9001,
+        "orderId": 7001
+      },
+      "notes": [],
+      "verification": {
+        "invoiceDate": "2026-03-20",
+        "invoiceNumber": 110045,
+        "sendToCustomerRequested": true
+      }
+    }
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-sandbox-create-and-send-invoice-2026-03-20T20-29-30-796Z-0d0ea1f3.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T20:29:30.796Z",
+      "sha256": "sha256:f6cd7e3f44d46cd4074ad92663499c8501c30806a1ba4b9c60f7513ab397affd",
+      "summary": "Sanitized trace for create-and-send-invoice.order-then-invoice-send.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Fixture-labeled sample run.",
+      "This first pipeline version only supports explicit task/input context or an injected classifierExtractor."
+    ]
+  }
+}

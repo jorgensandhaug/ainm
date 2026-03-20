@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-191309835Z-25dbb910",
+  "createdAt": "2026-03-20T19:13:09.837Z",
+  "mode": "competition",
+  "task": {
+    "taskId": "create-supplier",
+    "taskName": "Create supplier",
+    "taskConfidence": "medium",
+    "taskSource": "replay-label"
+  },
+  "strategy": {
+    "strategyId": "legacy-tripletex1-multi-script-run",
+    "strategyName": "Legacy multi-script run",
+    "strategyPath": "../tripletex/data/production/runs/prod-2026-03-20-191309835Z-25dbb910/scripts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "legacy-tripletex1-implicit-selection.v1",
+    "selectionConfigPath": "../tripletex/data/production/runs/prod-2026-03-20-191309835Z-25dbb910/manifest.json"
+  },
+  "request": {
+    "requestFingerprint": "req:cea7b8ff0f079d2fb078c3c81c4a4528edad6266f28a76feaa3643a860cef117",
+    "promptText": "Registrer leverandøren Bergvik AS med organisasjonsnummer 978783864. E-post: faktura@bergvik.no.",
+    "files": [],
+    "credentialSource": "legacy:request"
+  },
+  "input": {
+    "inputSchemaId": "legacy-tripletex1.request-only.v1",
+    "status": "ambiguous",
+    "source": "replay",
+    "issues": [
+      {
+        "code": "unsupported-request",
+        "message": "Legacy run import preserves sanitized request text but does not reconstruct canonical structured input fields."
+      }
+    ]
+  },
+  "execution": {
+    "startedAt": "2026-03-20T19:13:09.837Z",
+    "completedAt": "2026-03-20T19:13:51.097Z",
+    "durationMs": 41260,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "result": {
+      "notes": [
+        "Legacy import does not reconstruct normalized Tripletex API calls; apiCallCount/apiCalls remain unavailable in v1 imports."
+      ]
+    }
+  },
+  "attribution": {
+    "status": "matched",
+    "attributedTaskId": "create-supplier",
+    "source": "leaderboard-diff",
+    "confidence": "medium",
+    "evidence": {
+      "notes": [
+        "legacy Tripletex1 tx_task_id 04",
+        "legacy inference_status unique_attempt_delta",
+        "Most observed runs look like supplier creation, but at least one checked-in prompt ledger row on tx_task_id 04 is semantically closer to customer-invoice creation.",
+        "legacy leaderboard diff_entry_count 1"
+      ],
+      "leaderboardBeforeFingerprint": "lb-before:a47825f9bb4fe4dc4607d9becafc5fe79e95597c4bd9f343aa57b51a937ee7ed",
+      "leaderboardAfterFingerprint": "lb-after:b1ca807e91e60551b262cc29b2b2235f4dccecb96a6d68cc2612228e5999b0ba",
+      "leaderboardDiffFingerprint": "lb-diff:73759b593708054fda2d4d4dad75711189fe68682b41a7ac460af8552114366e"
+    },
+    "observedAt": "2026-03-20T19:14:25.212Z",
+    "taskIdMatchesDeclared": true,
+    "evidenceSidecarIds": [
+      "attrib-1"
+    ]
+  },
+  "evaluation": {
+    "status": "not-available",
+    "observedAt": "2026-03-20T19:14:25.212Z",
+    "source": "competition-ui",
+    "rawNotes": [
+      "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+    ],
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:047448d208670ab35b40f6ff02783117360dd9a904297c52eceb41f3c0cc85c9",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "evidenceSidecarIds": [
+      "score-1"
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "attrib-1",
+      "kind": "attribution-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-191309835Z-25dbb910.attribution.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T19:14:25.212Z",
+      "sha256": "sha256:c7d44eee76a05f4bbccf759e7b70ec58db08a4270e8145047783837713a40fae",
+      "summary": "Sanitized legacy attribution evidence: task-attribution metadata, bridge result, and leaderboard diff snapshots."
+    },
+    {
+      "sidecarId": "score-1",
+      "kind": "evaluation-evidence",
+      "path": "run-legacy-tripletex1-prod-2026-03-20-191309835Z-25dbb910.evaluation.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-20T19:14:25.212Z",
+      "sha256": "sha256:b490efff123cd0a6ce1ec5c5f23d05eb7bfdf6d24a7871577e109fad50f8edc9",
+      "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Imported from a legacy Tripletex1 per-run directory into canonical tripletex2 run-artifact.v1 format.",
+      "task.taskId is treated as a replay-time import label because legacy runs did not persist canonical pre-execution task routing.",
+      "Imported from 3 non-sandbox legacy scripts; precise legacy strategy identity is intentionally left coarse."
+    ],
+    "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+  }
+}

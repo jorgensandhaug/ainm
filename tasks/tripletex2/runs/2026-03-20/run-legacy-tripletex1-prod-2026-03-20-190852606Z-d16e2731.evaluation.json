@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "legacy-tripletex1-prod-2026-03-20-190852606Z-d16e2731",
+  "sidecarId": "score-1",
+  "kind": "evaluation-evidence",
+  "createdAt": "2026-03-20T19:10:18.068Z",
+  "payload": {
+    "runId": "legacy-tripletex1-prod-2026-03-20-190852606Z-d16e2731",
+    "summary": "Sanitized legacy leaderboard evidence showing why a run score could not be assigned reliably.",
+    "evidence": {
+      "leaderboardEntryFingerprint": "lb-entry:534f158a6556b5128dc55af9de2a0246198e3120131b01a350fc04a6f54d0082",
+      "notes": [
+        "The run produced a uniquely attributed attempt, but leaderboard best_score did not increase, so the exact run score remains unknown."
+      ]
+    },
+    "matchingDiff": {
+      "tx_task_id": "18",
+      "attempt_delta": 1,
+      "best_score_before": 4,
+      "best_score_after": 4,
+      "last_attempt_before": "2026-03-20T19:08:50.231800+00:00",
+      "last_attempt_after": "2026-03-20T19:09:53.087705+00:00",
+      "total_attempts_before": 8,
+      "total_attempts_after": 9
+    },
+    "beforeEntry": {
+      "tx_task_id": "18",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 8,
+      "last_attempt_at": "2026-03-20T19:08:50.231800+00:00"
+    },
+    "afterEntry": {
+      "tx_task_id": "18",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 9,
+      "last_attempt_at": "2026-03-20T19:09:53.087705+00:00"
+    }
+  }
+}
