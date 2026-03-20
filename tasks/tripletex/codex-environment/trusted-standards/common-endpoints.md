@@ -38,6 +38,18 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
   - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
 
+## Division
+- `/division`
+  - `GET` search
+  - `POST` create
+- `/division/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard prerequisite note:
+  - division is not part of the default employee-create fast path
+  - resolve one existing `/division?count=1&fields=*` only when a live validation branch explicitly requires `employments[].division.id`
+
 ## Employee
 - `/employee`
   - `GET` search
@@ -53,11 +65,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create fast-path note:
   - for the exact create-one-employee shape with prompt-provided name, birth date, email, and start date, the lower-call default is `POST /employee` first with explicit `userType` and nested `employments`
   - 2026-03-20 production re-confirmed that when that first write succeeds in a fresh account, the minimum safe path is usually `2` calls total: the `POST /employee` write plus one decisive `GET /employee/employment?employeeId=...&fields=*`
-  - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422 department.id`
+  - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422` where `validationMessages[].field == "department.id"`
   - if that department repair read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload and retry the same employee create once
-  - if the employee create then fails with `422 employments.division.id`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
+  - if the employee create then fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
 - Standard verification note:
   - a successful `POST /employee` can still echo `userType: null` plus `employments[]` as link-only objects without `startDate`
+  - do not branch on the generic top-level `422 message`; current proven employee-create repair routing depends on `validationMessages[].field`
   - when the prompt scores employment start date, `GET /employee/employment?employeeId=...&fields=*` is the decisive verification read unless the create response unexpectedly already includes the actual `startDate`
   - do not try to save that verification read by trusting the write request itself on a start-date-scored task; that is still an unproven gamble rather than the trusted minimum safe path
 - Standard payroll note:

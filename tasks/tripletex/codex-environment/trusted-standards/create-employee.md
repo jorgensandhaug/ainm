@@ -18,9 +18,9 @@
 
 ## Standard Flow
 1. `POST /employee` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
-2. if that write fails with `422` on `department.id`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, reuse the returned active department id, and retry once
+2. if that write fails with `422` where `validationMessages[].field == "department.id"`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, reuse the returned active department id, and retry once
 3. if the department repair branch finds no active department and department is clearly required, `POST /department` with a minimal name-only payload, then retry the same employee create once with that new department id
-4. if the employee write fails with `422` on `employments.division.id`, do one decisive `GET /division?count=1&fields=*`, reuse the returned division id inside the nested employment row, and retry once
+4. if the employee write fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*`, reuse the returned division id inside the nested employment row, and retry once
 5. if scored fields are fully proven by the successful write response, stop
 6. if employment start date is scored but the create response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
 
@@ -30,6 +30,11 @@
 - do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
 - if prompt/task requires a user type/role field, include explicit `userType`
 - do not invent personal data not given by prompt
+
+## Validation Rules
+- do not branch on the generic top-level `422 message`; it can stay `Validering feilet.` across different failures
+- for employee-create repair branches, key off `validationMessages[].field`
+- the current proven repair fields are `department.id` and `employments.division.id`
 
 ## Reuse From Write Response
 - `value.id`
@@ -52,3 +57,4 @@
 - sparse-employment, department, and division gotchas documented from prior verified runs
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches, while scored production feedback the same day showed that automatic pre-reading of `department` can overpay calls on accounts that do not require it
 - scored production re-verification on 2026-03-20 for `Miguel Sánchez` confirmed the fresh-account winning branch: direct `POST /employee` succeeded without department or division repair, and one follow-up `GET /employee/employment?employeeId=...&fields=*` was still needed because the successful write response did not prove the requested `startDate`
+- persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`

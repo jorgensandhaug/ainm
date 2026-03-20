@@ -38,8 +38,9 @@ Scored production re-verification on 2026-03-20 for `Miguel Sánchez` showed:
 
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
-- missing `department.id`: `Feltet må fylles ut.`
-- missing `employments.division.id`: `Arbeidsforholdet må knyttes til en virksomhet/underenhet.`
+- missing `department.id`: `validationMessages[].field == "department.id"` with message `Feltet må fylles ut.`
+- missing `employments.division.id`: `validationMessages[].field == "employments.division.id"` with message `Arbeidsforholdet må knyttes til en virksomhet/underenhet.`
+- top-level `message` can stay the same generic `Validering feilet.` across both repair branches
 
 ## Minimal Safe Flow
 
@@ -49,12 +50,12 @@ Observed validation messages:
    - explicit `userType`
    - nested `employments: [{ "startDate": "YYYY-MM-DD" }]` if the prompt includes start date
 3. `POST /employee`
-4. If that write fails with `422 department.id`, resolve department in one decisive read:
+4. If that write fails with `422` where `validationMessages[].field == "department.id"`, resolve department in one decisive read:
    - `GET /department?isInactive=false&count=1&fields=*`
    - if an active department exists, reuse its `id`
    - if none exists and department is clearly required, `POST /department` with a minimal name and reuse the returned `id`
 5. Retry `POST /employee` with `department: { "id": ... }`
-6. If that write fails with `422 employments.division.id`, resolve one division:
+6. If that write fails with `422` where `validationMessages[].field == "employments.division.id"`, resolve one division:
    - `GET /division?count=1&fields=*`
    - retry `POST /employee` with `division: { "id": ... }` inside the same nested employment row
 7. Verify from the successful write response what it actually returns
@@ -91,10 +92,10 @@ Use ISO dates. Normalize any localized prompt date first.
      - `email`
      - `userType: "NO_ACCESS"`
      - `employments: [{ "startDate": "YYYY-MM-DD" }]`
-  2. if the write fails with `422 department.id`, do `GET /department?isInactive=false&count=1&fields=*`
+  2. if the write fails with `422` where `validationMessages[].field == "department.id"`, do `GET /department?isInactive=false&count=1&fields=*`
   3. if that department read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload
   4. retry `POST /employee` with `department: { "id": ... }`
-  5. if the write then fails with `422 employments.division.id`, do `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
+  5. if the write then fails with `422` where `validationMessages[].field == "employments.division.id"`, do `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
   6. Inspect `response.value`
   7. If `response.value.employments` does not already include the actual `startDate`, do one decisive `GET /employee/employment?employeeId=<newId>&fields=*`
 - When step `1` succeeds directly in a fresh account, treat step `7` as the normal minimum safe second call for a start-date-scored task; do not try to save it unless the write response unexpectedly already contains the real `startDate`
@@ -119,6 +120,7 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not assume department is optional just because the schema has no `required` list
 - Do not default to `GET /department` before the first create attempt for an exact create-only task; that can waste a call on accounts that accept the write directly
 - Do not assume `division` is never needed just because older sandbox runs accepted employments without it
+- Do not branch on `422 message == "Validering feilet."` or on `Feltet må fylles ut.` alone; inspect `validationMessages[].field` before spending department/division repair calls
 - Do not jump straight to `POST /employee/employment` before first trying nested `employments` on create
 - Do not spend extra reads on employee lookup for a pure create task
 - Do not treat `response.value.userType === null` as proof that the create failed or that `NO_ACCESS` was rejected
