@@ -95,6 +95,7 @@ Authentication:
 | Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
+| Register travel expense | `./trusted-standards/register-travel-expense.md` |
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
@@ -116,6 +117,7 @@ Authentication:
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
+| Register travel expense | `./task-playbooks/register-travel-expense.md` |
 
 ## Common Endpoints
 - Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
@@ -127,7 +129,7 @@ Authentication:
 - `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
 - `/invoice`, `/invoice/{id}`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, and `/invoice/paymentType` — invoice create/search/read/payment/send/payment-type lookup
 - `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
-- `/travelExpense` and `/travelExpense/{id}` — travel-expense create/search/update/delete
+- `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` — travel-expense create/search/update/delete plus child-line and lookup endpoints
 - `/ledger/account` and `/ledger/account/{id}` — chart-of-accounts search/create/update/delete
 - `/ledger/posting` — ledger postings search/read
 - `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
@@ -232,6 +234,9 @@ Authentication:
 - `GET /invoice/paymentType` can also return perfectly usable incoming payment types with `creditAccount=null`. Do not reject `Betalt til bank` just because there is no `15xx` credit account in the response; prefer a payment type whose debit account is `19xx` and marked `isBankAccount=true` or `isInvoiceAccount=true`.
 - If a multi-step order/invoice/payment flow already created the order and invoice but failed before payment registration, do not restart from `POST /order`. Resume by locating the unpaid invoice with one decisive `GET /invoice` and finish the payment on that existing invoice.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
+- Travel-expense create tasks can use one embedded `POST /travelExpense` for the parent expense plus cost/per-diem lines, but embedded `costs[]` require `amountCurrencyIncVat` even when `amountNOKInclVAT` is present.
+- In that same embedded travel-expense flow, `perDiemCompensations[]` can fail with `Kun kostnader kan registreres uten kompensasjon etter satser.` unless `travelDetails.isCompensationFromRates=true`.
+- `POST /travelExpense` and `GET /travelExpense/{id}?fields=*` can both return `costs[]` and `perDiemCompensations[]` as link-only `id`/`url`; for exact child verification use `GET /travelExpense/cost?travelExpenseId=...&fields=*` and `GET /travelExpense/perDiemCompensation?travelExpenseId=...&fields=*`.
 - Do not default supplier-invoice registration to `POST /incomingInvoice`; follow-up verification on 2026-03-20 showed that endpoint can fail with `403 You do not have permission to access this feature.` on an ordinary account even when generic ledger-voucher booking is allowed.
 - In the supplier-invoice fast path, `POST /supplier` can already return the supplier ledger account id. Reuse `supplier.ledgerAccount.id` for the `2400` liability posting instead of spending an extra `GET /ledger/account?number=2400`.
 - For supplier-invoice registration through `POST /ledger/voucher`, resolve VAT from `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`, not `INCOMING_INVOICE`; the standard deductible 25% code can be present in `INCOMING` while missing from `INCOMING_INVOICE`.

@@ -121,6 +121,25 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET` read
   - `PUT` update
   - `DELETE` delete
+- `/travelExpense/cost`
+  - `GET` search child costs
+  - `POST` create child cost
+- `/travelExpense/perDiemCompensation`
+  - `GET` search child per-diem rows
+  - `POST` create child per-diem row
+- `/travelExpense/costCategory`
+  - `GET` lookup travel cost categories
+- `/travelExpense/paymentType`
+  - `GET` lookup travel payment types
+- Standard create prerequisites:
+  - employee id
+  - travel payment type id
+  - travel cost category id for each cost row
+  - if per diem is included, `travelDetails.isCompensationFromRates=true`
+- Standard fast-path note:
+  - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
+- Standard verification note:
+  - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`; use `/travelExpense/cost?...` and `/travelExpense/perDiemCompensation?...` for exact child verification
 - Related action family also exists:
   - `/travelExpense/{id}/:deliver`
   - `/travelExpense/{id}/:approve`
