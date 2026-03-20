@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez et envoyez une facture au client Lumière SARL (nº org. 959714320) de 34100 NOK hors TVA. La facture concerne Stockage cloud.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "nvXE0AeQDmfYKG6xbBn3gw9u_fLLTmLylGoj-q4O47M"
+  }
+}

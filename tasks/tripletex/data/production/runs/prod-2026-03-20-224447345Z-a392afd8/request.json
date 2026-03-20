@@ -1,0 +1,8 @@
+{
+  "prompt": "Temos um novo funcionário chamado João Rodrigues, nascido em 5. September 1980. Crie-o como funcionário com o e-mail joao.rodrigues@example.org e data de início 8. August 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "m7_tdeopoLrdBdcs5K7XR_MZy8EyaVuZO_RxEEWgXuk"
+  }
+}

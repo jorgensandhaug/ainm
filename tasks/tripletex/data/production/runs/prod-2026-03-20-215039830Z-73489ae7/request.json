@@ -1,0 +1,8 @@
+{
+  "prompt": "Registre una nota de gastos de viaje para María Hernández (maria.hernandez@example.org) por \"Visita cliente Bergen\". El viaje duró 4 días con dietas (tarifa diaria 800 NOK). Gastos: billete de avión 7800 NOK y taxi 600 NOK.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "a210c3IUp_S9VCJUmCuNTD4nAB2LUx6GEsdXBnjFayw"
+  }
+}

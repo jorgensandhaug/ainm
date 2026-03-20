@@ -1,0 +1,8 @@
+{
+  "prompt": "We have a new employee named Thomas Harris, born 4. June 1991. Please create them as an employee with email thomas.harris@example.org and start date 6. October 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "W1uwscuGTJMiKWeRy0S-Ke6PrPLWsf9WXYTiXTn0CaQ"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez le projet \"Migration Lumière\" lié au client Lumière SARL (nº org. 849572458). Le chef de projet est Nathan Dubois (nathan.dubois@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "aq3Qd4xwqCa_7RVUpaYIL1W8pC7LwNqMaZLtcHfna1E"
+  }
+}

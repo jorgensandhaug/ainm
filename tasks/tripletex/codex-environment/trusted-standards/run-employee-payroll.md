@@ -132,6 +132,7 @@
   - `GET /ledger/account?number=5000,1920&fields=*`
   - `POST /ledger/voucher`
 - if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt does not explicitly allow manual vouchers, stop blocked after those two calls; do not spend `GET /salary/type`
+- do not try to rescue that exact no-division non-voucher branch with a speculative minimal `POST /division`; persistent sandbox follow-up on 2026-03-20 showed that name-only create fails `422` and requires `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`, which the exact payroll prompt does not provide
 - if `POST /salary/transaction` fails with `department: Selskapet har ikke aktivert avdelingsregnskap.`, remove `department` from the salary payload and retry once
 - if `GET /salary/type`, `GET /salary/settings`, or `POST /salary/transaction` fails with a live `403`, investigate feature state; do not assume the employee-precondition branch and the feature-access branch are the same problem
 - if there is still no usable division and the prompt does not explicitly allow manual vouchers, or the prompt explicitly scores employee master data, treat the run as blocked rather than guessing additional employee fields beyond the placeholder birth date
@@ -144,6 +145,7 @@
 - do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - do not include `department` blindly
 - when the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
+- do not assume `POST /division` with only a generated name is a low-risk escape hatch after that zero-row division result; live sandbox validation proved extra required fields that the exact payroll prompt and standard reads do not supply
 - do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - do not rely on `GET /salary/payslip/{id}?fields=*` alone for exact per-line verification
 
@@ -186,6 +188,10 @@
   - the next decisive `GET /division?count=1&fields=*` returned zero rows
   - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
   - in that exact branch, any added `GET /salary/type` would have been a wasted read
+- persistent sandbox follow-up on 2026-03-20 tested the tempting division-create escape hatch for that blocker branch:
+  - minimal `POST /division` with only `name` failed `422`
+  - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
+  - so there is still no trusted low-risk division-create fallback for the exact payroll prompt shape when `GET /division?count=1&fields=*` returns zero rows and the prompt does not explicitly allow manual vouchers
 - persistent sandbox re-verification on 2026-03-20 for that fallback path showed:
   - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
   - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`

@@ -1,0 +1,5 @@
+Yes.
+
+The run did submit one attempt for task `11`, but the scorer still recorded `best_score_after: 0`, so the final Tripletex state did not match the expected state. Evidence: [leaderboard.diff.json](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-202623091Z-aa17fe23/leaderboard.diff.json) and [task-attribution.json](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-202623091Z-aa17fe23/task-attribution.json).
+
+I did create something in Tripletex, `voucherId 608848363`, but it was wrong for scoring purposes. I do not have a field-by-field scorer diff in the run artifacts, so I cannot prove which field missed. Inference: a `0/8` on a successful write usually means wrong target object/workflow or a duplicate/wrong-linked supplier, not just one small field typo.

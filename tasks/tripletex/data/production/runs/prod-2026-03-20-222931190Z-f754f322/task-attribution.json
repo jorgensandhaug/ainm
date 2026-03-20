@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222931190Z-f754f322",
+  "request_id": "d867d8f1",
+  "prompt_raw": "Kunden Brattli AS (org.nr 909268265) har en utestående faktura på 31300 kr eksklusiv MVA for \"Konsulenttimer\". Registrer full betaling på denne fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:30:30.990Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:29:31.248Z",
+  "after_captured_at": "2026-03-20T22:31:01.774Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:31:01.775Z"
+}

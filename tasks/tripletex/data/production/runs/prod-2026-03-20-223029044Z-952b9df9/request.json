@@ -1,0 +1,8 @@
+{
+  "prompt": "Le client Montagne SARL (nº org. 882988155) a réclamé concernant la facture pour \"Heures de conseil\" (40900 NOK HT). Émettez un avoir complet qui annule l'intégralité de la facture.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "W_LHi2usM1uEPAmgILeZ3geRYiQP8p0HyPP4uJ4Mckk"
+  }
+}

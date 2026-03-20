@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Region\" mit den Werten \"Vestlandet\" und \"Midt-Norge\". Buchen Sie dann einen Beleg auf Konto 6540 über 8600 NOK, verknüpft mit dem Dimensionswert \"Vestlandet\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "xJEZylyxgMVDyXcRpQraAhwX2F-7bQh1Vk0EzzEAd-E"
+  }
+}

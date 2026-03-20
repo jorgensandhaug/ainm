@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222256435Z-dc56af49",
+  "request_id": "fb784036",
+  "prompt_raw": "Crie o produto \"Sessão de formação\" com número de produto 6378. O preço é 37050 NOK sem IVA, utilizando a taxa padrão de 25 %.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:23:23.889Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:22:56.487Z",
+  "after_captured_at": "2026-03-20T22:23:54.125Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:23:54.126Z"
+}

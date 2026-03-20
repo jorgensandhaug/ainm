@@ -1,0 +1,8 @@
+{
+  "prompt": "Registre una nota de gastos de viaje para Miguel Pérez (miguel.perez@example.org) por \"Visita cliente Tromsø\". El viaje duró 5 días con dietas (tarifa diaria 800 NOK). Gastos: billete de avión 2600 NOK y taxi 800 NOK.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Y_LrooX7a0FdYXKlqikKDhTh8n8Wqf57f193rzBmVRA"
+  }
+}

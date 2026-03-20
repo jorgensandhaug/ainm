@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-220623442Z-71f64784",
+  "request_id": "29145676",
+  "prompt_raw": "Betalingen fra Polaris AS (org.nr 896496468) for fakturaen \"Skylagring\" (17200 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:07:21.861Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:06:23.493Z",
+  "after_captured_at": "2026-03-20T22:07:52.131Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T22:07:52.132Z"
+}

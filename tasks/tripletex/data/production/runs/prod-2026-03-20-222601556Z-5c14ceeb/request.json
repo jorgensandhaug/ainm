@@ -1,0 +1,8 @@
+{
+  "prompt": "El cliente Solmar SL (org. nº 866440034) tiene una factura pendiente de 30000 NOK sin IVA por \"Almacenamiento en la nube\". Registre el pago completo de esta factura.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "HsNNrzT3-nKTEGyyDEv2lU32oMQNNVHW38g6X7tZYi8"
+  }
+}

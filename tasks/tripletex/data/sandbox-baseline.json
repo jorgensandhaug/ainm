@@ -1,14 +1,10 @@
 {
-  "captured_at": "2026-03-19T19:18:19.974Z",
+  "captured_at": "2026-03-20T21:40:00.000Z",
   "base_url": "https://kkpqfuj-amager.tripletex.dev/v2",
   "resources": {
     "customers": [],
-    "departments": [
-      837842
-    ],
-    "employees": [
-      18441996
-    ],
+    "departments": [],
+    "employees": [],
     "products": [],
     "projects": [],
     "travelExpenses": [],

@@ -55,18 +55,26 @@ Verified on 2026-03-20:
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
 - a fourth production run on 2026-03-20 again succeeded in the same two API calls for:
-  - `customer.organizationNumber=991882502`
-  - `amountExcludingVatCurrency=13100`
-  - `description="Opplæring"`
+  - `customer.organizationNumber=882988155`
+  - `amountExcludingVatCurrency=40900`
+  - `description="Heures de conseil"`
 - that fourth production run was also already minimal-call for this prompt shape:
   - no `GET /customer`
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
 - a fifth production run on 2026-03-20 again succeeded in the same two API calls for:
+  - `customer.organizationNumber=991882502`
+  - `amountExcludingVatCurrency=13100`
+  - `description="Opplæring"`
+- that fifth production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+- a sixth production run on 2026-03-20 again succeeded in the same two API calls for:
   - `customer.organizationNumber=962075754`
   - `amountExcludingVatCurrency=30200`
   - `description="Analysebericht"`
-- that fifth production run was also already minimal-call for this prompt shape:
+- that sixth production run was also already minimal-call for this prompt shape:
   - no `GET /customer`
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
@@ -89,6 +97,8 @@ Verified on 2026-03-20:
   - on that exact-identifier fixture, the locate read still showed duplicate `Maintenance` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
   - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800` again proved the same two-call core after setup
   - on that exact-identifier French fixture, the locate read still showed duplicate `Conseil en données` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
+  - a disposable sandbox analog matching this production task shape with exact `description="Heures de conseil"` and `amountExcludingVatCurrency=40900` again proved the same two-call core after setup
+  - on that `Heures de conseil` analog, the decisive locate read uniquely matched the fixture invoice by organization number + exact amount + exact line description, the same description still appeared across top-level and nested line arrays on the same invoice, and the `:createCreditNote` write returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and still needed no follow-up read
   - a disposable sandbox analog matching this production task shape with exact `description="Opplæring"` and `amountExcludingVatCurrency=13100` again proved the same two-call core after setup
   - on that `Opplæring` analog, the decisive locate read uniquely matched the fixture invoice by organization number + exact amount + exact line description, and the `:createCreditNote` write returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and still needed no follow-up read
   - a disposable sandbox analog matching this production task shape with exact `description="Analysebericht"` and `amountExcludingVatCurrency=30200` again proved the same two-call core after setup

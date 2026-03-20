@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-212635480Z-9c16fc5f",
+  "request_id": "0f576d29",
+  "prompt_raw": "Ejecute la nómina de Marta Torres (marta.torres@example.org) para este mes. El salario base es de 50400 NOK. Añada una bonificación única de 7050 NOK además del salario base.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T21:30:07.309Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T21:26:35.533Z",
+  "after_captured_at": "2026-03-20T21:30:37.481Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "12",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T21:30:37.482Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-221935135Z-67b1e44b",
+  "request_id": "bf35502c",
+  "prompt_raw": "Registe 15 horas para Leonor Silva (leonor.silva@example.org) na atividade \"Analyse\" do projeto \"Auditoria de segurança\" para Porto Alegre Lda (org. nº 976689283). Taxa horária: 1650 NOK/h. Gere uma fatura de projeto ao cliente com base nas horas registadas.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:21:18.517Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:19:35.338Z",
+  "after_captured_at": "2026-03-20T22:21:49.751Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:21:49.752Z"
+}

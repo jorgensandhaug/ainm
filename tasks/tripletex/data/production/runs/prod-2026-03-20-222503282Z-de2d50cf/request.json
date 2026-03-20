@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez le produit \"Maintenance\" avec le numéro de produit 1327. Le prix est de 3700 NOK hors TVA, avec le taux standard de 25 %.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "0Ex3FmbuTdMUA5wrhQN9oxnClqEbiF3XOX8QVYZZGTo"
+  }
+}

@@ -57,6 +57,10 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - the next decisive `GET /division?count=1&fields=*` returned zero rows
   - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
   - in that exact branch, any added `GET /salary/type` would have been a wasted read
+- persistent sandbox follow-up on 2026-03-20 tested whether a speculative division-create fallback could beat that blocker branch:
+  - minimal `POST /division` with only `name` failed `422`
+  - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
+  - that means the exact payroll prompt still does not expose a safe low-call division-create recovery path once `GET /division?count=1&fields=*` returns zero rows
 
 ## Minimal Safe Flow
 
@@ -86,6 +90,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 5. If the employee read already shows the exact underconfigured branch `dateOfBirth=null` plus `employments=[]`, do one decisive `GET /division?count=1&fields=*` before any salary-type lookup
    - a zero-row division result already proves the payroll repair branch is impossible in that account
    - if the prompt explicitly allows manual vouchers, use that same decisive division result to branch straight into the voucher fallback without spending `GET /salary/type`
+   - do not try a speculative minimal `POST /division` rescue there; live sandbox validation showed that name-only create still requires `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
 6. Resolve salary types with one read once the employee is payroll-ready already or the repair branch is still feasible
    - `GET /salary/type?count=1000&fields=*`
    - exact-match the needed type names locally, typically `Fastlønn` and `Bonus`
@@ -247,5 +252,6 @@ Replace the ids and amounts with the task-specific values.
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
 - When the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
+- Do not assume `POST /division` with only a generated name is a viable shortcut after that zero-row division result; persistent sandbox follow-up showed extra required fields that the exact payroll prompt and default reads do not provide
 - Do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - Do not rely on `GET /salary/payslip/{id}?fields=*` alone when the task scores the exact manual salary-line contents

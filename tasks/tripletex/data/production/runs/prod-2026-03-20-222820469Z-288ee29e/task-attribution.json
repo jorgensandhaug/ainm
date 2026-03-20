@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222820469Z-288ee29e",
+  "request_id": "b0ef97c4",
+  "prompt_raw": "Set a fixed price of 498050 NOK on the project \"CRM Integration\" for Ridgepoint Ltd (org no. 844419856). The project manager is George Walker (george.walker@example.org). Invoice the customer for 50% of the fixed price as a milestone payment.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:30:11.911Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:28:20.955Z",
+  "after_captured_at": "2026-03-20T22:30:43.096Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:30:43.096Z"
+}

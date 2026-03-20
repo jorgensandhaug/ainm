@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett ein fri rekneskapsdimensjon \"Marked\" med verdiane \"Offentlig\" og \"Privat\". Bokfør deretter eit bilag på konto 6340 for 25200 kr, knytt til dimensjonsverdien \"Offentlig\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Jlp2225tLmWL7pd2sJ7tQf4r9XHh9PIUd7Ftcwkn0jA"
+  }
+}

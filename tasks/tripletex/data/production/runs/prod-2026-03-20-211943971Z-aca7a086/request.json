@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie e envie uma fatura ao cliente Porto Alegre Lda (org. nº 842889154) por 11200 NOK sem IVA. A fatura refere-se a Consultoria de dados.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "_8GKl8er9If9_YOz0PCLwaPBgeCM9mTmHT3a8SIF_EU"
+  }
+}

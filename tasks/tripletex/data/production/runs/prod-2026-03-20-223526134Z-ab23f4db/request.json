@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett ein ordre for kunden Vestfjord AS (org.nr 970769994) med produkta Nettverksteneste (3237) til 13450 kr og Analyserapport (4609) til 14200 kr. Konverter ordren til faktura og registrer full betaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "6lJ7skQ24IdpBSx2FNsKGCFLKZ4dcZMN9pPO0Fqbh1k"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Registe 23 horas para Tiago Santos (tiago.santos@example.org) na atividade \"Analyse\" do projeto \"Integração de plataforma\" para Floresta Lda (org. nº 889395338). Taxa horária: 1050 NOK/h. Gere uma fatura de projeto ao cliente com base nas horas registadas.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "0g2_rv0j3NMAyfGRvNn3lWivaK0FjsagAWJiOcWLJJ0"
+  }
+}

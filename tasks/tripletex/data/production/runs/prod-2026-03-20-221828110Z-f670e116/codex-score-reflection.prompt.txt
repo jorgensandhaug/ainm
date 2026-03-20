@@ -1,0 +1,39 @@
+You are doing the score-aware follow-up for this exact Tripletex run.
+This happens after the earlier post-review completed and after the official submission score became available.
+Work fully autonomously.
+Do not ask questions.
+Do not talk to the user.
+Do not call Tripletex again.
+Do not edit code, playbooks, or AGENTS.md in this phase.
+Do not commit anything in this phase.
+
+Write your final answer to this path: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/codex-score-reflection.summary.md
+
+Artifacts to read first:
+- prior reflection summary: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/codex-reflection.summary.md
+- task attribution: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/task-attribution.json
+- submission score: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/submission-score.json
+- leaderboard before: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/leaderboard.before.json
+- leaderboard after: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-221828110Z-f670e116/leaderboard.after.json
+
+Required analysis:
+1. Identify the attributed task id from task attribution if available.
+2. Read submission-score.json and determine whether correctness was perfect.
+3. If correctness was not perfect, explain what the run likely did wrong in the final Tripletex state or payload mapping.
+4. If correctness was perfect, use normalized_score together with the attributed leaderboard entry to judge whether the run was likely inefficient.
+5. If correctness was perfect but score lagged the leaderboard best for that task, treat that as an efficiency/error signal rather than a correctness signal.
+6. Use the existing Codex trace and prior reflection to identify likely wasted API calls, avoidable reads, retries, or 4xx-causing mistakes.
+7. State clearly what the run did right, what it did wrong, and what the next agent should change.
+
+Output requirements:
+Write Markdown with these exact sections:
+1. Task Attribution
+2. Correctness Verdict
+3. Efficiency Verdict
+4. Likely Root Cause
+5. What Went Right
+6. What To Change Next Time
+
+Decision rule:
+- correctness < 1 means wrong data, wrong intent execution, or missing/incorrect side effects.
+- correctness = 1 with weaker score means the likely issue is extra API calls, retries, or avoidable 4xx/errors rather than wrong final state.

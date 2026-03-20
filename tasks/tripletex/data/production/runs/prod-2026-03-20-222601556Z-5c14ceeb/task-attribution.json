@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222601556Z-5c14ceeb",
+  "request_id": "2b59a1ac",
+  "prompt_raw": "El cliente Solmar SL (org. nº 866440034) tiene una factura pendiente de 30000 NOK sin IVA por \"Almacenamiento en la nube\". Registre el pago completo de esta factura.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:27:20.028Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:26:02.165Z",
+  "after_captured_at": "2026-03-20T22:27:51.564Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:27:51.565Z"
+}

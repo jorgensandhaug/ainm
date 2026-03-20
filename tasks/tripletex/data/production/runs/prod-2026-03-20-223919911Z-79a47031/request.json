@@ -1,0 +1,8 @@
+{
+  "prompt": "Le client Montagne SARL (nº org. 913245539) a une facture impayée de 36450 NOK hors TVA pour \"Session de formation\". Enregistrez le paiement intégral de cette facture.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "W9DIqd87aJ6UY8r8QW1XsWKjvm78fAybh46lDEKTw1o"
+  }
+}

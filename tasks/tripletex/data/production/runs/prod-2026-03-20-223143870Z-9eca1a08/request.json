@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea tres departamentos en Tripletex: \"Lager\", \"Økonomi\" y \"Drift\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "zYaCWIMYS7Mbt_cF_JUU8rg1-PrSKr7hvUKiLbBpobY"
+  }
+}

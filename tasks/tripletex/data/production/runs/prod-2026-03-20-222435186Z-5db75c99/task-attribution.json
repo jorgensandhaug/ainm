@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222435186Z-5db75c99",
+  "request_id": "c4488706",
+  "prompt_raw": "Registre 39 horas para Diego Sánchez (diego.sanchez@example.org) en la actividad \"Analyse\" del proyecto \"Desarrollo de app\" para Olivares SL (org. nº 980551709). Tarifa por hora: 1450 NOK/h. Genere una factura de proyecto al cliente basada en las horas registradas.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:27:37.291Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:24:35.416Z",
+  "after_captured_at": "2026-03-20T22:28:07.553Z",
+  "diff_entry_count": 6,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:28:07.554Z"
+}

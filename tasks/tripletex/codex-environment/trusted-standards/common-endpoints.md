@@ -325,16 +325,19 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create-and-send note:
   - `POST /invoice` defaults `sendToCustomer=true`
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
+  - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
+  - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
+  - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`
+  - if that first `POST /invoice` fails only on the missing-company-bank-account validation, the conditional repair remains `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` on the existing invoice account with minimal payload `{ "bankAccountNumber": "12345678903" }` -> retry the same `POST /invoice` once
+  - do not waste calls on an improvised locally generated bank-account number for that repair branch; one bad `PUT /ledger/account/{id}` only turns the standard 6-call repair path into a rerun
+  - if the customer create already succeeded but process state is lost before the repaired retry, resume on the existing-customer branch rather than attempting `POST /customer` again
+  - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
+  - for ordinary direct-line service prompts explicitly priced excluding VAT / MVA, the same 3-call path is still the safe minimum, but the VAT selector must pick an exact `25%` row from the filtered outgoing result; if the filtered read exposes only `0%`, treat the run as blocked in that account instead of sending a `0%` invoice
 - Standard payment note:
   - `PUT /order/{id}/:invoice` supports combined prepayment through query params `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
   - for the exact order-to-invoice-to-full-payment task shape, the lower-call path is to resolve one incoming `paymentTypeId` before invoicing, then pass a minimal positive `paidAmount` seed and the same id as `paymentTypeIdRestAmount`
   - in persistent sandbox on 2026-03-20, `paidAmount=0` was rejected as effectively missing, while `paidAmount=0.01` with the same `paymentTypeIdRestAmount` settled the full NOK invoice in the same invoice write
   - when that combined invoice write already returns `amountCurrencyOutstanding=0` or `amountOutstanding=0`, do not spend a separate `PUT /invoice/{id}/:payment`
-  - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
-  - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
-  - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`
-  - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
-  - for ordinary direct-line service prompts explicitly priced excluding VAT / MVA, the same 3-call path is still the safe minimum, but the VAT selector must pick an exact `25%` row from the filtered outgoing result; if the filtered read exposes only `0%`, treat the run as blocked in that account instead of sending a `0%` invoice
   - 2026-03-20 production re-confirmed the exact `Snøhetta AS` / `871844062` / `Webdesign` / `20100` shape with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`, and the invoice write returned `amountExcludingVatCurrency=20100` plus `amountCurrency=25125`
   - 2026-03-20 persistent sandbox re-check on the same direct-service standard-VAT shape exposed only VAT code `6` (`0%`); omitting `vatType` created `amountCurrency=20100`, and hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
 - Standard fast-path note:

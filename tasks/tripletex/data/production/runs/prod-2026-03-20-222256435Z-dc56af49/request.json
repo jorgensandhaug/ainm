@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie o produto \"Sessão de formação\" com número de produto 6378. O preço é 37050 NOK sem IVA, utilizando a taxa padrão de 25 %.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "RLfVwUocSeqcvltKcyBPX0MpZUorVJRYXk_PsSR7Luw"
+  }
+}

@@ -1,0 +1,1113 @@
+# Codex Trace Snapshot
+
+- session_id: 019d0d5d-2e6d-71e1-be27-1129e19819b1
+- session_file: /home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T23-28-23-019d0d5d-2e6d-71e1-be27-1129e19819b1.jsonl
+- completed: true
+- assistant_messages: 8
+- tool_calls: 13
+- tool_results: 13
+
+## 2026-03-20T22:28:24.694Z task_event
+event: task_started
+
+## 2026-03-20T22:28:24.697Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Erfassen Sie 18 Stunden für Sophia Schmidt (sophia.schmidt@example.org) auf der Aktivität "Design" im Projekt "Sicherheitsaudit" für Windkraft GmbH (Org.-Nr. 882984826). Stundensatz: 950 NOK/h. Erstellen Sie eine Projektrechnung an den Kunden basierend auf den erfassten Stunden.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+lZ76Auc4V0koDg0QUctBEtTaN0F4D9dlX8YtxsPH-54
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts
+
+## 2026-03-20T22:28:33.283Z assistant_message
+phase: commentary
+
+Prüfe zuerst den passenden Trusted-Standard und die minimale Call-Flow-Variante für Stundenregistrierung plus Projektrechnung. Danach schreibe ich ein einziges `bun`-Script im vorgegebenen Run-Verzeichnis und führe nur die nötigen API-Aufrufe aus.
+
+## 2026-03-20T22:28:33.286Z tool_call
+tool: exec_command
+call_id: call_3jRtlRwbs31MhfmUuIdnb5Qp
+
+```json
+{
+  "cmd": "rg --files trusted-standards task-playbooks | rg 'register-project-hours-and-create-project-invoice|common-endpoints'",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:33.294Z tool_call
+tool: exec_command
+call_id: call_7fVKZqzCsLW5SP3p7oqtZXFQ
+
+```json
+{
+  "cmd": "pwd",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 200,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:33.337Z tool_result
+tool: exec_command
+call_id: call_3jRtlRwbs31MhfmUuIdnb5Qp
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "rg --files trusted-standards task-playbooks | rg 'register-project-hours-and-create-project-invoice|common-endpoints'"
+Chunk ID: 0e585a
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 45
+Output:
+task-playbooks/register-project-hours-and-create-project-invoice.md
+trusted-standards/common-endpoints.md
+trusted-standards/register-project-hours-and-create-project-invoice.md
+
+```
+
+## 2026-03-20T22:28:33.338Z tool_result
+tool: exec_command
+call_id: call_7fVKZqzCsLW5SP3p7oqtZXFQ
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc pwd
+Chunk ID: 8a4cbd
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 15
+Output:
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment
+
+```
+
+## 2026-03-20T22:28:39.377Z assistant_message
+phase: commentary
+
+Der Task passt zum Standard `register-project-hours-and-create-project-invoice`. Ich lese nur diesen Standard plus das zugehörige Playbook, um die exakte Low-call-Reihenfolge und bekannte Fallstricke zu übernehmen.
+
+## 2026-03-20T22:28:39.383Z tool_call
+tool: exec_command
+call_id: call_WVrJeLrjnBO7aF9J0Cu9nFbM
+
+```json
+{
+  "cmd": "sed -n '1,220p' trusted-standards/register-project-hours-and-create-project-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:39.387Z tool_call
+tool: exec_command
+call_id: call_Y9tdWDH9g0JtJh1m7mpT3Pcl
+
+```json
+{
+  "cmd": "sed -n '1,260p' task-playbooks/register-project-hours-and-create-project-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:39.412Z tool_result
+tool: exec_command
+call_id: call_WVrJeLrjnBO7aF9J0Cu9nFbM
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '1,220p' trusted-standards/register-project-hours-and-create-project-invoice.md"
+Chunk ID: 21d1e7
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 2660
+Output:
+# Register Project Hours and Create Project Invoice
+
+## Trust Level
+- Trusted standard
+- Use directly for exact matches
+- Skip `./openapi.json` re-checking for exact matches
+
+## Exact Match
+- register hours on an existing employee, project, and activity
+- prompt gives the hour count and hourly rate directly
+- create an unsent project invoice to the linked customer
+- project, customer, employee, and activity already exist
+
+## Do Not Use This Standard If
+- the prompt explicitly scores true public-API hour-consumption semantics such as the time entry becoming invoiced or the project hour reserve being consumed by the created invoice
+- the prompt explicitly scores internal timesheet billability semantics on the registered hours, such as `chargeable=true` or `hourlyRate=<prompt rate>` on the timesheet entry itself
+- the task also requires creating the employee, customer, or project first
+
+## Standard Flow
+1. `GET /employee?email=...&count=10&fields=*`
+2. `GET /project?name=...&count=50&fields=*,customer(*)`
+   - exact-match the project locally by `project.name`
+   - use the expanded `project.customer.organizationNumber` and/or `project.customer.name` to satisfy the customer-identification part of the prompt
+   - do not add a separate `GET /customer` when the project read already leaves one exact match
+3. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`
+4. if the resolved activity has `isChargeable=true`:
+   - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
+   - if no holder exists for that project yet, `POST /project/hourlyRates` once with:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
+   - if needed, `PUT /project/hourlyRates/{id}` with:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
+   - if the holder already exposes one exact employee+activity `projectSpecificRate` with the prompt hourly rate, reuse it and skip an extra rate write
+   - if the holder already exposes one exact employee+activity `projectSpecificRate` with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
+   - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
+5. `POST /timesheet/entry`
+6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
+7. `POST /order` with:
+   - `customer`
+   - `project`
+   - `orderDate`
+   - `deliveryDate`
+   - one real embedded `orderLines[]` entry using the prompt hours and prompt rate
+8. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+
+## Payload Rules
+- use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
+- `/activity/>forTimeSheet` exposes activity chargeability as `isChargeable`, not `chargeable`
+- do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes
+- when `activity.isChargeable=true`, spend `GET /project/hourlyRates` before the timesheet write; a chargeable timesheet can still succeed with `hourlyRate=0` if the exact employee+activity rate is missing
+- when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
+- if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
+- the real invoice line should usually use:
+  - `description` from the prompt activity or prompt billing text
+  - `count` equal to the prompt hours
+  - `unitPriceExcludingVatCurrency` equal to the prompt rate
+  - `vatType` from the filtered outgoing VAT lookup
+- do not insert a default `PUT /timesheet/week/:approve`; it can return `403` even for the token owner and is not part of the proven public fast path
+
+## Reuse From Write Response
+- from `PUT /project/hourlyRates/{id}`:
+  - the switched project-hourly-rate holder id
+- from `POST /project/hourlyRates`:
+  - the created project-hourly-rate holder id
+- from `POST /project/hourlyRates/projectSpecificRates`:
+  - the created project-specific-rate id
+- from `PUT /project/hourlyRates/projectSpecificRates/{id}`:
+  - the updated project-specific-rate id
+- from `POST /timesheet/entry`:
+  - the created entry id
+  - `hourlyRate`
+  - `chargeable`
+- from `POST /order`:
+  - the created order id
+- from `PUT /order/{id}/:invoice`:
+  - invoice id
+  - invoice number
+  - totals and outstanding amount
+
+## Verification
+- trust the timesheet write response to verify:
+  - `hours`
+  - `projectChargeableHours`
+  - `activity.id`
+  - `project.id`
+- when the resolved activity is chargeable, also verify:
+  - `hourlyRate`
+  - `chargeable`
+- when the resolved activity is non-chargeable and the prompt only asks for the hours side effect plus the invoice side effect, do not treat `chargeable=false` and `hourlyRate=0` as an automatic stop condition
+- trust the invoice write response to verify:
+  - `customer.id`
+  - `orders[0].id`
+  - `amountExcludingVatCurrency`
+  - `amountCurrencyOutstanding`
+- add a follow-up `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` only if the invoice write response is too sparse for the scored fields
+
+## Known Recovery Branches
+- if the activity returned by `/activity/>forTimeSheet` is non-chargeable:
+  - `POST /project/hourlyRates/projectSpecificRates` on that activity is expected to fail with `422 activity.id: Ikke fakturerbar.`
+  - skip the project-specific-rate write on that branch
+  - a time entry on that activity can still be created, but it will keep `chargeable=false` and `hourlyRate=0`
+  - for prompt shapes that only ask to register the hours and create the customer-facing project invoice, continue with the manual project-linked order/invoice fallback instead of stopping
+  - only treat the task as blocked when the prompt explicitly scores the internal billability fields on the timesheet entry or true project-hour reserve consumption
+- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+  - `GET /ledger/account?isBankAccount=true&fields=*`
+  - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
+  - retry the same `PUT /order/{id}/:invoice?...` once
+- if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first
+
+## OpenAPI / Sandbox Status
+- `/activity/>forTimeSheet`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`, `/timesheet/entry`, `/ledger/vatType`, `/order`, and `/order/{id}/:invoice` re-verified on 2026-03-20
+- persistent sandbox proved:
+  - `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`; do not key this task off a nonexistent `activity.chargeable`
+  - `GET /project?name=...&count=50&fields=*,customer(*)` can return enough expanded customer data to replace a separate `GET /customer` in this exact task shape
+  - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` can already expose the exact nested employee, activity, and hourly-rate data for an existing project-specific rate, so repeat/sandbox runs can skip a duplicate create write
+  - when a newly created analog project had no hourly-rate holder yet, one `POST /project/hourlyRates` with `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the holder and the next `POST /project/hourlyRates/projectSpecificRates` plus `POST /timesheet/entry` succeeded normally
+  - `PUT /project/hourlyRates/{id}` can switch the holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
+  - `POST /project/hourlyRates/projectSpecificRates` succeeds for a chargeable activity and then `POST /timesheet/entry` returns `hourlyRate=<prompt rate>`
+  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Fakturerbart arbeid` + rate `1550`, the 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `GET /project/hourlyRates` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`
+  - on that same analog project, `POST /timesheet/entry` for chargeable activity `Fakturerbart arbeid` and employee `18565207` still succeeded with `chargeable=true` but `hourlyRate=0` when the exact employee+activity rate was missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe
+  - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity
+  - even on that non-chargeable branch, `POST /timesheet/entry` can still persist the requested hours on the requested activity while returning `chargeable=false` and `hourlyRate=0`
+  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`
+  - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API
+  - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing
+  - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default
+  - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so an unconditional `/ledger/account` preflight would have been an extra call there; keep the bank-account branch conditional unless you intentionally take the fresh-account hedge
+
+```
+
+## 2026-03-20T22:28:39.417Z tool_result
+tool: exec_command
+call_id: call_Y9tdWDH9g0JtJh1m7mpT3Pcl
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '1,260p' task-playbooks/register-project-hours-and-create-project-invoice.md"
+Chunk ID: 407891
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 3354
+Output:
+# Register Project Hours and Create Project Invoice
+
+## Scope
+
+Use for tasks like:
+- register hours on an existing employee in an existing project
+- use a specific existing project activity
+- apply a prompt-given hourly rate
+- create an unsent project invoice to the linked customer
+
+Do not use for:
+- fixed-price or on-account project billing
+- travel-expense or re-invoicing-heavy project tasks
+- cases where the employee, project, or customer must also be created from scratch
+
+## Verified Findings
+
+Persistent-sandbox verification on 2026-03-20 showed:
+- `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
+- `GET /project?name=...&count=50&fields=*,customer(*)` returned enough expanded customer data to identify the linked customer without a separate `GET /customer`
+- `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` returned enough nested data to identify an already-existing exact employee+activity rate and its `hourlyRate` without a second rate-search call
+- on a newly created analog project with no hourly-rate holder yet, `POST /project/hourlyRates` with `project`, `startDate`, and `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"` created the missing holder, after which `POST /project/hourlyRates/projectSpecificRates` and `POST /timesheet/entry` succeeded normally
+- `PUT /project/hourlyRates/{id}` can switch an existing project hourly-rate holder from `TYPE_FIXED_HOURLY_RATE` to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`
+- after that model switch, `POST /project/hourlyRates/projectSpecificRates` with:
+  - `projectHourlyRate`
+  - `employee`
+  - `activity`
+  - `hourlyRate`
+  succeeded for a chargeable activity and the next `POST /timesheet/entry` returned:
+  - `chargeable=true`
+  - `hourlyRate=<prompt rate>`
+- the same `POST /project/hourlyRates/projectSpecificRates` failed on a non-chargeable activity with:
+  - `422 activity.id: Ikke fakturerbar.`
+- `POST /timesheet/entry` on a non-chargeable project activity still succeeded even with `projectChargeableHours`, but the write response kept:
+  - `chargeable=false`
+  - `hourlyRate=0`
+- for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`
+- for the same analog project with `Fakturerbart arbeid` and existing exact rate `1550`, the 8-call branch that added `GET /project/hourlyRates` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`
+- on that same chargeable analog, `POST /timesheet/entry` can still succeed with `chargeable=true`, `hourlyRate=0` when the exact employee+activity rate is missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe
+- after that non-chargeable time write, `POST /order` with one real project-linked manual line and `PUT /order/{id}/:invoice?...sendToCustomer=false` still succeeded and produced the expected customer-facing invoice amount
+- `PUT /timesheet/week/:approve` returned `403` even for the token owner; do not make week approval a default step in this task shape
+- `GET /project/{id}/period/hourlistReport?...` can show those hours under `nonApprovedHours`
+- `GET /project/{id}/period/invoicingReserve?...` can still show a positive fee reserve, but that does not mean the public API can actually charge those hours directly
+- `POST /order` with only:
+  - `customer`
+  - `project`
+  - `orderDate`
+  - `deliveryDate`
+  created a project-linked order and preliminary invoice, but:
+  - `GET /invoice/details/{id}?fields=*` still showed `includeHours=false`
+  - `PUT /order/{id}/:invoice?...` failed with `422 Fakturaen inneholder ingen ordrelinjer.`
+- `POST /invoice?sendToCustomer=false` with an embedded project order and no real order lines also failed with:
+  - `422 Order contains no OrderLines.`
+- `POST /order` or `PUT /order/{id}` with nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` was accepted/validated, but the resulting preliminary invoice still had:
+  - `includeHours=false`
+  - `feeAmount=0`
+- `PUT /invoice/{id}` and `PUT /invoice/details/{id}` both returned method-not-allowed responses (`405` surfaced as `400 HTTP 405 Method Not Allowed`)
+- the only public-API path re-proven to create the invoice side effect was:
+  - register the hours separately
+  - create a real project-linked order line whose amount is derived from the prompt hours and rate
+  - invoice that order normally
+- in the same sandbox account, `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+- `POST /order` with one embedded project-linked line for `count=5`, `unitPriceExcludingVatCurrency=1750`, `vatType.id=6` then `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` succeeded with:
+  - `amountExcludingVatCurrency=8750`
+  - `orders[0].id=<orderId>`
+  - `projectInvoiceDetails[0].amountOrderLinesAndReinvoicingCurrency=8750`
+  - `projectInvoiceDetails[0].includeHours=false`
+- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so a default `/ledger/account` preflight would have been an unnecessary extra call in that exact rerun state
+
+## Minimal Safe Flow
+
+1. Confirm these operations in `./openapi.json`
+   - `GET /employee`
+   - `GET /project`
+   - `GET /activity/>forTimeSheet`
+   - `GET /project/hourlyRates`
+   - `PUT /project/hourlyRates/{id}`
+   - `POST /project/hourlyRates/projectSpecificRates`
+   - `POST /timesheet/entry`
+   - `GET /ledger/vatType`
+   - `POST /order`
+   - `PUT /order/{id}/:invoice`
+2. Resolve the employee
+   - `GET /employee?email=<email>&count=10&fields=*`
+   - exact-match locally because the email filter is containing
+3. Resolve the project and linked customer in one read
+   - `GET /project?name=<project-name>&count=50&fields=*,customer(*)`
+   - exact-match the project name locally
+   - exact-match the nested `customer.organizationNumber` and/or `customer.name` locally when the prompt gives them
+   - only fall back to a separate `GET /customer` if the project read is ambiguous or unexpectedly sparse
+5. Resolve the applicable activity through the project-timesheet endpoint
+   - `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*`
+   - branch on `activity.isChargeable`, not `activity.chargeable`
+6. If `activity.isChargeable===true`, continue with the rate path
+   - if `activity.isChargeable===false`, skip directly to the timesheet write and keep the exact branch at 7 calls
+7. Resolve the project hourly-rate holder
+   - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
+8. If no holder exists yet, create it once
+   - `POST /project/hourlyRates`
+   - send:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
+9. If needed, switch the holder to project-specific rates
+   - `PUT /project/hourlyRates/{id}`
+   - send:
+     - `project`
+     - `startDate`
+     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
+10. Reuse or write the exact employee+activity rate
+   - if that holder read already exposes one exact employee+activity rate with the prompt hourly rate, reuse it and skip an extra write
+   - if it exposes one exact employee+activity rate with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
+   - otherwise `POST /project/hourlyRates/projectSpecificRates`
+11. Register the hours
+   - `POST /timesheet/entry`
+   - send:
+     - `employee`
+     - `project`
+     - `activity`
+     - `date`
+     - `hours`
+     - `projectChargeableHours`
+   - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
+12. Resolve a valid outgoing VAT type for the invoice date
+   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+13. Create a real project-linked order line derived from the prompt hours and rate
+   - `POST /order`
+   - include:
+     - `customer`
+     - `project`
+     - `orderDate`
+     - `deliveryDate`
+     - one embedded `orderLines[]` row using the prompt hours and prompt rate
+14. Invoice that order without sending it
+   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
+
+## Recommended Shapes
+
+Project hourly-rate holder switch:
+
+```json
+{
+  "project": { "id": 54321 },
+  "startDate": "2026-03-20",
+  "hourlyRateModel": "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"
+}
+```
+
+Project-specific rate create:
+
+```json
+{
+  "projectHourlyRate": { "id": 67890 },
+  "employee": { "id": 11111 },
+  "activity": { "id": 22222 },
+  "hourlyRate": 1750
+}
+```
+
+Timesheet entry:
+
+```json
+{
+  "employee": { "id": 11111 },
+  "project": { "id": 54321 },
+  "activity": { "id": 22222 },
+  "date": "2026-03-20",
+  "hours": 5,
+  "projectChargeableHours": 5
+}
+```
+
+Fallback public invoice order:
+
+```json
+{
+  "customer": { "id": 12345 },
+  "project": { "id": 54321 },
+  "orderDate": "2026-03-20",
+  "deliveryDate": "2026-03-20",
+  "orderLines": [
+    {
+      "description": "Design",
+      "count": 5,
+      "unitPriceExcludingVatCurrency": 1750,
+      "vatType": { "id": 6 }
+    }
+  ]
+}
+```
+
+Replace VAT id `6` with the filtered outgoing VAT type actually returned for the invoice date.
+
+## Exact-Match Fast Path
+
+- For a prompt that gives:
+  - employee email
+  - project name plus customer organization number and/or name
+  - activity name
+  - hour count
+  - hourly rate
+- the public fast path is usually:
+  1. `GET /employee?...`
+  2. `GET /project?name=...&fields=*,customer(*)`
+  3. `GET /activity/>forTimeSheet?...`
+  4. if `activity.isChargeable=false`: `POST /timesheet/entry`
+  5. if `activity.isChargeable=false`: `GET /ledger/vatType?...`
+  6. if `activity.isChargeable=false`: `POST /order`
+  7. if `activity.isChargeable=false`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  8. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
+  9. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
+  10. if needed: conditional `PUT /project/hourlyRates/{id}`
+  11. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
+  12. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
+  13. if `activity.isChargeable=true`: `POST /timesheet/entry`
+  14. if `activity.isChargeable=true`: `GET /ledger/vatType?...`
+  15. if `activity.isChargeable=true`: `POST /order` with one real project-linked line using prompt hours x prompt rate
+  16. if `activity.isChargeable=true`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
+- do not insert a default week-approval write
+- do not spend speculative attempts to make a project preliminary invoice include hours
+- do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
+
+## Verification Shape
+
+- `POST /project/hourlyRates/projectSpecificRates`
+  - expect `ResponseWrapperProjectSpecificRate`
+  - verify:
+    - `employee.id`
+    - `activity.id`
+    - `hourlyRate`
+- `POST /timesheet/entry`
+  - expect `ResponseWrapperTimesheetEntry`
+  - verify:
+    - `hours`
+    - `projectChargeableHours`
+    - `project.id`
+    - `activity.id`
+  - on the chargeable branch, also verify:
+    - `hourlyRate`
+    - `chargeable`
+  - on the non-chargeable fallback branch, expect:
+    - `chargeable=false`
+    - `hourlyRate=0`
+- `PUT /order/{id}/:invoice`
+  - expect `ResponseWrapperInvoice`
+  - verify:
+    - `customer.id`
+    - `amountExcludingVatCurrency`
+    - `amountCurrencyOutstanding`
+- optional `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
+  - use only if the invoice write response is too sparse for the scored fields
+
+## Avoidable Mistakes
+
+- Do not assume `PUT /timesheet/week/:approve` is required or even permitted for this task shape
+- Do not branch on `activity.chargeable`; the field from `/activity/>forTimeSheet` is `isChargeable`, and the wrong key can silently skip the rate path on billable activities
+- Do not try to attach a project-specific rate to a non-chargeable activity; the server returns `422 activity.id: Ikke fakturerbar.`
+- Do not ignore already-expanded `projectSpecificRates` and then blindly `POST /project/hourlyRates/projectSpecificRates`; that can waste a write or trigger a duplicate-rate validation branch in persistent/repeat contexts
+- Do not assume a successful `POST /timesheet/entry` on a chargeable activity proves the prompt rate was applied; without the exact employee+activity rate it can still return `chargeable=true` and `hourlyRate=0`
+
+```
+
+## 2026-03-20T22:28:47.663Z assistant_message
+phase: commentary
+
+Der Standard ist exakt genug: bestehender Mitarbeiter, bestehendes Projekt, bestehende Aktivität, Stunden + Satz vorgegeben, unsent Projektrechnung. Ich setze daher direkt den Trusted-Flow um, inkl. nur einer konditionalen Branch für chargeable activity bzw. Bankkonto-Fehler.
+
+## 2026-03-20T22:28:47.669Z tool_call
+tool: exec_command
+call_id: call_g0v9I2t9mqPr4yE54FRXVqWi
+
+```json
+{
+  "cmd": "ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:47.670Z tool_call
+tool: exec_command
+call_id: call_7NjaDSFp45jTNPDtnpCBVp6k
+
+```json
+{
+  "cmd": "rg -n \"timesheet/entry|project/hourlyRates|:invoice\\?|/order\" -g '*.ts' .",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:47.706Z tool_result
+tool: exec_command
+call_id: call_g0v9I2t9mqPr4yE54FRXVqWi
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts'
+Chunk ID: 9f9434
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 25
+Output:
+total 8
+drwxr-xr-x 2 jorge users 4096 Mar 20 23:28 .
+drwxr-xr-x 4 jorge users 4096 Mar 20 23:28 ..
+
+```
+
+## 2026-03-20T22:28:47.707Z tool_result
+tool: exec_command
+call_id: call_7NjaDSFp45jTNPDtnpCBVp6k
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "rg -n \"timesheet/entry|project/hourlyRates|:invoice\\?|/order\" -g '*.ts' ."
+Chunk ID: 5fe381
+Wall time: 0.0000 seconds
+Process exited with code 1
+Original token count: 0
+Output:
+
+```
+
+## 2026-03-20T22:28:55.918Z tool_call
+tool: exec_command
+call_id: call_jNy8Kx1qcfb79B76Mn0nomG4
+
+```json
+{
+  "cmd": "rg -n \"vatType.*25|percentage.*25|typeOfVat=OUTGOING\" trusted-standards task-playbooks AGENTS.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:55.920Z tool_call
+tool: exec_command
+call_id: call_HQrenYJtOJeHhWlOPnEDnDeU
+
+```json
+{
+  "cmd": "rg -n \"bankAccountNumber|Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer\" trusted-standards task-playbooks",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:28:55.958Z tool_result
+tool: exec_command
+call_id: call_jNy8Kx1qcfb79B76Mn0nomG4
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'rg -n "vatType.*25|percentage.*25|typeOfVat=OUTGOING" trusted-standards task-playbooks AGENTS.md'
+Chunk ID: 5abee4
+Wall time: 0.0001 seconds
+Process exited with code 0
+Original token count: 5222
+Output:
+AGENTS.md:234:- For the exact fresh-account create-and-send one-line service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the canonical low-call path is `POST /customer` with `invoiceSendMethod: "MANUAL"`, then filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, then `POST /invoice`; do not spend a speculative `GET /customer` first.
+AGENTS.md:253:- Production reflection on 2026-03-20 for the exact prompt shape `977448239` with `Konsulenttimer (6390)`, `Systemutvikling (1652)`, `Webdesign (3273)`, and VAT `25%` / `15%` / `0%` showed that spending `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` was one wasted call. The products resolved directly by exact number, the invoice still needed the later conditional bank-account repair, and the realistic lower-call replacement in that same fresh-account state is `GET /customer` -> `GET /product?productNumber=6390&productNumber=1652&productNumber=3273&fields=*` -> `POST /invoice?sendToCustomer=false` -> conditional `GET /ledger/account` -> `PUT /ledger/account/{id}` -> single invoice retry.
+AGENTS.md:264:- For direct-line invoice VAT selection, or any invoice task where the resolved product read does not already give you a reusable `product.vatType.id`, resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` on the actual invoice date. Do not hardcode VAT code `3`; some accounts only expose code `6` (0% outgoing VAT), and `POST /invoice` can fail with `Ugyldig mva-kode.` if you use a code outside the filtered result set.
+AGENTS.md:281:- Product creation with VAT should resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, not from the unfiltered VAT catalog or `typeOfVat=LEDGER`, whenever the task is not the exact fresh-account standard-`25%` shortcut; broader lists can expose codes that still fail `POST /product` with `Internt felt (vatTypeId): Ugyldig mva-kode.`
+AGENTS.md:282:- Scoring feedback on 2026-03-20 and the later same-day `Softwarelizenz` / `7986` / `24900` production run confirmed that the exact fresh-account create-one-product shape with prompt-provided `name`, `number`, excluding-VAT price, and standard `25%` VAT is minimal at one `POST /product` without explicit `vatType`, verified from the write response (`priceIncludingVatCurrency` reflects `25%` and `vatType` is assigned). Do not generalize that shortcut to exact `0%`, reduced-rate, or other non-standard VAT prompts.
+AGENTS.md:283:- `POST /product` without `vatType` can succeed in some sandbox accounts by auto-filling an account default VAT type; persistent sandbox re-verification on 2026-03-20 still auto-filled `0%` VAT code `6`, so do not treat that as a trusted shortcut for scored exact-VAT tasks outside the exact fresh-account standard-`25%` shape.
+AGENTS.md:311:- In that same fixed-price partial-billing shape, percentage-derived milestone amounts can stay decimal. Do not round `350650 * 0.25` to a whole-NOK amount; Tripletex accepted `87662.5` directly on the order line and invoice.
+AGENTS.md:365:- For supplier-invoice VAT selection, resolve VAT from `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`, not `INCOMING_INVOICE`; the standard deductible 25% code can be present in `INCOMING` while missing from `INCOMING_INVOICE`.
+task-playbooks/register-project-hours-and-create-project-invoice.md:62:- in the same sandbox account, `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+task-playbooks/register-project-hours-and-create-project-invoice.md:125:   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+trusted-standards/register-project-hours-and-create-project-invoice.md:40:6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:57:2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:71:2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:109:`GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:115:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-19&fields=*` returned only VAT code `6`
+task-playbooks/create-and-send-customer-invoice.md:137:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6`
+task-playbooks/create-and-send-customer-invoice.md:174:- The authoritative candidate set for invoice lines is the filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` result on the invoice date
+task-playbooks/create-and-send-customer-invoice.md:184:   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:37:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:55:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` still returned only VAT code `6` (`0%`) in that account
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:66:  - `POST /order` then accepted a percentage-derived decimal line amount of `87662.5` for the `25%` milestone without rounding
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:68:  - omitting `orderLines[].vatType` on the same sandbox account also succeeded only because `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` exposed a single valid `0%` row; that omission is still not a trusted scored-run shortcut
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:76:  - the percentage-derived amount `123832.5` (`375250 * 0.33`) was accepted directly on `orderLines[].unitPriceExcludingVatCurrency`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:137:   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:150:   - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:217:     `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /order` -> `PUT /order/{id}/:invoice?...`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:222:  7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:264:- Do not round percentage-derived milestone amounts to whole NOK; Tripletex accepted `87662.5` directly for a `25%` milestone on `350650`
+trusted-standards/create-and-send-customer-invoice.md:26:3. resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+trusted-standards/create-and-send-customer-invoice.md:87:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+trusted-standards/create-and-send-customer-invoice.md:96:  - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:32:7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:109:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` may expose only VAT code `6` (`0%`) in that account
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:115:  - `POST /order` plus `PUT /order/{id}/:invoice` preserved a percentage-derived decimal partial amount of `87662.5` exactly; do not round `25%` milestone amounts such as `350650 * 0.25`
+task-playbooks/create-product.md:20:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-19&fields=*` returned only VAT code `6` (`0% Ingen utgående avgift`) in that account
+task-playbooks/create-product.md:26:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` still returned only VAT code `6` (`0% Ingen utgående avgift`)
+task-playbooks/create-product.md:41:- an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
+task-playbooks/create-product.md:46:- the extra `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` cost the efficiency half-point
+task-playbooks/create-product.md:71:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only `id=6` / `0%`
+task-playbooks/create-product.md:76:- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only `id=6` / `0%`
+task-playbooks/create-product.md:88:   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<task-date-or-today>&fields=*`
+task-playbooks/create-product.md:131:- For product creation, the authoritative candidate set is the `typeOfVat=OUTGOING` result on the task date
+task-playbooks/create-product.md:158:- Do not spend `GET /ledger/vatType` first for the exact fresh-account standard-`25%` create-product shape; scoring feedback showed that call is wasted there
+task-playbooks/create-product.md:159:- Do not browse multiple VAT endpoints once `typeOfVat=OUTGOING` already gives the needed valid code for a non-standard-VAT task
+task-playbooks/create-product.md:168:- Do not assume `typeOfVat=OUTGOING` and `typeOfVat=LEDGER` are interchangeable for product writes
+task-playbooks/create-product.md:173:- Do not generalize the one-call omitted-`vatType` shortcut from the exact fresh-account standard-`25%` shape to `0%`, reduced-rate, or other exact-VAT prompts
+trusted-standards/create-product.md:26:4. otherwise, if the prompt requires a non-default or non-standard exact VAT selection, do one decisive `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+trusted-standards/create-product.md:70:- persistent-sandbox verification on 2026-03-20 showed that `POST /product` without `vatType` auto-filled `0%` VAT code `6`, so the one-call shortcut is account-dependent and must stay scoped to the exact fresh-account standard-`25%` shape
+trusted-standards/create-product.md:71:- persistent-sandbox re-verification on 2026-03-20 still exposed only `0%` on the filtered `OUTGOING` VAT read, and the omitted-`vatType` create still produced `priceIncludingVatCurrency == priceExcludingVatCurrency`; that account remains blocked for explicit `25%` VAT resolution
+trusted-standards/create-product.md:73:- persistent-sandbox re-verification on 2026-03-20 for the same French `Maintenance` / `3700` shape again returned only `OUTGOING` VAT row `id=6` / `0%`, and an omitted-`vatType` create auto-filled `vatType.id=6` with `priceIncludingVatCurrency=3700`; that sandbox still cannot prove an exact `25%` product create and remains blocked for explicit `25%` resolution
+task-playbooks/register-supplier-invoice.md:125:- if several rows match the percentage, prefer the base code, typically `number="1"` for ordinary `25%` input VAT
+trusted-standards/register-supplier-invoice.md:52:- resolve incoming VAT on the actual invoice date; choose the requested percentage and prefer base code `number="1"` when present for ordinary `25%`
+task-playbooks/create-customer-invoice.md:21:  - the created invoice was fully correct, but the winning write path was still not efficiency-optimal because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+task-playbooks/create-customer-invoice.md:25:  - the run created the correct invoice, but it was not minimal-call because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` before the first invoice write even though the exact-number product read already returned reusable `product.vatType.id`
+task-playbooks/create-customer-invoice.md:42:  - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=851635874&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:52:  - reserve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` for direct-line invoices, ambiguous product VAT, or cases where the task must override the resolved product VAT
+task-playbooks/create-customer-invoice.md:66:  - that sandbox account still exposed only outgoing VAT `0%`, so the analog proved the lower-call exact-number product-linking branch and the lack of any need for `/ledger/vatType` in the proof path itself, but not the mixed `25%` / `15%` / `0%` percentages
+task-playbooks/create-customer-invoice.md:70:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` exposed only VAT code `6` (`0%`) in that sandbox account, so the exact mixed `25%` / `15%` / `0%` task could not be replayed there
+task-playbooks/create-customer-invoice.md:78:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+task-playbooks/create-customer-invoice.md:83:  - after setup, the proof path itself was exactly four calls: `GET /customer?organizationNumber=925760838&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:88:  - after setup, the proof path itself was exactly four calls: `GET /customer?organizationNumber=909722502&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:93:  - after setup, the winning proof path itself was exactly four calls: `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:115:   - only if the task must force VAT independently of the resolved product, or the product read lacks even a reusable `vatType.id`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/create-customer-invoice.md:147:  - only add `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` when the task must override the resolved product VAT or the product read lacks reusable `vatType.id`
+task-playbooks/create-customer-invoice.md:162:  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/create-customer-invoice.md:169:  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+task-playbooks/create-customer-invoice.md:228:  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+trusted-standards/create-customer-invoice.md:30:   - only resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` when the task must force a VAT different from the resolved product, the product read lacks even a reusable `vatType.id`, or the line is not product-linked
+trusted-standards/create-customer-invoice.md:82:- re-verified on 2026-03-20 in persistent sandbox with the exact customer/product-number shape `827304212` + `6744/2584/3739` that the proof path is still `GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false`; that sandbox account exposed only outgoing VAT `0%`, so the exact mixed `25%` / `15%` / `0%` write could not be replayed there and only a 0%-analog invoice could be proven in-account
+trusted-standards/create-customer-invoice.md:83:- re-verified again on 2026-03-20 in persistent sandbox with a disposable analog that exact-name product resolution plus `GET /ledger/vatType` plus `POST /invoice?sendToCustomer=false` completes the proof path in four calls after setup; that sandbox account still exposed only `0%` outgoing VAT, so mixed `25%` / `15%` / `0%` could not be replayed there
+trusted-standards/create-customer-invoice.md:84:- re-verified again on 2026-03-20 in persistent sandbox with a prompt-like analog for the `909722500` Oakwood task shape: after setup, a four-call proof path `GET /customer?organizationNumber=909722502&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false` resolved sandbox products whose stored numbers intentionally differed from prompt-like refs `9796`, `2145`, and `5995`; the created invoice returned `amountExcludingVatCurrency=47450` and `amountCurrency=47450`, and the sandbox still exposed only `0%` outgoing VAT
+trusted-standards/create-customer-invoice.md:85:- re-verified again on 2026-03-20 in persistent sandbox with an analog customer and exact-name products whose stored product numbers intentionally differed from prompt-like refs `2934` / `8699` / `1355`; after setup, the winning proof path was exactly `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`, and the created invoice returned `amountExcludingVatCurrency=53050` and `amountCurrency=53050`
+trusted-standards/create-customer-invoice.md:87:- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=977448239` with `Konsulenttimer (6390)`, `Systemutvikling (1652)`, and `Webdesign (3273)` plus VAT `25%` / `15%` / `0%` showed that the created invoice was correct but not minimal-call because it spent `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` before the first invoice write
+trusted-standards/create-customer-invoice.md:98:  - that sandbox account still exposed only outgoing VAT `0%`, so the analog proved the no-extra-`/ledger/vatType` exact-number path and linked-product behavior, but not the mixed `25%` / `15%` / `0%` combination itself
+trusted-standards/common-endpoints.md:118:  - if the requested exact VAT percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+trusted-standards/common-endpoints.md:121:  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`; the 2026-03-20 `Softwarelizenz` / `7986` / `24900` production run again confirmed that one-write path with `priceIncludingVatCurrency=31125` and `vatType.id=3`
+trusted-standards/common-endpoints.md:125:  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; the persistent sandbox still auto-filled `0%` VAT code `6` on 2026-03-20 and produced `priceIncludingVatCurrency == priceExcludingVatCurrency`, so do not use that as the trusted fast path when the prompt scores exact VAT outside the exact fresh-account standard-`25%` shortcut
+trusted-standards/common-endpoints.md:134:  - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
+trusted-standards/common-endpoints.md:287:  - 2026-03-20 production reflection on the exact create-only shape `customer.organizationNumber=977448239` with `Konsulenttimer (6390)`, `Systemutvikling (1652)`, and `Webdesign (3273)` plus VAT `25%` / `15%` / `0%` showed that an added `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` was one wasted call; the realistic lower-call replacement in that same fresh-account state was customer read -> exact-number product read -> invoice write -> conditional bank-account repair -> single retry
+trusted-standards/common-endpoints.md:301:  - hardcoding `vatType.id=3` is not the safe shortcut either; accounts that only expose VAT code `6` on `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` reject hardcoded `3` with `422 ... Ugyldig mva-kode.`
+trusted-standards/common-endpoints.md:316:  - 2026-03-20 production re-confirmed the exact `Snøhetta AS` / `871844062` / `Webdesign` / `20100` shape with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`, and the invoice write returned `amountExcludingVatCurrency=20100` plus `amountCurrency=25125`
+
+```
+
+## 2026-03-20T22:28:55.959Z tool_result
+tool: exec_command
+call_id: call_HQrenYJtOJeHhWlOPnEDnDeU
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'rg -n "bankAccountNumber|Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer" trusted-standards task-playbooks'
+Chunk ID: 351c51
+Wall time: 0.0001 seconds
+Process exited with code 0
+Original token count: 1611
+Output:
+task-playbooks/register-project-hours-and-create-project-invoice.md:68:- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so a default `/ledger/account` preflight would have been an unnecessary extra call in that exact rerun state
+task-playbooks/create-customer-invoice.md:263:`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-customer-invoice.md:273:  "bankAccountNumber": "12345678903"
+task-playbooks/create-and-send-customer-invoice.md:80:`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-and-send-customer-invoice.md:94:  "bankAccountNumber": "12345678903"
+task-playbooks/create-and-send-customer-invoice.md:170:- Do not create a second invoice bank account with the same `bankAccountNumber`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:24:  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` failed with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:50:  - in that current sandbox state, invoice account `1920` already had `bankAccountNumber=12345678903`, so the company-bank-account validation did not reproduce there
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:60:  - `PUT /ledger/account/{id}` on the existing invoice account because `bankAccountNumber` was missing
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:71:  - that read returned invoice account `1920` with `bankAccountNumber=12345678903`, so the later invoice write already had the prerequisite it needed
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:93:  - the exact project-first update branch was correct, but the first `PUT /order/{id}/:invoice?...` hit `422 Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:95:  - the same-day persistent sandbox still had invoice account `1920` with `bankAccountNumber=12345678903`, and an analog proof measured the update-needed configured-account branch at `5` calls and the skip-`PUT` branch at `4`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:156:   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:269:- Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
+trusted-standards/create-and-send-customer-invoice.md:30:   - `PUT /ledger/account/{id}` with a checksum-valid unique 11-digit `bankAccountNumber`
+trusted-standards/register-project-hours-and-create-project-invoice.md:107:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/register-project-hours-and-create-project-invoice.md:109:  - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:94:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:96:  - update the existing invoice account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:122:  - that proactive read showed invoice account `1920` already had a valid `bankAccountNumber`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:142:  - the production run used the exact project-first update branch and the first invoice write failed with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:144:  - the same-day persistent sandbox still had invoice account `1920` with `bankAccountNumber=12345678903`, and an analog proof run measured the configured-account update branch at `5` calls plus the already-known skip-`PUT` branch at `4` calls
+task-playbooks/create-order-invoice-and-register-payment.md:31:  - `PUT /order/{id}/:invoice?...` can fail after a successful `POST /order` with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-order-invoice-and-register-payment.md:116:   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+trusted-standards/common-endpoints.md:245:  - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
+trusted-standards/common-endpoints.md:251:  - the 2026-03-20 `Tindra AS` production run lost the efficiency point after a wasted proactive `/ledger/account` read that found account `1920` already had a valid `bankAccountNumber`, and the later same-day `Soleil SARL` post-run sandbox proof showed the remaining one-call optimization is skipping `PUT /project` when the first project read already proves the target project state
+trusted-standards/create-order-invoice-and-register-payment.md:47:- if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
+trusted-standards/create-order-invoice-and-register-payment.md:71:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/create-order-invoice-and-register-payment.md:73:  - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+
+```
+
+## 2026-03-20T22:29:00.700Z assistant_message
+phase: commentary
+
+Ich ergänze jetzt das Run-Script mit dem direkten Standard-Flow und einer präzisen Retry-Branch nur für das bekannte Bankkonto-Validierungsproblem. Danach führe ich es einmal mit `bun` aus.
+
+## 2026-03-20T22:29:00.737Z tool_call
+tool: exec_command
+call_id: call_XY8of458PRH4kcMxTKIL4i1n
+
+```json
+{
+  "cmd": "sed -n '240,310p' task-playbooks/create-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:29:00.738Z tool_call
+tool: exec_command
+call_id: call_KyOo4b8hLMNACEuC5hgv5N59
+
+```json
+{
+  "cmd": "sed -n '140,190p' task-playbooks/create-and-send-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:29:00.747Z tool_call
+tool: exec_command
+call_id: call_O1UsnQVNJekqG1oa07jplgc7
+
+```json
+{
+  "cmd": "sed -n '150,175p' task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:29:00.769Z tool_result
+tool: exec_command
+call_id: call_XY8of458PRH4kcMxTKIL4i1n
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '240,310p' task-playbooks/create-customer-invoice.md"
+Chunk ID: 4b8d0f
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 894
+Output:
+
+- `POST /invoice` can return:
+
+```json
+{
+  "value": {
+    "id": 2147525654,
+    "orderLines": [
+      { "id": 1, "url": "..." }
+    ]
+  }
+}
+```
+
+- that does not mean the detailed line fields are missing from the actual invoice
+- the same trap still applies when the sparse response shows the correct number of line link objects; line count alone is not enough for exact verification
+- if you need the exact line details, do one immediate `GET /invoice/{id}` with expanded `fields` and stop there
+- if the write payload already fixed the scored line fields and the write response totals already prove the intended VAT outcome, the minimal create-only path stops without that extra read
+
+## Bank Account Repair Branch
+
+If `POST /invoice` fails with:
+
+`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+
+then the practical repair path is:
+
+1. `GET /ledger/account?isBankAccount=true&fields=*`
+2. choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+3. `PUT /ledger/account/{id}` with:
+
+```json
+{
+  "bankAccountNumber": "12345678903"
+}
+```
+
+4. retry `POST /invoice` once
+5. keep the same invoice payload on that retry; do not re-read customer, products, or `vatType` if the only failure was the company-bank-account validation
+
+## Avoidable Mistakes
+
+- Do not spend an unconditional `GET /ledger/account` before the first invoice write
+- Do not use the send-invoice flow when the prompt only asks to create an invoice
+- Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
+- Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
+- Do not replace a clear exact-product-number prompt with a broad catalog read; use `GET /product?productNumber=...` first and only broaden if that direct resolver is incomplete or ambiguous
+- Do not add `/ledger/vatType` by reflex on an exact existing-product-number create-only prompt when the resolved products already carry reusable `vatType.id`
+- Do not treat `product: { number: ... }` on `POST /invoice` as a safe existing-product shortcut; sandbox created unlinked lines even though the write succeeded
+- Do not assume `customer: { name, organizationNumber }` on `POST /invoice` removes the need for a customer read; sandbox still rejected the related order because `customer.id` was missing
+- Do not treat inline numeric refs such as `Analysis Report (9796)` as proven `productNumber` search keys when the prompt never explicitly says those numbers are the stored Tripletex product numbers; if exact names are present, one decisive catalog read is often the lower-call path
+- Do not spend both numeric product resolver reads when the prompt already gives exact names and one decisive catalog read would settle the products
+- Do not let a partial product-resolver miss abort the script and trigger a second full run; the broader resolver belongs in the same in-script callback/fallback path
+- Do not postpone a needed verification read into a later separate script/session
+- Do not stop after a partial or ambiguous product resolver result; continue the documented fallback chain in the same script
+- Do not keep probing after a first-call `403 {"error":"Invalid or expired token"}`
+- Do not spend `GET /invoice/{id}` by reflex after every successful create-only invoice write; reuse the payload plus write-response totals first
+- Do not let a local arithmetic/assertion bug after a successful invoice write trigger a retry; re-check the VAT math first
+
+```
+
+## 2026-03-20T22:29:00.769Z tool_result
+tool: exec_command
+call_id: call_KyOo4b8hLMNACEuC5hgv5N59
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '140,190p' task-playbooks/create-and-send-customer-invoice.md"
+Chunk ID: 33460e
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 992
+Output:
+
+The 2026-03-20 production run for Portuguese `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` / `sem IVA` and the same-day persistent sandbox re-check on analogous org `842889155` reconfirmed the same branch:
+
+- direct `POST /customer`
+- filtered outgoing VAT read returning code `6` (`0%`)
+- direct `POST /invoice`
+- no customer pre-read
+- no explicit `PUT /invoice/{id}/:send`
+
+For ordinary direct-line service prompts that are explicitly priced excluding VAT / MVA, the same dynamic rule becomes an exact `25%` selector:
+
+- use the filtered outgoing VAT read
+- choose an exact `25%` row, not the first returned row
+- if the filtered result exposes only `0%`, treat the run as blocked in that account instead of downgrading the invoice to `0%`
+- French `hors TVA` belongs to this taxed ex-VAT branch. Do not misread it as `sans TVA` / `0%`.
+
+This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
+
+- the production run for `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in `3` calls: direct `POST /customer`, filtered outgoing VAT read, then `POST /invoice`
+- the French production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` / `hors TVA` also succeeded in the same `3` calls and confirms the same taxed branch
+- the production invoice write already proved the taxed outcome with `amountExcludingVatCurrency=20100` and `amountCurrency=25125`
+- the persistent sandbox on the same date still exposed only VAT code `6` (`0%`)
+- on that sandbox account, omitting `vatType` for the same `20100` / `Webdesign` line silently created `amountCurrency=20100`
+- on that sandbox account, hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
+- on the analogous sandbox probe `944164341` / `Service reseau` / `44750`, omission again created a wrong untaxed `44750` total and hardcoded `vatType.id=3` again failed with `422 ... Ugyldig mva-kode.`
+
+## Important Constraints
+
+- Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
+- The public/spec-confirmed path that solved this was `PUT /ledger/account/{id}`
+- Do not create a second invoice bank account with the same `bankAccountNumber`
+- Duplicate bank account numbers trigger validation errors
+- Prefer updating existing `1920` over creating a new invoice account
+- Do not hardcode invoice/order-line VAT code `3`
+- The authoritative candidate set for invoice lines is the filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` result on the invoice date
+
+## Minimal Flow
+
+1. Find or create the customer
+   - for the normal fresh-account new-customer variant, skip the pre-read and `POST /customer` directly
+   - if creating a new customer and the prompt gives no email or postal address, prefer `invoiceSendMethod: "MANUAL"`
+   - only use `GET /customer?organizationNumber=...&fields=*` when the prompt or environment actually implies an existing customer lookup
+   - prompt wording like `invoice customer <name> (<organizationNumber>)` is not, by itself, enough reason to spend that pre-read in a fresh-account run
+2. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
+   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+   - use a VAT type that actually exists in that filtered response
+   - do not omit direct-line `vatType` just because the write may still succeed; that can silently produce a no-VAT invoice
+   - this also applies to explicit no-VAT direct-line prompts; resolve the filtered outgoing `0%` row instead of assuming omission is equivalent
+   - for ordinary service prompts priced excluding VAT / MVA, require an exact `25%` row from that filtered result; if `25%` is absent, stop as blocked for that account
+3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
+   - include required dates
+
+```
+
+## 2026-03-20T22:29:00.776Z tool_result
+tool: exec_command
+call_id: call_O1UsnQVNJekqG1oa07jplgc7
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '150,175p' task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md"
+Chunk ID: 4f46df
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 476
+Output:
+   - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
+10. Invoice the order without sending it
+   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
+11. Only if the invoice write fails with the company-bank-account validation, or earlier calls in the same run already proved that prerequisite is missing, repair that prerequisite and retry the same order once
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
+   - retry `PUT /order/{id}/:invoice?...` on the same order
+11.5. On the exact update-needed project-first branch, choose the bank-account strategy intentionally
+   - optimistic branch: `5` calls when the invoice account is already configured, `8` when the company bank account is missing and the run has to recover after the failed invoice write
+   - proactive hedge branch: `6` calls when the invoice account is already configured, `7` when the company bank account is missing
+   - because same-day production proved both states for this exact task family, there is still no universal winner; only spend the proactive `/ledger/account` read when the fresh-account evidence makes the missing-company-bank-account branch more likely
+12. Verify from the write response first
+   - reuse the invoice totals from `response.value`
+13. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
+14. Only for explicit linked-field verification or post-run research, do one decisive read
+   - `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
+
+## Recommended Shapes
+
+Project create/update:
+
+```json
+{
+  "name": "Datasikkerhet",
+  "startDate": "2026-03-20",
+
+```
+
+## 2026-03-20T22:29:11.643Z assistant_message
+phase: commentary
+
+Die Schreiblogik steht fest: exakter Trusted-Flow, Datum `2026-03-20`, lokales Exact-Matching für Mitarbeiter/Projekt/Aktivität, dann Stundenbuchung und projektverknüpfte Order+Invoice. Ich schreibe das jetzt als einzelnes `run.ts` im vorgegebenen Scripts-Ordner.
+
+## 2026-03-20T22:29:50.562Z assistant_message
+phase: commentary
+
+Das Script liegt im vorgeschriebenen Run-Ordner. Ich führe jetzt genau diesen einen `bun`-Lauf aus und werte nur die API-Antworten daraus aus.
+
+## 2026-03-20T22:29:51.683Z tool_call
+tool: exec_command
+call_id: call_1QvGBc0FMO4Os4Y0QvWjYmP5
+
+```json
+{
+  "cmd": "bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts/run.ts",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 20000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:29:52.839Z tool_result
+tool: exec_command
+call_id: call_1QvGBc0FMO4Os4Y0QvWjYmP5
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts/run.ts'
+Chunk ID: 94138f
+Wall time: 1.0011 seconds
+Process running with session ID 73316
+Original token count: 0
+Output:
+
+```
+
+## 2026-03-20T22:29:54.105Z assistant_message
+phase: commentary
+
+Der Lauf ist noch aktiv. Ich prüfe jetzt nur den Rückgabestatus und greife nur ein, falls eine bekannte validierte Recovery-Branch nötig war.
+
+## 2026-03-20T22:29:54.459Z tool_call
+tool: write_stdin
+call_id: call_sPdIwlFaJwmJcKopGzXMFpRD
+
+```json
+{
+  "session_id": 73316,
+  "chars": "",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 20000
+}
+```
+
+## 2026-03-20T22:29:55.649Z tool_result
+tool: write_stdin
+call_id: call_sPdIwlFaJwmJcKopGzXMFpRD
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts/run.ts'
+Chunk ID: 804251
+Wall time: 1.1894 seconds
+Process exited with code 0
+Original token count: 111
+Output:
+{
+  "employeeId": 18588989,
+  "projectId": 401975253,
+  "customerId": 108283274,
+  "activityId": 5850945,
+  "activityIsChargeable": false,
+  "timesheetId": 175905660,
+  "timesheetHours": 18,
+  "timesheetProjectChargeableHours": 18,
+  "timesheetHourlyRate": 0,
+  "timesheetChargeable": false,
+  "orderId": 401975344,
+  "invoiceId": 2147551695,
+  "invoiceNumber": 1,
+  "amountExcludingVatCurrency": 17100,
+  "amountCurrencyOutstanding": 21375
+}
+
+```
+
+## 2026-03-20T22:29:59.934Z assistant_message
+phase: final_answer
+
+Stunden erfasst und Projektrechnung erstellt.
+
+Ergebnis am `2026-03-20`: `18` h für Sophia Schmidt auf Aktivität `Design` im Projekt `Sicherheitsaudit` bei `Windkraft GmbH` erfasst; Aktivität war in Tripletex `non-chargeable`, daher Timesheet intern mit `hourlyRate=0`, aber die geforderte projektverknüpfte Rechnung wurde korrekt über Order+Invoice erzeugt. Rechnung `#1`, `invoiceId=2147551695`, Betrag exkl. MwSt. `17100 NOK`, offen `21375 NOK`.
+
+Run-Script: [run.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts/run.ts)
+
+## 2026-03-20T22:29:59.958Z task_event
+event: task_complete
+
+Stunden erfasst und Projektrechnung erstellt.
+
+Ergebnis am `2026-03-20`: `18` h für Sophia Schmidt auf Aktivität `Design` im Projekt `Sicherheitsaudit` bei `Windkraft GmbH` erfasst; Aktivität war in Tripletex `non-chargeable`, daher Timesheet intern mit `hourlyRate=0`, aber die geforderte projektverknüpfte Rechnung wurde korrekt über Order+Invoice erzeugt. Rechnung `#1`, `invoiceId=2147551695`, Betrag exkl. MwSt. `17100 NOK`, offen `21375 NOK`.
+
+Run-Script: [run.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222822362Z-d92470e8/scripts/run.ts)

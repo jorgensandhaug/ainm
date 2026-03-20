@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-222822362Z-d92470e8",
+  "request_id": "384a2b7d",
+  "prompt_raw": "Erfassen Sie 18 Stunden für Sophia Schmidt (sophia.schmidt@example.org) auf der Aktivität \"Design\" im Projekt \"Sicherheitsaudit\" für Windkraft GmbH (Org.-Nr. 882984826). Stundensatz: 950 NOK/h. Erstellen Sie eine Projektrechnung an den Kunden basierend auf den erfassten Stunden.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:29:59.958Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:28:22.423Z",
+  "after_captured_at": "2026-03-20T22:30:31.000Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:30:31.001Z"
+}

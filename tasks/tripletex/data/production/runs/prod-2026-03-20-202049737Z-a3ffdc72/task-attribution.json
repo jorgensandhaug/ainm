@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-202049737Z-a3ffdc72",
+  "request_id": "287c51c9",
+  "prompt_raw": "Establezca un precio fijo de 375250 NOK en el proyecto \"Desarrollo e-commerce\" para Estrella SL (org. nº 816896770). El director del proyecto es Laura Rodríguez (laura.rodriguez@example.org). Facture al cliente el 33 % del precio fijo como pago parcial.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T20:22:41.273Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T20:20:50.065Z",
+  "after_captured_at": "2026-03-20T20:23:13.390Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T20:23:13.394Z"
+}

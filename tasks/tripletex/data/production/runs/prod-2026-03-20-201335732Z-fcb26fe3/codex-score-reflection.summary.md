@@ -1,0 +1,1 @@
+Written to `/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201335732Z-fcb26fe3/codex-score-reflection.summary.md`.

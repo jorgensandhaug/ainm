@@ -52,10 +52,16 @@ Verified in production on 2026-03-20:
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27077955`
 - `PUT /invoice/2147540820/:payment?paymentDate=2026-03-20&paymentTypeId=27077955&paidAmount=40250` reduced the remaining outstanding amount to `0`
 - this second production run on the same exact task shape reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147541069` for customer `891380690` by `amountExcludingVatCurrency=10100`, line description `Konsulenttimer`, and positive `amountCurrencyOutstanding=12625`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27093292`
+- `PUT /invoice/2147541069/:payment?paymentDate=2026-03-20&paymentTypeId=27093292&paidAmount=12625` reduced the remaining outstanding amount to `0`
+- this third Norwegian production run on the same exact task shape reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount
 - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147541030` for customer `913245539` by `amountExcludingVatCurrency=36450`, line description `Session de formation`, and positive `amountCurrencyOutstanding=45562.5`
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27087363`
 - `PUT /invoice/2147541030/:payment?paymentDate=2026-03-20&paymentTypeId=27087363&paidAmount=45562.5` reduced the remaining outstanding amount to `0`
 - this third production run on the same exact task shape reconfirmed that prompt language does not change the path and that the prompt ex-VAT amount was only the locator, not the payment amount
+- same-day persistent sandbox re-proof on analog invoice `2147531840` (`907791616` + `6200` + `Fakturerbart arbeid sandbox proof`) again settled the invoice in exactly `3` calls; the invoice read exposed no payment-related keys at all, and `GET /invoice/paymentType` still returned usable incoming bank payment type `32813748` with `name=null`, `creditAccount=null`, `debitAccount.number=1920`, `isBankAccount=true`, and `isInvoiceAccount=true`
+- that same sandbox account contained `4` unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`, so persistent-sandbox duplicate noise is not proof that the fresh-account production task shape needs an extra resolver read
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
@@ -121,6 +127,7 @@ Observed production/account variance:
 
 - First inspect the `GET /invoice` result before doing any write
 - If the invoice search is ambiguous, only then add one extra read such as `GET /customer?organizationNumber=...&fields=*`
+- Do not add that `GET /customer` just because a persistent sandbox account has duplicate unpaid analogs; in fresh-account production, exact `organizationNumber + ex-VAT amount + line description` has repeatedly been sufficient
 - Reuse the located invoice object for:
   - payment amount
   - currency context

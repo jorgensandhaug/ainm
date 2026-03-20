@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Marked\" mit den Werten \"Privat\" und \"Offentlig\". Buchen Sie dann einen Beleg auf Konto 6300 über 44950 NOK, verknüpft mit dem Dimensionswert \"Offentlig\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "zJ3T80nvI6A06G7EbsQkF4WuYfEnEJjnjkQVzxiu5Fc"
+  }
+}

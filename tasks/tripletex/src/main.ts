@@ -1316,6 +1316,8 @@ function buildReflectionPrompt(
     "- If the task was an exact common task shape and you proved a better or corrected standard path, update the relevant file in ./trusted-standards/.",
     "- If you changed a common endpoint shape, prerequisite rule, or canonical low-call path, also update ./trusted-standards/common-endpoints.md.",
     "- Always think in terms of minimum API calls needed for perfect correctness.",
+    "- Always try to reduce the amount of API calls used in the flow.",
+    "- In the local sandbox, actively try alternative lower-call ways to achieve the same final state.",
     "- If the run used extra calls, explain exactly which calls were unnecessary and what the lower-call replacement path is.",
     "- Record specific pitfalls that would make a future agent waste calls or trigger avoidable 4xx errors.",
     "- If you create a new playbook, use a concise kebab-case filename in ./task-playbooks/.",

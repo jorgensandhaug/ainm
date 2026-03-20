@@ -1,0 +1,8 @@
+{
+  "prompt": "Establezca un precio fijo de 375250 NOK en el proyecto \"Desarrollo e-commerce\" para Estrella SL (org. nº 816896770). El director del proyecto es Laura Rodríguez (laura.rodriguez@example.org). Facture al cliente el 33 % del precio fijo como pago parcial.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "xijMGVvLWp2Q_CJvoPHvREmq4YfqAEjV22xSOYCNGxk"
+  }
+}

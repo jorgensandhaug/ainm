@@ -1,0 +1,937 @@
+# Codex Trace Snapshot
+
+- session_id: 019d0d47-21c4-7242-aee3-602a7cf340ff
+- session_file: /home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T23-04-18-019d0d47-21c4-7242-aee3-602a7cf340ff.jsonl
+- completed: true
+- assistant_messages: 7
+- tool_calls: 11
+- tool_results: 11
+
+## 2026-03-20T22:04:19.830Z task_event
+event: task_started
+
+## 2026-03-20T22:04:19.831Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Crea una factura para el cliente Sierra SL (org. nº 861379760) con tres líneas de producto: Mantenimiento (2109) a 27500 NOK con 25 % IVA, Horas de consultoría (1175) a 3900 NOK con 15 % IVA (alimentos), y Informe de análisis (9974) a 3400 NOK con 0 % IVA (exento).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+uDtfMIBtUoiPvJNcH2L-OQytaQKIi9qFMicpG80gri8
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts
+
+## 2026-03-20T22:04:29.937Z assistant_message
+phase: commentary
+
+Reviso el estándar/playbook exacto y la forma mínima de resolver esta factura antes de tocar la API.
+
+## 2026-03-20T22:04:29.945Z tool_call
+tool: exec_command
+call_id: call_z4sHb9SerJZlRxpbHq0MbURS
+
+```json
+{
+  "cmd": "rg -n \"Create customer invoice|customer invoice|invoice\" trusted-standards task-playbooks openapi.json",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:29.948Z tool_call
+tool: exec_command
+call_id: call_dpULL5tTtwlQFn45UGv1Ixsk
+
+```json
+{
+  "cmd": "sed -n '1,220p' trusted-standards/create-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:29.948Z tool_call
+tool: exec_command
+call_id: call_OKpHIWA345T9oiIBy87XePYA
+
+```json
+{
+  "cmd": "sed -n '1,260p' task-playbooks/create-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:30.037Z tool_result
+tool: exec_command
+call_id: call_z4sHb9SerJZlRxpbHq0MbURS
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'rg -n "Create customer invoice|customer invoice|invoice" trusted-standards task-playbooks openapi.json'
+Chunk ID: 5ec8e1
+Wall time: 0.0002 seconds
+Process exited with code 0
+Original token count: 49295
+Output:
+Total output lines: 1311
+
+openapi.json:5485:          "name" : "invoiceEmail",
+openapi.json:11051:        "summary" : "[BETA] create a payment for voucher/invoice",
+openapi.json:11095:        "summary" : "[BETA] Get an invoice by voucherId",
+openapi.json:11135:        "summary" : "[BETA] update an invoice by voucherId",
+openapi.json:11186:        "summary" : "[BETA] create an invoice",
+openapi.json:11228:        "summary" : "[BETA] Get a list of invoices",
+openapi.json:11240:          "name" : "invoiceDateFrom",
+openapi.json:11247:          "name" : "invoiceDateTo",
+openapi.json:11254:          "name" : "invoiceNumber",
+openapi.json:11271:          "description" : "List of invoice status: 'inbox' | 'nonPosted' | 'approval' | 'ledger'. separated by comma. defaults to 'ledger' when null.",
+openapi.json:12481:    "/invoice/{id}/:createCreditNote" : {
+openapi.json:12483:        "tags" : [ "invoice" ],
+openapi.json:12484:        "summary" : "Creates a new Invoice representing a credit memo that nullifies the given invoice. Updates this invoice and any pre-existing inverse invoice.",
+openapi.json:12551:    "/invoice/{id}/:createReminder" : {
+openapi.json:12553:        "tags" : [ "invoice" ],
+openapi.json:12554:        "summary" : "Create invoice reminder and sends it by the given dispatch type. Supports the reminder types SOFT_REMINDER, REMINDER and NOTICE_OF_DEBT_COLLECTION. DispatchType NETS_PRINT must have type NOTICE_OF_DEBT_COLLECTION. SMS and NETS_PRINT must be activated prior to usage in the API.",
+openapi.json:12623:          "description" : "Email address to send the reminder to. (Defaults to to the same email list as the invoice if not provided)",
+openapi.json:12666:    "/invoice/{id}" : {
+openapi.json:12668:        "tags" : [ "invoice" ],
+openapi.json:12669:        "summary" : "Get invoice by ID.",
+openapi.json:12707:    "/invoice/{invoiceId}/pdf" : {
+openapi.json:12709:        "tags" : [ "invoice" ],
+openapi.json:12710:        "summary" : "Get invoice document by invoice ID.",
+openapi.json:12713:          "name" : "invoiceId",
+openapi.json:12754:    "/invoice/{id}/:payment" : {
+openapi.json:12756:        "tags" : [ "invoice" ],
+openapi.json:12757:        "summary" : "Update invoice. The invoice is updated with payment information. The amount is in the invoice’s currency.",
+openapi.json:12796:          "description" : "Amount paid by customer in the invoice currency. Optional, but required for invoices in alternate currencies.",
+openapi.json:12818:    "/invoice" : {
+openapi.json:12820:        "tags" : [ "invoice" ],
+openapi.json:12821:        "summary" : "Find invoices corresponding with sent data. Includes charged outgoing invoices only.",
+openapi.json:12831:          "name" : "invoiceDateFrom",
+openapi.json:12839:          "name" : "invoiceDateTo",
+openapi.json:12847:          "name" : "invoiceNumber",
+openapi.json:12928:        "tags" : [ "invoice" ],
+openapi.json:12929:        "summary" : "Create invoice. Related Order and OrderLines can be created first, or included as new objects inside the Invoice.",
+openapi.json:12942:          "description" : "Payment type to register prepayment of the invoice. paymentTypeId and paidAmount are optional, but both must be provided if the invoice has already been paid.",
+openapi.json:12950:          "description" : "Paid amount to register prepayment of the invoice, in invoice currency. paymentTypeId and paidAmount are optional, but both must be provided if the invoice has already been paid.",
+openapi.json:12983:    "/invoice/list" : {
+openapi.json:12985:        "tags" : [ "invoice" ],
+openapi.json:12986:        "summary" : "[BETA] Create multiple invoices. Max 100 at a time.",
+openapi.json:13036:    "/invoice/{id}/:send" : {
+openapi.json:13038:        "tags" : [ "invoice" ],
+openapi.json:13039:        "summary" : "Send invoice by ID and sendType. Optionally override email recipient.",
+openapi.json:13080:    "/invoiceRemark/{id}" : {
+openapi.json:13082:        "tags" : [ "invoiceRemark" ],
+openapi.json:13083:        "summary" : "Get invoice remark by ID.",
+openapi.json:13121:    "/invoice/paymentType/{id}" : {
+openapi.json:13123:        "tags" : [ "invoice/paymentType" ],
+openapi.json:13162:    "/invoice/paymentType" : {
+openapi.json:13164:        "tags" : [ "invoice/paymentType" ],
+openapi.json:13242:    "/invoice/details/{id}" : {
+openapi.json:13244:        "tags" : [ "invoice/details" ],
+openapi.json:13283:    "/invoice/details" : {
+openapi.json:13285:        "tags" : [ "invoice/details" ],
+openapi.json:13296:          "name" : "invoiceDateFrom",
+openapi.json:13304:          "name" : "invoiceDateTo",
+openapi.json:15030:        "description" : "This is an API endpoint for getting payment types for outgoing payments. This is equivalent to the section 'Outgoing Payments' under Accounts Settings in Tripletex. These are the payment types listed in supplier invoices, vat returns, salary payments and Tax/ENI",
+openapi.json:17626:        "summary" : "To create a subscription invoice, first create a order with the subscription enabled, then approve it with this method. This approves the order for subscription invoicing.",
+openapi.json:17638:          "name" : "invoiceDate",
+openapi.json:17931:    "/order/{id}/:invoice" : {
+openapi.json:17934:        "summary" : "Create new invoice or subscription invoice from order.",
+openapi.json:17935:        "operationId" : "OrderInvoice_invoice",
+openapi.json:17939:          "description" : "ID of order to invoice.",
+openapi.json:17946:          "name" : "invoiceDate",
+openapi.json:17948:          "description" : "The invoice date",
+openapi.json:17956:          "description" : "Send invoice to customer",
+openapi.json:17964:          "description" : "Send type used for sending the invoice",
+openapi.json:17972:          "description" : "Payment type to register prepayment of the invoice. paymentTypeId and paidAmount are optional, but both must be provided if the invoice has already been paid. The payment type must be related to an account with the same currency as the invoice.",
+openapi.json:17980:          "description" : "Paid amount to register prepayment of the invoice, in invoice currency. paymentTypeId and paidAmount are optional, but both must be provided if the invoice has already been paid. This amount is in the invoice currency.",
+openapi.json:17994:          "description" : "Payment type of rest amount. It is possible to have two prepaid payments when invoicing. If paymentTypeIdRestAmount > 0, this second payment will be calculated as invoice amount - paidAmount",
+openapi.json:18039:          "name" : "invoiceIdIfIsCreditNote",
+openapi.json:18041:          "description" : "Id of the invoice a credit note refers to",
+openapi.json:18072:    "/order/:invoiceMultipleOrders" : {
+openapi.json:18075:        "summary" : "[BETA] Charges a single customer invoice from multiple orders. The orders must be to the same customer, currency, due date, receiver email, attn. and smsNotificationNumber",
+openapi.json:18076:        "operationId" : "OrderInvoiceMultipleOrders_invoiceMultipleOrders",
+openapi.json:18086:          "name" : "invoiceDate",
+openapi.json:18088:          "description" : "The invoice date",
+openapi.json:18096:          "description" : "Send invoice to customer",
+openapi.json:24040:    "/project/{id}/period/invoiced" : {
+openapi.json:24043:        "summary" : "Find invoiced info by project period.",
+openapi.json:24044:        "operationId" : "ProjectPeriodInvoiced_invoiced",
+openapi.json:28593:          "name" : "invoiceId",
+openapi.json:31011:          "name" : "invoiceEmail",
+openapi.json:31208:    "/supplierInvoice/{invoiceId}/:addPayment" : {
+openapi.json:31214:          "name" : "invoiceId",
+openapi.json:31288:    "/supplierInvoice/{invoiceId}/:addRecipient" : {
+openapi.json:31291:        "summary" : "Add recipient to supplier invoices.",
+openapi.json:31294:          "name" : "invoiceId",
+openapi.json:31351:          "name" : "invoiceIds",
+openapi.json:31382:    "/supplierInvoice/{…45295 tokens truncated…and `faktura@bergvik.no` still did not improve the public task-04 best score beyond `6/7`, even after using one `POST /supplier` with both `email` and `invoiceEmail`; that means mirroring `invoiceEmail` alone is not a proven full fix for this scorer
+trusted-standards/create-supplier.md:82:- re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108263571`, preserved both fields, and returned `ledgerAccount.id=424190921`
+trusted-standards/create-customer.md:11:- no invoice, payment, update, delete, or lookup-heavy workflow
+trusted-standards/create-customer.md:17:- separate invoice email requested
+trusted-standards/create-customer.md:20:- prompt implies special invoice delivery setup
+trusted-standards/create-customer.md:46:- do not invent `invoiceEmail`
+trusted-standards/create-customer.md:53:- returned defaults like `invoiceSendMethod` if later logic unexpectedly needs them
+trusted-standards/create-customer.md:63:- customer delivery validation if prompt explicitly implies EHF/invoice delivery constraints
+trusted-standards/create-customer.md:68:- do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
+trusted-standards/create-customer.md:76:- re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+trusted-standards/create-order-invoice-and-register-payment.md:11:- convert that new order into an invoice immediately
+trusted-standards/create-order-invoice-and-register-payment.md:12:- register full payment on that created invoice immediately
+trusted-standards/create-order-invoice-and-register-payment.md:13:- do not send the invoice unless the prompt explicitly asks for it
+trusted-standards/create-order-invoice-and-register-payment.md:19:- the task explicitly requires sending the invoice
+trusted-standards/create-order-invoice-and-register-payment.md:26:5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+trusted-standards/create-order-invoice-and-register-payment.md:28:7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+trusted-standards/create-order-invoice-and-register-payment.md:29:8. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
+trusted-standards/create-order-invoice-and-register-payment.md:46:- if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
+trusted-standards/create-order-invoice-and-register-payment.md:47:- if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
+trusted-standards/create-order-invoice-and-register-payment.md:48:- for the combined invoice-and-payment write, use one valid incoming `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`
+trusted-standards/create-order-invoice-and-register-payment.md:55:- from `PUT /order/{id}/:invoice`:
+trusted-standards/create-order-invoice-and-register-payment.md:57:  - `value.invoiceNumber`
+trusted-standards/create-order-invoice-and-register-payment.md:59:  - invoice totals if needed for proof
+trusted-standards/create-order-invoice-and-register-payment.md:62:- default verification is zero extra calls after the combined invoice write
+trusted-standards/create-order-invoice-and-register-payment.md:63:- trust the invoice write response when it proves remaining outstanding amount is `0`
+trusted-standards/create-order-invoice-and-register-payment.md:64:- do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits
+trusted-standards/create-order-invoice-and-register-payment.md:71:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/create-order-invoice-and-register-payment.md:73:  - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+trusted-standards/create-order-invoice-and-register-payment.md:74:  - retry the same `PUT /order/{id}/:invoice?...` once
+trusted-standards/create-order-invoice-and-register-payment.md:76:- if the combined invoice-and-payment write rejects the seed-payment shape for an unexpected account-specific reason after the invoice already exists:
+trusted-standards/create-order-invoice-and-register-payment.md:77:  - resume from the existing unpaid invoice instead of rebuilding the order
+trusted-standards/create-order-invoice-and-register-payment.md:78:  - `GET /invoice/paymentType?...` only if the same run does not already hold a proven valid incoming payment type
+trusted-standards/create-order-invoice-and-register-payment.md:79:  - `PUT /invoice/{id}/:payment?...` with the actual outstanding amount from the invoice object
+trusted-standards/create-order-invoice-and-register-payment.md:82:- `/order`, `/order/{id}/:invoice`, `/invoice/paymentType`, and `/invoice/{id}/:payment` verified in `./openapi.json`
+trusted-standards/create-order-invoice-and-register-payment.md:87:  - `GET /invoice/paymentType`
+trusted-standards/create-order-invoice-and-register-payment.md:89:  - `PUT /order/{id}/:invoice` with `paymentTypeId`, a minimal positive `paidAmount`, and `paymentTypeIdRestAmount`
+trusted-standards/create-order-invoice-and-register-payment.md:94:  - `PUT /order/{id}/:invoice` with the combined prepayment parameters
+trusted-standards/create-order-invoice-and-register-payment.md:95:- re-verified earlier on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; before the combined-prepayment improvement was proven, the downstream split-tail path completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`
+trusted-standards/create-order-invoice-and-register-payment.md:99:  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+trusted-standards/create-order-invoice-and-register-payment.md:101:  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`
+trusted-standards/create-order-invoice-and-register-payment.md:102:  - the invoice write returned `amountCurrencyOutstanding=0` directly, so the extra `PUT /invoice/{id}/:payment` call was unnecessary
+trusted-standards/create-order-invoice-and-register-payment.md:104:- additional production re-verification on 2026-03-20 for customer `989093630` with product refs `5981` and `6784` had earlier completed in the same 6-call split-tail path with no `/ledger/account` hedge, and the created invoice outstanding was `63000` even though the prompt ex-VAT sum was `50400`
+trusted-standards/create-order-invoice-and-register-payment.md:105:- production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance
+trusted-standards/create-order-invoice-and-register-payment.md:106:- production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`
+
+```
+
+## 2026-03-20T22:04:30.038Z tool_result
+tool: exec_command
+call_id: call_dpULL5tTtwlQFn45UGv1Ixsk
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '1,220p' trusted-standards/create-customer-invoice.md"
+Chunk ID: 04c862
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 2448
+Output:
+# Create Customer Invoice
+
+## Trust Level
+- Trusted standard
+- Use directly for exact matches
+- Skip `./openapi.json` re-checking for exact matches
+
+## Exact Match
+- create one outgoing invoice
+- do not send it
+- customer already exists or is resolvable in one decisive read
+- products either already exist or lines are directly creatable from prompt
+- prompt is a standard customer-invoice create, not payment or reversal
+
+## Do Not Use This Standard If
+- prompt requires sending after create
+- prompt requires a custom multi-order workflow
+- task is a correction/reversal/payment flow
+
+## Standard Flow
+1. resolve customer with one decisive `GET /customer?...&fields=*` if needed
+2. resolve existing products only if prompt clearly references existing products
+   - if the prompt clearly gives exact product numbers, prefer one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
+   - if the prompt gives exact product names plus numeric refs that are not explicitly guaranteed Tripletex product numbers, prefer one decisive `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or product `name`
+   - only fall back from the direct numeric query or catalog read to the next resolver if the earlier read is ambiguous, truncated for the account, or the prompt lacks exact product names
+   - only spend `GET /product?ids=...` if the earlier resolver still leaves the products unresolved
+   - if you do start with a speculative product-number resolver and it returns an incomplete subset, keep the broader product-catalog fallback inside the same script and reuse the already-resolved customer instead of restarting the whole flow
+3. if the prompt gives exact VAT rates and the resolved product read does not itself expose enough VAT detail, resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+4. `POST /invoice?sendToCustomer=false`
+5. only if the write response omits decisive totals or later logic truly needs readback-only line details, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+6. stop
+
+## Payload Rules
+- include:
+  - `invoiceDate`
+  - `invoiceDueDate`
+  - `customer: { "id": ... }`
+  - lines under `orders[].orderLines`
+- do not create lines under read-only `invoice.orderLines`
+- for product-linked lines, prefer `product: { "id": ... }`
+- do not send unless prompt explicitly asks
+- do not hardcode output VAT code `3`
+- if `GET /product?fields=*` returns `vatType` only as `id`/`url`, that is not enough to prove an explicit prompt VAT percentage
+- if the filtered outgoing VAT read shows that the resolved product `vatType.id` already maps to the prompt percentage, you may still omit explicit line `vatType`
+- if the filtered outgoing VAT read shows a mismatch and the desired percentage exists, force that line with `vatType: { "id": ... }`
+
+## Reuse From Write Response
+- `value.id`
+- `value.invoiceNumber`
+- totals from invoice write response
+- sparse line objects still prove line count, not full line details
+- if the payload already fixed `product`, `description`, `count`, `unitPriceExcludingVatCurrency`, and explicit line `vatType`, and the write response returns decisive totals (`amountExcludingVatCurrency` / `amountCurrency`), that is enough to stop on a create-only task
+
+## Verification
+- default verification is zero extra calls if invoice totals/existence are enough
+- sparse `orderLines` alone are not a reason to fetch the invoice again when the payload already fixed the line data and the write response totals match the intended VAT mix
+- use one immediate expanded `GET /invoice/{id}` only when exact scored line details still need proof or the write response is too thin to prove the financial outcome
+
+## Known Recovery Branches
+- if the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop; the run is blocked by unusable credentials, not by invoice-flow uncertainty
+- if invoice creation fails with missing company bank account:
+  - `GET /ledger/account?isBankAccount=true&fields=*`
+  - update existing invoice account with `PUT /ledger/account/{id}`
+  - retry invoice write once
+- if the one-shot product catalog read is ambiguous or incomplete, use the documented numeric recovery chain instead of guessing from approximate matches
+- if a speculative `GET /product?productNumber=...` returns only a partial subset on a name-rich prompt, do the broader catalog fallback in the same script; do not re-read the customer or rerun the whole flow from the top
+
+## OpenAPI / Sandbox Status
+- `/invoice`, `/ledger/account`, and related invoice family endpoints verified in `./openapi.json`
+- flow and bank-account repair proven in sandbox/playbooks
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=827304212` with product numbers `6744`, `2584`, `3739` and VAT mix `25%` / `15%` / `0%` showed that `GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false` was already the minimum successful API path; the only failure was a local gross-total assertion bug after the successful write, not an API-flow error
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=925760838` with products labeled `(3644)`, `(4934)`, `(8806)` plus exact names showed that two numeric product-resolver reads were wasted before a later catalog read settled the products; the lower-call replacement for that shape is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=909722500` with lines `Analysis Report (9796)`, `Maintenance (2145)`, and `System Development (5995)` plus VAT `25%` / `15%` / `0%` showed that one speculative `GET /product?productNumber=9796&productNumber=2145&productNumber=5995&fields=*` was wasted before the later catalog read settled the products; the lower-call replacement in that same fresh-account state is `GET /customer` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false` -> conditional bank-account `GET` -> bank-account `PUT` -> single invoice retry
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=851635874` with lines `Analyserapport (2934)`, `Datarådgivning (8699)`, and `Nettverkstjeneste (1355)` plus VAT `25%` / `15%` / `0%` showed that a speculative `GET /product?productNumber=2934&productNumber=8699&productNumber=1355&fields=*` did not resolve all lines, and the run only succeeded after a broader catalog fallback on exact names; the lower-call replacement for that shape is one decisive `GET /product?count=1000&fields=*`, then `GET /ledger/vatType`, then `POST /invoice?sendToCustomer=false`
+- the same `851635874` run also showed a control-flow inefficiency: the product-fallback logic happened only after the first script aborted, which forced a duplicate customer read on the second script run; next time keep the fallback as an in-script callback/branch and reuse the first successful customer resolution
+- re-verified on 2026-03-20 in persistent sandbox that `GET /product?productNumber=...&fields=*` can return `vatType` only as a link object (`id`/`url`), so explicit-VAT prompts may still need one filtered outgoing `vatType` lookup before the invoice write
+- re-verified on 2026-03-20 in persistent sandbox that `POST /invoice?sendToCustomer=false` can return sparse `orderLines` while still returning decisive totals; when the create payload already fixes the scored line fields, that write response is enough for the minimal create-only path
+- re-verified on 2026-03-20 in persistent sandbox with the exact customer/product-number shape `827304212` + `6744/2584/3739` that the proof path is still `GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false`; that sandbox account exposed only outgoing VAT `0%`, so the exact mixed `25%` / `15%` / `0%` write could not be replayed there and only a 0%-analog invoice could be proven in-account
+- re-verified again on 2026-03-20 in persistent sandbox with a disposable analog that exact-name product resolution plus `GET /ledger/vatType` plus `POST /invoice?sendToCustomer=false` completes the proof path in four calls after setup; that sandbox account still exposed only `0%` outgoing VAT, so mixed `25%` / `15%` / `0%` could not be replayed there
+- re-verified again on 2026-03-20 in persistent sandbox with a prompt-like analog for the `909722500` Oakwood task shape: after setup, a four-call proof path `GET /customer?organizationNumber=909722502&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false` resolved sandbox products whose stored numbers intentionally differed from prompt-like refs `9796`, `2145`, and `5995`; the created invoice returned `amountExcludingVatCurrency=47450` and `amountCurrency=47450`, and the sandbox still exposed only `0%` outgoing VAT
+- re-verified again on 2026-03-20 in persistent sandbox with an analog customer and exact-name products whose stored product numbers intentionally differed from prompt-like refs `2934` / `8699` / `1355`; after setup, the winning proof path was exactly `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`, and the created invoice returned `amountExcludingVatCurrency=53050` and `amountCurrency=53050`
+
+```
+
+## 2026-03-20T22:04:30.038Z tool_result
+tool: exec_command
+call_id: call_OKpHIWA345T9oiIBy87XePYA
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '1,260p' task-playbooks/create-customer-invoice.md"
+Chunk ID: 76ba6d
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 5625
+Output:
+Total output lines: 260
+
+# Create Customer Invoice
+
+## Scope
+
+Use for tasks like:
+- create one outgoing customer invoice
+- do not send the invoice unless the prompt explicitly asks for sending
+- the customer already exists and is usually identified by organization number
+- the lines may use existing products identified by numeric refs in parentheses
+- the prompt gives line descriptions, prices, and sometimes exact VAT rates
+
+Do not use for:
+- send-after-create tasks where the sending step is part of the prompt
+- order-then-invoice tasks that explicitly require a separate `POST /order` flow
+- invoice-payment tasks
+
+## Verified Findings
+
+- reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`, names `Webdesign`, `Programvarelisens`, `Opplæring`, VAT `25%` / `15%` / `0%`) showed:
+  - the API path itself was already minimal and correct: `GET /customer?organizationNumber=...&fields=*` -> `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+  - the only mistake happened after the successful write: local verification miscomputed the gross total as `61145` instead of the correct `60745`
+  - because the invoice write had already succeeded, that arithmetic bug should have been treated as a local reflection issue, not as a reason to retry or create another invoice
+- the production run for this exact task on 2026-03-20 stopped on the first call:
+  - `GET /customer?organizationNumber=919172657&fields=*` returned `403 {"error":"Invalid or expired token"}`
+  - that was a credential block, not an invoice-flow failure, so no further production API calls were justified
+- follow-up reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=925760838`, product labels `(3644)`, `(4934)`, `(8806)`, names `Maintenance`, `Licence logicielle`, `Service réseau`) showed:
+  - the run succeeded, but it spent two extra product-resolution reads before a later `GET /product?count=1000&fields=*` settled the products
+  - because the prompt already gave exact product names, the lower-call resolver for that exact shape should have been one decisive catalog read with local exact filtering by product `number` and/or exact product `name`, not `GET /product?productNumber=...` followed by `GET /product?ids=...`
+  - the same run also hit the known missing-company-bank-account validation on the first invoice write, so the realistic minimal successful production path for that account state was seven API calls: `GET /customer` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType` -> `POST /invoice` -> conditional bank-account `GET` -> bank-account `PUT` -> single invoice retry
+- reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=909722500`, product lines `Analysis Report (9796)`, `Maintenance (2145)`, `System Development (5995)`, VAT `25%` / `15%` / `0%`) showed:
+  - the run reached the correct final invoice state, but it was not minimal-call
+  - one speculative `GET /product?productNumber=9796&productNumber=2145&productNumber=5995&fields=*` was wasted before a broader `GET /product?count=1000&fields=*` settled the products by exact-name filtering
+  - the same run also hit the known missing-company-bank-account validation on the first invoice write, so the realistic minimal successful production path for that exact account state was seven API calls: `GET /customer` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType` -> `POST /invoice` -> conditional bank-account `GET` -> bank-account `PUT` -> single invoice retry
+- reflection on the production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=851635874`, product labels `(2934)`, `(8699)`, `(1355)`, names `Analyserapport`, `Datarådgivning`, `Nettverkstjeneste`, VAT `25%` / `15%` / `0%`) showed:
+  - correctness was fine, but the run lost the efficiency point because it used a speculative `GET /product?productNumber=2934&productNumber=8699&productNumber=1355&fields=*` before a later broader catalog read settled the products
+  - the script then aborted on that partial resolver result and restarted the whole flow, which duplicated the already-successful customer read; that control-flow mistake is exactly the kind of avoidable non-minimal behavior that should stay inside one in-script callback/fallback branch instead
+  - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=851635874&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+- the original production run on 2026-03-20 succeeded with:
+  - `GET /customer?organizationNumber=...&fields=*`
+  - an initial `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` returned only a partial subset, so the script had to continue through the documented fallback chain instead of stopping
+  - `POST /invoice?sendToCustomer=false`
+  - the first invoice write hit the known bank-account validation and succeeded only after the documented `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` repair -> single retry branch
+- persistent-sandbox verification on 2026-03-20 showed:
+  - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can return all requested products when the refs are real product numbers
+  - `GET /product?ids=<id>,<id>,<id>&fields=*` can also resolve the same set decisively when you already know the product IDs
+  - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can still return each product `vatType` only as a sparse link object (`id`/`url`), not with `percentage`
+  - therefore product search alone does not always prove explicit prompt VAT percentages; when exact VAT matters, one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` may still be required before the invoice write
+  - an existing-customer, existing-product invoice can be created directly with `POST /invoice?sendToCustomer=false` using `orderLines[].product = { "id": ... }`
+  - the `POST /invoice` response returned `orderLines` only as sparse link objects with keys `id` and `url`, even though `orderLines.length` matched the requested line count and the response still included decisive totals
+  - one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` returned the exact product numbers, descriptions, unit prices, and VAT data for the created lines
+  - a clean existing-customer plus existing-product proof path was re-proven in exactly four calls when the product VAT was already known from setup and exact line readback was still desired: `GET /customer` -> `GET /product` -> `POST /invoice?sendToCustomer=false` -> immediate `GET /invoice/{id}`
+- persistent-sandbox verification on 2026-03-20 with the exact identifiers from this task shape (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`) showed:
+  - `GET /customer?organizationNumber=827304212&fields=*` resolved the customer in one call
+  - `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` resolved all three exact-number products in one call and again returned each product `vatType` only as an `id`/`url` link
+  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` exposed only VAT code `6` (`0%`) in that sandbox account, so the exact mixed `25%` / `15%` / `0%` task could not be replayed there
+  - after sandbox-only setup of exact-number analog products, the same four-call proof path (`GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=fals…1625 tokens truncated…requested unit price
+   - if the filtered outgoing VAT lookup returns a valid id for the prompt percentage, prefer sending explicit line `vatType: { "id": ... }` so the write payload itself fixes the scored VAT field
+6. Reuse the invoice write response
+   - trust the returned `id`, `invoiceNumber`, and totals
+   - if the payload already fixed `product`, `description`, `count`, `unitPriceExcludingVatCurrency`, and any needed explicit line `vatType`, and the write response already proves the totals, stop
+7. If exact line-level verification is needed and the write response is sparse, do one immediate read
+   - `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+   - treat the response as sparse not only when `orderLines` is empty, but also when the entries are link-only objects without `product.number`, `description`, `unitPriceExcludingVatCurrency`, and `vatType.percentage`
+   - do not add this read merely because the write response kept `orderLines` sparse if the write response totals already prove the intended create-only financial outcome
+8. Only if `POST /invoice` fails with the company-bank-account validation, repair that prerequisite and retry once
+
+## Exact-Match Fast Path
+
+- For a prompt that:
+  - identifies an existing customer by organization number
+  - identifies existing products by exact product numbers
+  - asks only to create the invoice, not send it
+  - gives explicit VAT percentages that must be respected
+- the winning path is usually:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
+  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+  4. `POST /invoice?sendToCustomer=false`
+  - stop there if the write response totals match the intended line prices and VAT mix
+- For a prompt that:
+  - identifies an existing customer by organization number
+  - identifies existing products by exact names plus ambiguous numeric refs in parentheses
+  - asks only to create the invoice, not send it
+  - does not force an extra VAT confirmation step beyond what the product read already proves
+- the winning path is usually:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  3. `POST /invoice?sendToCustomer=false`
+  4. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
+- For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`, the safer verified path is usually five calls:
+  - the lower-call winning path is usually four calls:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+  4. `POST /invoice?sendToCustomer=false`
+  - stop there if the write response totals match the intended line prices and VAT mix
+  - add a fifth immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only when exact readback-only line proof is still needed
+- For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`, the documented proof path can still be five calls:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+  4. `POST /invoice?sendToCustomer=false`
+  5. immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+- if the catalog read is ambiguous or step 2 still does not uniquely settle the products, then use the documented numeric fallback chain before deciding the refs are unresolved
+- if a speculative first product resolver misses one line, do not restart from `GET /customer`; continue in the same script and reuse already-known ids/results
+- Do not insert an automatic `GET /ledger/account` before the first invoice write
+- Do not call `PUT /invoice/{id}/:send`
+- Do not add a delayed verification read in a separate later script/session if you already know you need line-level proof; do the one decisive `GET /invoice/{id}` immediately while the same token is still in use
+- Do not treat sparse `orderLines` in the write response as an automatic reason to spend `GET /invoice/{id}`; first check whether the write response totals already prove the outcome
+
+## Invoice Payload Notes
+
+- `invoiceDueDate` is required
+- `orders[].deliveryDate` is required
+- `invoice.orderLines` is read-only in the schema
+- create lines under `orders[].orderLines`
+
+Safe product-linked shape:
+
+```json
+{
+  "invoiceDate": "2026-03-20",
+  "invoiceDueDate": "2026-04-03",
+  "customer": { "id": 123 },
+  "orders": [
+    {
+      "customer": { "id": 123 },
+      "orderDate": "2026-03-20",
+      "deliveryDate": "2026-03-20",
+      "orderLines": [
+        {
+          "product": { "id": 456 },
+          "description": "Maintenance",
+          "count": 1,
+          "unitPriceExcludingVatCurrency": 28100
+        }
+      ]
+    }
+  ]
+}
+```
+
+If you must force a specific VAT code on the line, add:
+
+```json
+{
+  "vatType": { "id": 3 }
+}
+```
+
+on that `orderLines[]` item.
+
+## VAT Rules
+
+- Do not hardcode invoice-line `vatType.id = 3`
+- If the resolved product/account combination already carries the intended VAT safely, the invoice write can succeed without an explicit line `vatType`
+- `GET /product?fields=*` may still expose `vatType` only as `id`/`url`; that alone does not prove the percentage on an explicit-VAT prompt
+- If the prompt gives exact VAT rates and the product lookup does not clearly prove matching VAT context, resolve `vatType` from:
+  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+- Choose from the filtered result for the actual invoice date
+- If the resolved product `vatType.id` already maps to the prompt percentage in that filtered result, you can keep the lower-call write shape and omit explicit line `vatType`
+- Do not substitute VAT ids from the broader unfiltered catalog when the `OUTGOING` result disagrees or is narrower
+
+## Credential Trap
+
+- If the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop immediately
+- Do not spend follow-up calls on `/product`, `/invoice`, or alternate auth variations
+- That response means the run is blocked by unusable credentials, not by uncertainty about the invoice flow
+
+## Sparse Response Trap
+
+- `POST /invoice` can return:
+
+```json
+{
+  "value": {
+    "id": 2147525654,
+    "orderLines": [
+      { "id": 1, "url": "..." }
+    ]
+  }
+}
+```
+
+- that does not mean the detailed line fields are missing from the actual invoice
+- the same trap still applies when the sparse response shows the correct number of line link objects; line count alone is not enough for exact verification
+- if you need the exact line details, do one immediate `GET /invoice/{id}` with expanded `fields` and stop there
+- if the write payload already fixed the scored line fields and the write response totals already prove the intended VAT outcome, the minimal create-only path stops without that extra read
+
+## Bank Account Repair Branch
+
+If `POST /invoice` fails with:
+
+`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+
+then the practical repair path is:
+
+1. `GET /ledger/account?isBankAccount=true&fields=*`
+2. choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+3. `PUT /ledger/account/{id}` with:
+
+```json
+{
+  "bankAccountNumber": "12345678903"
+}
+```
+
+4. retry `POST /invoice` once
+
+## Avoidable Mistakes
+
+```
+
+## 2026-03-20T22:04:38.330Z assistant_message
+phase: commentary
+
+El estándar encaja: cliente existente, productos existentes, factura simple no enviada. Ahora fijo el payload mínimo y ejecuto una sola secuencia con fallback interno si aparece el error conocido de cuenta bancaria.
+
+## 2026-03-20T22:04:38.332Z tool_call
+tool: exec_command
+call_id: call_dPNjsyr6wr65eUxllAVUdCU7
+
+```json
+{
+  "cmd": "rg -n \"invoiceDueDate|due date|14 days|paymentTerms\" trusted-standards/create-customer-invoice.md task-playbooks/create-customer-invoice.md trusted-standards/common-endpoints.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 3000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:38.344Z tool_call
+tool: exec_command
+call_id: call_xRx4yup6oLB8BiEdO4ur35WU
+
+```json
+{
+  "cmd": "ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 2000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:38.385Z tool_result
+tool: exec_command
+call_id: call_dPNjsyr6wr65eUxllAVUdCU7
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'rg -n "invoiceDueDate|due date|14 days|paymentTerms" trusted-standards/create-customer-invoice.md task-playbooks/create-customer-invoice.md trusted-standards/common-endpoints.md'
+Chunk ID: c5f0bd
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 83
+Output:
+trusted-standards/create-customer-invoice.md:36:  - `invoiceDueDate`
+task-playbooks/create-customer-invoice.md:104:   - include `invoiceDate`, `invoiceDueDate`, `customer`
+task-playbooks/create-customer-invoice.md:163:- `invoiceDueDate` is required
+task-playbooks/create-customer-invoice.md:173:  "invoiceDueDate": "2026-04-03",
+
+```
+
+## 2026-03-20T22:04:38.385Z tool_result
+tool: exec_command
+call_id: call_xRx4yup6oLB8BiEdO4ur35WU
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts'
+Chunk ID: 764ab8
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 25
+Output:
+total 8
+drwxr-xr-x 2 jorge users 4096 Mar 20 23:04 .
+drwxr-xr-x 4 jorge users 4096 Mar 20 23:04 ..
+
+```
+
+## 2026-03-20T22:04:50.169Z assistant_message
+phase: commentary
+
+Preparo el script en el directorio del run. Lleva solo la ruta canónica de 4 llamadas y un único branch de reparación si la escritura falla por falta de cuenta bancaria.
+
+## 2026-03-20T22:04:50.173Z tool_call
+tool: exec_command
+call_id: call_TwJoa0Nf8mgFbgN9XvwZRa8o
+
+```json
+{
+  "cmd": "sed -n '260,420p' task-playbooks/create-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:50.180Z tool_call
+tool: exec_command
+call_id: call_0cGZGHbI7gIMzfrCEIcJUbrT
+
+```json
+{
+  "cmd": "rg -n \"bankAccountNumber|isInvoiceAccount|Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer\" task-playbooks trusted-standards",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:50.212Z tool_result
+tool: exec_command
+call_id: call_TwJoa0Nf8mgFbgN9XvwZRa8o
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '260,420p' task-playbooks/create-customer-invoice.md"
+Chunk ID: 31ea80
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 446
+Output:
+## Avoidable Mistakes
+
+- Do not spend an unconditional `GET /ledger/account` before the first invoice write
+- Do not use the send-invoice flow when the prompt only asks to create an invoice
+- Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
+- Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
+- Do not replace a clear exact-product-number prompt with a broad catalog read; use `GET /product?productNumber=...` first and only broaden if that direct resolver is incomplete or ambiguous
+- Do not treat inline numeric refs such as `Analysis Report (9796)` as proven `productNumber` search keys when the prompt never explicitly says those numbers are the stored Tripletex product numbers; if exact names are present, one decisive catalog read is often the lower-call path
+- Do not spend both numeric product resolver reads when the prompt already gives exact names and one decisive catalog read would settle the products
+- Do not let a partial product-resolver miss abort the script and trigger a second full run; the broader resolver belongs in the same in-script callback/fallback path
+- Do not postpone a needed verification read into a later separate script/session
+- Do not stop after a partial or ambiguous product resolver result; continue the documented fallback chain in the same script
+- Do not keep probing after a first-call `403 {"error":"Invalid or expired token"}`
+- Do not spend `GET /invoice/{id}` by reflex after every successful create-only invoice write; reuse the payload plus write-response totals first
+- Do not let a local arithmetic/assertion bug after a successful invoice write trigger a retry; re-check the VAT math first
+
+```
+
+## 2026-03-20T22:04:50.226Z tool_result
+tool: exec_command
+call_id: call_0cGZGHbI7gIMzfrCEIcJUbrT
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'rg -n "bankAccountNumber|isInvoiceAccount|Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer" task-playbooks trusted-standards'
+Chunk ID: 828d6a
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 1686
+Output:
+trusted-standards/register-project-hours-and-create-project-invoice.md:105:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/register-project-hours-and-create-project-invoice.md:107:  - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
+trusted-standards/create-and-send-customer-invoice.md:30:   - `PUT /ledger/account/{id}` with a checksum-valid unique 11-digit `bankAccountNumber`
+task-playbooks/register-project-hours-and-create-project-invoice.md:64:- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so a default `/ledger/account` preflight would have been an unnecessary extra call in that exact rerun state
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:89:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:91:  - update the existing invoice account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:114:  - that proactive read showed invoice account `1920` already had a valid `bankAccountNumber`
+trusted-standards/common-endpoints.md:228:  - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
+trusted-standards/common-endpoints.md:230:  - for the exact project-first fixed-price partial-billing shape, keep the optimistic 5-call downstream path by default when the initial `GET /project` already proves project + customer + manager: `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`; the 2026-03-20 `Tindra AS` production run lost the efficiency point after a wasted proactive `/ledger/account` read that found account `1920` already had a valid `bankAccountNumber`
+trusted-standards/create-order-invoice-and-register-payment.md:47:- if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
+trusted-standards/create-order-invoice-and-register-payment.md:71:- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+trusted-standards/create-order-invoice-and-register-payment.md:73:  - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+task-playbooks/register-customer-invoice-payment.md:39:  - `Betalt til bank` (`id=32813748`) had `debitAccount.number=1920`, `isBankAccount=true`, `isInvoiceAccount=true`, and `creditAccount=null`
+task-playbooks/register-customer-invoice-payment.md:66:   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+task-playbooks/register-customer-invoice-payment.md:96:- Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present
+task-playbooks/create-order-invoice-and-register-payment.md:31:  - `PUT /order/{id}/:invoice?...` can fail after a successful `POST /order` with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-order-invoice-and-register-payment.md:103:   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+task-playbooks/create-order-invoice-and-register-payment.md:115:   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+task-playbooks/create-order-invoice-and-register-payment.md:116:   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+task-playbooks/create-order-invoice-and-register-payment.md:211:- Prefer a `19xx` debit account that is also flagged as `isBankAccount=true` or `isInvoiceAccount=true`
+task-playbooks/create-and-send-customer-invoice.md:80:`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-and-send-customer-invoice.md:88:   must have `isInvoiceAccount=true`
+task-playbooks/create-and-send-customer-invoice.md:94:  "bankAccountNumber": "12345678903"
+task-playbooks/create-and-send-customer-invoice.md:167:- Do not create a second invoice bank account with the same `bankAccountNumber`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:24:  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` failed with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:50:  - in that current sandbox state, invoice account `1920` already had `bankAccountNumber=12345678903`, so the company-bank-account validation did not reproduce there
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:60:  - `PUT /ledger/account/{id}` on the existing invoice account because `bankAccountNumber` was missing
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:71:  - that read returned invoice account `1920` with `bankAccountNumber=12345678903`, so the later invoice write already had the prerequisite it needed
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:134:   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:135:   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:242:- Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
+task-playbooks/create-customer-invoice.md:244:`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+task-playbooks/create-customer-invoice.md:249:2. choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+task-playbooks/create-customer-invoice.md:254:  "bankAccountNumber": "12345678903"
+
+```
+
+## 2026-03-20T22:04:53.144Z tool_call
+tool: exec_command
+call_id: call_pVipJv8qcDrx10wy6YFSwOr0
+
+```json
+{
+  "cmd": "sed -n '72,110p' task-playbooks/create-and-send-customer-invoice.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 3000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:53.145Z tool_call
+tool: exec_command
+call_id: call_Bb1fhOOAh3myknjSV5NWL9vJ
+
+```json
+{
+  "cmd": "sed -n '108,132p' task-playbooks/create-order-invoice-and-register-payment.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 3000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:04:53.197Z tool_result
+tool: exec_command
+call_id: call_pVipJv8qcDrx10wy6YFSwOr0
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '72,110p' task-playbooks/create-and-send-customer-invoice.md"
+Chunk ID: d41f7d
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 265
+Output:
+3. `POST /invoice`
+
+So do not let prompt language push this shape onto an unnecessary existing-customer lookup branch.
+
+## Key Finding: Company Bank Account Registration Is A Repair Branch
+
+If `POST /invoice` fails with:
+
+`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+
+then the practical fix is:
+
+1. Find the company bank ledger account with:
+   `GET /ledger/account?isBankAccount=true&fields=*`
+2. Pick the existing invoice account:
+   usually account `1920`
+   must have `isInvoiceAccount=true`
+3. Register the bank account number on that account:
+
+```http
+PUT /ledger/account/{id}
+{
+  "bankAccountNumber": "12345678903"
+}
+```
+
+This was verified in sandbox:
+- invoice creation failed before this update
+- invoice creation succeeded after this update
+- not every 11-digit string is accepted in practice; use a checksum-valid unique 11-digit number
+
+## Key Finding: Resolve VAT Type Dynamically
+
+Do not hardcode invoice line `vatType.id = 3`.
+
+Use:
+
+`GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+
+
+```
+
+## 2026-03-20T22:04:53.197Z tool_result
+tool: exec_command
+call_id: call_Bb1fhOOAh3myknjSV5NWL9vJ
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '108,132p' task-playbooks/create-order-invoice-and-register-payment.md"
+Chunk ID: 1395e8
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 404
+Output:
+   - embed `orderLines` with `product: { id }`, `description`, `count`, and the requested unit price
+6. Convert the order into an invoice and settle it in the same write
+   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+   - for ordinary NOK runs, `paidAmount=0.01` is the proven seed
+   - do not use `paidAmount=0`; sandbox validation treated it as missing
+7. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
+   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+   - retry `PUT /order/{id}/:invoice?...` on the same order
+8. Reuse the invoice write response
+   - verify `amountCurrencyOutstanding` first, otherwise `amountOutstanding`
+   - use invoice totals/lines in that response as verification where available
+9. Stop when remaining outstanding amount is `0`
+
+## Exact-Match Fast Path
+
+- For a prompt that already identifies:
+  - the existing customer by organization number
+  - the existing products by numeric refs
+  - the order line prices
+  - the need to invoice and fully pay immediately
+- the winning path is usually 5 Tripletex API calls when the first product-number read succeeds and the run does not already hold a reusable incoming `paymentTypeId`:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
+
+```
+
+## 2026-03-20T22:05:16.171Z assistant_message
+phase: commentary
+
+Escribo el script único del run ahora. Resolverá cliente, productos, tipos de IVA y hará la creación con un solo retry condicionado por el error de cuenta bancaria.
+
+## 2026-03-20T22:05:48.701Z assistant_message
+phase: commentary
+
+Lanzo el script ahora y, si la API devuelve el branch conocido, dejo que haga la reparación exacta y termine en la misma ejecución.
+
+## 2026-03-20T22:05:49.756Z tool_call
+tool: exec_command
+call_id: call_prS31bQfDRVoKT9dXatNcGVn
+
+```json
+{
+  "cmd": "bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts/run.ts",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:05:50.911Z tool_result
+tool: exec_command
+call_id: call_prS31bQfDRVoKT9dXatNcGVn
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts/run.ts'
+Chunk ID: cffd0c
+Wall time: 1.0009 seconds
+Process running with session ID 54792
+Original token count: 0
+Output:
+
+```
+
+## 2026-03-20T22:05:52.012Z assistant_message
+phase: commentary
+
+La llamada sigue en curso. Espero el resultado antes de tocar nada más.
+
+## 2026-03-20T22:05:52.404Z tool_call
+tool: write_stdin
+call_id: call_2ENDCipyKKTwYN2ucV6vqDQ5
+
+```json
+{
+  "session_id": 54792,
+  "chars": "",
+  "max_output_tokens": 4000,
+  "yield_time_ms": 1000
+}
+```
+
+## 2026-03-20T22:05:52.972Z tool_result
+tool: write_stdin
+call_id: call_2ENDCipyKKTwYN2ucV6vqDQ5
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220416308Z-5452345a/scripts/run.ts'
+Chunk ID: fc4b44
+Wall time: 0.5668 seconds
+Process exited with code 0
+Original token count: 24
+Output:
+{"id":2147550063,"invoiceNumber":1,"amountExcludingVatCurrency":34800,"amountCurrency":42260}
+
+```
+
+## 2026-03-20T22:05:54.430Z assistant_message
+phase: final_answer
+
+Factura creada. `invoiceId=2147550063`, `invoiceNumber=1`, total sin IVA `34800 NOK`, total `42260 NOK`.
+
+## 2026-03-20T22:05:54.446Z task_event
+event: task_complete
+
+Factura creada. `invoiceId=2147550063`, `invoiceNumber=1`, total sin IVA `34800 NOK`, total `42260 NOK`.

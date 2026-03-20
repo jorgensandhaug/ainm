@@ -1,0 +1,66 @@
+You are doing a post-run learning pass for this exact Codex session.
+Work fully autonomously until everything below is complete.
+Do not ask questions.
+Do not talk to the user.
+Do not stop early after reflection.
+
+Your final answer will be saved automatically to this canonical path: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220947811Z-96532526/codex-reflection.summary.md
+Treat that as the only final summary artifact for this follow-up run.
+
+All playbook and AGENTS.md edits must be written in English.
+
+You must complete this full sequence:
+1. Reflect on the original run: what went well, what went poorly, what mistakes happened, why they happened, and what the correct approach should have been.
+2. Then explicitly audit whether the run used the fewest API calls realistically possible for that exact task shape.
+3. Then use the persistent sandbox to investigate and prove the correct solution path.
+4. Then identify the lower-call path that the next agent should use for the same or very similar task, and list the specific API-call pitfalls that should be avoided.
+5. Then update the trusted-standard and playbook system from what you learned, certain earlier trusted standards or playbooks may be inefficient or not the optimal API execution paths.
+6. Then commit the AGENTS.md, trusted-standard, and playbook changes.
+7. Then write the final summary.
+
+Strict rules:
+- Do not continue the original competition task against its original credentials.
+- If you need to call Tripletex during this follow-up, use only the sandbox credentials provided below.
+- Put any sandbox API scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-220947811Z-96532526/scripts
+- Use TypeScript plus bun for API interaction.
+- If creation of certain objects are needed in the Sandbox but were not needed in the production task, omit these or any mention of verification of objects from the playbook. These will already be there when the production task comes next time
+- Re-read ./AGENTS.md and inspect ./trusted-standards/ and ./task-playbooks/ before deciding what to update.
+- If the task was an exact common task shape and you proved a better or corrected standard path, update the relevant file in ./trusted-standards/.
+- If you changed a common endpoint shape, prerequisite rule, or canonical low-call path, also update ./trusted-standards/common-endpoints.md.
+- Always think in terms of minimum API calls needed for perfect correctness.
+- If the run used extra calls, explain exactly which calls were unnecessary and what the lower-call replacement path is.
+- Record specific pitfalls that would make a future agent waste calls or trigger avoidable 4xx errors.
+- If you create a new playbook, use a concise kebab-case filename in ./task-playbooks/.
+- If you create a new trusted standard, use a concise kebab-case filename in ./trusted-standards/.
+- If you create or rename a playbook, update the Task Playbooks table in ./AGENTS.md in the same change.
+- If you create or rename a trusted standard, update the Trusted Standards table in ./AGENTS.md in the same change.
+- Edit only the relevant learning artifacts: ./AGENTS.md, files under ./trusted-standards/, and files under ./task-playbooks/.
+- Use non-interactive git commands only.
+- Commit only the AGENTS.md, trusted-standards, and task-playbooks changes. Do not commit run artifacts.
+
+Commit requirements:
+- Make one git commit after the documentation/playbook work is complete.
+- Commit message format: tripletex playbook: <what changed>
+
+Final summary requirements:
+Write the final summary as Markdown with these exact sections:
+1. Task
+2. Reflection
+3. Call Efficiency
+4. Root Causes
+5. Sandbox Verification
+6. Playbook Changes
+7. Commit
+8. Reusable Heuristics
+
+In the final summary:
+- Be specific about mistakes, wasted calls, weak assumptions, missing instructions, and corrected solution shape.
+- In the Call Efficiency section, state whether the run was minimal-call or not, list wasted calls if any, and give the exact lower-call path the next agent should follow.
+- State whether you updated an existing trusted standard or playbook, or created a new one.
+- List the exact trusted-standard and playbook paths changed.
+- Include the git commit hash and commit message.
+
+Persistent sandbox credentials for investigation:
+- base_url: https://kkpqfuj-amager.tripletex.dev/v2
+- session_token: eyJ0b2tlbklkIjoyMTQ3NjI4NDYxLCJ0b2tlbiI6IjU2NDRjNDljLWU0YzYtNGU2OC05MWU5LWU0MzBhMWRiYTMzYSJ9
+- Basic Auth username: 0

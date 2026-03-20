@@ -1,0 +1,8 @@
+{
+  "prompt": "Registe 15 horas para Leonor Silva (leonor.silva@example.org) na atividade \"Analyse\" do projeto \"Auditoria de segurança\" para Porto Alegre Lda (org. nº 976689283). Taxa horária: 1650 NOK/h. Gere uma fatura de projeto ao cliente com base nas horas registadas.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "p15haZ6N_b-NJajjK_BKQzsrqXtk8bwetOMofEgZifM"
+  }
+}

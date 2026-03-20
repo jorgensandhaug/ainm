@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-221653048Z-e190adc5",
+  "request_id": "3a09fc1a",
+  "prompt_raw": "Register the supplier Northwave Ltd with organization number 949044378. Email: faktura@northwaveltd.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:17:29.195Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:16:55.218Z",
+  "after_captured_at": "2026-03-20T22:18:02.113Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "04",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T22:18:02.115Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-224058181Z-16b4baa8",
+  "request_id": "36ed1182",
+  "prompt_raw": "We have a new employee named Thomas Harris, born 4. June 1991. Please create them as an employee with email thomas.harris@example.org and start date 6. October 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:41:57.038Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:40:58.235Z",
+  "after_captured_at": "2026-03-20T22:42:28.371Z",
+  "diff_entry_count": 5,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:42:28.372Z"
+}

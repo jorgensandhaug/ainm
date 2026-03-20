@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-220811643Z-9a5130ef",
+  "request_id": "60170841",
+  "prompt_raw": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Region\" mit den Werten \"Vestlandet\" und \"Midt-Norge\". Buchen Sie dann einen Beleg auf Konto 6540 über 8600 NOK, verknüpft mit dem Dimensionswert \"Vestlandet\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:09:00.130Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:08:12.654Z",
+  "after_captured_at": "2026-03-20T22:09:30.728Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "17",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T22:09:30.729Z"
+}

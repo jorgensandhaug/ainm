@@ -1,0 +1,8 @@
+{
+  "prompt": "We have a new employee named Lucy Wilson, born 28. December 1986. Please create them as an employee with email lucy.wilson@example.org and start date 25. April 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "XvWjcuP-36lpOMsEbEcEERpctzSlnOH5GENcBDrSlKo"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-03-20T22:20:25.996Z",
+  "request_id": "441b9855",
+  "run_id": "prod-2026-03-20-222025995Z-47b576ba",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222025995Z-47b576ba",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-20-222025995Z-47b576ba",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-222025995Z-47b576ba/scripts",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "attachments": []
+}

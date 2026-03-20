@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-221643357Z-96005f2d",
+  "request_id": "6075fb6d",
+  "prompt_raw": "Opprett en faktura til kunden Havbris AS (org.nr 977448239) med tre produktlinjer: Konsulenttimer (6390) til 2850 kr med 25 % MVA, Systemutvikling (1652) til 2650 kr med 15 % MVA (næringsmiddel), og Webdesign (3273) til 7400 kr med 0 % MVA (avgiftsfri).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:19:49.774Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:16:43.454Z",
+  "after_captured_at": "2026-03-20T22:20:20.624Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:20:20.626Z"
+}

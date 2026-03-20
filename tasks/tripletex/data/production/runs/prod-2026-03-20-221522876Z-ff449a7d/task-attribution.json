@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-221522876Z-ff449a7d",
+  "request_id": "816c197e",
+  "prompt_raw": "Register the supplier Silveroak Ltd with organization number 943413231. Email: faktura@silveroakltd.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:15:52.204Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:15:23.194Z",
+  "after_captured_at": "2026-03-20T22:16:23.494Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "04",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T22:16:23.496Z"
+}

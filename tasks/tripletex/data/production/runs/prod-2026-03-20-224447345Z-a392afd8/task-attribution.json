@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-224447345Z-a392afd8",
+  "request_id": "85f2ccf4",
+  "prompt_raw": "Temos um novo funcionário chamado João Rodrigues, nascido em 5. September 1980. Crie-o como funcionário com o e-mail joao.rodrigues@example.org e data de início 8. August 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:45:53.886Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:44:47.402Z",
+  "after_captured_at": "2026-03-20T22:46:24.198Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "01",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T22:46:24.199Z"
+}

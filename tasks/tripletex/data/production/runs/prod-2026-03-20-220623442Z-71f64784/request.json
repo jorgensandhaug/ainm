@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalingen fra Polaris AS (org.nr 896496468) for fakturaen \"Skylagring\" (17200 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "4AX1Tr7vGuVel4MAR4HgRdN-hYUb7ZFHNo09XB0Cow8"
+  }
+}

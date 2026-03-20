@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-224131505Z-e5381102",
+  "request_id": "bd4d486c",
+  "prompt_raw": "Opprett prosjektet \"Integrasjon Havbris\" knyttet til kunden Havbris AS (org.nr 999148387). Prosjektleder er Henrik Ødegård (henrik.degard@example.org).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:42:12.495Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:41:32.012Z",
+  "after_captured_at": "2026-03-20T22:42:42.758Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:42:42.759Z"
+}

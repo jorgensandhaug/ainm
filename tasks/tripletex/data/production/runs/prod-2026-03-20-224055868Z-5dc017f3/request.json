@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea el cliente Río Verde SL con número de organización 919234830. La dirección es Solveien 5, 4006 Stavanger. Correo: post@rio.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "zx3gp1vzJcG8y71Sp36Haw43xWrINCkl8nvIKHAhbbc"
+  }
+}

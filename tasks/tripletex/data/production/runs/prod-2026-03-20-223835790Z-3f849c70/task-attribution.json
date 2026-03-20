@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-223835790Z-3f849c70",
+  "request_id": "9dd2b8a3",
+  "prompt_raw": "Opprett tre avdelinger i Tripletex: \"HR\", \"Salg\" og \"Økonomi\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:38:59.216Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:38:36.532Z",
+  "after_captured_at": "2026-03-20T22:39:29.582Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:39:29.583Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-224541737Z-336daa76",
+  "request_id": "009c02b2",
+  "prompt_raw": "Kjør lønn for Erik Larsen (erik.larsen@example.org) for denne måneden. Grunnlønn er 49100 kr. Legg til en engangsbonus på 11200 kr i tillegg til grunnlønnen. Dersom lønns-API-et ikke fungerer, kan du bruke manuelle bilag på lønnskontoer (5000-serien) for å registrere lønnskostnaden.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:47:52.120Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:45:41.791Z",
+  "after_captured_at": "2026-03-20T22:48:23.285Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:48:23.285Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-223925860Z-12c28001",
+  "request_id": "4910567d",
+  "prompt_raw": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:40:27.292Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:39:25.913Z",
+  "after_captured_at": "2026-03-20T22:40:57.840Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:40:57.840Z"
+}
