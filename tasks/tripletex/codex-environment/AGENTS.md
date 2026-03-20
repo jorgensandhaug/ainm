@@ -47,6 +47,8 @@ Authentication:
 - Password: provided session token.
 - Always call the provided base URL.
 - Never switch to any default Tripletex URL.
+- If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
+- In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
 
 ## API Reference Strategy
 - Use the common endpoints below first.
@@ -152,6 +154,7 @@ Authentication:
 - `401` usually means wrong auth format or wrong token.
 - `404` usually means wrong path, wrong ID, or wrong endpoint choice.
 - `422` usually means validation failure or missing required fields.
+- A network/DNS failure before any HTTP status usually means the provided base URL is unusable in this run, not that the request payload is wrong.
 
 ## Tripletex Gotchas
 - Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
