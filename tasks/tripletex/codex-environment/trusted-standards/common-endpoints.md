@@ -259,7 +259,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
-  - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case on 2026-03-20, that two-call path is already minimal; do not add `GET /customer`
+  - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production run `812449982` + `45300` + `Datarådgjeving`, that two-call path is already minimal; do not add `GET /customer`
+  - once that trusted-standard shape matches, do not spend extra local `openapi.json` confirmation time before acting; follow the standard directly
   - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
   - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write

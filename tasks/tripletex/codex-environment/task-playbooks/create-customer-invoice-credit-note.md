@@ -38,6 +38,14 @@ Verified on 2026-03-20:
   - no `GET /customer`
   - no `GET /invoice/{id}`
   - no voucher lookup or reversal
+- a second production run on 2026-03-20 again succeeded in the same two API calls for:
+  - `customer.organizationNumber=812449982`
+  - `amountExcludingVatCurrency=45300`
+  - `description="Datarådgjeving"`
+- that second production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
 - persistent-sandbox re-verification created a fixture invoice and then proved that:
   - one `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` was enough to locate the unique target invoice by:
     - `customer.organizationNumber`
@@ -51,6 +59,8 @@ Verified on 2026-03-20:
     - `creditedInvoice=<original invoice id>`
     - its own credit-note `id`
     - its own credit-note `invoiceNumber`
+  - a disposable sandbox fixture matching the current production-style facts `description="Datarådgjeving"` and `amountExcludingVatCurrency=45300` again proved the same two-call core after setup
+  - on that disposable `Datarådgjeving` fixture, the locate read showed two identical description hits across top-level and nested line arrays on the same invoice; dedupe at the invoice id and keep the flow at two API calls
   - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` again proved the same two-call core after setup
   - on that exact-identifier fixture, the locate read still showed duplicate `Maintenance` hits across top-level and nested line arrays on the same invoice, and the write response alone still proved success
 
