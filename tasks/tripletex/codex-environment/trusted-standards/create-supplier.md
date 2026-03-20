@@ -42,7 +42,7 @@
   - `invoiceEmail`
 - preserve prompt text exactly, including Unicode
 - map one generic prompt email to `email`
-- treat localized generic email labels such as `Correo electrónico` the same as `Email`/`E-post`; they still map to `email`
+- treat localized generic email labels such as `Correo electrónico` and `E-mail` the same as `Email`/`E-post`; they still map to `email`
 - if that lone supplier email also clearly looks invoice-oriented, such as `faktura@...`, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and protects the scored supplier record
 - do not invent postal, physical, or delivery addresses
 
@@ -66,6 +66,7 @@
 - do not add duplicate-check logic for fresh-account create tasks
 - do not drop `email` just because you also set `invoiceEmail`
 - do not treat a lone invoice-looking supplier email as proof that `email` should be empty; the safe correction is to mirror it into both `email` and `invoiceEmail`
+- do not spend extra reads or spec checks just because the prompt is in French; the same exact-match one-write path still applies
 - do not chase a possible missing scorer field by inventing address fields or a follow-up `GET` after the one-call mirrored-email path already returned the requested supplier fields
 - do not invent address fields just because the response auto-returns sparse address links
 - do not fetch the supplier again just to inspect `ledgerAccount`, `postalAddress`, or `physicalAddress`
@@ -83,4 +84,8 @@
 - re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108263571`, preserved both fields, and returned `ledgerAccount.id=424190921`
 - production on 2026-03-20 for `Silveroak Ltd`, `943413231`, and `faktura@silveroakltd.no` succeeded with the same one-call mirrored-email path; `POST /supplier` returned supplier `id=108280853`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Silveroak Reflection Supplier 321000008`, `321000008`, and `faktura-321000008@silveroakltd.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108280951`, preserved both fields, and returned `ledgerAccount.id=424190921`
+- production on 2026-03-20 for the exact English supplier-create shape `Northwave Ltd`, `949044378`, and `faktura@northwaveltd.no` also succeeded with the same one-call mirrored-email path; `POST /supplier` returned supplier `id=108281110`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Northwave Reflection Supplier 321000009`, `321000009`, and `faktura-321000009@northwaveltd.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108281238`, preserved both fields, and returned `ledgerAccount.id=424190921`
+- production on 2026-03-20 for the exact French supplier-create shape `Cascade SARL`, `997712560`, and `faktura@cascadesarl.no` also succeeded with the same one-call mirrored-email path; `POST /supplier` returned supplier `id=108283132`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with French-style prompt semantics and production-like payload `Cascade SARL Reflection 321000010`, `321000010`, and `faktura-321000010@cascadesarl.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108283330`, preserved both fields, and returned `ledgerAccount.id=424190921`
 - additional persistent-sandbox probing on 2026-03-20 showed that even when `postalAddress: null`, `physicalAddress: null`, `isCustomer: false`, `isInactive: false`, `showProducts: false`, and `language: "NO"` were sent explicitly, Tripletex still auto-created sparse `postalAddress` and `physicalAddress` link objects and still auto-generated `displayName` from the assigned `supplierNumber`; one unresolved scorer field is therefore likely outside the prompt-provided business fields
