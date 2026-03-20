@@ -6,34 +6,29 @@ import {
   type SolvePipelineOptions,
   runCompetitionSolvePipeline,
 } from "./runtime/solve-pipeline";
+import {
+  resolveStorageMode,
+  runTmuxSolvePipeline,
+  type TmuxSolveRequest,
+} from "./runtime/tmux-solve";
 import { loadSandboxCredentials } from "./sandbox-credentials";
-
-interface SolveRequestFilePayload {
-  filename: string;
-  content_base64: string;
-  mime_type?: string;
-}
-
-interface SolveRequestPayload {
-  prompt: string;
-  files?: readonly SolveRequestFilePayload[];
-  tripletex_credentials?: {
-    base_url?: string;
-    session_token?: string;
-    company_id?: string | number;
-    credential_source?: string;
-  };
-}
 
 interface ParsedSolveRequestPayload {
   prompt: string;
-  files: CompetitionSolveRequest["files"];
+  files: readonly ParsedSolveRequestFile[];
   tripletex_credentials: {
     base_url?: string;
     session_token?: string;
     company_id?: string | number;
     credential_source?: string;
   };
+}
+
+interface ParsedSolveRequestFile {
+  content_base64: string;
+  filename: string;
+  mime_type?: string;
+  textContent: string;
 }
 
 export interface SolveServerOptions
@@ -46,6 +41,15 @@ export interface SolveServerOptions
   artifactRoot?: string;
   sandboxEnvPath?: string;
   createRunId?: (input: { mode: string; now: Date }) => string;
+  solveBackend?: "deterministic" | "tmux";
+  env?: Record<string, string | undefined>;
+  codexEnvironmentDir?: string;
+  codexHomeDir?: string;
+  solveTimeoutMs?: number;
+  tmuxSessionExists?: (sessionName: string) => Promise<boolean>;
+  tmuxSessionName?: string;
+  tmuxRunCommand?: (cmd: readonly string[]) => Promise<string>;
+  tmuxSleep?: (ms: number) => Promise<void>;
   logger?: (
     level: "INFO" | "WARN" | "ERROR",
     message: string,
@@ -68,6 +72,8 @@ export function createSolveRequestHandler(
 ): SolveRequestHandler {
   const bearerToken = options.bearerToken ?? DEFAULT_BEARER_TOKEN;
   const mode = options.mode ?? "sandbox";
+  const solveBackend = options.solveBackend ?? resolveSolveBackend(mode);
+  const env = options.env ?? Bun.env;
   const dataRoot = path.resolve(process.cwd(), options.dataRoot ?? "data");
   const artifactRoot = path.resolve(process.cwd(), options.artifactRoot ?? "runs");
   const maxConcurrentSolveRequests =
@@ -140,12 +146,9 @@ export function createSolveRequestHandler(
       );
     }
 
-    let solveRequest: CompetitionSolveRequest;
+    let parsedRequest: ParsedSolveRequestPayload;
     try {
-      solveRequest = await resolveSolveRequestPayload(await request.json(), {
-        mode,
-        sandboxEnvPath: options.sandboxEnvPath,
-      });
+      parsedRequest = parseSolveRequestPayload(await request.json());
     } catch (error) {
       return jsonResponse(
         400,
@@ -162,26 +165,82 @@ export function createSolveRequestHandler(
     }
 
     const now = options.now ? options.now() : new Date();
-    const runId =
-      options.createRunId?.({ mode, now }) ??
-      createDefaultRunId(mode, now);
-    const runContext = {
-      runId,
-      stageDirectory: path.join(dataRoot, mode, "runs", runId),
-      artifactRoot,
-    };
+    let runId: string | undefined;
 
     activeSolveRequests += 1;
     log("INFO", "Accepted /solve request.", {
       requestId,
-      runId,
       activeSolveRequests,
+      backend: solveBackend,
+      mode,
     });
 
     try {
+      if (solveBackend === "tmux") {
+        const storageMode = resolveStorageMode(env.TRIPLETEX_STORAGE_MODE);
+        const result = await runTmuxSolvePipeline(
+          toTmuxSolveRequest(parsedRequest),
+          requestId,
+          {
+            codexEnvironmentDir: options.codexEnvironmentDir,
+            codexHomeDir: options.codexHomeDir,
+            createRunId: options.createRunId
+              ? ({ now, storageMode }) =>
+                  options.createRunId?.({ mode: storageMode, now }) ??
+                  createDefaultRunId(storageMode, now)
+              : undefined,
+            dataRoot,
+            env,
+            logger: log,
+            now: () => now,
+            runCommand: options.tmuxRunCommand,
+            sandboxEnvPath: options.sandboxEnvPath,
+            sleep: options.tmuxSleep,
+            solveTimeoutMs: options.solveTimeoutMs,
+            storageMode,
+            tmuxSessionExists: options.tmuxSessionExists,
+            tmuxSessionName: options.tmuxSessionName,
+          },
+        );
+        runId = result.preparedRun.runId;
+
+        log("INFO", "Completed /solve request.", {
+          requestId,
+          runId: result.preparedRun.runId,
+          runtimeStatus: result.runtimeStatus,
+          stageDirectory: result.preparedRun.runDir,
+          storageMode,
+        });
+
+        void continuePostRunProcessingStub(result.preparedRun.runId, log);
+
+        return jsonResponse(
+          200,
+          { status: "completed" },
+          {
+            "x-request-id": requestId,
+            "x-tripletex2-run-id": result.preparedRun.runId,
+            "x-tripletex2-runtime-status": result.runtimeStatus,
+          },
+        );
+      }
+
+      const solveRequest = await resolveDeterministicSolveRequestPayload(parsedRequest, {
+        mode,
+        sandboxEnvPath: options.sandboxEnvPath,
+      });
+      runId =
+        options.createRunId?.({ mode, now }) ??
+        createDefaultRunId(mode, now);
+      const runContext = {
+        runId,
+        stageDirectory: path.join(dataRoot, mode, "runs", runId),
+        artifactRoot,
+      };
       const result = await runCompetitionSolvePipeline(solveRequest, {
         ...options,
         mode,
+        now: () => now,
         requestId,
         runContext,
       });
@@ -214,7 +273,7 @@ export function createSolveRequestHandler(
         { error: "Solve request failed before a canonical artifact could be written." },
         {
           "x-request-id": requestId,
-          "x-tripletex2-run-id": runId,
+          ...(runId ? { "x-tripletex2-run-id": runId } : {}),
         },
       );
     } finally {
@@ -258,14 +317,13 @@ function isJsonRequest(request: Request): boolean {
   return typeof contentType === "string" && contentType.startsWith("application/json");
 }
 
-async function resolveSolveRequestPayload(
-  rawValue: unknown,
+async function resolveDeterministicSolveRequestPayload(
+  parsed: ParsedSolveRequestPayload,
   options: {
     mode: NonNullable<SolveServerOptions["mode"]>;
     sandboxEnvPath?: string;
   },
 ): Promise<CompetitionSolveRequest> {
-  const parsed = parseSolveRequestPayload(rawValue);
   const requestCredentials = parsed.tripletex_credentials;
   const shouldUseSandboxFallback =
     options.mode === "sandbox" &&
@@ -276,7 +334,11 @@ async function resolveSolveRequestPayload(
 
   return {
     prompt: parsed.prompt,
-    files: parsed.files,
+    files: parsed.files.map((file) => ({
+      fileName: file.filename,
+      textContent: file.textContent,
+      ...(file.mime_type ? { mediaType: file.mime_type } : {}),
+    })),
     tripletex_credentials: {
       base_url:
         sandboxCredentials?.base_url ??
@@ -366,7 +428,7 @@ function parseSolveRequestPayload(rawValue: unknown): ParsedSolveRequestPayload 
   };
 }
 
-function parseSolveFiles(rawValue: unknown): CompetitionSolveRequest["files"] {
+function parseSolveFiles(rawValue: unknown): ParsedSolveRequestFile[] {
   if (rawValue === undefined) {
     return [];
   }
@@ -384,9 +446,13 @@ function parseSolveFiles(rawValue: unknown): CompetitionSolveRequest["files"] {
     );
 
     return {
-      fileName: requireNonEmptyString(
+      filename: requireNonEmptyString(
         file.filename,
         `solve request file[${index}].filename`,
+      ),
+      content_base64: requireString(
+        file.content_base64,
+        `solve request file[${index}].content_base64`,
       ),
       textContent: Buffer.from(
         requireString(file.content_base64, `solve request file[${index}].content_base64`),
@@ -394,7 +460,7 @@ function parseSolveFiles(rawValue: unknown): CompetitionSolveRequest["files"] {
       ).toString("utf8"),
       ...(file.mime_type !== undefined
         ? {
-            mediaType: requireNonEmptyString(
+            mime_type: requireNonEmptyString(
               file.mime_type,
               `solve request file[${index}].mime_type`,
             ),
@@ -416,6 +482,42 @@ function parseCompanyId(value: unknown): string | number {
 
 function createDefaultRunId(mode: string, now: Date): string {
   return `${mode}-${now.toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`;
+}
+
+function resolveSolveBackend(
+  mode: NonNullable<SolveServerOptions["mode"]>,
+): "deterministic" | "tmux" {
+  return mode === "sandbox" || mode === "competition"
+    ? "tmux"
+    : "deterministic";
+}
+
+function toTmuxSolveRequest(parsed: ParsedSolveRequestPayload): TmuxSolveRequest {
+  return {
+    prompt: parsed.prompt,
+    files: parsed.files.map((file) => ({
+      fileName: file.filename,
+      contentBase64: file.content_base64,
+      textContent: file.textContent,
+      ...(file.mime_type ? { mediaType: file.mime_type } : {}),
+    })),
+    tripletex_credentials: {
+      ...parsed.tripletex_credentials,
+    },
+  };
+}
+
+function continuePostRunProcessingStub(
+  runId: string,
+  log: (
+    level: "INFO" | "WARN" | "ERROR",
+    message: string,
+    details?: Record<string, unknown>,
+  ) => void,
+): void {
+  log("INFO", "Post-run processing stub invoked.", {
+    runId,
+  });
 }
 
 function jsonResponse(

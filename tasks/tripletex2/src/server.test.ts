@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -16,6 +16,7 @@ test("POST /solve writes staging plus a canonical success artifact and respects 
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "sandbox",
+    solveBackend: "deterministic",
     now: () => new Date("2026-03-20T23:00:00.000Z"),
     createRunId: () => "sandbox-http-success",
     dataRoot: path.join(tempRoot, "data"),
@@ -115,6 +116,7 @@ test("POST /solve returns after writing a canonical not-run artifact for unresol
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "sandbox",
+    solveBackend: "deterministic",
     now: () => new Date("2026-03-20T23:10:00.000Z"),
     createRunId: () => "sandbox-http-unresolved",
     dataRoot: path.join(tempRoot, "data"),
@@ -227,6 +229,7 @@ test("POST /solve enforces the concurrency limit", async () => {
 
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
+    solveBackend: "deterministic",
     maxConcurrentSolveRequests: 1,
     taskUnderstanding: {
       result: {
@@ -289,6 +292,7 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "sandbox",
+    solveBackend: "deterministic",
     sandboxEnvPath,
     now: () => new Date("2026-03-20T23:20:00.000Z"),
     createRunId: () => "sandbox-http-fallback",
@@ -357,9 +361,145 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
   assert.equal(artifact.request.credentialSource, "sandbox");
 });
 
+test("POST /solve in sandbox mode uses the tmux backend and waits for task_complete", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const dataRoot = path.join(tempRoot, "data");
+  const codexHomeDir = path.join(tempRoot, ".codex");
+  const codexEnvironmentDir = "/repo/tasks/tripletex2";
+  const tmuxCommands: string[][] = [];
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    codexEnvironmentDir,
+    codexHomeDir,
+    createRunId: () => "test-http-tmux",
+    dataRoot,
+    env: {
+      CODEX_HOME: codexHomeDir,
+      HOME: tempRoot,
+      TRIPLETEX_STORAGE_MODE: "testing",
+    },
+    now: () => new Date("2026-03-20T23:30:00.000Z"),
+    sandboxEnvPath: path.join(tempRoot, ".sandbox.env"),
+    tmuxRunCommand: async (cmd) => {
+      tmuxCommands.push([...cmd]);
+      if (cmd[1] === "new-window") {
+        const launchScriptPath = cmd[cmd.length - 1]!;
+        const runDir = path.dirname(launchScriptPath);
+        const stagedPrompt = (await readFile(
+          path.join(runDir, "codex-prompt.txt"),
+          "utf8",
+        )).trimEnd();
+        const sessionsDir = path.join(
+          codexHomeDir,
+          "sessions",
+          "2026",
+          "03",
+          "20",
+        );
+        await mkdir(sessionsDir, { recursive: true });
+        await writeFile(
+          path.join(sessionsDir, "session.jsonl"),
+          [
+            JSON.stringify({
+              type: "session_meta",
+              payload: {
+                id: "session-123",
+                timestamp: "2026-03-20T23:30:00.000Z",
+                cwd: codexEnvironmentDir,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-20T23:30:00.100Z",
+              payload: {
+                type: "user_message",
+                message: stagedPrompt,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-20T23:30:01.000Z",
+              payload: {
+                type: "task_complete",
+              },
+            }),
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      return "";
+    },
+    tmuxSessionExists: async () => false,
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+  await writeFile(
+    path.join(tempRoot, ".sandbox.env"),
+    [
+      "TRIPLETEX_TEST_BASE_URL=https://sandbox-file.invalid/v2",
+      "TRIPLETEX_TEST_SESSION_TOKEN=sandbox-session-token",
+      "",
+    ].join("\n"),
+  );
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-tmux",
+      files: [
+        {
+          filename: "note.txt",
+          content_base64: Buffer.from("hello tripletex\n").toString("base64"),
+          mime_type: "text/plain",
+        },
+      ],
+      tripletexCredentials: {
+        base_url: "replace-me",
+        session_token: "replace-me",
+      },
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "completed" });
+  assert.equal(response.headers.get("x-request-id"), "req-http-tmux");
+  assert.equal(response.headers.get("x-tripletex2-run-id"), "test-http-tmux");
+  assert.equal(response.headers.get("x-tripletex2-runtime-status"), "completed");
+
+  const runDir = path.join(dataRoot, "testing", "runs", "test-http-tmux");
+  await stat(path.join(runDir, "request.json"));
+  await stat(path.join(runDir, "manifest.json"));
+  await stat(path.join(runDir, "result.json"));
+  await stat(path.join(runDir, "attachments", "01-note.txt"));
+  await stat(path.join(runDir, "scripts"));
+
+  const resultJson = JSON.parse(
+    await readFile(path.join(runDir, "result.json"), "utf8"),
+  ) as {
+    matchedSession?: { sessionId?: string };
+    runtimeStatus: string;
+  };
+  assert.equal(resultJson.runtimeStatus, "completed");
+  assert.equal(resultJson.matchedSession?.sessionId, "session-123");
+
+  assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-session"), true);
+  assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-window"), true);
+});
+
 function createSolveRequest(input: {
   authorization: string;
   requestId?: string;
+  files?: Array<{
+    filename: string;
+    content_base64: string;
+    mime_type?: string;
+  }>;
   tripletexCredentials?: {
     base_url?: string;
     session_token?: string;
@@ -376,7 +516,7 @@ function createSolveRequest(input: {
     body: JSON.stringify({
       prompt:
         "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
-      files: [],
+      files: input.files ?? [],
       tripletex_credentials:
         input.tripletexCredentials ?? {
           base_url: "https://example.invalid",
