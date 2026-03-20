@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from astar.history.replay.ingest import load_seed_replay_runs
+from astar.infra.api.client import AstarApiClient
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import load_named_arrays, read_analysis_record, read_round_record
 from astar.infra.catalog.db import CatalogDB
@@ -17,6 +18,7 @@ from astar.viz.spatial import (
     plot_entropy_comparison,
 )
 from astar.viz.types import FigureSpec, ReportManifest
+from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.results import VisualizationReportResult
 from astar.workflows.summarize_replays import summarize_round_replays
 
@@ -40,6 +42,7 @@ def visualize_terminal_comparison(
     paths: WorkspacePaths,
     round_id: str,
     seed_index: int,
+    client: AstarApiClient | None = None,
 ) -> VisualizationReportResult:
     round_record = read_round_record(paths, round_id)
     if seed_index >= round_record.round.seeds_count:
@@ -47,6 +50,15 @@ def visualize_terminal_comparison(
         raise ValueError(msg)
 
     replay_tensor, replay_run_count = _load_replay_terminal_probs(paths, round_id, seed_index)
+    analysis_path = paths.raw_analysis_dir(round_id) / f"seed_index={seed_index}.json"
+    if not analysis_path.exists():
+        if client is None:
+            msg = (
+                f"analysis missing for round {round_id} seed {seed_index}; "
+                "run `astar fetch-analysis ...` first"
+            )
+            raise FileNotFoundError(msg)
+        fetch_analysis(paths, client, round_id, seed_index)
     analysis_record = read_analysis_record(paths, round_id, seed_index)
     ground_truth = np.asarray(analysis_record.analysis.ground_truth, dtype=np.float64)
 

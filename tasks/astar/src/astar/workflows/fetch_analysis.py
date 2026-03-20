@@ -27,7 +27,11 @@ def fetch_analysis(
     raw_path = write_analysis_record(paths, round_id, seed_index, record)
     tensor_path = save_analysis_tensor(
         paths.analysis_tensor_path(round_id, seed_index),
-        np.asarray(analysis.prediction, dtype=np.float64),
+        (
+            np.asarray(analysis.prediction, dtype=np.float64)
+            if analysis.prediction is not None
+            else None
+        ),
         np.asarray(analysis.ground_truth, dtype=np.float64),
     )
     return FetchAnalysisResult(

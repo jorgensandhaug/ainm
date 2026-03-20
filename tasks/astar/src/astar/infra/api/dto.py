@@ -193,7 +193,7 @@ class PredictionSummary(StrictModel):
 
 
 class AnalysisResponse(StrictModel):
-    prediction: TensorFloat
+    prediction: TensorFloat | None = None
     ground_truth: TensorFloat
     score: float | None = None
     width: int = Field(ge=1)

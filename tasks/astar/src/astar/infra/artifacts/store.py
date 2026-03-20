@@ -171,9 +171,16 @@ def load_prediction_tensor(path: Path) -> FloatArray:
         return np.asarray(payload["prediction"], dtype=np.float64)
 
 
-def save_analysis_tensor(path: Path, prediction: FloatArray, ground_truth: FloatArray) -> Path:
+def save_analysis_tensor(
+    path: Path,
+    prediction: FloatArray | None,
+    ground_truth: FloatArray,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, prediction=prediction, ground_truth=ground_truth)
+    arrays: dict[str, FloatArray] = {"ground_truth": ground_truth}
+    if prediction is not None:
+        arrays["prediction"] = prediction
+    np.savez_compressed(path, **arrays)
     return path
 
 

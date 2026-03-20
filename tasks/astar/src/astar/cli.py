@@ -402,11 +402,6 @@ def _main() -> int:
         _emit(args.json, artifacts, render_round_report(artifacts))
         return 0
 
-    if args.command == "visualize-terminal-comparison":
-        artifacts = visualize_terminal_comparison(paths, args.round_id, args.seed_index)
-        _emit(args.json, artifacts, render_visualization_report(artifacts))
-        return 0
-
     if args.command == "episode-summary":
         episode_diagnostics = build_round_episode_diagnostics(paths, args.round_id)
         _emit(args.json, episode_diagnostics, render_episode_diagnostics(episode_diagnostics))
@@ -671,6 +666,16 @@ def _main() -> int:
     if args.command == "fetch-analysis":
         analysis_result = fetch_analysis(paths, client, args.round_id, args.seed_index)
         _emit(args.json, analysis_result, render_fetch_analysis(analysis_result))
+        return 0
+
+    if args.command == "visualize-terminal-comparison":
+        artifacts = visualize_terminal_comparison(
+            paths,
+            args.round_id,
+            args.seed_index,
+            client=client,
+        )
+        _emit(args.json, artifacts, render_visualization_report(artifacts))
         return 0
 
     raise ValueError(f"unsupported command: {args.command}")
