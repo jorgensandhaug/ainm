@@ -1,0 +1,8 @@
+{
+  "prompt": "Wir haben einen neuen Mitarbeiter namens Elias Meyer, geboren am 17. June 1989. Bitte legen Sie ihn als Mitarbeiter mit der E-Mail elias.meyer@example.org und dem Startdatum 29. June 2026 an.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Bjq5GD0NhAK2dSeaGywdAvyvJYTF7H4-u3Oh3O16Grs"
+  }
+}

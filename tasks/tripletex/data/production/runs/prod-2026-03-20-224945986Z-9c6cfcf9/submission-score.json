@@ -1,0 +1,14 @@
+{
+  "run_id": "prod-2026-03-20-224945986Z-9c6cfcf9",
+  "request_id": "7e1b4d2e",
+  "status": "ambiguous",
+  "reflection_completed_at": "2026-03-20T22:56:01.923Z",
+  "submissions_url": "https://api.ainm.no/tripletex/my/submissions",
+  "submissions_poll_window_ms": 180000,
+  "submissions_poll_interval_ms": 10000,
+  "before_captured_at": "2026-03-20T22:49:48.073Z",
+  "after_captured_at": "2026-03-20T22:56:02.883Z",
+  "inference_status": "ambiguous",
+  "candidate_count": 3,
+  "generated_at": "2026-03-20T22:56:02.883Z"
+}

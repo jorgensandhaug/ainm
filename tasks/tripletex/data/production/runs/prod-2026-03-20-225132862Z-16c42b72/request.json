@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie e envie uma fatura ao cliente Cascata Lda (org. nº 859114954) por 25800 NOK sem IVA. A fatura refere-se a Armazenamento na nuvem.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "4v7p7CLUocgpryOJTc7vgplm8T6h_3CmS8VuYW8w6tE"
+  }
+}

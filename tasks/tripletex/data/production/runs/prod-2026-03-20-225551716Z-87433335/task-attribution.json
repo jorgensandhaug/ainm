@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-225551716Z-87433335",
+  "request_id": "d3633a39",
+  "prompt_raw": "Exécutez la paie de Jules Leroy (jules.leroy@example.org) pour ce mois. Le salaire de base est de 56950 NOK. Ajoutez une prime unique de 9350 NOK en plus du salaire de base.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:55:54.233Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:55:51.770Z",
+  "after_captured_at": "2026-03-20T22:56:24.409Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:56:24.410Z"
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Log 34 hours for Charlotte Williams (charlotte.williams@example.org) on the activity \"Analyse\" in the project \"Security Audit\" for Windmill Ltd (org no. 851492623). Hourly rate: 1300 NOK/h. Generate a project invoice to the customer based on the logged hours.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "qUvnsh6tHhNstTSwuN-waCZlzHVRCedpa9jqeoJgevo"
+  }
+}

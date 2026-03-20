@@ -1,0 +1,53 @@
+# Codex Trace Snapshot
+
+- session_id: 019d0d77-7c99-7b52-b047-45c1bc02b007
+- session_file: /home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T23-57-07-019d0d77-7c99-7b52-b047-45c1bc02b007.jsonl
+- completed: true
+- assistant_messages: 0
+- tool_calls: 0
+- tool_results: 0
+
+## 2026-03-20T22:57:08.841Z task_event
+event: task_started
+
+## 2026-03-20T22:57:08.842Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-225706648Z-75efe89d/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Erstellen und senden Sie eine Rechnung an den Kunden Flussgold GmbH (Org.-Nr. 939332332) über 23500 NOK ohne MwSt. Die Rechnung betrifft Systementwicklung.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+SzECzSJkbF-5nCt-LoiFSmwoZzDVK8g30WKQkOT4pPw
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-225706648Z-75efe89d/scripts
+
+## 2026-03-20T22:57:09.599Z task_event
+event: task_complete

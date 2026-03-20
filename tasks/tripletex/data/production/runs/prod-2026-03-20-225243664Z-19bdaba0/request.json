@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett tre avdelingar i Tripletex: \"Logistikk\", \"Kundeservice\" og \"HR\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "pKD2JiPv6cU45yfdt-iUgUOXW5qjDCGckklW2aQVhzk"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-225341134Z-c888565e",
+  "request_id": "0a847494",
+  "prompt_raw": "Create the customer Northwave Ltd with organization number 964179239. The address is Nygata 39, 2317 Hamar. Email: post@northwave.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:53:43.993Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:53:41.186Z",
+  "after_captured_at": "2026-03-20T22:54:14.212Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:54:14.214Z"
+}

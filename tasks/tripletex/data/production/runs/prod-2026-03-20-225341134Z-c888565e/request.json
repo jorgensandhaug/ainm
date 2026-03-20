@@ -1,0 +1,8 @@
+{
+  "prompt": "Create the customer Northwave Ltd with organization number 964179239. The address is Nygata 39, 2317 Hamar. Email: post@northwave.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "x940OC3DJVfK266wywQGUuRx3vX3AmGwRKMJwB2iS28"
+  }
+}

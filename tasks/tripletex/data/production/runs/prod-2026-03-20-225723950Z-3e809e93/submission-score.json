@@ -1,0 +1,30 @@
+{
+  "run_id": "prod-2026-03-20-225723950Z-3e809e93",
+  "request_id": "5083f0ff",
+  "status": "completed",
+  "reflection_completed_at": "2026-03-20T22:57:31.867Z",
+  "submissions_url": "https://api.ainm.no/tripletex/my/submissions",
+  "submissions_poll_window_ms": 180000,
+  "submissions_poll_interval_ms": 10000,
+  "before_captured_at": "2026-03-20T22:57:25.993Z",
+  "after_captured_at": "2026-03-20T22:57:32.848Z",
+  "inference_status": "existing_processing_transition",
+  "candidate_count": 1,
+  "submission_id": "90f7a766-d711-4519-ab89-f1b9ec2b9e70",
+  "submission_status": "completed",
+  "queued_at": "2026-03-20T22:57:23.705100+00:00",
+  "completed_at": "2026-03-20T22:57:31.539872+00:00",
+  "score_raw": 0,
+  "score_max": 7,
+  "correctness": 0,
+  "normalized_score": 0,
+  "duration_ms": 7727,
+  "feedback_comment": "3/3 checks failed.",
+  "feedback_checks": [
+    "Check 1: failed",
+    "Check 2: failed",
+    "Check 3: failed"
+  ],
+  "all_checks_passed": false,
+  "generated_at": "2026-03-20T22:57:32.849Z"
+}

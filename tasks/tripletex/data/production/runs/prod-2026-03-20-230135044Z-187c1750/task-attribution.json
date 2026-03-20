@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-230135044Z-187c1750",
+  "request_id": "0e6023e4",
+  "prompt_raw": "Opprett og send en faktura til kunden Bergvik AS (org.nr 890733751) på 28900 kr eksklusiv MVA. Fakturaen gjelder Systemutvikling.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T23:01:39.601Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T23:01:35.100Z",
+  "after_captured_at": "2026-03-20T23:02:09.842Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "06",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T23:02:09.842Z"
+}

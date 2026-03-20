@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-225430188Z-7f899dff",
+  "request_id": "e727ee57",
+  "prompt_raw": "Créez une dimension comptable personnalisée \"Kostsenter\" avec les valeurs \"Økonomi\" et \"IT\". Puis comptabilisez une pièce sur le compte 6340 pour 5050 NOK, liée à la valeur de dimension \"IT\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:54:32.982Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:54:30.241Z",
+  "after_captured_at": "2026-03-20T22:55:03.482Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:55:03.483Z"
+}

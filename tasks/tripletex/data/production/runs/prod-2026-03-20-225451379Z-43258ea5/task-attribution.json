@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-225451379Z-43258ea5",
+  "request_id": "0e3ef7fd",
+  "prompt_raw": "Wir haben die Rechnung INV-2026-7058 vom Lieferanten Bergwerk GmbH (Org.-Nr. 968598546) über 21100 NOK einschließlich MwSt. erhalten. Der Betrag betrifft Bürodienstleistungen (Konto 6300). Erfassen Sie die Lieferantenrechnung mit der korrekten Vorsteuer (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:54:54.141Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:54:51.433Z",
+  "after_captured_at": "2026-03-20T22:55:25.092Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:55:25.093Z"
+}

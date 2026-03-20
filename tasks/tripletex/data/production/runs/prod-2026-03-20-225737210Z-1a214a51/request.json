@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett tre avdelinger i Tripletex: \"Utvikling\", \"Administrasjon\" og \"Lager\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "o5Sga_LXCYKVXLQU-2G13ZHf5SwJV5p19uczCq0k_Hc"
+  }
+}

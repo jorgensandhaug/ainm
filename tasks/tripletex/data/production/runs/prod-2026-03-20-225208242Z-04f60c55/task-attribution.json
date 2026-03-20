@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-225208242Z-04f60c55",
+  "request_id": "0d793627",
+  "prompt_raw": "Crie o cliente Solmar Lda com número de organização 850733651. O endereço é Storgata 108, 7010 Trondheim. E-mail: post@solmar.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:52:35.482Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:52:08.298Z",
+  "after_captured_at": "2026-03-20T22:53:06.298Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:53:06.299Z"
+}
