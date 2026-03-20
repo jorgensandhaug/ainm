@@ -295,14 +295,18 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if per diem is included, `travelDetails.isCompensationFromRates=true`
 - Standard fast-path note:
   - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
-  - for the exact create-only existing-employee travel-expense shape, the canonical scoring path is `GET /employee?email=...&count=10&fields=*`, `GET /travelExpense/costCategory?count=1000&fields=*`, `GET /travelExpense/paymentType?count=1000&fields=*`, then `POST /travelExpense`
+  - the old 4-call create-only path (`GET /employee`, `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `POST /travelExpense`) can persist an `OPEN` expense but is no longer treated as a trusted full-correctness path for multi-day per-diem tasks
+  - for a deliverable multi-day per-diem travel-expense shape, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
   - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
 - Standard verification note:
   - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`
-  - for the exact create-only scored flow, do not add `/travelExpense/cost?...` or `/travelExpense/perDiemCompensation?...` just to double-check embedded child persistence
+  - do not trust the `POST /travelExpense` response alone as proof that multi-day per diem is fully correct; manual per-diem rows can persist with `rateType=null` and later fail `:deliver`
+  - top-level `amount` and `paymentAmount` can still exclude per diem even after `:deliver`; they are not decisive proof of per-diem correctness
   - use those two child endpoints only as a conditional investigation branch when a later step needs expanded child fields or the live write response contradicts the intended child counts
 - Related action family also exists:
+  - `/travelExpense/:deliver`
   - `/travelExpense/{id}/:deliver`
+  - `/travelExpense/:approve`
   - `/travelExpense/{id}/:approve`
   - `/travelExpense/{id}/:createVouchers`
 
