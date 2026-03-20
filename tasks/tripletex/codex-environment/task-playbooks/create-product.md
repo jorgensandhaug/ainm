@@ -62,6 +62,11 @@ Fresh-account production verification later that same day also confirmed the sam
 - the `201` write response returned `priceIncludingVatCurrency=4625` and `vatType.id=3`
 - therefore localized excluding-VAT wording such as `hors TVA` does not change the task shape or justify a pre-read
 
+Fresh-account production verification later that same day also confirmed the same shortcut for localized Spanish wording:
+- the exact prompt `Mantenimiento`, product number `7266`, `650 NOK sin IVA`, standard `25%` VAT succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=812.5` and `vatType.id=3`
+- therefore localized excluding-VAT wording such as `sin IVA` does not change the task shape or justify a pre-read
+
 Persistent-sandbox verification on 2026-03-20 also showed:
 - `POST /product` without any `vatType` still succeeded and auto-filled sandbox default `0%` VAT code `6`
 - the write response showed `priceIncludingVatCurrency == priceExcludingVatCurrency`, proving that the inherited VAT default is account-dependent
@@ -76,6 +81,11 @@ Persistent-sandbox re-verification later on 2026-03-20 with the same French `Mai
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only `id=6` / `0%`
 - `POST /product` without `vatType` auto-filled `vatType.id=6` and kept `priceIncludingVatCurrency=3700`
 - therefore the persistent sandbox still cannot prove the fresh-account standard-`25%` shortcut directly for that French wording either; it only re-proves the sandbox default-`0%` pitfall
+
+Persistent-sandbox re-verification later on 2026-03-20 with the same Spanish `Mantenimiento` / `650` shape still showed:
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only `id=6` / `0%`
+- `POST /product` without `vatType` auto-filled `vatType.id=6` and kept `priceIncludingVatCurrency=650`
+- therefore the persistent sandbox still cannot prove the fresh-account standard-`25%` shortcut directly for that Spanish wording either; it only re-proves the sandbox default-`0%` pitfall
 
 ## Minimal Safe Flow
 
@@ -98,7 +108,7 @@ Persistent-sandbox re-verification later on 2026-03-20 with the same French `Mai
   1. `POST /product` with `name`, `number`, and `priceExcludingVatCurrency`
   2. let the fresh-account default VAT fill the standard `25%` rate
   3. verify from the `201` response that `priceIncludingVatCurrency` is the `25%` computation and that `vatType` was assigned
-- localized excluding-VAT wording such as `sem IVA`, `sans TVA`, or `ohne MwSt.` still belongs to this same fast path when the rest of the prompt is the ordinary standard-`25%` create-one-product shape
+- localized excluding-VAT wording such as `sem IVA`, `sin IVA`, `sans TVA`, or `ohne MwSt.` still belongs to this same fast path when the rest of the prompt is the ordinary standard-`25%` create-one-product shape
 - localized French wording such as `hors TVA` also belongs to this same fast path when the rest of the prompt is the ordinary standard-`25%` create-one-product shape
 - for an exact trusted-standard match, that one write call is the full path; do not spend an extra `openapi.json` check or a `GET /ledger/vatType` before it
 - Do not add a pre-read on `/product` for a pure create task
@@ -159,6 +169,7 @@ Use `number` for the product number. Include `vatType` only on the non-shortcut 
 - Do not browse multiple VAT endpoints once `typeOfVat=OUTGOING` already gives the needed valid code for a non-standard-VAT task
 - Do not treat a sandbox success without `vatType` as proof that the inherited VAT value is portable across accounts
 - Do not treat Portuguese `sem IVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
+- Do not treat Spanish `sin IVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 - Do not treat French `hors TVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 
 ## Avoidable Mistakes

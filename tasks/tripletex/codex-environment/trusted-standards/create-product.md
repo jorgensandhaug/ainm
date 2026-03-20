@@ -10,7 +10,7 @@
 - prompt directly gives name and price
 - prompt directly gives the product number when one is required
 - product is a standard outgoing-sales product
-- localized excluding-VAT wording such as Portuguese `sem IVA` still clearly maps to the excluding-VAT price field
+- localized excluding-VAT wording such as Portuguese `sem IVA` or Spanish `sin IVA` still clearly maps to the excluding-VAT price field
 - task does not require advanced product setup
 
 ## Do Not Use This Standard If
@@ -67,7 +67,9 @@
 - fresh-account production verification on 2026-03-20 for `Softwarelizenz` / `7986` / `24900` excluding VAT confirmed that the one-call path still returns the correct `25%` outcome directly from the write response (`priceIncludingVatCurrency=31125`, `vatType.id=3`)
 - fresh-account production verification on 2026-03-20 for the Portuguese prompt `Sessão de formação` / `6378` / `37050` `sem IVA` / standard `25%` also succeeded with one `POST /product`, returning `priceIncludingVatCurrency=46312.5` and `vatType.id=3`
 - fresh-account production verification on 2026-03-20 for the French prompt `Maintenance` / `1327` / `3700 NOK hors TVA` / standard `25%` also succeeded with one `POST /product`, returning `priceIncludingVatCurrency=4625` and `vatType.id=3`
+- fresh-account production verification on 2026-03-20 for the Spanish prompt `Mantenimiento` / `7266` / `650 NOK sin IVA` / standard `25%` also succeeded with one `POST /product`, returning `priceIncludingVatCurrency=812.5` and `vatType.id=3`
 - persistent-sandbox verification on 2026-03-20 showed that `POST /product` without `vatType` auto-filled `0%` VAT code `6`, so the one-call shortcut is account-dependent and must stay scoped to the exact fresh-account standard-`25%` shape
 - persistent-sandbox re-verification on 2026-03-20 still exposed only `0%` on the filtered `OUTGOING` VAT read, and the omitted-`vatType` create still produced `priceIncludingVatCurrency == priceExcludingVatCurrency`; that account remains blocked for explicit `25%` VAT resolution
 - persistent-sandbox re-verification later on 2026-03-20 with the same `37050` price and Portuguese naming still returned only `OUTGOING` VAT row `id=6` / `0%`, and the omitted-`vatType` create again auto-filled `vatType.id=6` with `priceIncludingVatCurrency=37050`
 - persistent-sandbox re-verification on 2026-03-20 for the same French `Maintenance` / `3700` shape again returned only `OUTGOING` VAT row `id=6` / `0%`, and an omitted-`vatType` create auto-filled `vatType.id=6` with `priceIncludingVatCurrency=3700`; that sandbox still cannot prove an exact `25%` product create and remains blocked for explicit `25%` resolution
+- persistent-sandbox re-verification on 2026-03-20 for the same Spanish `Mantenimiento` / `650 sin IVA` shape again returned only `OUTGOING` VAT row `id=6` / `0%`, and an omitted-`vatType` create auto-filled `vatType.id=6` with `priceIncludingVatCurrency=650`; that sandbox still cannot prove an exact `25%` product create and remains blocked for explicit `25%` resolution
