@@ -192,6 +192,9 @@
   - minimal `POST /division` with only `name` failed `422`
   - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
   - so there is still no trusted low-risk division-create fallback for the exact payroll prompt shape when `GET /division?count=1&fields=*` returns zero rows and the prompt does not explicitly allow manual vouchers
+- that same sandbox follow-up also re-confirmed the success side of the exact `33550` + `14400` branch once a real division already exists:
+  - reusing existing division `108244566` with disposable employee `18591125` still produced `salaryTransaction.id=6956966`
+  - `GET /salary/payslip/32627984?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `Fastlønn amount=33550`, and `Bonus amount=14400`
 - persistent sandbox re-verification on 2026-03-20 for that fallback path showed:
   - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
   - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`

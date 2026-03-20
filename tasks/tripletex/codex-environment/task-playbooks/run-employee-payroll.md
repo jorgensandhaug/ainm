@@ -61,6 +61,9 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - minimal `POST /division` with only `name` failed `422`
   - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
   - that means the exact payroll prompt still does not expose a safe low-call division-create recovery path once `GET /division?count=1&fields=*` returns zero rows
+- the same sandbox follow-up still re-confirmed the success side of the exact `33550` + `14400` branch when a real division already exists:
+  - disposable employee `18591125` plus existing division `108244566` reached `salaryTransaction.id=6956966`
+  - `GET /salary/payslip/32627984?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `Fastlønn amount=33550`, and `Bonus amount=14400`
 
 ## Minimal Safe Flow
 
