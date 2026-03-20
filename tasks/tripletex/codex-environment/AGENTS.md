@@ -53,18 +53,52 @@ Authentication:
 - If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
 
 ## API Reference Strategy
+- Knowledge order:
+  1. `./trusted-standards/`
+  2. `./task-playbooks/`
+  3. `./openapi.json`
+- Trusted standards are stricter than playbooks.
+- Trusted standards are the canonical lowest-call, lowest-error, pre-verified flows for the most common task shapes.
+- If the task is an exact or near-exact match for a trusted standard, use that trusted standard first.
+- For an exact trusted-standard match, do not spend time re-checking `./openapi.json`.
+- For exact trusted-standard matches, the anti-`4xx` rule is satisfied by following the trusted standard itself.
+- Only fall back to `./openapi.json` if:
+  - no trusted standard matches
+  - the prompt materially differs from the trusted standard
+  - the trusted standard explicitly tells you to confirm a detail
+  - a live API response contradicts the trusted standard
 - Use the common endpoints below first.
 - These are common endpoints, not the only possible endpoints.
-- Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling.
+- Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling, except for exact trusted-standard matches.
 - Use `./openapi.json` as the full API reference.
 - When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
 - Do not guess endpoint shapes, field names, request payloads, or delete/update paths, always verify.
 - For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
 - Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
 
+## Trusted Standards
+- Before acting, check whether the task matches a trusted standard in `./trusted-standards/`
+- If it matches exactly, execute the trusted standard directly
+- For exact trusted-standard matches, do not double-check or triple-check `./openapi.json`; doing so wastes time and hurts score
+- Trusted standards are intended to be safer than ad hoc spec-reading for their exact task shape
+- If a trusted standard is incomplete, wrong, or no longer optimal, fix it during post-run reflection
+
+| Task pattern | Trusted standard |
+|---|---|
+| Canonical common endpoints | `./trusted-standards/common-endpoints.md` |
+| Create customer | `./trusted-standards/create-customer.md` |
+| Create department | `./trusted-standards/create-department.md` |
+| Create product | `./trusted-standards/create-product.md` |
+| Create project | `./trusted-standards/create-project.md` |
+| Create employee | `./trusted-standards/create-employee.md` |
+| Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
+| Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
+| Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
+
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
 - If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks and previous faults for similar tasks
+- Playbooks are secondary to trusted standards
 - If the prompt is an exact playbook match, keep pre-write exploration narrow: read the playbook, confirm the exact endpoint operation and referenced schema in `./openapi.json`, then execute
 
 | Task pattern | Playbook |
@@ -83,17 +117,19 @@ Authentication:
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
 
 ## Common Endpoints
-- `/employee` — `GET`, `POST`, `PUT` — employees
-- `/customer` — `GET`, `POST`, `PUT` — customers
-- `/product` — `GET`, `POST` — products
-- `/invoice` — `GET`, `POST` — invoices
-- `/order` — `GET`, `POST` — orders
-- `/travelExpense` — `GET`, `POST`, `PUT`, `DELETE` — travel expenses
-- `/project` — `GET`, `POST` — projects
-- `/department` — `GET`, `POST` — departments
-- `/ledger/account` — `GET` — chart of accounts
-- `/ledger/posting` — `GET` — ledger postings
-- `/ledger/voucher` — `GET`, `POST`, `DELETE` — vouchers
+- Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
+- `/customer` and `/customer/{id}` — customer create/search/read/update/delete
+- `/department`, `/department/{id}`, and `/department/list` — department create/search/update/delete/batch-create
+- `/employee`, `/employee/{id}`, and `/employee/employment` — employee create/search/update and employment verification/create
+- `/product` and `/product/{id}` — product create/search/update/delete
+- `/project` and `/project/{id}` — project create/search/update/delete
+- `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
+- `/invoice`, `/invoice/{id}`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, and `/invoice/paymentType` — invoice create/search/read/payment/send/payment-type lookup
+- `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
+- `/travelExpense` and `/travelExpense/{id}` — travel-expense create/search/update/delete
+- `/ledger/account` and `/ledger/account/{id}` — chart-of-accounts search/create/update/delete
+- `/ledger/posting` — ledger postings search/read
+- `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
 
 ## Response Conventions
 - List responses are typically wrapped as `{"values": [...], "fullResultSize": N}`.
@@ -129,7 +165,7 @@ Authentication:
 - Use `count` and `from` for pagination when needed.
 - Use search parameters to narrow candidates before reading more.
 - Normalize prompt dates to ISO `YYYY-MM-DD` before writing to Tripletex. Prompts may mix language and month names.
-- Before every write, confirm required fields and allowed payload shape in `./openapi.json`.
+- Before every write, confirm required fields and allowed payload shape in `./openapi.json`, except for exact trusted-standard matches.
 - When referencing an existing related object, prefer `{ "id": ... }` if the schema supports it. Do not send large nested objects unless required.
 - Preserve prompt-provided string fields exactly as written when they are part of the scored state. Do not transliterate or ASCII-normalize names, addresses, cities, emails, or other user-provided text.
 
@@ -196,9 +232,11 @@ Authentication:
 - If a multi-step order/invoice/payment flow already created the order and invoice but failed before payment registration, do not restart from `POST /order`. Resume by locating the unpaid invoice with one decisive `GET /invoice` and finish the payment on that existing invoice.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
 - Do not default supplier-invoice registration to `POST /incomingInvoice`; follow-up verification on 2026-03-20 showed that endpoint can fail with `403 You do not have permission to access this feature.` on an ordinary account even when generic ledger-voucher booking is allowed.
+- In the supplier-invoice fast path, `POST /supplier` can already return the supplier ledger account id. Reuse `supplier.ledgerAccount.id` for the `2400` liability posting instead of spending an extra `GET /ledger/account?number=2400`.
 - For supplier-invoice registration through `POST /ledger/voucher`, resolve VAT from `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`, not `INCOMING_INVOICE`; the standard deductible 25% code can be present in `INCOMING` while missing from `INCOMING_INVOICE`.
 - For `POST /ledger/voucher`, do not send `amountVat` even though nearby schemas/documentation mention it; sandbox mapping rejected that field on 2026-03-20. Send `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` and let Tripletex generate the VAT posting.
 - In that supplier-voucher flow, place the vendor invoice number on the supplier liability posting as `invoiceNumber`; sending root-level `voucher.vendorInvoiceNumber` did not persist it in sandbox verification.
+- `POST /ledger/voucher` can return supplier-invoice postings with enough ids and amounts to prove the fast path, while linked human-readable fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber` stay sparse. Verify the write response by ids plus amounts first; only spend `GET /ledger/voucher/{id}?fields=*` when the scored task specifically needs expanded linked fields.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.
 
@@ -217,6 +255,7 @@ Authentication:
 - Plan before calling.
 - Do not browse the API randomly.
 - Once a playbook already gives the likely winning path, do not spend time on unrelated repo tooling or broad schema enumeration before the write.
+- Once a trusted standard already gives the exact winning path, execute it directly and do not inspect `./openapi.json`.
 - If an exact-match create playbook applies, confirm only the endpoint operation plus the referenced write schema, then execute.
 - For those exact-match create tasks, prefer anchored reads of the exact path block and referenced schemas over noisy whole-file `rg` sweeps.
 - Ideal is zero reads when not needed.

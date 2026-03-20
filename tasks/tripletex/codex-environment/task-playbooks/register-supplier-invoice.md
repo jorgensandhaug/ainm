@@ -35,10 +35,17 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - `422`
   - `Request mapping failed`
   - `amountVat: Feltet eksisterer ikke i objektet.`
+- `POST /supplier` returned the supplier ledger account link needed for the payable line:
+  - `supplier.ledgerAccount.id` was present in the create response
+  - therefore the fast path does not need an extra `GET /ledger/account?number=2400`
 - the successful `POST /ledger/voucher` response and follow-up verification showed the correct accounting shape:
   - row `1`: account `7000`, VAT code `1`, `amount=50280`, `amountGross=62850`
   - row `2`: account `2400`, linked `supplier.id`, `amount=-62850`, `invoiceNumber=<prompt invoice number>`, `termOfPayment=<due date>`
   - row `0`: system-generated VAT posting on account `2710`, `amount=12570`
+- the successful `POST /ledger/voucher` response was only partially expanded:
+  - it already proved the fast path by ids and amounts
+  - `account.number`, `vatType.number`, and `supplier.organizationNumber` stayed sparse/null in the write response
+  - therefore write-response verification should key off known ids and amounts, not human-readable linked fields
 - sending root-level `voucher.vendorInvoiceNumber` did not persist that value in sandbox verification
   - the reliable place for the supplier invoice number in this flow is the supplier posting field `invoiceNumber`
 
@@ -54,6 +61,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
 2. Resolve or create the supplier
    - in a fresh-account create-like task where the prompt only gives one supplier identity and there is no evidence it already exists, prefer direct `POST /supplier`
    - otherwise use one decisive `GET /supplier?organizationNumber=...&fields=*`
+   - after `POST /supplier`, reuse `supplier.id` and `supplier.ledgerAccount.id` from the write response
 3. Resolve the expense account
    - usually `GET /ledger/account?number=<account-number>&isApplicableForSupplierInvoice=true&fields=*`
 4. Resolve a valid incoming VAT type for the voucher date
@@ -70,9 +78,10 @@ Persistent-sandbox verification on 2026-03-20 showed:
 7. Verify from the write response first
    - reuse `voucherType.id`
    - verify posting count
-   - verify the expense posting account id, VAT id, net amount, and gross amount
-   - verify the supplier posting account id, `supplier.id`, negative gross amount, `invoiceNumber`, and `termOfPayment`
+   - verify the expense posting by account id, VAT id, net amount, and gross amount
+   - verify the supplier posting by supplier-ledger account id, `supplier.id`, negative gross amount, `invoiceNumber`, and `termOfPayment`
    - verify that Tripletex auto-generated one additional VAT posting
+   - do not require `account.number`, `vatType.number`, or `supplier.organizationNumber` in the fast-path write response check
 8. Only if the write response unexpectedly omits a scored field, do one decisive read
    - `GET /ledger/voucher/{id}?fields=*,voucherType(*),postings(*,account(*),vatType(*),supplier(*),currency(*))`
 
@@ -151,7 +160,7 @@ In real tasks, replace the IDs with the values resolved in the current account. 
   3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`
   4. `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`
   5. `POST /ledger/voucher`
-- stop from the write response if it already proves the scored fields
+- stop from the write response if it already proves the scored fields by ids and amounts
 - do not spend an automatic verification `GET` unless the response is unexpectedly sparse
 
 ## Avoidable Mistakes
@@ -176,4 +185,5 @@ In real tasks, replace the IDs with the values resolved in the current account. 
   - supplier posting account id and supplier id
   - invoice number and due date on the supplier posting
   - the auto-generated VAT posting
+- The same write response may still omit expanded linked fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber`
 - Reuse that response instead of doing `GET /ledger/voucher/{id}` unless the write response unexpectedly omits a scored field
