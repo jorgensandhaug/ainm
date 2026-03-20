@@ -121,7 +121,7 @@ for ((iteration = 1; iteration <= MAX_ITERATIONS; iteration++)); do
 
   if (
     cd "$REPO_ROOT"
-    print -r -- "$PROMPT_TEXT" | FAMILY_1_ITERATION="$iteration" \
+    print -r -- "$PROMPT_TEXT" | \
       codex exec resume \
         --dangerously-bypass-approvals-and-sandbox \
         --json \
