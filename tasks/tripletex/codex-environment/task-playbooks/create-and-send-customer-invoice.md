@@ -7,7 +7,9 @@ Use for tasks like:
 - send the invoice after creation
 - invoice has one or more simple order lines
 
-## Key Finding: Company Bank Account Registration
+For create-only invoice tasks that should stop before sending, use `./task-playbooks/create-customer-invoice.md`.
+
+## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:
 
@@ -64,17 +66,19 @@ This was re-verified in sandbox on 2026-03-19:
    - usually `GET /customer?organizationNumber=...&fields=*`
 2. Ensure invoice delivery method is usable
    - if needed, update customer send method before sending
-3. Ensure company invoice bank account is registered
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - update existing invoice account with `PUT /ledger/account/{id}`
-4. Resolve a valid outgoing VAT type for the invoice date
+3. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
    - use a VAT type that actually exists in that filtered response
-5. Create invoice with `sendToCustomer=false`
+4. Create invoice with `sendToCustomer=false`
    - include required dates
    - include `orders`
    - include `orderLines` inside the order, not directly on invoice input
-6. Send invoice explicitly with:
+5. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - update the existing invoice account with `PUT /ledger/account/{id}`
+   - retry the invoice write once
+6. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
+7. Send invoice explicitly with:
    - `PUT /invoice/{id}/:send?sendType=...`
 
 ## Invoice Payload Notes
@@ -110,6 +114,13 @@ Example shape:
 ```
 
 In real tasks, replace `6` with the VAT type resolved from the filtered `GET /ledger/vatType` response for the invoice date. Do not assume the same code is valid across accounts.
+
+## Sparse Response Trap
+
+- `POST /invoice` can succeed while returning `orderLines` only as link objects with `id` and `url`
+- do not treat that as a failed line create
+- if the task requires exact line-level proof before sending, do one immediate:
+  - `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
 
 ## If You Still Need to Probe
 

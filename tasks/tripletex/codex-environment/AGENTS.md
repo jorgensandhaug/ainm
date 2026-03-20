@@ -68,6 +68,7 @@ Authentication:
 
 | Task pattern | Playbook |
 |---|---|
+| Create customer invoice | `./task-playbooks/create-customer-invoice.md` |
 | Create customer | `./task-playbooks/create-customer.md` |
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./task-playbooks/create-order-invoice-and-register-payment.md` |
@@ -163,6 +164,8 @@ Authentication:
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
 - In invoice payment tasks, the prompt may identify the invoice by an excluding-VAT line amount, but the payment write still needs the current outstanding invoice balance from the invoice object. Locate by the prompt identifiers, then pay `amountCurrencyOutstanding` or `amountOutstanding`, not the prompt's lookup amount.
+- `POST /invoice` can succeed while returning `orderLines` only as link objects (`id`/`url`). Do not treat that sparse write response as evidence that line creation failed; if exact line-level verification is needed, do one immediate `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`.
+- For create-only customer invoice tasks with existing products, the default fast path is usually `GET /customer`, `GET /product`, then `POST /invoice`. Do not spend an automatic `GET /ledger/account` unless the prompt or a prior validation error already shows bank-account repair is needed.
 - `POST /order` can create embedded `orderLines` even when the `201` response echoes `orderLines=[]`; do not assume line creation failed from that response alone. If decisive pre-invoice verification is needed, use one targeted `GET /order/{id}?fields=*,orderLines(*)`; otherwise prefer reusing the later invoice response instead of branching into unnecessary rewrites.
 - For invoice and order-line VAT selection, resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` on the actual invoice date. Do not hardcode VAT code `3`; some accounts only expose code `6` (0% outgoing VAT), and `POST /invoice` can fail with `Ugyldig mva-kode.` if you use a code outside the filtered result set.
 - Customer creation may require invoice delivery settings and address details. If EHF-style delivery is implied or defaulted, missing postal address can fail validation.
