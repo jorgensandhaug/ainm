@@ -185,6 +185,8 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 - Prefer updating existing `1920` over creating a new invoice account
 - Do not hardcode invoice/order-line VAT code `3`
 - The authoritative candidate set for invoice lines is the filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` result on the invoice date
+- If the provided base URL already ends in `/v2`, do not pass endpoint paths with a leading slash into `new URL(...)`; that can silently escape back to host-root `/customer` or `/invoice` and waste a `404`
+- If the first common-endpoint call still comes back `404`, inspect the final request path before spending a second Tripletex call; host-root `/customer` or `/invoice` means the client URL builder is wrong, not that the endpoint changed
 
 ## Minimal Flow
 
