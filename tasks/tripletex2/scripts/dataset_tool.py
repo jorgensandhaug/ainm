@@ -151,6 +151,15 @@ def remove_tree(path: Path) -> None:
         raise DatasetError(f"Failed to remove directory {path}: {exc}") from exc
 
 
+def remove_file(path: Path) -> None:
+    if not path.exists():
+        return
+    try:
+        path.unlink()
+    except OSError as exc:
+        raise DatasetError(f"Failed to remove file {path}: {exc}") from exc
+
+
 def prompt_digest(prompt: str) -> str:
     return hashlib.sha256(prompt.strip().encode("utf-8")).hexdigest()
 
@@ -410,9 +419,6 @@ def sync_dataset(paths: DatasetPaths) -> None:
 
     paths.data_root.mkdir(parents=True, exist_ok=True)
     remove_tree(paths.raw_runs_dir)
-    remove_tree(paths.curated_dir)
-    remove_tree(paths.manifests_dir)
-    remove_tree(paths.attachments_dir)
 
     try:
         paths.raw_runs_dir.mkdir(parents=True, exist_ok=True)
@@ -421,6 +427,20 @@ def sync_dataset(paths: DatasetPaths) -> None:
         paths.attachments_dir.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise DatasetError(f"Failed to create dataset directories: {exc}") from exc
+
+    remove_file(paths.curated_dir / "examples.jsonl")
+    remove_file(paths.manifests_dir / "dataset-summary.json")
+    remove_file(paths.manifests_dir / "raw-runs.jsonl")
+    remove_file(paths.attachments_dir / "attachment-manifest.json")
+    remove_file(paths.attachments_dir / "README.md")
+    try:
+        attachment_subdirs = [
+            entry for entry in paths.attachments_dir.iterdir() if entry.is_dir()
+        ]
+    except OSError as exc:
+        raise DatasetError(f"Failed to inspect attachments directory {paths.attachments_dir}: {exc}") from exc
+    for attachment_subdir in attachment_subdirs:
+        remove_tree(attachment_subdir)
 
     for run in runs:
         destination = paths.raw_runs_dir / run.run_id
