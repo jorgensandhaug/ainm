@@ -92,6 +92,7 @@ Authentication:
 | Create department | `./trusted-standards/create-department.md` |
 | Create product | `./trusted-standards/create-product.md` |
 | Create project | `./trusted-standards/create-project.md` |
+| Set project fixed price and invoice partial payment | `./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
@@ -209,6 +210,7 @@ Authentication:
 ## Error Handling
 - Prevent errors before calling, always verify your requests correctness and logic.
 - If by chance a call fails, read the error body carefully.
+- Many `422` responses keep a generic top-level `message` such as `Validering feilet.` while the decisive branch condition is only inside `validationMessages[]`; read those detailed validation messages before choosing a repair path.
 - Use Tripletex validation details to make only one precise correction if possible.
 - Do not loop through guesses.
 - Do not keep retrying the same invalid shape.
@@ -224,6 +226,8 @@ Authentication:
 - In invoice flows, avoid unintended sending. If task is to create/register an invoice and not send it, ensure the payload does not trigger customer sending.
 - For create-and-send customer-invoice tasks, the lowest-call default is usually `POST /invoice` with the default `sendToCustomer=true`; do not automatically split this into `POST /invoice?sendToCustomer=false` plus `PUT /invoice/{id}/:send`.
 - If `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`, do one conditional repair branch: `GET /ledger/account?isBankAccount=true&fields=*`, update the existing invoice bank account under `/ledger/account/{id}` (usually `1920` / `isInvoiceAccount=true`) with a valid unique 11-digit `bankAccountNumber`, then retry the same order invoice once; do not create a second order or project.
+- In fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write can be lower-call than taking the `422` bank-account branch; if the chosen invoice account already has a `bankAccountNumber`, skip the repair and reuse the same order write.
+- A successful `PUT /order/{id}/:invoice` can still return `orders[]` with sparse or null nested `project` data; do not spend a default `GET /invoice/{id}` just to prove linkage unless the prompt explicitly scores linked fields that the write response omits or later workflow depends on them.
 - In invoice and order flows, VAT amount mode fields must be internally consistent. Do not mix including-VAT and excluding-VAT fields incorrectly.
 - In invoice payment tasks, the prompt may identify the invoice by an excluding-VAT line amount, but the payment write still needs the current outstanding invoice balance from the invoice object. Locate by the prompt identifiers, then pay `amountCurrencyOutstanding` or `amountOutstanding`, not the prompt's lookup amount.
 - `POST /invoice` can succeed while returning `orderLines` only as link objects (`id`/`url`). Do not treat that sparse write response as evidence that line creation failed; if exact line-level verification is needed, do one immediate `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`.

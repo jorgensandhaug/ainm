@@ -190,6 +190,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning path is usually customer read, product read, order write, invoice write, payment-type read, payment write
   - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
+  - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the invoice write can be the lower-call path; if the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
+  - if earlier steps in the same run already proved a valid company invoice bank account, skip that extra `/ledger/account` read
 
 ## Invoice
 - `/invoice`
@@ -248,6 +250,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard project-invoice note:
   - `GET /invoice/details/{id}?fields=*` is useful for diagnosing whether a preliminary project invoice has `includeHours=false`
   - public verification on 2026-03-20 showed no working write path on `/invoice` or `/invoice/details` to flip that field; `PUT /invoice/{id}` and `PUT /invoice/details/{id}` were method-not-allowed
+  - successful order-to-invoice writes can still leave linked `orders[0].project` sparse or null in the invoice write response; on scored create/update tasks, do not add a default `GET /invoice/{id}` unless the prompt explicitly requires those linked fields or later logic truly depends on them
 
 ## Supplier
 - `/supplier`

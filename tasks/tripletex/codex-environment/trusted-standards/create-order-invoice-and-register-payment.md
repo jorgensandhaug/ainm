@@ -43,7 +43,8 @@
 - preserve prompt product names/descriptions exactly when they are part of the scored state
 - do not derive the payment amount from the prompt line-price sum; use the invoice write response outstanding amount
 - do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
-- do not insert an automatic `GET /ledger/account` before the first invoice attempt
+- if this is likely the first outgoing invoice in a fresh-account run, one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write can be lower-call than the later `422` repair branch
+- if the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
 
 ## Reuse From Write Response
 - from `POST /order`:
@@ -86,3 +87,4 @@
   - `PUT /invoice/{id}/:payment`
 - re-verified on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; once those exact entities existed, the downstream exact-match path again completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`
 - production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance
+- production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`
