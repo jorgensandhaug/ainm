@@ -96,7 +96,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
   - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
-  - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, but `GET /salary/type?count=1000&fields=*` succeeds, the lower-zero-risk path is salary-type read, one `GET /division?count=1&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
+  - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, the decisive gate is `GET /division?count=1&fields=*` before any salary-type lookup
+  - if that division read returns one usable row, the lower-zero-risk path is `GET /salary/type?count=1000&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
+  - if that division read returns zero usable rows and the prompt does not explicitly allow manual vouchers, stop blocked after those two calls; do not spend `GET /salary/type`
+  - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type` and branch straight into `GET /ledger/account?number=5000,1920&fields=*` plus `POST /ledger/voucher`
   - do not add `POST /employee/employment/details` by default in that repair branch; persistent sandbox on 2026-03-20 proved payroll can succeed without it for manual salary lines
   - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response from salary endpoints
 - Standard verification note:
@@ -174,6 +177,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for project hour tasks, prefer `/activity/>forTimeSheet` over a broad `/activity` search because it proves the activity is actually available on the project for that employee/date
   - `/activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
   - if that read returns `isChargeable=false`, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
+  - the 2026-03-20 production German `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18h` / `950` run re-confirmed that once `/activity/>forTimeSheet` already returns `isChargeable=false`, adding `GET /project/hourlyRates` would be wasted; keep the 7-call downstream floor `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - for prompt shapes that only score requested hours registration plus the customer-facing project invoice, a non-chargeable activity is still not an automatic stop condition: skip the doomed project-specific-rate write, register the hours, and use the manual project-linked order/invoice fallback
 
 ## Project Hourly Rates
@@ -213,6 +217,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard time-registration note:
   - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
   - a timesheet write on a chargeable project activity can also succeed with `chargeable=true` and `hourlyRate=0` when the exact employee+activity rate is missing, so the write alone does not prove the prompt rate was applied
+  - `projectChargeableHours` has a hard per-entry ceiling of `24`; `POST /timesheet/entry` above that returns `422 projectChargeableHours: Kan ikke være over 24`
+  - Tripletex allows only one timesheet entry per `employee + project + activity + date`; a second same-day write for the same tuple returns `409 Det er allerede registrert timer ...`
+  - for project-hour prompts whose total hours exceed `24`, plan a multi-day split before the first write instead of sending one oversized entry or stacking multiple same-day entries
+  - if such a run already partially succeeded on one day chunk before the duplicate branch surfaced, use one decisive `GET /timesheet/entry?...` on the intended date window and write only the missing dates
   - that non-chargeable timesheet response is only a true blocker when the prompt explicitly scores internal billability semantics or true project-hour reserve consumption
   - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
 
@@ -317,10 +325,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - 2026-03-20 persistent sandbox re-check on the same direct-service standard-VAT shape exposed only VAT code `6` (`0%`); omitting `vatType` created `amountCurrency=20100`, and hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
-- for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production runs `812449982` + `45300` + `Datarådgjeving` and `973999966` + `40800` + `Conseil en données`, that two-call path is already minimal; do not add `GET /customer`
+- for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production runs `812449982` + `45300` + `Datarådgjeving`, `973999966` + `40800` + `Conseil en données`, and `882988155` + `40900` + `Heures de conseil`, that two-call path is already minimal; do not add `GET /customer`
   - once that trusted-standard shape matches, do not spend extra local `openapi.json` confirmation time before acting; follow the standard directly
   - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
   - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
+  - when scoring candidates from `GET /invoice/paymentType`, do not require `name`; persistent sandbox re-proof on 2026-03-20 settled invoice `2147551077` with payment type `32813748` even though `name=null`, so prefer debit-account traits such as `19xx`, `isBankAccount=true`, and `isInvoiceAccount=true`
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
   - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
 - Standard search note:
@@ -332,6 +341,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
   - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
+  - `GET /invoice/paymentType` can return `name=null` on a perfectly usable incoming bank payment type; do not spend fallback reads or reject the row just because the label is absent
   - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative payment-style posting with text such as `Betaling: ...`
   - ignore `account.number` when matching that fallback posting; `1500` is common, but persistent sandbox re-proofs on 2026-03-20 still returned the same winning reverse target with `account=null`
   - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`

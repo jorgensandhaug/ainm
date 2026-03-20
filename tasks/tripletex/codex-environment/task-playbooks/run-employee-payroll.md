@@ -40,6 +40,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 - for exact line-level verification, `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))` expanded the individual manual salary lines; plain `fields=*` kept `specifications[]` as link-only objects
 - additional persistent-sandbox re-proof on 2026-03-20 showed the repair branch for an underconfigured existing employee also works:
   - create a disposable employee with `dateOfBirth=null` and `employments=[]`
+  - one decisive `GET /division?count=1&fields=*` can safely happen before `GET /salary/type?count=1000&fields=*`; the reordered gate still led to a successful payroll run
   - `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment` with existing `division.id`, first day of payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
   - `POST /salary/transaction` then succeeds for the exact `40350` + `7350` salary shape
@@ -51,6 +52,11 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 - persistent sandbox re-verification on 2026-03-20 showed that fallback payload works as expected:
   - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
   - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`
+- production reflection on 2026-03-20 for `Maria Almeida` / `maria.almeida@example.org` / `33550` + `14400` settled the no-fallback blocker branch:
+  - the first employee read showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows
+  - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
+  - in that exact branch, any added `GET /salary/type` would have been a wasted read
 
 ## Minimal Safe Flow
 
@@ -77,13 +83,15 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - confirm at least one employment that covers the requested payroll period
    - confirm the employment is tied to a real `division`
    - do not widen into `GET /employee/employment/details` just because `employmentDetails[]` or `latestSalary` stay partly sparse
-5. Resolve salary types with one read
+5. If the employee read already shows the exact underconfigured branch `dateOfBirth=null` plus `employments=[]`, do one decisive `GET /division?count=1&fields=*` before any salary-type lookup
+   - a zero-row division result already proves the payroll repair branch is impossible in that account
+   - if the prompt explicitly allows manual vouchers, use that same decisive division result to branch straight into the voucher fallback without spending `GET /salary/type`
+6. Resolve salary types with one read once the employee is payroll-ready already or the repair branch is still feasible
    - `GET /salary/type?count=1000&fields=*`
    - exact-match the needed type names locally, typically `Fastlønn` and `Bonus`
    - treat that read as both the salary-type lookup and the wage-feature probe; only investigate `/salary/settings` or `/company/salesmodules` after a live `403`
-6. If the employee still lacks payroll prerequisites and the missing state is only the standard underconfigured branch, repair once
-   - normally `GET /division?count=1&fields=*`
-   - if the prompt explicitly allows manual-voucher fallback and the employee read already shows `dateOfBirth=null` plus `employments=[]`, resolve `division` before `salary/type`; an empty division result makes the salary-type read unnecessary
+7. If the employee still lacks payroll prerequisites and the missing state is only the standard underconfigured branch, repair once
+   - reuse the earlier division result when step `5` already ran; otherwise resolve one now with `GET /division?count=1&fields=*`
    - if `dateOfBirth` is missing, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
    - `POST /employee/employment` with:
      - `employee.id`
@@ -95,7 +103,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - if `GET /division?count=1&fields=*` returns zero rows and the prompt explicitly allows manual vouchers, switch directly to:
      - `GET /ledger/account?number=5000,1920&fields=*`
      - `POST /ledger/voucher` with `voucherType=null` and a balanced two-line gross-salary booking on `5000` and `1920`
-7. Create the payroll transaction
+-8. Create the payroll transaction
    - `POST /salary/transaction`
    - include:
      - `date`
@@ -170,11 +178,15 @@ Replace the ids and amounts with the task-specific values.
   4. `POST /salary/transaction`
 - for the exact task-12-like branch where the first employee read shows `dateOfBirth=null` and `employments=[]`, the lower-zero-risk path is:
   1. `GET /employee?email=...&count=10&fields=*`
-  2. if the prompt explicitly allows manual vouchers, `GET /division?count=1&fields=*` before `GET /salary/type`
+  2. `GET /division?count=1&fields=*`
   3. if that division read returns one usable row, `GET /salary/type?count=1000&fields=*`
   4. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   5. `POST /employee/employment`
   6. `POST /salary/transaction`
+- for the exact no-division branch without manual-voucher fallback, the lower-call path is:
+  1. `GET /employee?email=...&count=10&fields=*`
+  2. `GET /division?count=1&fields=*`
+  3. if that division read returns zero usable rows, stop blocked
 - for the exact fallback-permitted no-division branch, the lower-call path is:
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*`
@@ -234,6 +246,6 @@ Replace the ids and amounts with the task-specific values.
 - Do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
-- When the prompt explicitly allows manual vouchers and the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call
+- When the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
 - Do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - Do not rely on `GET /salary/payslip/{id}?fields=*` alone when the task scores the exact manual salary-line contents

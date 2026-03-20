@@ -25,15 +25,16 @@
 3. if the employee read already proves an active employment covering the payroll period, reuse it; otherwise branch:
    - if the employee read shows `dateOfBirth=null` and `employments=[]`, use the score-first repair branch below
    - otherwise do one conditional `GET /employee/employment?employeeId=...&count=20&fields=*`
-4. resolve salary types through `GET /salary/type?count=1000&fields=*`
-5. if the employee still has no active employment in the payroll period, repair once when the missing state is only placeholder-able payroll prerequisite data:
-   - `GET /division?count=1&fields=*`
+4. if the employee is already proven underconfigured by `dateOfBirth=null` plus `employments=[]`, resolve one decisive `GET /division?count=1&fields=*` before any salary-type lookup
+5. resolve salary types through `GET /salary/type?count=1000&fields=*` once the employee is either payroll-ready already or the repair branch is still feasible after the division check
+6. if the employee still has no active employment in the payroll period, repair once when the missing state is only placeholder-able payroll prerequisite data:
+   - reuse the division from step `4` when that branch already ran, otherwise do one decisive `GET /division?count=1&fields=*`
    - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` when the employee still has no birth date
    - `POST /employee/employment` with `division.id`, the first day of the payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-6. `POST /salary/transaction` with embedded `payslips[].specifications[]`
-7. verify from the write response first
-8. if the write response is too sparse, `GET /salary/transaction/{id}?fields=*`
-9. if exact line-level proof is needed, `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`; otherwise `GET /salary/payslip/{id}?fields=*` is enough for gross/net amount plus specification count
+7. `POST /salary/transaction` with embedded `payslips[].specifications[]`
+8. verify from the write response first
+9. if the write response is too sparse, `GET /salary/transaction/{id}?fields=*`
+10. if exact line-level proof is needed, `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`; otherwise `GET /salary/payslip/{id}?fields=*` is enough for gross/net amount plus specification count
 
 ## Exact-Match Fast Path
 - payroll-ready branch:
@@ -44,7 +45,7 @@
 - underconfigured-employee branch:
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do not stop
-  - when the prompt explicitly allows manual-voucher fallback, do `GET /division?count=1&fields=*` before `GET /salary/type`
+  - do `GET /division?count=1&fields=*` before `GET /salary/type`
   - if that division read returns one usable division, continue with `GET /salary/type?count=1000&fields=*`
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment`
@@ -55,6 +56,10 @@
   - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type`
   - `GET /ledger/account?number=5000,1920&fields=*`
   - `POST /ledger/voucher` with one positive posting on account `5000` and one negative balancing posting on `1920` for the gross salary cost
+- blocked no-division branch:
+  - `GET /employee?email=...&count=10&fields=*`
+  - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do `GET /division?count=1&fields=*`
+  - if that division read returns zero usable rows and the prompt does not explicitly allow manual vouchers, stop as blocked
 - use `GET /salary/type` as both the salary-type lookup and the wage-feature probe; if that read fails with a live `403`, only then investigate `/salary/settings` or `/company/salesmodules`
 - do not spend `GET /employee/employment/details` or `POST /employee/employment/details` by default; the 2026-03-20 persistent sandbox repair proof reached a successful manual-line payroll run without it
 
@@ -120,11 +125,13 @@
 - if `GET /employee?fields=*` returns employments as sparse stubs with null `startDate`/`division`, do one conditional `GET /employee/employment?employeeId=...&fields=*`
 - if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, but `GET /salary/type` succeeds, repair the employee once instead of stopping:
   - `GET /division?count=1&fields=*`
+  - `GET /salary/type?count=1000&fields=*`
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment` with `division.id`, first day of payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
 - if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt explicitly allows manual vouchers, switch directly to:
   - `GET /ledger/account?number=5000,1920&fields=*`
   - `POST /ledger/voucher`
+- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt does not explicitly allow manual vouchers, stop blocked after those two calls; do not spend `GET /salary/type`
 - if `POST /salary/transaction` fails with `department: Selskapet har ikke aktivert avdelingsregnskap.`, remove `department` from the salary payload and retry once
 - if `GET /salary/type`, `GET /salary/settings`, or `POST /salary/transaction` fails with a live `403`, investigate feature state; do not assume the employee-precondition branch and the feature-access branch are the same problem
 - if there is still no usable division and the prompt does not explicitly allow manual vouchers, or the prompt explicitly scores employee master data, treat the run as blocked rather than guessing additional employee fields beyond the placeholder birth date
@@ -136,7 +143,7 @@
 - do not add speculative `/salary/settings` or company-module activation calls before a live `403` from salary endpoints
 - do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - do not include `department` blindly
-- when the prompt explicitly allows manual vouchers and the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call
+- when the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
 - do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - do not rely on `GET /salary/payslip/{id}?fields=*` alone for exact per-line verification
 
@@ -156,14 +163,29 @@
   - `GET /salary/payslip/32627610?fields=*,specifications(*,salaryType(*))` proved `grossAmount=60350`, `amount=60350`, and the exact lines `Fastlønn amount=44150` and `Bonus amount=16200`
 - persistent sandbox re-proof on 2026-03-20 for the underconfigured-employee repair branch showed:
   - a disposable employee could be created with `dateOfBirth=null` and `employments=[]`
+  - the reordered gate `GET /division?count=1&fields=*` before `GET /salary/type?count=1000&fields=*` still led to a successful payroll run
   - `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"` succeeded
   - `POST /employee/employment` with existing `division.id=108244568`, `startDate=2026-03-01`, `isMainEmployer=true`, and `taxDeductionCode=loennFraHovedarbeidsgiver` succeeded
   - `POST /salary/transaction` for March 2026 with amounts `40350` and `7350` then succeeded without any `POST /employee/employment/details`
   - the resulting payslip proved `grossAmount=47700`, `amount=47700`, `Fastlønn amount=40350`, and `Bonus amount=7350`
+- later persistent sandbox re-proof on 2026-03-20 for the exact `33550` + `14400` shape re-confirmed the same reordered underconfigured branch:
+  - disposable employee `id=18589804` was created underconfigured
+  - `GET /division?count=1&fields=*` returned `division.id=108244566`
+  - `PUT /employee/18589804` with `dateOfBirth: "1990-01-01"` succeeded
+  - `POST /employee/employment` created `employment.id=2805683`
+  - only then did `GET /salary/type?count=1000&fields=*` resolve `Fastlønn id=69031179` and `Bonus id=69031348`
+  - `POST /salary/transaction` created `salaryTransaction.id=6956950`
+  - `GET /salary/transaction/6956950?fields=*` returned `payslip.id=32627968`
+  - `GET /salary/payslip/32627968?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `amount=47950`, and the exact lines `Fastlønn amount=33550` and `Bonus amount=14400`
 - production reflection on 2026-03-20 for `Jonas Hansen` / `jonas.hansen@example.org` / `40000` + `10600` exposed a new fallback branch:
   - `GET /employee?email=jonas.hansen@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
   - the next decisive `GET /division?count=1&fields=*` returned zero rows, so the payroll repair branch could not be completed in that account
   - because the prompt explicitly allowed manual vouchers, the lower-call replacement path was not to restart or probe salary types first, but to continue with one `GET /ledger/account?number=5000,1920&fields=*` and one `POST /ledger/voucher`
+- production reflection on 2026-03-20 for `Maria Almeida` / `maria.almeida@example.org` / `33550` + `14400` settled the non-fallback blocker branch:
+  - `GET /employee?email=maria.almeida@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows
+  - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
+  - in that exact branch, any added `GET /salary/type` would have been a wasted read
 - persistent sandbox re-verification on 2026-03-20 for that fallback path showed:
   - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
   - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`
