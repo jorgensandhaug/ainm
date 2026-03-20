@@ -164,6 +164,25 @@ function maskToken(token: string): string {
   return `${token.slice(0, 4)}...${token.slice(-4)}`;
 }
 
+function summarizeAuthorizationHeader(authorization: string | null): Record<string, unknown> {
+  if (!authorization) {
+    return {
+      authorizationPresent: false,
+      authorizationScheme: "missing",
+    };
+  }
+
+  const [scheme, ...rest] = authorization.split(" ");
+  const credential = rest.join(" ").trim();
+
+  return {
+    authorizationPresent: true,
+    authorizationScheme: scheme || "unknown",
+    authorizationTokenLength: credential.length,
+    authorizationTokenPreview: credential ? maskToken(credential) : undefined,
+  };
+}
+
 function summarizePrompt(prompt: string): string {
   const singleLine = prompt.replace(/\s+/g, " ").trim();
   return singleLine.length > 140 ? `${singleLine.slice(0, 137)}...` : singleLine;
@@ -1366,20 +1385,44 @@ Bun.serve({
   port,
   async fetch(request) {
     const url = new URL(request.url);
-
-    log("INFO", "Incoming request", {
+    const requestId = request.headers.get("x-request-id")?.trim() || randomUUID().slice(0, 8);
+    const authorization = request.headers.get("authorization");
+    const requestLogContext = {
+      requestId,
       method: request.method,
       path: url.pathname,
+      query: url.search || "",
       contentType: request.headers.get("content-type") ?? "",
-      hasAuthorizationHeader: Boolean(request.headers.get("authorization")),
+      contentLength: request.headers.get("content-length") ?? "",
+      host: request.headers.get("host") ?? "",
+      userAgent: request.headers.get("user-agent") ?? "",
+      forwardedFor:
+        request.headers.get("x-forwarded-for") ??
+        request.headers.get("cf-connecting-ip") ??
+        request.headers.get("x-real-ip") ??
+        "",
+      forwardedProto: request.headers.get("x-forwarded-proto") ?? "",
+      ...summarizeAuthorizationHeader(authorization),
+    };
+
+    log("INFO", "Incoming request", {
+      ...requestLogContext,
     });
 
     if (requiredBearerToken) {
-      const authorization = request.headers.get("authorization");
       if (authorization !== `Bearer ${requiredBearerToken}`) {
+        let authFailureReason = "bearer_token_mismatch";
+        if (!authorization) {
+          authFailureReason = "missing_authorization_header";
+        } else if (!authorization.startsWith("Bearer ")) {
+          authFailureReason = "invalid_authorization_scheme";
+        }
+
         log("WARN", "Rejected unauthorized request", {
-          method: request.method,
-          path: url.pathname,
+          ...requestLogContext,
+          authFailureReason,
+          expectedAuthorizationScheme: "Bearer",
+          expectedBearerTokenLength: requiredBearerToken.length,
         });
         return json(401, { error: "unauthorized" });
       }
@@ -1387,8 +1430,9 @@ Bun.serve({
 
     if (request.method !== "POST" || url.pathname !== "/solve") {
       log("WARN", "Rejected unknown route", {
-        method: request.method,
-        path: url.pathname,
+        ...requestLogContext,
+        expectedMethod: "POST",
+        expectedPath: "/solve",
       });
       return json(404, { error: "not found" });
     }
@@ -1396,7 +1440,7 @@ Bun.serve({
     const input = await parseSolveRequest(request);
     if ("error" in input) {
       log("WARN", "Rejected invalid solve request", {
-        path: url.pathname,
+        ...requestLogContext,
         error: input.error,
       });
       return json(400, input);
@@ -1406,14 +1450,15 @@ Bun.serve({
     if (nextActiveSolveRequests > maxConcurrentSolveRequests) {
       const activeAfterDecrement = decrementActiveSolveRequests();
       log("WARN", "Rejected solve request because concurrency limit was reached", {
+        ...requestLogContext,
         activeSolveRequests: activeAfterDecrement,
         maxConcurrentSolveRequests,
-        path: url.pathname,
       });
       return json(429, { error: "too many active solve requests" });
     }
 
     log("INFO", "Accepted solve request", {
+      ...requestLogContext,
       activeSolveRequests: nextActiveSolveRequests,
       storageMode: resolveStorageMode(Bun.env.TRIPLETEX_STORAGE_MODE),
       prompt: summarizePrompt(input.prompt),
@@ -1425,6 +1470,7 @@ Bun.serve({
     try {
       const result = await handleSolve(input);
       log("INFO", "Responding 200", {
+        ...requestLogContext,
         activeSolveRequests: activeSolveRequests,
         runId: result.run_id,
         runDir: result.run_dir,
@@ -1435,15 +1481,15 @@ Bun.serve({
     } catch (error) {
       const message = error instanceof Error ? error.message : "internal error";
       log("ERROR", "Solve request failed", {
+        ...requestLogContext,
         activeSolveRequests: activeSolveRequests,
-        path: url.pathname,
         error: message,
       });
       return json(500, { error: message });
     } finally {
       log("INFO", "Solve request closed", {
+        ...requestLogContext,
         activeSolveRequests: decrementActiveSolveRequests(),
-        path: url.pathname,
       });
     }
   },
