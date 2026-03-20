@@ -191,6 +191,15 @@
   - `POST /salary/transaction` created `salaryTransaction.id=6956971`
   - `GET /salary/transaction/6956971?fields=*` returned `payslip.id=32627989`
   - `GET /salary/payslip/32627989?fields=*,specifications(*,salaryType(*))` proved `grossAmount=60300`, `amount=60300`, and the exact lines `Fastlønn amount=49100` and `Bonus amount=11200`
+- later same-day persistent sandbox re-proof for the exact `41050` + `9800` shape re-confirmed that same repair-first underconfigured branch:
+  - disposable employee `id=18592549` was re-found with `dateOfBirth=null` and `employments=[]`
+  - `GET /division?count=1&fields=*` returned `division.id=108244566`
+  - `PUT /employee/18592549` with `dateOfBirth: "1990-01-01"` succeeded
+  - `POST /employee/employment` created `employment.id=2806874`
+  - only then did `GET /salary/type?count=1000&fields=*` resolve `Fastlønn id=69031179` and `Bonus id=69031348`
+  - `POST /salary/transaction` created `salaryTransaction.id=6956975`
+  - `GET /salary/transaction/6956975?fields=*` returned `payslip.id=32627993`
+  - `GET /salary/payslip/32627993?fields=*,specifications(*,salaryType(*))` proved `grossAmount=50850`, `amount=50850`, and the exact lines `Fastlønn amount=41050` and `Bonus amount=9800`
 - production reflection on 2026-03-20 for `Jonas Hansen` / `jonas.hansen@example.org` / `40000` + `10600` exposed a new fallback branch:
   - `GET /employee?email=jonas.hansen@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
   - the next decisive `GET /division?count=1&fields=*` returned zero rows, so the payroll repair branch could not be completed in that account
@@ -200,6 +209,11 @@
   - the next decisive `GET /division?count=1&fields=*` returned zero rows
   - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
   - in that exact branch, any added `GET /salary/type` would have been a wasted read
+- later same-day production reflection for `Eirik Brekke` / `eirik.brekke@example.org` / `41050` + `9800` re-confirmed that same non-fallback blocker branch:
+  - `GET /employee?email=eirik.brekke@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows
+  - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was again to stop blocked after those two calls
+  - in that exact branch, any added `GET /salary/type` would still have been a wasted read
 - persistent sandbox follow-up on 2026-03-20 tested the tempting division-create escape hatch for that blocker branch:
   - minimal `POST /division` with only `name` failed `422`
   - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`

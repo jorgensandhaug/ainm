@@ -61,6 +61,30 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - minimal `POST /division` with only `name` failed `422`
   - the validation payload required `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
   - that means the exact payroll prompt still does not expose a safe low-call division-create recovery path once `GET /division?count=1&fields=*` returns zero rows
+- later same-day persistent-sandbox re-proof for the exact `49100` + `11200` salary shape confirmed the lower-risk repair-first ordering:
+  - disposable employee `id=18591984` was created underconfigured
+  - `GET /employee?email=...&count=10&fields=*` re-found the exact employee with `dateOfBirth=null` and `employments=[]`
+  - `GET /division?count=1&fields=*` returned `division.id=108244566`
+  - `PUT /employee/18591984` with `dateOfBirth: "1990-01-01"` succeeded
+  - `POST /employee/employment` created `employment.id=2806626`
+  - only then did `GET /salary/type?count=1000&fields=*` resolve `Fastlønn id=69031179` and `Bonus id=69031348`
+  - `POST /salary/transaction` created `salaryTransaction.id=6956971`
+  - `GET /salary/transaction/6956971?fields=*` returned `payslip.id=32627989`
+  - `GET /salary/payslip/32627989?fields=*,specifications(*,salaryType(*))` proved `grossAmount=60300`, `amount=60300`, and the exact lines `Fastlønn amount=49100` and `Bonus amount=11200`
+- later same-day persistent-sandbox re-proof for the exact `41050` + `9800` salary shape re-confirmed that same repair-first ordering:
+  - disposable employee `id=18592549` was re-found with `dateOfBirth=null` and `employments=[]`
+  - `GET /division?count=1&fields=*` returned `division.id=108244566`
+  - `PUT /employee/18592549` with `dateOfBirth: "1990-01-01"` succeeded
+  - `POST /employee/employment` created `employment.id=2806874`
+  - only then did `GET /salary/type?count=1000&fields=*` resolve `Fastlønn id=69031179` and `Bonus id=69031348`
+  - `POST /salary/transaction` created `salaryTransaction.id=6956975`
+  - `GET /salary/transaction/6956975?fields=*` returned `payslip.id=32627993`
+  - `GET /salary/payslip/32627993?fields=*,specifications(*,salaryType(*))` proved `grossAmount=50850`, `amount=50850`, and the exact lines `Fastlønn amount=41050` and `Bonus amount=9800`
+- later same-day production reflection for `Eirik Brekke` / `eirik.brekke@example.org` / `41050` + `9800` re-confirmed the no-fallback blocker branch:
+  - the first employee read showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows
+  - because the prompt did not explicitly allow manual vouchers, the minimum-safe outcome was to stop blocked after those two calls
+  - in that exact branch, any added `GET /salary/type` would have been a wasted read
 - the same sandbox follow-up still re-confirmed the success side of the exact `33550` + `14400` branch when a real division already exists:
   - disposable employee `18591125` plus existing division `108244566` reached `salaryTransaction.id=6956966`
   - `GET /salary/payslip/32627984?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `Fastlønn amount=33550`, and `Bonus amount=14400`
