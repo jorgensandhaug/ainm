@@ -66,6 +66,7 @@
 - do not add duplicate-check logic for fresh-account create tasks
 - do not drop `email` just because you also set `invoiceEmail`
 - do not treat a lone invoice-looking supplier email as proof that `email` should be empty; the safe correction is to mirror it into both `email` and `invoiceEmail`
+- do not chase a possible missing scorer field by inventing address fields or a follow-up `GET` after the one-call mirrored-email path already returned the requested supplier fields
 - do not invent address fields just because the response auto-returns sparse address links
 - do not fetch the supplier again just to inspect `ledgerAccount`, `postalAddress`, or `physicalAddress`
 - if the first write returns `403` with `Invalid or expired token`, do not treat it as a payload problem and do not spend recovery calls on `/supplier` reads or alternate auth guesses
@@ -80,4 +81,6 @@
 - re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108260746`, preserved both fields, and kept the path at one call
 - production re-test on 2026-03-20 for `Bergvik AS`, `978783864`, and `faktura@bergvik.no` still did not improve the public task-04 best score beyond `6/7`, even after using one `POST /supplier` with both `email` and `invoiceEmail`; that means mirroring `invoiceEmail` alone is not a proven full fix for this scorer
 - re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108263571`, preserved both fields, and returned `ledgerAccount.id=424190921`
+- production on 2026-03-20 for `Silveroak Ltd`, `943413231`, and `faktura@silveroakltd.no` succeeded with the same one-call mirrored-email path; `POST /supplier` returned supplier `id=108280853`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Silveroak Reflection Supplier 321000008`, `321000008`, and `faktura-321000008@silveroakltd.no`; one `POST /supplier` with both `email` and `invoiceEmail` returned supplier `id=108280951`, preserved both fields, and returned `ledgerAccount.id=424190921`
 - additional persistent-sandbox probing on 2026-03-20 showed that even when `postalAddress: null`, `physicalAddress: null`, `isCustomer: false`, `isInactive: false`, `showProducts: false`, and `language: "NO"` were sent explicitly, Tripletex still auto-created sparse `postalAddress` and `physicalAddress` link objects and still auto-generated `displayName` from the assigned `supplierNumber`; one unresolved scorer field is therefore likely outside the prompt-provided business fields

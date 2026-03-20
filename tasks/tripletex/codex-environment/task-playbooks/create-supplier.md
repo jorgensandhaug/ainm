@@ -37,6 +37,8 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; the single `POST /supplier` accepted both `email` and `invoiceEmail`, returned supplier `id=108260746`, and kept the path at one call
 - production re-test on 2026-03-20 for `Bergvik AS`, `978783864`, and `faktura@bergvik.no` still did not lift the public task-04 best score above `6/7`, even after the single `POST /supplier` mirrored the invoice-looking address into both `email` and `invoiceEmail`
 - re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; the single `POST /supplier` returned supplier `id=108263571`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
+- production on 2026-03-20 for `Silveroak Ltd`, `943413231`, and `faktura@silveroakltd.no` succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108280853`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Silveroak Reflection Supplier 321000008`, `321000008`, and `faktura-321000008@silveroakltd.no`; the single `POST /supplier` returned supplier `id=108280951`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 
 ## Minimal Flow
 
@@ -95,12 +97,14 @@ This was verified in sandbox:
 - For supplier creation specifically, also mirror that same lone invoice-looking address into `invoiceEmail`; sandbox accepted the shape, and the 2026-03-20 `Skogheim AS` production miss strongly suggests the scorer expected it
 - The later 2026-03-20 `Bergvik AS` production rerun disproved the stronger claim that mirrored `invoiceEmail` alone settles the last scorer point; the prompt still contained only `name`, `organizationNumber`, and one generic email, so the remaining miss is likely a non-prompt field such as auto-generated address links or another generated supplier property
 - A single prompt email does not justify inventing a separate invoice-delivery email field
+- If the one-call mirrored-email path already returned the requested supplier fields, do not add speculative address fields or a follow-up `GET`; that only burns calls without proving a better scorer outcome
 
 ## When Not To Pre-Read
 
 - Do not `GET /supplier` first just to check whether the supplier already exists
 - Do not add sandbox-style idempotency logic to a scored create task
 - Do not fetch the created supplier again if the write response already contains the needed fields
+- Do not add speculative address fields just because earlier public `6/7` supplier-create runs existed; the latest `Silveroak Ltd` production run showed the same one-call mirrored-email path can return the target business fields directly
 
 ## When A Read Is Actually Needed
 
