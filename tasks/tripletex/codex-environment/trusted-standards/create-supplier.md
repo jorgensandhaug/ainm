@@ -61,7 +61,9 @@
 - do not map a generic `Email` label to `invoiceEmail`
 - do not invent address fields just because the response auto-returns sparse address links
 - do not fetch the supplier again just to inspect `ledgerAccount`, `postalAddress`, or `physicalAddress`
+- if the first write returns `403` with `Invalid or expired token`, do not treat it as a payload problem and do not spend recovery calls on `/supplier` reads or alternate auth guesses
 
 ## OpenAPI / Sandbox Status
 - endpoint family verified in `./openapi.json`
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection Supplier 321000002`, `321000002`, and `supplier-321000002@example.no`; one `POST /supplier` returned supplier `id=108246490`, preserved all scored fields, returned `ledgerAccount.id=424190921`, and auto-returned sparse `postalAddress` and `physicalAddress` links without needing any follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; one `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, returned `ledgerAccount.id=424190921`, and again auto-returned sparse `postalAddress` and `physicalAddress` links without needing any follow-up read

@@ -51,6 +51,7 @@ Authentication:
 - If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
 - In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
 - If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
+- If the first attempted call returns `403` with body `{"error":"Invalid or expired token"}`, treat the run as blocked by unusable credentials; do not spend more calls on alternate endpoints or auth variations.
 
 ## API Reference Strategy
 - Knowledge order:
@@ -208,6 +209,7 @@ Authentication:
 - Do not loop through guesses.
 - Do not keep retrying the same invalid shape.
 - `401` usually means wrong auth format or wrong token.
+- `403` with `Invalid or expired token` usually means the provided session token is unusable for this run, not that the endpoint or payload is wrong.
 - `404` usually means wrong path, wrong ID, or wrong endpoint choice.
 - `422` usually means validation failure or missing required fields.
 - A network/DNS failure before any HTTP status usually means the provided base URL is unusable in this run, not that the request payload is wrong.
@@ -265,6 +267,7 @@ Authentication:
 - Do not default supplier-invoice registration to `POST /incomingInvoice`; follow-up verification on 2026-03-20 showed that endpoint can fail with `403 You do not have permission to access this feature.` on an ordinary account even when generic ledger-voucher booking is allowed.
 - For the exact fresh-account supplier-invoice booking shape with one prompt-provided supplier identity, start with direct `POST /supplier`; do not spend `GET /supplier?...` unless the prompt explicitly indicates an existing-supplier lookup problem.
 - For the exact standard supplier-create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical minimal path is one `POST /supplier`; do not add `GET /supplier`, `GET /supplier/{id}`, `invoiceEmail`, or speculative address fields unless the prompt explicitly requires them.
+- If that exact supplier-create write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials and stop; do not burn calls on `/supplier` reads or auth-shape guesses.
 - `POST /supplier` can still return sparse `postalAddress` and `physicalAddress` link objects even when you sent no address fields. Do not treat that as evidence that the prompt required addresses, and do not spend a follow-up `GET` just to inspect them.
 - In standard supplier creation tasks with one generic prompt email, map it to `email`; do not also populate `invoiceEmail` unless the prompt explicitly asks for an invoice/billing email.
 - In the supplier-invoice fast path, `POST /supplier` can already return the supplier ledger account id. Reuse `supplier.ledgerAccount.id` for the `2400` liability posting instead of spending an extra `GET /ledger/account?number=2400`.

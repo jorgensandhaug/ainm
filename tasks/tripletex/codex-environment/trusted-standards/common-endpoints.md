@@ -141,6 +141,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
   - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
   - for the exact fresh-account supplier-invoice booking shape, prefer direct `POST /supplier` and do not spend a supplier search read first
+  - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
   - map a single generic prompt email to `email`, not `invoiceEmail`
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links

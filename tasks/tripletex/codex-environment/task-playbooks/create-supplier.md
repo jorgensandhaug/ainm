@@ -30,6 +30,7 @@ This was verified in sandbox:
 - the response came back as `{"value": {...}}` with the created supplier id and requested fields
 - Tripletex also returned `ledgerAccount.id` plus sparse `postalAddress` and `physicalAddress` links that did not require any follow-up read
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection Supplier 321000002`, `321000002`, and `supplier-321000002@example.no`; the single `POST /supplier` returned supplier `id=108246490`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
+- re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; the single `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
 
 ## Minimal Flow
 
@@ -51,6 +52,7 @@ This was verified in sandbox:
 - Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
 - Do not enumerate supplier-related invoice schemas for a simple create task
 - Do not add a post-create `GET /supplier/{id}` when the `201` body already includes the scored fields
+- If the first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials; do not burn calls on `/supplier` reads or alternate auth-format retries
 - The winning shape is typically:
 
 ```json
