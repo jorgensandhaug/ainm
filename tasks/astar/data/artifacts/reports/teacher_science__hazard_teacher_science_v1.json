@@ -1,0 +1,116 @@
+{
+  "model_name": "hazard_teacher_science_v1",
+  "train_round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb"
+  ],
+  "eval_round_ids": [
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "report_count": 1,
+  "mean_terminal_l1": 0.13646691176470588,
+  "mean_alive_curve_mae": 28.01776239907727,
+  "mean_port_curve_mae": 1.1458333333333333,
+  "mean_ruin_curve_mae": 3.6465830449826995,
+  "mean_owner_flip_mae": 0.221875,
+  "mean_coefficient_l2": 27.327340027083654,
+  "reports": [
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "round_number": 5,
+      "teacher_name": "hazard_teacher_science_v1",
+      "regime_dim": 12,
+      "seed_reports": [
+        {
+          "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+          "seed_index": 0,
+          "actual_replay_runs": 17,
+          "predicted_replay_runs": 17,
+          "terminal_l1": 0.13349264705882352,
+          "alive_curve_mae": 32.856978085351784,
+          "port_curve_mae": 1.3875432525951557,
+          "ruin_curve_mae": 3.213379469434832,
+          "owner_flip_mae": 0.2375,
+          "build_hit_rate_mae": 0.278125,
+          "port_hit_rate_mae": 0.099375,
+          "ruin_hit_rate_mae": 0.341875,
+          "coefficient_l2": 31.97624231737027
+        },
+        {
+          "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+          "seed_index": 1,
+          "actual_replay_runs": 17,
+          "predicted_replay_runs": 17,
+          "terminal_l1": 0.13444852941176472,
+          "alive_curve_mae": 12.799307958477506,
+          "port_curve_mae": 0.5790080738177623,
+          "ruin_curve_mae": 3.4486735870818914,
+          "owner_flip_mae": 0.143125,
+          "build_hit_rate_mae": 0.34125,
+          "port_hit_rate_mae": 0.085625,
+          "ruin_hit_rate_mae": 0.403125,
+          "coefficient_l2": 11.290222295877308
+        },
+        {
+          "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+          "seed_index": 2,
+          "actual_replay_runs": 17,
+          "predicted_replay_runs": 17,
+          "terminal_l1": 0.13534313725490196,
+          "alive_curve_mae": 40.53287197231833,
+          "port_curve_mae": 1.3679354094579008,
+          "ruin_curve_mae": 4.01845444059977,
+          "owner_flip_mae": 0.255,
+          "build_hit_rate_mae": 0.275,
+          "port_hit_rate_mae": 0.125625,
+          "ruin_hit_rate_mae": 0.309375,
+          "coefficient_l2": 40.7041231699238
+        },
+        {
+          "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+          "seed_index": 3,
+          "actual_replay_runs": 17,
+          "predicted_replay_runs": 17,
+          "terminal_l1": 0.14186274509803923,
+          "alive_curve_mae": 30.389850057670124,
+          "port_curve_mae": 1.0184544405997693,
+          "ruin_curve_mae": 4.298731257208766,
+          "owner_flip_mae": 0.233125,
+          "build_hit_rate_mae": 0.323125,
+          "port_hit_rate_mae": 0.125,
+          "ruin_hit_rate_mae": 0.37125,
+          "coefficient_l2": 30.66793563886421
+        },
+        {
+          "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+          "seed_index": 4,
+          "actual_replay_runs": 16,
+          "predicted_replay_runs": 16,
+          "terminal_l1": 0.1371875,
+          "alive_curve_mae": 23.50980392156863,
+          "port_curve_mae": 1.3762254901960784,
+          "ruin_curve_mae": 3.2536764705882355,
+          "owner_flip_mae": 0.240625,
+          "build_hit_rate_mae": 0.2375,
+          "port_hit_rate_mae": 0.10375,
+          "ruin_hit_rate_mae": 0.29125,
+          "coefficient_l2": 21.998176713382698
+        }
+      ],
+      "mean_terminal_l1": 0.13646691176470588,
+      "mean_alive_curve_mae": 28.01776239907727,
+      "mean_port_curve_mae": 1.1458333333333333,
+      "mean_ruin_curve_mae": 3.6465830449826995,
+      "mean_owner_flip_mae": 0.221875,
+      "mean_build_hit_rate_mae": 0.29100000000000004,
+      "mean_port_hit_rate_mae": 0.10787499999999998,
+      "mean_ruin_hit_rate_mae": 0.34337500000000004,
+      "mean_coefficient_l2": 27.327340027083654
+    }
+  ],
+  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/teacher_science__hazard_teacher_science_v1.json",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/teacher_science__hazard_teacher_science_v1.md"
+}
