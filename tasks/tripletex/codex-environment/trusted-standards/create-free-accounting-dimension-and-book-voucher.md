@@ -30,13 +30,14 @@
 - on `POST /ledger/accountingDimensionName`, send:
   - `dimensionName`
   - `active: true`
+- `dimensionName` is validated at max length `20`; if the prompt-provided name exceeds that, treat the run as blocked instead of truncating it
 - on each `POST /ledger/accountingDimensionValue`, the minimal proven payload is:
   - `dimensionIndex`
   - `displayName`
   - `active: true`
   - `showInVoucherRegistration: true`
 - do not invent `number` or `position` on the dimension values for the standard path; sandbox proved Tripletex accepts the minimal payload and auto-assigns ordering
-- reuse the returned `dimensionIndex` from the dimension-name create response
+- reuse the returned `dimensionIndex` from the dimension-name create response; persistent sandbox also assigned `2`, not only `1`
 - on `POST /ledger/voucher`:
   - set `voucherType: null`
   - build a balanced two-line voucher
@@ -71,6 +72,7 @@
   - target posting account id
   - target posting amount
   - linked free-dimension value id
+- for the exact create-dimension-plus-two-values-plus-one-voucher task shape, this five-call flow remains the minimal realistic path because the lower-call number-only voucher shortcut is not valid
 
 ## Known Recovery Branches
 - if `GET /ledger/account?number=<target-account>,1920&fields=*` does not return `1920`, do one fallback `GET /ledger/account?isBankAccount=true&fields=*` and choose the existing invoice or bank account from that result
@@ -80,6 +82,7 @@
 ## OpenAPI / Sandbox Status
 - `/ledger/accountingDimensionName`, `/ledger/accountingDimensionValue`, `/ledger/account`, and `/ledger/voucher` verified in `./openapi.json`
 - persistent sandbox re-verified on 2026-03-20:
+  - `POST /ledger/accountingDimensionName` returned `422` when `dimensionName` exceeded `20` characters
   - `POST /ledger/accountingDimensionValue` succeeded with only `dimensionIndex`, `displayName`, `active`, and `showInVoucherRegistration`
-  - `POST /ledger/voucher` with `account: { "number": "7000" }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
-  - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=7000,1920&fields=*`
+  - `POST /ledger/voucher` with `account: { "number": "7000" }` and again with `account: { "number": "6590" }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
+  - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=6590,1920&fields=*`

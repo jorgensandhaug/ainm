@@ -188,7 +188,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard prerequisite note:
   - this is the canonical bank-account repair endpoint
-  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000` and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `7000`, `6590`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
 
 ## Ledger Accounting Dimension Name
 - `/ledger/accountingDimensionName`
@@ -203,6 +203,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create prerequisites:
   - free-dimension feature enabled
   - at least one free-dimension slot available
+- Standard create note:
+  - `dimensionName` is validated at max length `20`
+  - the create response can assign `dimensionIndex` `1`, `2`, or `3`; reuse that returned index instead of assuming `1`
 
 ## Ledger Accounting Dimension Value
 - `/ledger/accountingDimensionValue`
@@ -238,6 +241,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - prefer reverse over ad hoc mutation when task allows
 - Standard create note:
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
+  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000` and `6590`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
 - Standard verification note:
