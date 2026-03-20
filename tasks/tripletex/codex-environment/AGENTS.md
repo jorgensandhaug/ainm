@@ -92,6 +92,7 @@ Authentication:
 | Create department | `./trusted-standards/create-department.md` |
 | Create product | `./trusted-standards/create-product.md` |
 | Create project | `./trusted-standards/create-project.md` |
+| Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
@@ -122,6 +123,7 @@ Authentication:
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Register project hours and create project invoice | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
 | Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
 | Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
@@ -251,6 +253,13 @@ Authentication:
 - When a successful `POST /salary/transaction` response is too sparse, the decisive verification branch is `GET /salary/transaction/{id}?fields=*` to get payslip ids, then `GET /salary/payslip/{id}?fields=*` for gross/net amounts and specification count.
 - `GET /salary/payslip/{id}?fields=*` can still keep `specifications[]` as link-only objects; for exact manual-line verification use `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`.
 - Project creation may require `startDate` even though the `Project` schema does not clearly mark it as required. Project manager assignment is also validated: a plain employee match may still be ineligible, so prefer resolving managers with `assignableProjectManagers=true`.
+- For project-hour billing tasks, switch the project hourly-rate holder with `PUT /project/hourlyRates/{id}` and then create the employee+activity rate with `POST /project/hourlyRates/projectSpecificRates`; sending embedded `projectSpecificRates[]` inside the holder `PUT` is not the proven rate-write path.
+- `POST /project/hourlyRates/projectSpecificRates` rejects non-chargeable activities with `422 activity.id: Ikke fakturerbar.`.
+- `POST /timesheet/entry` on a non-chargeable project activity can still succeed even with `projectChargeableHours`, but the write response keeps `chargeable=false` and `hourlyRate=0`; treat that as blocked for true hour-based invoicing.
+- `PUT /timesheet/week/:approve` can return `403` even for the token owner; do not make week approval a default prerequisite for project-hour invoice tasks.
+- `GET /project/{id}/period/invoicingReserve` can show a positive reserve even while `GET /project/{id}/period/hourlistReport` reports the hours as `nonApprovedHours`; that reserve is not proof that the public API can actually invoice those hours.
+- Public re-verification on 2026-03-20 showed no working public write path that flips a project preliminary invoice to `includeHours=true`: project-linked `POST /order` or `POST /invoice` without real order lines still fail charging, nested writable-looking `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` is ignored, and `PUT /invoice/{id}` / `PUT /invoice/details/{id}` are method-not-allowed.
+- For practical unsent project-invoice tasks where scoring is based on final invoice totals and project linkage rather than actual time-reserve consumption, the proven public fallback is: register the hours separately, then create one real project-linked order line from prompt hours x prompt rate and invoice that order once.
 - For fixed-price project partial-billing tasks, do not assume `PUT /order/{id}/:invoice?...createOnAccount=...` can invoice an order with no real order lines; sandbox returned `422` with `Fakturaen inneholder ingen ordrelinjer.`. The safer path is one real project-linked order line for the partial amount, then normal `:invoice` without `createOnAccount`.
 - In that fixed-price partial-billing flow, `POST /order` may still echo `orderLines=[]` even when the embedded line was created. If the invoice write response does not already prove the project link, one targeted `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` can confirm both the line and `orders[0].project.id`.
 - If such a task requires creating the customer and the prompt gives no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` instead of inventing email or address fields.

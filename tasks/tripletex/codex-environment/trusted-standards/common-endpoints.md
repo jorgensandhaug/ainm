@@ -105,6 +105,61 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - often assignable project manager id
   - `startDate`
 
+## Activity
+- `/activity`
+  - `GET` search
+  - `POST` create
+- `/activity/{id}`
+  - `GET` read
+- `/activity/>forTimeSheet`
+  - `GET` resolve project activities available for one employee on one date
+- Standard time-registration note:
+  - for project hour tasks, prefer `/activity/>forTimeSheet` over a broad `/activity` search because it proves the activity is actually available on the project for that employee/date
+  - if the resolved activity is non-chargeable, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
+
+## Project Hourly Rates
+- `/project/hourlyRates`
+  - `GET` search
+  - `POST` create
+- `/project/hourlyRates/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/project/hourlyRates/projectSpecificRates`
+  - `GET` search
+  - `POST` create
+- `/project/hourlyRates/projectSpecificRates/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard time-registration note:
+  - switching an existing project hourly-rate holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES` and then creating the employee+activity rate are separate writes
+  - do not rely on embedded `projectSpecificRates[]` inside the holder `PUT` as the only rate write
+  - `POST /project/hourlyRates/projectSpecificRates` rejects non-chargeable activities with `422 activity.id: Ikke fakturerbar.`
+
+## Timesheet
+- `/timesheet/entry`
+  - `GET` search
+  - `POST` create
+- `/timesheet/entry/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/timesheet/week/:approve`
+  - `PUT` approve week
+- Standard time-registration note:
+  - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
+  - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
+
+## Project Period
+- `/project/{id}/period/hourlistReport`
+  - `GET` read hour totals for a date window
+- `/project/{id}/period/invoicingReserve`
+  - `GET` read invoice reserve for a date window
+- Standard verification note:
+  - `hourlistReport` is the decisive read for how Tripletex classifies the registered hours (`chargeableHours`, `nonChargeableHours`, `nonApprovedHours`)
+  - a positive `invoicingReserve` is not proof that the public API can actually convert those hours into an invoice; line-less project orders still fail invoicing
+
 ## Order
 - `/order`
   - `GET` search
@@ -120,6 +175,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - often product ids
 - Standard fast-path note:
   - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning path is usually customer read, product read, order write, invoice write, payment-type read, payment write
+  - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
 
 ## Invoice
 - `/invoice`
@@ -135,6 +191,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` send
 - `/invoice/paymentType`
   - `GET` payment-type lookup
+- `/invoice/details`
+  - `GET` search project-invoice details
+- `/invoice/details/{id}`
+  - `GET` read project-invoice details
 - Standard prerequisites:
   - customer id
   - line or order data
@@ -161,6 +221,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`
   - default to `sendToCustomer=false` unless the prompt explicitly requires sending the credit note
   - the write response can already prove success with `isCreditNote=true` and `creditedInvoice=<original invoice id>`, so an extra `GET /invoice/{id}` is not part of the trusted fast path
+- Standard project-invoice note:
+  - `GET /invoice/details/{id}?fields=*` is useful for diagnosing whether a preliminary project invoice has `includeHours=false`
+  - public verification on 2026-03-20 showed no working write path on `/invoice` or `/invoice/details` to flip that field; `PUT /invoice/{id}` and `PUT /invoice/details/{id}` were method-not-allowed
 
 ## Supplier
 - `/supplier`
