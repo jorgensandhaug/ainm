@@ -25,6 +25,8 @@ Production and sandbox re-verification on 2026-03-20 showed:
 - no language-specific branch, pre-read, or follow-up verification read was needed
 - an exact Spanish prompt asking for `Lager`, `Økonomi`, and `Drift` was the same exact-match flow
 - one sandbox `POST /department/list` with `Lager`, `Økonomi`, and `Drift`-shaped names returned the same names in `values[]`
+- an exact Norwegian prompt asking for `HR`, `Salg`, and `Økonomi` was the same exact-match flow
+- the production run and same-day persistent-sandbox re-proof both stayed on the one-call floor: `POST /department/list` only
 
 ## Minimal Safe Flow
 

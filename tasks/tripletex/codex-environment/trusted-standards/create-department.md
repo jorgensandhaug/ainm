@@ -52,3 +52,4 @@
 - sandbox re-verified on 2026-03-20 with `Lager`, `Økonomi`, `Drift`-shaped names: one `POST /department/list` preserved the exact Unicode names in `values[]`
 - production re-confirmed on 2026-03-20 with a German three-department prompt: one `POST /department/list` created all requested departments with no prerequisite reads
 - production re-confirmed on 2026-03-20 with a Spanish three-department prompt for `Lager`, `Økonomi`, and `Drift`: one `POST /department/list` created all requested departments with no prerequisite reads
+- production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `HR`, `Salg`, and `Økonomi`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
