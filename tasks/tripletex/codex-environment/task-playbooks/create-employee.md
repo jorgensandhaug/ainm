@@ -36,6 +36,17 @@ Scored production re-verification on 2026-03-20 for `Miguel Sánchez` showed:
 - the successful create response still did not prove `startDate`, so one decisive `GET /employee/employment?employeeId=...&fields=*` remained necessary
 - that exact prompt shape therefore settled at a minimum safe `2` calls when the initial create succeeded
 
+Scored production re-verification on 2026-03-20 for `Thomas Harris` showed:
+- the same exact fresh-account branch held for an English prompt with `1991-06-04`, `thomas.harris@example.org`, and start `2026-10-06`
+- direct `POST /employee` succeeded without department or division repair
+- the successful create response still returned sparse `employments[]`, so one decisive `GET /employee/employment?employeeId=...&fields=*` remained necessary
+- that run added no evidence for a one-call stop; it re-confirmed the `2`-call floor
+
+Persistent-sandbox reflection re-verification on 2026-03-20 showed:
+- the same prompt shape still hit the full repair ladder in the persistent sandbox: `422 department.id`, then `422 employments.division.id`, then success after reusing one active department and one division id
+- the sandbox path therefore remained `6` calls total including the final employment verification read
+- this is sandbox-only evidence for the repair branches, not a reason to pre-read `department` or `division` in fresh-account scored runs
+
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `validationMessages[].field == "department.id"` with message `Feltet må fylles ut.`
@@ -119,6 +130,7 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not omit `userType`
 - Do not assume department is optional just because the schema has no `required` list
 - Do not default to `GET /department` before the first create attempt for an exact create-only task; that can waste a call on accounts that accept the write directly
+- Do not let the persistent sandbox's `6`-call repair branch trick you into paying `GET /department` or `GET /division` up front in fresh-account production runs
 - Do not assume `division` is never needed just because older sandbox runs accepted employments without it
 - Do not branch on `422 message == "Validering feilet."` or on `Feltet må fylles ut.` alone; inspect `validationMessages[].field` before spending department/division repair calls
 - Do not jump straight to `POST /employee/employment` before first trying nested `employments` on create

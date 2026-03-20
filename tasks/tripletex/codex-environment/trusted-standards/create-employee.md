@@ -45,6 +45,7 @@
 - zero extra calls if write response already proves scored state
 - one employment read only when start-date/employment coverage is actually scored and missing from response
 - for the exact prompt shape `name + birth date + email + start date`, the current minimum safe success path is usually `2` calls in fresh accounts: `POST /employee`, then `GET /employee/employment?employeeId=...&fields=*`
+- the 2026-03-20 production English run for `Thomas Harris` (`1991-06-04`, `thomas.harris@example.org`, start `2026-10-06`) re-confirmed that same `2`-call branch and again showed that the successful create response still did not prove `startDate`
 - a one-call stop after `POST /employee` is not yet a trusted standard for start-date-scored tasks because the successful create response often omits the actual `startDate`
 
 ## Known Recovery Branches
@@ -57,4 +58,6 @@
 - sparse-employment, department, and division gotchas documented from prior verified runs
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches, while scored production feedback the same day showed that automatic pre-reading of `department` can overpay calls on accounts that do not require it
 - scored production re-verification on 2026-03-20 for `Miguel Sánchez` confirmed the fresh-account winning branch: direct `POST /employee` succeeded without department or division repair, and one follow-up `GET /employee/employment?employeeId=...&fields=*` was still needed because the successful write response did not prove the requested `startDate`
+- scored production re-verification on 2026-03-20 for `Thomas Harris` confirmed the same fresh-account floor from an English prompt: direct `POST /employee` succeeded, the create response echoed only sparse `employments[]`, and one decisive `GET /employee/employment?employeeId=...&fields=*` finished the task in `2` calls
 - persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
+- a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`
