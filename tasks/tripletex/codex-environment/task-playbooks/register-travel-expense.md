@@ -50,6 +50,10 @@ Verified in persistent sandbox on 2026-03-20:
   - `11145900`: `2026-03-16..2026-03-19`, `departureFrom=Oslo`
   - `11145901`: `2026-03-17..2026-03-20`, `departureFrom=Drammen`
 - Tripletex accepted all three as `DELIVERED`, so the API does not tell you which date/departure inference is scorer-correct when the prompt omits those fields
+- same-day sandbox re-proof `sandbox_verify_duration_only_travel_expense.ts` used the known no-address employee `18478235` with company fallback `Oslo` and delivered two otherwise-identical Bodø expenses for the exact `3 days` / `800 per day` / `6200 flight` / `400 taxi` family:
+  - `11146082`: `2026-03-18..2026-03-20`, `departureFrom=Oslo`
+  - `11146083`: `2026-03-17..2026-03-19`, `departureFrom=Oslo`
+- that Bodø re-proof shows the ambiguity survives even after the company-city fallback is fixed; extra Tripletex reads will not reveal a unique scorer-correct date range
 
 ## Lowest-Call Scored Flow
 
@@ -190,6 +194,14 @@ For the travel-expense create, the sandbox-proven shape was:
 - if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape
 - if the prompt omits explicit travel dates as well, this is not an exact playbook match; sandbox proved several delivered date/departure combinations are possible, so do not pretend one default inference is trusted
 
+## Forced-Action Branch For Ambiguous Prompts
+
+- If the agent must still act autonomously on a duration-only prompt, keep the flow minimal instead of trying to "solve" the ambiguity with extra reads.
+- Use one decisive `GET /employee?email=...&count=10&fields=*`.
+- If `employee.address` is null but `companyId` exists, do one `GET /company/{companyId}?fields=*,address(*)` and reuse that concrete location for `departureFrom`.
+- Then go straight to the normal deliverable tail: `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `GET /travelExpense/rate`, `POST /travelExpense`, `PUT /travelExpense/:deliver`.
+- Choose one deterministic local date range inside the script, but document that it is only a best-effort fallback; sandbox proved multiple ranges are accepted, so there is no extra-read path that recovers a uniquely correct answer from Tripletex itself.
+
 ## Date Ambiguity For Underspecified Prompts
 
 - do not encode a trusted default fallback for prompts that give only a duration
@@ -216,3 +228,4 @@ For the travel-expense create, the sandbox-proven shape was:
 - do not add `GET /travelExpense/cost` or `GET /travelExpense/perDiemCompensation` in the standard scored flow just to double-check child persistence
 - do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch
 - do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape
+- do not add exploratory `GET /travelExpense`, repeated `GET /employee`, or alternate company/address probes just because the prompt omitted dates; those calls still do not tell you which inferred range is scorer-correct

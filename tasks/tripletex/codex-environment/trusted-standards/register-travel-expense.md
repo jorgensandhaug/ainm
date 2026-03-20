@@ -54,6 +54,7 @@
 - do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ "id": 0 }` avoided later non-VAT-company delivery failure
 - preserve prompt text exactly in `title`, `travelDetails.purpose`, `travelDetails.detailedJourneyDescription`, and `costs[].comments`
 - do not encode a trusted default date inference for duration-only prompts; sandbox accepted several different delivered date ranges for the same Bergen probe, so omitted dates are not an exact-match trusted-standard case
+- if a scored run still forces action on a duration-only prompt, keep that branch outside the trusted standard: choose one deterministic local date range and continue with the normal employee/company/rate/create/deliver flow rather than spending extra Tripletex reads, because the API does not reveal a unique scorer-correct range
 
 ## Reuse From Write Response
 - `travelExpense.id`
@@ -99,6 +100,10 @@
     - `11145900`: `departureDate=2026-03-16`, `returnDate=2026-03-19`, `departureFrom=Oslo`
     - `11145901`: `departureDate=2026-03-17`, `returnDate=2026-03-20`, `departureFrom=Drammen`
   - Tripletex accepted all three as `state=DELIVERED`, so the API does not supply a trusted unique inference for duration-only + omitted-`departureFrom` prompts
+  - same-day Bodø re-proof `sandbox_verify_duration_only_travel_expense.ts` used the known no-address employee `18478235` plus company-city fallback `Oslo` and still delivered two otherwise-identical `3 x 800` / `6200 + 400` expenses with different date ranges:
+    - `11146082`: `departureDate=2026-03-18`, `returnDate=2026-03-20`, `departureFrom=Oslo`
+    - `11146083`: `departureDate=2026-03-17`, `returnDate=2026-03-19`, `departureFrom=Oslo`
+  - that 3-day Bodø re-proof confirms the ambiguity is not limited to the older 4-day Bergen probe; even after company fallback is fixed, the API still accepts multiple delivered date ranges for the same prompt family
   - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"` after the prompt omitted departureFrom and the employee read did not provide a concrete location; generic placeholders are not a trusted correctness path
   - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`
   - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step
