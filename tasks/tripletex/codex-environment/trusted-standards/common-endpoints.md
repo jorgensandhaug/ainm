@@ -156,6 +156,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
+  - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`
 - Standard credit-note note:
   - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`
   - default to `sendToCustomer=false` unless the prompt explicitly requires sending the credit note

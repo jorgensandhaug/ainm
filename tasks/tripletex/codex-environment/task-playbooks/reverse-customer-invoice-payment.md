@@ -19,6 +19,7 @@ Do not use for:
 - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
 - For outgoing invoices, payment voucher discovery works from `postings(...)`
 - `fields=...payments(...)` on `GET /invoice` can fail with `400 Illegal field in fields filter: payments ... InvoiceDTO`
+- A prompt ex-VAT amount can be only a locate key; the post-reversal verification target should come from the invoice object's own pre-reversal total, usually `amountCurrency` or `amount`
 - The voucher-reverse response does not itself prove the invoice balance reopened; one final `GET /invoice?...id=<invoiceId>` is the decisive verification
 
 Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/order fixture:
@@ -30,6 +31,16 @@ Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/
 - `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` exposed the payment voucher id `608824977`
 - `PUT /ledger/voucher/608824977/:reverse?date=2026-03-20` returned reverse voucher `608824978`
 - the final `GET /invoice?...id=2147527118&fields=*,postings(*,voucher(*))` showed `amountCurrencyOutstanding=1000` again
+
+Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture:
+- created customer `108247071`
+- created product `84386675`
+- created order `401959818`
+- invoiced it as invoice `2147529999`
+- paid it with payment type `32813748`
+- `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` exposed payment voucher `608827344`
+- `PUT /ledger/voucher/608827344/:reverse?date=2026-03-20` returned reverse voucher `608827345`
+- the final `GET /invoice?...id=2147529999&fields=*,postings(*,voucher(*))` showed `amountCurrencyOutstanding=1000` again
 
 ## Minimal Flow
 
@@ -43,6 +54,7 @@ Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
    - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].invoiceComment`, or nearby invoice text fields
    - fully paid state before reversal: `amountCurrencyOutstanding = 0` or `amountOutstanding = 0`
+   - capture the expected reopened balance from the located invoice itself, usually `amountCurrency` or `amount`
 4. Extract one payment voucher id from `postings[]`
    - prefer vouchers referenced by `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
    - if needed, accept the unique voucher referenced by negative payment postings
@@ -50,7 +62,7 @@ Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/
    - `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
 6. Verify the invoice balance reopened
    - `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&id=<invoiceId>&fields=*,postings(*,voucher(*))`
-   - confirm `amountCurrencyOutstanding` or `amountOutstanding` equals the pre-reversal invoice balance
+   - confirm `amountCurrencyOutstanding` or `amountOutstanding` equals the pre-reversal invoice balance from the first invoice read, not the prompt ex-VAT lookup amount
 
 ## Exact-Match Fast Path
 
@@ -81,4 +93,5 @@ Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/
 - Do not call `PUT /invoice/{id}/:payment` to undo a payment
 - Do not send `fields=...payments(...)` on `GET /invoice`
 - Do not reverse the original invoice voucher when the prompt is about the payment voucher
+- Do not verify the reopened balance against the prompt ex-VAT amount when the invoice object itself carries the true gross/pre-reversal balance
 - Do not skip the final invoice verification; the reverse-voucher response alone does not prove the invoice outstanding amount reopened

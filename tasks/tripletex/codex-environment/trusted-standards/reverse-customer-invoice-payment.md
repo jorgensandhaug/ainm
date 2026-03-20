@@ -23,6 +23,7 @@
 
 ## Payload Rules
 - identify the invoice from prompt facts such as customer organization number, ex-VAT amount, and service text
+- treat a prompt ex-VAT amount as a locate key, not as the post-reversal verification target
 - prefer the prompt-provided reversal date; otherwise use the task date
 - extract the payment voucher id from `postings[]`, not from a guessed invoice field
 - for single-payment invoices, the payment voucher is usually the unique voucher referenced by postings with `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`, or by negative payment postings
@@ -30,14 +31,14 @@
 ## Reuse From Read / Write Responses
 - from the first invoice read:
   - `invoice.id`
-  - the expected reopened outstanding amount
+  - the expected reopened outstanding amount from the invoice object itself, usually `amountCurrency` or `amount`
   - `paymentVoucherId`
 - from `PUT /ledger/voucher/{id}/:reverse`:
   - `value.id` of the reverse voucher
 
 ## Verification
 - do one decisive invoice re-read after the reversal
-- verify `amountCurrencyOutstanding` or `amountOutstanding` equals the expected reopened balance
+- verify `amountCurrencyOutstanding` or `amountOutstanding` equals the expected reopened balance captured from the first invoice read, not the prompt lookup amount
 - do not spend an extra voucher read if the invoice verification already proves the scored state
 
 ## Known Recovery Branches
@@ -47,4 +48,5 @@
 ## OpenAPI / Sandbox Status
 - `/invoice` and `/ledger/voucher/{id}/:reverse` verified in `./openapi.json`
 - exact reverse-payment flow re-proven on 2026-03-20 in sandbox and production
+- sandbox re-proof on 2026-03-20 again confirmed the 3-call reversal path once the paid invoice already existed: locate invoice, reverse payment voucher, re-read invoice
 - `GET /invoice` for outgoing invoices rejects `fields=...payments(...)`; use `postings(...)` instead
