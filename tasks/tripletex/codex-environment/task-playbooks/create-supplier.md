@@ -19,7 +19,8 @@ with only the requested fields, typically:
 {
   "name": "Northwave Ltd",
   "organizationNumber": "949044378",
-  "email": "faktura@northwaveltd.no"
+  "email": "faktura@northwaveltd.no",
+  "invoiceEmail": "faktura@northwaveltd.no"
 }
 ```
 
@@ -39,6 +40,8 @@ This was verified in sandbox:
 - re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; the single `POST /supplier` returned supplier `id=108263571`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 - production on 2026-03-20 for `Silveroak Ltd`, `943413231`, and `faktura@silveroakltd.no` succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108280853`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Silveroak Reflection Supplier 321000008`, `321000008`, and `faktura-321000008@silveroakltd.no`; the single `POST /supplier` returned supplier `id=108280951`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
+- production on 2026-03-20 for the exact English supplier-create shape `Northwave Ltd`, `949044378`, and `faktura@northwaveltd.no` also succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108281110`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Northwave Reflection Supplier 321000009`, `321000009`, and `faktura-321000009@northwaveltd.no`; the single `POST /supplier` returned supplier `id=108281238`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 
 ## Minimal Flow
 
@@ -68,7 +71,8 @@ This was verified in sandbox:
 {
   "name": "Northwave Ltd",
   "organizationNumber": "949044378",
-  "email": "faktura@northwaveltd.no"
+  "email": "faktura@northwaveltd.no",
+  "invoiceEmail": "faktura@northwaveltd.no"
 }
 ```
 
@@ -104,7 +108,7 @@ This was verified in sandbox:
 - Do not `GET /supplier` first just to check whether the supplier already exists
 - Do not add sandbox-style idempotency logic to a scored create task
 - Do not fetch the created supplier again if the write response already contains the needed fields
-- Do not add speculative address fields just because earlier public `6/7` supplier-create runs existed; the latest `Silveroak Ltd` production run showed the same one-call mirrored-email path can return the target business fields directly
+- Do not add speculative address fields just because earlier public `6/7` supplier-create runs existed; the later `Silveroak Ltd` and `Northwave Ltd` production runs showed the same one-call mirrored-email path can return the target business fields directly
 
 ## When A Read Is Actually Needed
 

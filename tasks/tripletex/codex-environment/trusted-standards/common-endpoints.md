@@ -353,7 +353,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
 - Standard verification note:
   - map a single generic prompt email to `email`
-  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirroring it into `invoiceEmail` in the same `POST /supplier` is still a reasonable hedge, but it is not a proven full fix by itself; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`
+  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirror it into `invoiceEmail` in the same `POST /supplier`; the 2026-03-20 production runs for `Silveroak Ltd` and `Northwave Ltd` plus same-day persistent sandbox re-checks all preserved both email fields in that one write
+  - even so, do not treat mirrored `invoiceEmail` as proof that every hidden scorer field is settled; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`, so avoid spending extra calls on invented address fields or a follow-up `GET`
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
   - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
