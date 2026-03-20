@@ -83,6 +83,34 @@ def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
     return SyntheticEpisodeArtifact.model_validate(payload)
 
 
+def resolve_synthetic_episode_path(
+    index_path: Path,
+    episode_path: str | Path,
+) -> Path:
+    raw_path = Path(str(episode_path))
+    if raw_path.exists():
+        return raw_path
+
+    dataset_dir = index_path.parent
+    candidates: list[Path] = []
+    if not raw_path.is_absolute():
+        candidates.append(dataset_dir / raw_path)
+    else:
+        if "episodes" in raw_path.parts:
+            episodes_index = raw_path.parts.index("episodes")
+            candidates.append(dataset_dir / Path(*raw_path.parts[episodes_index:]))
+    candidates.append(dataset_dir / "episodes" / raw_path.name)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        f"synthetic episode artifact not found for {episode_path!s} "
+        f"relative to dataset index {index_path}",
+    )
+
+
 def build_synthetic_live_dataset(
     paths: WorkspacePaths,
     *,
@@ -163,7 +191,7 @@ def build_synthetic_live_dataset(
                     "sample_index": sample_index,
                     "policy_name": policy.name,
                     "query_count": len(observations),
-                    "episode_path": str(episode_path),
+                    "episode_path": str(Path("episodes") / episode_path.name),
                 },
             )
             total_query_count += len(observations)

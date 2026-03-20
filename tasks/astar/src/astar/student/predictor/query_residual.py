@@ -94,6 +94,17 @@ def _load_synthetic_dataset_ref(
     return summary_path, index_path
 
 
+def _synthetic_dataset_covers_round_ids(
+    index_path: Path,
+    round_ids: Sequence[str] | None,
+) -> bool:
+    if round_ids is None:
+        return True
+    index_table = pl.read_parquet(index_path, columns=["round_id"])
+    available_round_ids = set(index_table["round_id"].to_list())
+    return set(round_ids).issubset(available_round_ids)
+
+
 def _ensure_synthetic_dataset(
     paths: WorkspacePaths,
     *,
@@ -103,29 +114,33 @@ def _ensure_synthetic_dataset(
 ) -> Path:
     from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 
+    dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
+    try:
+        _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
+        if _synthetic_dataset_covers_round_ids(index_path, round_ids):
+            return index_path
+    except FileNotFoundError:
+        pass
+
     legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
     if samples_per_round == 1:
         try:
             _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
-            return index_path
+            if _synthetic_dataset_covers_round_ids(index_path, round_ids):
+                return index_path
         except FileNotFoundError:
             pass
 
-    dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
-    try:
-        _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
-        return index_path
-    except FileNotFoundError:
-        dataset = build_synthetic_live_dataset(
-            paths,
-            policy_name=policy_name,
-            round_ids=None if round_ids is None else list(round_ids),
-            samples_per_round=samples_per_round,
-            dataset_name=dataset_name,
-        )
-        if dataset.index_path is None:
-            raise ValueError("synthetic live dataset did not produce an index path")
-        return dataset.index_path
+    dataset = build_synthetic_live_dataset(
+        paths,
+        policy_name=policy_name,
+        round_ids=None if round_ids is None else list(round_ids),
+        samples_per_round=samples_per_round,
+        dataset_name=dataset_name,
+    )
+    if dataset.index_path is None:
+        raise ValueError("synthetic live dataset did not produce an index path")
+    return dataset.index_path
 
 
 def _safe_log_probs(probabilities: np.ndarray, floor: float) -> np.ndarray:
@@ -1081,9 +1096,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 }
                 round_cache[round_id] = cached
 
-            from astar.history.datasets.synthetic_live import load_synthetic_episode
+            from astar.history.datasets.synthetic_live import (
+                load_synthetic_episode,
+                resolve_synthetic_episode_path,
+            )
 
-            artifact = load_synthetic_episode(Path(str(row["episode_path"])))
+            artifact = load_synthetic_episode(
+                resolve_synthetic_episode_path(index_path, Path(str(row["episode_path"]))),
+            )
             full_observations = tuple(artifact.observations)
             budget_values = sorted({min(int(value), len(full_observations)) for value in budget_prefixes})
             for budget in budget_values:
