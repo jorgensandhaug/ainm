@@ -104,6 +104,7 @@ Observed production/account variance:
 - standalone exact-match payment task with no cached same-run `paymentTypeId`: `3` calls
 - if the same run already holds a proven valid incoming `paymentTypeId`: `2` calls
 - do not claim a cross-run 2-call path unless the prompt explicitly gives the exact `paymentTypeId`
+- the 2026-03-20 Portuguese production run plus same-day persistent-sandbox re-proof still found no public `2`-call standalone shortcut from prompt facts alone
 
 ## Payment Amount Rules
 

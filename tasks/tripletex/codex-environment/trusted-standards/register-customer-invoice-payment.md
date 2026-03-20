@@ -28,6 +28,7 @@
 - standalone exact-match payment task with no cached same-run payment type: `3` calls
 - same task shape with a cached same-run incoming `paymentTypeId`: `2` calls
 - do not treat cross-run or cross-account cached ids as reusable
+- the 2026-03-20 Portuguese production run plus same-day persistent-sandbox re-proof found no public `2`-call shortcut from prompt facts alone; without a same-run cached `paymentTypeId`, `3` calls remains the realistic floor
 
 ## Payload Rules
 - identify invoice by prompt identifiers, not by guessing
