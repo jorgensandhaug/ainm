@@ -18,13 +18,15 @@
 
 ## Standard Flow
 1. if department is clearly required by account/task, resolve department in one decisive `GET`
-2. `POST /employee`
-3. if scored fields are fully proven by write response, stop
-4. if employment start date is scored but response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
+2. if the payload includes `employments[]` and the account requires a business/sub-entity reference, resolve one existing `division` in one decisive `GET`
+3. `POST /employee`
+4. if scored fields are fully proven by write response, stop
+5. if employment start date is scored but response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
 
 ## Payload Rules
 - send only prompt-required employee fields
 - if department functionality is enabled or required, include department reference
+- if the account validates `employments[].division.id`, include a real `division: { "id": ... }` inside each employment row
 - if prompt/task requires a user type/role field, include explicit `userType`
 - do not invent personal data not given by prompt
 
@@ -39,6 +41,7 @@
 
 ## Known Recovery Branches
 - department may be required if department functionality is enabled
+- employment creation may also require `employments[].division.id`; if validation says so, resolve one existing `/division?count=1&fields=*` and retry once with that `division.id`
 - write response may echo sparse employment data only
 
 ## OpenAPI / Sandbox Status

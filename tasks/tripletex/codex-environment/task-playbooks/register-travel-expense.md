@@ -21,6 +21,7 @@ Verified in persistent sandbox on 2026-03-20:
 - `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`
 - `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`
 - `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
+- `POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically
 - embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`
 - embedded `perDiemCompensations[]` failed with `422` while `travelDetails.isCompensationFromRates=false`
 - changing `travelDetails.isCompensationFromRates` to `true` allowed the same embedded per-diem row to persist with manual `count`, `rate`, and `amount`
@@ -51,6 +52,7 @@ Verified in persistent sandbox on 2026-03-20:
    - embed top-level `travelDetails`
    - embed `perDiemCompensations[]`
    - embed `costs[]`
+   - omit `department` unless the prompt explicitly scores a different department or validation demands it
 5. Verify the parent fields from the write response
    - `title`
    - `employee.id`
@@ -69,7 +71,6 @@ For the travel-expense create, the sandbox-proven shape was:
 ```json
 {
   "employee": { "id": 18478235 },
-  "department": { "id": 837842 },
   "title": "Visita cliente Bergen",
   "travelDetails": {
     "isForeignTravel": false,
@@ -116,6 +117,7 @@ For the travel-expense create, the sandbox-proven shape was:
 
 - do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
 - do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
+- do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
 - do not assume `GET /travelExpense/{id}?fields=*` expands child rows; it can stay link-only for both costs and per-diems
 
 ## Category And Payment-Type Resolution
@@ -125,6 +127,13 @@ For the travel-expense create, the sandbox-proven shape was:
   - `Fly` for airfare
   - `Taxi` for taxi
 - for the payment type, prefer one active travel-expense reimbursement type from the lookup; persistent sandbox exposed `Privat utlegg`
+
+## Date Inference For Underspecified Prompts
+
+- if the prompt gives a trip duration but no explicit dates, do not burn API calls trying to derive dates from Tripletex
+- use one deterministic fallback range instead; the default is an inclusive range ending on the run date
+- for a `4` day trip on run date `2026-03-20`, the fallback range is `departureDate=2026-03-17` and `returnDate=2026-03-20`
+- keep cost dates internally consistent with that inferred range, for example departure-leg transport on `departureDate` and return-leg taxi on `returnDate`
 
 ## Verification Shape
 

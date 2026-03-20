@@ -31,17 +31,20 @@
 - filter cost categories locally on `showOnTravelExpenses=true`
 - prefer exact category-description matches for prompt costs such as `Fly` and `Taxi`
 - resolve one active travel payment type from `showOnTravelExpenses=true`; in sandbox the ordinary reimbursement type was `Privat utlegg`
+- do not send `department` on a normal existing-employee travel expense unless the prompt explicitly scores a different department or live validation requires it
 - when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`
 - embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload
 - embed `costs[]` directly on the same `POST /travelExpense` payload
 - for each embedded cost in NOK, send both `amountCurrencyIncVat` and `amountNOKInclVAT`
 - preserve prompt text exactly in `title` and `costs[].comments`
+- if the prompt gives only trip duration and no explicit dates, use one deterministic inferred range rather than spending extra API calls; the default fallback is an inclusive range ending on the run date
 
 ## Reuse From Write Response
 - `travelExpense.id`
 - top-level `title`
 - linked `employee.id`
 - `travelDetails` fields
+- returned `department.id` if Tripletex inherits it from the employee
 - embedded child ids if present, but expect them to be sparse
 
 ## Verification
@@ -58,5 +61,6 @@
 - `/travelExpense`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` verified in `./openapi.json`
 - persistent sandbox re-verified on 2026-03-20:
   - one `POST /travelExpense` created the parent expense plus embedded costs and per-diem rows
+  - the same `POST /travelExpense` succeeded without an explicit `department` payload field when the linked employee already belonged to a department
   - the write response returned top-level fields plus child arrays as sparse `id`/`url`
   - `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` returned the exact child values needed for final verification

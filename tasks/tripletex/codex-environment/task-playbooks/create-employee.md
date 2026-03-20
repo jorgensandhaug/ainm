@@ -22,13 +22,18 @@ Persistent-sandbox re-verification on 2026-03-19 showed:
 - the `201` response included `employments: [{ "id": ..., "url": ... }]` but still did not echo `startDate`
 - `GET /employee/employment?employeeId=...&fields=*` returned the authoritative `startDate`
 
+Persistent-sandbox re-verification on 2026-03-20 showed:
+- some accounts also reject nested employments without `division.id`
+- one decisive `GET /division?count=1&fields=*` provided a usable division for the same create payload
+
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `Feltet må fylles ut.`
+- missing `employments.division.id`: `Arbeidsforholdet må knyttes til en virksomhet/underenhet.`
 
 ## Minimal Safe Flow
 
-1. Confirm `POST /employee`, `GET /department`, optional `POST /department`, and `GET /employee/employment` in `./openapi.json`
+1. Confirm `POST /employee`, `GET /department`, optional `POST /department`, optional `GET /division`, and `GET /employee/employment` in `./openapi.json`
 2. Resolve department before employee creation
    - `GET /department?isInactive=false&count=1&fields=*`
    - if an active department exists, reuse its `id`
@@ -38,6 +43,7 @@ Observed validation messages:
    - explicit `userType`
    - `department: { "id": ... }`
    - nested `employments: [{ "startDate": "YYYY-MM-DD" }]` if the prompt includes start date
+   - add `division: { "id": ... }` inside each employment row only when account validation requires it
 4. `POST /employee`
 5. Verify from the write response what it actually returns
 6. If the response does not clearly prove the employment start date, do one decisive verification read:
@@ -98,6 +104,7 @@ Use ISO dates. Normalize any localized prompt date first.
 
 - Do not omit `userType`
 - Do not assume department is optional just because the schema has no `required` list
+- Do not assume `division` is never needed just because older sandbox runs accepted employments without it
 - Do not jump straight to `POST /employee/employment` before first trying nested `employments` on create
 - Do not spend extra reads on employee lookup for a pure create task
 - Do not treat `response.value.userType === null` as proof that the create failed or that `NO_ACCESS` was rejected

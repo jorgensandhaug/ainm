@@ -155,6 +155,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if per diem is included, `travelDetails.isCompensationFromRates=true`
 - Standard fast-path note:
   - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
+  - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
 - Standard verification note:
   - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`; use `/travelExpense/cost?...` and `/travelExpense/perDiemCompensation?...` for exact child verification
 - Related action family also exists:
