@@ -23,7 +23,7 @@ Do not use for:
 - A prompt ex-VAT amount can be only a locate key; the post-reversal verification target should come from the invoice object's own pre-reversal total, usually `amountCurrency` or `amount`
 - A final `GET /invoice?...id=<invoiceId>` is only an optional proof branch; it is not part of the score-optimal exact-match path
 - Payment-voucher detection must not rely only on `posting.type`; the payment posting can be `type=null` while still being the unique negative payment-style posting with `description` like `Betaling: ...`
-- `account.number=1500` is common on that fallback posting, but not guaranteed; some real locate reads return `account=null`, so treat missing account expansion as compatible with the same voucher-reversal path
+- do not make the fallback matcher depend on `account.number`; `1500` is common, but some real locate reads return the same winning payment posting with `account=null`
 - a direct `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*))),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` can already expose enough reversal evidence on one invoice: top-level `orderLines[].description` / `displayName` carry the service text, and `postings[]` can show the null-typed negative payment posting even when the account expansion is absent
 - persistent sandbox on 2026-03-20 also showed a proof-only trap: a freshly created paid invoice was immediately readable on `GET /invoice/{id}` but absent from the broader same-day `/invoice` search; treat that as sandbox search lag or indexing noise, not as a reason to add `GET /customer`, extra paging, or automatic verify reads to the production exact-match path
 
@@ -74,6 +74,23 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture 
 - one proof-only `GET /invoice?...id=2147537052&fields=*,postings(*,voucher(*),account(*))` showed `amountCurrencyOutstanding=1000` again
 - therefore the fallback matcher must accept the unique negative `Betaling: ...` posting even when `account` is missing; rejecting it would waste an extra locate read without improving correctness
 
+Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture using a Portuguese-like service description:
+- created product `84388624`
+- created customer `108260584`
+- created order `401965212`
+- invoiced it as invoice `2147537237` / invoice number `66`
+- paid it with payment type `32813748`
+- broad `GET /invoice?...id=2147537237...` still returned `values=[]`, so the proof branch had to use direct `GET /invoice/2147537237`
+- that direct invoice read exposed the correct reverse target as:
+  - `type=null`
+  - `description="Betaling: Faktura nummer 66 til Reflection Reverse Null Account Customer 1774032887559 (10078)"`
+  - `amountCurrency=-1000`
+  - `voucherId=608833742`
+  - `account=null`
+- `PUT /ledger/voucher/608833742/:reverse?date=2026-03-20` returned reverse voucher `608833743`
+- the final direct invoice read showed `amountCurrencyOutstanding=1000` again
+- this re-confirmed the exact production lesson: for the fallback matcher, ignore `account.number` entirely and trust the unique negative `Betaling: ...` posting
+
 Observed production miss on 2026-03-20:
 - exact prompt shape `customer.organizationNumber=888412972` + `amountExcludingVatCurrency=35800` + line text `Diseño web`
 - the first decisive `GET /invoice` already returned the correct paid invoice and the real payment posting:
@@ -100,8 +117,8 @@ Observed production miss on 2026-03-20:
 4. Extract one payment voucher id from `postings[]`
    - prefer vouchers referenced by `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
    - if no such typed posting exists, accept the unique negative customer-ledger payment posting instead
-   - in practice that fallback is often `account.number=1500` plus payment text such as `Betaling: ...`, even when `posting.type` is `null`
-   - but do not require `account.number=1500`; if the same unique negative `Betaling: ...` posting comes back with `account=null`, it is still the correct reverse target
+   - in practice that fallback often has payment text such as `Betaling: ...`, and `account.number=1500` may be present
+   - but the matcher should ignore `account.number` completely; if the same unique negative `Betaling: ...` posting comes back with `account=null`, it is still the correct reverse target
 5. Reverse that voucher
    - `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
 6. Stop for the score-optimal exact-match path

@@ -280,7 +280,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
   - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
   - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative payment-style posting with text such as `Betaling: ...`
-  - `account.number=1500` is common on that fallback posting, but not guaranteed; persistent sandbox re-proof on 2026-03-20 showed the same winning reverse target with `account=null`, so do not burn an extra read just because the account expansion is missing
+  - ignore `account.number` when matching that fallback posting; `1500` is common, but persistent sandbox re-proofs on 2026-03-20 still returned the same winning reverse target with `account=null`
   - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`
 - Standard credit-note note:
   - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`

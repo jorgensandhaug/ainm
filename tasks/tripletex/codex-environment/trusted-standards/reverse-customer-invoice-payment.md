@@ -28,7 +28,7 @@
 - extract the payment voucher id from `postings[]`, not from a guessed invoice field
 - for single-payment invoices, the payment voucher is usually the unique voucher referenced by postings with `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
 - if no such typed posting exists, accept the unique negative payment-style posting instead, with text such as `Betaling: ...`; the payment posting `type` can be `null`
-- `account.number=1500` is common on that fallback posting but not required; the `account` expansion itself can be `null`
+- do not make the fallback matcher depend on `account.number`; `1500` is common, but the same winning posting can come back with `account=null`
 
 ## Reuse From Read / Write Responses
 - from the first invoice read:
@@ -56,6 +56,7 @@
 - persistent sandbox fixture invoice `38` / invoice id `2147531258` showed the payment posting as `amountCurrency=-1000`, `account.number=1500`, `description="Betaling: Faktura nummer 38 til Montanha Lda (10042)"`, `voucherId=608828379`, and `type=null`
 - additional persistent-sandbox proof on 2026-03-20 with disposable invoice `56` / invoice id `2147536442` showed that `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*))),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` already exposed the service text in top-level `orderLines[].description` / `displayName` and the reverse target as the unique negative `1500` posting with `type=null`
 - persistent sandbox re-proof on 2026-03-20 with disposable invoice `64` / invoice id `2147537052` showed the same winning fallback shape with `type=null`, `description="Betaling: Faktura nummer 64 til Reflection Reverse Customer 1774032662638 (10076)"`, `amountCurrency=-1000`, `voucherId=608833573`, and `account=null`; treat missing `account.number` as normal, not as a reason to add a second locate read
+- persistent sandbox re-proof on 2026-03-20 with disposable invoice `66` / invoice id `2147537237` re-confirmed both proof traps at once: the broad `/invoice?...id=...` search still returned `values=[]`, but direct `GET /invoice/{id}` exposed the correct reverse target as the unique negative `Betaling: ...` posting with `voucherId=608833742` and `account=null`
 - production reflection on 2026-03-20 for the exact prompt shape `888412972` + `35800` + `Diseño web` showed that the write path itself was still the trusted 2-call flow, but one extra invoice read was wasted locally because the matcher rejected the real payment posting when `account.number` was absent; next time keep the first locate read authoritative and accept the unique negative `Betaling: ...` posting even when `account` is null
 - that same persistent-sandbox proof also showed one sandbox-only trap: a broad same-day `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-20&count=1000...` omitted that freshly created paid invoice even though `GET /invoice/{id}` returned it immediately; do not let that sandbox omission push the production exact-match standard toward extra resolver calls
 - `GET /invoice` for outgoing invoices rejects `fields=...payments(...)`; use `postings(...)` instead
