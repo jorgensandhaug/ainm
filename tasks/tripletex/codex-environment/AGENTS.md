@@ -75,6 +75,7 @@ Authentication:
 | Create employee | `./task-playbooks/create-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
 
 ## Common Endpoints
@@ -174,6 +175,9 @@ Authentication:
 - Employee creation may also require explicit `userType`, and the `POST /employee` success response may echo `userType: null` plus `employments` entries with only `id`/`url`, not the submitted `startDate`.
 - If employee start date is scored, plan one decisive `GET /employee/employment?employeeId=...&fields=*` unless the create response unexpectedly includes the actual `startDate`.
 - Project creation may require `startDate` even though the `Project` schema does not clearly mark it as required. Project manager assignment is also validated: a plain employee match may still be ineligible, so prefer resolving managers with `assignableProjectManagers=true`.
+- For fixed-price project partial-billing tasks, do not assume `PUT /order/{id}/:invoice?...createOnAccount=...` can invoice an order with no real order lines; sandbox returned `422` with `Fakturaen inneholder ingen ordrelinjer.`. The safer path is one real project-linked order line for the partial amount, then normal `:invoice` without `createOnAccount`.
+- In that fixed-price partial-billing flow, `POST /order` may still echo `orderLines=[]` even when the embedded line was created. If the invoice write response does not already prove the project link, one targeted `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` can confirm both the line and `orders[0].project.id`.
+- If such a task requires creating the customer and the prompt gives no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` instead of inventing email or address fields.
 - For customer invoice payment tasks, `GET /invoice` can often locate the exact outgoing invoice in one read if you request `customer(*)` and `orderLines(*)` and filter locally by organization number, ex-VAT amount, and prompt text such as a service description. The payment write is `PUT /invoice/{id}/:payment`, and the write response can usually verify `amountOutstanding=0` without a follow-up `GET`.
 - `GET /invoice/paymentType` can return `debitAccount.number` and `creditAccount.number` as numeric values, not strings. Normalize before applying string-prefix heuristics such as `19xx` bank account or `15xx` customer ledger checks.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
@@ -189,8 +193,9 @@ Authentication:
 - Return success only when the requested state is actually present.
 
 ## Efficiency Rules
-- Fewer calls is better.
+- Fewer calls is better. IT IS MANDATORY THAT YOU COMPLETE THE TASK IN THE THEORETICALLY MINIMAL POSSIBLE NUMBER OF API CALLS! THIS IS THE THING TO OPTIMIZE FOR SECONDARY ONLJ AFTER TASK COMPLETION
 - Zero `4xx` is ideal.
+- YOU HAVE TO BE QUICK, DON'T DO UNNECESSARY THINGS. YOU HAVE 300 SECONDS.
 - Plan before calling.
 - Do not browse the API randomly.
 - Once a playbook already gives the likely winning path, do not spend time on unrelated repo tooling or broad schema enumeration before the write.
