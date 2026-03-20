@@ -88,6 +88,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `DELETE` delete
 - Standard create prerequisite:
   - resolve valid outgoing `vatType`
+- Standard search note:
+  - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
+  - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
 
 ## Project
 - `/project`
@@ -137,6 +140,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - line or order data
   - sometimes outgoing `vatType`
   - sometimes company bank-account repair through `/ledger/account/{id}`
+- Standard explicit-VAT note:
+  - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
+  - in that case, the safe low-call path is customer read, product read, one filtered outgoing `vatType` read, invoice write, and one immediate invoice read only if exact line-level proof is still needed
 - Standard create-and-send note:
   - `POST /invoice` defaults `sendToCustomer=true`
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`

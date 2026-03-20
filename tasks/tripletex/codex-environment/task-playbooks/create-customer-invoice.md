@@ -24,12 +24,15 @@ Do not use for:
 - persistent-sandbox verification on 2026-03-20 showed:
   - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can return all requested products when the refs are real product numbers
   - `GET /product?ids=<id>,<id>,<id>&fields=*` can also resolve the same set decisively when you already know the product IDs
+  - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can still return each product `vatType` only as a sparse link object (`id`/`url`), not with `percentage`
+  - therefore product search alone does not always prove explicit prompt VAT percentages; when exact VAT matters, one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` may still be required before the invoice write
   - an existing-customer, existing-product invoice can be created directly with `POST /invoice?sendToCustomer=false` using `orderLines[].product = { "id": ... }`
   - the `POST /invoice` response returned `orderLines` only as sparse link objects with keys `id` and `url`, even though `orderLines.length` matched the requested line count
   - one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` returned the exact product numbers, descriptions, unit prices, and VAT data for the created lines
+  - a clean existing-customer plus existing-product happy path was re-proven in exactly four calls when the product VAT was already known from setup and no extra VAT confirmation was needed: `GET /customer` -> `GET /product` -> `POST /invoice?sendToCustomer=false` -> immediate `GET /invoice/{id}`
 - sandbox constraint on 2026-03-20:
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
-  - therefore mixed 25%/15%/0% VAT could not be replayed in that account exactly, but the product-linked invoice path and immediate verification shape were proven
+  - therefore mixed 25%/15%/0% VAT could not be replayed in that account exactly, but the product-linked invoice path, sparse write-response trap, and four-call existing-prerequisite flow were proven
 
 ## Minimal Flow
 
@@ -45,19 +48,23 @@ Do not use for:
    - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
    - if that returns only a partial subset, do not stop; continue immediately to one fallback `GET /product?ids=<ref>,<ref>&fields=*`
    - if that still does not uniquely resolve them and the prompt also gives exact product names, do one decisive `GET /product?count=1000&fields=*` and filter locally by exact product `number` and/or exact prompt names
-4. Create the invoice directly
+4. If the prompt gives exact VAT rates, inspect how much VAT detail the product read actually returned
+   - if each resolved product already proves the needed VAT safely, keep the fast path and skip `/ledger/vatType`
+   - if the product read leaves `vatType` sparse as only `id`/`url`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+   - use that filtered VAT list either to confirm the resolved product `vatType.id` matches the prompt percentage or, if needed, to force the line with explicit `vatType: { "id": ... }`
+5. Create the invoice directly
    - `POST /invoice?sendToCustomer=false`
    - include `invoiceDate`, `invoiceDueDate`, `customer`
    - create lines under `orders[].orderLines`
    - for product-linked lines, prefer `product: { "id": ... }`, `description`, `count`, and the requested unit price
-   - only add explicit `vatType` on the invoice line when the prompt's VAT requirement is not already safely implied by the resolved product/account setup
-5. Reuse the invoice write response
+   - only add explicit `vatType` on the invoice line when the filtered outgoing VAT lookup shows the product default does not already match the prompt requirement
+6. Reuse the invoice write response
    - trust the returned `id`, `invoiceNumber`, and totals
    - if the task only scores invoice existence/totals and the write response already proves them, stop
-6. If exact line-level verification is needed and the write response is sparse, do one immediate read
+7. If exact line-level verification is needed and the write response is sparse, do one immediate read
    - `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
    - treat the response as sparse not only when `orderLines` is empty, but also when the entries are link-only objects without `product.number`, `description`, `unitPriceExcludingVatCurrency`, and `vatType.percentage`
-7. Only if `POST /invoice` fails with the company-bank-account validation, repair that prerequisite and retry once
+8. Only if `POST /invoice` fails with the company-bank-account validation, repair that prerequisite and retry once
 
 ## Exact-Match Fast Path
 
@@ -65,11 +72,18 @@ Do not use for:
   - identifies an existing customer by organization number
   - identifies existing products by numeric refs
   - asks only to create the invoice, not send it
+  - does not force an extra VAT confirmation step beyond what the product read already proves
 - the winning path is usually:
   1. `GET /customer?organizationNumber=...&fields=*`
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&productNumber=<ref>&fields=*`
   3. `POST /invoice?sendToCustomer=false`
   4. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
+- For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`, the safer verified path is usually five calls:
+  1. `GET /customer?organizationNumber=...&fields=*`
+  2. `GET /product?productNumber=<ref>&productNumber=<ref>&productNumber=<ref>&fields=*`
+  3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+  4. `POST /invoice?sendToCustomer=false`
+  5. immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
 - if step 2 returns only part of the referenced products, do not hard-fail there; finish the documented fallback chain before deciding the refs are unresolved
 - Do not insert an automatic `GET /ledger/account` before the first invoice write
 - Do not call `PUT /invoice/{id}/:send`
@@ -121,10 +135,18 @@ on that `orderLines[]` item.
 
 - Do not hardcode invoice-line `vatType.id = 3`
 - If the resolved product/account combination already carries the intended VAT safely, the invoice write can succeed without an explicit line `vatType`
+- `GET /product?fields=*` may still expose `vatType` only as `id`/`url`; that alone does not prove the percentage on an explicit-VAT prompt
 - If the prompt gives exact VAT rates and the product lookup does not clearly prove matching VAT context, resolve `vatType` from:
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
 - Choose from the filtered result for the actual invoice date
+- If the resolved product `vatType.id` already maps to the prompt percentage in that filtered result, you can keep the lower-call write shape and omit explicit line `vatType`
 - Do not substitute VAT ids from the broader unfiltered catalog when the `OUTGOING` result disagrees or is narrower
+
+## Credential Trap
+
+- If the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop immediately
+- Do not spend follow-up calls on `/product`, `/invoice`, or alternate auth variations
+- That response means the run is blocked by unusable credentials, not by uncertainty about the invoice flow
 
 ## Sparse Response Trap
 
@@ -170,5 +192,7 @@ then the practical repair path is:
 - Do not spend an unconditional `GET /ledger/account` before the first invoice write
 - Do not use the send-invoice flow when the prompt only asks to create an invoice
 - Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
+- Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
 - Do not postpone a needed verification read into a later separate script/session
 - Do not stop after a partial `GET /product?productNumber=...` result; continue the fallback chain in the same script
+- Do not keep probing after a first-call `403 {"error":"Invalid or expired token"}`
