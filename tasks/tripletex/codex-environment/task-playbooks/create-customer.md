@@ -33,6 +33,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-19 with only `name`, `email`, and `organizationNumber`; the `201` response again contained the created customer plus default invoice delivery fields
 - re-verified on 2026-03-19 in persistent sandbox with `name`, `organizationNumber`, `email`, and `postalAddress`; the `201` response preserved non-ASCII text such as `Grünfeld` and `Ålesund` and still defaulted `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT` without needing `invoiceEmail`
 - re-verified on 2026-03-19 with `name`, `email`, `organizationNumber`, and `postalAddress`; the same single `POST /customer` stored the exact Unicode city string `Tromsø` and returned it directly in `response.value.postalAddress.city`
+- re-verified on 2026-03-20 with only `name`, `email`, and `organizationNumber`; the single `201` response again returned the created customer plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 
 ## Minimal Flow
 
@@ -46,6 +47,11 @@ This was verified in sandbox:
 
 - If the prompt only asks to create one customer and gives `name`, `email`, and `organizationNumber`, send exactly those fields
 - Confirm only the exact `POST /customer` operation and its referenced request/response schemas
+- Navigate the spec narrowly:
+  - inspect the `/customer` `post` operation block
+  - inspect `#/components/schemas/Customer`
+  - inspect `#/components/schemas/ResponseWrapperCustomer`
+- Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
 - Do not enumerate other customer-related schemas or add a pre-read just because sandbox is persistent
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
 - Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
@@ -68,6 +74,8 @@ This was verified in sandbox:
 - Do not get misled by later read-only customer/account representations
 - For create-customer tasks, use the schema referenced by `POST /customer`: `#/components/schemas/Customer`
 - The minimal create payload still works even though other customer-shaped schemas expose many extra or read-only fields
+- Broad regex searches over the whole spec can flood local context with unrelated customer/account references
+- For this task shape, whole-file keyword search is an efficiency mistake even if the eventual API write still succeeds
 
 ## Verification Shape
 

@@ -55,6 +55,8 @@ Authentication:
 - Use `./openapi.json` as the full API reference.
 - When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
 - Do not guess endpoint shapes, field names, request payloads, or delete/update paths.
+- For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
+- Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
@@ -187,6 +189,7 @@ Authentication:
 - Do not browse the API randomly.
 - Once a playbook already gives the likely winning path, do not spend time on unrelated repo tooling or broad schema enumeration before the write.
 - If an exact-match create playbook applies, confirm only the endpoint operation plus the referenced write schema, then execute.
+- For those exact-match create tasks, prefer anchored reads of the exact path block and referenced schemas over noisy whole-file `rg` sweeps.
 - Ideal is zero reads when not needed.
 - If a read is needed, prefer one decisive `GET ?fields=*` over multiple narrower `GET`s on the same object.
 - Do not do a second `GET` for fields you could have received in the first one.
