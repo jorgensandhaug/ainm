@@ -143,3 +143,16 @@
   - the successful production path became `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> failed `PUT /order/:invoice` -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice` for `8` total calls
   - the same-day persistent sandbox still had invoice account `1920` with `bankAccountNumber=12345678903`, and an analog proof run measured the configured-account update branch at `5` calls plus the already-known skip-`PUT` branch at `4` calls
   - therefore the remaining decision is not a new canonical path but an explicit tradeoff for the update-needed branch: optimistic path `5/8`, proactive hedge `6/7`; choose from run evidence about whether the company invoice bank account is likely missing
+- a same-session persistent-sandbox analog on 2026-03-20 with current-task arithmetic `498050 * 0.50 = 249025` re-confirmed that no lower-call shortcut has appeared since those earlier proofs:
+  - after fixture setup, the skip-`PUT /project` branch again measured exactly `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - after fixture setup, the update-needed branch again measured exactly `5` calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - the sandbox still exposed only outgoing `0%` VAT on that date, and both proof invoices returned `amountExcludingVatCurrency=249025`
+  - therefore the existing conditional `4/5`-call standard remains the minimum proven public path for this task family when bank-account repair is not needed
+- exact production reflection on 2026-03-20 for `Windkraft GmbH` / `886395582` / `Datensicherheit` / `maximilian.wagner@example.org` / `473250` / `25%` added one more same-day floor check:
+  - the run finished with full correctness (`4/4` checks passed) but only `2.96` normalized score, so it still sat above the minimum-call floor for this task family
+  - the invoice write proved taxable-account arithmetic `amountExcludingVatCurrency=118312.5` and `amountCurrencyOutstanding=147890.63`
+  - because the run trace did not preserve the exact HTTP branch, the safe corrective rule is still branch discipline rather than a new endpoint guess: after the initial expanded `GET /project`, spend `GET /employee` only when `projectManager.email` does not already match, and spend `PUT /project` only when that same row does not already prove `fixedprice=<prompt-fixed-price>`
+- a same-session persistent-sandbox analog with current-task arithmetic `473250 * 0.25 = 118312.5` re-proved those same floors on fixture `Datensicherheit Reflection 2498866c`:
+  - after fixture setup, the update-needed branch again measured exactly `5` calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - after the same fixture had already been updated to the target fixed price, the skip-`PUT /project` branch again measured exactly `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - both proof invoices returned `amountExcludingVatCurrency=118312.5`, so no extra normalization, verification read, or manager re-lookup belongs in the canonical path once the expanded project row already proves the target state

@@ -17,7 +17,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for the exact one-customer create shape with prompt-provided `name`, `email`, Norwegian `organizationNumber`, and optionally one ordinary `postalAddress`, the canonical path is one `POST /customer`
   - no `GET /customer` pre-read and no `GET /customer/{id}` follow-up read are part of the trusted fast path
-  - prompt prose language does not change that one-call branch; French and German customer-create prompts with ordinary Norwegian fields stay on the same `POST /customer` path
+  - prompt prose language does not change that one-call branch; French-, German-, and Spanish-language customer-create prompts with ordinary Norwegian fields stay on the same `POST /customer` path
 - Standard verification note:
   - `POST /customer` can return a sparse auto-generated `physicalAddress` link object even when the payload only sent `postalAddress`; verify the prompt-scored fields from `value` and do not add a follow-up read just for that link
   - when the prompt includes one ordinary mailing address, `value.postalAddress.addressLine1`, `value.postalAddress.postalCode`, and `value.postalAddress.city` can already prove the scored address fields
@@ -264,6 +264,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - a later same-day production run for `Sjøbris AS` showed the opposite miss on the update-needed branch: the optimistic `5`-call path became `8` because the first invoice write discovered the missing-company-bank-account prerequisite and had to recover through `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice`
   - for that exact update-needed partial-billing branch, the hedge tradeoff is now explicit: optimistic branch costs `5` when configured and `8` when missing, while a proactive `/ledger/account` hedge costs `6` when configured and `7` when missing
   - because same-day production proved both bank-account-present and bank-account-missing states for this exact task family, there is still no universal winner; choose between the optimistic branch and the hedge from fresh-account evidence, not habit
+  - the same-day production German run for `Windkraft GmbH` / `886395582` / `Datensicherheit` / `maximilian.wagner@example.org` / `473250` / `25%` finished with full correctness but only `2.96` normalized score, which means the solution still sat above that `4/5`-call floor even though the invoice itself was correct
+  - the safe lesson from that run is still branch discipline, not a new shortcut: after the expanded project read, pay `GET /employee` only when `projectManager.email` is not already proven there, and pay `PUT /project` only when that same row does not already prove the target `fixedprice`
+  - a same-session persistent-sandbox analog on fixture `Datensicherheit Reflection 2498866c` re-proved both branches with the current-task arithmetic `473250 * 0.25 = 118312.5`: the update-needed branch again measured `5` calls and the skip-`PUT /project` branch again measured `4`, with both invoices returning `amountExcludingVatCurrency=118312.5`
   - for fixed-price milestone tasks, `unitPriceExcludingVatCurrency` can be a real decimal such as `87662.5`; do not round percentage-derived milestone amounts to whole NOK just to make the payload look cleaner
 
 ## Invoice
