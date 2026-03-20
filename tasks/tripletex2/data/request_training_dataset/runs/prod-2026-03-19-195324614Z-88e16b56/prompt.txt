@@ -1,0 +1,1 @@
+Opprett produktet "Avis" med produktnummer 2061. Prisen er 4150 kr eksklusiv MVA, og MVA-sats på 0 % for aviser skal nyttast.

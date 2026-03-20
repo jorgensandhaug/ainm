@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "prompt": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) p\u00e5 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+  "tripletex_credentials": {
+    "base_url": "REDACTED",
+    "session_token": "REDACTED"
+  }
+}

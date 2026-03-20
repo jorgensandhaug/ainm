@@ -1,0 +1,1 @@
+Crie três departamentos no Tripletex: "Økonomi", "Innkjøp" e "Regnskap".

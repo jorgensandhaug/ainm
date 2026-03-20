@@ -1,0 +1,34 @@
+{
+  "copied_attachments": [],
+  "created_at": "2026-03-19T22:18:36.814Z",
+  "imported_source_artifacts": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/request.json",
+      "reason": "request_payload"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/manifest.json",
+      "reason": "run_metadata"
+    }
+  ],
+  "prompt_chars": 169,
+  "prompt_text": "Create the project \"Implementation Ridgepoint\" linked to the customer Ridgepoint Ltd (org no. 948050927). The project manager is Edward Brown (edward.brown@example.org).",
+  "prompt_text_file": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/data/request_training_dataset/runs/prod-2026-03-19-221836811Z-84bcca2a/prompt.txt",
+  "request_metadata": {
+    "credentials_source": "request",
+    "files_declared_count": 0,
+    "manifest_attachments_declared_count": 0,
+    "request_schema_notes": [],
+    "tripletex_credentials_present": true
+  },
+  "run_id": "prod-2026-03-19-221836811Z-84bcca2a",
+  "sanitized_request_json": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/data/request_training_dataset/runs/prod-2026-03-19-221836811Z-84bcca2a/request.sanitized.json",
+  "skipped_attachments": [],
+  "source": {
+    "manifest_json_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/manifest.json",
+    "manifest_run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a",
+    "request_json_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a/request.json",
+    "source_run_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-221836811Z-84bcca2a"
+  },
+  "storage_mode": "production"
+}

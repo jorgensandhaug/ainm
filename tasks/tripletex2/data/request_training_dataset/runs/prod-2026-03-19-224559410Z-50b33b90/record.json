@@ -1,0 +1,34 @@
+{
+  "copied_attachments": [],
+  "created_at": "2026-03-19T22:45:59.415Z",
+  "imported_source_artifacts": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90/request.json",
+      "reason": "request_payload"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90/manifest.json",
+      "reason": "run_metadata"
+    }
+  ],
+  "prompt_chars": 154,
+  "prompt_text": "Kunden Polaris AS (org.nr 896571559) har en utest\u00e5ende faktura p\u00e5 15200 kr eksklusiv MVA for \"Datar\u00e5dgivning\". Registrer full betaling p\u00e5 denne fakturaen.",
+  "prompt_text_file": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/data/request_training_dataset/runs/prod-2026-03-19-224559410Z-50b33b90/prompt.txt",
+  "request_metadata": {
+    "credentials_source": "request",
+    "files_declared_count": 0,
+    "manifest_attachments_declared_count": 0,
+    "request_schema_notes": [],
+    "tripletex_credentials_present": true
+  },
+  "run_id": "prod-2026-03-19-224559410Z-50b33b90",
+  "sanitized_request_json": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/data/request_training_dataset/runs/prod-2026-03-19-224559410Z-50b33b90/request.sanitized.json",
+  "skipped_attachments": [],
+  "source": {
+    "manifest_json_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90/manifest.json",
+    "manifest_run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90",
+    "request_json_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90/request.json",
+    "source_run_path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-19-224559410Z-50b33b90"
+  },
+  "storage_mode": "production"
+}

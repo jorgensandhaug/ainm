@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "prompt": "Crea y env\u00eda una factura al cliente Solmar SL (org. n\u00ba 967736430) por 11700 NOK sin IVA. La factura es por Informe de an\u00e1lisis.",
+  "tripletex_credentials": {
+    "base_url": "REDACTED",
+    "session_token": "REDACTED"
+  }
+}
