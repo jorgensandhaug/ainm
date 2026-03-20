@@ -65,6 +65,14 @@ The same sandbox account then re-verified the existing-customer branch with:
 
 So the pre-read is only part of the trusted path when the prompt explicitly implies an already-existing customer or the run context is not the normal fresh-account shape.
 
+The same rule is language-agnostic for explicit no-VAT prompts. The 2026-03-20 production run for Portuguese `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` / `sem IVA` also succeeded in the same `3` calls:
+
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"`
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
+3. `POST /invoice`
+
+So do not let prompt language push this shape onto an unnecessary existing-customer lookup branch.
+
 ## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:
@@ -129,6 +137,14 @@ Persistent sandbox re-verification on 2026-03-20 for `Porto Alegre Lda` / `82687
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6`
 - `POST /invoice` with that resolved `vatType.id=6` succeeded
 - the write response already proved the intended no-VAT outcome with `amountExcludingVatCurrency=22700` and `amountCurrency=22700`
+
+The 2026-03-20 production run for Portuguese `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` / `sem IVA` and the same-day persistent sandbox re-check on analogous org `842889155` reconfirmed the same branch:
+
+- direct `POST /customer`
+- filtered outgoing VAT read returning code `6` (`0%`)
+- direct `POST /invoice`
+- no customer pre-read
+- no explicit `PUT /invoice/{id}/:send`
 
 For ordinary direct-line service prompts that are explicitly priced excluding VAT / MVA, the same dynamic rule becomes an exact `25%` selector:
 

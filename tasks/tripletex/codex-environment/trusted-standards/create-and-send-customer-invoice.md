@@ -71,6 +71,7 @@
 - do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
 - do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
 - for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
+- the same exact no-VAT branch also covers Portuguese wording such as `sem IVA`; the 2026-03-20 production run for `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` used the same `3` calls and did not need `GET /customer` or `PUT /invoice/{id}/:send`
 - for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
 
 ## OpenAPI / Sandbox Status
@@ -93,3 +94,7 @@
   - the filtered VAT read returned only code `6` (`0%`)
   - the invoice write returned `amountExcludingVatCurrency=22700`, `amountCurrency=22700`, and an invoice number without any extra verification read
   - on the exact `Porto Alegre Lda` / `826870192` task identity, once that customer existed in sandbox, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
+- exact Portuguese no-VAT direct-line create-and-send shape re-confirmed across production plus persistent sandbox on 2026-03-20:
+  - production run `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` / `sem IVA` succeeded in the canonical `3` calls: direct `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+  - the production invoice write already proved the intended no-VAT outcome with `amountExcludingVatCurrency=11200` and `amountCurrency=11200`
+  - persistent sandbox re-check on the analogous fresh-customer `842889155` shape returned VAT code `6` (`0%`) and the same `11200` / `11200` totals through the same `3` calls, again without any customer pre-read or explicit `:send` call
