@@ -179,6 +179,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `/activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
   - if that read returns `isChargeable=false`, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
   - the 2026-03-20 production German `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18h` / `950` run re-confirmed that once `/activity/>forTimeSheet` already returns `isChargeable=false`, adding `GET /project/hourlyRates` would be wasted; keep the 7-call downstream floor `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `23h * 1050` on the non-chargeable analog `codex.verify.1773957815637@example.org` / `Sandbox Hour Invoice Project 1774020541520` / `Prosjektadministrasjon` again finished in `7` calls on fresh date `2026-06-17`, returned `amountExcludingVatCurrency=24150`, and still had no safe reason to enter `/project/hourlyRates`
   - for prompt shapes that only score requested hours registration plus the customer-facing project invoice, a non-chargeable activity is still not an automatic stop condition: skip the doomed project-specific-rate write, register the hours, and use the manual project-linked order/invoice fallback
 
 ## Project Hourly Rates
