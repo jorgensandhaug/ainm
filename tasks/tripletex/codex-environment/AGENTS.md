@@ -5,16 +5,16 @@
 - Optimize for score, not explanation.
 - Correctness first. Efficiency second.
 - Task is complete only when final Tripletex state is correct.
+- Finish the task within the `300s` timeframe
 
 ## Scoring
 - Score is based on actual Tripletex side effects, not your text output.
-- Correctness is normalized field-by-field.
-- Non-perfect submissions score `correctness * tier`.
+- Correctness is normalized field-by-field from the expected output.
 - Efficiency bonus applies only at perfect correctness.
 - Efficiency bonus depends on:
-  - low API call count
-  - few or zero `4xx` errors
-- Avoid trial-and-error. Every unnecessary call and every `4xx` hurts.
+  - low API call count (Important)
+  - few or zero `4xx` errors (Make sure you know the API calls will work before running)
+- Avoid trial-and-error. Every unnecessary call and every `4xx` hurts. (Verify the correct API call flow before running, this is MEGA important, this is often where alot of errors pile up)
 
 ## Operating Rules
 - Work fully autonomously.
@@ -23,7 +23,7 @@
 - Do only the requested task. No extra work.
 - Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
 - Assume a hard `300s` budget. Plan before calling APIs.
-- Only interact with the Tripletex API by writing TypeScript and running it with `bun`.
+- Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
 - The prompt provides a run-specific scripts directory.
 - Put all API-interaction scripts only in that provided scripts directory.
 - Do not place API-interaction scripts anywhere else.
@@ -46,9 +46,10 @@ Authentication:
 - Username: `0`
 - Password: provided session token.
 - Always call the provided base URL.
-- Never switch to any default Tripletex URL.
+- Never switch to any default Tripletex URL and never look up online ever.
 - If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
 - In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
+- If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
 
 ## API Reference Strategy
 - Use the common endpoints below first.
@@ -56,13 +57,13 @@ Authentication:
 - Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling.
 - Use `./openapi.json` as the full API reference.
 - When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
-- Do not guess endpoint shapes, field names, request payloads, or delete/update paths.
+- Do not guess endpoint shapes, field names, request payloads, or delete/update paths, always verify.
 - For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
 - Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
-- If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks
+- If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks and previous faults for similar tasks
 - If the prompt is an exact playbook match, keep pre-write exploration narrow: read the playbook, confirm the exact endpoint operation and referenced schema in `./openapi.json`, then execute
 
 | Task pattern | Playbook |
@@ -105,14 +106,14 @@ Authentication:
   - amounts
   - relationships
   - prerequisites
-- Plan the full dependency graph before the first API call.
+- Plan the full dependency graph before the first API call. This is to ensure that things are created or edited in the right order.
 - Determine which entities must exist before others can be created, updated, linked, reversed, paid, or deleted.
-- Determine whether the task first requires enabling a module or feature before the main workflow can succeed.
+- Determine whether the task first requires enabling a module or feature before the main workflow can succeed. This may be very important.
 - Choose the minimal correct API flow before acting.
-- Fresh account means prerequisites often do not exist yet. Create them when needed.
+- Fresh account means prerequisites often do not exist yet. Create them when needed, but if the prompt given states information about the environment you are to assume they exist and use that information, do not use unnecessary `GET`s.
 - Do not add sandbox-idempotency reads to a scored run unless the prompt implies an update/delete/existing-object lookup problem.
-- If task is update/delete/reverse, first locate the correct existing entity.
-- If you just created an object, reuse the returned ID. Do not fetch it again unless needed for correctness verification.
+- If task is update/delete/reverse, first locate the correct existing entity, unless specifically given the ID or information to delete or update in the prompt, then you should not use unnecessary requests to confirm.
+- If you just created an object, reuse the returned ID. Do not fetch it again. Remember, the goal is as few API calls as possible for correct solution. Be efficient.
 - After `POST` or `PUT`, always inspect and reuse the returned object data before considering any `GET`.
 - Treat write responses as the primary source for IDs, linked objects, computed fields, and resulting state when they contain what you need.
 - If the next step depends on the object you just created or updated, use the data from that write response instead of issuing a follow-up `GET`.
@@ -146,9 +147,9 @@ Authentication:
 - When several valid flows are possible, choose the one with the fewest calls, the least ambiguity, and the lowest risk of `4xx` errors.
 
 ## Error Handling
-- Prevent errors before calling.
-- If a call fails, read the error body carefully.
-- Use Tripletex validation details to make one precise correction if possible.
+- Prevent errors before calling, always verify your requests correctness and logic.
+- If by chance a call fails, read the error body carefully.
+- Use Tripletex validation details to make only one precise correction if possible.
 - Do not loop through guesses.
 - Do not keep retrying the same invalid shape.
 - `401` usually means wrong auth format or wrong token.

@@ -35,6 +35,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-19 with `name`, `email`, `organizationNumber`, and `postalAddress`; the same single `POST /customer` stored the exact Unicode city string `Tromsø` and returned it directly in `response.value.postalAddress.city`
 - re-verified on 2026-03-20 with only `name`, `email`, and `organizationNumber`; the single `201` response again returned the created customer plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with the exact prompt payload `Debug Test AS`, `debug@example.no`, and `999888771`; the single `POST /customer` returned customer `id=108240642` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Post Run 372928 AS`, `codex-post-run-372928@example.no`, and `999372928`; the single `POST /customer` returned customer `id=108240652` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 
 ## Minimal Flow
 
@@ -73,6 +74,7 @@ This was verified in sandbox:
 
 - If the prompt-provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, the create-customer write shape is still the same single `POST /customer`, but the run is blocked before Tripletex receives the request
 - Do not react to that situation by adding `GET /customer`, trying alternate Tripletex hosts, or widening spec exploration
+- If both host and token are obvious placeholders, it is acceptable to stop after local playbook/spec confirmation instead of spending a doomed network call
 - For real-looking credentials, one execution attempt is enough; if DNS/network fails before any HTTP response, treat it as a credential/connectivity problem, not a signal to change the customer payload
 
 ## OpenAPI Navigation Trap
