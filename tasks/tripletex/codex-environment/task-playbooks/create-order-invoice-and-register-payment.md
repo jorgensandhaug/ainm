@@ -39,6 +39,9 @@ Exact-match tasks should now prefer the trusted standard:
 - additional production verification on 2026-03-20 showed two more traps:
   - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice
+- later production reflection on 2026-03-20 showed one more efficiency trap:
+  - turning the `/ledger/account` bank-account hedge into an automatic preflight on this exact task shape spends a seventh Tripletex call on accounts where the plain 6-call path already works
+  - keep `/ledger/account` as a conditional hedge or repair branch, not as the default exact-match path
 - additional production verification on 2026-03-20 also showed the clean exact-match path:
   - one successful run completed with only 6 Tripletex API calls after local spec confirmation
   - `GET /customer?organizationNumber=...&fields=*`
@@ -121,7 +124,7 @@ Exact-match tasks should now prefer the trusted standard:
   7. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
   8. `PUT /invoice/{id}/:payment?...`
 - Do not insert an automatic `GET /order/{id}` just because `POST /order` echoed empty `orderLines`
-- Do not insert an automatic `GET /ledger/account` before the first invoice write
+- Do not insert an automatic `GET /ledger/account` before the first invoice write; on this exact task shape that turns the canonical 6-call path into a 7-call hedge
 - If `PUT /order/{id}/:invoice` fails only because the company bank account number is missing, repair `/ledger/account` and retry the same order instead of creating a new one
 - If the invoice response already proves the charged lines/totals and outstanding amount, that later write response is often enough
 
