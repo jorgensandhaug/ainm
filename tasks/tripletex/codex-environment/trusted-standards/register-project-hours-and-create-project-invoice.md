@@ -37,6 +37,8 @@
    - if the holder already exposes one exact employee+activity `projectSpecificRate` with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
    - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
 5. `POST /timesheet/entry`
+   - if the prompt hour total is `<= 24`, one write is enough
+   - if the prompt hour total is `> 24`, split it into one entry per date, each with `projectChargeableHours <= 24`
 6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
 7. `POST /order` with:
    - `customer`
@@ -48,11 +50,14 @@
 
 ## Payload Rules
 - use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
+- `projectChargeableHours` cannot exceed `24` on one entry
+- Tripletex accepts only one entry per `employee + project + activity + date`; do not plan two same-day writes for the same tuple
 - `/activity/>forTimeSheet` exposes activity chargeability as `isChargeable`, not `chargeable`
 - do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes
 - when `activity.isChargeable=true`, spend `GET /project/hourlyRates` before the timesheet write; a chargeable timesheet can still succeed with `hourlyRate=0` if the exact employee+activity rate is missing
 - when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
 - if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
+- if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live
 - the real invoice line should usually use:
   - `description` from the prompt activity or prompt billing text
   - `count` equal to the prompt hours
@@ -104,6 +109,11 @@
   - a time entry on that activity can still be created, but it will keep `chargeable=false` and `hourlyRate=0`
   - for prompt shapes that only ask to register the hours and create the customer-facing project invoice, continue with the manual project-linked order/invoice fallback instead of stopping
   - only treat the task as blocked when the prompt explicitly scores the internal billability fields on the timesheet entry or true project-hour reserve consumption
+- if the prompt hour total is `> 24`:
+  - do not send one oversized `POST /timesheet/entry`; Tripletex returns `422 projectChargeableHours: Kan ikke være over 24`
+  - do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`
+  - split the total across distinct dates, with at most `24` hours per date
+  - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates
 - if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
@@ -124,6 +134,10 @@
   - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity
   - even on that non-chargeable branch, `POST /timesheet/entry` can still persist the requested hours on the requested activity while returning `chargeable=false` and `hourlyRate=0`
   - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`
+  - a same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `18` hours at rate `950` re-confirmed the same `7`-call non-chargeable floor, returning `amountExcludingVatCurrency=17100` with no `/project/hourlyRates` read
+  - for that same sandbox analog with rate `1450` and total hours `39`, `POST /timesheet/entry` with `projectChargeableHours=39` failed with `422 ... Kan ikke være over 24`, a second same-day write after one successful `24`-hour chunk failed with `409 Det er allerede registrert timer ...`, and the corrected 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` (`24`) -> `POST /timesheet/entry` (`15` on a different date) -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded with `amountExcludingVatCurrency=56550`
+  - a same-session persistent-sandbox re-proof on 2026-03-20 repeated that exact `39`-hour non-chargeable branch on fresh dates `2026-05-11` / `2026-05-12`, again finished in `8` calls, and found no lower-call public replacement path
+  - the 2026-03-20 production German run `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18` hours / `950` matched that same branch: `/activity/>forTimeSheet` returned `isChargeable=false`, the write path stayed at `7` calls, and the invoice returned `amountExcludingVatCurrency=17100` plus `amountCurrencyOutstanding=21375`
   - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API
   - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing
   - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default
