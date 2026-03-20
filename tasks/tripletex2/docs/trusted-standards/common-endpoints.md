@@ -1,0 +1,536 @@
+# Common Endpoints
+
+Verified against `./openapi.json`.
+
+Use this as the exact endpoint-shape reference for the most common Tripletex resources.
+
+## Customer
+- `/customer`
+  - `GET` search
+  - `POST` create
+- `/customer/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard create prerequisite:
+  - none
+- Standard fast-path note:
+  - for the exact one-customer create shape with prompt-provided `name`, `email`, Norwegian `organizationNumber`, and optionally one ordinary `postalAddress`, the canonical path is one `POST /customer`
+  - no `GET /customer` pre-read and no `GET /customer/{id}` follow-up read are part of the trusted fast path
+  - prompt prose language does not change that one-call branch; French-, German-, and Spanish-language customer-create prompts with ordinary Norwegian fields stay on the same `POST /customer` path
+- Standard verification note:
+  - `POST /customer` can return a sparse auto-generated `physicalAddress` link object even when the payload only sent `postalAddress`; verify the prompt-scored fields from `value` and do not add a follow-up read just for that link
+  - when the prompt includes one ordinary mailing address, `value.postalAddress.addressLine1`, `value.postalAddress.postalCode`, and `value.postalAddress.city` can already prove the scored address fields
+  - localized generic email labels such as `Correo` and `E-mail` still map to the same `email` payload field; they are not a reason to add `invoiceEmail`
+
+## Department
+- `/department`
+  - `GET` search
+  - `POST` create one
+- `/department/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/department/list`
+  - `POST` batch create
+- Standard create prerequisite:
+  - none
+- Standard verification note:
+  - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
+  - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
+  - 2026-03-20 production re-confirmed that the same one-call branch remained minimal for Norwegian prompts creating `HR`, `Salg`, and `Økonomi` and for `Lager`, `Regnskap`, and `Kvalitetskontroll`; the write response alone still proved correctness
+  - same-day persistent-sandbox re-proof with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
+
+## Division
+- `/division`
+  - `GET` search
+  - `POST` create
+- `/division/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard prerequisite note:
+  - division is not part of the default employee-create fast path
+  - resolve one existing `/division?count=1&fields=*` only when a live validation branch explicitly requires `employments[].division.id`
+- Standard create note:
+  - do not assume `POST /division` is a safe minimal name-only repair write
+  - persistent sandbox follow-up on 2026-03-20 showed that `POST /division` with only `name` fails `422` requiring `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
+  - for payroll no-division branches where the prompt does not provide those fields, a speculative division-create fallback is not part of the trusted minimum path
+
+## Employee
+- `/employee`
+  - `GET` search
+  - `POST` create
+- `/employee/{id}`
+  - `GET` read
+  - `PUT` update
+- `/employee/employment`
+  - `GET` search employments
+  - `POST` create employment
+- Standard create prerequisites:
+  - explicit `userType`
+- Standard create fast-path note:
+  - for the exact create-one-employee shape with prompt-provided name, birth date, email, and start date, the lower-call default is `POST /employee` first with explicit `userType` and nested `employments`
+  - 2026-03-20 production re-confirmed that when that first write succeeds in a fresh account, the minimum safe path is usually `2` calls total: the `POST /employee` write plus one decisive `GET /employee/employment?employeeId=...&fields=*`
+  - the 2026-03-20 production English run for `Thomas Harris` and later same-day Portuguese run for `João Rodrigues` re-confirmed that same `2`-call floor, while the same-session persistent sandbox still took the full repair ladder before the same verification read
+  - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422` where `validationMessages[].field == "department.id"`
+  - if that department repair read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload and retry the same employee create once
+  - if the employee create then fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
+- Standard verification note:
+  - a successful `POST /employee` can still echo `userType: null` plus `employments[]` as link-only objects without `startDate`
+  - do not branch on the generic top-level `422 message`; current proven employee-create repair routing depends on `validationMessages[].field`
+  - when the prompt scores employment start date, `GET /employee/employment?employeeId=...&fields=*` is the decisive verification read unless the create response unexpectedly already includes the actual `startDate`
+  - do not try to save that verification read by trusting the write request itself on a start-date-scored task; that is still an unproven gamble rather than the trusted minimum safe path
+  - prompt language and Unicode names do not change that path; mixed-language dates such as `5. September 1980` and names such as `João Rodrigues` still use the same normalized employee-create flow
+- Standard payroll note:
+  - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
+  - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
+
+## Salary
+- `/salary/type`
+  - `GET` search salary types
+- `/salary/transaction`
+  - `POST` create salary transaction
+- `/salary/transaction/{id}`
+  - `GET` read salary transaction
+  - `DELETE` delete salary transaction
+- `/salary/payslip`
+  - `GET` search payslips
+- `/salary/payslip/{id}`
+  - `GET` read payslip
+- Standard payroll prerequisites:
+  - exact employee id
+  - payroll-ready employee data
+  - resolved salary-type ids
+- Standard fast-path note:
+  - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
+  - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
+  - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, the decisive gate is `GET /division?count=1&fields=*` before any salary-type lookup
+  - if that division read returns one usable row, the lower-zero-risk path is `GET /salary/type?count=1000&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
+  - if that division read returns zero usable rows and the prompt does not explicitly allow manual vouchers, stop blocked after those two calls; do not spend `GET /salary/type`
+  - do not try to rescue that exact no-division payroll branch with a speculative minimal `POST /division`; persistent sandbox on 2026-03-20 showed that name-only create fails `422` and demands `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
+  - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type` and branch straight into `GET /ledger/account?number=5000,1920&fields=*` plus `POST /ledger/voucher`
+  - do not add `POST /employee/employment/details` by default in that repair branch; persistent sandbox on 2026-03-20 proved payroll can succeed without it for manual salary lines
+  - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response from salary endpoints
+- Standard verification note:
+  - `GET /salary/payslip/{id}?fields=*` is enough for `grossAmount`, `amount`, and `specifications.length`
+  - `GET /salary/payslip/{id}?fields=*` can still keep individual `specifications[]` as link-only objects
+  - for exact line-level verification, use `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))`
+
+## Product
+- `/product`
+  - `GET` search
+  - `POST` create
+- `/product/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard create prerequisite:
+  - exact prompt-required fields
+  - if the prompt requires a non-standard or otherwise non-default exact VAT percentage, resolve a valid outgoing `vatType`
+  - if the requested exact VAT percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+- Standard create fast-path note:
+  - for the exact fresh-account create-one-product shape with prompt-provided `name`, `number`, excluding-VAT price, and standard `25%` VAT wording, the canonical winning path is one `POST /product` with no explicit `vatType`
+  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`; the 2026-03-20 `Softwarelizenz` / `7986` / `24900` production run again confirmed that one-write path with `priceIncludingVatCurrency=31125` and `vatType.id=3`
+  - for exact `0%`, reduced-rate, or otherwise non-standard VAT prompts, fall back to one filtered outgoing VAT read followed by `POST /product`
+  - do not re-check `./openapi.json` for an exact trusted-standard match, and do not add `GET /product` pre-reads or `GET /product/{id}` verification reads when the write response already proves the scored fields
+- Standard create note:
+  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; the persistent sandbox still auto-filled `0%` VAT code `6` on 2026-03-20 and produced `priceIncludingVatCurrency == priceExcludingVatCurrency`, so do not use that as the trusted fast path when the prompt scores exact VAT outside the exact fresh-account standard-`25%` shortcut
+  - exact `0%` product prompts such as books still use the same rule: select the matching `0%` row from the filtered outgoing VAT result in the current account
+- Standard search note:
+  - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
+  - `GET /product?productNumber=...&fields=*` can return the matched identifier under `number` rather than `productNumber`; normalize both keys before deciding a direct numeric resolver failed
+  - when the prompt clearly provides exact existing product numbers, the lower-call first resolver is one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
+  - for invoice/order tasks where the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, the lower-call product resolver is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
+  - only switch from the direct `productNumber` query to the broader catalog read when those numeric refs are unclear semantics or the direct numeric query returns an incomplete/ambiguous subset
+  - only spend `GET /product?ids=...` after the catalog read or numeric query if the earlier resolver still left the products unresolved
+  - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
+
+## Project
+- `/project`
+  - `GET` search
+  - `POST` create
+- `/project/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard create prerequisites:
+  - customer id
+  - often assignable project manager id
+  - `startDate`
+- Standard fast-path note:
+  - for the exact create-one-project shape with an existing customer identified by `organizationNumber` and an existing manager identified by `email`, the winning path is usually `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`
+  - 2026-03-20 production re-confirmed that the same 3-call path is still minimal for a Portuguese prompt that omitted `startDate`; using the run date in the write payload succeeded directly
+  - a second 2026-03-20 production re-confirmation for `Havbris AS` / `999148387` / `henrik.degard@example.org` kept the same 3-call floor for a Norwegian prompt that also supplied customer and manager names; the manager prompt name used `Ø` while the email local-part used ASCII `degard`, and that still did not justify any extra disambiguation read after one exact email hit
+  - 2026-03-20 persistent sandbox re-proof confirmed there is still no safe `2`-call shortcut for that exact shape: `POST /project` with nested `customer { name, organizationNumber }` can return `201` while leaving `customer=null`, and manager details without `projectManager.id` still fail validation
+  - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
+  - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
+  - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
+- Standard search note:
+  - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
+  - for update-shaped project tasks that also score the existing manager, `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` can often resolve the project, linked customer, and current manager in one read
+  - when that expanded project search already leaves one exact `project.name` plus nested `customer.organizationNumber` and/or `customer.name` match, do not add a separate `GET /customer`
+  - when that same expanded row also shows nested `projectManager.email` matching the prompt, do not add a separate `GET /employee` just to re-resolve the same manager id
+  - for fixed-price partial-billing update tasks, that same expanded project read can also supply the existing `startDate`; reuse it on `PUT /project/{id}` unless the prompt explicitly asks to change the start date
+- Standard verification note:
+  - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
+  - in that exact create-project shape, do not add `GET /customer/{id}` or `GET /employee/{id}` after the filtered resolver reads; the search responses plus the project write response already prove the scored linkage
+
+## Activity
+- `/activity`
+  - `GET` search
+  - `POST` create
+- `/activity/{id}`
+  - `GET` read
+- `/activity/>forTimeSheet`
+  - `GET` resolve project activities available for one employee on one date
+- Standard time-registration note:
+  - for project hour tasks, prefer `/activity/>forTimeSheet` over a broad `/activity` search because it proves the activity is actually available on the project for that employee/date
+  - `/activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`
+  - if that read returns `isChargeable=false`, do not assume `projectChargeableHours` or a project-specific rate write can still make it billable
+  - the 2026-03-20 production German `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18h` / `950` run re-confirmed that once `/activity/>forTimeSheet` already returns `isChargeable=false`, adding `GET /project/hourlyRates` would be wasted; keep the 7-call downstream floor `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `23h * 1050` on the non-chargeable analog `codex.verify.1773957815637@example.org` / `Sandbox Hour Invoice Project 1774020541520` / `Prosjektadministrasjon` again finished in `7` calls on fresh date `2026-06-17`, returned `amountExcludingVatCurrency=24150`, and still had no safe reason to enter `/project/hourlyRates`
+  - for prompt shapes that only score requested hours registration plus the customer-facing project invoice, a non-chargeable activity is still not an automatic stop condition: skip the doomed project-specific-rate write, register the hours, and use the manual project-linked order/invoice fallback
+
+## Project Hourly Rates
+- `/project/hourlyRates`
+  - `GET` search
+  - `POST` create
+- `/project/hourlyRates/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/project/hourlyRates/projectSpecificRates`
+  - `GET` search
+  - `POST` create
+- `/project/hourlyRates/projectSpecificRates/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard time-registration note:
+  - only enter the hourly-rate branch when `/activity/>forTimeSheet` returned `isChargeable=true`
+  - if `GET /project/hourlyRates?projectId=...` returns no holder for a chargeable project, create one with `POST /project/hourlyRates` before writing the employee/activity-specific rate
+  - switching an existing project hourly-rate holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES` and then creating the employee+activity rate are separate writes
+  - `GET /project/hourlyRates?projectId=...&fields=*,projectSpecificRates(*,employee(*),activity(*))` can expose enough nested data to detect an existing exact employee+activity rate without spending a second rate-search call
+  - when that same holder read already shows one exact employee+activity rate with the prompt hourly rate, reuse it and skip an extra write; if it shows the exact pair with a different hourly rate, update that existing specific rate once instead of blindly posting a duplicate
+  - do not rely on embedded `projectSpecificRates[]` inside the holder `PUT` as the only rate write
+  - `POST /project/hourlyRates/projectSpecificRates` rejects non-chargeable activities with `422 activity.id: Ikke fakturerbar.`
+
+## Timesheet
+- `/timesheet/entry`
+  - `GET` search
+  - `POST` create
+- `/timesheet/entry/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/timesheet/week/:approve`
+  - `PUT` approve week
+- Standard time-registration note:
+  - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
+  - a timesheet write on a chargeable project activity can also succeed with `chargeable=true` and `hourlyRate=0` when the exact employee+activity rate is missing, so the write alone does not prove the prompt rate was applied
+  - `projectChargeableHours` has a hard per-entry ceiling of `24`; `POST /timesheet/entry` above that returns `422 projectChargeableHours: Kan ikke være over 24`
+  - Tripletex allows only one timesheet entry per `employee + project + activity + date`; a second same-day write for the same tuple returns `409 Det er allerede registrert timer ...`
+  - for project-hour prompts whose total hours exceed `24`, plan a multi-day split before the first write instead of sending one oversized entry or stacking multiple same-day entries
+  - if such a run already partially succeeded on one day chunk before the duplicate branch surfaced, use one decisive `GET /timesheet/entry?...` on the intended date window and write only the missing dates
+  - that non-chargeable timesheet response is only a true blocker when the prompt explicitly scores internal billability semantics or true project-hour reserve consumption
+  - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
+
+## Project Period
+- `/project/{id}/period/hourlistReport`
+  - `GET` read hour totals for a date window
+- `/project/{id}/period/invoicingReserve`
+  - `GET` read invoice reserve for a date window
+- Standard verification note:
+  - `hourlistReport` is the decisive read for how Tripletex classifies the registered hours (`chargeableHours`, `nonChargeableHours`, `nonApprovedHours`)
+  - a positive `invoicingReserve` is not proof that the public API can actually convert those hours into an invoice; line-less project orders still fail invoicing
+
+## Order
+- `/order`
+  - `GET` search
+  - `POST` create
+- `/order/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/order/{id}/:invoice`
+  - `PUT` convert order to invoice
+- Standard create prerequisites:
+  - customer id
+  - often product ids
+- Standard fast-path note:
+  - for exact existing-customer plus existing-product order-to-invoice-to-payment tasks, prefer `./trusted-standards/create-order-invoice-and-register-payment.md`; the winning uncached path is usually customer read, product read, payment-type read, order write, then one combined invoice-and-payment write
+  - if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, skip the extra payment-type read and do the same combined invoice-and-payment write in 4 downstream calls
+  - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
+  - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
+  - if earlier steps in the same run already proved a valid company invoice bank account, skip that extra `/ledger/account` read
+  - for the exact project-first fixed-price partial-billing shape, branch on what that initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proves
+  - if the same row already proves project + customer + manager and `fixedprice=<prompt-fixed-price>`, skip `PUT /project` and go straight to `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` for `4` total calls
+  - that skip-`PUT /project` branch is now fully settled: there is still no safe `3`-call shortcut, because removing the initial `GET /project` removes the proof that the project state already matches, and removing `GET /ledger/vatType` risks the wrong VAT result on taxable accounts
+  - otherwise, if the project exists but still needs the fixed-price or manager update, use the `5`-call downstream path `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - the 2026-03-20 `Tindra AS` production run lost the efficiency point after a wasted proactive `/ledger/account` read that found account `1920` already had a valid `bankAccountNumber`, and the later same-day `Soleil SARL` post-run sandbox proof showed the remaining one-call optimization is skipping `PUT /project` when the first project read already proves the target project state
+  - a later same-day production run for `Fossekraft AS` / `907433498` / `Automatiseringsprosjekt` / `solveig.eide@example.org` / `430750` / `50%` confirmed that the `4`-call skip-`PUT` branch is also the true minimum on a taxable account: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, with invoice totals `amountExcludingVatCurrency=215375` and `amountCurrencyOutstanding=269218.75`
+  - a later same-day production run for `Sjøbris AS` showed the opposite miss on the update-needed branch: the optimistic `5`-call path became `8` because the first invoice write discovered the missing-company-bank-account prerequisite and had to recover through `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice`
+  - for that exact update-needed partial-billing branch, the hedge tradeoff is now explicit: optimistic branch costs `5` when configured and `8` when missing, while a proactive `/ledger/account` hedge costs `6` when configured and `7` when missing
+  - because same-day production proved both bank-account-present and bank-account-missing states for this exact task family, there is still no universal winner; choose between the optimistic branch and the hedge from fresh-account evidence, not habit
+  - the same-day production German run for `Windkraft GmbH` / `886395582` / `Datensicherheit` / `maximilian.wagner@example.org` / `473250` / `25%` finished with full correctness but only `2.96` normalized score, which means the solution still sat above that `4/5`-call floor even though the invoice itself was correct
+  - the safe lesson from that run is still branch discipline, not a new shortcut: after the expanded project read, pay `GET /employee` only when `projectManager.email` is not already proven there, and pay `PUT /project` only when that same row does not already prove the target `fixedprice`
+  - a same-session persistent-sandbox analog on fixture `Datensicherheit Reflection 2498866c` re-proved both branches with the current-task arithmetic `473250 * 0.25 = 118312.5`: the update-needed branch again measured `5` calls and the skip-`PUT /project` branch again measured `4`, with both invoices returning `amountExcludingVatCurrency=118312.5`
+  - for fixed-price milestone tasks, `unitPriceExcludingVatCurrency` can be a real decimal such as `87662.5`; do not round percentage-derived milestone amounts to whole NOK just to make the payload look cleaner
+
+## Invoice
+- `/invoice`
+  - `GET` search charged outgoing invoices
+  - `POST` create
+- `/invoice/{id}`
+  - `GET` read
+- `/invoice/{id}/:createCreditNote`
+  - `PUT` create full credit note for an existing outgoing invoice
+- `/invoice/{id}/:payment`
+  - `PUT` register payment
+- `/invoice/{id}/:send`
+  - `PUT` send
+- `/invoice/paymentType`
+  - `GET` payment-type lookup
+- `/invoice/details`
+  - `GET` search project-invoice details
+- `/invoice/details/{id}`
+  - `GET` read project-invoice details
+- Standard prerequisites:
+  - customer id
+  - line or order data
+  - sometimes outgoing `vatType`
+  - sometimes company bank-account repair through `/ledger/account/{id}`
+  - for invoice-on-order prepayment, one valid incoming `paymentTypeId`
+- Standard explicit-VAT note:
+  - for exact existing-customer plus exact existing-product-number create-only invoice tasks, the lower-call default is customer read, exact-number product read, then invoice write; if the resolved products already return reusable `vatType.id`, either copy that id onto the line or omit explicit line `vatType` and inherit from the product
+  - that exact-number branch still stays lower-call even when the prompt text itself repeats a mixed VAT set such as `25%` / `15%` / `0%`; do not add `GET /ledger/vatType` by reflex when the task is only to create the invoice and the resolved products already expose reusable `vatType.id`
+  - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
+  - that sparse `product.vatType` link is still enough for the 3-call exact-number path when the task is only to create the invoice, not to override the stored product VAT
+  - 2026-03-20 production reflection on the exact create-only shape `customer.organizationNumber=977448239` with `Konsulenttimer (6390)`, `Systemutvikling (1652)`, and `Webdesign (3273)` plus VAT `25%` / `15%` / `0%` showed that an added `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` was one wasted call; the realistic lower-call replacement in that same fresh-account state was customer read -> exact-number product read -> invoice write -> conditional bank-account repair -> single retry
+  - when that same prompt also gives exact product names but the parenthetical numeric refs are not trustworthy search keys, the winning product read is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
+  - numeric refs that merely look like normal product numbers are still not enough to justify the speculative `productNumber=` query when the prompt already gives exact names; the 2026-03-20 `851635874` invoice reflection showed that one such speculative read was wasted before the later catalog fallback settled the products
+  - the same lesson was re-confirmed on 2026-03-20 for the `909722500` invoice prompt with `Analysis Report (9796)`, `Maintenance (2145)`, and `System Development (5995)`: the numeric refs looked like product numbers, but the lower-call replacement path was still one decisive catalog read because the prompt never explicitly guaranteed those refs were Tripletex `productNumber` values
+  - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
+  - exhaustive persistent-sandbox reduction on 2026-03-20 with the exact-number analog `861379760` + `2109/1175/9974` proved that the tempting 2-call shortcut `GET /customer` -> `POST /invoice` with `product.number` is invalid for existing-product tasks: the write succeeded, but readback showed `product=null` on all lines
+  - the same reduction also proved that `GET /product` -> `POST /invoice` with inline `customer { name, organizationNumber }` is not a valid 2-call replacement either; Tripletex rejected it with `422` because the related order still required `customer.id`
+  - if a speculative first product resolver is used anyway and returns only a partial subset, the broader catalog fallback should happen in the same script/callback chain; do not restart the flow and duplicate the customer read
+  - add an immediate invoice read only if the write response omits decisive totals or later logic truly needs readback-only line details
+  - sparse `orderLines` in the write response do not, by themselves, justify the extra `GET /invoice/{id}` when the payload already fixed the line fields and the write response totals match the intended VAT outcome
+  - if the first `POST /invoice` on an exact-number existing-product create-only path fails only on the missing-company-bank-account validation, repair `/ledger/account/{id}` and retry the exact same invoice payload once; do not re-read customer, products, or `/ledger/vatType`
+- Standard direct-line VAT note:
+  - for simple direct `orders[].orderLines[]` invoice writes without a product, do not omit line `vatType` just to save the `GET /ledger/vatType` call when the prompt implies a taxable service
+  - persistent sandbox on 2026-03-20 accepted that lower-call write shape but created a no-VAT invoice (`amountCurrency == amountExcludingVatCurrency`)
+  - hardcoding `vatType.id=3` is not the safe shortcut either; accounts that only expose VAT code `6` on `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` reject hardcoded `3` with `422 ... Ugyldig mva-kode.`
+  - the minimum safe path for direct taxable-service lines is still one filtered outgoing VAT read plus the invoice write
+- Standard create-and-send note:
+  - `POST /invoice` defaults `sendToCustomer=true`
+  - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
+  - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
+  - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
+  - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`
+  - if that first `POST /invoice` fails only on the missing-company-bank-account validation, the conditional repair remains `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` on the existing invoice account with minimal payload `{ "bankAccountNumber": "12345678903" }` -> retry the same `POST /invoice` once
+  - do not waste calls on an improvised locally generated bank-account number for that repair branch; one bad `PUT /ledger/account/{id}` only turns the standard 6-call repair path into a rerun
+  - if the customer create already succeeded but process state is lost before the repaired retry, resume on the existing-customer branch rather than attempting `POST /customer` again
+  - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
+  - for ordinary direct-line service prompts explicitly priced excluding VAT / MVA, the same 3-call path is still the safe minimum, but the VAT selector must pick an exact `25%` row from the filtered outgoing result; if the filtered read exposes only `0%`, treat the run as blocked in that account instead of sending a `0%` invoice
+- Standard payment note:
+  - `PUT /order/{id}/:invoice` supports combined prepayment through query params `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
+  - for the exact order-to-invoice-to-full-payment task shape, the lower-call path is to resolve one incoming `paymentTypeId` before invoicing, then pass a minimal positive `paidAmount` seed and the same id as `paymentTypeIdRestAmount`
+  - in persistent sandbox on 2026-03-20, `paidAmount=0` was rejected as effectively missing, while `paidAmount=0.01` with the same `paymentTypeIdRestAmount` settled the full NOK invoice in the same invoice write
+  - when that combined invoice write already returns `amountCurrencyOutstanding=0` or `amountOutstanding=0`, do not spend a separate `PUT /invoice/{id}/:payment`
+  - 2026-03-20 production re-confirmed the exact `Snøhetta AS` / `871844062` / `Webdesign` / `20100` shape with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`, and the invoice write returned `amountExcludingVatCurrency=20100` plus `amountCurrency=25125`
+  - 2026-03-20 persistent sandbox re-check on the same direct-service standard-VAT shape exposed only VAT code `6` (`0%`); omitting `vatType` created `amountCurrency=20100`, and hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
+- Standard fast-path note:
+  - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
+- for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production runs `812449982` + `45300` + `Datarådgjeving`, `973999966` + `40800` + `Conseil en données`, and `882988155` + `40900` + `Heures de conseil`, that two-call path is already minimal; do not add `GET /customer`
+  - once that trusted-standard shape matches, do not spend extra local `openapi.json` confirmation time before acting; follow the standard directly
+  - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
+  - 2026-03-20 production re-confirmed that same payment path for `891380690` + `10100` + `Konsulenttimer`; the invoice write had to pay the live outstanding amount `12625`, not the prompt locator amount `10100`
+  - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
+  - when scoring candidates from `GET /invoice/paymentType`, do not require `name`; persistent sandbox re-proof on 2026-03-20 settled invoice `2147551077` with payment type `32813748` even though `name=null`, so prefer debit-account traits such as `19xx`, `isBankAccount=true`, and `isInvoiceAccount=true`
+  - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
+  - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
+- Standard search note:
+- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
+- if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
+- the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
+- keep exact Unicode when matching localized descriptions on invoice reads; do not ASCII-normalize strings such as `Conseil en données`
+- persistent sandbox can accumulate duplicate unpaid invoice analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`; treat that as sandbox-state noise, not as proof that fresh-account production needs a default `GET /customer`
+- persistent sandbox proof on 2026-03-20 showed that a freshly created paid invoice could be readable on `GET /invoice/{id}` before it appeared in the broader `/invoice?...count=1000...` search; treat that as sandbox proof noise rather than a production reason to add extra resolver calls to exact-match invoice-reversal tasks
+- Standard field note:
+  - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
+  - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; some invoice reads expose no payment-related keys at all, so do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
+  - `GET /invoice/paymentType` can return `name=null` on a perfectly usable incoming bank payment type; do not spend fallback reads or reject the row just because the label is absent
+  - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative payment-style posting with text such as `Betaling: ...`
+  - ignore `account.number` when matching that fallback posting; `1500` is common, but persistent sandbox re-proofs on 2026-03-20 still returned the same winning reverse target with `account=null`
+  - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`
+- Standard credit-note note:
+  - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`
+  - default to `sendToCustomer=false` unless the prompt explicitly requires sending the credit note
+  - when one invoice search already matches on `customer.organizationNumber`, exact ex-VAT amount, and exact line description, treat that read as the resolver; do not spend a follow-up `GET /customer`
+  - the write response can already prove success with `isCreditNote=true` and `creditedInvoice=<original invoice id>`, so an extra `GET /invoice/{id}` is not part of the trusted fast path
+- Standard project-invoice note:
+  - `GET /invoice/details/{id}?fields=*` is useful for diagnosing whether a preliminary project invoice has `includeHours=false`
+  - public verification on 2026-03-20 showed no working write path on `/invoice` or `/invoice/details` to flip that field; `PUT /invoice/{id}` and `PUT /invoice/details/{id}` were method-not-allowed
+  - successful order-to-invoice writes can still leave linked `orders[0].project` sparse or null in the invoice write response; on scored create/update tasks, do not add a default `GET /invoice/{id}` unless the prompt explicitly requires those linked fields or later logic truly depends on them
+
+## Supplier
+- `/supplier`
+  - `GET` search
+  - `POST` create
+- `/supplier/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard create prerequisite:
+  - none
+- Standard fast-path note:
+  - for the exact one-supplier create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical path is one `POST /supplier`
+  - no `GET /supplier` pre-read and no `GET /supplier/{id}` follow-up read are part of the trusted fast path
+  - when the provided base URL already ends in `/v2` without a trailing slash, do not resolve `new URL('supplier', baseUrl)` directly; that can drop `/v2` and turn the intended one-call write into a wasted `404`
+  - the create response can already include `ledgerAccount.id`; reuse it when the next step needs the supplier liability account id
+  - for exact supplier-invoice prompts in real fresh accounts that give supplier business fields but do not say the supplier already exists, the lower-call default is to reuse the same create-one-supplier primitive: `POST /supplier`, then continue the invoice workflow with the returned supplier ids
+  - 2026-03-20 production for `Stormberg AS` / `877462137` / `INV-2026-9382` / `61600` / `6340` / `25%` repeated the same miss: the old lookup-first zero-hit branch wasted one call because the supplier did not exist and still had to be created
+  - use the lookup-first supplier-invoice branch only when the prompt explicitly says the supplier already exists or the run context is retry/persistent enough that duplicate suppliers are a real risk
+  - same-day persistent-sandbox re-proof for `Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` gross / `6340` / `25%` confirmed the create-first supplier-invoice branch closes correctly in `5` calls with no default verification read
+  - after a successful supplier create that is only a prerequisite for a later write, keep the returned supplier ids in memory and finish the rest of the workflow in the same script; do not restart and re-resolve the supplier unless the prompt explicitly identifies an already-existing supplier
+  - if that first write returns `403` with `Invalid or expired token`, treat the run as blocked by credentials rather than by supplier payload shape; do not spend fallback reads or auth-variation retries
+- Standard verification note:
+  - map a single generic prompt email to `email`
+  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirror it into `invoiceEmail` in the same `POST /supplier`; the 2026-03-20 production runs for `Silveroak Ltd` and `Northwave Ltd` plus same-day persistent sandbox re-checks all preserved both email fields in that one write
+  - even so, do not treat mirrored `invoiceEmail` as proof that every hidden scorer field is settled; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`, so avoid spending extra calls on invented address fields or a follow-up `GET`
+  - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
+  - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
+  - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
+  - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
+
+## Travel Expense
+- `/travelExpense`
+  - `GET` search
+  - `POST` create
+- `/travelExpense/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/travelExpense/cost`
+  - `GET` search child costs
+  - `POST` create child cost
+- `/travelExpense/perDiemCompensation`
+  - `GET` search child per-diem rows
+  - `POST` create child per-diem row
+- `/travelExpense/costCategory`
+  - `GET` lookup travel cost categories
+- `/travelExpense/paymentType`
+  - `GET` lookup travel payment types
+- Standard create prerequisites:
+  - employee id
+  - travel payment type id
+  - travel cost category id for each cost row
+  - if per diem is included, `travelDetails.isCompensationFromRates=true`
+- Standard fast-path note:
+  - `POST /travelExpense` can create embedded `costs[]` and `perDiemCompensations[]` in one write
+  - the old 4-call create-only path (`GET /employee`, `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `POST /travelExpense`) can persist an `OPEN` expense but is no longer treated as a trusted full-correctness path for multi-day per-diem tasks
+  - for a deliverable multi-day per-diem travel-expense shape with explicit travel dates, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
+  - that filtered rate search can still return `rateCategory` only as `id`/`url`; trust the query filter itself and do not add `GET /travelExpense/rateCategory/{id}` to recover booleans
+  - if the prompt omits `departureFrom`, first infer it from one concrete location already present on the employee object
+  - if `GET /employee?...fields=*` returns `address=null` but the employee does expose `companyId`, the mechanical deliver branch is one conditional `GET /company/{companyId}?fields=*,address(*)` and reuse of `company.address.city` / `addressLine1` / `displayName` / `addressAsString` as `departureFrom`
+  - `GET /company/{companyId}?fields=*` is not sufficient for that fallback; in persistent sandbox it left `company.address` as a link object, while `fields=*,address(*)` expanded `Oslo`
+  - do not spend repeated employee reads once the first employee lookup already proved identity plus missing address, and do not invent generic placeholders such as `Hjemsted`
+  - if the prompt omits explicit dates as well as `departureFrom`, this is not a trusted exact-match path. Persistent sandbox accepted several delivered Bergen variants with different date ranges and different `departureFrom` values, and a same-day Bodø re-proof with the fixed company-city fallback still accepted both `2026-03-18..2026-03-20` and `2026-03-17..2026-03-19`, so the API does not tell you which inferred final state is scorer-correct.
+  - if a scored run still forces action on that underspecified shape, keep the API flow minimal: employee read, conditional company fallback, lookup reads, rate read, create, deliver. Do not burn extra exploratory reads trying to discover a unique date range that Tripletex does not expose.
+  - for a normal existing-employee expense, do not send `department` unless the prompt explicitly scores another department or live validation requires it
+- Standard verification note:
+  - parent write/read responses can keep `costs[]` and `perDiemCompensations[]` sparse as `id`/`url`
+  - do not trust the `POST /travelExpense` response alone as proof that multi-day per diem is fully correct; manual per-diem rows can persist with `rateType=null` and later fail `:deliver`
+  - `PUT /travelExpense/:deliver` returns `ListResponseTravelExpense`; read the delivered parent object from `values[]`
+  - top-level `amount` and `paymentAmount` can still exclude per diem even after `:deliver`; they are not decisive proof of per-diem correctness
+  - use those two child endpoints only as a conditional investigation branch when a later step needs expanded child fields or the live write response contradicts the intended child counts
+- Related action family also exists:
+  - `/travelExpense/:deliver`
+  - `/travelExpense/{id}/:deliver`
+  - `/travelExpense/:approve`
+  - `/travelExpense/{id}/:approve`
+  - `/travelExpense/{id}/:createVouchers`
+
+## Ledger Account
+- `/ledger/account`
+  - `GET` search
+  - `POST` create
+- `/ledger/account/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard prerequisite note:
+  - this is the canonical bank-account repair endpoint
+  - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, `6300`, `7300`, `6340`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
+  - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
+
+## Ledger Accounting Dimension Name
+- `/ledger/accountingDimensionName`
+  - `GET` list
+  - `POST` create
+- `/ledger/accountingDimensionName/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/ledger/accountingDimensionName/search`
+  - `GET` search
+- Standard create prerequisites:
+  - free-dimension feature enabled
+  - at least one free-dimension slot available
+- Standard create note:
+  - `dimensionName` is validated at max length `20`
+  - the create response can assign `dimensionIndex` `1`, `2`, or `3`; reuse that returned index instead of assuming `1`
+  - if all three free-dimension slots are already occupied, `POST /ledger/accountingDimensionName` can fail with `422` and validation message `Maximum of 3 accounting dimensions allowed`; for create-only tasks, treat that as blocked by account state
+
+## Ledger Accounting Dimension Value
+- `/ledger/accountingDimensionValue`
+  - `POST` create
+- `/ledger/accountingDimensionValue/{id}`
+  - `GET` read
+  - `DELETE` delete
+- `/ledger/accountingDimensionValue/list`
+  - `PUT` batch update
+- `/ledger/accountingDimensionValue/search`
+  - `GET` search
+- Standard create prerequisite:
+  - `dimensionIndex` from the dimension-name create or read flow
+- Standard create note:
+  - the proven minimal create payload can omit `number` and `position`
+  - `/ledger/accountingDimensionValue/list` is `PUT` batch update only, not batch create, so creating two new values still requires two `POST /ledger/accountingDimensionValue` calls
+  - set `showInVoucherRegistration=true` when the next step is voucher registration
+
+## Ledger Posting
+- `/ledger/posting`
+  - `GET` search/read postings
+
+## Ledger Voucher
+- `/ledger/voucher`
+  - `GET` search
+  - `POST` create
+- `/ledger/voucher/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- `/ledger/voucher/{id}/:reverse`
+  - `PUT` reverse
+- Standard correction note:
+  - prefer reverse over ad hoc mutation when task allows
+- Standard create note:
+  - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
+  - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
+  - number-only account refs on voucher postings are not the trusted fast path
+  - for payroll fallback prompts that explicitly allow manual vouchers on the `5000` series, the proven low-call resolver is `GET /ledger/account?number=5000,1920&fields=*` and the proven payload is a balanced two-line voucher with the gross salary amount on account `5000` and the negative balancing line on `1920`
+  - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
+  - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
+  - on 2026-03-20 persistent sandbox re-verification, `GET /ledger/account?number=5000,1920&fields=*` returned both accounts and the next `POST /ledger/voucher` with balanced `50600` / `-50600` salary-cost postings succeeded
+  - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
+- Standard verification note:
+  - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
+  - for the exact supplier-invoice shape that scores a real supplier invoice, the fresh-account default is supplier write, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
+  - if that same supplier-invoice shape explicitly points to an already-existing supplier, or the run context is retry/persistent, use supplier lookup instead of the supplier write as the first step
+  - the 2026-03-20 persistent-sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` / `6500` / `25%` confirmed the create-first branch at `5` calls and again showed no default verification read is needed after the final voucher write
+  - the older lookup-first zero-hit re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` / `6300` / `25%` still matters only as a retry/persistent-account fallback; it is no longer the default fresh-account path
+  - in that supplier-invoice shape, if the incoming-VAT read returns several rows with the requested percentage, prefer the plain numeric base code over derived rows such as `TAP-1`, and do that selection locally without restarting the workflow
+  - for the imported-voucher update branch, send only `version` and `postings`; imported header fields such as `description` and `vendorInvoiceNumber` are not safely mutable afterwards

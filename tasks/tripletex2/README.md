@@ -16,6 +16,8 @@ The core architectural move is to treat each task as a strategy optimization pro
 
 - `docs/architecture.md` — the north star and system model
 - `docs/strategy-contract.md` — what a strategy is and how it must be standardized
+- `docs/trusted-standards/` — copied Tripletex1 low-risk reference flows for strategy implementation
+- `docs/task-playbooks/` — copied Tripletex1 broader task-flow references for strategy work
 - `docs/run-log-spec.md` — canonical run evidence format
 - `docs/research-workflow.md` — how strategy search and iteration should work
 
@@ -61,6 +63,8 @@ That is why deterministic per-task strategies are the center of gravity.
 
 - `train_requests/` — flattened request corpus used for prompt analysis and replay shape understanding
 - `docs/` — the canonical architectural and process doctrine for this repo
+- `docs/trusted-standards/` — copied Tripletex1 trusted reference flows for agent strategy authors
+- `docs/task-playbooks/` — copied Tripletex1 task playbooks kept as reference docs
 - `scripts/` — importers, replay harness, reporting CLI, and smoke tools
 - `src/` — the deterministic runtime, task registry, strategies, and `/solve` server
 - `configs/` — active strategy selection configs
