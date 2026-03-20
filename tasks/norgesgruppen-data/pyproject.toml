@@ -1,0 +1,10 @@
+[project]
+name = "norgesgruppen-data"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "onnx>=1.20.1",
+    "ultralytics>=8.4.24",
+]

@@ -1,0 +1,5 @@
+data/
+yolo/dataset/
+runs/
+
+yolo*.pt
