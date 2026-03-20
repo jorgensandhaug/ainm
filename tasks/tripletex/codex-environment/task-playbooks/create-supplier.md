@@ -32,6 +32,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection Supplier 321000002`, `321000002`, and `supplier-321000002@example.no`; the single `POST /supplier` returned supplier `id=108246490`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
 - re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; the single `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
 - re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; the single `POST /supplier` returned supplier `id=108247477`, preserved all scored fields, and kept `invoiceEmail=""`
+- re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; the single `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, and kept `invoiceEmail=""`
 
 ## Minimal Flow
 
@@ -84,6 +85,7 @@ This was verified in sandbox:
 ## Email Mapping For Standard Supplier Creates
 
 - If the prompt gives one generic email address such as `Email` or `E-post`, map it to `email`
+- Treat localized generic labels such as `Correo electrónico` the same way; they still map to `email`
 - If that lone contact address merely looks invoice-oriented, such as `faktura@...`, still map it to `email`
 - Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
 - A single prompt email does not justify inventing a separate invoice-delivery email field
