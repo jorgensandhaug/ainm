@@ -1,0 +1,41 @@
+{
+  "dataset_fingerprint": "8626384ccc2df93fd267ef2708846d02f87f87737d5cd88eaa300c178053d2a3",
+  "dataset_id": "tripletex_request_dataset_v1",
+  "deduped_example_count": 18,
+  "duplicate_group_count": 0,
+  "duplicate_run_count": 0,
+  "excluded_request_fields": [
+    "tripletex_credentials"
+  ],
+  "fingerprint_logic": {
+    "attachment_fingerprint_inputs": [
+      "file order",
+      "filename normalized with Unicode NFC and trimmed",
+      "mime type lowercased when present",
+      "attachment bytes SHA-256"
+    ],
+    "dedupe_scope": "exact duplicates after conservative normalization only",
+    "near_duplicate_heuristics_applied": false,
+    "prompt_normalization": [
+      "Unicode NFC normalization",
+      "CRLF/CR converted to LF",
+      "trailing whitespace stripped per line",
+      "leading and trailing blank space stripped"
+    ],
+    "schema_version": 1
+  },
+  "input_root": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs",
+  "input_run_count": 18,
+  "latest_source_created_at": "2026-03-20T09:22:44.081Z",
+  "output_files": [
+    "duplicate_groups.json",
+    "examples.jsonl",
+    "manifest.json",
+    "report.md",
+    "source_index.jsonl"
+  ],
+  "output_root": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/data/curated/request_dataset_v1",
+  "run_id_index_fingerprint": "7c2efa740fba04a18db95bded8c21568e0dd41e9c6ee1fb1fe685e9be68d4941",
+  "schema_version": 1,
+  "source_attachment_count": 0
+}
