@@ -33,12 +33,14 @@
 - blocked path:
   - one decisive `GET /employee?email=...&count=10&fields=*`
   - if the exact employee match already shows missing `dateOfBirth`, stop immediately
+  - do not spend `/employee/employment`, `/salary/type`, `/salary/settings`, or company-module calls after that decisive blocker
 - successful path:
   - usually `GET /employee`
   - conditionally `GET /employee/employment` only when the employee search response keeps the employments too sparse to judge the payroll period
   - `GET /salary/type?count=1000&fields=*`
   - `POST /salary/transaction`
 - do not spend a salary-type lookup after the employee read already proves the run is blocked
+- do not add speculative salary-feature activation or `/salary/settings` reads to the exact payroll fast path; only investigate feature state after a live permission error
 - do not spend `GET /employee/employment/details` just because `employmentDetails[]` or `latestSalary` stay sparse; the trusted decisive check is active employment plus division-backed payroll setup
 
 ## Payload Rules
@@ -91,19 +93,19 @@
 - do not call `GET /salary/type` before confirming the employee is payroll-ready
 - do not assume `GET /employee?fields=*` always expands employment dates or division data
 - do not spend a speculative payroll write just to discover missing prerequisites
+- do not add speculative `/salary/settings` or company-module activation calls when the first employee read already proves the blocker
 - do not include `department` blindly
 - do not rely on `GET /salary/payslip/{id}?fields=*` alone for exact per-line verification
 
 ## OpenAPI / Sandbox Status
 - `/employee`, `/employee/employment`, `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, and `/salary/payslip/{id}` verified in `./openapi.json`
-- production re-verified on 2026-03-20 for the exact `joao.santos@example.org` payroll prompt:
-  - one decisive `GET /employee?email=joao.santos@example.org&count=10&fields=*` returned the exact employee match with `dateOfBirth=null`
+- production re-verified on 2026-03-20 for the exact `marie.becker@example.org` payroll prompt:
+  - one decisive `GET /employee?email=marie.becker@example.org&count=10&fields=*` returned the exact employee match with `dateOfBirth=null`
   - that single read was sufficient to treat the run as blocked and avoid all later payroll calls
 - persistent sandbox re-verified on 2026-03-20 for the successful path:
-  - `GET /employee?count=1000&fields=*` returned employee `id=18564428` with `dateOfBirth=1990-01-01`, but its embedded employment on the employee object was too sparse to judge readiness
+  - `GET /employee?id=18564428&count=10&fields=*` returned employee `id=18564428` (`payroll-proof-469473@example.org`) with `dateOfBirth=1990-01-01`, but its embedded employment on the employee object was too sparse to judge readiness
   - one conditional `GET /employee/employment?employeeId=18564428&count=20&fields=*` expanded `startDate=2026-03-01`, `division.id=108244568`, and existing payroll setup links
   - `GET /salary/type?count=1000&fields=*` resolved `Fastlønn id=69031179` and `Bonus id=69031348`
-  - `POST /salary/transaction` for April 2026 with amounts `40350` and `5850` created `salaryTransaction.id=6956534`
-  - `GET /salary/transaction/6956534?fields=*` returned `payslip.id=32627552`
-  - `GET /salary/payslip/32627552?fields=*` proved `grossAmount=46200`, `amount=46200`, and `specifications.length=2`
-  - `GET /salary/payslip/32627552?fields=*,specifications(*,salaryType(*))` proved the exact lines `Fastlønn amount=40350` and `Bonus amount=5850`
+  - `POST /salary/transaction` for June 2026 with amounts `44150` and `16200` created `salaryTransaction.id=6956592`
+  - `GET /salary/transaction/6956592?fields=*` returned `payslip.id=32627610`
+  - `GET /salary/payslip/32627610?fields=*,specifications(*,salaryType(*))` proved `grossAmount=60350`, `amount=60350`, and the exact lines `Fastlønn amount=44150` and `Bonus amount=16200`

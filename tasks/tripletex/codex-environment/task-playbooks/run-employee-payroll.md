@@ -16,12 +16,13 @@ Do not use for:
 ## Verified Findings
 
 Production failure analysis on 2026-03-20 showed:
-- for the exact prompt targeting `joao.santos@example.org`, one decisive `GET /employee?email=...&count=10&fields=*` returned the exact employee match with `dateOfBirth=null`
+- for the exact prompt targeting `marie.becker@example.org`, one decisive `GET /employee?email=...&count=10&fields=*` returned the exact employee match with `dateOfBirth=null`
 - that single read was sufficient to treat the run as blocked
-- therefore the original run should not have continued into `GET /salary/type`, `POST /salary/transaction`, or any guessed employee-repair flow
+- therefore the original run should not have continued into `GET /employee/employment`, `GET /salary/type`, `POST /salary/transaction`, or any guessed employee-repair flow
 - if the prompt does not provide missing personal or payroll-setup data, do not invent `dateOfBirth`, employment setup, or division/business linkage
 
 Persistent-sandbox verification on 2026-03-20 proved the successful path:
+- the same task shape with the exact manual amounts `44150` and `16200` succeeded without any salary-feature activation or `/salary/settings` preflight step
 - `POST /salary/transaction` succeeded with embedded manual payslip specifications for `Fastlønn` and `Bonus`
 - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
 - one conditional `GET /employee/employment?employeeId=...&fields=*` expanded the decisive payroll facts for the proof employee:
@@ -54,6 +55,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - exact-match the email locally because the API filter is containing, not exact
 3. Check payroll prerequisites from that same employee object before any salary write
    - `dateOfBirth` must be present
+   - if `dateOfBirth` is already missing on that first employee read, stop immediately and skip any speculative feature/module investigation
    - if the employee object already expands the employment dates and payroll setup enough to judge the requested payroll period, reuse that data directly
 4. Only if the embedded employee employments are too sparse to judge the payroll period, do one conditional employment read
    - `GET /employee/employment?employeeId=<employeeId>&count=20&fields=*`
@@ -66,6 +68,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 6. Resolve salary types with one read
    - `GET /salary/type?count=1000&fields=*`
    - exact-match the needed type names locally, typically `Fastlønn` and `Bonus`
+   - do not preflight `/salary/settings` or company-module endpoints on this exact task shape; only investigate feature state after a live `403` permission error
 7. Create the payroll transaction
    - `POST /salary/transaction`
    - include:
@@ -184,6 +187,7 @@ Replace the ids and amounts with the task-specific values.
 - Do not jump straight to `POST /salary/transaction` without first checking whether the target employee is payroll-ready
 - Do not invent `dateOfBirth` for an existing employee when the prompt never supplied it
 - Do not treat sparse `employee.employments[]` on `GET /employee?fields=*` as proof that no employment exists; do one conditional `GET /employee/employment?employeeId=...&fields=*` first
+- Do not speculate about missing salary-module activation when the first employee read already proves the blocker
 - Do not guess a business/sub-entity setup just because payroll validation mentions `virksomhet`
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the task is blocked on missing prerequisites

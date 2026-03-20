@@ -79,8 +79,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - resolved salary-type ids
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
-  - the winning blocked path can be one decisive employee read
+  - the winning blocked path can be one decisive employee read; if that read already shows `dateOfBirth=null`, stop before `/employee/employment`, `/salary/type`, `/salary/settings`, or company-module investigation
   - the winning successful path is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
+  - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response
 - Standard verification note:
   - `GET /salary/payslip/{id}?fields=*` is enough for `grossAmount`, `amount`, and `specifications.length`
   - `GET /salary/payslip/{id}?fields=*` can still keep individual `specifications[]` as link-only objects
