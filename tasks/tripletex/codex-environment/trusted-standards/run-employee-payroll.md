@@ -9,6 +9,7 @@
 - run payroll for one existing employee identified by email
 - prompt gives one target month explicitly or implies the current run month
 - prompt gives one base salary amount and optionally one one-off bonus or other manual salary line
+- prompt may also explicitly allow manual-voucher fallback on payroll accounts in the `5000` series if the payroll path cannot be completed
 - task is to create the payroll transaction, and the score is on the resulting payroll side effect rather than on keeping the employee card untouched
 
 ## Do Not Use This Standard If
@@ -43,11 +44,17 @@
 - underconfigured-employee branch:
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do not stop
-  - `GET /salary/type?count=1000&fields=*`
-  - `GET /division?count=1&fields=*`
+  - when the prompt explicitly allows manual-voucher fallback, do `GET /division?count=1&fields=*` before `GET /salary/type`
+  - if that division read returns one usable division, continue with `GET /salary/type?count=1000&fields=*`
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment`
   - `POST /salary/transaction`
+- explicit-fallback no-division branch:
+  - `GET /employee?email=...&count=10&fields=*`
+  - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do `GET /division?count=1&fields=*`
+  - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type`
+  - `GET /ledger/account?number=5000,1920&fields=*`
+  - `POST /ledger/voucher` with one positive posting on account `5000` and one negative balancing posting on `1920` for the gross salary cost
 - use `GET /salary/type` as both the salary-type lookup and the wage-feature probe; if that read fails with a live `403`, only then investigate `/salary/settings` or `/company/salesmodules`
 - do not spend `GET /employee/employment/details` or `POST /employee/employment/details` by default; the 2026-03-20 persistent sandbox repair proof reached a successful manual-line payroll run without it
 
@@ -66,6 +73,10 @@
   - `rate`
   - `amount`
 - omit `department` unless the prompt explicitly scores it and the account clearly supports department accounting
+- for the explicit manual-voucher fallback branch:
+  - resolve account ids through `GET /ledger/account?number=5000,1920&fields=*`
+  - on `POST /ledger/voucher`, send `voucherType: null`
+  - create a balanced two-line voucher with the gross salary cost as positive `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` on account `5000`, and the same negative values on account `1920`
 
 ## Reuse From Read And Write Responses
 - from `GET /employee`:
@@ -81,6 +92,9 @@
 - from `GET /salary/type`:
   - `Fastlønn` id
   - `Bonus` id
+- from `GET /ledger/account?number=5000,1920&fields=*` in the explicit fallback branch:
+  - `5000` account id
+  - `1920` account id
 - from `PUT /employee/{id}` in the repair branch:
   - the repaired `dateOfBirth`
 - from `POST /employee/employment` in the repair branch:
@@ -88,6 +102,10 @@
 - from `POST /salary/transaction`:
   - transaction id
   - any already-returned payslip ids or computed totals
+- from `POST /ledger/voucher` in the explicit fallback branch:
+  - voucher id
+  - voucher number
+  - returned postings with the chosen account ids and amounts
 
 ## Verification
 - default verification is zero extra calls beyond the write when `response.value` already proves the scored fields
@@ -104,9 +122,12 @@
   - `GET /division?count=1&fields=*`
   - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   - `POST /employee/employment` with `division.id`, first day of payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
+- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt explicitly allows manual vouchers, switch directly to:
+  - `GET /ledger/account?number=5000,1920&fields=*`
+  - `POST /ledger/voucher`
 - if `POST /salary/transaction` fails with `department: Selskapet har ikke aktivert avdelingsregnskap.`, remove `department` from the salary payload and retry once
 - if `GET /salary/type`, `GET /salary/settings`, or `POST /salary/transaction` fails with a live `403`, investigate feature state; do not assume the employee-precondition branch and the feature-access branch are the same problem
-- if there is still no usable division or the prompt explicitly scores employee master data, treat the run as blocked rather than guessing additional employee fields beyond the placeholder birth date
+- if there is still no usable division and the prompt does not explicitly allow manual vouchers, or the prompt explicitly scores employee master data, treat the run as blocked rather than guessing additional employee fields beyond the placeholder birth date
 
 ## Pitfalls To Avoid
 - do not stop on `dateOfBirth=null` plus `employments=[]` by default for the exact side-effect-scored task-12-like payroll shape; that heuristic produced repeated `0/8` results on 2026-03-20
@@ -115,6 +136,8 @@
 - do not add speculative `/salary/settings` or company-module activation calls before a live `403` from salary endpoints
 - do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - do not include `department` blindly
+- when the prompt explicitly allows manual vouchers and the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call
+- do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - do not rely on `GET /salary/payslip/{id}?fields=*` alone for exact per-line verification
 
 ## OpenAPI / Sandbox Status
@@ -137,3 +160,10 @@
   - `POST /employee/employment` with existing `division.id=108244568`, `startDate=2026-03-01`, `isMainEmployer=true`, and `taxDeductionCode=loennFraHovedarbeidsgiver` succeeded
   - `POST /salary/transaction` for March 2026 with amounts `40350` and `7350` then succeeded without any `POST /employee/employment/details`
   - the resulting payslip proved `grossAmount=47700`, `amount=47700`, `Fastlønn amount=40350`, and `Bonus amount=7350`
+- production reflection on 2026-03-20 for `Jonas Hansen` / `jonas.hansen@example.org` / `40000` + `10600` exposed a new fallback branch:
+  - `GET /employee?email=jonas.hansen@example.org&count=10&fields=*` showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows, so the payroll repair branch could not be completed in that account
+  - because the prompt explicitly allowed manual vouchers, the lower-call replacement path was not to restart or probe salary types first, but to continue with one `GET /ledger/account?number=5000,1920&fields=*` and one `POST /ledger/voucher`
+- persistent sandbox re-verification on 2026-03-20 for that fallback path showed:
+  - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
+  - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`

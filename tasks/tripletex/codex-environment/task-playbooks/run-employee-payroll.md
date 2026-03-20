@@ -44,6 +44,13 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - `POST /employee/employment` with existing `division.id`, first day of payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
   - `POST /salary/transaction` then succeeds for the exact `40350` + `7350` salary shape
   - `POST /employee/employment/details` was not required for that repaired employee to reach a successful manual-line payroll run
+- production reflection on 2026-03-20 for `Jonas Hansen` / `jonas.hansen@example.org` / `40000` + `10600` exposed a lower-call fallback branch when the prompt explicitly allows manual vouchers:
+  - the first employee read showed one exact employee with `dateOfBirth=null` and `employments=[]`
+  - the next decisive `GET /division?count=1&fields=*` returned zero rows, so the payroll repair branch could not be completed in that account
+  - the winning replacement path was not to restart or probe salary types first, but to continue with `GET /ledger/account?number=5000,1920&fields=*` and `POST /ledger/voucher`
+- persistent sandbox re-verification on 2026-03-20 showed that fallback payload works as expected:
+  - `GET /ledger/account?number=5000,1920&fields=*` returned both account `5000 id=424191048` and account `1920 id=424190862`
+  - `POST /ledger/voucher` with balanced `50600` / `-50600` postings on those two accounts succeeded with voucher `608864713`
 
 ## Minimal Safe Flow
 
@@ -75,7 +82,8 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - exact-match the needed type names locally, typically `Fastlønn` and `Bonus`
    - treat that read as both the salary-type lookup and the wage-feature probe; only investigate `/salary/settings` or `/company/salesmodules` after a live `403`
 6. If the employee still lacks payroll prerequisites and the missing state is only the standard underconfigured branch, repair once
-   - `GET /division?count=1&fields=*`
+   - normally `GET /division?count=1&fields=*`
+   - if the prompt explicitly allows manual-voucher fallback and the employee read already shows `dateOfBirth=null` plus `employments=[]`, resolve `division` before `salary/type`; an empty division result makes the salary-type read unnecessary
    - if `dateOfBirth` is missing, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
    - `POST /employee/employment` with:
      - `employee.id`
@@ -84,6 +92,9 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - `isMainEmployer: true`
      - `taxDeductionCode: "loennFraHovedarbeidsgiver"`
    - do not add `POST /employee/employment/details` by default in this exact repair branch
+   - if `GET /division?count=1&fields=*` returns zero rows and the prompt explicitly allows manual vouchers, switch directly to:
+     - `GET /ledger/account?number=5000,1920&fields=*`
+     - `POST /ledger/voucher` with `voucherType=null` and a balanced two-line gross-salary booking on `5000` and `1920`
 7. Create the payroll transaction
    - `POST /salary/transaction`
    - include:
@@ -159,11 +170,16 @@ Replace the ids and amounts with the task-specific values.
   4. `POST /salary/transaction`
 - for the exact task-12-like branch where the first employee read shows `dateOfBirth=null` and `employments=[]`, the lower-zero-risk path is:
   1. `GET /employee?email=...&count=10&fields=*`
-  2. `GET /salary/type?count=1000&fields=*`
-  3. `GET /division?count=1&fields=*`
+  2. if the prompt explicitly allows manual vouchers, `GET /division?count=1&fields=*` before `GET /salary/type`
+  3. if that division read returns one usable row, `GET /salary/type?count=1000&fields=*`
   4. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   5. `POST /employee/employment`
   6. `POST /salary/transaction`
+- for the exact fallback-permitted no-division branch, the lower-call path is:
+  1. `GET /employee?email=...&count=10&fields=*`
+  2. `GET /division?count=1&fields=*`
+  3. if that division read returns zero usable rows, `GET /ledger/account?number=5000,1920&fields=*`
+  4. `POST /ledger/voucher`
 - only add the verification branch if the write response does not already prove the created payroll transaction strongly enough
 - only branch into feature/module investigation after a live `403`, not just because the employee is underconfigured
 
@@ -218,4 +234,6 @@ Replace the ids and amounts with the task-specific values.
 - Do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
+- When the prompt explicitly allows manual vouchers and the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call
+- Do not restart the whole workflow after `GET /division?count=1&fields=*` returns zero rows; switch straight into the manual-voucher fallback branch if the prompt allows it
 - Do not rely on `GET /salary/payslip/{id}?fields=*` alone when the task scores the exact manual salary-line contents
