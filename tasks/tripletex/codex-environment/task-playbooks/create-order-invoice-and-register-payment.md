@@ -35,6 +35,7 @@ Exact-match tasks should now prefer the trusted standard:
   - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` returned both target products
   - `GET /product?ids=<id-a>,<id-b>&fields=*` also returned both target products
   - therefore, for numeric product refs in the prompt, product-number lookup is a good first try and one fallback ID lookup is enough if needed
+  - if the first `productNumber` lookup misses one ref, do not let a name-only match from that same partial response count as success; keep exact-name matching as the final fallback after both numeric reads miss
 - additional production verification on 2026-03-20 showed two more traps:
   - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice
@@ -55,6 +56,14 @@ Exact-match tasks should now prefer the trusted standard:
   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
   - `PUT /invoice/{id}/:payment?...`
   - the prompt line-price sum excluding VAT was `26450`, but the actual payment amount from the invoice response was `33062.5`; `Betalt til bank` again settled the invoice to `0`
+- persistent-sandbox re-verification on 2026-03-20 confirmed the same downstream exact-match path for customer `864062245` and products `6749` / `3048` once those entities existed in the sandbox:
+  - `GET /customer?organizationNumber=864062245&fields=*`
+  - `GET /product?productNumber=6749&productNumber=3048&fields=*`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `PUT /invoice/{id}/:payment?...`
+  - the invoice response exposed `paidAmount=12650`, payment type `32813748` (`Betalt til bank` / debit account `1920`), and the payment write settled the invoice to `0`
 
 ## Minimal Flow
 
@@ -175,6 +184,7 @@ Exact-match tasks should now prefer the trusted standard:
 - If both numeric reads fail and the prompt also gives exact product names, one final decisive fallback is allowed:
   - `GET /product?count=1000&fields=*`
   - filter locally by exact prompt names
+- Do not let a name-only match from the initial `productNumber` response count as success for a still-missing numeric ref
 - Do not spray multiple exploratory `/product` reads after that final fallback
 - Reuse the resolved product objects for IDs and any needed VAT context
 

@@ -65,6 +65,7 @@
 - if the first product-number lookup only partially resolves:
   - try one fallback `GET /product?ids=...&fields=*`
   - only then consider one final `GET /product?count=1000&fields=*` name-filter fallback
+  - do not let a name-only match from the first product-number read count as resolution for a missing numeric ref
 - if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
@@ -83,4 +84,5 @@
   - `PUT /order/{id}/:invoice`
   - `GET /invoice/paymentType`
   - `PUT /invoice/{id}/:payment`
+- re-verified on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; once those exact entities existed, the downstream exact-match path again completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`
 - production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance
