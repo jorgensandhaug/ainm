@@ -20,8 +20,10 @@
 ## Standard Flow
 1. resolve customer with one decisive `GET /customer?...&fields=*` if needed
 2. resolve existing products only if prompt clearly references existing products
+   - if the prompt clearly gives exact product numbers, prefer one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
    - if the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, prefer one decisive `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or product `name`
-   - only fall back to `GET /product?productNumber=...` and `GET /product?ids=...` if that catalog read is ambiguous, truncated for the account, or the prompt lacks exact product names
+   - only fall back from the direct numeric query or catalog read to the next resolver if the earlier read is ambiguous, truncated for the account, or the prompt lacks exact product names
+   - only spend `GET /product?ids=...` if the earlier resolver still leaves the products unresolved
 3. if the prompt gives exact VAT rates and the resolved product read does not itself expose enough VAT detail, resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
 4. `POST /invoice?sendToCustomer=false`
 5. only if the write response omits decisive totals or later logic truly needs readback-only line details, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
@@ -64,7 +66,9 @@
 ## OpenAPI / Sandbox Status
 - `/invoice`, `/ledger/account`, and related invoice family endpoints verified in `./openapi.json`
 - flow and bank-account repair proven in sandbox/playbooks
+- production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=827304212` with product numbers `6744`, `2584`, `3739` and VAT mix `25%` / `15%` / `0%` showed that `GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false` was already the minimum successful API path; the only failure was a local gross-total assertion bug after the successful write, not an API-flow error
 - production reflection on 2026-03-20 for the exact prompt shape `customer.organizationNumber=925760838` with products labeled `(3644)`, `(4934)`, `(8806)` plus exact names showed that two numeric product-resolver reads were wasted before a later catalog read settled the products; the lower-call replacement for that shape is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
 - re-verified on 2026-03-20 in persistent sandbox that `GET /product?productNumber=...&fields=*` can return `vatType` only as a link object (`id`/`url`), so explicit-VAT prompts may still need one filtered outgoing `vatType` lookup before the invoice write
 - re-verified on 2026-03-20 in persistent sandbox that `POST /invoice?sendToCustomer=false` can return sparse `orderLines` while still returning decisive totals; when the create payload already fixes the scored line fields, that write response is enough for the minimal create-only path
+- re-verified on 2026-03-20 in persistent sandbox with the exact customer/product-number shape `827304212` + `6744/2584/3739` that the proof path is still `GET /customer` -> `GET /product?productNumber=...` -> `GET /ledger/vatType` -> `POST /invoice?sendToCustomer=false`; that sandbox account exposed only outgoing VAT `0%`, so the exact mixed `25%` / `15%` / `0%` write could not be replayed there and only a 0%-analog invoice could be proven in-account
 - re-verified again on 2026-03-20 in persistent sandbox with a disposable analog that exact-name product resolution plus `GET /ledger/vatType` plus `POST /invoice?sendToCustomer=false` completes the proof path in four calls after setup; that sandbox account still exposed only `0%` outgoing VAT, so mixed `25%` / `15%` / `0%` could not be replayed there
