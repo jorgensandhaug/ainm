@@ -47,6 +47,13 @@ Exact-match tasks should now prefer the trusted standard:
   - `POST /order`
   - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=36030207&paidAmount=0.01&paymentTypeIdRestAmount=36030207`
   - that run needed no `/ledger/account` repair branch and the invoice write returned outstanding `0`
+- same-day production verification on 2026-03-20 for the exact Norwegian prompt `Vestfjord AS` / `970769994` / `Nettverksteneste (3237)` / `Analyserapport (4609)` / prices `13450` + `14200` re-confirmed that same uncached 5-call path on a second prompt family:
+  - `GET /customer?organizationNumber=970769994&fields=*`
+  - `GET /product?productNumber=3237&productNumber=4609&fields=*`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=<resolved>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`
+  - that run also needed no `/ledger/account` repair branch and the invoice write returned outstanding `0`
 - paired with the same-day persistent-sandbox proof for the same customer/product refs, this also confirmed that `paymentTypeId` is environment-specific: sandbox used `32813748`, production used `36030207`; keep resolving `/invoice/paymentType` dynamically unless the same run already holds a proven reusable id
 - persistent-sandbox verification on 2026-03-20 showed a lower-call replacement for the old split invoice/payment tail:
   - `PUT /order/{id}/:invoice` accepts `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
@@ -121,7 +128,7 @@ Exact-match tasks should now prefer the trusted standard:
 7. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
-   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+   - `PUT /ledger/account/{id}` with the minimal payload `{ "bankAccountNumber": "12345678903" }`
    - retry `PUT /order/{id}/:invoice?...` on the same order
 8. Reuse the invoice write response
    - verify `amountCurrencyOutstanding` first, otherwise `amountOutstanding`

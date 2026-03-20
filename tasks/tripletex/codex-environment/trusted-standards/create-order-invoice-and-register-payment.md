@@ -70,7 +70,7 @@
   - do not let a name-only match from the first product-number read count as resolution for a missing numeric ref
 - if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
-  - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
+  - update the existing invoice bank account with `PUT /ledger/account/{id}` using the minimal payload `{ "bankAccountNumber": "12345678903" }`
   - retry the same `PUT /order/{id}/:invoice?...` once
   - do not create a second order
 - if the combined invoice-and-payment write rejects the seed-payment shape for an unexpected account-specific reason after the invoice already exists:
@@ -100,6 +100,13 @@
   - `POST /order`
   - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`
   - the invoice write returned `amountCurrencyOutstanding=0` directly, so the extra `PUT /invoice/{id}/:payment` call was unnecessary
+- same-day production re-verification on 2026-03-20 for the exact Norwegian prompt `Vestfjord AS` / `970769994` / `Nettverksteneste (3237)` / `Analyserapport (4609)` / prices `13450` + `14200` also finished on the plain 5-call path with no `/ledger/account` repair branch:
+  - `GET /customer?organizationNumber=970769994&fields=*`
+  - `GET /product?productNumber=3237&productNumber=4609&fields=*`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=<resolved>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`
+  - the invoice write returned outstanding `0`, so no extra payment or verification call was needed
 - same-day production re-verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` completed in the same 5-call path with payment type `36030207` and no `/ledger/account` repair branch
 - that paired production+sandbox proof confirms the flow is stable but the incoming `paymentTypeId` is still account-specific; do not hardcode the earlier sandbox id `32813748` into production or another environment
 - the same sandbox proof also showed that `GET /product?productNumber=...&fields=*` can return the matched product ref under `number` instead of `productNumber`; resolvers must normalize both
