@@ -151,7 +151,7 @@ For ordinary direct-line service prompts that are explicitly priced excluding VA
 - use the filtered outgoing VAT read
 - choose an exact `25%` row, not the first returned row
 - if the filtered result exposes only `0%`, treat the run as blocked in that account instead of downgrading the invoice to `0%`
-- French `hors TVA` belongs to this taxed ex-VAT branch. Do not misread it as `sans TVA` / `0%`.
+- French `hors TVA` and Norwegian `eksklusiv MVA` belong to this taxed ex-VAT branch. Do not misread them as `sans TVA` / `0%`.
 
 This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 
@@ -164,6 +164,7 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 - on that sandbox account, hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
 - on the analogous sandbox probe `944164341` / `Service reseau` / `44750`, omission again created a wrong untaxed `44750` total and hardcoded `vatType.id=3` again failed with `422 ... Ugyldig mva-kode.`
 - on the later same-day sandbox analog `Lumière Reflection b9572091 SARL` / `957223729`, the filtered outgoing VAT read still exposed only code `6` (`0%`), and omitting `orderLines[].vatType` on the exact `34100` line again created a wrong untaxed `34100` total, so that sandbox state remained blocked for the taxed branch rather than a lower-call replacement
+- on the same-day sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850`, the filtered outgoing VAT read for `2026-03-20` still exposed only code `6` (`0%`), so the exact Norwegian `eksklusiv MVA` branch remained blocked there rather than a valid no-VAT shortcut
 
 ## Important Constraints
 

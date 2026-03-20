@@ -74,6 +74,7 @@
 - the same exact no-VAT branch also covers Portuguese wording such as `sem IVA`; the 2026-03-20 production run for `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` used the same `3` calls and did not need `GET /customer` or `PUT /invoice/{id}/:send`
 - for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
 - French wording such as `hors TVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` succeeded in the canonical `3` calls, while the same-day persistent sandbox still exposed only `0%`, produced a wrong untaxed `44750` total when `vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422`.
+- Norwegian wording such as `eksklusiv MVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 persistent-sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` still exposed only VAT code `6` (`0%`) on the filtered outgoing VAT read for `2026-03-20`, so that sandbox state remains blocked for the taxed branch rather than a valid lower-call shortcut.
 
 ## OpenAPI / Sandbox Status
 - `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -94,6 +95,7 @@
   - the same-day persistent sandbox re-check on analogous org `944164341` again exposed only VAT code `6`, created a wrong untaxed `44750` total when `orderLines[].vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422 Ugyldig mva-kode.`
   - the later same-day French production run `Lumière SARL` / `959714320` / `Stockage cloud` / `34100` again finished on the same exact `3` calls and preserved the Unicode customer name exactly as prompted
   - the same-day persistent sandbox analog `Lumière Reflection b9572091 SARL` / `957223729` still exposed only VAT code `6` (`0%`); for that exact `34100` line, omitting `orderLines[].vatType` created a wrong untaxed `34100` total, so that sandbox account remains blocked for the taxed branch rather than a valid shortcut
+  - the same-day persistent sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` re-confirmed that Norwegian wording `eksklusiv MVA` follows the same taxed branch: after the standard `POST /customer`, the filtered outgoing VAT read for `2026-03-20` still exposed only code `6` (`0%`), so that sandbox account remained blocked for the taxed branch rather than a no-VAT fallback
 - exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
   - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
   - the filtered VAT read returned only code `6` (`0%`)
