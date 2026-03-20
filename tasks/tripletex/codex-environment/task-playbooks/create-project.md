@@ -32,6 +32,8 @@ Production verification on 2026-03-20 additionally showed:
 - the original run did not waste any API calls
 - the Norwegian prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Havbris AS` / `999148387` / `henrik.degard@example.org`
 - in that Norwegian production proof, the manager prompt name used `Ø` while the email local-part used ASCII `degard`; the exact-email match from the filtered employee read was still sufficient, so no extra name-based disambiguation read was needed
+- the French prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Migration Lumière` / `Lumière SARL` / `849572458` / `nathan.dubois@example.org`
+- in that French production proof, the Unicode `è` in both project and customer names did not justify any extra resolver read once the exact `organizationNumber` hit and exact `email` hit were already found
 
 ## Minimal Safe Flow
 
@@ -93,7 +95,7 @@ Use ISO date for `startDate`.
 - Do not treat a missing prompt date as permission to skip `startDate`; default it to the run date
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try the write blindly
 - Do not try to save one call by sending nested customer details on `POST /project`; that branch can return `201` and still leave the project unlinked from the customer
-- Do not try to save one call by sending manager name/email fields without `projectManager.id`; current sandbox proof still rejects that branch
+- Do not try to save one call by sending manager name/email fields without `projectManager.id`; current sandbox proof still rejects that branch, and a manager-email-only write failed specifically with `422 projectManager.firstName: Kan ikke være null.` plus `projectManager.lastName: Kan ikke være null.`
 - Do not spend pre-write `./openapi.json` re-checking when the trusted standard already matches this exact task shape
 - Do not make prompt `customer.name` or manager name a hard requirement once one exact `organizationNumber` or exact `email` hit already exists; that only creates avoidable false negatives and repeat reads
 - Do not spend a verification read if the `POST /project` response already proves the requested links
