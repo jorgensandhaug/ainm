@@ -83,6 +83,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - after fixture setup, when the first `GET /project` already also proved `fixedprice=125550`, the measured winning path was only `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - that sandbox still exposed only outgoing VAT `0%`, so the analog invoice returned `amountExcludingVatCurrency=31387.5` and `amountCurrencyOutstanding=31387.5`
   - therefore the shorter branch is to skip `PUT /project` whenever the initial project read already proves the target fixed-price + manager state, and keep the older `5`-call branch only for real project mutations
+- exact production confirmation on 2026-03-20 for `Fossekraft AS` / `907433498` / `Automatiseringsprosjekt` / `solveig.eide@example.org` / `430750` / `50%`, plus a same-day persistent-sandbox analog proof on existing fixture `Estrella SL` / `816896770` / `Desarrollo e-commerce` / `375250` / `33%`, closed the last efficiency question on the skip-`PUT` branch:
+  - the production run succeeded in exactly `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - there were no separate `GET /customer` or `GET /employee` calls, because the initial project row already proved the exact customer and manager
+  - the production account exposed outgoing VAT `25%`, and the invoice write returned `amountExcludingVatCurrency=215375` and `amountCurrencyOutstanding=269218.75`
+  - the persistent sandbox analog on existing fixture `401969688` re-proved the same skip-`PUT` structure in `4` calls, returning `amountExcludingVatCurrency=123832.5`
+  - therefore the skip-`PUT` branch is now fully settled: it is minimal at `4` calls, and there is still no safe `3`-call shortcut because dropping the initial project read removes the proof that skipping `PUT /project` is valid, while dropping the VAT read risks a wrong VAT result
 - later production reflection on 2026-03-20 for `Sjøbris AS` / `825338756` / `Automatiseringsprosjekt` / `knut.kvamme@example.org` / `316000` / `50%`, plus a same-day persistent-sandbox analog proof, exposed the remaining branch tradeoff:
   - the exact project-first update branch was correct, but the first `PUT /order/{id}/:invoice?...` hit `422 Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
   - the successful production path became `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> failed `PUT /order/:invoice` -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice` for `8` calls
@@ -218,6 +224,7 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
   9. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
 - only add `/ledger/account` between steps 8 and 9 when earlier evidence in the same run already proves the company invoice bank account is missing
 - on the exact update-needed branch, do not sleepwalk into either bank-account strategy; decide between optimistic `5/8` and proactive `6/7` from run evidence
+- on the exact skip-`PUT /project` branch, do not chase a fictional `3`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
 - if the project-first read already finds the exact project, exact existing manager, and the target fixed price, this shape saves three API calls versus always doing customer-first plus employee-first lookup plus unconditional `PUT /project`
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
@@ -262,4 +269,5 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
 - Do not ignore the explicit `5/8` versus `6/7` tradeoff on the exact update-needed branch; if the run looks like the first outgoing invoice on a genuinely fresh account, a deliberate `/ledger/account` hedge may be cheaper than reactive recovery, but it is still wasted on already-configured accounts
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
+- Do not try to collapse the skip-`PUT /project` branch to `3` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
 - Do not assert the prompt-derived milestone amount against `amountCurrencyOutstanding` on taxable accounts; for the 2026-03-20 `Soleil SARL` production run, the correct `25%` milestone was `amountExcludingVatCurrency=31387.5` while `amountCurrencyOutstanding=39234.38` because VAT was included there

@@ -63,6 +63,9 @@
 - if the prompt implies a normal taxable service and the filtered outgoing VAT result contains `25%`, use that `25%` row
 - if the filtered outgoing VAT result only exposes `0%`, use that one valid row instead of guessing another VAT code
 - if the exact update-first project read already proves project + customer + manager and also `fixedprice=<prompt-fixed-price>`, the canonical branch is `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` in `4` total calls including the initial project read
+- there is still no safe `3`-call shortcut on that skip-`PUT /project` branch:
+  - the initial `GET /project` is what proves the exact existing project, linked customer, linked manager, and whether `PUT /project` can be skipped
+  - the filtered `GET /ledger/vatType` is still required on taxable accounts; omitting `orderLines[].vatType` can silently create the wrong VAT result
 - only use the `5`-call branch with `PUT /project` when that initial project row proves the right project but not yet the target fixed price and manager state; do not insert a default `/ledger/account` preflight between `POST /order` and `PUT /order/:invoice`
 - do not use `createOnAccount` on an order with no real order lines for this task shape
 
@@ -130,6 +133,11 @@
   - when the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proved the exact project, nested customer, nested manager email, and `fixedprice=125550`, the measured winning path was only `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - that sandbox still exposed only outgoing VAT `0%`, so the analog invoice returned `amountExcludingVatCurrency=31387.5` and `amountCurrencyOutstanding=31387.5`
   - therefore the new canonical exact-match branch is conditional: skip `PUT /project` whenever the first project read already proves the target project state, and use the older `5`-call branch only when a project mutation is still required
+- exact production confirmation on 2026-03-20 for `Fossekraft AS` / `907433498` / `Automatiseringsprosjekt` / `solveig.eide@example.org` / `430750` / `50%` proved that the same skip-`PUT /project` branch is also the true minimum on a taxable account:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proved the exact project, nested customer, nested manager email, and `fixedprice=430750`
+  - the successful production path was `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` for `4` total calls, with no `GET /customer`, no `GET /employee`, and no `PUT /project`
+  - that production account exposed outgoing VAT `25%`, and the invoice write returned `amountExcludingVatCurrency=215375` plus `amountCurrencyOutstanding=269218.75`
+  - this also closes the remaining shortcut question for the skip-`PUT` branch: there is still no realistic `3`-call path, because removing the VAT read risks the wrong tax result and removing the initial project read removes the proof that skipping `PUT /project` is safe
 - later production reflection on 2026-03-20 for `Sjøbris AS` / `825338756` / `Automatiseringsprosjekt` / `knut.kvamme@example.org` / `316000` / `50%`, plus a same-day persistent-sandbox analog proof, sharpened the remaining bank-account heuristic on the update-needed branch:
   - the production run used the exact project-first update branch and the first invoice write failed with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
   - the successful production path became `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> failed `PUT /order/:invoice` -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `PUT /order/:invoice` for `8` total calls
