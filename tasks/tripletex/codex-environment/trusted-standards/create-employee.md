@@ -30,6 +30,7 @@
 - do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
 - if prompt/task requires a user type/role field, include explicit `userType`
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
+- preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
 - do not invent personal data not given by prompt
 
 ## Validation Rules
@@ -47,6 +48,7 @@
 - one employment read only when start-date/employment coverage is actually scored and missing from response
 - for the exact prompt shape `name + birth date + email + start date`, the current minimum safe success path is usually `2` calls in fresh accounts: `POST /employee`, then `GET /employee/employment?employeeId=...&fields=*`
 - the 2026-03-20 production English run for `Thomas Harris` (`1991-06-04`, `thomas.harris@example.org`, start `2026-10-06`) re-confirmed that same `2`-call branch and again showed that the successful create response still did not prove `startDate`
+- the later 2026-03-20 production Portuguese run for `João Rodrigues` (`1980-09-05`, `joao.rodrigues@example.org`, start `2026-08-08`) re-confirmed the same `2`-call branch after ISO-normalizing `5. September 1980` and `8. August 2026`, with the Unicode first name preserved exactly
 - a one-call stop after `POST /employee` is not yet a trusted standard for start-date-scored tasks because the successful create response often omits the actual `startDate`
 
 ## Known Recovery Branches
@@ -61,5 +63,6 @@
 - scored production re-verification on 2026-03-20 for `Miguel Sánchez` confirmed the fresh-account winning branch: direct `POST /employee` succeeded without department or division repair, and one follow-up `GET /employee/employment?employeeId=...&fields=*` was still needed because the successful write response did not prove the requested `startDate`
 - scored production re-verification on 2026-03-20 for `Jules Bernard` confirmed that a French prompt with mixed-language dates `8. December 1982` and `27. December 2026` still stays on the same normalized employee-create shape after ISO conversion
 - scored production re-verification on 2026-03-20 for `Thomas Harris` confirmed the same fresh-account floor from an English prompt: direct `POST /employee` succeeded, the create response echoed only sparse `employments[]`, and one decisive `GET /employee/employment?employeeId=...&fields=*` finished the task in `2` calls
+- scored production re-verification on 2026-03-20 for `João Rodrigues` confirmed that a Portuguese prompt with mixed-language date strings `5. September 1980` and `8. August 2026` still stays on the same fresh-account `2`-call branch after ISO normalization, and that the write/read path preserves Unicode employee names exactly
 - persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
 - a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`

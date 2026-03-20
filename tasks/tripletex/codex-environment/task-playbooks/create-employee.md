@@ -46,6 +46,11 @@ Scored production re-verification on 2026-03-20 for `Jules Bernard` showed:
 - a French-language prompt with mixed-language date strings `8. December 1982` and `27. December 2026` still fit the exact same employee-create task shape
 - normalizing those dates to `1982-12-08` and `2026-12-27` was sufficient; no alternate endpoint or extra read was justified by the prompt language
 
+Scored production re-verification on 2026-03-20 for `João Rodrigues` showed:
+- a Portuguese-language prompt with mixed-language date strings `5. September 1980` and `8. August 2026` still fit the exact same employee-create task shape
+- normalizing those dates to `1980-09-05` and `2026-08-08` was sufficient; no alternate endpoint, pre-read, or extra repair call was justified by the prompt language
+- the Unicode first name `João` was preserved exactly through the successful create and verification flow
+
 Persistent-sandbox reflection re-verification on 2026-03-20 showed:
 - the same prompt shape still hit the full repair ladder in the persistent sandbox: `422 department.id`, then `422 employments.division.id`, then success after reusing one active department and one division id
 - the sandbox path therefore remained `6` calls total including the final employment verification read
@@ -136,6 +141,7 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not default to `GET /department` before the first create attempt for an exact create-only task; that can waste a call on accounts that accept the write directly
 - Do not let the persistent sandbox's `6`-call repair branch trick you into paying `GET /department` or `GET /division` up front in fresh-account production runs
 - Do not assume `division` is never needed just because older sandbox runs accepted employments without it
+- Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on `422 message == "Validering feilet."` or on `Feltet må fylles ut.` alone; inspect `validationMessages[].field` before spending department/division repair calls
 - Do not jump straight to `POST /employee/employment` before first trying nested `employments` on create
 - Do not spend extra reads on employee lookup for a pure create task

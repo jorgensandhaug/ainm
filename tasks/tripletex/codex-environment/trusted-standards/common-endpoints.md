@@ -51,6 +51,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard prerequisite note:
   - division is not part of the default employee-create fast path
   - resolve one existing `/division?count=1&fields=*` only when a live validation branch explicitly requires `employments[].division.id`
+- Standard create note:
+  - do not assume `POST /division` is a safe minimal name-only repair write
+  - persistent sandbox follow-up on 2026-03-20 showed that `POST /division` with only `name` fails `422` requiring `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
+  - for payroll no-division branches where the prompt does not provide those fields, a speculative division-create fallback is not part of the trusted minimum path
 
 ## Employee
 - `/employee`
@@ -67,7 +71,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard create fast-path note:
   - for the exact create-one-employee shape with prompt-provided name, birth date, email, and start date, the lower-call default is `POST /employee` first with explicit `userType` and nested `employments`
   - 2026-03-20 production re-confirmed that when that first write succeeds in a fresh account, the minimum safe path is usually `2` calls total: the `POST /employee` write plus one decisive `GET /employee/employment?employeeId=...&fields=*`
-  - the 2026-03-20 production English run for `Thomas Harris` re-confirmed that same `2`-call floor, while the same-session persistent sandbox still took the full repair ladder before the same verification read
+  - the 2026-03-20 production English run for `Thomas Harris` and later same-day Portuguese run for `João Rodrigues` re-confirmed that same `2`-call floor, while the same-session persistent sandbox still took the full repair ladder before the same verification read
   - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422` where `validationMessages[].field == "department.id"`
   - if that department repair read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload and retry the same employee create once
   - if the employee create then fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
@@ -76,6 +80,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - do not branch on the generic top-level `422 message`; current proven employee-create repair routing depends on `validationMessages[].field`
   - when the prompt scores employment start date, `GET /employee/employment?employeeId=...&fields=*` is the decisive verification read unless the create response unexpectedly already includes the actual `startDate`
   - do not try to save that verification read by trusting the write request itself on a start-date-scored task; that is still an unproven gamble rather than the trusted minimum safe path
+  - prompt language and Unicode names do not change that path; mixed-language dates such as `5. September 1980` and names such as `João Rodrigues` still use the same normalized employee-create flow
 - Standard payroll note:
   - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
   - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
@@ -102,6 +107,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, the decisive gate is `GET /division?count=1&fields=*` before any salary-type lookup
   - if that division read returns one usable row, the lower-zero-risk path is `GET /salary/type?count=1000&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
   - if that division read returns zero usable rows and the prompt does not explicitly allow manual vouchers, stop blocked after those two calls; do not spend `GET /salary/type`
+  - do not try to rescue that exact no-division payroll branch with a speculative minimal `POST /division`; persistent sandbox on 2026-03-20 showed that name-only create fails `422` and demands `organizationNumber`, `startDate`, `municipalityDate`, and `municipality`
   - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type` and branch straight into `GET /ledger/account?number=5000,1920&fields=*` plus `POST /ledger/voucher`
   - do not add `POST /employee/employment/details` by default in that repair branch; persistent sandbox on 2026-03-20 proved payroll can succeed without it for manual salary lines
   - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response from salary endpoints
@@ -336,6 +342,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case and the 2026-03-20 production runs `812449982` + `45300` + `Datarådgjeving`, `973999966` + `40800` + `Conseil en données`, and `882988155` + `40900` + `Heures de conseil`, that two-call path is already minimal; do not add `GET /customer`
   - once that trusted-standard shape matches, do not spend extra local `openapi.json` confirmation time before acting; follow the standard directly
   - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
+  - 2026-03-20 production re-confirmed that same payment path for `891380690` + `10100` + `Konsulenttimer`; the invoice write had to pay the live outstanding amount `12625`, not the prompt locator amount `10100`
   - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
   - when scoring candidates from `GET /invoice/paymentType`, do not require `name`; persistent sandbox re-proof on 2026-03-20 settled invoice `2147551077` with payment type `32813748` even though `name=null`, so prefer debit-account traits such as `19xx`, `isBankAccount=true`, and `isInvoiceAccount=true`
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
@@ -345,10 +352,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - if the prompt gives no invoice date, use one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>` instead of adding a separate resolver read first
 - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
 - keep exact Unicode when matching localized descriptions on invoice reads; do not ASCII-normalize strings such as `Conseil en données`
+- persistent sandbox can accumulate duplicate unpaid invoice analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`; treat that as sandbox-state noise, not as proof that fresh-account production needs a default `GET /customer`
 - persistent sandbox proof on 2026-03-20 showed that a freshly created paid invoice could be readable on `GET /invoice/{id}` before it appeared in the broader `/invoice?...count=1000...` search; treat that as sandbox proof noise rather than a production reason to add extra resolver calls to exact-match invoice-reversal tasks
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
-  - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
+  - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; some invoice reads expose no payment-related keys at all, so do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
   - `GET /invoice/paymentType` can return `name=null` on a perfectly usable incoming bank payment type; do not spend fallback reads or reject the row just because the label is absent
   - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative payment-style posting with text such as `Betaling: ...`
   - ignore `account.number` when matching that fallback posting; `1500` is common, but persistent sandbox re-proofs on 2026-03-20 still returned the same winning reverse target with `account=null`
