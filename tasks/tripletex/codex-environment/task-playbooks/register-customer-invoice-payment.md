@@ -128,7 +128,7 @@ Observed production/account variance:
 - First inspect the `GET /invoice` result before doing any write
 - If the invoice search is ambiguous, only then add one extra read such as `GET /customer?organizationNumber=...&fields=*`
 - Do not add that `GET /customer` just because a persistent sandbox account has duplicate unpaid analogs; in fresh-account production, exact `organizationNumber + ex-VAT amount + line description` has repeatedly been sufficient
-- When those duplicate sandbox analogs all share the same customer, that `GET /customer` still does not disambiguate which invoice to pay, so treat the ambiguity as sandbox-only noise unless the prompt provides another resolver field
+- In the 2026-03-20 persistent sandbox re-proof, all `4` matching analogs shared the same customer, so that `GET /customer` still did not disambiguate which invoice to pay. Treat that ambiguity as sandbox-only noise unless the prompt provides another resolver field
 - Reuse the located invoice object for:
   - payment amount
   - currency context
