@@ -16,7 +16,7 @@ Do not use for:
 ## Proven Best Path
 
 The current best public path is:
-1. resolve existing supplier by `organizationNumber`
+1. create the supplier directly when the prompt gives supplier business fields but does not say the supplier already exists
 2. resolve expense-account id by account number
 3. resolve incoming VAT id on the actual invoice date
 4. import a valid EHF/UBL XML invoice with the prompt values
@@ -26,7 +26,9 @@ This path is preferred because it creates both:
 - a real `supplierInvoice` object
 - the correct ledger postings with correct VAT split
 
-For the common existing-supplier shape, that is `5` calls total.
+For the exact fresh-account-like shape, that is `5` calls total.
+
+If the prompt explicitly says the supplier already exists, or the run context is persistent/retry-like enough that duplicate suppliers are a real risk, switch the first step to `GET /supplier?organizationNumber=...&fields=*` and only create on zero hits.
 
 ## What Failed And Why
 
@@ -64,14 +66,21 @@ For the common existing-supplier shape, that is `5` calls total.
 
 ## Exact Minimal Flow
 
-For an existing supplier:
+For the fresh-account-like shape where the prompt does not say the supplier already exists:
+1. `POST /supplier`
+2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`
+3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
+4. `POST /ledger/voucher/importDocument`
+5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+
+For an explicit existing-supplier or retry/persistent-account shape:
 1. `GET /supplier?organizationNumber=...&fields=*`
 2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`
 3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
 4. `POST /ledger/voucher/importDocument`
 5. `PUT /ledger/voucher/{id}?sendToLedger=false`
 
-If supplier lookup returns zero hits:
+If that lookup-first branch returns zero hits:
 1. `GET /supplier?...`
 2. `POST /supplier`
 3. `GET /ledger/account?...`
@@ -80,6 +89,7 @@ If supplier lookup returns zero hits:
 6. `PUT /ledger/voucher/{id}?sendToLedger=false`
 
 Fresh-account-like re-proof:
+- 2026-03-20 persistent sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` gross / `6500` / `25%` completed in the lower-call `5`-call create-first branch
 - 2026-03-20 persistent sandbox re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` gross / `6300` / `25%` took exactly this `6`-call zero-hit branch
 - no extra `GET /supplierInvoice` or `GET /ledger/voucher/{id}` was needed; the final `PUT /ledger/voucher/{id}` response already proved the expense row, supplier row, and auto VAT row
 
@@ -91,14 +101,15 @@ Do not add:
 
 ## Supplier Resolution Rules
 
-- for ordinary prompts phrased as invoice from `the supplier <name>`, assume the target supplier may already exist
-- do one decisive `GET /supplier?organizationNumber=...&fields=*`
-- if exactly one exact `organizationNumber` + exact `name` hit remains, reuse it
-- if zero hits remain, create the supplier once
-- if several hits remain, the run state is ambiguous; do not guess by newest id
+- for fresh-account-like prompts that give supplier business fields but do not say the supplier already exists, create the supplier directly and reuse the returned `id` plus `ledgerAccount.id`
+- only spend `GET /supplier?organizationNumber=...&fields=*` first when the prompt explicitly says the supplier already exists or the run context is a retry/persistent account where duplicates are plausible
+- if that lookup returns exactly one exact `organizationNumber` + exact `name` hit, reuse it
+- if that lookup returns zero hits, create the supplier once
+- if that lookup returns several hits, the run state is ambiguous; do not guess by newest id
 
 Why this matters:
-- production already showed that duplicate-supplier creation can book against the wrong supplier even when accounting math is otherwise right
+- the 2026-03-20 production run for `Océan SARL` / `853705209` proved that lookup-first wastes one call in the normal fresh-account branch when the supplier does not exist
+- earlier duplicate-supplier evidence still matters in retry/persistent-account contexts, so keep the lookup-first branch there instead of creating blindly
 
 ## Account Resolution Rules
 
@@ -199,6 +210,10 @@ For `gross=72350` and `25%` VAT:
 - `net = 57880`
 - `vat = 14470`
 
+For `gross=56300` and `25%` VAT:
+- `net = 45040`
+- `vat = 11260`
+
 Expected final accounting shape:
 - expense row: `6500`, `vatType.id=1`, `amount=31800`, `amountGross=39750`
 - supplier row: supplier ledger account, `amount=-39750`, `invoiceNumber=<prompt invoice number>`
@@ -241,6 +256,17 @@ Proven outcome:
   - expense row on `6500` with `vatType.id=1`, `amount=31800`, `amountGross=39750`
   - supplier row `-39750` linked to supplier id
   - system VAT row `7950`
+- 2026-03-20 persistent-sandbox re-proof for the exact production-like French office-services shape (`Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` / `6500` / `25%`) succeeded on the lower-call create-first path
+- that re-proof used the `5`-call branch:
+  1. `POST /supplier`
+  2. `GET /ledger/account?number=6500&isApplicableForSupplierInvoice=true&fields=*`
+  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+  4. `POST /ledger/voucher/importDocument`
+  5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+- final write response proved:
+  - expense row on `6500` with `vatType.id=1`, `amount=45040`, `amountGross=56300`
+  - supplier row `-56300` linked to the created supplier id
+  - system VAT row `11260`
 - 2026-03-20 persistent-sandbox re-proof for the French office-services shape (`Lumière SARL` / `913175212` / `services de bureau` / `72350` / `6300` / `25%`) also succeeded
 - that re-proof hit the zero-hit supplier branch, so the measured path was `6` calls:
   1. `GET /supplier?organizationNumber=913175212&fields=*`
