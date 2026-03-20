@@ -255,6 +255,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard fast-path note:
   - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
   - for the exact prompt shape `customer.organizationNumber + exact ex-VAT amount + exact line description`, including the re-proven `900993560` + `30500` + `Maintenance` case on 2026-03-20, that two-call path is already minimal; do not add `GET /customer`
+  - for standalone existing-invoice full-payment tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the proven safe path is still one decisive invoice read, one payment-type lookup, then one `:payment` write
+  - the only verified lower-call reduction for that payment shape is same-run reuse of a previously resolved incoming `paymentTypeId`; do not trust cross-run payment-type caches because ids vary across accounts and environments
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning score-first path is usually one decisive invoice read and one voucher-reverse write
   - only add a later invoice verify read when the prompt explicitly requires balance proof or the locate read left material ambiguity that the reverse write alone does not settle
 - Standard search note:
@@ -263,6 +265,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the same line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]` for one invoice; filter across the union and keep uniqueness at the invoice level, not the raw line-hit count
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
+  - ordinary outgoing invoice reads do not expose a reusable incoming payment-type id for first-time payment registration; do not expect `/invoice?...fields=*` to remove the need for `paymentTypeId`
   - for payment reversals, do not rely only on `posting.type`; the payment posting can be `type=null` and still be the unique negative customer-ledger posting, often `account.number=1500` with payment text such as `Betaling: ...`
   - in payment-reversal tasks identified by a prompt ex-VAT amount, treat that amount as a locate key only; the reopened-balance verification target should be the invoice object's own pre-reversal total from the locate read, usually `amountCurrency` or `amount`
 - Standard credit-note note:

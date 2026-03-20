@@ -1,7 +1,7 @@
 {
   "id": "EXP-0013",
   "slug": "crop-shelf-closed-set-classifier",
-  "status": "planned",
+  "status": "in_progress",
   "phase": "M2",
   "priority": 8,
   "question": "Can a shelf-crop closed-set classifier recover the no-reference, sentinel, and shelf-domain cases that retrieval cannot solve well?",
@@ -24,10 +24,13 @@
     11
   ],
   "code_entrypoints": [
+    "scripts/build_norgesgruppen_crop_classifier_manifests.py",
     "scripts/extract_norgesgruppen_gt_crops.py",
+    "scripts/cache_norgesgruppen_crop_classifier_embeddings.py",
     "scripts/train_norgesgruppen_crop_classifier.py",
+    "scripts/train_norgesgruppen_crop_classifier_cached.py",
     "scripts/eval_norgesgruppen_crop_classifier.py"
   ],
   "weights": [],
-  "notes": "Run tiny-overfit and shuffled-label controls before trusting any real classifier result. Primary goal is not to beat retrieval everywhere; it is to recover missing-reference, unknown, and shelf-domain cases retrieval cannot solve well."
+  "notes": "Use the classifier manifests under data/2026-03-19/derived/crop-classifier and the frozen recipe in docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md. Run tiny-overfit and shuffled-label controls before trusting any real classifier result. Primary goal is not to beat retrieval everywhere; it is to recover missing-reference, unknown, and shelf-domain cases retrieval cannot solve well."
 }

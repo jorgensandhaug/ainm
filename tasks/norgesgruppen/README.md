@@ -10,14 +10,16 @@ Read in this order:
 2. [docs/norgesgruppen-data/INDEX.md](docs/norgesgruppen-data/INDEX.md)
 3. [docs/norgesgruppen-data/deep-audit-summary.md](docs/norgesgruppen-data/deep-audit-summary.md)
 4. [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
-5. [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
-6. [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
-7. [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
-8. [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
-9. [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
-10. [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
-11. [docs/norgesgruppen-data/project-operating-system.md](docs/norgesgruppen-data/project-operating-system.md)
-12. [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
+5. [docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md](docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md)
+6. [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
+7. [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
+8. [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
+9. [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
+10. [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+11. [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
+12. [docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md](docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md)
+13. [docs/norgesgruppen-data/project-operating-system.md](docs/norgesgruppen-data/project-operating-system.md)
+14. [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 
 If you want only the machine-readable core:
 
@@ -44,7 +46,7 @@ If you want only the machine-readable core:
 - Do not auto-map coffee-family sibling variants just because names are close
 - Treat `unknown_product` as a real sentinel class
 - Egg is the weakest classification regime because packshot coverage is worse there
-- Local evaluation is now real: `EXP-0001` scorer sanity passes, `EXP-0002` crop floor is non-random, `EXP-0003` proves `PE-Core` is strong, `EXP-0004` demotes public `DINOv3`, `EXP-0011` shows perfect-box `PE-Core` reaches hybrid `0.860238`, `EXP-0006` now has a real 10-epoch detector baseline at `AP50 0.852028`, `EXP-0012` shows detector boxes plus oracle classes reach hybrid `0.879192`, and `EXP-0008` proves the first real detector+retrieval stack reaches hybrid `0.693615` with cheap score fusion already lifting it to `0.717616`
+- Local evaluation is now real: `EXP-0001` scorer sanity passes, `EXP-0002` crop floor is non-random, `EXP-0003` proves `PE-Core` is strong, `EXP-0004` demotes public `DINOv3`, `EXP-0011` shows perfect-box `PE-Core` reaches hybrid `0.860238`, `EXP-0006` now has a real 10-epoch detector baseline at `AP50 0.852028`, `EXP-0012` shows detector boxes plus oracle classes reach hybrid `0.879192`, `EXP-0008` proves the first real detector+retrieval stack reaches hybrid `0.693615` with cheap score fusion already lifting it to `0.717616`, and `EXP-0013` now has real classifier controls on both direct and cached routes (`0.8125` held-out tiny top-1 vs `0.25` shuffled-label top-1, plus `1.0` same-sample memorization for both direct and cached training)
 - ML verification is now explicit and scriptable: use [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md) plus `python scripts/verify_norgesgruppen_ml_pipeline.py`
 
 ## Best Files For Specific Questions
@@ -54,6 +56,8 @@ If you want only the machine-readable core:
 - Modeling / validation order: [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
 - Critical-path decision tree: [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
 - Classifier/fusion strategy: [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
+- First classifier recipe: [docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md](docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md)
+- First classifier controls report: [docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md](docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md)
 - Latest experiment readout: [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - ML verification doctrine: [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
 - Crop retrieval runtime / commands: [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
@@ -66,6 +70,8 @@ If you want only the machine-readable core:
 - All artifact locations: [data/2026-03-19/derived/artifact-index.json](data/2026-03-19/derived/artifact-index.json)
 - Experiment queue: [data/2026-03-19/experiments/experiment-registry.json](data/2026-03-19/experiments/experiment-registry.json)
 - Category-level modeling readiness: [data/2026-03-19/derived/category-strategy-manifest.json](data/2026-03-19/derived/category-strategy-manifest.json)
+- Crop-classifier summary: [data/2026-03-19/derived/crop-classifier/summary.json](data/2026-03-19/derived/crop-classifier/summary.json)
+- Crop-classifier category roles: [data/2026-03-19/derived/crop-classifier/category-role-manifest.json](data/2026-03-19/derived/crop-classifier/category-role-manifest.json)
 - Image-level sampling/difficulty: [data/2026-03-19/derived/image-sampling-manifest.json](data/2026-03-19/derived/image-sampling-manifest.json)
 - Unresolved joins / traps: [docs/norgesgruppen-data/unresolved-class-review.md](docs/norgesgruppen-data/unresolved-class-review.md)
 - Split/eval policy: [docs/norgesgruppen-data/split-eval-plan.md](docs/norgesgruppen-data/split-eval-plan.md)
@@ -108,6 +114,7 @@ Give them these first:
 - [docs/norgesgruppen-data/prep-playbook.md](docs/norgesgruppen-data/prep-playbook.md)
 - [docs/norgesgruppen-data/deep-audit-summary.md](docs/norgesgruppen-data/deep-audit-summary.md)
 - [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
+- [docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md](docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md)
 - [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - [docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md](docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md)
 - [docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md](docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md)
@@ -115,6 +122,7 @@ Give them these first:
 - [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
 - [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
 - [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
+- [docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md](docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md)
 - [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 - [docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md](docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md)
 - [docs/norgesgruppen-data/decisions/DEC-0002-freeze-crop-retrieval-eval-contract.md](docs/norgesgruppen-data/decisions/DEC-0002-freeze-crop-retrieval-eval-contract.md)

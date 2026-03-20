@@ -109,6 +109,38 @@
         "detector_smoke_ap50": 0.689607,
         "detector_box_oracle_classification_map50": 0.890341
       }
+    },
+    {
+      "stage": "classifier_controls",
+      "check_id": "tiny_overfit_and_shuffled_label",
+      "passed": true,
+      "details": {
+        "tiny_best_epoch": 8,
+        "tiny_best_top1": 0.8125,
+        "tiny_best_top5": 0.84375,
+        "tiny_full_map20": 0.833705,
+        "tiny_min_train_loss": 0.000348,
+        "exact_crop_best_epoch": 10,
+        "exact_crop_best_top1": 0.8125,
+        "exact_crop_best_top5": 0.84375,
+        "same_sample_best_epoch": 3,
+        "same_sample_best_top1": 1.0,
+        "same_sample_best_top5": 1.0,
+        "cached_tiny_best_epoch": 3,
+        "cached_tiny_best_top1": 0.78125,
+        "cached_tiny_best_top5": 1.0,
+        "cached_same_sample_best_epoch": 9,
+        "cached_same_sample_best_top1": 1.0,
+        "cached_same_sample_best_top5": 1.0,
+        "cache_resume_split_status": {
+          "train": "reused",
+          "val": "extracted"
+        },
+        "shuffled_best_epoch": 1,
+        "shuffled_best_top1": 0.25,
+        "shuffled_best_top5": 0.5,
+        "positive_negative_top1_gap": 0.5625
+      }
     }
   ],
   "stage_summaries": {
@@ -184,18 +216,45 @@
       "detector_box_oracle_class_hybrid": 0.749827,
       "detector_smoke_ap50": 0.689607,
       "detector_box_oracle_classification_map50": 0.890341
+    },
+    "classifier_controls": {
+      "tiny_best_epoch": 8,
+      "tiny_best_top1": 0.8125,
+      "tiny_best_top5": 0.84375,
+      "tiny_full_map20": 0.833705,
+      "tiny_min_train_loss": 0.000348,
+      "exact_crop_best_epoch": 10,
+      "exact_crop_best_top1": 0.8125,
+      "exact_crop_best_top5": 0.84375,
+      "same_sample_best_epoch": 3,
+      "same_sample_best_top1": 1.0,
+      "same_sample_best_top5": 1.0,
+      "cached_tiny_best_epoch": 3,
+      "cached_tiny_best_top1": 0.78125,
+      "cached_tiny_best_top5": 1.0,
+      "cached_same_sample_best_epoch": 9,
+      "cached_same_sample_best_top1": 1.0,
+      "cached_same_sample_best_top5": 1.0,
+      "cache_resume_split_status": {
+        "train": "reused",
+        "val": "extracted"
+      },
+      "shuffled_best_epoch": 1,
+      "shuffled_best_top1": 0.25,
+      "shuffled_best_top5": 0.5,
+      "positive_negative_top1_gap": 0.5625
     }
   },
   "known_gaps": [
     {
-      "gap_id": "missing_shuffled_label_runs",
+      "gap_id": "missing_full_classifier_baseline",
       "severity": "important",
-      "why_it_matters": "Shuffled-label control artifacts now exist, but future supervised classifiers and multi-class detectors still need real shuffled-label training runs to prove collapse and rule out leakage."
+      "why_it_matters": "The direct and cached classifier paths now have working controls, but we still do not have the first full train-all to val-all GT-crop baseline."
     },
     {
-      "gap_id": "missing_supervised_crop_overfit_control",
+      "gap_id": "missing_detector_crop_shadow_eval",
       "severity": "important",
-      "why_it_matters": "The future closed-set shelf-crop classifier should first memorize a tiny subset before any scaling runs are trusted."
+      "why_it_matters": "The classifier can learn on GT crops, but we still need the detector-crop shadow read before trusting fusion decisions."
     },
     {
       "gap_id": "missing_multi_seed_stability_read",
@@ -217,6 +276,7 @@
     "Do not trust any new model family until empty/oracle controls and the relevant trivial baseline are checked on the same harness.",
     "Promote retrieval systems only if they beat both random and nearest-neighbor hash on the strict slice.",
     "Promote detectors only if they beat zero-shot floors, pass tiny overfit sanity, and survive oracle-bound consistency checks.",
+    "Promote classifier work only if the positive tiny-overfit control is clearly above the shuffled-label collapse control on the same subset and recipe.",
     "Promote end-to-end pipeline changes only if detector-only invariants stay fixed or improve and the same-box oracle gap is interpreted explicitly.",
     "Treat oracle-box and oracle-class bounds as bottleneck-localization tools, not as final model scores.",
     "Do not spend downstream effort on OCR, classifier fusion, or submission packaging until upstream bottlenecks are shown with bounds and controls."

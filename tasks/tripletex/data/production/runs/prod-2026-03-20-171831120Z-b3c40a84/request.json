@@ -1,0 +1,8 @@
+{
+  "prompt": "We have received invoice INV-2026-9075 from the supplier Brightstone Ltd (org no. 890932991) for 59800 NOK including VAT. The amount relates to office services (account 6300). Register the supplier invoice with the correct input VAT (25%).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Oqp49-feDyjS6u2_H8HIOW6NszoFjBGT7qbkbe_9_E8"
+  }
+}

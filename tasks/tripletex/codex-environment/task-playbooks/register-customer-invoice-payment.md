@@ -22,6 +22,8 @@ Do not use for:
 - `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
 - A single decisive invoice read can often replace a separate `GET /customer` if the prompt already gives enough identifying facts
 - The payment write response returns `ResponseWrapperInvoice`, and that response can verify the remaining outstanding amount directly
+- `paymentTypeId` can be cached and reused within the same run for the same company/currency context
+- cross-run `paymentTypeId` caching is not safe; ids vary across accounts and environments
 
 Verified in sandbox on 2026-03-19:
 - `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&fields=*,customer(*),currency(*),orderLines(*),orders(*)` returned enough data to locate a unique invoice by:
@@ -36,6 +38,12 @@ Verified in sandbox on 2026-03-19:
 - re-verified on 2026-03-20 in persistent sandbox:
   - `Betalt til bank` (`id=32813748`) had `debitAccount.number=1920`, `isBankAccount=true`, `isInvoiceAccount=true`, and `creditAccount=null`
   - despite `creditAccount=null`, `PUT /invoice/{id}/:payment?...` with that payment type still reduced `remainingOutstanding` to `0`
+  - `PUT /invoice/{id}/:payment?...` without `paymentTypeId` failed with `422` and validation message `paymentTypeId: Kan ikke være null.`
+  - ordinary `GET /invoice?...fields=*` responses did not expose a reusable incoming payment-type id, so there is no proven public 2-call standalone shortcut from invoice read alone
+
+Observed production/account variance:
+- payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, and sandbox `32813748`
+- therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache
 
 ## Minimal Flow
 
@@ -44,23 +52,31 @@ Verified in sandbox on 2026-03-19:
    - `GET /invoice/paymentType`
    - `PUT /invoice/{id}/:payment`
 2. Locate the invoice with one decisive read
-   - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*)`
+   - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))`
 3. Filter locally to the single correct invoice
    - exact customer organization number if provided
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
    - positive `amountCurrencyOutstanding` or `amountOutstanding`
-   - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].invoiceComment`, or nearby invoice text fields
-4. Resolve one usable payment type
+   - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].orderLines[].description`, `orders[].invoiceComment`, or nearby invoice text fields
+4. Reuse a previously resolved same-run incoming payment type if available
+   - only when it was resolved earlier in the same run for the same company and invoice currency
+5. Otherwise resolve one usable payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
    - prefer a bank-style incoming payment type when available, typically debit account `19xx`
    - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
    - do not reject the candidate just because `creditAccount` is `null`
-5. Register full payment
+6. Register full payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<outstanding>`
-6. Verify from the write response
+7. Verify from the write response
    - prefer `amountCurrencyOutstanding`
    - otherwise `amountOutstanding`
    - stop if it is `0`
+
+## Canonical Call Count
+
+- standalone exact-match payment task with no cached same-run `paymentTypeId`: `3` calls
+- if the same run already holds a proven valid incoming `paymentTypeId`: `2` calls
+- do not claim a cross-run 2-call path unless the prompt explicitly gives the exact `paymentTypeId`
 
 ## Payment Amount Rules
 
@@ -74,11 +90,13 @@ Verified in sandbox on 2026-03-19:
 ## Payment Type Rules
 
 - Do not guess the payment type ID
-- Read from `GET /invoice/paymentType`
+- Read from `GET /invoice/paymentType` unless the same run already resolved a valid reusable incoming payment type for the same company/currency
 - Normalize `debitAccount.number` and `creditAccount.number` before applying string-prefix checks; they may be returned as numbers rather than strings
 - Prefer an ordinary bank payment type over niche/custom types when several are available
 - Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present
 - Do not require a `15xx` credit account; `creditAccount` may be `null` on a valid incoming payment type such as `Betalt til bank`
+- Do not persist a payment-type id cache across runs or accounts; successful ids vary materially between environments
+- Do not attempt to omit `paymentTypeId` from the payment write; sandbox re-check returned `422 paymentTypeId: Kan ikke være null.`
 
 ## If You Still Need to Probe
 
@@ -88,4 +106,5 @@ Verified in sandbox on 2026-03-19:
   - payment amount
   - currency context
   - verification target
+- Reuse the same-run resolved `paymentTypeId` whenever later steps in the same run need another incoming customer-invoice payment
 - Do not add a follow-up `GET /invoice/{id}` if the payment write response already proves `amountOutstanding = 0`

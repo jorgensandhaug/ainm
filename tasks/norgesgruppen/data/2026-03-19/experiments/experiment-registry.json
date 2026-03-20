@@ -188,7 +188,7 @@
     {
       "id": "EXP-0013",
       "slug": "crop-shelf-closed-set-classifier",
-      "status": "planned",
+      "status": "in_progress",
       "priority": 8,
       "phase": "M2",
       "question": "Can a shelf-crop closed-set classifier recover the no-reference, sentinel, and shelf-domain cases that retrieval cannot solve well?",
@@ -197,7 +197,8 @@
         "EXP-0011"
       ],
       "success_gate": "Improves full-slice and hard-bucket recognition, especially missing-reference, unknown_sentinel, and low-view regimes, without collapsing strong reference-safe classes.",
-      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0013-crop-shelf-closed-set-classifier"
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0013-crop-shelf-closed-set-classifier",
+      "result_note": "Classifier lane is now real. Direct frozen PE-Core linear-probe controls are clean: held-out tiny best val top-1 0.8125, paired shuffled-label best top-1 0.25 / final 0.15625, and same-sample exact-crop memorization 1.0 / 1.0 by epoch 3. Cached exact-crop route is now trusted too: cached held-out tiny best top-1 0.78125, cached same-sample memorization 1.0 / 1.0 by epoch 9, and resume smoke proved split-level reuse works. Quick CPU cache benchmark showed 256/0 only marginally faster than 128/0, so 128/0 is the safer first full-run config. Next step is the first full cached GT-crop baseline on train-all -> val-all."
     },
     {
       "id": "EXP-0014",

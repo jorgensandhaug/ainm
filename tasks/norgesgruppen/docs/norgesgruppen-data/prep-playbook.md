@@ -12,7 +12,9 @@ This is the practical operating guide for rerunning prep and understanding which
 6. `python scripts/export_norgesgruppen_yolo.py --class-agnostic` when starting localization baselines
 7. `python scripts/verify_norgesgruppen_yolo_export.py --class-agnostic` when you need proof that the class-agnostic YOLO export is still exact
 8. `python scripts/benchmark_norgesgruppen_crops.py` when you need the current crop floor
-9. `python scripts/extract_norgesgruppen_gt_crops.py --split val --limit 100` only when you need actual crops on disk
+9. `./scripts/run_norgesgruppen_crop_python.sh scripts/cache_norgesgruppen_crop_classifier_embeddings.py --output-dir <dir>` when you need CPU-friendly exact-crop classifier caches
+10. `./scripts/run_norgesgruppen_crop_python.sh scripts/train_norgesgruppen_crop_classifier_cached.py --train-cache <train.pt> --val-cache <val.pt> --output-dir <dir>` when you need the CPU-friendly linear-probe classifier baseline
+11. `python scripts/extract_norgesgruppen_gt_crops.py --split val --limit 100` only when you need actual crops on disk
 
 ## What Is Canonical
 
@@ -27,7 +29,10 @@ This is the practical operating guide for rerunning prep and understanding which
 - ML verification doctrine: [ml-verification-playbook.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/ml-verification-playbook.md)
 - Critical-path next-step logic: [PLAN-0003-critical-path-and-decision-tree-after-preflight.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
 - Classifier/fusion next-step logic: [PLAN-0004-classifier-and-fusion-strategy.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
-- Latest experiment report: [REP-0009-first-det-plus-retrieval-baseline.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
+- First classifier recipe: [PLAN-0005-exp-0013a-first-classifier-recipe.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0005-exp-0013a-first-classifier-recipe.md)
+- Latest classifier-controls report: [REP-0010-first-classifier-controls.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md)
+- CPU-friendly classifier cache path: [cache_norgesgruppen_crop_classifier_embeddings.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/cache_norgesgruppen_crop_classifier_embeddings.py) and [train_norgesgruppen_crop_classifier_cached.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/train_norgesgruppen_crop_classifier_cached.py)
+- Latest pipeline report: [REP-0009-first-det-plus-retrieval-baseline.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - Primary crop-embedder decision: [DEC-0003-keep-pe-core-as-primary-crop-embedder.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md)
 - Frozen ML verification gates: [DEC-0004-freeze-ml-verification-gates.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md)
 - Crop runtime / commands: [crop-retrieval-runtime.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/crop-retrieval-runtime.md)
@@ -55,6 +60,7 @@ This is the practical operating guide for rerunning prep and understanding which
 - [INDEX.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/INDEX.md)
 - [deep-audit-summary.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/deep-audit-summary.md)
 - [ml-verification-playbook.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/ml-verification-playbook.md)
+- [REP-0010-first-classifier-controls.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0010-first-classifier-controls.md)
 - [REP-0009-first-det-plus-retrieval-baseline.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - [category-strategy-manifest.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/category-strategy-manifest.json)
 - [image-sampling-manifest.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/image-sampling-manifest.json)

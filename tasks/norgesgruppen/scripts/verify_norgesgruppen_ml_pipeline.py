@@ -293,17 +293,88 @@ def verify_stage_oracle_bounds(checks: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
+def verify_stage_classifier_controls(checks: list[dict[str, Any]]) -> dict[str, Any]:
+    base = EXPERIMENTS_ROOT / "EXP-0013-crop-shelf-closed-set-classifier" / "artifacts"
+    tiny_summary = read_json(base / "pe-core-linear-tiny-overfit" / "artifacts" / "summary.json")
+    tiny_metrics = read_json(base / "pe-core-linear-tiny-overfit" / "metrics.json")
+    exact_crop_summary = read_json(base / "pe-core-linear-tiny-overfit-exact-crop" / "artifacts" / "summary.json")
+    same_sample_summary = read_json(base / "pe-core-linear-tiny-memorize-same-samples" / "artifacts" / "summary.json")
+    cached_tiny_summary = read_json(base / "pe-core-linear-cached-tiny-train" / "artifacts" / "summary.json")
+    cached_same_sample_summary = read_json(base / "pe-core-linear-cached-tiny-memorize-same-samples" / "artifacts" / "summary.json")
+    cache_resume_summary = read_json(base / "pe-core-linear-cache-tiny-resume-smoke" / "artifacts" / "summary.json")
+    shuffled_summary = read_json(base / "pe-core-linear-tiny-overfit-shuffled-labels" / "artifacts" / "summary.json")
+    shuffled_metrics = read_json(base / "pe-core-linear-tiny-overfit-shuffled-labels" / "metrics.json")
+
+    tiny_full = tiny_metrics["slices"]["full"]["result"]
+    shuffled_full = shuffled_metrics["slices"]["full"]["result"]
+    tiny_best = tiny_summary["best_val_seen_metrics"]
+    exact_crop_best = exact_crop_summary["best_val_seen_metrics"]
+    same_sample_best = same_sample_summary["best_val_seen_metrics"]
+    cached_tiny_best = cached_tiny_summary["best_val_seen_metrics"]
+    cached_same_sample_best = cached_same_sample_summary["best_val_seen_metrics"]
+    shuffled_best = shuffled_summary["best_val_seen_metrics"]
+    min_tiny_train_loss = min(epoch["train_loss"] for epoch in tiny_summary["history"])
+
+    require(tiny_best["top1"] >= 0.78, "EXP-0013 tiny-overfit control too weak.")
+    require(tiny_best["top5"] >= 0.84, "EXP-0013 tiny-overfit top5 too weak.")
+    require(exact_crop_best["top1"] >= 0.80, "EXP-0013 exact-crop tiny control too weak.")
+    require_close(same_sample_best["top1"], 1.0, 1e-12, "EXP-0013 same-sample memorization top1 drift")
+    require_close(same_sample_best["top5"], 1.0, 1e-12, "EXP-0013 same-sample memorization top5 drift")
+    require(cached_tiny_best["top1"] >= 0.75, "EXP-0013 cached tiny control too weak.")
+    require(cached_tiny_best["top5"] >= 0.99, "EXP-0013 cached tiny top5 too weak.")
+    require_close(cached_same_sample_best["top1"], 1.0, 1e-12, "EXP-0013 cached same-sample memorization top1 drift")
+    require_close(cached_same_sample_best["top5"], 1.0, 1e-12, "EXP-0013 cached same-sample memorization top5 drift")
+    require(cache_resume_summary["cache_split"] == "both", "EXP-0013 cache-resume smoke split drift.")
+    require(bool(cache_resume_summary["reuse_existing"]), "EXP-0013 cache-resume smoke lost reuse_existing.")
+    require(cache_resume_summary["split_status"]["train"] == "reused", "EXP-0013 cache-resume smoke did not reuse train split.")
+    require(cache_resume_summary["split_status"]["val"] == "extracted", "EXP-0013 cache-resume smoke did not extract val split.")
+    require(cache_resume_summary["artifacts"]["train_embeddings_pt"] is not None, "EXP-0013 cache-resume smoke missing train cache artifact.")
+    require(cache_resume_summary["artifacts"]["val_embeddings_pt"] is not None, "EXP-0013 cache-resume smoke missing val cache artifact.")
+    require(min_tiny_train_loss <= 0.01, "EXP-0013 tiny-overfit never drove train loss low enough.")
+    require(tiny_full["map20_overall"] >= 0.83, "EXP-0013 tiny-overfit mAP@20 too weak.")
+    require(shuffled_best["top1"] <= 0.30, "EXP-0013 shuffled-label control unexpectedly strong.")
+    require(shuffled_full["top1_overall"] <= 0.30, "EXP-0013 shuffled-label full top1 unexpectedly strong.")
+    require(tiny_best["top1"] >= shuffled_best["top1"] + 0.50, "EXP-0013 positive/negative control gap too small.")
+
+    summary = {
+        "tiny_best_epoch": tiny_summary["best_epoch"],
+        "tiny_best_top1": tiny_best["top1"],
+        "tiny_best_top5": tiny_best["top5"],
+        "tiny_full_map20": tiny_full["map20_overall"],
+        "tiny_min_train_loss": min_tiny_train_loss,
+        "exact_crop_best_epoch": exact_crop_summary["best_epoch"],
+        "exact_crop_best_top1": exact_crop_best["top1"],
+        "exact_crop_best_top5": exact_crop_best["top5"],
+        "same_sample_best_epoch": same_sample_summary["best_epoch"],
+        "same_sample_best_top1": same_sample_best["top1"],
+        "same_sample_best_top5": same_sample_best["top5"],
+        "cached_tiny_best_epoch": cached_tiny_summary["best_epoch"],
+        "cached_tiny_best_top1": cached_tiny_best["top1"],
+        "cached_tiny_best_top5": cached_tiny_best["top5"],
+        "cached_same_sample_best_epoch": cached_same_sample_summary["best_epoch"],
+        "cached_same_sample_best_top1": cached_same_sample_best["top1"],
+        "cached_same_sample_best_top5": cached_same_sample_best["top5"],
+        "cache_resume_split_status": cache_resume_summary["split_status"],
+        "shuffled_best_epoch": shuffled_summary["best_epoch"],
+        "shuffled_best_top1": shuffled_best["top1"],
+        "shuffled_best_top5": shuffled_best["top5"],
+        "positive_negative_top1_gap": tiny_best["top1"] - shuffled_best["top1"],
+    }
+    add_check(checks, stage="classifier_controls", check_id="tiny_overfit_and_shuffled_label", passed=True, details=summary)
+    return summary
+
+
 def known_gaps() -> list[dict[str, str]]:
     return [
         {
-            "gap_id": "missing_shuffled_label_runs",
+            "gap_id": "missing_full_classifier_baseline",
             "severity": "important",
-            "why_it_matters": "Shuffled-label control artifacts now exist, but future supervised classifiers and multi-class detectors still need real shuffled-label training runs to prove collapse and rule out leakage.",
+            "why_it_matters": "The direct and cached classifier paths now have working controls, but we still do not have the first full train-all to val-all GT-crop baseline.",
         },
         {
-            "gap_id": "missing_supervised_crop_overfit_control",
+            "gap_id": "missing_detector_crop_shadow_eval",
             "severity": "important",
-            "why_it_matters": "The future closed-set shelf-crop classifier should first memorize a tiny subset before any scaling runs are trusted.",
+            "why_it_matters": "The classifier can learn on GT crops, but we still need the detector-crop shadow read before trusting fusion decisions.",
         },
         {
             "gap_id": "missing_multi_seed_stability_read",
@@ -333,6 +404,7 @@ def build_summary() -> dict[str, Any]:
     detector_anchor_summary = verify_stage_detector_anchor(checks)
     pipeline_summary = verify_stage_first_pipeline(checks)
     oracle_summary = verify_stage_oracle_bounds(checks)
+    classifier_summary = verify_stage_classifier_controls(checks)
 
     summary = {
         "status": "ok",
@@ -349,12 +421,14 @@ def build_summary() -> dict[str, Any]:
             "detector_anchor": detector_anchor_summary,
             "first_pipeline": pipeline_summary,
             "oracle_bounds": oracle_summary,
+            "classifier_controls": classifier_summary,
         },
         "known_gaps": known_gaps(),
         "operating_conclusions": [
             "Do not trust any new model family until empty/oracle controls and the relevant trivial baseline are checked on the same harness.",
             "Promote retrieval systems only if they beat both random and nearest-neighbor hash on the strict slice.",
             "Promote detectors only if they beat zero-shot floors, pass tiny overfit sanity, and survive oracle-bound consistency checks.",
+            "Promote classifier work only if the positive tiny-overfit control is clearly above the shuffled-label collapse control on the same subset and recipe.",
             "Promote end-to-end pipeline changes only if detector-only invariants stay fixed or improve and the same-box oracle gap is interpreted explicitly.",
             "Treat oracle-box and oracle-class bounds as bottleneck-localization tools, not as final model scores.",
             "Do not spend downstream effort on OCR, classifier fusion, or submission packaging until upstream bottlenecks are shown with bounds and controls.",

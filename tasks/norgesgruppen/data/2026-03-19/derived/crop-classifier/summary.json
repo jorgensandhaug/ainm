@@ -1,0 +1,163 @@
+{
+  "output_root": "data/2026-03-19/derived/crop-classifier",
+  "paths": {
+    "category_role_manifest_json": "data/2026-03-19/derived/crop-classifier/category-role-manifest.json",
+    "train_manifest_jsonl": "data/2026-03-19/derived/crop-classifier/train-all.jsonl",
+    "val_manifest_jsonl": "data/2026-03-19/derived/crop-classifier/val-all.jsonl",
+    "val_train_seen_manifest_jsonl": "data/2026-03-19/derived/crop-classifier/val-train-seen.jsonl",
+    "val_zero_train_support_manifest_jsonl": "data/2026-03-19/derived/crop-classifier/val-zero-train-support.jsonl",
+    "tiny_overfit_train_jsonl": "data/2026-03-19/derived/crop-classifier/tiny-overfit-train.jsonl",
+    "tiny_overfit_val_jsonl": "data/2026-03-19/derived/crop-classifier/tiny-overfit-val.jsonl"
+  },
+  "counts": {
+    "train_crop_count": 18327,
+    "val_crop_count": 4404,
+    "train_seen_class_count": 351,
+    "val_class_count": 252,
+    "val_zero_train_support_class_count": 5,
+    "val_zero_train_support_crop_count": 6
+  },
+  "category_role_counts": {
+    "classifier_priority": 34,
+    "fusion_candidate": 317,
+    "impossible_first_pass": 1,
+    "retrieval_only_unseen_in_train": 4
+  },
+  "classifier_support_bucket_counts": {
+    "train_1": 39,
+    "train_11_20": 47,
+    "train_21_plus": 182,
+    "train_2_5": 46,
+    "train_6_10": 37,
+    "zero_train_support": 5
+  },
+  "val_zero_train_support_classes": [
+    {
+      "category_id": 91,
+      "category_name": "SANDWICH PESTO 37G WASA",
+      "val_count": 1,
+      "retrieval_available": true,
+      "category_role": "retrieval_only_unseen_in_train",
+      "classification_readiness_bucket": "exact_reference_medium_view"
+    },
+    {
+      "category_id": 256,
+      "category_name": "KAFFEFILTER PRESSKANNE 25STK EVERGOOD",
+      "val_count": 1,
+      "retrieval_available": true,
+      "category_role": "retrieval_only_unseen_in_train",
+      "classification_readiness_bucket": "exact_reference_low_view"
+    },
+    {
+      "category_id": 279,
+      "category_name": "KNEKKEBRØD NATURELL GL.FRI 240G WASA",
+      "val_count": 1,
+      "retrieval_available": true,
+      "category_role": "retrieval_only_unseen_in_train",
+      "classification_readiness_bucket": "exact_reference_high_view"
+    },
+    {
+      "category_id": 285,
+      "category_name": "Leka Egg 10stk",
+      "val_count": 2,
+      "retrieval_available": false,
+      "category_role": "impossible_first_pass",
+      "classification_readiness_bucket": "missing_reference"
+    },
+    {
+      "category_id": 350,
+      "category_name": "BLÅ JAVA HELE BØNNER 340G COTW",
+      "val_count": 1,
+      "retrieval_available": true,
+      "category_role": "retrieval_only_unseen_in_train",
+      "classification_readiness_bucket": "exact_reference_high_view"
+    }
+  ],
+  "tiny_overfit": {
+    "selected_category_ids": [
+      80,
+      275,
+      268,
+      97,
+      86,
+      109,
+      100,
+      171
+    ],
+    "selected_categories": [
+      {
+        "category_id": 80,
+        "category_name": "FROKOSTEGG FRITTGÅENDE L 12STK PRIOR",
+        "theme": "egg",
+        "train_count": 193,
+        "val_count": 50,
+        "classifier_label": 80
+      },
+      {
+        "category_id": 86,
+        "category_name": "HAVRE KNEKKEBRØD 300G WASA",
+        "theme": "knekkebrod",
+        "train_count": 313,
+        "val_count": 85,
+        "classifier_label": 86
+      },
+      {
+        "category_id": 97,
+        "category_name": "CHEERIOS MULTI 375G NESTLE",
+        "theme": "frokost",
+        "train_count": 154,
+        "val_count": 36,
+        "classifier_label": 96
+      },
+      {
+        "category_id": 100,
+        "category_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+        "theme": "varmedrikker",
+        "train_count": 302,
+        "val_count": 66,
+        "classifier_label": 99
+      },
+      {
+        "category_id": 109,
+        "category_name": "KNEKKEBRØD 100 FRØ&HAVSALT 245G WASA",
+        "theme": "knekkebrod",
+        "train_count": 301,
+        "val_count": 73,
+        "classifier_label": 108
+      },
+      {
+        "category_id": 171,
+        "category_name": "ALI ORIGINAL FILTERMALT 250G",
+        "theme": "varmedrikker",
+        "train_count": 183,
+        "val_count": 48,
+        "classifier_label": 170
+      },
+      {
+        "category_id": 268,
+        "category_name": "SUPERGRØT KANEL&PUFFET QUINOA 54G",
+        "theme": "frokost",
+        "train_count": 155,
+        "val_count": 22,
+        "classifier_label": 266
+      },
+      {
+        "category_id": 275,
+        "category_name": "EGG FRITTGÅENDE 18STK S/M FIRST PRICE",
+        "theme": "egg",
+        "train_count": 173,
+        "val_count": 50,
+        "classifier_label": 273
+      }
+    ],
+    "train_manifest_count": 64,
+    "val_manifest_count": 32,
+    "train_limit_per_class": 8,
+    "val_limit_per_class": 4
+  },
+  "notes": [
+    "Classifier trainability is based on blocked-train crop support only.",
+    "Retrieval availability is based on best_reference_has_images from category-strategy-manifest.json.",
+    "Do not treat retrieval_only_unseen_in_train classes as classifier failures in first-pass closed-set training."
+  ]
+}
