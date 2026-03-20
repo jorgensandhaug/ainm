@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183453938Z-235fd3cc/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Crie o projeto "Migração Montanha" vinculado ao cliente Montanha Lda (org. nº 986713344). O gerente de projeto é Bruno Pereira (bruno.pereira@example.org).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+Or1chy7HNmd1Ydd5uUjE3_qj4zYQe_K81T32LZLBuuo
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183453938Z-235fd3cc/scripts

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-200743664Z-ca50ecdc",
+  "request_id": "3a88100e",
+  "prompt_raw": "Sett fastpris 181650 kr på prosjektet \"Nettbutikk-utvikling\" for Tindra AS (org.nr 870827946). Prosjektleder er Kristian Nilsen (kristian.nilsen@example.org). Fakturer kunden for 50 % av fastprisen som en delbetaling.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T20:09:54.919Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T20:07:44.250Z",
+  "after_captured_at": "2026-03-20T20:10:25.857Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T20:10:25.858Z"
+}

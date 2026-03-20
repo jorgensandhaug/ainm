@@ -1,0 +1,8 @@
+{
+  "prompt": "O pagamento de Floresta Lda (org. nº 818838018) referente à fatura \"Horas de consultoria\" (8300 NOK sem IVA) foi devolvido pelo banco. Reverta o pagamento para que a fatura volte a mostrar o montante em aberto.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "DoQCx4rXx-cM4aoo5V63uEAYVC2ouq0M6Q_HAZBppxc"
+  }
+}

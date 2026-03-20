@@ -1,0 +1,255 @@
+{
+  "session": {
+    "session_id": "019d0c9c-b344-77f2-ae77-bfc30ff53603",
+    "session_file": "/home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T19-58-09-019d0c9c-b344-77f2-ae77-bfc30ff53603.jsonl",
+    "session_meta": {
+      "id": "019d0c9c-b344-77f2-ae77-bfc30ff53603",
+      "timestamp": "2026-03-20T18:58:09.377Z",
+      "cwd": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+      "cli_version": "0.116.0"
+    },
+    "completed": true,
+    "last_assistant_message": "Erledigt. Festpreis `350650 NOK` für Projekt `ERP-Implementierung` bei `Sonnental GmbH` (`877407047`) gesetzt, Projektleiter `Finn Müller` (`finn.muller@example.org`) zugeordnet, und `25 %` = `87662,50 NOK` als nicht versandte Meilensteinrechnung erstellt.\n\nRun-Script: [run.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts)",
+    "task_complete_timestamp": "2026-03-20T19:00:09.070Z"
+  },
+  "summary": {
+    "assistant_message_count": 7,
+    "tool_call_count": 9,
+    "tool_result_count": 9,
+    "user_message_count": 1
+  },
+  "entries": [
+    {
+      "kind": "task_event",
+      "task_type": "task_started",
+      "timestamp": "2026-03-20T18:58:10.523Z"
+    },
+    {
+      "kind": "user_message",
+      "text": "Scored Tripletex run.\nFollow ./AGENTS.md exactly.\n\nHighest priorities:\n- Get the final Tripletex state exactly correct.\n- Use the fewest API calls possible.\n- Avoid all avoidable 4xx errors.\n\nKnowledge order:\n- 1. ./trusted-standards/\n- 2. ./task-playbooks/\n- 3. ./openapi.json\n- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.\n\nRun-specific rules:\n- Only interact with the Tripletex API by writing TypeScript and running it with bun.\n- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts\n- Do not place API-interaction scripts anywhere else.\n- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.\n- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.\n- Use only the provided base URL and session token.\n- Authenticate with Basic Auth username 0 and password = session token.\n- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.\n- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.\n- Do not ask questions. Do not talk to the user. Do only the task.\n\nTask:\nLegen Sie einen Festpreis von 350650 NOK für das Projekt \"ERP-Implementierung\" für Sonnental GmbH (Org.-Nr. 877407047) fest. Projektleiter ist Finn Müller (finn.muller@example.org). Stellen Sie dem Kunden 25 % des Festpreises als Meilensteinzahlung in Rechnung.\n\nTripletex API base URL:\nhttps://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\n\nTripletex session token:\n97-qC-J-pso5FxVqCFemk2UOxggMNbLkCCakLUIeqq4\n\nRun scripts directory:\n/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts",
+      "timestamp": "2026-03-20T18:58:10.530Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Prüfe zuerst passenden Trusted Standard und die minimale API-Folge für Festpreis + 25%-Meilensteinrechnung.",
+      "timestamp": "2026-03-20T18:58:17.717Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_jWBci9K5p7KwzuAKASq8V5bZ",
+      "arguments_raw": "{\"cmd\":\"rg --files ./trusted-standards ./task-playbooks | rg 'set-project-fixed-price-and-invoice-partial-payment|common-endpoints'\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":2000}",
+      "arguments": {
+        "cmd": "rg --files ./trusted-standards ./task-playbooks | rg 'set-project-fixed-price-and-invoice-partial-payment|common-endpoints'",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 2000
+      },
+      "timestamp": "2026-03-20T18:58:17.720Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_PAPgIAmUHt06GCeefDBvP8FP",
+      "arguments_raw": "{\"cmd\":\"pwd\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":200}",
+      "arguments": {
+        "cmd": "pwd",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 200
+      },
+      "timestamp": "2026-03-20T18:58:17.721Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_jWBci9K5p7KwzuAKASq8V5bZ",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"rg --files ./trusted-standards ./task-playbooks | rg 'set-project-fixed-price-and-invoice-partial-payment|common-endpoints'\"\nChunk ID: 842eba\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 47\nOutput:\n./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md\n./trusted-standards/common-endpoints.md\n./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md\n",
+      "timestamp": "2026-03-20T18:58:17.805Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_PAPgIAmUHt06GCeefDBvP8FP",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc pwd\nChunk ID: edd552\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 15\nOutput:\n/home/jorge/repos/ainm/tasks/tripletex/codex-environment\n",
+      "timestamp": "2026-03-20T18:58:17.806Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Lese nur den exakten Standard; wenn er passt, nutze ich ihn direkt ohne Spec-Breitensuche.",
+      "timestamp": "2026-03-20T18:58:22.900Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_chrgLdEsbVaVFuM8tYDVHGFU",
+      "arguments_raw": "{\"cmd\":\"sed -n '1,240p' ./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":5000}",
+      "arguments": {
+        "cmd": "sed -n '1,240p' ./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 5000
+      },
+      "timestamp": "2026-03-20T18:58:22.901Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_jB0ALTNavpCG3h5kdbpnj0eX",
+      "arguments_raw": "{\"cmd\":\"sed -n '1,240p' ./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":5000}",
+      "arguments": {
+        "cmd": "sed -n '1,240p' ./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 5000
+      },
+      "timestamp": "2026-03-20T18:58:22.908Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_chrgLdEsbVaVFuM8tYDVHGFU",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"sed -n '1,240p' ./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md\"\nChunk ID: d2a78c\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 1304\nOutput:\n# Set Project Fixed Price And Invoice Partial Payment\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- set or update one project's fixed price\n- link or keep that project on one customer identified by `organizationNumber`\n- set or keep one project manager identified by `email`\n- create one unsent milestone invoice for a percentage or amount of that fixed price\n- prompt does not ask to send the invoice\n\n## Do Not Use This Standard If\n- the task is hour-based project invoicing rather than fixed-price partial billing\n- the task requires sending the invoice\n- the task is mainly a create-project task with no invoice\n- the prompt is too ambiguous to resolve the customer or manager decisively\n\n## Standard Flow\n1. `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`\n2. `GET /customer?organizationNumber=...&count=10&fields=*`\n3. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: \"MANUAL\"` when the prompt gives no delivery details\n4. `GET /project?name=...&customerId=...&count=50&fields=*`\n5. `POST /project` if missing, otherwise `PUT /project/{id}`\n6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`\n7. `POST /order` with one project-linked milestone line\n8. if this is likely the first outgoing invoice in a fresh-account run, `GET /ledger/account?isBankAccount=true&fields=*`\n9. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once\n10. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`\n11. stop\n\n## Payload Rules\n- on `POST /project` or `PUT /project/{id}`, include:\n  - `name`\n  - `startDate`\n  - `customer: { \"id\": ... }`\n  - `projectManager: { \"id\": ... }`\n  - `isFixedPrice: true`\n  - `fixedprice: <full-fixed-price>`\n  - `invoiceOnAccountVatHigh: false`\n- on `POST /order`, include:\n  - `customer: { \"id\": ... }`\n  - `project: { \"id\": ... }`\n  - `orderDate`\n  - `deliveryDate`\n  - one embedded `orderLines[]` entry with:\n    - `description`\n    - `count: 1`\n    - `unitPriceExcludingVatCurrency: <partial-amount>`\n    - `vatType: { \"id\": ... }`\n- compare returned `employee.email` exactly because the endpoint filter is containing\n- compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present\n- if the prompt implies a normal taxable service and the filtered outgoing VAT result contains `25%`, use that `25%` row\n- if the filtered outgoing VAT result only exposes `0%`, use that one valid row instead of guessing another VAT code\n- do not use `createOnAccount` on an order with no real order lines for this task shape\n\n## Reuse From Write Response\n- from `POST /project` or `PUT /project/{id}`:\n  - `value.id`\n  - `value.customer.id`\n  - `value.projectManager.id`\n  - `value.isFixedPrice`\n  - `value.fixedprice`\n- from `POST /order`:\n  - `value.id`\n- from `PUT /order/{id}/:invoice`:\n  - `value.id`\n  - `value.customer.id`\n  - `value.amountExcludingVatCurrency`\n  - `value.amountCurrencyOutstanding`\n\n## Verification\n- default verification is zero extra calls after the successful invoice write\n- stop after `PUT /order/{id}/:invoice` succeeds\n- do not add a default `GET /invoice/{id}` just because the invoice write response keeps `orders[0].project` sparse or null\n- only add `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` when the prompt explicitly scores linked project fields that the write response omits or later workflow truly depends on them\n\n## Known Recovery Branches\n- if you intentionally skipped the fresh-account bank-account preflight and `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:\n  - `GET /ledger/account?isBankAccount=true&fields=*`\n  - update the existing invoice account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`\n  - retry the same `PUT /order/{id}/:invoice?...` once\n  - do not create a second order or project\n- if the filtered outgoing VAT result has no row that matches the prompt's intended taxable behavior and only unsupported rows remain, treat the task as blocked instead of guessing a VAT code\n\n## OpenAPI / Sandbox Status\n- `/project`, `/order`, `/order/{id}/:invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`\n- persistent-sandbox re-verification on 2026-03-20 proved:\n  - `PUT /project/{id}` updates `fixedprice` successfully\n  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` may expose only VAT code `6` (`0%`) in that account\n  - `PUT /order/{id}/:invoice` can already prove totals and outstanding amount while still leaving nested project linkage sparse/null in the write response\n- exact production reflection on 2026-03-20 proved two score-relevant optimizations for this task shape:\n  - the later `GET /invoice/{id}` was not part of the minimum scored path\n  - on a fresh account with missing company invoice bank account number, proactive `/ledger/account` preflight before the first invoice write would have saved one Tripletex call and avoided one `422`\n",
+      "timestamp": "2026-03-20T18:58:22.931Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_jB0ALTNavpCG3h5kdbpnj0eX",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"sed -n '1,240p' ./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md\"\nChunk ID: 195870\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 3048\nOutput:\n# Set Project Fixed Price and Invoice Partial Payment\n\n## Scope\n\nUse for tasks like:\n- set or update a fixed price on a project\n- create the project if it does not already exist\n- link the project to a customer identified by organization number and/or name\n- set an existing employee as project manager, identified by email and/or name\n- invoice the customer for a fraction of the fixed price as a partial billing\n- create the invoice but do not send it unless the prompt explicitly asks for sending\n\nDo not use for:\n- pure create-project tasks with no invoice step\n- invoice-send tasks where delivery method is the main goal\n- full-payment registration tasks after the invoice is created\n\n## Verified Findings\n\nPersistent-sandbox verification on 2026-03-20 showed:\n- `PUT /order/{id}/:invoice?...createOnAccount=WITHOUT_VAT&amountOnAccount=...` on an order with no order lines failed with `422` and validation message `Fakturaen inneholder ingen ordrelinjer.`\n- `POST /order` with embedded `orderLines` still echoed `orderLines=[]` in `response.value`, but the later invoice succeeded, and one decisive `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` confirmed the created order line and the linked project\n- production verification on 2026-03-20 showed an additional invoice-stage failure mode:\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` failed with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`\n  - `GET /ledger/account?isBankAccount=true&fields=*`, then `PUT /ledger/account/{id}` on the existing invoice bank account `1920`, then retrying the same `PUT /order/{id}/:invoice` succeeded\n  - therefore this branch should resume from the already-created order, not restart from `POST /project` or `POST /order`\n- creating the customer with `invoiceSendMethod: \"MANUAL\"` worked without inventing email or address fields when the prompt did not provide them\n- `POST /project` succeeded with:\n  - `startDate`\n  - `customer: { id }`\n  - `projectManager: { id }`\n  - `isFixedPrice: true`\n  - `fixedprice`\n  - `invoiceOnAccountVatHigh: false`\n- the project write response already proved `isFixedPrice=true`, `fixedprice=<amount>`, `customer.id`, and `projectManager.id`\n- the sandbox account only exposed one valid filtered outgoing VAT type on the invoice date:\n  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`\n  - returned VAT code `6` with `percentage=0`\n- invoicing a real project-linked order line for `281175` succeeded directly and produced an invoice with:\n  - `amountExcludingVatCurrency=281175`\n  - `amountCurrency=281175`\n  - `orders[0].project.id=<projectId>` on the verification read\n- additional persistent-sandbox verification on 2026-03-20 showed:\n  - `POST /project` followed by `PUT /project/{id}` successfully updated a fixed-price project from `170400` to `170500`\n  - `POST /order` with one project-linked partial-billing line for `56265` succeeded\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` then succeeded and one decisive `GET /invoice/{id}?fields=*,customer(*),orders(*,project(*,customer(*),projectManager(*)),orderLines(*)),orderLines(*)` proved:\n    - `amountExcludingVatCurrency=56265`\n    - `orders[0].project.fixedprice=170500`\n    - `orders[0].project.projectManager.email=<resolved-assignable-project-manager-email>`\n  - in that current sandbox state, invoice account `1920` already had `bankAccountNumber=12345678903`, so the company-bank-account validation did not reproduce there\n  - therefore, for this task shape the `/ledger/account` branch must stay conditional on the first invoice write failing, not part of the default fast path\n- `invoice.projectInvoiceDetails` was `null` in this working flow, so do not rely on that collection to prove the project link\n- persistent-sandbox re-verification on 2026-03-20 for the update branch showed:\n  - `PUT /project/{id}` updated `fixedprice` to `428550` and kept `isFixedPrice=true`\n  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` still returned only VAT code `6` (`0%`) in that account\n  - the successful `PUT /order/{id}/:invoice` write response already proved `id`, `customer.id`, `amountExcludingVatCurrency`, and `amountCurrencyOutstanding`, but `orders[0].project` stayed `null`\n  - one follow-up `GET /invoice/{id}` then proved `orders[0].project.id`, `orders[0].project.fixedprice=428550`, and one real order line\n- exact production reflection on 2026-03-20 showed that for the same task shape on a fresh account, taking the optimistic first `PUT /order/{id}/:invoice` caused one avoidable extra Tripletex call and a `422`; the lower-call replacement for that exact state was:\n  - `GET /ledger/account?isBankAccount=true&fields=*`\n  - `PUT /ledger/account/{id}` on the existing invoice account because `bankAccountNumber` was missing\n  - one successful `PUT /order/{id}/:invoice?...`\n\n## Minimal Safe Flow\n\n1. Confirm these operations in `./openapi.json`\n   - `GET /employee`\n   - `GET /customer`\n   - optional `POST /customer`\n   - `GET /project`\n   - `POST /project` or `PUT /project/{id}`\n   - `GET /ledger/vatType`\n   - `POST /order`\n   - `PUT /order/{id}/:invoice`\n2. Resolve the project manager\n   - `GET /employee?email=<email>&assignableProjectManagers=true&count=10&fields=*`\n   - exact-match the email locally because the API filter is containing, not exact\n3. Resolve the customer\n   - usually `GET /customer?organizationNumber=...&count=10&fields=*`\n   - if the prompt also gives the customer name, exact-match that locally too\n4. Create the customer only if it does not already exist\n   - if the prompt does not give invoice delivery details, prefer:\n   - `invoiceSendMethod: \"MANUAL\"`\n5. Resolve the project by exact project name plus customer\n   - if it exists, `PUT /project/{id}` with the fixed-price fields\n   - if it does not exist, `POST /project`\n6. Set the project fixed-price fields\n   - `startDate`\n   - `customer: { \"id\": ... }`\n   - `projectManager: { \"id\": ... }`\n   - `isFixedPrice: true`\n   - `fixedprice: <full-fixed-price>`\n   - `invoiceOnAccountVatHigh: false`\n7. Resolve a valid outgoing VAT type for the invoice date\n   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`\n   - choose from the filtered response, not from a hardcoded VAT code\n   - if the prompt implies a normal taxable service and the filtered result includes `25%`, use that `25%` row\n   - if the filtered result only exposes `0%`, use that one valid row rather than guessing another VAT code\n8. Create an order linked to the project with one real partial-billing line\n   - `POST /order`\n   - include:\n     - `customer`\n     - `project`\n     - `orderDate`\n     - `deliveryDate`\n     - one embedded `orderLines[]` entry for the partial amount\n9. In fresh-account scored runs where this is likely the first outgoing invoice of the run, preflight the company invoice bank account before the first invoice write\n   - `GET /ledger/account?isBankAccount=true&fields=*`\n   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`\n   - only if `bankAccountNumber` is missing, `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`\n10. Invoice the order without sending it\n   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`\n11. Only if you intentionally skipped that fresh-account preflight and the invoice write then fails with the company-bank-account validation, repair that prerequisite and retry the same order once\n   - `GET /ledger/account?isBankAccount=true&fields=*`\n   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`\n   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`\n   - retry `PUT /order/{id}/:invoice?...` on the same order\n12. Verify from the write response first\n   - reuse the invoice totals from `response.value`\n13. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof\n14. Only for explicit linked-field verification or post-run research, do one decisive read\n   - `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`\n\n## Recommended Shapes\n\nProject create/update:\n\n```json\n{\n  \"name\": \"Datasikkerhet\",\n  \"startDate\": \"2026-03-20\",\n  \"customer\": { \"id\": 12345 },\n  \"projectManager\": { \"id\": 67890 },\n  \"isFixedPrice\": true,\n  \"fixedprice\": 374900,\n  \"invoiceOnAccountVatHigh\": false\n}\n```\n\nOrder create for the partial billing:\n\n```json\n{\n  \"customer\": { \"id\": 12345 },\n  \"project\": { \"id\": 54321 },\n  \"orderDate\": \"2026-03-20\",\n  \"deliveryDate\": \"2026-03-20\",\n  \"invoiceOnAccountVatHigh\": false,\n  \"orderLines\": [\n    {\n      \"description\": \"Partial billing 75% of fixed price\",\n      \"count\": 1,\n      \"unitPriceExcludingVatCurrency\": 281175,\n      \"vatType\": { \"id\": 6 }\n    }\n  ]\n}\n```\n\nIn real tasks, replace VAT id `6` with the VAT type actually returned by the filtered `GET /ledger/vatType` call for the invoice date.\n\n## Exact-Match Fast Path\n\n- For a prompt that gives:\n  - customer organization number and name\n  - project name\n  - project manager email\n  - full fixed price\n  - partial-billing percentage or amount\n- the lower-call fresh-account flow is usually:\n  1. `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`\n  2. `GET /customer?organizationNumber=...&count=10&fields=*`\n  3. optional `POST /customer` with `invoiceSendMethod: \"MANUAL\"` if missing\n  4. `GET /project?name=...&customerId=...&count=50&fields=*`\n  5. `POST /project` or `PUT /project/{id}`\n  6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`\n  7. `POST /order` with one embedded partial-billing line\n  8. `GET /ledger/account?isBankAccount=true&fields=*`\n  9. only if the chosen invoice account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once\n  10. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`\n- if the run already proved a valid company invoice bank account earlier, skip steps 8-9\n- do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null\n\n## Verification Shape\n\n- `POST /project` or `PUT /project/{id}`\n  - expect `ResponseWrapperProject`\n  - verify:\n    - `name`\n    - `customer.id`\n    - `projectManager.id`\n    - `isFixedPrice`\n    - `fixedprice`\n- `POST /order`\n  - trust the returned `id`\n  - do not over-trust `response.value.orderLines`\n- `PUT /order/{id}/:invoice`\n  - expect `ResponseWrapperInvoice`\n  - verify:\n    - `id`\n    - `customer.id`\n    - `amountExcludingVatCurrency`\n    - `amountCurrencyOutstanding`\n- optional `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`\n  - use this one read only when the prompt explicitly requires linked-field proof or for post-run research\n  - it can prove:\n    - `orders[0].project.id`\n    - one real invoiced order line exists\n\n## Avoidable Mistakes\n\n- Do not assume `createOnAccount` lets you invoice a line-less order for this task shape\n- Do not trust `POST /order` returning `orderLines=[]` as proof that the embedded line was ignored\n- Do not hardcode VAT code `3`; the filtered account-specific outgoing VAT list may only expose another code such as `6`\n- Do not blindly choose the highest outgoing VAT percentage when the filtered result already shows the account only allows `0%` on the invoice date\n- Do not rely on `invoice.projectInvoiceDetails` for verification; it can be `null` even when the invoice is correctly linked to the project through `orders[0].project`\n- Do not invent customer email or address fields when the prompt does not provide them; `invoiceSendMethod: \"MANUAL\"` is the safer customer-create default for this unsent-invoice flow\n- Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order\n- Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path\n",
+      "timestamp": "2026-03-20T18:58:22.937Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Der Standard passt exakt. Jetzt baue ich ein einzelnes Bun-Script im Run-Ordner und halte den Call-Graph bei der Standardfolge.",
+      "timestamp": "2026-03-20T18:58:31.017Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_28PDspFsJ2t4UXAMnkapl49g",
+      "arguments_raw": "{\"cmd\":\"ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":2000}",
+      "arguments": {
+        "cmd": "ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 2000
+      },
+      "timestamp": "2026-03-20T18:58:31.020Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_MEWHtxXeUWzqO8kpJyDIixHf",
+      "arguments_raw": "{\"cmd\":\"rg --files /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":2000}",
+      "arguments": {
+        "cmd": "rg --files /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 2000
+      },
+      "timestamp": "2026-03-20T18:58:31.030Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_28PDspFsJ2t4UXAMnkapl49g",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts'\nChunk ID: 88bc5d\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 25\nOutput:\ntotal 8\ndrwxr-xr-x 2 jorge users 4096 Mar 20 19:58 .\ndrwxr-xr-x 4 jorge users 4096 Mar 20 19:58 ..\n",
+      "timestamp": "2026-03-20T18:58:31.086Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_MEWHtxXeUWzqO8kpJyDIixHf",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'rg --files /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts'\nChunk ID: 3a60a8\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 0\nOutput:\n",
+      "timestamp": "2026-03-20T18:58:31.087Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Schreibe jetzt das Run-Script im vorgegebenen `scripts/`-Ordner; es löst Mitarbeiter, Kunde, Projekt, VAT, Order und fakturiert dann ohne Versand.",
+      "timestamp": "2026-03-20T18:59:17.979Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Script steht. Führe jetzt den echten Bun-Run gegen die angegebenen Credentials aus.",
+      "timestamp": "2026-03-20T18:59:49.403Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_AScGvrAxPISpDlPCcJ0LULTU",
+      "arguments_raw": "{\"cmd\":\"bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"yield_time_ms\":1000,\"max_output_tokens\":6000}",
+      "arguments": {
+        "cmd": "bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "yield_time_ms": 1000,
+        "max_output_tokens": 6000
+      },
+      "timestamp": "2026-03-20T18:59:50.160Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_AScGvrAxPISpDlPCcJ0LULTU",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts'\nChunk ID: 41fba5\nWall time: 1.0016 seconds\nProcess running with session ID 4910\nOriginal token count: 0\nOutput:\n",
+      "timestamp": "2026-03-20T18:59:51.326Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Warte auf API-Lauf; wenn ein einzelner Validierungszweig nötig ist, repariere ich ihn direkt ohne Neustart.",
+      "timestamp": "2026-03-20T18:59:52.589Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "write_stdin",
+      "call_id": "call_YocgBEPGii4mKwevvFCSzoKN",
+      "arguments_raw": "{\"session_id\":4910,\"chars\":\"\",\"yield_time_ms\":1000,\"max_output_tokens\":6000}",
+      "arguments": {
+        "session_id": 4910,
+        "chars": "",
+        "yield_time_ms": 1000,
+        "max_output_tokens": 6000
+      },
+      "timestamp": "2026-03-20T18:59:52.918Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_YocgBEPGii4mKwevvFCSzoKN",
+      "tool_name": "write_stdin",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts'\nChunk ID: 0debe1\nWall time: 5.0007 seconds\nProcess running with session ID 4910\nOriginal token count: 0\nOutput:\n",
+      "timestamp": "2026-03-20T18:59:57.920Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "write_stdin",
+      "call_id": "call_WnhAhOY8mCjOaVKJHbUyrsEG",
+      "arguments_raw": "{\"session_id\":4910,\"chars\":\"\",\"yield_time_ms\":1000,\"max_output_tokens\":6000}",
+      "arguments": {
+        "session_id": 4910,
+        "chars": "",
+        "yield_time_ms": 1000,
+        "max_output_tokens": 6000
+      },
+      "timestamp": "2026-03-20T18:59:59.252Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_WnhAhOY8mCjOaVKJHbUyrsEG",
+      "tool_name": "write_stdin",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts'\nChunk ID: 69e03e\nWall time: 4.9756 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n",
+      "timestamp": "2026-03-20T19:00:04.230Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "final_answer",
+      "text": "Erledigt. Festpreis `350650 NOK` für Projekt `ERP-Implementierung` bei `Sonnental GmbH` (`877407047`) gesetzt, Projektleiter `Finn Müller` (`finn.muller@example.org`) zugeordnet, und `25 %` = `87662,50 NOK` als nicht versandte Meilensteinrechnung erstellt.\n\nRun-Script: [run.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts)",
+      "timestamp": "2026-03-20T19:00:09.052Z"
+    },
+    {
+      "kind": "task_event",
+      "task_type": "task_complete",
+      "text": "Erledigt. Festpreis `350650 NOK` für Projekt `ERP-Implementierung` bei `Sonnental GmbH` (`877407047`) gesetzt, Projektleiter `Finn Müller` (`finn.muller@example.org`) zugeordnet, und `25 %` = `87662,50 NOK` als nicht versandte Meilensteinrechnung erstellt.\n\nRun-Script: [run.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185808904Z-b553a118/scripts/run.ts)",
+      "timestamp": "2026-03-20T19:00:09.070Z"
+    }
+  ]
+}

@@ -45,6 +45,7 @@
 - do not invent `physicalAddress`
 - do not invent `invoiceEmail`
 - localized generic email labels such as `Correo` still map to `email`
+- prompt language alone does not change this standard; a German-language prompt with ordinary Norwegian customer fields is still the same one-call create path
 
 ## Reuse From Write Response
 - `value.id`
@@ -66,6 +67,7 @@
 - do not add duplicate-check logic for fresh-account create tasks
 - do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
 - do not treat the returned default delivery fields as a reason to fetch the customer again
+- do not escalate to foreign-customer handling just because the prompt text is not Norwegian if the actual organization number and postal address are ordinary Norwegian values
 
 ## OpenAPI / Sandbox Status
 - endpoint family verified in `./openapi.json`
@@ -74,3 +76,5 @@
 - re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with `name`, localized generic email input, `organizationNumber`, and `postalAddress` (`Parkveien 49`, `4611`, `Kristiansand`); one `POST /customer` returned customer `id=108246353`, preserved all scored postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in persistent sandbox with `name`, generic `email`, Norwegian `organizationNumber`, and `postalAddress` (`Fjordveien 129`, `2317`, `Hamar`); one `POST /customer` returned customer `id=108248251`, preserved the exact postal fields in `response.value.postalAddress`, and still needed no follow-up read
+- re-verified on 2026-03-20 in production for the German-language prompt `Grünfeld GmbH`, `886669445`, `post@grunfeld.no`, and `Kirkegata 87, 6003 Ålesund`; one `POST /customer` returned customer `id=108268199`, preserved the exact Unicode name and city, and still needed no follow-up read
+- re-verified again on 2026-03-20 in persistent sandbox with production-like German prompt semantics and unique payload `Grünfeld Reflection 201018 AS`, `post-reflection-201018@grunfeld.no`, `999201018`, and `postalAddress` `Kirkegata 87`, `6003`, `Ålesund`; the same single `POST /customer` returned customer `id=108268237`, preserved the exact Unicode name and city, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read

@@ -1,0 +1,8 @@
+{
+  "prompt": "Sett fastpris 181650 kr på prosjektet \"Nettbutikk-utvikling\" for Tindra AS (org.nr 870827946). Prosjektleder er Kristian Nilsen (kristian.nilsen@example.org). Fakturer kunden for 50 % av fastprisen som en delbetaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "idO92nQDOduzKJRTGbScgvhDfznUM4auRGlG0lceRz4"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalingen fra Polaris AS (org.nr 913083458) for fakturaen \"Analyserapport\" (21450 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "5Z_Va5IMEsL_u6mPHj0Ay55kIHv_Rd8y88GyUPK_pNw"
+  }
+}

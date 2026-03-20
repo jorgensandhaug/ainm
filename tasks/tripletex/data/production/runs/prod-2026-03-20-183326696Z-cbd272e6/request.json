@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie e envie uma fatura ao cliente Porto Alegre Lda (org. nº 826870192) por 22700 NOK sem IVA. A fatura refere-se a Design web.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Ysq7qPSNir1oqgR7ZkoV4l4-RTHWE1ZUi4s4DfMcwiY"
+  }
+}

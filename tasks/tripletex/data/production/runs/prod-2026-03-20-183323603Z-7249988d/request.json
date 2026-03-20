@@ -1,0 +1,8 @@
+{
+  "prompt": "Die Zahlung von Bergwerk GmbH (Org.-Nr. 819152640) für die Rechnung \"Softwarelizenz\" (49750 NOK ohne MwSt.) wurde von der Bank zurückgebucht. Stornieren Sie die Zahlung, damit die Rechnung wieder den offenen Betrag anzeigt.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "aqa2pTnYwFE72avCP6kYwqY4J72xFm43m0aDap2LnaQ"
+  }
+}

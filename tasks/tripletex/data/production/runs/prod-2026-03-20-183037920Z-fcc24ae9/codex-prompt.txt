@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183037920Z-fcc24ae9/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Kunden Elvdal AS (org.nr 812449982) har reklamert på fakturaen for "Datarådgjeving" (45300 kr ekskl. MVA). Opprett ei fullstendig kreditnota som reverserer heile fakturaen.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+5Ialaj90HQn4n51t4y1ZFB-wwWB1Av0joJlX00FTqvE
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183037920Z-fcc24ae9/scripts

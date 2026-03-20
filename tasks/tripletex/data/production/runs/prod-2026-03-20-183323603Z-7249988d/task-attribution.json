@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-183323603Z-7249988d",
+  "request_id": "2e9deaf1",
+  "prompt_raw": "Die Zahlung von Bergwerk GmbH (Org.-Nr. 819152640) für die Rechnung \"Softwarelizenz\" (49750 NOK ohne MwSt.) wurde von der Bank zurückgebucht. Stornieren Sie die Zahlung, damit die Rechnung wieder den offenen Betrag anzeigt.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T18:34:15.824Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:33:23.662Z",
+  "after_captured_at": "2026-03-20T18:35:16.313Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T18:35:16.314Z"
+}

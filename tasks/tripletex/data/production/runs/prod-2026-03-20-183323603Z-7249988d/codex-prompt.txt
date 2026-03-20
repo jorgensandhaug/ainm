@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183323603Z-7249988d/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Die Zahlung von Bergwerk GmbH (Org.-Nr. 819152640) für die Rechnung "Softwarelizenz" (49750 NOK ohne MwSt.) wurde von der Bank zurückgebucht. Stornieren Sie die Zahlung, damit die Rechnung wieder den offenen Betrag anzeigt.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+aqa2pTnYwFE72avCP6kYwqY4J72xFm43m0aDap2LnaQ
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183323603Z-7249988d/scripts

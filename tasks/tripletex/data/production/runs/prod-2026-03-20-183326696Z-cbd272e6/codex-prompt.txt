@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183326696Z-cbd272e6/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Crie e envie uma fatura ao cliente Porto Alegre Lda (org. nº 826870192) por 22700 NOK sem IVA. A fatura refere-se a Design web.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+Ysq7qPSNir1oqgR7ZkoV4l4-RTHWE1ZUi4s4DfMcwiY
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-183326696Z-cbd272e6/scripts

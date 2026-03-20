@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-201702224Z-93727a4a",
+  "request_id": "ee5ce395",
+  "prompt_raw": "Der Kunde Sonnental GmbH (Org.-Nr. 962075754) hat die Rechnung für \"Analysebericht\" (30200 NOK ohne MwSt.) reklamiert. Erstellen Sie eine vollständige Gutschrift, die die gesamte Rechnung storniert.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T20:17:44.536Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T20:17:02.300Z",
+  "after_captured_at": "2026-03-20T20:18:14.811Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T20:18:14.812Z"
+}

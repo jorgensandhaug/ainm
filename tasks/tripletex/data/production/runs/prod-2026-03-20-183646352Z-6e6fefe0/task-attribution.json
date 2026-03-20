@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-183646352Z-6e6fefe0",
+  "request_id": "6f19123f",
+  "prompt_raw": "Le client Cascade SARL (nº org. 973999966) a réclamé concernant la facture pour \"Conseil en données\" (40800 NOK HT). Émettez un avoir complet qui annule l'intégralité de la facture.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T18:37:32.937Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 60000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:36:46.885Z",
+  "after_captured_at": "2026-03-20T18:38:34.834Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T18:38:34.836Z"
+}

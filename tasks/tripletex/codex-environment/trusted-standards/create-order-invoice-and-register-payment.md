@@ -23,12 +23,11 @@
 2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
 3. only if that first product read does not resolve every product, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
 4. only if both numeric reads miss and the prompt also gives exact product names, do one final decisive `GET /product?count=1000&fields=*` and filter locally
-5. `POST /order` with embedded `orderLines`
-6. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-7. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-8. `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<outstanding>`
-9. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the payment write response
-10. stop
+5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+6. `POST /order` with embedded `orderLines`
+7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+8. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
+9. stop
 
 ## Payload Rules
 - on `POST /order`, send:
@@ -41,11 +40,14 @@
     - `count`
     - `unitPriceExcludingVatCurrency`
 - preserve prompt product names/descriptions exactly when they are part of the scored state
-- do not derive the payment amount from the prompt line-price sum; use the invoice write response outstanding amount
+- when resolving `GET /product?productNumber=...&fields=*`, normalize both `number` and `productNumber` from the response; some accounts return the matched key under `number`
 - do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
 - if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
 - if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
+- for the combined invoice-and-payment write, use one valid incoming `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`
+- `paidAmount=0` is not a valid shortcut here; live validation treats it as missing
+- for ordinary NOK runs, `paidAmount=0.01` is a proven safe seed that lets Tripletex calculate the remaining full payment automatically
 
 ## Reuse From Write Response
 - from `POST /order`:
@@ -55,12 +57,10 @@
   - `value.invoiceNumber`
   - `value.amountCurrencyOutstanding` or `value.amountOutstanding`
   - invoice totals if needed for proof
-- from `PUT /invoice/{id}/:payment`:
-  - final outstanding amount
 
 ## Verification
-- default verification is zero extra calls after the payment write
-- trust the payment write response when it proves remaining outstanding amount is `0`
+- default verification is zero extra calls after the combined invoice write
+- trust the invoice write response when it proves remaining outstanding amount is `0`
 - do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits
 
 ## Known Recovery Branches
@@ -73,21 +73,35 @@
   - update the existing invoice bank account with `PUT /ledger/account/{id}` using a valid unique 11-digit `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
   - do not create a second order
-- if payment registration fails after order and invoice already exist:
+- if the combined invoice-and-payment write rejects the seed-payment shape for an unexpected account-specific reason after the invoice already exists:
   - resume from the existing unpaid invoice instead of rebuilding the order
+  - `GET /invoice/paymentType?...` only if the same run does not already hold a proven valid incoming payment type
+  - `PUT /invoice/{id}/:payment?...` with the actual outstanding amount from the invoice object
 
 ## OpenAPI / Sandbox Status
 - `/order`, `/order/{id}/:invoice`, `/invoice/paymentType`, and `/invoice/{id}/:payment` verified in `./openapi.json`
 - exact downstream fast path re-proven on 2026-03-20 in production and sandbox
-- when the first `GET /product?productNumber=...` already resolves every product, the exact-match path is usually 6 Tripletex API calls:
+- when the first `GET /product?productNumber=...` already resolves every product and no same-run `paymentTypeId` is cached yet, the exact-match path is usually 5 Tripletex API calls:
+  - `GET /customer`
+  - `GET /product`
+  - `GET /invoice/paymentType`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice` with `paymentTypeId`, a minimal positive `paidAmount`, and `paymentTypeIdRestAmount`
+- if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, the path drops to 4 calls:
   - `GET /customer`
   - `GET /product`
   - `POST /order`
-  - `PUT /order/{id}/:invoice`
-  - `GET /invoice/paymentType`
-  - `PUT /invoice/{id}/:payment`
-- re-verified on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; once those exact entities existed, the downstream exact-match path again completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`
-- additional production re-verification on 2026-03-20 for customer `989093630` with product refs `5981` and `6784` again completed in the same 6 calls with no `/ledger/account` hedge, and the created invoice outstanding was `63000` even though the prompt ex-VAT sum was `50400`
+  - `PUT /order/{id}/:invoice` with the combined prepayment parameters
+- re-verified earlier on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; before the combined-prepayment improvement was proven, the downstream split-tail path completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`
+- further persistent-sandbox verification on 2026-03-20 with customer `975687821` and product refs `4366` / `3402` proved the lower-call replacement path:
+  - `GET /customer?organizationNumber=975687821&fields=*`
+  - `GET /product?productNumber=4366&productNumber=3402&fields=*`
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`
+  - the invoice write returned `amountCurrencyOutstanding=0` directly, so the extra `PUT /invoice/{id}/:payment` call was unnecessary
+- the same sandbox proof also showed that `GET /product?productNumber=...&fields=*` can return the matched product ref under `number` instead of `productNumber`; resolvers must normalize both
+- additional production re-verification on 2026-03-20 for customer `989093630` with product refs `5981` and `6784` had earlier completed in the same 6-call split-tail path with no `/ledger/account` hedge, and the created invoice outstanding was `63000` even though the prompt ex-VAT sum was `50400`
 - production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance
 - production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`
-- later production reflection on 2026-03-20 also showed the opposite risk: turning that `/ledger/account` hedge into a default step would spend a seventh call on accounts where the plain 6-call exact path already works, so the hedge must stay conditional rather than canonical
+- later production reflection on 2026-03-20 also showed the opposite risk: turning that `/ledger/account` hedge into a default step would spend a sixth call on accounts where the plain 5-call exact path already works, so the hedge must stay conditional rather than canonical

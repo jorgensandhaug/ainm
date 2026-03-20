@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalinga frå Strandvik AS (org.nr 928351904) for fakturaen \"Opplæring\" (25950 kr ekskl. MVA) vart returnert av banken. Reverser betalinga slik at fakturaen igjen viser uteståande beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "2CVxRJK0qsjzTqL24_yMfCOXduc1JqKqaJpZ2AF8ncM"
+  }
+}

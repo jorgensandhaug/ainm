@@ -1,0 +1,8 @@
+{
+  "prompt": "El pago de Montaña SL (org. nº 888412972) por la factura \"Diseño web\" (35800 NOK sin IVA) fue devuelto por el banco. Revierta el pago para que la factura vuelva a mostrar el importe pendiente.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "VcMUfIVw2z30qmwSqET4_-WXm9ZhFkpEvT56r8x4bt4"
+  }
+}

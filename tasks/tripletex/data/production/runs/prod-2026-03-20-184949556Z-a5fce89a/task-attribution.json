@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-184949556Z-a5fce89a",
+  "request_id": "7cc8dd16",
+  "prompt_raw": "O pagamento de Floresta Lda (org. nº 818838018) referente à fatura \"Horas de consultoria\" (8300 NOK sem IVA) foi devolvido pelo banco. Reverta o pagamento para que a fatura volte a mostrar o montante em aberto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T18:50:42.053Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:49:49.653Z",
+  "after_captured_at": "2026-03-20T18:51:13.523Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T18:51:13.525Z"
+}

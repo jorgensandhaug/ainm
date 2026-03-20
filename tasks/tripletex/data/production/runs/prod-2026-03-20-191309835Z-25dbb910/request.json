@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer leverandøren Bergvik AS med organisasjonsnummer 978783864. E-post: faktura@bergvik.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "rtC_9-mdKXVXsJlp9lEmzhA5TTkBRzzLCC6A-yz_Bos"
+  }
+}

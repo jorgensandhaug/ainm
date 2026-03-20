@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea el proyecto \"Actualización Sierra\" vinculado al cliente Sierra SL (org. nº 953403188). El director del proyecto es Ana Romero (ana.romero@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "n3Am_dWoiUjVtwCoWOP4aYJZRWC1fEgBtAgAuSdKTcY"
+  }
+}

@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-184002643Z-28bd654b/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Kunden Stormberg AS (org.nr 991882502) har reklamert på fakturaen for "Opplæring" (13100 kr ekskl. MVA). Opprett en fullstendig kreditnota som reverserer hele fakturaen.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+RBixRN3auXXZI9z4zEcNXJG1hK89TGw3EdU0hlkap4o
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-184002643Z-28bd654b/scripts

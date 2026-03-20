@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-185417611Z-d9736529",
+  "request_id": "051b2290",
+  "prompt_raw": "Registrer leverandøren Skogheim AS med organisasjonsnummer 993130494. E-post: faktura@skogheim.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T18:54:46.645Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:54:20.637Z",
+  "after_captured_at": "2026-03-20T18:55:18.103Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "04",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T18:55:18.106Z"
+}

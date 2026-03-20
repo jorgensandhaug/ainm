@@ -1,0 +1,551 @@
+# Codex Trace Snapshot
+
+- session_id: 019d0cde-c5d4-7852-8eb8-34fa2c3b1f2c
+- session_file: /home/jorge/.codex/sessions/2026/03/20/rollout-2026-03-20T21-10-19-019d0cde-c5d4-7852-8eb8-34fa2c3b1f2c.jsonl
+- completed: true
+- assistant_messages: 4
+- tool_calls: 5
+- tool_results: 5
+
+## 2026-03-20T20:10:20.695Z task_event
+event: task_started
+
+## 2026-03-20T20:10:20.699Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Erstellen Sie den Kunden Grünfeld GmbH mit der Organisationsnummer 886669445. Die Adresse ist Kirkegata 87, 6003 Ålesund. E-Mail: post@grunfeld.no.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+QgSuTZZppd1u2EhoZlQr77TiNlkacvE08XNWikWKneo
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts
+
+## 2026-03-20T20:10:27.340Z assistant_message
+phase: commentary
+
+Checking trusted standard for create-customer, then writing one Bun script in the run scripts dir and executing minimal POST flow.
+
+## 2026-03-20T20:10:27.343Z tool_call
+tool: exec_command
+call_id: call_faUk7jy55ygADVDwFKsLG43U
+
+```json
+{
+  "cmd": "pwd && rg -n \"create customer|POST /customer|postalAddress|invoiceEmail|organizationNumber\" trusted-standards task-playbooks openapi.json AGENTS.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 12000
+}
+```
+
+## 2026-03-20T20:10:27.351Z tool_call
+tool: exec_command
+call_id: call_7OtgSshZFsKO1XXdihL7NmBu
+
+```json
+{
+  "cmd": "sed -n '1,220p' trusted-standards/create-customer.md",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 12000
+}
+```
+
+## 2026-03-20T20:10:27.413Z tool_result
+tool: exec_command
+call_id: call_faUk7jy55ygADVDwFKsLG43U
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'pwd && rg -n "create customer|POST /customer|postalAddress|invoiceEmail|organizationNumber" trusted-standards task-playbooks openapi.json AGENTS.md'
+Chunk ID: 70b865
+Wall time: 0.0002 seconds
+Process exited with code 0
+Original token count: 14627
+Output:
+Total output lines: 285
+
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment
+AGENTS.md:79:- Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
+AGENTS.md:229:- For the exact fresh-account create-and-send one-line service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the canonical low-call path is `POST /customer` with `invoiceSendMethod: "MANUAL"`, then filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, then `POST /invoice`; do not spend a speculative `GET /customer` first.
+AGENTS.md:230:- For exact full customer-invoice credit-note tasks identified by `customer.organizationNumber + exact ex-VAT amount + exact line description`, the canonical path is one decisive `GET /invoice?invoiceDateFrom=...&invoiceDateTo=...&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` and one `PUT /invoice/{id}/:createCreditNote?date=...&sendToCustomer=false`; the 2026-03-20 production runs for `812449982` + `45300` + `Datarådgjeving`, `973999966` + `40800` + `Conseil en données`, and `991882502` + `13100` + `Opplæring` confirmed that path is still minimal. Do not add `GET /customer`, `GET /invoice/{id}`, or extra spec re-checking once the trusted standard already matches.
+AGENTS.md:250:- For ordinary direct-line service invoice prompts explicitly priced excluding VAT / MVA, the filtered outgoing VAT read must contain an exact `25%` row; use that row on `orderLines[].vatType`. If the filtered result only exposes `0%`, treat the run as blocked in that account instead of omitting `vatType` or downgrading the line to `0%`. The 2026-03-20 production run for `Snøhetta AS` / `871844062` / `Webdesign` / `20100` confirmed the safe 3-call path `POST /customer`, filtered `GET /ledger/vatType`, `POST /invoice`, while the persistent sandbox on the same date still exposed only VAT code `6` and produced a wrong `20100` total when `vatType` was omitted.
+AGENTS.md:254:- For ordinary supplier-invoice tasks phrased as invoice from `the supplier <name>`, do one decisive `GET /supplier?organizationNumber=...&fields=*` first. The 2026-03-20 production miss for `Brightstone Ltd` showed that direct `POST /supplier` can create a duplicate and book the voucher against the wrong supplier even when the accounting postings are otherwise correct.
+AGENTS.md:255:- In that same supplier-invoice shape, if the supplier lookup returns one exact hit, reuse it and keep the path at `5` calls; only `POST /supplier` when the lookup returns zero hits. If the lookup returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier, otherwise treat the run state as ambiguous.
+AGENTS.md:256:- For the exact create-one-supplier shape with prompt-provided `name`, `organizationNumber`, and one generic email address, the canonical minimal path is still one `POST /supplier`; do not add `GET /supplier` or `GET /supplier/{id}`. If that lone supplier email is invoice-looking, such as `faktura@...`, mirroring it into both `email` and `invoiceEmail` is still a plausible hedge, but do not treat that as a proven full fix: the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`, so one remaining scorer field is likely non-prompt and unresolved.
+AGENTS.md:257:- For the exact standard Norwegian create-customer shape with prompt-provided `name`, `email`, and `organizationNumber`, the canonical minimal path is one `POST /customer`; do not add `GET /customer`, `GET /customer/{id}`, or speculative invoice-delivery fields unless the prompt explicitly requires them.
+AGENTS.md:258:- In standard customer creation tasks with one ordinary address, prefer `postalAddress` (`addressLine1`, `postalCode`, `city`) and do not also invent `physicalAddress` unless the prompt explicitly asks for a separate physical/visiting address.
+AGENTS.md:259:- `POST /customer` can still return a sparse `physicalAddress` link object even when you sent only `postalAddress`. Do not treat that as evidence that the prompt required a separate visiting address, and do not spend a follow-up `GET` just to inspect it.
+AGENTS.md:260:- In standard customer creation tasks with one generic prompt email, map it to `email`; do not also populate `invoiceEmail` unless the prompt explicitly asks for an invoice/billing email.
+AGENTS.md:261:- Treat localized generic email labels such as `Correo` the same as `Email`/`E-post` in create-customer tasks; they still map to `email`, not `invoiceEmail`.
+AGENTS.md:284:- For exact create-project tasks with an existing customer identified by organization number and an existing project manager identified by email, the low-call path is `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`; the 2026-03-20 production run for `986713344` + `bruno.pereira@example.org` re-confirmed that this 3-call path is already minimal. Keep exact uniqueness checks local instead of adding more reads.
+AGENTS.md:285:- In that exact create-project flow, do not make prompt `customer.name` or manager name a hard requirement after the filtered reads already leave one exact `organizationNumber` hit and one exact `email` hit; use names only as local tie-breakers for multi-hit cases.
+AGENTS.md:289:- For update-shaped fixed-price project billing tasks, widen that same project resolver to `fields=*,customer(*),projectManager(*)`; if one exact project row already proves both nested `customer.organizationNumber` and nested `projectManager.email`, skip separate `GET /customer` and `GET /employee` reads and reuse the returned `customer.id`, `projectManager.id`, and `startDate` directly on `PUT /project/{id}`.
+AGENTS.md:333:- For the exact standard supplier-create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical minimal path is one `POST /supplier`; do not add `GET /supplier`, `GET /supplier/{id}`, or speculative address fields unless the prompt explicitly requires them. If the lone supplier email is invoice-looking, mirror it into `invoiceEmail` in that same write.
+AGENTS.md:335:- `POST /supplier` can still return sparse `postalAddress` and `physicalAddress` link objects even when you sent no address fields. Do not treat that as evidence that the prompt required addresses, and do not spend a follow-up `GET` just to inspect them.
+AGENTS.md:336:- In standard supplier creation tasks with one generic prompt email, always populate `email`. If that lone address is invoice-looking, also mirror it to `invoiceEmail`; this is still the same one-call create path.
+AGENTS.md:342:- `POST /ledger/voucher` can return supplier-invoice postings with enough ids and amounts to prove the fast path, while linked human-readable fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber` stay sparse. Verify the write response by ids plus amounts first; only spend `GET /ledger/voucher/{id}?fields=*` when the scored task specifically needs expanded linked fields.
+trusted-standards/register-project-hours-and-create-project-invoice.md:23:   - use the expanded `project.customer.organizationNumber` and/or `project.customer.name` to satisfy the customer-identification part of the prompt
+trusted-standards/create-customer.md:23:1. `POST /customer`
+trusted-standards/create-customer.md:29:  - `POST /customer`
+trusted-standards/create-customer.md:39:  - `organizationNumber`
+trusted-standards/create-customer.md:41:  - `postalAddress.addressLine1`
+trusted-standards/create-customer.md:42:  - `postalAddress.postalCode`
+trusted-standards/create-customer.md:43:  - `postalAddress.city`
+trusted-standards/create-customer.md:46:- do not invent `invoiceEmail`
+trusted-standards/create-customer.md:59:- if `value.physicalAddress` appears as a link-only object after sending only `postalAddress`, do not treat that as a missing-field problem
+trusted-standards/create-customer.md:67:- do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
+trusted-standards/create-customer.md:73:- re-verified on 2026-03-20 in persistent sandbox with `postalAddress`; the same one-call write returned the scored postal fields plus a sparse auto-generated `physicalAddress` link
+trusted-standards/create-customer.md:74:- re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+trusted-standards/create-customer.md:75:- re-verified on 2026-03-20 in persistent sandbox with `name`, localized generic email input, `organizationNumber`, and `postalAddress` (`Parkveien 49`, `4611`, `Kristiansand`); one `POST /customer` returned customer `id=108246353`, preserved all scored postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+trusted-standards/create-customer.md:76:- re-verified on 2026-03-20 in persistent sandbox with `name`, generic `email`, Norwegian `organizationNumber`, and `postalAddress` (`Fjordveien 129`, `2317`, `Hamar`); one `POST /customer` returned customer `id=108248251`, preserved the exact postal fields in `response.value.postalAddress`, and still needed no follow-up read
+trusted-standards/create-and-send-customer-invoice.md:22:2. if creating a new customer and the prompt gives no email or postal address, `POST /customer` with:
+trusted-standards/create-and-send-customer-invoice.md:24:   - `organizationNumber`
+trusted-standards/create-and-send-customer-invoice.md:68:- do not treat wording like `invoice customer <name> (<organizationNumber>)` as proof that the customer already exists; when the prompt only supplies business identity and the environment implies a fresh account, the winning path is still direct `POST /customer`
+trusted-standards/create-and-send-customer-invoice.md:70:- do not assume sparse `postalAddress` or `physicalAddress` links on the customer prove that `PAPER` send is available; sandbox returned `422 Faktura kan ikke sendes via PAPER`
+trusted-standards/create-and-send-customer-invoice.md:73:- for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
+trusted-standards/create-and-send-customer-invoice.md:79:  - `POST /customer` with `invoiceSendMethod: "MANUAL"` succeeded
+trusted-standards/create-and-send-customer-invoice.md:88:  - production run `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in the canonical `3` calls: `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+trusted-standards/create-and-send-customer-invoice.md:92:  - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
+trusted-standards/create-and-send-customer-invoice.md:95:  - on the exact `Porto Alegre Lda` / `826870192` task identity, once that customer existed in sandbox, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:10:- link or keep that project on one customer identified by `organizationNumber`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:23:2. if that read leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt:
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:27:3. if the project-first read did not already prove the exact project and customer, resolve the customer with `GET /customer?organizationNumber=...&count=10&fields=*`
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:28:4. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:62:- compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present
+trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md:104:  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*),projectManager(*)` can already return enough nested customer and manager data to skip separate `GET /customer` and `GET /employee` calls when the project already exists, the nested `customer.organizationNumber` matches, and the nested `projectManager.email` matches
+trusted-standards/create-order-invoice-and-register-payment.md:22:1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
+trusted-standards/create-order-invoice-and-register-payment.md:97:  - `GET /customer?organizationNumber=975687821&fields=*`
+trusted-standards/create-customer-invoice-credit-note.md:38:- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, and `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, that two-call path was the successful production path on 2026-03-20
+trusted-standards/create-customer-invoice-credit-note.md:42:  - `customer.organizationNumber`
+trusted-standards/create-customer-invoice-credit-note.md:72:- if the invoice locate step is ambiguous, add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+trusted-standards/create-customer-invoice-credit-note.md:77:- production run re-verified on 2026-03-20 for the exact prompt shape `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`:
+trusted-standards/create-customer-invoice-credit-note.md:81:- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`:
+trusted-standards/create-customer-invoice-credit-note.md:85:- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`:
+trusted-standards/create-customer-invoice-credit-note.md:89:- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`:
+trusted-standards/create-customer-invoice-credit-note.md:103:  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`; the same two-call core located the created invoice and the credit-note write response alone proved success with `isCreditNote=true` and `creditedInvoice=<original id>`
+trusted-standards/create-customer-invoice-credit-note.md:104:  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`; the locate read again showed the same exact description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
+openapi.json:5471:          "name" : "organizationNumber",
+openapi.json:5485:          "name" : "invoiceEmail",
+openapi.json:19744:          "name" : "organizationNumber",
+openapi.json:29241:                    "description" : "Let Tripletex create customer and supplier numbers and ignore the numbers in the import file."
+openapi.json:30997:          "name" : "organizationNumber",
+openapi.json:31011:          "name" : "invoiceEmail",
+openapi.json:39338:          "organizationNumber" : {
+openapi.json:39552:          "organizationNumber" : {
+openapi.json:40674:          "organizationNumber" : {
+openapi.json:41128:          "organizationNumber" : {
+openapi.json:41166:          "invoiceEmail" : {
+openapi.json:41213:          "postalAddress" : {
+openapi.json:45503:          "organizationNumber" : {
+openapi.json:45536:          "invoiceEmail" : {
+openapi.json:45561:          "postalAddress" : {
+openapi.json:51807:          "organizationNumber" : {
+openapi.json:52377:          "organizationNumber" : {
+openapi.json:62273:          "organizationNumber" : {
+openapi.json:62285:          "postalAddress1" : {
+openapi.json:62288:          "postalAddress2" : {
+openapi.json:62294:          "postalAddressCity" : {
+openapi.json:62297:          "postalAddressCountry" : {
+openapi.json:62387:          "invoiceEmail" : {
+openapi.json:62851:          "postalAddress1" : {
+openapi.json:62854:          "postalAddress2" : {
+openapi.json:62860:          "postalAddressCity" : {
+openapi.json:62863:          "postalAddressCountry" : {
+openapi.json:63420:          "organizationNumber" : {
+openapi.json:63432:          "postalAddress1" : {
+openapi.json:63435:          "postalAddress2" : {
+openapi.json:63441:          "postalAddressCity" : {
+openapi.json:63444:          "postalAddressCountry" : {
+openapi.json:74647:          "invoiceEmail" : {
+openapi.json:87255:          "organizationNumber" : {
+openapi.json:88025:          "organizationNumber" : {
+openapi.json:88041:          "postalAddress" : {
+openapi.json:88701:          "invoiceEmail" : {
+openapi.json:92406:          "invoiceEmail" : {
+openapi.json:92665:          "organizationNumber" : {
+openapi.json:92679:          "invoiceEmail" : {
+openapi.json:92701:          "postalAddress" : {
+openapi.json:102704:          "organizationNumber" : {
+openapi.json:102852:          "organizationNumber" : {
+openapi.json:102894:          "organizationNumber" : {
+openapi.json:102936:          "organizationNumber" : {
+openapi.json:103038:          "organizationNumber" : {
+openapi.json:103080:          "organizationNumber" : {
+openapi.json:103122:          "organizationNumber" : {
+openapi.json:103227:          "organizationNumber" : {
+openapi.json:103332:          "organizationNumber" : {
+openapi.json:103622:          "organizationNumber" : {
+openapi.json:103663:          "organizationNumber" : {
+openapi.json:103883:          "organizationNumber" : {
+trusted-standards/register-supplier-invoice.md:11:- prompt identifies the supplier by ordinary business fields such as `name` and `organizationNumber`, not by a known Tripletex supplier id
+trusted-standards/register-supplier-invoice.md:20:1. `GET /supplier?organizationNumber=...&fields=*`
+trusted-standards/register-supplier-invoice.md:33:  1. `GET /supplier?organizationNumber=...&fields=*`
+trusted-standards/register-supplier-invoice.md:42:- for ordinary supplier-invoice registration prompts phrased as invoice from `the supplier <name>`, first resolve the existing supplier by `organizationNumber`
+trusted-standards/register-supplier-invoice.md:65:- expect linked display fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber` to stay sparse in the write response
+trusted-standards/register-supplier-invoice.md:72:- if `GET /supplier?organizationNumber=...&fields=*` returns several suppliers, only continue when one exact unique candidate remains after exact `organizationNumber` plus exact `name` filtering; otherwise treat the run state as ambiguous
+trusted-standards/register-supplier-invoice.md:73:- if a retry context already contains duplicate suppliers with the same prompt `organizationNumber`, do not guess by newest id or any other heuristic; only reuse the exact supplier id already captured earlier in the same run, or treat the run state as ambiguous
+trusted-standards/register-supplier-invoice.md:78:- persistent sandbox re-check on 2026-03-20 also proved the existing-supplier branch in `5` calls by resolving supplier `organizationNumber=321000002`, then booking the same `6300 / 25% / 59800` voucher shape without any supplier create
+trusted-standards/create-supplier.md:36:  - `organizationNumber`
+trusted-standards/create-supplier.md:40:  - `organizationNumber`
+trusted-standards/create-supplier.md:42:  - `invoiceEmail`
+trusted-standards/create-supplier.md:46:- if that lone supplier email also clearly looks invoice-oriented, such as `faktura@...`, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and protects the scored supplier record
+trusted-standards/create-supplier.md:53:- ignore sparse auto-generated `value.postalAddress` and `value.physicalAddress` links unless the prompt explicitly asked for address fields
+trusted-standards/create-supplier.md:59:- do not treat empty `invoiceEmail` or sparse address links as missing-field problems when the prompt only asked for name, organization number, and generic email
+trusted-standards/create-supplier.md:67:- do not drop `email` just because you also set `invoiceEmail`
+trusted-standards/create-supplier.md:68:- do not treat a lone invoice-looking supplier email as proof that `email` should be empty; the safe correction is to mirror it into both `email` and `invoiceEmail`
+trusted-standards/create-supplier.md:70:- do not fetch the supplier again just to inspect `ledgerAccount`, `postalAddress`, or `physicalAddress`
+trusted-standards/create-supplier.md:75:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection Supplier 321000002`, `321000002`, and `supplier-321000002@example.no`; one `POST /supplier` returned supplier `id=108246490`, preserved all scored fields, returned `ledgerAccount.id=424190921`, and auto-returned sparse `postalAddress` and `physicalAddress` links without needing any follow-up read
+trusted-standards/create-supplier.md:76:- re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; one `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, returned `ledgerAccount.id=424190921`, and again auto-returned sparse `postalAddress` and `physicalAddress` links without needing any follow-up read
+trusted-standards/create-supplier.md:77:- re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; one `POST /supplier` returned supplier `id=108247477`, preserved `name`, `organizationNumber`, and `email`, kept `invoiceEmail=""`, and again needed no follow-up read
+trusted-standards/create-supplier.md:78:- re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; one `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, kept `invoiceEmail=""`, and again needed no follow-up read
+trusted-standards/create-supplier.md:79:- production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogh…2627 tokens truncated…pt-provided `name`, generic `email`, and `organizationNumber`, the canonical path is one `POST /supplier`
+trusted-standards/common-endpoints.md:326:  - for ordinary supplier-invoice tasks phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`; if that lookup returns one exact hit, reuse it and do not create a duplicate supplier
+trusted-standards/common-endpoints.md:332:  - for supplier creation specifically, if that lone supplier email is invoice-looking, mirroring it into `invoiceEmail` in the same `POST /supplier` is still a reasonable hedge, but it is not a proven full fix by itself; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`
+trusted-standards/common-endpoints.md:333:  - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
+trusted-standards/common-endpoints.md:334:  - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
+trusted-standards/common-endpoints.md:335:  - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
+trusted-standards/common-endpoints.md:336:  - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
+task-playbooks/create-customer-invoice.md:19:- reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`, names `Webdesign`, `Programvarelisens`, `Opplæring`, VAT `25%` / `15%` / `0%`) showed:
+task-playbooks/create-customer-invoice.md:20:  - the API path itself was already minimal and correct: `GET /customer?organizationNumber=...&fields=*` -> `GET /product?productNumber=6744&productNumber=2584&productNumber=3739&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:24:  - `GET /customer?organizationNumber=919172657&fields=*` returned `403 {"error":"Invalid or expired token"}`
+task-playbooks/create-customer-invoice.md:26:- follow-up reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=925760838`, product labels `(3644)`, `(4934)`, `(8806)`, names `Maintenance`, `Licence logicielle`, `Service réseau`) showed:
+task-playbooks/create-customer-invoice.md:30:- reflection on the successful production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=909722500`, product lines `Analysis Report (9796)`, `Maintenance (2145)`, `System Development (5995)`, VAT `25%` / `15%` / `0%`) showed:
+task-playbooks/create-customer-invoice.md:34:- reflection on the production run for the exact prompt shape on 2026-03-20 (`customer.organizationNumber=851635874`, product labels `(2934)`, `(8699)`, `(1355)`, names `Analyserapport`, `Datarådgivning`, `Nettverkstjeneste`, VAT `25%` / `15%` / `0%`) showed:
+task-playbooks/create-customer-invoice.md:37:  - the lower-call replacement for that exact task shape is `GET /customer?organizationNumber=851635874&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:39:  - `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice.md:52:- persistent-sandbox verification on 2026-03-20 with the exact identifiers from this task shape (`customer.organizationNumber=827304212`, products `6744`, `2584`, `3739`) showed:
+task-playbooks/create-customer-invoice.md:53:  - `GET /customer?organizationNumber=827304212&fields=*` resolved the customer in one call
+task-playbooks/create-customer-invoice.md:57:- additional persistent-sandbox post-run verification on 2026-03-20 with the exact identifiers from this task shape (`customer.organizationNumber=919172657`, products `4783`, `3343`, `4380`) showed:
+task-playbooks/create-customer-invoice.md:58:  - after sandbox setup, `GET /customer?organizationNumber=919172657&fields=*` resolved the customer in one call
+task-playbooks/create-customer-invoice.md:68:  - after setup, the proof path itself was exactly four calls: `GET /customer?organizationNumber=925760838&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:72:  - setup used analog customer `organizationNumber=909722502` and products whose exact names preserved the same line structure while the stored product numbers intentionally differed from prompt-like refs `9796`, `2145`, and `5995`
+task-playbooks/create-customer-invoice.md:73:  - after setup, the proof path itself was exactly four calls: `GET /customer?organizationNumber=909722502&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:77:  - setup used an analog customer `organizationNumber=851635875` and exact-name products whose stored product numbers were intentionally different from prompt-like refs `2934`, `8699`, and `1355`
+task-playbooks/create-customer-invoice.md:78:  - after setup, the winning proof path itself was exactly four calls: `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
+task-playbooks/create-customer-invoice.md:91:   - usually `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice.md:125:  1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice.md:136:  1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice.md:142:  1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice.md:149:  1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/reverse-customer-invoice-payment.md:97:- exact prompt shape `customer.organizationNumber=888412972` + `amountExcludingVatCurrency=35800` + line text `Diseño web`
+task-playbooks/reverse-customer-invoice-payment.md:108:- exact prompt shape `customer.organizationNumber=998536561` + `amountExcludingVatCurrency=32350` + line text `Programvarelisens`
+task-playbooks/create-supplier.md:21:  "organizationNumber": "949044378",
+task-playbooks/create-supplier.md:31:- Tripletex also returned `ledgerAccount.id` plus sparse `postalAddress` and `physicalAddress` links that did not require any follow-up read
+task-playbooks/create-supplier.md:34:- re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; the single `POST /supplier` returned supplier `id=108247477`, preserved all scored fields, and kept `invoiceEmail=""`
+task-playbooks/create-supplier.md:35:- re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; the single `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, and kept `invoiceEmail=""`
+task-playbooks/create-supplier.md:36:- production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogheim.no` scored only `6/7` after the single `POST /supplier` left `invoiceEmail=""`
+task-playbooks/create-supplier.md:37:- re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; the single `POST /supplier` accepted both `email` and `invoiceEmail`, returned supplier `id=108260746`, and kept the path at one call
+task-playbooks/create-supplier.md:38:- production re-test on 2026-03-20 for `Bergvik AS`, `978783864`, and `faktura@bergvik.no` still did not lift the public task-04 best score above `6/7`, even after the single `POST /supplier` mirrored the invoice-looking address into both `email` and `invoiceEmail`
+task-playbooks/create-supplier.md:39:- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; the single `POST /supplier` returned supplier `id=108263571`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
+task-playbooks/create-supplier.md:52:- If the prompt only asks to create one supplier and gives `name`, generic `email`, and `organizationNumber`, send those fields
+task-playbooks/create-supplier.md:53:- If that lone supplier email is invoice-looking, such as `faktura@...`, also mirror it into `invoiceEmail` in the same write; this keeps the path at one call
+task-playbooks/create-supplier.md:59:- Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
+task-playbooks/create-supplier.md:68:  "organizationNumber": "949044378",
+task-playbooks/create-supplier.md:88:- If `value.postalAddress` or `value.physicalAddress` appears as an `id`/`url` link after you sent no addresses, ignore it for standard create verification
+task-playbooks/create-supplier.md:95:- For supplier creation specifically, also mirror that same lone invoice-looking address into `invoiceEmail`; sandbox accepted the shape, and the 2026-03-20 `Skogheim AS` production miss strongly suggests the scorer expected it
+task-playbooks/create-supplier.md:96:- The later 2026-03-20 `Bergvik AS` production rerun disproved the stronger claim that mirrored `invoiceEmail` alone settles the last scorer point; the prompt still contained only `name`, `organizationNumber`, and one generic email, so the remaining miss is likely a non-prompt field such as auto-generated address links or another generated supplier property
+task-playbooks/register-supplier-invoice.md:53:  - `account.number`, `vatType.number`, and `supplier.organizationNumber` stayed sparse/null in the write response
+task-playbooks/register-supplier-invoice.md:58:  - `GET /supplier?organizationNumber=321000002&fields=*`
+task-playbooks/register-supplier-invoice.md:67:  - the corrected rule is: resolve by `organizationNumber` first, create only on a zero-hit lookup
+task-playbooks/register-supplier-invoice.md:70:  - the rerun then searched suppliers by `organizationNumber`, found duplicates, and guessed with a newest-id heuristic
+task-playbooks/register-supplier-invoice.md:84:  - for ordinary prompts phrased as invoice from `the supplier <name>`, start with `GET /supplier?organizationNumber=...&fields=*`
+task-playbooks/register-supplier-invoice.md:87:  - if that lookup returns several hits, continue only if exact `organizationNumber` plus exact `name` leaves one unique candidate; otherwise treat the run state as ambiguous
+task-playbooks/register-supplier-invoice.md:109:   - do not require `account.number`, `vatType.number`, or `supplier.organizationNumber` in the fast-path write response check
+task-playbooks/register-supplier-invoice.md:183:  1. `GET /supplier?organizationNumber=...&fields=*`
+task-playbooks/register-supplier-invoice.md:203:- Do not skip a decisive `GET /supplier?organizationNumber=...&fields=*` when the task is to register an invoice from a named supplier and the prompt does not explicitly say the supplier must be created
+task-playbooks/register-supplier-invoice.md:219:- The same write response may still omit expanded linked fields such as `account.number`, `vatType.number`, and `supplier.organizationNumber`
+task-playbooks/create-and-send-customer-invoice.md:40:- exact `organizationNumber`
+task-playbooks/create-and-send-customer-invoice.md:47:`GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:53:1. `POST /customer` with:
+task-playbooks/create-and-send-customer-invoice.md:55:   - `organizationNumber`
+task-playbooks/create-and-send-customer-invoice.md:62:1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-and-send-customer-invoice.md:141:- the production run for `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in `3` calls: direct `POST /customer`, filtered outgoing VAT read, then `POST /invoice`
+task-playbooks/create-and-send-customer-invoice.md:160:   - for the normal fresh-account new-customer variant, skip the pre-read and `POST /customer` directly
+task-playbooks/create-and-send-customer-invoice.md:162:   - only use `GET /customer?organizationNumber=...&fields=*` when the prompt or environment actually implies an existing customer lookup
+task-playbooks/create-and-send-customer-invoice.md:163:   - prompt wording like `invoice customer <name> (<organizationNumber>)` is not, by itself, enough reason to spend that pre-read in a fresh-account run
+task-playbooks/create-and-send-customer-invoice.md:236:- Do not spend `GET /customer` first on the exact fresh-account shape that only gives `name + organizationNumber` for a new customer; the 2026-03-20 sandbox re-verification proved the lower-call path is direct `POST /customer`, then filtered `GET /ledger/vatType`, then `POST /invoice`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:63:  - `GET /project?name=<exact-name>&count=50&fields=*,customer(*),projectManager(*)` returned one exact project hit with nested `customer.organizationNumber`, `customer.id`, `projectManager.email`, `projectManager.id`, and the existing `startDate`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:75:   - optional `POST /customer`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:83:   - if that one read already leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the returned `startDate`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:87:   - usually `GET /customer?organizationNumber=...&count=10&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:188:  4. if the project-first read did not already prove the customer, `GET /customer?organizationNumber=...&count=10&fields=*`
+task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md:189:  5. optional `POST /customer` with `invoiceSendMethod: "MANUAL"` if missing
+task-playbooks/create-customer.md:14:`POST /customer`
+task-playbooks/create-customer.md:22:  "organizationNumber": "999888777"
+task-playbooks/create-customer.md:27:- direct `POST /customer` succeeded
+task-playbooks/create-customer.md:32:- when the prompt gave a single street address, `postalAddress` alone was sufficient; no `physicalAddress` was needed
+task-playbooks/create-customer.md:33:- re-verified on 2026-03-19 with only `name`, `email`, and `organizationNumber`; the `201` response again contained the created customer plus default invoice delivery fields
+task-playbooks/create-customer.md:34:- re-verified on 2026-03-19 in persistent sandbox with `name`, `organizationNumber`, `email`, and `postalAddress`; the `201` response preserved non-ASCII text such as `Grünfeld` and `Ålesund` and still defaulted `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT` without needing `invoiceEmail`
+task-playbooks/create-customer.md:35:- re-verified on 2026-03-19 with `name`, `email`, `organizationNumber`, and `postalAddress`; the same single `POST /customer` stored the exact Unicode city string `Tromsø` and returned it directly in `response.value.postalAddress.city`
+task-playbooks/create-customer.md:36:- re-verified on 2026-03-20 with only `name`, `email`, and `organizationNumber`; the single `201` response again returned the created customer plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+task-playbooks/create-customer.md:37:- re-verified on 2026-03-20 in persistent sandbox with the exact prompt payload `Debug Test AS`, `debug@example.no`, and `999888771`; the single `POST /customer` returned customer `id=108240642` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+task-playbooks/create-customer.md:38:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Post Run 372928 AS`, `codex-post-run-372928@example.no`, and `999372928`; the single `POST /customer` returned customer `id=108240652` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+task-playbooks/create-customer.md:39:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 269241 AS`, `codex-reflection-269241@example.no`, `999269241`, and `postalAddress`; the single `POST /customer` returned customer `id=108245322`, preserved `Sjøgata 85` and `Trondheim`, and also auto-returned a sparse `physicalAddress` link without needing any extra read
+task-playbooks/create-customer.md:40:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 722064 AS`, `codex-reflection-722064@example.no`, and `999722064`; the single `POST /customer` returned customer `id=108246240` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+task-playbooks/create-customer.md:41:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Solmar Reflection 6602846b AS`, `post-reflection-6602846b@solmar.no`, `999660284`, and `postalAddress` `Parkveien 49`, `4611`, `Kristiansand`; the single `POST /customer` returned customer `id=108246353`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+task-playbooks/create-customer.md:42:- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 64b4936f AS`, `post-reflection-64b4936f@example.no`, `999493664`, and `postalAddress` `Fjordveien 129`, `2317`, `Hamar`; the single `POST /customer` returned customer `id=108248251`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+task-playbooks/create-customer.md:46:1. Confirm `POST /customer` and the `Customer` schema in `./openapi.json`
+task-playbooks/create-customer.md:48:3. `POST /customer`
+task-playbooks/create-customer.md:55:- If the prompt only asks to create one customer and gives `name`, `email`, and `organizationNumber`, send exactly those fields
+task-playbooks/create-customer.md:56:- Confirm only the exact `POST /customer` operation and its referenced request/response schemas
+task-playbooks/create-customer.md:61:- Do not run broad whole-file searches for generic field names like `name`, `email`, or `organizationNumber`; they return irrelevant hits and do not improve correctness for this task
+task-playbooks/create-customer.md:64:- If the prompt also gives one ordinary mailing address, add only `postalAddress`
+task-playbooks/create-customer.md:65:- Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
+task-playbooks/create-customer.md:73:  "organizationNumber": "999888777"
+task-playbooks/create-customer.md:81:- If the prompt-provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, the create-customer write shape is still the same single `POST /customer`, but the run is blocked before Tripletex receives the request
+task-playbooks/create-customer.md:90:- For create-customer tasks, use the schema referenced by `POST /customer`: `#/components/schemas/Customer`
+task-playbooks/create-customer.md:100:- If `value.physicalAddress` appears as an `id`/`url` link after you only sent `postalAddress`, ignore it for standard create verification
+task-playbooks/create-customer.md:105:- If the prompt gives one ordinary postal/street address, map it to `postalAddress`
+task-playbooks/create-customer.md:111:  "postalAddress": {
+task-playbooks/create-customer.md:126:- Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
+task-playbooks/create-customer.md:128:- The standard create flow still defaults invoice delivery fields from the account/customer setup, so adding `invoiceEmail` speculatively is unnecessary
+task-playbooks/create-customer.md:146:- If the prompt gives one normal customer address and does not distinguish address types, send only `postalAddress`
+task-playbooks/register-customer-invoice-payment.md:30:  - `customer.organizationNumber`
+task-playbooks/register-customer-invoice-payment.md:104:- If the invoice search is ambiguous, only then add one extra read such as `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:53:  - `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:61:  - `GET /customer?organizationNumber=911511053&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:69:  - `GET /customer?organizationNumber=864062245&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:78:  - `GET /customer?organizationNumber=989093630&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:95:   - usually `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-order-invoice-and-register-payment.md:131:  1. `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice-credit-note.md:34:  - `customer.organizationNumber=900993560`
+task-playbooks/create-customer-invoice-credit-note.md:42:  - `customer.organizationNumber=812449982`
+task-playbooks/create-customer-invoice-credit-note.md:50:  - `customer.organizationNumber=973999966`
+task-playbooks/create-customer-invoice-credit-note.md:58:  - `customer.organizationNumber=991882502`
+task-playbooks/create-customer-invoice-credit-note.md:67:    - `customer.organizationNumber`
+task-playbooks/create-customer-invoice-credit-note.md:80:  - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` again proved the same two-call core after setup
+task-playbooks/create-customer-invoice-credit-note.md:82:  - a disposable sandbox fixture matching the exact production identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800` again proved the same two-call core after setup
+task-playbooks/create-customer-invoice-credit-note.md:137:- if the locate result is ambiguous, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+task-playbooks/create-customer-invoice-credit-note.md:151:- do not fetch the customer separately when one `GET /invoice` already contains `customer.organizationNumber`
+task-playbooks/register-project-hours-and-create-project-invoice.md:85:   - exact-match the nested `customer.organizationNumber` and/or `customer.name` locally when the prompt gives them
+
+```
+
+## 2026-03-20T20:10:27.418Z tool_result
+tool: exec_command
+call_id: call_7OtgSshZFsKO1XXdihL7NmBu
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc "sed -n '1,220p' trusted-standards/create-customer.md"
+Chunk ID: cec006
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 983
+Output:
+# Create Customer
+
+## Trust Level
+- Trusted standard
+- Use directly for exact matches
+- Skip `./openapi.json` re-checking for exact matches
+
+## Exact Match
+- create one new customer
+- prompt directly provides customer identity fields
+- no invoice, payment, update, delete, or lookup-heavy workflow
+- at most one normal mailing address
+- at most one generic email address
+
+## Do Not Use This Standard If
+- foreign organization number
+- separate invoice email requested
+- separate physical/visiting address requested
+- task is update/delete/search-heavy
+- prompt implies special invoice delivery setup
+
+## Standard Flow
+1. `POST /customer`
+2. verify directly from `response.value`
+3. stop
+
+## Exact-Match Fast Path
+- for the plain Norwegian create-customer shape, the winning API path is exactly one write:
+  - `POST /customer`
+- do not spend a pre-read on `/customer`
+- do not spend a follow-up read on `/customer/{id}` when `response.value` already contains the scored fields
+- do not spend scored-run time re-checking `./task-playbooks/create-customer.md` or `./openapi.json` when this trusted standard already matches exactly
+
+## Payload Rules
+- send only prompt-required fields
+- normal default shape:
+  - `name`
+  - `email`
+  - `organizationNumber`
+- if one ordinary address is given, add only:
+  - `postalAddress.addressLine1`
+  - `postalAddress.postalCode`
+  - `postalAddress.city`
+- preserve prompt text exactly, including Unicode
+- do not invent `physicalAddress`
+- do not invent `invoiceEmail`
+- localized generic email labels such as `Correo` still map to `email`
+
+## Reuse From Write Response
+- `value.id`
+- all returned scored customer fields
+- returned defaults like `invoiceSendMethod` if later logic unexpectedly needs them
+- ignore any sparse auto-generated `value.physicalAddress` link unless the prompt explicitly asked for a separate physical/visiting address
+
+## Verification
+- default verification is zero extra calls
+- trust the `201` `{"value": {...}}` body
+- only do a `GET` if the write response is unexpectedly missing a scored field
+- if `value.physicalAddress` appears as a link-only object after sending only `postalAddress`, do not treat that as a missing-field problem
+
+## Known Recovery Branches
+- customer delivery validation if prompt explicitly implies EHF/invoice delivery constraints
+- country/address consistency for foreign organization numbers
+
+## Pitfalls To Avoid
+- do not add duplicate-check logic for fresh-account create tasks
+- do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
+- do not treat the returned default delivery fields as a reason to fetch the customer again
+
+## OpenAPI / Sandbox Status
+- endpoint family verified in `./openapi.json`
+- repeatedly sandbox-proven as one-call create
+- re-verified on 2026-03-20 in persistent sandbox with `postalAddress`; the same one-call write returned the scored postal fields plus a sparse auto-generated `physicalAddress` link
+- re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- re-verified on 2026-03-20 in persistent sandbox with `name`, localized generic email input, `organizationNumber`, and `postalAddress` (`Parkveien 49`, `4611`, `Kristiansand`); one `POST /customer` returned customer `id=108246353`, preserved all scored postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in persistent sandbox with `name`, generic `email`, Norwegian `organizationNumber`, and `postalAddress` (`Fjordveien 129`, `2317`, `Hamar`); one `POST /customer` returned customer `id=108248251`, preserved the exact postal fields in `response.value.postalAddress`, and still needed no follow-up read
+
+```
+
+## 2026-03-20T20:10:32.864Z assistant_message
+phase: commentary
+
+Exact trusted-standard match. Writing one Bun script that does a single `POST /customer` with only prompt fields, then executing it.
+
+## 2026-03-20T20:10:38.657Z tool_call
+tool: exec_command
+call_id: call_iZEoYNJfLW5GlpgdbzOohtom
+
+```json
+{
+  "cmd": "bun /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts",
+  "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 12000
+}
+```
+
+## 2026-03-20T20:10:39.818Z tool_result
+tool: exec_command
+call_id: call_iZEoYNJfLW5GlpgdbzOohtom
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts'
+Chunk ID: 0d23db
+Wall time: 1.0015 seconds
+Process running with session ID 41397
+Original token count: 0
+Output:
+
+```
+
+## 2026-03-20T20:10:40.978Z assistant_message
+phase: commentary
+
+POST is in flight. Polling the Bun run and using the write response as final verification if it succeeds.
+
+## 2026-03-20T20:10:41.294Z tool_call
+tool: write_stdin
+call_id: call_zmNfR1hEH2osY0H7JjQGrWKE
+
+```json
+{
+  "session_id": 41397,
+  "chars": "",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 12000
+}
+```
+
+## 2026-03-20T20:10:46.299Z tool_result
+tool: write_stdin
+call_id: call_zmNfR1hEH2osY0H7JjQGrWKE
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts'
+Chunk ID: d0528c
+Wall time: 5.0013 seconds
+Process running with session ID 41397
+Original token count: 0
+Output:
+
+```
+
+## 2026-03-20T20:10:47.573Z tool_call
+tool: write_stdin
+call_id: call_DfXuh4Uy4n09tXm82DzlTIY6
+
+```json
+{
+  "session_id": 41397,
+  "chars": "",
+  "yield_time_ms": 1000,
+  "max_output_tokens": 12000
+}
+```
+
+## 2026-03-20T20:10:47.602Z tool_result
+tool: write_stdin
+call_id: call_DfXuh4Uy4n09tXm82DzlTIY6
+
+```text
+Command: /run/current-system/sw/bin/zsh -lc 'bun /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts'
+Chunk ID: cb4189
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 450
+Output:
+{"value":{"id":108268199,"version":1,"url":"kkpqfuj-amager.tripletex.dev/v2/customer/108268199","name":"Grünfeld GmbH","organizationNumber":"886669445","globalLocationNumber":0,"supplierNumber":0,"customerNumber":10001,"isSupplier":false,"isCustomer":true,"isInactive":false,"accountManager":null,"department":null,"email":"post@grunfeld.no","invoiceEmail":"","overdueNoticeEmail":"","phoneNumber":"","phoneNumberMobile":"","description":"","language":"NO","displayName":"Grünfeld GmbH (10001)","isPrivateIndividual":false,"singleCustomerInvoice":false,"invoiceSendMethod":"EMAIL","emailAttachmentType":"ATTACHMENT","postalAddress":{"id":405387402,"version":0,"url":"kkpqfuj-amager.tripletex.dev/v2/address/405387402","addressLine1":"Kirkegata 87","addressLine2":"","postalCode":"6003","city":"Ålesund","country":{"id":161,"url":"kkpqfuj-amager.tripletex.dev/v2/country/161"},"displayName":"Grünfeld GmbH, Kirkegata 87, 6003 Ålesund, Norge","addressAsString":"Kirkegata 87, 6003 Ålesund, Norge","displayNameInklMatrikkel":"Grünfeld GmbH, Kirkegata 87, 6003 Ålesund, Norge","knr":0,"gnr":0,"bnr":0,"fnr":0,"snr":0,"unitNumber":""},"physicalAddress":{"id":405387401,"url":"kkpqfuj-amager.tripletex.dev/v2/address/405387401"},"deliveryAddress":null,"category1":null,"category2":null,"category3":null,"invoicesDueIn":14,"invoicesDueInType":"DAYS","currency":{"id":1,"url":"kkpqfuj-amager.tripletex.dev/v2/currency/1"},"bankAccountPresentation":[],"ledgerAccount":{"id":360960319,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/account/360960319"},"isFactoring":false,"invoiceSendSMSNotification":false,"invoiceSMSNotificationNumber":"","isAutomaticSoftReminderEnabled":false,"isAutomaticReminderEnabled":false,"isAutomaticNoticeOfDebtCollectionEnabled":false,"discountPercentage":0,"website":""}}
+
+```
+
+## 2026-03-20T20:10:50.398Z assistant_message
+phase: final_answer
+
+Oppgave utført.
+
+Kunde opprettet i Tripletex: `id=108268199`, navn `Grünfeld GmbH`, orgnr `886669445`, e-post `post@grunfeld.no`, adresse `Kirkegata 87, 6003 Ålesund`.
+
+API-script brukt: [create-customer.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts)
+
+## 2026-03-20T20:10:50.421Z task_event
+event: task_complete
+
+Oppgave utført.
+
+Kunde opprettet i Tripletex: `id=108268199`, navn `Grünfeld GmbH`, orgnr `886669445`, e-post `post@grunfeld.no`, adresse `Kirkegata 87, 6003 Ålesund`.
+
+API-script brukt: [create-customer.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-201018525Z-fbd1bcee/scripts/create-customer.ts)

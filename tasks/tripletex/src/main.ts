@@ -206,12 +206,11 @@ const sandboxEnvPath = resolve(tripletexRootDir, ".sandbox.env");
 const leaderboardApiUrl =
   Bun.env.TRIPLETEX_LEADERBOARD_URL ??
   "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516";
-const leaderboardAttributionDelayMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_DELAY_MS ?? 1 * 60 * 1000);
+const leaderboardAttributionDelayMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_DELAY_MS ?? 30 * 1000);
 const leaderboardPollIntervalMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS ?? 15 * 1000);
 const leaderboardPollWindowMs = Number(Bun.env.TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS ?? 2 * 60 * 1000);
 const submissionsApiUrl =
   Bun.env.TRIPLETEX_MY_SUBMISSIONS_URL ?? "https://api.ainm.no/tripletex/my/submissions";
-const submissionsAccessToken = Bun.env.TRIPLETEX_SUBMISSIONS_ACCESS_TOKEN ?? "";
 const submissionsPollIntervalMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_INTERVAL_MS ?? 10 * 1000);
 const submissionsPollWindowMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_WINDOW_MS ?? 3 * 60 * 1000);
 const submissionsQueuedAtSkewMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_QUEUE_SKEW_MS ?? 2 * 60 * 1000);
@@ -219,6 +218,7 @@ const solveTimeoutMs = 5 * 60 * 1000;
 const maxConcurrentSolveRequests = 3;
 let activeSolveRequests = 0;
 let tmuxLaunchLock: Promise<void> = Promise.resolve();
+let submissionsAccessTokenPromise: Promise<string> | undefined;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -656,6 +656,7 @@ async function persistLeaderboardSnapshot(
 }
 
 async function fetchSubmissionSnapshot(preparedRun: PreparedRun, source: string): Promise<SubmissionSnapshot> {
+  const submissionsAccessToken = await loadSubmissionsAccessToken();
   const response = await fetch(submissionsApiUrl, {
     headers: {
       accept: "application/json",
@@ -686,6 +687,7 @@ async function persistSubmissionSnapshot(
   preparedRun: PreparedRun,
   source: "before" | "after",
 ): Promise<SubmissionSnapshot | undefined> {
+  const submissionsAccessToken = await loadSubmissionsAccessToken();
   if (!submissionsAccessToken) {
     return undefined;
   }
@@ -768,6 +770,27 @@ async function loadSandboxCredentials(): Promise<TripletexCredentials | undefine
   return undefined;
 }
 
+async function loadSubmissionsAccessToken(): Promise<string> {
+  if (!submissionsAccessTokenPromise) {
+    submissionsAccessTokenPromise = (async () => {
+      const envToken = Bun.env.TRIPLETEX_SUBMISSIONS_ACCESS_TOKEN;
+      if (envToken) {
+        return envToken;
+      }
+
+      try {
+        const raw = await readFile(sandboxEnvPath, "utf8");
+        const env = parseEnvFile(raw);
+        return env.TRIPLETEX_SUBMISSIONS_ACCESS_TOKEN ?? "";
+      } catch {
+        return "";
+      }
+    })();
+  }
+
+  return submissionsAccessTokenPromise;
+}
+
 async function resolveEffectiveCredentials(
   input: SolveRequest,
   storageMode: StorageMode,
@@ -797,12 +820,33 @@ function buildCodexPrompt(
   scriptsDir: string,
 ): string {
   const lines = [
-    "Execution rules:",
-    "- Only interact with the Tripletex API by writing TypeScript code and running it with bun.",
-    `- The only allowed location for API-interaction scripts is this run scripts directory: ${scriptsDir}`,
-    "- Do not place API-interaction scripts anywhere else.",
-    "- Reuse write responses and avoid unnecessary GET calls.",
+    "Scored Tripletex run.",
+    "Follow ./AGENTS.md exactly.",
     "",
+    "Highest priorities:",
+    "- Get the final Tripletex state exactly correct.",
+    "- Use the fewest API calls possible.",
+    "- Avoid all avoidable 4xx errors.",
+    "",
+    "Knowledge order:",
+    "- 1. ./trusted-standards/",
+    "- 2. ./task-playbooks/",
+    "- 3. ./openapi.json",
+    "- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.",
+    "",
+    "Run-specific rules:",
+    "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",
+    `- Put all API-interaction scripts only in this run scripts directory: ${scriptsDir}`,
+    "- Do not place API-interaction scripts anywhere else.",
+    "- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.",
+    "- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.",
+    "- Use only the provided base URL and session token.",
+    "- Authenticate with Basic Auth username 0 and password = session token.",
+    "- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.",
+    "- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.",
+    "- Do not ask questions. Do not talk to the user. Do only the task.",
+    "",
+    "Task:",
     input.prompt,
     "",
     "Tripletex API base URL:",
@@ -2249,6 +2293,7 @@ async function attributeRunToSubmissionScore(
   preparedRun: PreparedRun,
   reflectionResult: ReflectionRunResult,
 ): Promise<void> {
+  const submissionsAccessToken = await loadSubmissionsAccessToken();
   if (!submissionsAccessToken) {
     await writeFile(
       join(preparedRun.runDir, "submission-score.json"),

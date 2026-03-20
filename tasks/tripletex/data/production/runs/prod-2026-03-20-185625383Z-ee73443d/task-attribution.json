@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-185625383Z-ee73443d",
+  "request_id": "ebbcbbba",
+  "prompt_raw": "Erstellen Sie einen Auftrag für den Kunden Waldstein GmbH (Org.-Nr. 975687821) mit den Produkten Netzwerkdienst (4366) zu 32750 NOK und Beratungsstunden (3402) zu 17450 NOK. Wandeln Sie den Auftrag in eine Rechnung um und registrieren Sie die vollständige Zahlung.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T18:57:32.371Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:56:25.565Z",
+  "after_captured_at": "2026-03-20T18:58:03.609Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "10",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T18:58:03.610Z"
+}

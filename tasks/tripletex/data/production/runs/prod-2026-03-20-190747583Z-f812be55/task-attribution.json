@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-190747583Z-f812be55",
+  "request_id": "294205d0",
+  "prompt_raw": "Betalingen fra Polaris AS (org.nr 913083458) for fakturaen \"Analyserapport\" (21450 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T19:08:44.494Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T19:07:47.645Z",
+  "after_captured_at": "2026-03-20T19:09:15.708Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T19:09:15.709Z"
+}

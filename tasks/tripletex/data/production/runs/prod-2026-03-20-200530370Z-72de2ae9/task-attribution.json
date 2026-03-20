@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-200530370Z-72de2ae9",
+  "request_id": "a4307f5a",
+  "prompt_raw": "Erstellen Sie das Produkt \"Softwarelizenz\" mit der Produktnummer 7986. Der Preis beträgt 24900 NOK ohne MwSt., mit dem Standardsatz von 25 %.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T20:06:20.604Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T20:05:31.384Z",
+  "after_captured_at": "2026-03-20T20:06:50.848Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "03",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T20:06:50.849Z"
+}

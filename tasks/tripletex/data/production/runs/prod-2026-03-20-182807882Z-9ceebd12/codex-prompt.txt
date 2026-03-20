@@ -1,0 +1,16 @@
+Execution rules:
+- Only interact with the Tripletex API by writing TypeScript code and running it with bun.
+- The only allowed location for API-interaction scripts is this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-182807882Z-9ceebd12/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse write responses and avoid unnecessary GET calls.
+
+Créez le produit "Stockage cloud" avec le numéro de produit 8912. Le prix est de 26850 NOK hors TVA, avec le taux standard de 25 %.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+G5GB6Xk_mnI6AJOBWzN0XnDCHauyDEmaNdZPOsPwwUE
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-182807882Z-9ceebd12/scripts

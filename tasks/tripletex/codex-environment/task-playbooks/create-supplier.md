@@ -35,6 +35,8 @@ This was verified in sandbox:
 - re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; the single `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, and kept `invoiceEmail=""`
 - production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogheim.no` scored only `6/7` after the single `POST /supplier` left `invoiceEmail=""`
 - re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; the single `POST /supplier` accepted both `email` and `invoiceEmail`, returned supplier `id=108260746`, and kept the path at one call
+- production re-test on 2026-03-20 for `Bergvik AS`, `978783864`, and `faktura@bergvik.no` still did not lift the public task-04 best score above `6/7`, even after the single `POST /supplier` mirrored the invoice-looking address into both `email` and `invoiceEmail`
+- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; the single `POST /supplier` returned supplier `id=108263571`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
 
 ## Minimal Flow
 
@@ -91,6 +93,7 @@ This was verified in sandbox:
 - Treat localized generic labels such as `Correo electrónico` the same way; they still map to `email`
 - If that lone contact address merely looks invoice-oriented, such as `faktura@...`, still map it to `email`
 - For supplier creation specifically, also mirror that same lone invoice-looking address into `invoiceEmail`; sandbox accepted the shape, and the 2026-03-20 `Skogheim AS` production miss strongly suggests the scorer expected it
+- The later 2026-03-20 `Bergvik AS` production rerun disproved the stronger claim that mirrored `invoiceEmail` alone settles the last scorer point; the prompt still contained only `name`, `organizationNumber`, and one generic email, so the remaining miss is likely a non-prompt field such as auto-generated address links or another generated supplier property
 - A single prompt email does not justify inventing a separate invoice-delivery email field
 
 ## When Not To Pre-Read

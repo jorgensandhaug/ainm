@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-20-185808904Z-b553a118",
+  "request_id": "2c817b36",
+  "prompt_raw": "Legen Sie einen Festpreis von 350650 NOK für das Projekt \"ERP-Implementierung\" für Sonnental GmbH (Org.-Nr. 877407047) fest. Projektleiter ist Finn Müller (finn.muller@example.org). Stellen Sie dem Kunden 25 % des Festpreises als Meilensteinzahlung in Rechnung.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T19:00:09.070Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T18:58:08.956Z",
+  "after_captured_at": "2026-03-20T19:00:41.602Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-20T19:00:41.603Z"
+}
