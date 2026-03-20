@@ -11,10 +11,19 @@
   ],
   "success_gate": "Hybrid proxy beats the simplest monolithic baseline and failures are understandable by bucket.",
   "data_snapshot": "2026-03-19",
-  "split": null,
-  "recognition_slice": null,
+  "split": "blocked val",
+  "recognition_slice": "full gallery-supported pipeline surface",
   "seed": null,
-  "code_entrypoints": [],
-  "weights": [],
-  "notes": "Fill before or during the run."
+  "code_entrypoints": [
+    "scripts/run_norgesgruppen_det_plus_retrieval.py",
+    "scripts/run_norgesgruppen_yolov8.py",
+    "scripts/eval_norgesgruppen_predictions.py",
+    "scripts/eval_norgesgruppen_oracle_class_bound.py",
+    "scripts/norgesgruppen_retrieval_backends.py"
+  ],
+  "weights": [
+    "data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-blocked-val-10ep-cpu-baseline/weights/best.pt",
+    "hf-hub:timm/PE-Core-B-16"
+  ],
+  "notes": "First real end-to-end baseline. Keep detector scores unchanged, assign category_id from PE-Core retrieval, and score detector-only baseline plus same-filter oracle-class bound in the same run."
 }

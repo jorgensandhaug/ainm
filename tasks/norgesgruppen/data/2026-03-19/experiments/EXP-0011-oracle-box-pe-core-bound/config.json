@@ -1,0 +1,18 @@
+{
+  "experiment_id": "EXP-0011",
+  "slug": "oracle-box-pe-core-bound",
+  "status": "completed",
+  "question": "What end-to-end competition-proxy score does current PE-Core retrieval reach if localization is perfect?",
+  "inputs": {
+    "rankings_path": "data/2026-03-19/experiments/EXP-0003-crop-pe-core/artifacts/rankings.json",
+    "query_cache_path": "data/2026-03-19/experiments/EXP-0003-crop-pe-core/artifacts/cache/queries-pe_core_openclip-hf-hub-timm-pe-core-b-16-representative-padpx0-padfrac0.0-all.cache",
+    "gallery_cache_path": "data/2026-03-19/experiments/EXP-0003-crop-pe-core/artifacts/cache/gallery-pe_core_openclip-hf-hub-timm-pe-core-b-16-representative.cache",
+    "gallery_json_path": "data/2026-03-19/experiments/EXP-0003-crop-pe-core/artifacts/gallery-full.json"
+  },
+  "score_source": "cache_cosine_rescaled",
+  "count_score_threshold": 0.05,
+  "code_entrypoints": [
+    "scripts/eval_norgesgruppen_oracle_box_bound.py",
+    "scripts/eval_norgesgruppen_predictions.py"
+  ]
+}

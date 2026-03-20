@@ -116,21 +116,37 @@ def feature_distance(a: dict[str, Any], b: dict[str, Any]) -> float:
     return ahash_distance + 0.5 * color_distance + (mean_rgb_distance / 64.0)
 
 
-def compute_query_crop_box(row: dict[str, Any], padding_px: int, padding_frac: float) -> tuple[int, int, int, int]:
-    x1, y1, x2, y2 = row["bbox_xyxy"]
+def compute_crop_box_from_bbox_xyxy(
+    bbox_xyxy: tuple[float, float, float, float] | list[float],
+    image_width: int,
+    image_height: int,
+    padding_px: int,
+    padding_frac: float,
+) -> tuple[int, int, int, int]:
+    x1, y1, x2, y2 = bbox_xyxy
     width = x2 - x1
     height = y2 - y1
     pad_x = padding_px + round(width * padding_frac)
     pad_y = padding_px + round(height * padding_frac)
-    crop_x1 = clamp(int(x1 - pad_x), 0, row["image_width"])
-    crop_y1 = clamp(int(y1 - pad_y), 0, row["image_height"])
-    crop_x2 = clamp(int(x2 + pad_x), 0, row["image_width"])
-    crop_y2 = clamp(int(y2 + pad_y), 0, row["image_height"])
+    crop_x1 = clamp(int(x1 - pad_x), 0, image_width)
+    crop_y1 = clamp(int(y1 - pad_y), 0, image_height)
+    crop_x2 = clamp(int(x2 + pad_x), 0, image_width)
+    crop_y2 = clamp(int(y2 + pad_y), 0, image_height)
     if crop_x2 <= crop_x1:
-        crop_x2 = min(row["image_width"], crop_x1 + 1)
+        crop_x2 = min(image_width, crop_x1 + 1)
     if crop_y2 <= crop_y1:
-        crop_y2 = min(row["image_height"], crop_y1 + 1)
+        crop_y2 = min(image_height, crop_y1 + 1)
     return crop_x1, crop_y1, crop_x2, crop_y2
+
+
+def compute_query_crop_box(row: dict[str, Any], padding_px: int, padding_frac: float) -> tuple[int, int, int, int]:
+    return compute_crop_box_from_bbox_xyxy(
+        bbox_xyxy=row["bbox_xyxy"],
+        image_width=row["image_width"],
+        image_height=row["image_height"],
+        padding_px=padding_px,
+        padding_frac=padding_frac,
+    )
 
 
 class RetrievalBackend:
@@ -160,6 +176,21 @@ class RetrievalBackend:
         gallery_embeddings: dict[str, Any],
         gallery_entries: list[dict[str, Any]],
     ) -> list[int]:
+        return [
+            row["category_id"]
+            for row in self.rank_category_scores(
+                query_embedding=query_embedding,
+                gallery_embeddings=gallery_embeddings,
+                gallery_entries=gallery_entries,
+            )
+        ]
+
+    def rank_category_scores(
+        self,
+        query_embedding: Any,
+        gallery_embeddings: dict[str, Any],
+        gallery_entries: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         raise NotImplementedError
 
     def describe(self) -> dict[str, Any]:
@@ -190,16 +221,35 @@ class HashDebugBackend(RetrievalBackend):
         gallery_embeddings: dict[str, dict[str, Any]],
         gallery_entries: list[dict[str, Any]],
     ) -> list[int]:
+        return [
+            row["category_id"]
+            for row in self.rank_category_scores(
+                query_embedding=query_embedding,
+                gallery_embeddings=gallery_embeddings,
+                gallery_entries=gallery_entries,
+            )
+        ]
+
+    def rank_category_scores(
+        self,
+        query_embedding: dict[str, Any],
+        gallery_embeddings: dict[str, dict[str, Any]],
+        gallery_entries: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         best_by_category = {}
         for entry in gallery_entries:
             distance = feature_distance(query_embedding, gallery_embeddings[entry["spec_id"]])
+            score = -float(distance)
             current = best_by_category.get(entry["category_id"])
-            if current is None or distance < current:
-                best_by_category[entry["category_id"]] = distance
-        return [
-            category_id
-            for category_id, _distance in sorted(best_by_category.items(), key=lambda item: (item[1], item[0]))
-        ]
+            if current is None or score > current["score"]:
+                best_by_category[entry["category_id"]] = {
+                    "category_id": entry["category_id"],
+                    "score": score,
+                    "product_code": entry["product_code"],
+                    "source": entry["source"],
+                    "spec_id": entry["spec_id"],
+                }
+        return sorted(best_by_category.values(), key=lambda row: (-row["score"], row["category_id"]))
 
     def load_embeddings_cache(self, path: Path) -> dict[str, Any]:
         return json.loads(path.read_text())
@@ -215,6 +265,8 @@ class TorchVectorBackend(RetrievalBackend):
         self._torch = None
         self._resolved_device = None
         self._model_loaded = False
+        self._cached_source_path = None
+        self._cached_source_image = None
 
     def _require_torch(self):
         if self._torch is None:
@@ -251,21 +303,30 @@ class TorchVectorBackend(RetrievalBackend):
         except ModuleNotFoundError as exc:
             raise RuntimeError("Missing Pillow. Set up the uv ML env first.") from exc
 
-        image = Image.open(spec["source_path"]).convert("RGB")
+        source_path = Path(spec["source_path"]).resolve()
+        if self._cached_source_path != source_path or self._cached_source_image is None:
+            with Image.open(source_path) as opened:
+                self._cached_source_image = opened.convert("RGB")
+            self._cached_source_path = source_path
+        image = self._cached_source_image
         crop_box = spec.get("crop_box")
         if crop_box is not None:
-            image = image.crop(crop_box)
-        return image
+            return image.crop(crop_box)
+        return image.copy()
 
     def _encode_pil_images(self, images: list[Any]):
         raise NotImplementedError
 
     def embed_specs(self, specs: list[dict[str, Any]]) -> dict[str, Any]:
         self._ensure_loaded()
+        ordered_specs = sorted(
+            specs,
+            key=lambda spec: (str(Path(spec["source_path"]).resolve()), str(spec["spec_id"])),
+        )
         embeddings = {}
-        total_batches = (len(specs) + self.batch_size - 1) // self.batch_size
-        for batch_index, start in enumerate(range(0, len(specs), self.batch_size), start=1):
-            batch_specs = specs[start:start + self.batch_size]
+        total_batches = (len(ordered_specs) + self.batch_size - 1) // self.batch_size
+        for batch_index, start in enumerate(range(0, len(ordered_specs), self.batch_size), start=1):
+            batch_specs = ordered_specs[start:start + self.batch_size]
             batch_images = [self._load_pil_image(spec) for spec in batch_specs]
             batch_embeddings = self._encode_pil_images(batch_images)
             for spec, embedding in zip(batch_specs, batch_embeddings, strict=True):
@@ -279,16 +340,34 @@ class TorchVectorBackend(RetrievalBackend):
         gallery_embeddings: dict[str, Any],
         gallery_entries: list[dict[str, Any]],
     ) -> list[int]:
+        return [
+            row["category_id"]
+            for row in self.rank_category_scores(
+                query_embedding=query_embedding,
+                gallery_embeddings=gallery_embeddings,
+                gallery_entries=gallery_entries,
+            )
+        ]
+
+    def rank_category_scores(
+        self,
+        query_embedding: Any,
+        gallery_embeddings: dict[str, Any],
+        gallery_entries: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         best_by_category = {}
         for entry in gallery_entries:
             score = float((query_embedding * gallery_embeddings[entry["spec_id"]]).sum().item())
             current = best_by_category.get(entry["category_id"])
-            if current is None or score > current:
-                best_by_category[entry["category_id"]] = score
-        return [
-            category_id
-            for category_id, _score in sorted(best_by_category.items(), key=lambda item: (-item[1], item[0]))
-        ]
+            if current is None or score > current["score"]:
+                best_by_category[entry["category_id"]] = {
+                    "category_id": entry["category_id"],
+                    "score": score,
+                    "product_code": entry["product_code"],
+                    "source": entry["source"],
+                    "spec_id": entry["spec_id"],
+                }
+        return sorted(best_by_category.values(), key=lambda row: (-row["score"], row["category_id"]))
 
     def load_embeddings_cache(self, path: Path) -> dict[str, Any]:
         torch = self._require_torch()

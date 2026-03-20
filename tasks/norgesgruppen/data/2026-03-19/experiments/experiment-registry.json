@@ -11,7 +11,8 @@
   "notes": [
     "This registry is the canonical queue for serious experiments.",
     "Create an experiment folder only when the run actually starts.",
-    "Keep stable prep artifacts in ../derived, not here."
+    "Keep stable prep artifacts in ../derived, not here.",
+    "Current next-step decision tree is in docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md."
   ],
   "experiments": [
     {
@@ -74,12 +75,12 @@
       "id": "EXP-0005",
       "slug": "crop-fusion-and-ocr",
       "status": "planned",
-      "priority": 5,
-      "phase": "M1",
-      "question": "Does fusion of the best visual retriever plus OCR materially reduce sibling-SKU confusion?",
+      "priority": 11,
+      "phase": "M3",
+      "question": "After retrieval plus classifier fallback, does OCR materially reduce the remaining sibling-SKU confusion?",
       "prerequisites": [
         "EXP-0003",
-        "EXP-0004"
+        "EXP-0013"
       ],
       "success_gate": "Improves strict-slice recognition and sibling-heavy / low-view buckets without hurting overall calibration.",
       "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0005-crop-fusion-and-ocr"
@@ -87,7 +88,7 @@
     {
       "id": "EXP-0006",
       "slug": "det-yolov8-class-agnostic",
-      "status": "in_progress",
+      "status": "completed",
       "priority": 6,
       "phase": "M2",
       "question": "What is the fastest submission-friendly class-agnostic localization baseline?",
@@ -96,7 +97,7 @@
       ],
       "success_gate": "Overfit sanity passes and blocked-split class-agnostic AP50 is strong enough to anchor later pipeline work.",
       "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic",
-      "result_note": "Preflight complete, training not run yet. Class-agnostic YOLO export exists, detector evaluator passed empty/oracle sanity, .venv-det boots on this host, and one-image yolov8n predict -> txt -> json -> eval smoke succeeded after fixing headless OpenCV and torch 2.6 checkpoint-loading compatibility."
+      "result_note": "Detector lane is now real, not just unblocked. After fixing env drift and passing 4-image overfit sanity at mAP50 0.78879 / mAP50-95 0.59923, the 10-epoch YOLOv8n blocked-val baseline reached canonical class-agnostic AP50 0.852028, AP75 0.530942, mAP50-95 0.494438, miss rate 0.048592, and count MAE 31.306122. That is a large jump over the 1-epoch smoke and makes YOLOv8n the current localization anchor."
     },
     {
       "id": "EXP-0007",
@@ -115,7 +116,7 @@
     {
       "id": "EXP-0008",
       "slug": "pipe-det-plus-retrieval",
-      "status": "planned",
+      "status": "completed",
       "priority": 8,
       "phase": "M3",
       "question": "Does the decomposition stack already beat simple closed-set baselines end-to-end?",
@@ -124,7 +125,8 @@
         "EXP-0006"
       ],
       "success_gate": "Hybrid proxy beats the simplest monolithic baseline and failures are understandable by bucket.",
-      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0008-pipe-det-plus-retrieval"
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0008-pipe-det-plus-retrieval",
+      "result_note": "The first real detector + retrieval stack is now measured on blocked val. Using the 10-epoch YOLOv8n detector filtered at min_score 0.4, detector-only hybrid is 0.557981 while detector + PE-Core reaches classification mAP50 0.452121 and hybrid 0.693615. Same-box oracle-class bound is 0.817538, so decomposition works but current recognizer/calibration leaves material headroom. Matched true-positive detector crops show top-1/top-5 0.627225 / 0.825916 overall and 0.658966 / 0.867712 on reference-like buckets. Cheap score fusion using detector_score * retrieval_top1_score already improves hybrid to 0.717616, making calibration and classifier fallback the next main path."
     },
     {
       "id": "EXP-0009",
@@ -152,6 +154,64 @@
       ],
       "success_gate": "Local submission-style run works with realistic latency and artifact-size checks.",
       "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0010-submission-harness-baseline"
+    },
+    {
+      "id": "EXP-0011",
+      "slug": "oracle-box-pe-core-bound",
+      "status": "completed",
+      "priority": 5,
+      "phase": "M1",
+      "question": "What end-to-end competition-proxy score does current PE-Core retrieval reach if localization is perfect?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0003"
+      ],
+      "success_gate": "Produce a trustworthy image-level upper bound using GT boxes, saved PE-Core rankings, and real cache-derived similarity scores.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0011-oracle-box-pe-core-bound",
+      "result_note": "Oracle-box PE-Core bound landed at hybrid 0.860238 with detection AP50 ignore-class 1.0 and classification mAP50 0.534127. This proves localization is worth serious work, but retrieval-only recognition still has structural zeros in missing-reference, sibling-trap, and unknown_sentinel buckets."
+    },
+    {
+      "id": "EXP-0012",
+      "slug": "det-box-oracle-class-bound",
+      "status": "completed",
+      "priority": 7,
+      "phase": "M2",
+      "question": "How far can the first real detector carry the hybrid score if classification after detection were perfect?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0006"
+      ],
+      "success_gate": "Produce a trustworthy localization upper bound that isolates post-detector recognition headroom from detector recall limits.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0012-det-box-oracle-class-bound",
+      "result_note": "The initial 1-epoch read yielded hybrid 0.749827, but the latest canonical rerun on the 10-epoch YOLOv8n baseline reached detector-box oracle-class hybrid 0.879192 with detection AP50 0.852028 and classification mAP50 0.942574. Compared with perfect-box PE-Core hybrid 0.860238, this means localization is no longer obviously the single largest remaining limiter; real pipeline recognition work is now justified."
+    },
+    {
+      "id": "EXP-0013",
+      "slug": "crop-shelf-closed-set-classifier",
+      "status": "planned",
+      "priority": 8,
+      "phase": "M2",
+      "question": "Can a shelf-crop closed-set classifier recover the no-reference, sentinel, and shelf-domain cases that retrieval cannot solve well?",
+      "prerequisites": [
+        "EXP-0001",
+        "EXP-0011"
+      ],
+      "success_gate": "Improves full-slice and hard-bucket recognition, especially missing-reference, unknown_sentinel, and low-view regimes, without collapsing strong reference-safe classes.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0013-crop-shelf-closed-set-classifier"
+    },
+    {
+      "id": "EXP-0014",
+      "slug": "pipe-det-retrieval-plus-classifier",
+      "status": "planned",
+      "priority": 9,
+      "phase": "M3",
+      "question": "Does detector plus retrieval plus classifier fallback materially beat retrieval-only end-to-end and become the first serious submission candidate?",
+      "prerequisites": [
+        "EXP-0006",
+        "EXP-0013"
+      ],
+      "success_gate": "Beats the detector-plus-retrieval stack on hybrid proxy and specifically fixes structural full-slice failures without unacceptable complexity.",
+      "planned_outputs_dir": "data/2026-03-19/experiments/EXP-0014-pipe-det-retrieval-plus-classifier"
     }
   ]
 }

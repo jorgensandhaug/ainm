@@ -1,0 +1,35 @@
+{
+  "id": "EXP-0014",
+  "slug": "pipe-det-retrieval-plus-classifier",
+  "status": "planned",
+  "phase": "M3",
+  "priority": 9,
+  "question": "Does detector plus retrieval plus classifier fallback materially beat retrieval-only end-to-end and become the first serious submission candidate?",
+  "prerequisites": [
+    "EXP-0006",
+    "EXP-0013"
+  ],
+  "success_gate": "Beats the detector-plus-retrieval stack on hybrid proxy and specifically fixes structural full-slice failures without unacceptable complexity.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked_val",
+  "recognition_slice": [
+    "full",
+    "egg",
+    "knekkebrod",
+    "missing_reference",
+    "unknown_sentinel",
+    "sibling_variant_trap",
+    "exact_reference_high_view_shadow"
+  ],
+  "seed": [
+    11
+  ],
+  "code_entrypoints": [
+    "scripts/run_norgesgruppen_det_plus_retrieval.py",
+    "scripts/train_norgesgruppen_crop_classifier.py",
+    "scripts/run_norgesgruppen_det_retrieval_plus_classifier.py",
+    "scripts/eval_norgesgruppen_predictions.py"
+  ],
+  "weights": [],
+  "notes": "Primary baseline to beat is the score-fused detector + retrieval stack at hybrid 0.717616. Prefer simple fusion rules first; do not add OCR before classifier fallback is measured."
+}

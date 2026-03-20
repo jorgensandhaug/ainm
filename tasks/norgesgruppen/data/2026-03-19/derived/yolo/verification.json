@@ -1,0 +1,58 @@
+{
+  "status": "ok",
+  "export_mode": "multiclass",
+  "yolo_root": "data/2026-03-19/derived/yolo",
+  "dataset_yaml": "data/2026-03-19/derived/yolo/dataset.yaml",
+  "export_summary_json": "data/2026-03-19/derived/yolo/export-summary.json",
+  "verification_json": "data/2026-03-19/derived/yolo/verification.json",
+  "roundtrip_tolerance_px": 0.01,
+  "dataset_yaml_checks": {
+    "path_matches_export_root": true,
+    "nc": 356,
+    "name_count": 356
+  },
+  "split_summaries": {
+    "train": {
+      "image_count": 199,
+      "label_file_count": 199,
+      "annotation_count": 18327,
+      "invalid_line_count": 0,
+      "invalid_class_id_count": 0,
+      "non_normalized_value_count": 0,
+      "max_abs_bbox_error_px": 0.0038400000003093737,
+      "max_abs_bbox_error_component_px": {
+        "x": 0.0038400000003093737,
+        "y": 0.0033279999999535903,
+        "w": 0.0028319999999837364,
+        "h": 0.0023040000000094096
+      }
+    },
+    "val": {
+      "image_count": 49,
+      "label_file_count": 49,
+      "annotation_count": 4404,
+      "invalid_line_count": 0,
+      "invalid_class_id_count": 0,
+      "non_normalized_value_count": 0,
+      "max_abs_bbox_error_px": 0.0029759999998759668,
+      "max_abs_bbox_error_component_px": {
+        "x": 0.0029759999998759668,
+        "y": 0.002943999999843072,
+        "w": 0.001984000000000208,
+        "h": 0.0019839999999931024
+      }
+    }
+  },
+  "overall": {
+    "image_count": 248,
+    "label_file_count": 248,
+    "annotation_count": 22731,
+    "max_abs_bbox_error_px": 0.0038400000003093737,
+    "max_abs_bbox_error_component_px": {
+      "x": 0.0038400000003093737,
+      "y": 0.0033279999999535903,
+      "w": 0.0028319999999837364,
+      "h": 0.0023040000000094096
+    }
+  }
+}

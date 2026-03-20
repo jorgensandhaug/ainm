@@ -1,0 +1,33 @@
+{
+  "id": "EXP-0013",
+  "slug": "crop-shelf-closed-set-classifier",
+  "status": "planned",
+  "phase": "M2",
+  "priority": 8,
+  "question": "Can a shelf-crop closed-set classifier recover the no-reference, sentinel, and shelf-domain cases that retrieval cannot solve well?",
+  "prerequisites": [
+    "EXP-0001",
+    "EXP-0011"
+  ],
+  "success_gate": "Improves full-slice and hard-bucket recognition, especially missing-reference, unknown_sentinel, and low-view regimes, without collapsing strong reference-safe classes.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked_gt_crop_train_val",
+  "recognition_slice": [
+    "full",
+    "missing_reference",
+    "unknown_sentinel",
+    "sibling_variant_trap",
+    "exact_reference_high_view_shadow",
+    "exact_reference_low_view"
+  ],
+  "seed": [
+    11
+  ],
+  "code_entrypoints": [
+    "scripts/extract_norgesgruppen_gt_crops.py",
+    "scripts/train_norgesgruppen_crop_classifier.py",
+    "scripts/eval_norgesgruppen_crop_classifier.py"
+  ],
+  "weights": [],
+  "notes": "Run tiny-overfit and shuffled-label controls before trusting any real classifier result. Primary goal is not to beat retrieval everywhere; it is to recover missing-reference, unknown, and shelf-domain cases retrieval cannot solve well."
+}

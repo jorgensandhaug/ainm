@@ -6,9 +6,11 @@ This is the practical runbook for class-agnostic localization work.
 
 - blocked split: [training-manifest.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/training-manifest.json)
 - class-agnostic YOLO export: [dataset.yaml](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml)
+- class-agnostic YOLO export proof: [verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/verification.json)
 - detector evaluator: [eval_norgesgruppen_class_agnostic_detection.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/eval_norgesgruppen_class_agnostic_detection.py)
 - YOLO txt converter: [convert_yolo_txt_predictions.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/convert_yolo_txt_predictions.py)
 - canonical YOLO runner: [run_norgesgruppen_yolov8.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/run_norgesgruppen_yolov8.py)
+- canonical detector finalizer: [finalize_norgesgruppen_yolo_run.py](/home/jorge/repos/ainm/tasks/norgesgruppen/scripts/finalize_norgesgruppen_yolo_run.py)
 
 ## Environment Setup
 
@@ -43,7 +45,13 @@ Local compatibility notes:
 python scripts/export_norgesgruppen_yolo.py --class-agnostic
 ```
 
-2. Train a YOLOv8 baseline:
+2. Verify the export geometry before training:
+
+```bash
+python scripts/verify_norgesgruppen_yolo_export.py --class-agnostic
+```
+
+3. Train a YOLOv8 baseline:
 
 ```bash
 PYTHONPATH=scripts ./scripts/run_norgesgruppen_det_python.sh scripts/run_norgesgruppen_yolov8.py train \
@@ -58,37 +66,31 @@ PYTHONPATH=scripts ./scripts/run_norgesgruppen_det_python.sh scripts/run_norgesg
   --name yolov8n-train
 ```
 
-3. Run val prediction export:
+4. Finalize the run canonically:
 
 ```bash
-PYTHONPATH=scripts ./scripts/run_norgesgruppen_det_python.sh scripts/run_norgesgruppen_yolov8.py predict \
-  --model /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-train/weights/best.pt \
+PYTHONPATH=scripts ./scripts/run_norgesgruppen_det_python.sh scripts/finalize_norgesgruppen_yolo_run.py \
+  --run-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-train \
   --source /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/images/val \
+  --predict-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-train-predict \
+  --predictions-json /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-train-predict/predictions.json \
+  --eval-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/eval-yolov8n-train \
+  --oracle-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/oracle-class-yolov8n-train \
+  --summary-json /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-train-finalize-summary.json \
   --conf 0.001 \
   --iou 0.7 \
   --imgsz 1280 \
   --device cpu \
-  --project /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts \
-  --name yolov8n-val-predict
-```
-
-4. Convert YOLO txt to evaluator json:
-
-```bash
-python scripts/convert_yolo_txt_predictions.py \
-  --input-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-val-predict/labels \
-  --output-json /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-val-predictions.json \
   --force-category-id 0
 ```
 
-5. Score the run:
+What it does:
 
-```bash
-python scripts/eval_norgesgruppen_class_agnostic_detection.py \
-  --predictions /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-val-predictions.json \
-  --output-dir /home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/eval-yolov8n \
-  --label yolov8n_class_agnostic
-```
+- runs `best.pt` prediction on the frozen val images
+- converts YOLO txt output into competition-style `predictions.json`
+- runs canonical class-agnostic eval
+- optionally runs the detector-box oracle-class bound
+- writes one summary JSON that ties the whole post-train chain together
 
 ## What To Read
 

@@ -14,8 +14,14 @@
     "gt_crop_rows": 22731
   },
   "optional_checks": {
-    "yolo_export": "ok",
-    "yolo_class_agnostic_export": "ok"
+    "yolo_export": {
+      "status": "ok",
+      "max_abs_bbox_error_px": 0.0038400000003093737
+    },
+    "yolo_class_agnostic_export": {
+      "status": "ok",
+      "max_abs_bbox_error_px": 0.0038400000003093737
+    }
   },
   "checked_files": [
     "data/2026-03-19/extracted/coco/train/annotations.json",

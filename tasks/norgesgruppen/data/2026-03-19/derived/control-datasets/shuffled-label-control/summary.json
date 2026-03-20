@@ -1,0 +1,15 @@
+{
+  "seed": 20260320,
+  "category_count": 356,
+  "train_annotation_count": 18327,
+  "val_annotation_count": 4404,
+  "train_crop_count": 18327,
+  "val_crop_count": 4404,
+  "derangement_verified": true,
+  "paths": {
+    "category_permutation_json": "/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/control-datasets/shuffled-label-control/category-permutation.json",
+    "train_coco_shuffled_json": "/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/control-datasets/shuffled-label-control/train-coco-shuffled.json",
+    "val_coco_original_json": "/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/coco-splits/val.json",
+    "gt_crop_labels_shuffled_jsonl": "/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/control-datasets/shuffled-label-control/gt-crop-labels-shuffled.jsonl"
+  }
+}

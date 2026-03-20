@@ -3,7 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+
+
+def load_overrides(value: str | None) -> dict:
+    if not value:
+        return {}
+    raw = value.strip()
+    if raw.startswith("{"):
+        payload = raw
+    else:
+        payload = Path(raw).read_text()
+    parsed = json.loads(payload)
+    if not isinstance(parsed, dict):
+        raise ValueError("--overrides-json must parse to a JSON object")
+    return parsed
 
 
 def register_ultralytics_safe_globals() -> None:
@@ -53,17 +68,21 @@ def train(args: argparse.Namespace) -> None:
     relax_torch_load_weights_only()
     register_ultralytics_safe_globals()
     model = YOLO(args.model)
+    train_kwargs = {
+        "data": str(Path(args.data).resolve()),
+        "epochs": args.epochs,
+        "imgsz": args.imgsz,
+        "batch": args.batch,
+        "device": args.device,
+        "workers": args.workers,
+        "project": str(Path(args.project).resolve()),
+        "name": args.name,
+        "seed": args.seed,
+        "verbose": not args.quiet,
+    }
+    train_kwargs.update(load_overrides(args.overrides_json))
     result = model.train(
-        data=str(Path(args.data).resolve()),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        device=args.device,
-        workers=args.workers,
-        project=str(Path(args.project).resolve()),
-        name=args.name,
-        seed=args.seed,
-        verbose=not args.quiet,
+        **train_kwargs,
     )
     print(result)
 
@@ -74,17 +93,21 @@ def predict(args: argparse.Namespace) -> None:
     relax_torch_load_weights_only()
     register_ultralytics_safe_globals()
     model = YOLO(args.model)
+    predict_kwargs = {
+        "source": str(Path(args.source).resolve()),
+        "project": str(Path(args.project).resolve()),
+        "name": args.name,
+        "conf": args.conf,
+        "iou": args.iou,
+        "imgsz": args.imgsz,
+        "device": args.device,
+        "save_txt": True,
+        "save_conf": True,
+        "verbose": not args.quiet,
+    }
+    predict_kwargs.update(load_overrides(args.overrides_json))
     results = model.predict(
-        source=str(Path(args.source).resolve()),
-        project=str(Path(args.project).resolve()),
-        name=args.name,
-        conf=args.conf,
-        iou=args.iou,
-        imgsz=args.imgsz,
-        device=args.device,
-        save_txt=True,
-        save_conf=True,
-        verbose=not args.quiet,
+        **predict_kwargs,
     )
     print({"result_count": len(results)})
 
@@ -104,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--device", default="cpu")
     train_parser.add_argument("--workers", type=int, default=0)
     train_parser.add_argument("--seed", type=int, default=20260320)
+    train_parser.add_argument("--overrides-json", default=None, help="JSON object or path to JSON object merged into YOLO train kwargs")
     train_parser.add_argument("--quiet", action="store_true")
     train_parser.set_defaults(func=train)
 
@@ -116,6 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     predict_parser.add_argument("--iou", type=float, default=0.7)
     predict_parser.add_argument("--imgsz", type=int, default=1280)
     predict_parser.add_argument("--device", default="cpu")
+    predict_parser.add_argument("--overrides-json", default=None, help="JSON object or path to JSON object merged into YOLO predict kwargs")
     predict_parser.add_argument("--quiet", action="store_true")
     predict_parser.set_defaults(func=predict)
 

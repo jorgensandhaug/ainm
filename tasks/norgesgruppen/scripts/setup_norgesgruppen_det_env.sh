@@ -3,6 +3,7 @@ set -euo pipefail
 
 VENV_PATH=".venv-det"
 CUDA_INDEX_URL=""
+PYTHON_VERSION="3.11"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -14,9 +15,13 @@ while [[ $# -gt 0 ]]; do
       CUDA_INDEX_URL="$2"
       shift 2
       ;;
+    --python)
+      PYTHON_VERSION="$2"
+      shift 2
+      ;;
     *)
       echo "unknown arg: $1" >&2
-      echo "usage: $0 [--venv PATH] [--cuda-index-url URL]" >&2
+      echo "usage: $0 [--venv PATH] [--cuda-index-url URL] [--python VERSION]" >&2
       exit 2
       ;;
   esac
@@ -27,7 +32,7 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
-uv venv "$VENV_PATH" --python 3.12
+uv venv "$VENV_PATH" --clear --python "$PYTHON_VERSION"
 
 if [[ -n "$CUDA_INDEX_URL" ]]; then
   uv pip install \
@@ -45,12 +50,12 @@ fi
 uv pip install \
   --python "$VENV_PATH/bin/python" \
   ultralytics==8.1.0 \
-  pillow \
-  numpy
+  pillow==10.2.0 \
+  numpy==1.26.4
 
 uv pip uninstall --python "$VENV_PATH/bin/python" opencv-python || true
 uv pip install \
   --python "$VENV_PATH/bin/python" \
-  opencv-python-headless
+  opencv-python-headless==4.9.0.80
 
 echo "ready: $VENV_PATH"

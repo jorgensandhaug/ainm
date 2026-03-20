@@ -1,0 +1,150 @@
+{
+  "input_prediction_count": 14700,
+  "valid_prediction_count": 14700,
+  "invalid_prediction_count": 0,
+  "ignored_out_of_split_prediction_count": 0,
+  "invalid_examples": [],
+  "gt_annotation_count": 4404,
+  "detection_true_positive_count": 3942,
+  "classification_true_positive_count": 3942,
+  "missed_gt_detection_count": 462,
+  "duplicate_false_positive_count": 2574,
+  "background_false_positive_count": 8184,
+  "top_missed_categories": [
+    {
+      "category_id": 307,
+      "category_name": "MAISKAKER OST 125G FRIGGS",
+      "count": 19
+    },
+    {
+      "category_id": 86,
+      "category_name": "HAVRE KNEKKEBRØD 300G WASA",
+      "count": 17
+    },
+    {
+      "category_id": 68,
+      "category_name": "MAISKAKER SOURCREAM&ONION 125G FRIGGS",
+      "count": 16
+    },
+    {
+      "category_id": 109,
+      "category_name": "KNEKKEBRØD 100 FRØ&HAVSALT 245G WASA",
+      "count": 16
+    },
+    {
+      "category_id": 280,
+      "category_name": "RISKAKER 100G FIRST PRICE",
+      "count": 14
+    },
+    {
+      "category_id": 355,
+      "category_name": "unknown_product",
+      "count": 12
+    },
+    {
+      "category_id": 243,
+      "category_name": "RYVITA KNEKKEBRØD RUG 400G",
+      "count": 11
+    },
+    {
+      "category_id": 235,
+      "category_name": "FLATBRØD ØKOLOGISK 190G RØROS",
+      "count": 11
+    },
+    {
+      "category_id": 338,
+      "category_name": "HUSMAN KNEKKEBRØD 520G WASA",
+      "count": 11
+    },
+    {
+      "category_id": 239,
+      "category_name": "MAISKAKER CHIA/HAVSALT 130G FRIGGS",
+      "count": 10
+    }
+  ],
+  "top_detection_miss_images": [
+    {
+      "image_id": 304,
+      "count": 55
+    },
+    {
+      "image_id": 298,
+      "count": 48
+    },
+    {
+      "image_id": 305,
+      "count": 46
+    },
+    {
+      "image_id": 297,
+      "count": 43
+    },
+    {
+      "image_id": 308,
+      "count": 39
+    },
+    {
+      "image_id": 310,
+      "count": 39
+    },
+    {
+      "image_id": 303,
+      "count": 21
+    },
+    {
+      "image_id": 306,
+      "count": 18
+    },
+    {
+      "image_id": 317,
+      "count": 17
+    },
+    {
+      "image_id": 313,
+      "count": 15
+    }
+  ],
+  "top_detection_fp_images": [
+    {
+      "image_id": 86,
+      "count": 286
+    },
+    {
+      "image_id": 88,
+      "count": 271
+    },
+    {
+      "image_id": 170,
+      "count": 266
+    },
+    {
+      "image_id": 168,
+      "count": 266
+    },
+    {
+      "image_id": 167,
+      "count": 261
+    },
+    {
+      "image_id": 163,
+      "count": 260
+    },
+    {
+      "image_id": 85,
+      "count": 258
+    },
+    {
+      "image_id": 193,
+      "count": 258
+    },
+    {
+      "image_id": 184,
+      "count": 254
+    },
+    {
+      "image_id": 169,
+      "count": 253
+    }
+  ],
+  "top_wrong_class_confusions": []
+}

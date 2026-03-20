@@ -1,0 +1,88 @@
+{
+  "input_prediction_count": 4404,
+  "valid_prediction_count": 4404,
+  "invalid_prediction_count": 0,
+  "ignored_out_of_split_prediction_count": 0,
+  "invalid_examples": [],
+  "gt_annotation_count": 4404,
+  "detection_true_positive_count": 4404,
+  "classification_true_positive_count": 2581,
+  "missed_gt_detection_count": 0,
+  "duplicate_false_positive_count": 0,
+  "background_false_positive_count": 0,
+  "top_missed_categories": [],
+  "top_detection_miss_images": [],
+  "top_detection_fp_images": [],
+  "top_wrong_class_confusions": [
+    {
+      "gt_category_id": 86,
+      "gt_category_name": "HAVRE KNEKKEBRØD 300G WASA",
+      "pred_category_id": 84,
+      "pred_category_name": "HAVRE KNEKKEBRØD ØKONOMI 600G WASA",
+      "count": 51
+    },
+    {
+      "gt_category_id": 246,
+      "gt_category_name": "HUSMAN KNEKKEBRØD 260G WASA",
+      "pred_category_id": 338,
+      "pred_category_name": "HUSMAN KNEKKEBRØD 520G WASA",
+      "count": 45
+    },
+    {
+      "gt_category_id": 283,
+      "gt_category_name": "GÅRDSEGG M/L 12STK ELDORADO",
+      "pred_category_id": 275,
+      "pred_category_name": "EGG FRITTGÅENDE 18STK S/M FIRST PRICE",
+      "count": 30
+    },
+    {
+      "gt_category_id": 236,
+      "gt_category_name": "LEKSANDS KNEKKE RUTBIT 200G",
+      "pred_category_id": 12,
+      "pred_category_name": "Leksands Rutbit",
+      "count": 27
+    },
+    {
+      "gt_category_id": 30,
+      "gt_category_name": "SJOKORINGER 375G ELDORADO",
+      "pred_category_id": 300,
+      "pred_category_name": "",
+      "count": 26
+    },
+    {
+      "gt_category_id": 33,
+      "gt_category_name": "FLATBRØD MORS HJEMMEBAKTE 520G",
+      "pred_category_id": 8,
+      "pred_category_name": "FLATBRØD MORS",
+      "count": 25
+    },
+    {
+      "gt_category_id": 233,
+      "gt_category_name": "LEKSANDS KNEKKE GODT STEKT 200G",
+      "pred_category_id": 226,
+      "pred_category_name": "LEKSANDS TREKANT HAVRE 200G",
+      "count": 24
+    },
+    {
+      "gt_category_id": 152,
+      "gt_category_name": "HAVREKNEKKEBRØD TYNT 265G WASA",
+      "pred_category_id": 84,
+      "pred_category_name": "HAVRE KNEKKEBRØD ØKONOMI 600G WASA",
+      "count": 22
+    },
+    {
+      "gt_category_id": 12,
+      "gt_category_name": "Leksands Rutbit",
+      "pred_category_id": 226,
+      "pred_category_name": "LEKSANDS TREKANT HAVRE 200G",
+      "count": 21
+    },
+    {
+      "gt_category_id": 201,
+      "gt_category_name": "MUSLI FRUKT 700G AXA",
+      "pred_category_id": 36,
+      "pred_category_name": "MÜSLI FRUKT MÜSLI 700G AXA",
+      "count": 20
+    }
+  ]
+}

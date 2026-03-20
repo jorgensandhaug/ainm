@@ -20,9 +20,12 @@ This is the quick entrypoint for humans and agents.
 2. Use the deep audit when you need proof or anomaly context.
 3. Use the fast prep builder to refresh manifests.
 4. Run the standalone verifier before trusting the prepared state.
-5. Read the latest experiment report before starting new modeling work.
-6. Read the crop runtime before starting PE-Core or DINOv3.
-7. Extract GT crops only when you actually need them.
+5. Run the ML pipeline verifier before trusting current modeling conclusions.
+6. Read the critical-path decision tree before starting new modeling work.
+7. Read the classifier/fusion strategy before starting recognizer work.
+8. Read the latest experiment report before starting new modeling work.
+9. Read the crop runtime before starting PE-Core or DINOv3.
+10. Extract GT crops only when you actually need them.
 
 ## Rerun
 
@@ -35,9 +38,13 @@ Fast prep/manifests build:
 YOLO export build:
 - `python scripts/export_norgesgruppen_yolo.py`
 - `python scripts/export_norgesgruppen_yolo.py --class-agnostic`
+- `python scripts/verify_norgesgruppen_yolo_export.py`
+- `python scripts/verify_norgesgruppen_yolo_export.py --class-agnostic`
 
 Prepared-artifact verification:
 - `python scripts/verify_norgesgruppen_prep.py`
+- `python scripts/verify_norgesgruppen_ml_pipeline.py`
+- `python scripts/build_norgesgruppen_label_controls.py`
 
 Crop floor benchmark:
 - `python scripts/benchmark_norgesgruppen_crops.py`
@@ -53,12 +60,16 @@ Optional GT crop extraction:
 - Unresolved class decisions: [unresolved-class-review.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/unresolved-class-review.md)
 - Split/eval plan: [split-eval-plan.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/split-eval-plan.md)
 - Modeling/validation plan: [modeling-experiment-plan.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/modeling-experiment-plan.md)
+- ML verification playbook: [ml-verification-playbook.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/ml-verification-playbook.md)
 - Execution roadmap: [PLAN-0001-roadmap-to-first-competitive-submission.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 - Immediate execution wave: [PLAN-0002-immediate-execution-wave.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0002-immediate-execution-wave.md)
+- Critical-path decision tree: [PLAN-0003-critical-path-and-decision-tree-after-preflight.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+- Classifier/fusion strategy: [PLAN-0004-classifier-and-fusion-strategy.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
 - Frozen validation decision: [DEC-0001-freeze-validation-surface.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md)
 - Frozen crop-eval decision: [DEC-0002-freeze-crop-retrieval-eval-contract.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0002-freeze-crop-retrieval-eval-contract.md)
 - Primary crop-embedder decision: [DEC-0003-keep-pe-core-as-primary-crop-embedder.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md)
-- Latest experiment report: [REP-0003-crop-embedder-comparison.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md)
+- Frozen ML verification gates: [DEC-0004-freeze-ml-verification-gates.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md)
+- Latest experiment report: [REP-0009-first-det-plus-retrieval-baseline.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - Crop retrieval runtime: [crop-retrieval-runtime.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/crop-retrieval-runtime.md)
 - Detection runtime: [detection-runtime.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/detection-runtime.md)
 - Operating structure: [project-operating-system.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/project-operating-system.md)
@@ -79,10 +90,16 @@ Optional GT crop extraction:
 - GT crop summary: [gt-crop-summary.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/gt-crop-summary.json)
 - GT crop manifest: [gt-crop-manifest.jsonl](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/gt-crop-manifest.jsonl)
 - Prep verification summary: [prep-verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/prep-verification.json)
+- ML pipeline verification summary: [ml-pipeline-verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/ml-pipeline-verification.json)
+- Shuffled-label control summary: [summary.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/control-datasets/shuffled-label-control/summary.json)
 - Prep overview: [prep-overview.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/prep-overview.json)
 - Artifact index: [artifact-index.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/artifact-index.json)
 - YOLO dataset yaml: [dataset.yaml](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo/dataset.yaml)
+- YOLO export summary: [export-summary.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo/export-summary.json)
+- YOLO export verification: [verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo/verification.json)
 - YOLO class-agnostic yaml: [dataset.yaml](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml)
+- YOLO class-agnostic summary: [export-summary.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/export-summary.json)
+- YOLO class-agnostic verification: [verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/verification.json)
 
 ## Key Policies
 

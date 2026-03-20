@@ -37,11 +37,14 @@ from norgesgruppen_prep_common import (
     VAL_COCO_JSON,
     YOLO_CLASS_AGNOSTIC_ROOT,
     YOLO_CLASS_AGNOSTIC_SUMMARY_JSON,
+    YOLO_CLASS_AGNOSTIC_VERIFICATION_JSON,
     YOLO_ROOT,
     YOLO_SUMMARY_JSON,
+    YOLO_VERIFICATION_JSON,
     iter_jsonl,
     read_json,
 )
+from verify_norgesgruppen_yolo_export import verify_yolo_export
 
 
 def require(condition: bool, message: str) -> None:
@@ -192,7 +195,13 @@ def verify() -> dict[str, Any]:
         val_label_count = len(list((YOLO_ROOT / "labels" / "val").glob("*.txt")))
         require(train_label_count == 199, "YOLO train label file count mismatch.")
         require(val_label_count == 49, "YOLO val label file count mismatch.")
-        optional_checks["yolo_export"] = "ok"
+        yolo_verification = verify_yolo_export(class_agnostic=False, write_summary_json=True)
+        require(yolo_verification["status"] == "ok", "YOLO export verification failed.")
+        require(YOLO_VERIFICATION_JSON.exists(), "YOLO export verification summary missing.")
+        optional_checks["yolo_export"] = {
+            "status": "ok",
+            "max_abs_bbox_error_px": yolo_verification["overall"]["max_abs_bbox_error_px"],
+        }
 
     if YOLO_CLASS_AGNOSTIC_SUMMARY_JSON.exists():
         yolo_summary = read_json(YOLO_CLASS_AGNOSTIC_SUMMARY_JSON)
@@ -205,7 +214,13 @@ def verify() -> dict[str, Any]:
         val_label_count = len(list((YOLO_CLASS_AGNOSTIC_ROOT / "labels" / "val").glob("*.txt")))
         require(train_label_count == 199, "Class-agnostic YOLO train label file count mismatch.")
         require(val_label_count == 49, "Class-agnostic YOLO val label file count mismatch.")
-        optional_checks["yolo_class_agnostic_export"] = "ok"
+        yolo_verification = verify_yolo_export(class_agnostic=True, write_summary_json=True)
+        require(yolo_verification["status"] == "ok", "Class-agnostic YOLO export verification failed.")
+        require(YOLO_CLASS_AGNOSTIC_VERIFICATION_JSON.exists(), "Class-agnostic YOLO export verification summary missing.")
+        optional_checks["yolo_class_agnostic_export"] = {
+            "status": "ok",
+            "max_abs_bbox_error_px": yolo_verification["overall"]["max_abs_bbox_error_px"],
+        }
 
     return {
         "status": "ok",

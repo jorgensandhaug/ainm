@@ -16,7 +16,8 @@ A new human or agent should start here:
 2. [prep-playbook.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/prep-playbook.md)
 3. [INDEX.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/INDEX.md)
 4. [modeling-experiment-plan.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/modeling-experiment-plan.md)
-5. [PLAN-0001-roadmap-to-first-competitive-submission.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
+5. [PLAN-0003-critical-path-and-decision-tree-after-preflight.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+6. [PLAN-0001-roadmap-to-first-competitive-submission.md](/home/jorge/repos/ainm/tasks/norgesgruppen/docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 
 ## Stable Top-Level Docs
 

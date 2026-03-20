@@ -1,6 +1,6 @@
 # NorgesGruppen Dataset Prep
 
-This repo state is the prepared handoff surface for understanding the dataset before modeling.
+This repo state is the prepared handoff surface for the audited dataset, frozen evaluation stack, and current modeling state.
 
 ## Start Here
 
@@ -9,12 +9,15 @@ Read in this order:
 1. [docs/norgesgruppen-data/prep-playbook.md](docs/norgesgruppen-data/prep-playbook.md)
 2. [docs/norgesgruppen-data/INDEX.md](docs/norgesgruppen-data/INDEX.md)
 3. [docs/norgesgruppen-data/deep-audit-summary.md](docs/norgesgruppen-data/deep-audit-summary.md)
-4. [docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md](docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md)
-5. [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
-6. [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
-7. [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
-8. [docs/norgesgruppen-data/project-operating-system.md](docs/norgesgruppen-data/project-operating-system.md)
-9. [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
+4. [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
+5. [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
+6. [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
+7. [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
+8. [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
+9. [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+10. [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
+11. [docs/norgesgruppen-data/project-operating-system.md](docs/norgesgruppen-data/project-operating-system.md)
+12. [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 
 If you want only the machine-readable core:
 
@@ -41,14 +44,18 @@ If you want only the machine-readable core:
 - Do not auto-map coffee-family sibling variants just because names are close
 - Treat `unknown_product` as a real sentinel class
 - Egg is the weakest classification regime because packshot coverage is worse there
-- Local evaluation is now real: `EXP-0001` scorer sanity passes, `EXP-0002` crop floor is non-random, `EXP-0003` proves `PE-Core` is strong, `EXP-0004` demotes public `DINOv3`, `EXP-0006` detector preflight is working
+- Local evaluation is now real: `EXP-0001` scorer sanity passes, `EXP-0002` crop floor is non-random, `EXP-0003` proves `PE-Core` is strong, `EXP-0004` demotes public `DINOv3`, `EXP-0011` shows perfect-box `PE-Core` reaches hybrid `0.860238`, `EXP-0006` now has a real 10-epoch detector baseline at `AP50 0.852028`, `EXP-0012` shows detector boxes plus oracle classes reach hybrid `0.879192`, and `EXP-0008` proves the first real detector+retrieval stack reaches hybrid `0.693615` with cheap score fusion already lifting it to `0.717616`
+- ML verification is now explicit and scriptable: use [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md) plus `python scripts/verify_norgesgruppen_ml_pipeline.py`
 
 ## Best Files For Specific Questions
 
 - Proof / anomalies: [docs/norgesgruppen-data/deep-audit-summary.md](docs/norgesgruppen-data/deep-audit-summary.md)
 - What to do operationally: [docs/norgesgruppen-data/prep-playbook.md](docs/norgesgruppen-data/prep-playbook.md)
 - Modeling / validation order: [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
-- Latest experiment readout: [docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md](docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md)
+- Critical-path decision tree: [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+- Classifier/fusion strategy: [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
+- Latest experiment readout: [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
+- ML verification doctrine: [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
 - Crop retrieval runtime / commands: [docs/norgesgruppen-data/crop-retrieval-runtime.md](docs/norgesgruppen-data/crop-retrieval-runtime.md)
 - Detection runtime / commands: [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
 - Primary crop-embedder decision: [docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md](docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md)
@@ -68,8 +75,11 @@ If you want only the machine-readable core:
 ```bash
 python scripts/build_norgesgruppen_prep.py
 python scripts/verify_norgesgruppen_prep.py
+python scripts/verify_norgesgruppen_ml_pipeline.py
 python scripts/export_norgesgruppen_yolo.py
+python scripts/verify_norgesgruppen_yolo_export.py
 python scripts/export_norgesgruppen_yolo.py --class-agnostic
+python scripts/verify_norgesgruppen_yolo_export.py --class-agnostic
 python scripts/benchmark_norgesgruppen_crops.py
 ```
 
@@ -85,8 +95,10 @@ python scripts/extract_norgesgruppen_gt_crops.py --split val --limit 100
 - COCO val split: [data/2026-03-19/derived/coco-splits/val.json](data/2026-03-19/derived/coco-splits/val.json)
 - YOLO dataset yaml: [data/2026-03-19/derived/yolo/dataset.yaml](data/2026-03-19/derived/yolo/dataset.yaml)
 - YOLO export summary: [data/2026-03-19/derived/yolo/export-summary.json](data/2026-03-19/derived/yolo/export-summary.json)
+- YOLO export verification: [data/2026-03-19/derived/yolo/verification.json](data/2026-03-19/derived/yolo/verification.json)
 - YOLO class-agnostic dataset yaml: [data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml](data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml)
 - YOLO class-agnostic export summary: [data/2026-03-19/derived/yolo-class-agnostic/export-summary.json](data/2026-03-19/derived/yolo-class-agnostic/export-summary.json)
+- YOLO class-agnostic export verification: [data/2026-03-19/derived/yolo-class-agnostic/verification.json](data/2026-03-19/derived/yolo-class-agnostic/verification.json)
 
 ## If Handing Off To Another Agent
 
@@ -95,10 +107,14 @@ Give them these first:
 - [README.md](README.md)
 - [docs/norgesgruppen-data/prep-playbook.md](docs/norgesgruppen-data/prep-playbook.md)
 - [docs/norgesgruppen-data/deep-audit-summary.md](docs/norgesgruppen-data/deep-audit-summary.md)
-- [docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md](docs/norgesgruppen-data/reports/REP-0003-crop-embedder-comparison.md)
+- [docs/norgesgruppen-data/ml-verification-playbook.md](docs/norgesgruppen-data/ml-verification-playbook.md)
+- [docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md](docs/norgesgruppen-data/reports/REP-0009-first-det-plus-retrieval-baseline.md)
 - [docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md](docs/norgesgruppen-data/decisions/DEC-0003-keep-pe-core-as-primary-crop-embedder.md)
+- [docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md](docs/norgesgruppen-data/decisions/DEC-0004-freeze-ml-verification-gates.md)
 - [docs/norgesgruppen-data/detection-runtime.md](docs/norgesgruppen-data/detection-runtime.md)
 - [docs/norgesgruppen-data/modeling-experiment-plan.md](docs/norgesgruppen-data/modeling-experiment-plan.md)
+- [docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md](docs/norgesgruppen-data/plans/PLAN-0003-critical-path-and-decision-tree-after-preflight.md)
+- [docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md](docs/norgesgruppen-data/plans/PLAN-0004-classifier-and-fusion-strategy.md)
 - [docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md](docs/norgesgruppen-data/plans/PLAN-0001-roadmap-to-first-competitive-submission.md)
 - [docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md](docs/norgesgruppen-data/decisions/DEC-0001-freeze-validation-surface.md)
 - [docs/norgesgruppen-data/decisions/DEC-0002-freeze-crop-retrieval-eval-contract.md](docs/norgesgruppen-data/decisions/DEC-0002-freeze-crop-retrieval-eval-contract.md)

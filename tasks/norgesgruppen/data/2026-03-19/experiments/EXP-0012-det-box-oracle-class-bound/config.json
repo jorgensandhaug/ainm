@@ -1,0 +1,22 @@
+{
+  "id": "EXP-0012",
+  "slug": "det-box-oracle-class-bound",
+  "status": "completed",
+  "phase": "M2",
+  "priority": 7,
+  "question": "How far can the first real detector carry the hybrid score if classification after detection were perfect?",
+  "prerequisites": [
+    "EXP-0001",
+    "EXP-0006"
+  ],
+  "success_gate": "Produce a trustworthy localization upper bound that isolates post-detector recognition headroom from detector recall limits.",
+  "data_snapshot": "2026-03-19",
+  "split": "blocked val",
+  "source_detector_run": "data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-blocked-val-1ep-cpu-smoke",
+  "source_predictions": "data/2026-03-19/experiments/EXP-0006-det-yolov8-class-agnostic/artifacts/yolov8n-blocked-val-1ep-cpu-smoke-predict/predictions.json",
+  "code_entrypoints": [
+    "scripts/eval_norgesgruppen_oracle_class_bound.py",
+    "scripts/eval_norgesgruppen_predictions.py"
+  ],
+  "notes": "Relabel saved detector predictions with oracle GT categories under the frozen evaluator to isolate localization headroom."
+}

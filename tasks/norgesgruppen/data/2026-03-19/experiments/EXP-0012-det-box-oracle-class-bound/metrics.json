@@ -1,0 +1,217 @@
+{
+  "predictions_path": "data/2026-03-19/experiments/EXP-0012-det-box-oracle-class-bound/artifacts/yolov8n-blocked-val-1ep-cpu-smoke-oracle-class/predictions.json",
+  "count_score_threshold": 0.05,
+  "global": {
+    "image_count": 49,
+    "gt_annotation_count": 4404,
+    "prediction_count": 14700,
+    "detection_ap50_ignore_class": 0.689607,
+    "miss_rate": 0.104905,
+    "duplicate_box_rate": 0.175102,
+    "background_fp_rate": 0.556735,
+    "count_mae": 146.857143,
+    "true_positive_count": 3942,
+    "duplicate_false_positive_count": 2574,
+    "background_false_positive_count": 8184,
+    "classification_map50": 0.890341,
+    "hybrid_proxy": 0.749827
+  },
+  "by_image_dominant_theme": {
+    "egg": {
+      "image_count": 5,
+      "gt_annotation_count": 251,
+      "prediction_count": 1500,
+      "detection_ap50_ignore_class": 0.847126,
+      "miss_rate": 0.035857,
+      "duplicate_box_rate": 0.282,
+      "background_fp_rate": 0.556667,
+      "count_mae": 200,
+      "true_positive_count": 242,
+      "duplicate_false_positive_count": 423,
+      "background_false_positive_count": 835,
+      "classification_map50": 0.938732,
+      "hybrid_proxy": 0.874608
+    },
+    "frokost": {
+      "image_count": 16,
+      "gt_annotation_count": 952,
+      "prediction_count": 4800,
+      "detection_ap50_ignore_class": 0.823005,
+      "miss_rate": 0.029412,
+      "duplicate_box_rate": 0.192083,
+      "background_fp_rate": 0.615417,
+      "count_mae": 105.5,
+      "true_positive_count": 924,
+      "duplicate_false_positive_count": 922,
+      "background_false_positive_count": 2954,
+      "classification_map50": 0.91324,
+      "hybrid_proxy": 0.850075
+    },
+    "knekkebrod": {
+      "image_count": 18,
+      "gt_annotation_count": 2187,
+      "prediction_count": 5400,
+      "detection_ap50_ignore_class": 0.61067,
+      "miss_rate": 0.178326,
+      "duplicate_box_rate": 0.134259,
+      "background_fp_rate": 0.532963,
+      "count_mae": 163.944444,
+      "true_positive_count": 1797,
+      "duplicate_false_positive_count": 725,
+      "background_false_positive_count": 2878,
+      "classification_map50": 0.771172,
+      "hybrid_proxy": 0.658821
+    },
+    "other": {
+      "image_count": 1,
+      "gt_annotation_count": 64,
+      "prediction_count": 300,
+      "detection_ap50_ignore_class": 0.539365,
+      "miss_rate": 0.046875,
+      "duplicate_box_rate": 0.196667,
+      "background_fp_rate": 0.6,
+      "count_mae": 218,
+      "true_positive_count": 61,
+      "duplicate_false_positive_count": 59,
+      "background_false_positive_count": 180,
+      "classification_map50": 0.897994,
+      "hybrid_proxy": 0.646954
+    },
+    "varmedrikker": {
+      "image_count": 9,
+      "gt_annotation_count": 950,
+      "prediction_count": 2700,
+      "detection_ap50_ignore_class": 0.811304,
+      "miss_rate": 0.033684,
+      "duplicate_box_rate": 0.164815,
+      "background_fp_rate": 0.495185,
+      "count_mae": 148.777778,
+      "true_positive_count": 918,
+      "duplicate_false_positive_count": 445,
+      "background_false_positive_count": 1337,
+      "classification_map50": 0.962803,
+      "hybrid_proxy": 0.856754
+    }
+  },
+  "by_image_difficulty_bucket": {
+    "dense_standard": {
+      "image_count": 10,
+      "gt_annotation_count": 1540,
+      "prediction_count": 3000,
+      "detection_ap50_ignore_class": 0.636125,
+      "miss_rate": 0.185065,
+      "duplicate_box_rate": 0.128333,
+      "background_fp_rate": 0.453333,
+      "count_mae": 146,
+      "true_positive_count": 1255,
+      "duplicate_false_positive_count": 385,
+      "background_false_positive_count": 1360,
+      "classification_map50": 0.874691,
+      "hybrid_proxy": 0.707695
+    },
+    "problem_heavy": {
+      "image_count": 17,
+      "gt_annotation_count": 1379,
+      "prediction_count": 5100,
+      "detection_ap50_ignore_class": 0.719012,
+      "miss_rate": 0.063089,
+      "duplicate_box_rate": 0.201176,
+      "background_fp_rate": 0.54549,
+      "count_mae": 164.529412,
+      "true_positive_count": 1292,
+      "duplicate_false_positive_count": 1026,
+      "background_false_positive_count": 2782,
+      "classification_map50": 0.897465,
+      "hybrid_proxy": 0.772548
+    },
+    "standard": {
+      "image_count": 22,
+      "gt_annotation_count": 1485,
+      "prediction_count": 6600,
+      "detection_ap50_ignore_class": 0.749631,
+      "miss_rate": 0.060606,
+      "duplicate_box_rate": 0.176212,
+      "background_fp_rate": 0.612424,
+      "count_mae": 133.590909,
+      "true_positive_count": 1395,
+      "duplicate_false_positive_count": 1163,
+      "background_false_positive_count": 4042,
+      "classification_map50": 0.890008,
+      "hybrid_proxy": 0.791744
+    }
+  },
+  "by_category_theme": {
+    "egg": {
+      "category_count_with_gt": 14,
+      "gt_annotation_count": 272,
+      "classification_map50": 0.929979
+    },
+    "frokost": {
+      "category_count_with_gt": 54,
+      "gt_annotation_count": 1054,
+      "classification_map50": 0.920251
+    },
+    "knekkebrod": {
+      "category_count_with_gt": 52,
+      "gt_annotation_count": 1798,
+      "classification_map50": 0.717991
+    },
+    "other": {
+      "category_count_with_gt": 20,
+      "gt_annotation_count": 242,
+      "classification_map50": 0.860013
+    },
+    "varmedrikker": {
+      "category_count_with_gt": 112,
+      "gt_annotation_count": 1038,
+      "classification_map50": 0.9564
+    }
+  },
+  "by_readiness_bucket": {
+    "ambiguous_reference": {
+      "category_count_with_gt": 1,
+      "gt_annotation_count": 51,
+      "classification_map50": 0.696182
+    },
+    "exact_reference_high_view": {
+      "category_count_with_gt": 177,
+      "gt_annotation_count": 3435,
+      "classification_map50": 0.886244
+    },
+    "exact_reference_low_view": {
+      "category_count_with_gt": 30,
+      "gt_annotation_count": 352,
+      "classification_map50": 0.911908
+    },
+    "exact_reference_medium_view": {
+      "category_count_with_gt": 27,
+      "gt_annotation_count": 320,
+      "classification_map50": 0.860272
+    },
+    "missing_reference": {
+      "category_count_with_gt": 8,
+      "gt_annotation_count": 65,
+      "classification_map50": 0.957685
+    },
+    "needs_manual_review": {
+      "category_count_with_gt": 2,
+      "gt_annotation_count": 9,
+      "classification_map50": 1.0
+    },
+    "provisional_alias_reference": {
+      "category_count_with_gt": 1,
+      "gt_annotation_count": 47,
+      "classification_map50": 0.837119
+    },
+    "sibling_variant_trap": {
+      "category_count_with_gt": 5,
+      "gt_annotation_count": 35,
+      "classification_map50": 0.97784
+    },
+    "unknown_sentinel": {
+      "category_count_with_gt": 1,
+      "gt_annotation_count": 90,
+      "classification_map50": 0.832189
+    }
+  }
+}

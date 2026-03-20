@@ -1,0 +1,224 @@
+{
+  "status": "ok",
+  "data_date": "2026-03-19",
+  "checks": [
+    {
+      "stage": "prep",
+      "check_id": "prep_verified",
+      "passed": true,
+      "details": {
+        "images": 248,
+        "annotations": 22731,
+        "categories": 356,
+        "metadata_products": 329,
+        "packshot_directories": 344,
+        "problem_categories": 37,
+        "custom_packshot_dirs": 17,
+        "train_images": 199,
+        "val_images": 49,
+        "gt_crop_rows": 22731,
+        "optional_checks": {
+          "yolo_export": {
+            "status": "ok",
+            "max_abs_bbox_error_px": 0.0038400000003093737
+          },
+          "yolo_class_agnostic_export": {
+            "status": "ok",
+            "max_abs_bbox_error_px": 0.0038400000003093737
+          }
+        }
+      }
+    },
+    {
+      "stage": "eval_harness",
+      "check_id": "empty_oracle_controls",
+      "passed": true,
+      "details": {
+        "full_image_empty_hybrid": 0.0,
+        "full_image_oracle_hybrid": 1.0,
+        "detection_empty_ap50": 0.0,
+        "detection_oracle_ap50": 1.0,
+        "crop_oracle_strict_top1": 1.0
+      }
+    },
+    {
+      "stage": "crop_recognition",
+      "check_id": "retrieval_controls",
+      "passed": true,
+      "details": {
+        "strict_random_top1": 0.004383,
+        "strict_hash_top1": 0.068176,
+        "strict_pe_core_top1": 0.627952,
+        "strict_pe_core_map20": 0.721652,
+        "strict_dinov3_top1": 0.246409
+      }
+    },
+    {
+      "stage": "detector_learning",
+      "check_id": "detector_controls",
+      "passed": true,
+      "details": {
+        "overfit_map50": 0.78879,
+        "overfit_map50_95": 0.59923,
+        "zero_shot_ap50": 0.156996,
+        "fine_tuned_smoke_ap50": 0.689607,
+        "fine_tuned_smoke_map50_95": 0.345672,
+        "best_postprocess_sweep_ap50": 0.668094
+      }
+    },
+    {
+      "stage": "detector_anchor",
+      "check_id": "canonical_10ep_anchor",
+      "passed": true,
+      "details": {
+        "anchor_ap50": 0.852028,
+        "anchor_ap75": 0.530942,
+        "anchor_map50_95": 0.494438,
+        "anchor_miss_rate": 0.048592,
+        "anchor_count_mae": 31.306122,
+        "anchor_vs_smoke_ap50_delta": 0.16242100000000004,
+        "anchor_oracle_class_hybrid": 0.879192
+      }
+    },
+    {
+      "stage": "first_pipeline",
+      "check_id": "detector_plus_retrieval_anchor",
+      "passed": true,
+      "details": {
+        "pipeline_detection_ap50": 0.797113,
+        "pipeline_classification_map50": 0.452121,
+        "pipeline_hybrid": 0.693615,
+        "same_box_oracle_hybrid": 0.817538,
+        "hybrid_gain_vs_detector_only": 0.135634,
+        "hybrid_gap_to_oracle": 0.123923,
+        "matched_tp_top1": 0.627225,
+        "matched_tp_top5": 0.825916,
+        "supported_matched_tp_top1": 0.658966,
+        "supported_matched_tp_top5": 0.867712,
+        "best_score_fusion_variant": "times_top1",
+        "best_score_fusion_hybrid": 0.717616
+      }
+    },
+    {
+      "stage": "oracle_bounds",
+      "check_id": "bound_consistency",
+      "passed": true,
+      "details": {
+        "oracle_box_hybrid": 0.860238,
+        "detector_box_oracle_class_hybrid": 0.749827,
+        "detector_smoke_ap50": 0.689607,
+        "detector_box_oracle_classification_map50": 0.890341
+      }
+    }
+  ],
+  "stage_summaries": {
+    "prep": {
+      "images": 248,
+      "annotations": 22731,
+      "categories": 356,
+      "metadata_products": 329,
+      "packshot_directories": 344,
+      "problem_categories": 37,
+      "custom_packshot_dirs": 17,
+      "train_images": 199,
+      "val_images": 49,
+      "gt_crop_rows": 22731,
+      "optional_checks": {
+        "yolo_export": {
+          "status": "ok",
+          "max_abs_bbox_error_px": 0.0038400000003093737
+        },
+        "yolo_class_agnostic_export": {
+          "status": "ok",
+          "max_abs_bbox_error_px": 0.0038400000003093737
+        }
+      }
+    },
+    "eval_harness": {
+      "full_image_empty_hybrid": 0.0,
+      "full_image_oracle_hybrid": 1.0,
+      "detection_empty_ap50": 0.0,
+      "detection_oracle_ap50": 1.0,
+      "crop_oracle_strict_top1": 1.0
+    },
+    "crop_recognition": {
+      "strict_random_top1": 0.004383,
+      "strict_hash_top1": 0.068176,
+      "strict_pe_core_top1": 0.627952,
+      "strict_pe_core_map20": 0.721652,
+      "strict_dinov3_top1": 0.246409
+    },
+    "detector_learning": {
+      "overfit_map50": 0.78879,
+      "overfit_map50_95": 0.59923,
+      "zero_shot_ap50": 0.156996,
+      "fine_tuned_smoke_ap50": 0.689607,
+      "fine_tuned_smoke_map50_95": 0.345672,
+      "best_postprocess_sweep_ap50": 0.668094
+    },
+    "detector_anchor": {
+      "anchor_ap50": 0.852028,
+      "anchor_ap75": 0.530942,
+      "anchor_map50_95": 0.494438,
+      "anchor_miss_rate": 0.048592,
+      "anchor_count_mae": 31.306122,
+      "anchor_vs_smoke_ap50_delta": 0.16242100000000004,
+      "anchor_oracle_class_hybrid": 0.879192
+    },
+    "first_pipeline": {
+      "pipeline_detection_ap50": 0.797113,
+      "pipeline_classification_map50": 0.452121,
+      "pipeline_hybrid": 0.693615,
+      "same_box_oracle_hybrid": 0.817538,
+      "hybrid_gain_vs_detector_only": 0.135634,
+      "hybrid_gap_to_oracle": 0.123923,
+      "matched_tp_top1": 0.627225,
+      "matched_tp_top5": 0.825916,
+      "supported_matched_tp_top1": 0.658966,
+      "supported_matched_tp_top5": 0.867712,
+      "best_score_fusion_variant": "times_top1",
+      "best_score_fusion_hybrid": 0.717616
+    },
+    "oracle_bounds": {
+      "oracle_box_hybrid": 0.860238,
+      "detector_box_oracle_class_hybrid": 0.749827,
+      "detector_smoke_ap50": 0.689607,
+      "detector_box_oracle_classification_map50": 0.890341
+    }
+  },
+  "known_gaps": [
+    {
+      "gap_id": "missing_shuffled_label_runs",
+      "severity": "important",
+      "why_it_matters": "Shuffled-label control artifacts now exist, but future supervised classifiers and multi-class detectors still need real shuffled-label training runs to prove collapse and rule out leakage."
+    },
+    {
+      "gap_id": "missing_supervised_crop_overfit_control",
+      "severity": "important",
+      "why_it_matters": "The future closed-set shelf-crop classifier should first memorize a tiny subset before any scaling runs are trusted."
+    },
+    {
+      "gap_id": "missing_multi_seed_stability_read",
+      "severity": "important",
+      "why_it_matters": "With only 248 images, one lucky run can mislead direction. At least 2-3 seed repeats are needed before promotion."
+    },
+    {
+      "gap_id": "missing_submission_contract_dry_run",
+      "severity": "important",
+      "why_it_matters": "A locally strong model is still not trustworthy until it passes the sandbox-like `run.py` contract and latency/size checks."
+    },
+    {
+      "gap_id": "missing_detector_recipe_ablation_matrix",
+      "severity": "useful",
+      "why_it_matters": "Current detector evidence is strong enough to continue, but we still need clean ablations for schedule/imgsz/augment choices before overfitting to one lucky recipe."
+    }
+  ],
+  "operating_conclusions": [
+    "Do not trust any new model family until empty/oracle controls and the relevant trivial baseline are checked on the same harness.",
+    "Promote retrieval systems only if they beat both random and nearest-neighbor hash on the strict slice.",
+    "Promote detectors only if they beat zero-shot floors, pass tiny overfit sanity, and survive oracle-bound consistency checks.",
+    "Promote end-to-end pipeline changes only if detector-only invariants stay fixed or improve and the same-box oracle gap is interpreted explicitly.",
+    "Treat oracle-box and oracle-class bounds as bottleneck-localization tools, not as final model scores.",
+    "Do not spend downstream effort on OCR, classifier fusion, or submission packaging until upstream bottlenecks are shown with bounds and controls."
+  ]
+}

@@ -49,8 +49,12 @@ This file describes source files, derived manifests, and the most important sema
   - Short summary of the prepared state.
 - [dataset.yaml](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo/dataset.yaml)
   - YOLO-ready local training view built from the blocked split.
+- [verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo/verification.json)
+  - Geometric/structural proof that the multiclass YOLO export round-trips back to COCO within tolerance.
 - [dataset.yaml](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/dataset.yaml)
   - YOLO-ready class-agnostic local training view for localization baselines.
+- [verification.json](/home/jorge/repos/ainm/tasks/norgesgruppen/data/2026-03-19/derived/yolo-class-agnostic/verification.json)
+  - Geometric/structural proof that the class-agnostic YOLO export is exact.
 
 ## Exact Match Status
 

@@ -180,8 +180,10 @@ Recommended order:
 | `CROP-01` | `PE-Core` | retrieval | likely strongest first bet for products | clearly beats `CROP-00` on strict slice and macro top-1 |
 | `CROP-02` | `DINOv3` | retrieval | strong pure-vision complement | beats or complements `PE-Core` on strict slice |
 | `CROP-03` | `PE-Core + DINOv3` | embedding fusion / rerank | hedge across product-vs-instance strengths | improves strict and extended slices without tail collapse |
-| `CROP-04` | best vision model + OCR | score fusion | should help sibling SKUs and text-heavy packs | lifts low-view / sibling-heavy buckets |
-| `CROP-05` | best fused model + multi-view gallery | catalog aggregation / rerank | should help sparse angles and packshot mismatch | improves strict slice and low-view buckets |
+| `CROP-04` | shelf-crop classifier | closed-set classification on GT crops | covers no-ref classes, `unknown_product`, and packshot-to-shelf domain gap | lifts full-slice, missing-ref, and sentinel buckets |
+| `CROP-05` | `PE-Core` + shelf-crop classifier | score fusion / fallback | strongest practical recognition path if retrieval alone leaves structural blind spots | improves strict slice without giving up full-slice coverage |
+| `CROP-06` | best fused recognizer + OCR | score fusion / rerank | target sibling-SKU and text-heavy failures only if they remain material | lifts sibling-heavy buckets enough to justify added complexity |
+| `CROP-07` | best fused recognizer + multi-view gallery | catalog aggregation / rerank | should help sparse angles and packshot mismatch | improves strict slice and low-view buckets |
 
 Kill rule:
 
@@ -218,10 +220,11 @@ Recommended order:
 | id | pipeline | what changes | primary question |
 |---|---|---|---|
 | `PIPE-01` | detector + crop retrieval | plain fusion | does decomposition beat monolithic closed-set detection already? |
-| `PIPE-02` | `PIPE-01` + OCR/text fusion | add text score | does sibling-SKU confusion fall? |
+| `PIPE-02` | `PIPE-01` + shelf-crop classifier fallback | add closed-set recovery path | does no-ref / `unknown_product` / shelf-domain coverage improve? |
 | `PIPE-03` | `PIPE-02` + unknown / abstain policy | thresholding and fallback | can we reduce catastrophic wrong-SKU assignments? |
-| `PIPE-04` | `PIPE-03` + multi-view catalog rerank | stronger retrieval | do low-view / partial-pack cases improve? |
-| `PIPE-05` | `PIPE-04` + theme-aware calibration | optional | do theme-specific priors help without overfitting? |
+| `PIPE-04` | `PIPE-03` + OCR/text fusion | add text score | does sibling-SKU confusion fall enough to matter? |
+| `PIPE-05` | `PIPE-04` + multi-view catalog rerank | stronger retrieval | do low-view / partial-pack cases improve? |
+| `PIPE-06` | `PIPE-05` + theme-aware calibration | optional | do theme-specific priors help without overfitting? |
 
 Promote only if:
 
