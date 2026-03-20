@@ -14,6 +14,7 @@
 - the task includes creating or paying the invoice first
 - the prompt is too ambiguous to isolate one invoice or one payment voucher safely
 - the task is a supplier-invoice payment reversal
+- the located invoice only exposes one shared voucher for both the invoice posting and the payment-style postings, such as after a combined `PUT /order/{id}/:invoice?...paymentTypeId=...` prepayment flow
 
 ## Standard Flow
 1. `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` to identify the exact paid invoice and extract its payment voucher id
@@ -29,6 +30,7 @@
 - for single-payment invoices, the payment voucher is usually the unique voucher referenced by postings with `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
 - if no such typed posting exists, accept the unique negative payment-style posting instead, with text such as `Betaling: ...`; the payment posting `type` can be `null`
 - do not make the fallback matcher depend on `account.number`; `1500` is common, but the same winning posting can come back with `account=null`
+- if the invoice posting and every negative payment-style posting all point to the same `voucher.id`, do not reverse that shared voucher under this standard; that is not the ordinary standalone-payment-reversal shape
 
 ## Reuse From Read / Write Responses
 - from the first invoice read:
@@ -58,5 +60,7 @@
 - persistent sandbox re-proof on 2026-03-20 with disposable invoice `64` / invoice id `2147537052` showed the same winning fallback shape with `type=null`, `description="Betaling: Faktura nummer 64 til Reflection Reverse Customer 1774032662638 (10076)"`, `amountCurrency=-1000`, `voucherId=608833573`, and `account=null`; treat missing `account.number` as normal, not as a reason to add a second locate read
 - persistent sandbox re-proof on 2026-03-20 with disposable invoice `66` / invoice id `2147537237` re-confirmed both proof traps at once: the broad `/invoice?...id=...` search still returned `values=[]`, but direct `GET /invoice/{id}` exposed the correct reverse target as the unique negative `Betaling: ...` posting with `voucherId=608833742` and `account=null`
 - production reflection on 2026-03-20 for the exact prompt shape `888412972` + `35800` + `Diseño web` showed that the write path itself was still the trusted 2-call flow, but one extra invoice read was wasted locally because the matcher rejected the real payment posting when `account.number` was absent; next time keep the first locate read authoritative and accept the unique negative `Betaling: ...` posting even when `account` is null
+- production re-proof on 2026-03-20 for the exact prompt shape `998536561` + `32350` + `Programvarelisens` finished in the canonical 2-call path: one decisive `GET /invoice`, then `PUT /ledger/voucher/{id}/:reverse`, with no proof-only invoice re-read
+- persistent sandbox reflection on 2026-03-20 for disposable invoice `76` / invoice id `2147538250` showed one important non-match branch: when the invoice was first created unpaid and then paid via `PUT /invoice/{id}/:payment`, reversal still worked normally through standalone payment voucher `608834712`; but a failed earlier proof fixture paid inside the combined `PUT /order/{id}/:invoice?...paymentTypeId=...` write and all invoice/payment postings landed on one shared voucher, so that combined-prepayment shape must not be treated as this standard's ordinary standalone-payment-reversal path
 - that same persistent-sandbox proof also showed one sandbox-only trap: a broad same-day `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-20&count=1000...` omitted that freshly created paid invoice even though `GET /invoice/{id}` returned it immediately; do not let that sandbox omission push the production exact-match standard toward extra resolver calls
 - `GET /invoice` for outgoing invoices rejects `fields=...payments(...)`; use `postings(...)` instead

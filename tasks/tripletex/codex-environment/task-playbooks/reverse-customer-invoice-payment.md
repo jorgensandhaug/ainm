@@ -12,6 +12,7 @@ Do not use for:
 - creating the invoice itself
 - supplier-invoice payment reversals
 - ambiguous prompts where several paid invoices or several payment vouchers could fit
+- invoices whose payment-style postings still share the exact same `voucher.id` as the original invoice posting, such as after a combined `PUT /order/{id}/:invoice?...paymentTypeId=...` prepayment flow
 
 ## Key Findings
 
@@ -24,6 +25,7 @@ Do not use for:
 - A final `GET /invoice?...id=<invoiceId>` is only an optional proof branch; it is not part of the score-optimal exact-match path
 - Payment-voucher detection must not rely only on `posting.type`; the payment posting can be `type=null` while still being the unique negative payment-style posting with `description` like `Betaling: ...`
 - do not make the fallback matcher depend on `account.number`; `1500` is common, but some real locate reads return the same winning payment posting with `account=null`
+- if the invoice posting and the negative payment-style postings all share one `voucher.id`, do not reverse that shared voucher as if it were a standalone returned payment; treat that as a different shape than the ordinary exact-match reversal task
 - a direct `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*))),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` can already expose enough reversal evidence on one invoice: top-level `orderLines[].description` / `displayName` carry the service text, and `postings[]` can show the null-typed negative payment posting even when the account expansion is absent
 - persistent sandbox on 2026-03-20 also showed a proof-only trap: a freshly created paid invoice was immediately readable on `GET /invoice/{id}` but absent from the broader same-day `/invoice` search; treat that as sandbox search lag or indexing noise, not as a reason to add `GET /customer`, extra paging, or automatic verify reads to the production exact-match path
 
@@ -101,6 +103,18 @@ Observed production miss on 2026-03-20:
   - `account=null`
 - the run still finished correctly, but it lost the efficiency point because the local resolver over-required `account.number=1500`, threw away the winning voucher candidate, and forced one extra `GET /invoice`
 - lower-call replacement for the next agent: treat the first locate read as sufficient and reverse that voucher immediately
+
+Observed production confirmation on 2026-03-20:
+- exact prompt shape `customer.organizationNumber=998536561` + `amountExcludingVatCurrency=32350` + line text `Programvarelisens`
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?...fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))`
+  - one `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=2026-03-20`
+- no follow-up proof read was needed; the side effect itself was the scored target
+
+Observed sandbox proof nuance on 2026-03-20:
+- disposable invoice `76` / invoice id `2147538250` was created unpaid, then paid through standalone `PUT /invoice/{id}/:payment`, and its payment reversal worked normally through standalone voucher `608834712`
+- an earlier failed disposable proof paid during the combined `PUT /order/{id}/:invoice?...paymentTypeId=...` write and produced one shared voucher containing both the invoice posting and the payment-style postings
+- therefore that combined-prepayment shape must not be treated as an ordinary standalone-payment-reversal exact match
 
 ## Minimal Flow
 
