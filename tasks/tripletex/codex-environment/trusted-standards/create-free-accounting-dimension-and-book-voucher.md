@@ -36,6 +36,7 @@
   - `displayName`
   - `active: true`
   - `showInVoucherRegistration: true`
+- preserve the prompt-provided create order for new values, but choose the scored voucher link by exact returned `displayName`; same-day production runs proved the linked value can be either the first or second created value depending on the prompt
 - do not invent `number` or `position` on the dimension values for the standard path; sandbox proved Tripletex accepts the minimal payload and auto-assigns ordering
 - `/ledger/accountingDimensionValue/list` is `PUT` batch update, not batch create, so each new prompt-provided value still needs its own `POST /ledger/accountingDimensionValue`
 - reuse the returned `dimensionIndex` from the dimension-name create response; persistent sandbox assigned `2` in one run and `3` in later re-verification, not only `1`
