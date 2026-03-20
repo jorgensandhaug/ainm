@@ -1,0 +1,104 @@
+# Create Customer Invoice Credit Note
+
+## Scope
+
+Use for tasks like:
+- issue a full credit note for one existing outgoing customer invoice
+- locate the original invoice from prompt facts such as customer organization number, ex-VAT amount, and invoice-line/service description
+- reverse the full invoice without manually touching vouchers or payments
+
+Do not use for:
+- partial credit notes
+- payment reversals
+- creating the original invoice first
+- tasks that explicitly require sending the credit note unless you have already confirmed the correct send behavior
+
+## Key Findings
+
+- the correct full-credit endpoint is `PUT /invoice/{id}/:createCreditNote`
+- required query parameter:
+  - `date`
+- optional but important query parameter:
+  - `sendToCustomer`
+- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
+- a single decisive invoice read can often replace a separate `GET /customer` if the prompt already gives enough identifying facts
+- the credit-note write returns `ResponseWrapperInvoice`, and in sandbox it returned the created credit note itself, not just the updated original invoice
+
+Verified on 2026-03-20:
+- original production run succeeded in two API calls:
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+- persistent-sandbox re-verification created a fixture invoice and then proved that:
+  - one `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` was enough to locate the unique target invoice by:
+    - `customer.organizationNumber`
+    - `amountExcludingVat` or `amountExcludingVatCurrency`
+    - exact `orderLines[].description` / `orders[].orderLines[].description`
+    - `isCreditNote != true`
+    - `isCredited != true`
+  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned a new invoice object with:
+    - `isCreditNote=true`
+    - `creditedInvoice=<original invoice id>`
+    - its own credit-note `id`
+    - its own credit-note `invoiceNumber`
+
+## Minimal Flow
+
+1. Confirm these operations in `./openapi.json`
+   - `GET /invoice`
+   - `PUT /invoice/{id}/:createCreditNote`
+2. Locate the original invoice with one decisive read
+   - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+3. Filter locally to the single correct invoice
+   - exact customer organization number if provided
+   - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
+   - exact prompt text match in `orderLines[].description` or `orders[].orderLines[].description`
+   - exclude `isCreditNote=true`
+   - exclude `isCredited=true`
+4. Create the full credit note
+   - `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
+5. Verify from the write response
+   - prefer `isCreditNote`
+   - verify `creditedInvoice=<original id>`
+   - reuse the returned credit-note `id` and `invoiceNumber`
+6. Stop
+
+## Exact-Match Fast Path
+
+- For a prompt that:
+  - identifies an existing outgoing invoice by customer organization number
+  - gives the invoice line/service description
+  - gives the ex-VAT amount
+  - asks only for a full credit note, not sending or payment reversal
+- the winning path is:
+  1. `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  2. `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
+- do not insert:
+  - `GET /customer`
+  - `GET /invoice/{id}`
+  - manual voucher reads/reversals
+  - manual negative-invoice creation
+
+## Locate Rules
+
+- `GET /invoice` only returns charged outgoing invoices, which is the right family for this task shape
+- use a wide but bounded date window
+- when filtering locally, check both invoice-level and nested line-level fields
+- prefer exact string matching on the prompt’s description before broader fuzzy matching
+- if the locate result is ambiguous, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+
+## Send And Verification Rules
+
+- default to `sendToCustomer=false`
+- do not rely on the endpoint default, because the default is sending-enabled and can trigger unintended dispatch behavior
+- the write response can already prove success when it returns a credit-note invoice object with:
+  - `isCreditNote=true`
+  - `creditedInvoice=<original id>`
+- do not spend a follow-up `GET /invoice/{id}` when that write response already proves the reversal
+
+## Avoidable Mistakes
+
+- do not guess the action path as `:credit`; the verified endpoint is `:createCreditNote`
+- do not fetch the customer separately when one `GET /invoice` already contains `customer.organizationNumber`
+- do not use a voucher reversal for this task shape; voucher reversal belongs to payment-reversal workflows
+- do not create a manual negative invoice as a substitute for the built-in credit-note action
+- do not leave `sendToCustomer` at the default when the task only asks to issue the credit note, not send it

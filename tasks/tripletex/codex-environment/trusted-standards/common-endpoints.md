@@ -96,6 +96,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `POST` create
 - `/invoice/{id}`
   - `GET` read
+- `/invoice/{id}/:createCreditNote`
+  - `PUT` create full credit note for an existing outgoing invoice
 - `/invoice/{id}/:payment`
   - `PUT` register payment
 - `/invoice/{id}/:send`
@@ -112,9 +114,14 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
   - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
 - Standard fast-path note:
+  - for exact existing-invoice full-credit-note tasks, prefer `./trusted-standards/create-customer-invoice-credit-note.md`; the winning path is usually one decisive invoice read and one `:createCreditNote` write
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning path is usually invoice read, voucher reverse, invoice verify
 - Standard field note:
   - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
+- Standard credit-note note:
+  - the verified full-credit action path is `PUT /invoice/{id}/:createCreditNote`
+  - default to `sendToCustomer=false` unless the prompt explicitly requires sending the credit note
+  - the write response can already prove success with `isCreditNote=true` and `creditedInvoice=<original invoice id>`, so an extra `GET /invoice/{id}` is not part of the trusted fast path
 
 ## Supplier
 - `/supplier`

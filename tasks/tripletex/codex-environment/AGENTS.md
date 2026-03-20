@@ -94,6 +94,7 @@ Authentication:
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
+| Create customer invoice credit note | `./trusted-standards/create-customer-invoice-credit-note.md` |
 | Create and send customer invoice | `./trusted-standards/create-and-send-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
@@ -110,6 +111,7 @@ Authentication:
 | Task pattern | Playbook |
 |---|---|
 | Create customer invoice | `./task-playbooks/create-customer-invoice.md` |
+| Create customer invoice credit note | `./task-playbooks/create-customer-invoice-credit-note.md` |
 | Create customer | `./task-playbooks/create-customer.md` |
 | Create supplier | `./task-playbooks/create-supplier.md` |
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
@@ -134,7 +136,7 @@ Authentication:
 - `/product` and `/product/{id}` — product create/search/update/delete
 - `/project` and `/project/{id}` — project create/search/update/delete
 - `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
-- `/invoice`, `/invoice/{id}`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, and `/invoice/paymentType` — invoice create/search/read/payment/send/payment-type lookup
+- `/invoice`, `/invoice/{id}`, `/invoice/{id}/:createCreditNote`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, and `/invoice/paymentType` — invoice create/search/read/full-credit-note/payment/send/payment-type lookup
 - `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
 - `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` — travel-expense create/search/update/delete plus child-line and lookup endpoints
 - `/ledger/account` and `/ledger/account/{id}` — chart-of-accounts search/create/update/delete
@@ -247,6 +249,8 @@ Authentication:
 - In the create-and-send variant of that task shape, do not treat later `PUT /invoice/{id}/:send?sendType=MANUAL` as a trusted fallback; persistent sandbox reproduced `500` on 2026-03-20, while the same customer shape succeeded through `POST /invoice` with default send behavior.
 - For that same no-email/no-address customer shape, sparse customer address links are not proof that `PAPER` is available, and organization number alone is not proof that `EHF` is available.
 - For customer invoice payment tasks, `GET /invoice` can often locate the exact outgoing invoice in one read if you request `customer(*)` and `orderLines(*)` and filter locally by organization number, ex-VAT amount, and prompt text such as a service description. The payment write is `PUT /invoice/{id}/:payment`, and the write response can usually verify `amountOutstanding=0` without a follow-up `GET`.
+- For full outgoing customer-invoice credit-note tasks, use `PUT /invoice/{id}/:createCreditNote`, not manual negative invoices, voucher reversals, or guessed `:credit` paths.
+- Those full-credit-note tasks can often be solved in two calls total: one decisive `GET /invoice?invoiceDateFrom=...&invoiceDateTo=...&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` to identify the exact uncredited invoice, then `PUT /invoice/{id}/:createCreditNote?date=...&sendToCustomer=false`; the write response can already prove success with `isCreditNote=true` and `creditedInvoice=<originalId>`.
 - For outgoing customer invoice payment-reversal tasks, `GET /invoice` exposes payment voucher candidates under `postings`, not `payments`; `fields=...payments(...)` can fail with `400 Illegal field in fields filter: payments ... InvoiceDTO`. Use `postings(*,voucher(*))`, reverse the payment voucher through `PUT /ledger/voucher/{id}/:reverse`, then verify the reopened outstanding amount with one final `GET /invoice`.
 - `GET /invoice/paymentType` can return `debitAccount.number` and `creditAccount.number` as numeric values, not strings. Normalize before applying string-prefix heuristics such as `19xx` bank account or `15xx` customer ledger checks.
 - `GET /invoice/paymentType` can also return perfectly usable incoming payment types with `creditAccount=null`. Do not reject `Betalt til bank` just because there is no `15xx` credit account in the response; prefer a payment type whose debit account is `19xx` and marked `isBankAccount=true` or `isInvoiceAccount=true`.
