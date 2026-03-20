@@ -344,6 +344,8 @@ Offline training and eval:
 uv run astar train-historical-bucket-prior
 uv run astar train-hazard-teacher
 uv run astar train-summary-student
+uv run astar run-markov-sufficiency-audit
+uv run astar run-round-dynamics-lowrank-audit --max-rank 5
 uv run astar run-synthetic-tournament --round-id <round-id>
 uv run astar run-synthetic-benchmark --manifest data/artifacts/benchmarks/smoke.json
 uv run astar backtest-round --round-id <round-id>

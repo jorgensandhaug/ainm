@@ -31,6 +31,7 @@ from astar.cli_output import (
     render_query_plan_summary,
     render_recorded_replay,
     render_recorded_simulation,
+    render_round_dynamics_lowrank_audit,
     render_round_list,
     render_round_report,
     render_round_summary,
@@ -76,9 +77,11 @@ from astar.workflows.fetch_round_analyses import fetch_round_analyses
 from astar.workflows.historical_benchmark import run_historical_benchmark
 from astar.workflows.live_online import run_live_online_round
 from astar.workflows.materialize_episode import materialize_round_episode
+from astar.workflows.markov_sufficiency import run_markov_sufficiency_audit
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
 from astar.workflows.results import QueryPlanSummary
 from astar.workflows.round_report import build_round_report
+from astar.workflows.round_dynamics_lowrank import run_round_dynamics_lowrank_audit
 from astar.workflows.submissions import build_submission, submit_saved_prediction
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.sync_round import sync_round
@@ -298,6 +301,15 @@ def build_parser() -> argparse.ArgumentParser:
     compare_historical_parser.add_argument("--baseline", required=True)
     compare_historical_parser.add_argument("--candidate", required=True)
     compare_historical_parser.add_argument("--bootstrap-samples", type=int, default=500)
+
+    markov_audit_parser = subparsers.add_parser("run-markov-sufficiency-audit")
+    markov_audit_parser.add_argument("--round-id", action="append", default=None)
+    markov_audit_parser.add_argument("--name", default="f1_markov_sufficiency_cellproxy_v1")
+
+    lowrank_audit_parser = subparsers.add_parser("run-round-dynamics-lowrank-audit")
+    lowrank_audit_parser.add_argument("--round-id", action="append", default=None)
+    lowrank_audit_parser.add_argument("--name", default="f1_round_dynamics_lowrank_oracle_v1")
+    lowrank_audit_parser.add_argument("--max-rank", type=int, default=5)
 
     live_online_parser = subparsers.add_parser("run-live-online")
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
@@ -633,6 +645,25 @@ def _main() -> int:
             comparison_result,
             render_historical_benchmark_comparison(comparison_result),
         )
+        return 0
+
+    if args.command == "run-markov-sufficiency-audit":
+        audit_result = run_markov_sufficiency_audit(
+            paths,
+            round_ids=args.round_id,
+            audit_name=args.name,
+        )
+        _emit(args.json, audit_result, render_json(audit_result))
+        return 0
+
+    if args.command == "run-round-dynamics-lowrank-audit":
+        audit_result = run_round_dynamics_lowrank_audit(
+            paths,
+            round_ids=args.round_id,
+            audit_name=args.name,
+            max_rank=args.max_rank,
+        )
+        _emit(args.json, audit_result, render_round_dynamics_lowrank_audit(audit_result))
         return 0
 
     if args.command == "build-benchmark-manifests":

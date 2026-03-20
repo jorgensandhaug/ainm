@@ -1,0 +1,2275 @@
+{
+  "audit_name": "f1_round_dynamics_lowrank_oracle_v1",
+  "audit_scope": "round_semimechanistic_terminal_logits",
+  "projection_mode": "oracle_holdout_projection",
+  "round_ids": [
+    "2a341ace-0f57-4309-9b89-e59fe0f09179",
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "round_count": 9,
+  "coefficient_dim": 51,
+  "regime_dim": 12,
+  "max_rank": 5,
+  "singular_values": [
+    14.815493062564144,
+    8.752458709193345,
+    3.7519021121869316,
+    2.549420275097517,
+    2.478390054881032,
+    1.6235769146980492,
+    1.1891311311410644,
+    0.3419633275632985,
+    7.707292506247451e-15
+  ],
+  "explained_variance_ratio": [
+    0.6712706385771354,
+    0.23427479893000858,
+    0.04304953161877121,
+    0.019876884004486114,
+    0.018784720953911534
+  ],
+  "cumulative_explained_variance_ratio": [
+    0.6712706385771354,
+    0.905545437507144,
+    0.9485949691259152,
+    0.9684718531304013,
+    0.9872565740843128
+  ],
+  "mean_baseline": {
+    "coefficient_rmse": 0.8685754096759839,
+    "relative_coefficient_rmse": 1.0,
+    "mean_log_loss": 0.18145435644326458,
+    "mean_brier": 0.008829355757785595,
+    "target_metrics": [
+      {
+        "target_name": "build",
+        "log_loss": 0.4353862475196923,
+        "brier": 0.02494076353051821
+      },
+      {
+        "target_name": "port",
+        "log_loss": 0.03967028560353059,
+        "brier": 0.0011430013480372282
+      },
+      {
+        "target_name": "ruin",
+        "log_loss": 0.06930653620657087,
+        "brier": 0.00040430239480134336
+      }
+    ]
+  },
+  "oracle_full": {
+    "coefficient_rmse": 0.0,
+    "relative_coefficient_rmse": 0.0,
+    "mean_log_loss": 0.14377233870973727,
+    "mean_brier": 0.0036503679702389377,
+    "target_metrics": [
+      {
+        "target_name": "build",
+        "log_loss": 0.33720062258095507,
+        "brier": 0.009915413031737786
+      },
+      {
+        "target_name": "port",
+        "log_loss": 0.03228659726458308,
+        "brier": 0.0007520351807186462
+      },
+      {
+        "target_name": "ruin",
+        "log_loss": 0.06182979628367368,
+        "brier": 0.00028365569826038
+      }
+    ]
+  },
+  "rank_metrics": [
+    {
+      "rank": 1,
+      "explained_variance_ratio": 0.6761455256150012,
+      "cumulative_explained_variance_ratio": 0.6761455256150012,
+      "mean_baseline_gain": -0.0028073093122034654,
+      "oracle_gap": 0.04048932704573077,
+      "oracle_capture_ratio": -0.07449997322477989,
+      "mean_baseline_brier_gain": 0.0007826245316273454,
+      "oracle_brier_gap": 0.004396363255919312,
+      "oracle_brier_capture_ratio": 0.15111534603523039,
+      "evaluation": {
+        "coefficient_rmse": 0.6266384412461653,
+        "relative_coefficient_rmse": 0.766833505828515,
+        "mean_log_loss": 0.18426166575546804,
+        "mean_brier": 0.00804673122615825,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.4438250846674569,
+            "brier": 0.022705739126777497
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.03959120852469835,
+            "brier": 0.0010409550293833134
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06936870407424885,
+            "brier": 0.0003934995223139406
+          }
+        ]
+      }
+    },
+    {
+      "rank": 2,
+      "explained_variance_ratio": 0.2313069142111636,
+      "cumulative_explained_variance_ratio": 0.9074524398261649,
+      "mean_baseline_gain": 0.014414862130412265,
+      "oracle_gap": 0.02326715560311504,
+      "oracle_capture_ratio": 0.3825395506246138,
+      "mean_baseline_brier_gain": 0.0016321407363509965,
+      "oracle_brier_gap": 0.003546847051195661,
+      "oracle_brier_capture_ratio": 0.3151466663573963,
+      "evaluation": {
+        "coefficient_rmse": 0.3885151656822288,
+        "relative_coefficient_rmse": 0.5154871751064175,
+        "mean_log_loss": 0.1670394943128523,
+        "mean_brier": 0.007197215021434599,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.40130498212625043,
+            "brier": 0.020392650444522948
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.034851732029796606,
+            "brier": 0.0008086466465276416
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06496176878250981,
+            "brier": 0.00039034797325320327
+          }
+        ]
+      }
+    },
+    {
+      "rank": 3,
+      "explained_variance_ratio": 0.04532111826791129,
+      "cumulative_explained_variance_ratio": 0.952773558094076,
+      "mean_baseline_gain": 0.020220099274388253,
+      "oracle_gap": 0.017461918459139053,
+      "oracle_capture_ratio": 0.5365981040977422,
+      "mean_baseline_brier_gain": 0.00262506697381615,
+      "oracle_brier_gap": 0.0025539208137305078,
+      "oracle_brier_capture_ratio": 0.5068687321735649,
+      "evaluation": {
+        "coefficient_rmse": 0.35237350964822883,
+        "relative_coefficient_rmse": 0.4640845927652369,
+        "mean_log_loss": 0.16123425716887632,
+        "mean_brier": 0.006204288783969445,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.3846086914706876,
+            "brier": 0.017402240260647076
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.034105825549995764,
+            "brier": 0.0008098276477485186
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.0649882544859456,
+            "brier": 0.00040079844351274347
+          }
+        ]
+      }
+    },
+    {
+      "rank": 4,
+      "explained_variance_ratio": 0.022540596327589504,
+      "cumulative_explained_variance_ratio": 0.9753141544216657,
+      "mean_baseline_gain": 0.02011011193787468,
+      "oracle_gap": 0.017571905795652626,
+      "oracle_capture_ratio": 0.5336792758839412,
+      "mean_baseline_brier_gain": 0.0026774771285832753,
+      "oracle_brier_gap": 0.0025015106589633823,
+      "oracle_brier_capture_ratio": 0.5169885001508422,
+      "evaluation": {
+        "coefficient_rmse": 0.35141344484121156,
+        "relative_coefficient_rmse": 0.4626959436652413,
+        "mean_log_loss": 0.1613442445053899,
+        "mean_brier": 0.00615187862920232,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.38489208581998274,
+            "brier": 0.017242678260028912
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.03415571009943438,
+            "brier": 0.0008119482612459222
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.0649849375967525,
+            "brier": 0.00040100936633212666
+          }
+        ]
+      }
+    },
+    {
+      "rank": 5,
+      "explained_variance_ratio": 0.015778176231763766,
+      "cumulative_explained_variance_ratio": 0.9910923306534294,
+      "mean_baseline_gain": 0.02081092632500961,
+      "oracle_gap": 0.016871091408517697,
+      "oracle_capture_ratio": 0.552277387908908,
+      "mean_baseline_brier_gain": 0.0016670252708210738,
+      "oracle_brier_gap": 0.0035119625167255837,
+      "oracle_brier_capture_ratio": 0.32188244869578303,
+      "evaluation": {
+        "coefficient_rmse": 0.30411659461999085,
+        "relative_coefficient_rmse": 0.4067114832191889,
+        "mean_log_loss": 0.16064343011825497,
+        "mean_brier": 0.007162330486964521,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.3854627257385823,
+            "brier": 0.02038578712460709
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.03383850633702148,
+            "brier": 0.0007758539523976761
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06262905827916102,
+            "brier": 0.0003253503838888016
+          }
+        ]
+      }
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "round_number": 9,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.5847915670234637,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.1919360798392179,
+        "mean_brier": 0.010011950407491308,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.4674316243237336,
+            "brier": 0.0271778679536399
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.039487556228389606,
+            "brier": 0.0013390819583389889
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06888905896553053,
+            "brier": 0.001518901310495035
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.21256117761327487,
+        "mean_brier": 0.010591524937276067,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.48629658728852054,
+            "brier": 0.02870808367916771
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.05121799768525409,
+            "brier": 0.0014556181608127753
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.10016894786604999,
+            "brier": 0.0016108729718477188
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.7046365557782415,
+          "cumulative_explained_variance_ratio": 0.7046365557782415,
+          "mean_baseline_gain": -0.0008803010659765576,
+          "oracle_gap": -0.01974479670808041,
+          "oracle_capture_ratio": 0.04268106147277681,
+          "mean_baseline_brier_gain": -7.080456257553026e-05,
+          "oracle_brier_gap": -0.0005087699672092286,
+          "oracle_brier_capture_ratio": 0.12216644958815825,
+          "evaluation": {
+            "coefficient_rmse": 0.5845546587309464,
+            "relative_coefficient_rmse": 0.9995948842187942,
+            "mean_log_loss": 0.19281638090519446,
+            "mean_brier": 0.010082754970066839,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.4696909512309085,
+                "brier": 0.027384662290308504
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.03971415004096809,
+                "brier": 0.0013434192104022546
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06904404144370677,
+                "brier": 0.0015201834094897588
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.21708023464274365,
+          "cumulative_explained_variance_ratio": 0.9217167904209851,
+          "mean_baseline_gain": -0.08383200224723386,
+          "oracle_gap": 0.0632069044731769,
+          "oracle_capture_ratio": 4.064562658834081,
+          "mean_baseline_brier_gain": -0.004945499075642536,
+          "oracle_brier_gap": 0.004365924545857778,
+          "oracle_brier_capture_ratio": 8.532982078213799,
+          "evaluation": {
+            "coefficient_rmse": 0.403952182149134,
+            "relative_coefficient_rmse": 0.6907626664406502,
+            "mean_log_loss": 0.27576808208645176,
+            "mean_brier": 0.014957449483133845,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.6942770990865496,
+                "brier": 0.04182740399459789
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.05189299088480718,
+                "brier": 0.0014591343291560656
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.08113415628799862,
+                "brier": 0.0015858101256475794
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.0407233749740125,
+          "cumulative_explained_variance_ratio": 0.9624401653949975,
+          "mean_baseline_gain": -0.07124264644272488,
+          "oracle_gap": 0.05061754866866791,
+          "oracle_capture_ratio": 3.454172543721785,
+          "mean_baseline_brier_gain": -0.00464160834674027,
+          "oracle_brier_gap": 0.0040620338169555115,
+          "oracle_brier_capture_ratio": 8.008647910155853,
+          "evaluation": {
+            "coefficient_rmse": 0.3777791599931544,
+            "relative_coefficient_rmse": 0.6460065112019591,
+            "mean_log_loss": 0.2631787262819428,
+            "mean_brier": 0.014653558754231579,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.6619694231643353,
+                "brier": 0.04093675608190082
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.049163368548880086,
+                "brier": 0.0014462986601546188
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07840338713261301,
+                "brier": 0.0015776215206393066
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.020663296498740706,
+          "cumulative_explained_variance_ratio": 0.9831034618937382,
+          "mean_baseline_gain": -0.07287470182291511,
+          "oracle_gap": 0.052249604048858145,
+          "oracle_capture_ratio": 3.533302126430629,
+          "mean_baseline_brier_gain": -0.00469036983814369,
+          "oracle_brier_gap": 0.004110795308358931,
+          "oracle_brier_capture_ratio": 8.092781164633976,
+          "evaluation": {
+            "coefficient_rmse": 0.37761399347193053,
+            "relative_coefficient_rmse": 0.6457240746373134,
+            "mean_log_loss": 0.264810781662133,
+            "mean_brier": 0.014702320245634998,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.6662898893286401,
+                "brier": 0.041080774973209826
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04934447252194752,
+                "brier": 0.001447279110803298
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07879798313581139,
+                "brier": 0.0015789066528918677
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.011874957854425163,
+          "cumulative_explained_variance_ratio": 0.9949784197481634,
+          "mean_baseline_gain": -0.09405196774874708,
+          "oracle_gap": 0.07342686997469011,
+          "oracle_capture_ratio": 4.560073788694918,
+          "mean_baseline_brier_gain": -0.005211951541394321,
+          "oracle_brier_gap": 0.004632377011609562,
+          "oracle_brier_capture_ratio": 8.992720130972499,
+          "evaluation": {
+            "coefficient_rmse": 0.34844986118695653,
+            "relative_coefficient_rmse": 0.5958530882388317,
+            "mean_log_loss": 0.285988047587965,
+            "mean_brier": 0.01522390194888563,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.7297600164733182,
+                "brier": 0.04264597919169041
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0486639314121102,
+                "brier": 0.0014438643465795385
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07954019487846636,
+                "brier": 0.0015818623083869476
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "round_number": 7,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 1.7635429560853666,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.16809658852004786,
+        "mean_brier": 0.013445020822537337,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.40866986496255286,
+            "brier": 0.03824360790575276
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.039627422076363834,
+            "brier": 0.001856234924042726
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.055992478521226935,
+            "brier": 0.00023521963781651884
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.16538618808486896,
+        "mean_brier": 0.010296636076604289,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.39480012046356155,
+            "brier": 0.02871927135689067
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.04745416584944764,
+            "brier": 0.001963913944241495
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.05390427794159776,
+            "brier": 0.00020672292868069794
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.5698831864280244,
+          "cumulative_explained_variance_ratio": 0.5698831864280244,
+          "mean_baseline_gain": -0.20711581804327237,
+          "oracle_gap": 0.20982621847845126,
+          "oracle_capture_ratio": -76.41520985425981,
+          "mean_baseline_brier_gain": -0.0077126791998189444,
+          "oracle_brier_gap": 0.010861063945751993,
+          "oracle_brier_capture_ratio": -2.4497257553359257,
+          "evaluation": {
+            "coefficient_rmse": 1.3188344758281452,
+            "relative_coefficient_rmse": 0.7478323515042892,
+            "mean_log_loss": 0.3752124065633202,
+            "mean_brier": 0.02115770002235628,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.9553831204276773,
+                "brier": 0.06113251840517486
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.08012735786677525,
+                "brier": 0.0020354292577223366
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.09012674139550828,
+                "brier": 0.00030515240417164515
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.299742002498782,
+          "cumulative_explained_variance_ratio": 0.8696251889268064,
+          "mean_baseline_gain": -0.09062589377251631,
+          "oracle_gap": 0.09333629420769521,
+          "oracle_capture_ratio": -33.43634859124967,
+          "mean_baseline_brier_gain": -0.005426345474038205,
+          "oracle_brier_gap": 0.008574730219971254,
+          "oracle_brier_capture_ratio": -1.723533148560617,
+          "evaluation": {
+            "coefficient_rmse": 0.6537212374985774,
+            "relative_coefficient_rmse": 0.3706863137315795,
+            "mean_log_loss": 0.25872248229256417,
+            "mean_brier": 0.018871366296575542,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.6357711748109007,
+                "brier": 0.054264881580776345
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.06807350932549433,
+                "brier": 0.002030688327031612
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07232276274129758,
+                "brier": 0.000318528981918669
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.06826883111711995,
+          "cumulative_explained_variance_ratio": 0.9378940200439263,
+          "mean_baseline_gain": -0.06707552130765346,
+          "oracle_gap": 0.06978592174283235,
+          "oracle_capture_ratio": -24.747458138312417,
+          "mean_baseline_brier_gain": -0.003951978760858834,
+          "oracle_brier_gap": 0.007100363506791883,
+          "oracle_brier_capture_ratio": -1.2552400928647094,
+          "evaluation": {
+            "coefficient_rmse": 0.6102374578862344,
+            "relative_coefficient_rmse": 0.3460292564921765,
+            "mean_log_loss": 0.23517210982770131,
+            "mean_brier": 0.01739699958339617,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5673434623544544,
+                "brier": 0.04986591235264389
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.06474387706985263,
+                "brier": 0.0020277188212790534
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07342899005879684,
+                "brier": 0.00029736757626556916
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.03312403637307111,
+          "cumulative_explained_variance_ratio": 0.9710180564169975,
+          "mean_baseline_gain": -0.0678869807586418,
+          "oracle_gap": 0.0705973811938207,
+          "oracle_capture_ratio": -25.046845431959596,
+          "mean_baseline_brier_gain": -0.00402875321925337,
+          "oracle_brier_gap": 0.007177137965186419,
+          "oracle_brier_capture_ratio": -1.2796254410956427,
+          "evaluation": {
+            "coefficient_rmse": 0.6101454801245392,
+            "relative_coefficient_rmse": 0.345977101390778,
+            "mean_log_loss": 0.23598356927868966,
+            "mean_brier": 0.017473774041790707,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5701863699684724,
+                "brier": 0.05009636091294867
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.06469530070531936,
+                "brier": 0.002027661549699815
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07306903716227725,
+                "brier": 0.0002972996627236407
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.01554165272762364,
+          "cumulative_explained_variance_ratio": 0.9865597091446211,
+          "mean_baseline_gain": -0.009186756985059996,
+          "oracle_gap": 0.01189715742023889,
+          "oracle_capture_ratio": -3.3894463953824014,
+          "mean_baseline_brier_gain": 0.0029529741962291654,
+          "oracle_brier_gap": 0.00019541054970388314,
+          "oracle_brier_capture_ratio": 0.9379330782375609,
+          "evaluation": {
+            "coefficient_rmse": 0.5536139512322864,
+            "relative_coefficient_rmse": 0.31392144394439575,
+            "mean_log_loss": 0.17728334550510785,
+            "mean_brier": 0.010492046626308172,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.39601657226061965,
+                "brier": 0.029157118784579394
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.06369438292633492,
+                "brier": 0.002026301970552364
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.072139081328369,
+                "brier": 0.00029271912379275506
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.6623070422892426,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.20723379072645756,
+        "mean_brier": 0.007921449318730426,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.4952021058898397,
+            "brier": 0.021674364563551506
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.061434154858713376,
+            "brier": 0.0019128289836373123
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06506511143081962,
+            "brier": 0.00017715440900246336
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.1696255832278427,
+        "mean_brier": 0.003170966080317939,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.4073293036784702,
+            "brier": 0.008196261221143294
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.042227808901639095,
+            "brier": 0.0011795475089112788
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.05931963710341886,
+            "brier": 0.00013708951089924228
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.7064491865849098,
+          "cumulative_explained_variance_ratio": 0.7064491865849098,
+          "mean_baseline_gain": 0.011485208231477834,
+          "oracle_gap": 0.026122999267137015,
+          "oracle_capture_ratio": 0.3053910035967773,
+          "mean_baseline_brier_gain": 0.0008814230734550321,
+          "oracle_brier_gap": 0.0038690601649574554,
+          "oracle_brier_capture_ratio": 0.18554387611092493,
+          "evaluation": {
+            "coefficient_rmse": 0.6230923604199021,
+            "relative_coefficient_rmse": 0.9407907822725299,
+            "mean_log_loss": 0.19574858249497973,
+            "mean_brier": 0.007040026245275394,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.46707182025252936,
+                "brier": 0.019116632495045686
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.05686626301063994,
+                "brier": 0.001837777152594367
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06330766422176988,
+                "brier": 0.00016566908818613005
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.20947791707032443,
+          "cumulative_explained_variance_ratio": 0.9159271036552343,
+          "mean_baseline_gain": 0.011120493367027862,
+          "oracle_gap": 0.026487714131586987,
+          "oracle_capture_ratio": 0.29569325704867594,
+          "mean_baseline_brier_gain": -0.008179182518493247,
+          "oracle_brier_gap": 0.012929665756905734,
+          "oracle_brier_capture_ratio": -1.721757999766474,
+          "evaluation": {
+            "coefficient_rmse": 0.36824266798898153,
+            "relative_coefficient_rmse": 0.5559999282450067,
+            "mean_log_loss": 0.1961132973594297,
+            "mean_brier": 0.016100631837223673,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.48673058874789443,
+                "brier": 0.047043726629359316
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.039869276768461,
+                "brier": 0.0008452854075828516
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06174002656193366,
+                "brier": 0.000412883474728851
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.04342526123438658,
+          "cumulative_explained_variance_ratio": 0.959352364889621,
+          "mean_baseline_gain": 0.021417997355199253,
+          "oracle_gap": 0.016190210143415595,
+          "oracle_capture_ratio": 0.5695032754748575,
+          "mean_baseline_brier_gain": -0.0031173750590467696,
+          "oracle_brier_gap": 0.007867858297459257,
+          "oracle_brier_capture_ratio": -0.65622272568812,
+          "evaluation": {
+            "coefficient_rmse": 0.3501771053041955,
+            "relative_coefficient_rmse": 0.5287232098481389,
+            "mean_log_loss": 0.1858157933712583,
+            "mean_brier": 0.011038824377777196,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.45383524314160295,
+                "brier": 0.031601503641687526
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.040955527726647685,
+                "brier": 0.0009929682285198746
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06265660924552434,
+                "brier": 0.0005220012631241873
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.020168214763233452,
+          "cumulative_explained_variance_ratio": 0.9795205796528544,
+          "mean_baseline_gain": 0.02282002922705395,
+          "oracle_gap": 0.014788178271560898,
+          "oracle_capture_ratio": 0.6067832195377681,
+          "mean_baseline_brier_gain": -0.0024247796505701587,
+          "oracle_brier_gap": 0.007175262888982646,
+          "oracle_brier_capture_ratio": -0.5104279983483259,
+          "evaluation": {
+            "coefficient_rmse": 0.3499672730585144,
+            "relative_coefficient_rmse": 0.5284063896540552,
+            "mean_log_loss": 0.1844137614994036,
+            "mean_brier": 0.010346228969300585,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.44941098772788873,
+                "brier": 0.029500130590760263
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04104960040482947,
+                "brier": 0.0010018127773850844
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.0627806963654926,
+                "brier": 0.0005367435397564084
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.01314292709132934,
+          "cumulative_explained_variance_ratio": 0.9926635067441838,
+          "mean_baseline_gain": -0.00043814480053511184,
+          "oracle_gap": 0.03804635229914996,
+          "oracle_capture_ratio": -0.011650244180110132,
+          "mean_baseline_brier_gain": -0.013512272012516731,
+          "oracle_brier_gap": 0.01826275525092922,
+          "oracle_brier_capture_ratio": -2.8443994714592975,
+          "evaluation": {
+            "coefficient_rmse": 0.298470960833403,
+            "relative_coefficient_rmse": 0.4506534609714369,
+            "mean_log_loss": 0.20767193552699267,
+            "mean_brier": 0.021433721331247158,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5206544478453387,
+                "brier": 0.06289442145796154
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04428014149048434,
+                "brier": 0.0012929785822174702
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.058081217245155047,
+                "brier": 0.00011376395356247467
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "round_number": 2,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.9819771629976078,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.28790055052893343,
+        "mean_brier": 0.011481242309245214,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.6934677239962372,
+            "brier": 0.032618133212300934
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.06584351657161032,
+            "brier": 0.0014740736637851677
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.10439041101895268,
+            "brier": 0.00035152005164954306
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.19300217583570836,
+        "mean_brier": 0.0015331819963781725,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.45627137361010683,
+            "brier": 0.004083528230566652
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.0413400050109587,
+            "brier": 0.00039641495871145635
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.08139514888605957,
+            "brier": 0.00011960279985640917
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.6266437977480355,
+          "cumulative_explained_variance_ratio": 0.6266437977480355,
+          "mean_baseline_gain": 0.07779186428120427,
+          "oracle_gap": 0.017106510412020798,
+          "oracle_capture_ratio": 0.81973863654335,
+          "mean_baseline_brier_gain": 0.006488666328356983,
+          "oracle_brier_gap": 0.0034593939845100584,
+          "oracle_brier_capture_ratio": 0.6522544218961357,
+          "evaluation": {
+            "coefficient_rmse": 0.21956422430175226,
+            "relative_coefficient_rmse": 0.2235940229317605,
+            "mean_log_loss": 0.21010868624772916,
+            "mean_brier": 0.004992575980888231,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.4918888790613865,
+                "brier": 0.013720269239797073
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.047820144070641044,
+                "brier": 0.0009832980191075888
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.09061703561116,
+                "brier": 0.00027416068376003055
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.26979346411924726,
+          "cumulative_explained_variance_ratio": 0.8964372618672827,
+          "mean_baseline_gain": 0.08613834812842097,
+          "oracle_gap": 0.008760026564804096,
+          "oracle_capture_ratio": 0.9076904468266991,
+          "mean_baseline_brier_gain": 0.008242711387430254,
+          "oracle_brier_gap": 0.0017053489254367869,
+          "oracle_brier_capture_ratio": 0.8285747299671021,
+          "evaluation": {
+            "coefficient_rmse": 0.20671540338910022,
+            "relative_coefficient_rmse": 0.21050937962556648,
+            "mean_log_loss": 0.20176220240051246,
+            "mean_brier": 0.0032385309218149593,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.47166639385100134,
+                "brier": 0.00864189203204936
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04553908407848631,
+                "brier": 0.0008322679609243528
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.08808112927204974,
+                "brier": 0.00024143277247116497
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.04756888675710302,
+          "cumulative_explained_variance_ratio": 0.9440061486243857,
+          "mean_baseline_gain": 0.09137357438604235,
+          "oracle_gap": 0.0035248003071827183,
+          "oracle_capture_ratio": 0.9628571056292878,
+          "mean_baseline_brier_gain": 0.009607944999661017,
+          "oracle_brier_gap": 0.0003401153132060245,
+          "oracle_brier_capture_ratio": 0.965810891519615,
+          "evaluation": {
+            "coefficient_rmse": 0.16698636574219797,
+            "relative_coefficient_rmse": 0.17005117026596753,
+            "mean_log_loss": 0.19652697614289108,
+            "mean_brier": 0.001873297309584197,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.45825800643943115,
+                "brier": 0.004717847293896655
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04360177539096791,
+                "brier": 0.0006639086790137048
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.08772114659827426,
+                "brier": 0.0002381359558422302
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.021693432600239728,
+          "cumulative_explained_variance_ratio": 0.9656995812246254,
+          "mean_baseline_gain": 0.09145765432428504,
+          "oracle_gap": 0.0034407203689400256,
+          "oracle_capture_ratio": 0.9637431054002481,
+          "mean_baseline_brier_gain": 0.009647254282869921,
+          "oracle_brier_gap": 0.0003008060299971194,
+          "oracle_brier_capture_ratio": 0.9697623435587689,
+          "evaluation": {
+            "coefficient_rmse": 0.16677701781136772,
+            "relative_coefficient_rmse": 0.16983798004248904,
+            "mean_log_loss": 0.1964428962046484,
+            "mean_brier": 0.0018339880263752919,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.4579145081764891,
+                "brier": 0.004600937230953921
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04357007504859015,
+                "brier": 0.0006608801826681548
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.08784410538886588,
+                "brier": 0.00024014666550379996
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.020250168317697027,
+          "cumulative_explained_variance_ratio": 0.9859497495423224,
+          "mean_baseline_gain": 0.0935328960651208,
+          "oracle_gap": 0.0013654786281042663,
+          "oracle_capture_ratio": 0.985611148425688,
+          "mean_baseline_brier_gain": 0.009476163003824119,
+          "oracle_brier_gap": 0.00047189730904292166,
+          "oracle_brier_capture_ratio": 0.9525638874110404,
+          "evaluation": {
+            "coefficient_rmse": 0.07922663343187102,
+            "relative_coefficient_rmse": 0.08068072906097107,
+            "mean_log_loss": 0.19436765446381263,
+            "mean_brier": 0.002005079305421094,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.45950631654413693,
+                "brier": 0.005423459609719511
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.041805319149224814,
+                "brier": 0.00046126205027787576
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.08179132769807608,
+                "brier": 0.00013051625626589458
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "round_number": 4,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.5048668274090653,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.13174431016652824,
+        "mean_brier": 0.0014780392526002673,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.316746518364055,
+            "brier": 0.004043500589755658
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.02856810982651096,
+            "brier": 0.00030140177326605657
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.04991830230901871,
+            "brier": 8.921539477908675e-05
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.11982093604293105,
+        "mean_brier": 0.0005529227397042344,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.2886814943803304,
+            "brier": 0.0014271752591178278
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.02392744460211839,
+            "brier": 0.00016758545077943758
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.04685386914634439,
+            "brier": 6.400750921543779e-05
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.6840585102178708,
+          "cumulative_explained_variance_ratio": 0.6840585102178708,
+          "mean_baseline_gain": 0.007404077672618095,
+          "oracle_gap": 0.004519296450979093,
+          "oracle_capture_ratio": 0.6209716809912816,
+          "mean_baseline_brier_gain": 0.000507848405173303,
+          "oracle_brier_gap": 0.00041726810772273,
+          "oracle_brier_capture_ratio": 0.5489561564342937,
+          "evaluation": {
+            "coefficient_rmse": 0.41927586962632074,
+            "relative_coefficient_rmse": 0.830468247989296,
+            "mean_log_loss": 0.12434023249391014,
+            "mean_brier": 0.0009701908474269643,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.2985769037822146,
+                "brier": 0.002575763018027268
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.026288955963100467,
+                "brier": 0.0002560041065127636
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.048154837736415365,
+                "brier": 7.880541774086158e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.24275281989763334,
+          "cumulative_explained_variance_ratio": 0.9268113301155041,
+          "mean_baseline_gain": 0.008505691310639649,
+          "oracle_gap": 0.00341768281295754,
+          "oracle_capture_ratio": 0.7133627799035756,
+          "mean_baseline_brier_gain": 0.0006125168722546623,
+          "oracle_brier_gap": 0.0003125996406413707,
+          "oracle_brier_capture_ratio": 0.6620970047731691,
+          "evaluation": {
+            "coefficient_rmse": 0.4184830467652238,
+            "relative_coefficient_rmse": 0.8288978876129456,
+            "mean_log_loss": 0.12323861885588859,
+            "mean_brier": 0.000865522380345605,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.2960697948249158,
+                "brier": 0.0022761661990414257
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.025897722623237265,
+                "brier": 0.00024527408230796304
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.047748339119512685,
+                "brier": 7.512685968742624e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.03676389746924098,
+          "cumulative_explained_variance_ratio": 0.9635752275847451,
+          "mean_baseline_gain": 0.009597426392706068,
+          "oracle_gap": 0.0023259477308911203,
+          "oracle_capture_ratio": 0.8049253754197054,
+          "mean_baseline_brier_gain": 0.00025655320689588245,
+          "oracle_brier_gap": 0.0006685633060001505,
+          "oracle_brier_capture_ratio": 0.2773198870840116,
+          "evaluation": {
+            "coefficient_rmse": 0.3831310302957644,
+            "relative_coefficient_rmse": 0.7588754291145668,
+            "mean_log_loss": 0.12214688377382217,
+            "mean_brier": 0.0012214860457043849,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.29478214234365663,
+                "brier": 0.003402409990742232
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.024348145400957887,
+                "brier": 0.00018951423096774832
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.047310363576852046,
+                "brier": 7.253391540317449e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.0205062300799239,
+          "cumulative_explained_variance_ratio": 0.984081457664669,
+          "mean_baseline_gain": 0.009564601432344916,
+          "oracle_gap": 0.0023587726912522727,
+          "oracle_capture_ratio": 0.8021723828505811,
+          "mean_baseline_brier_gain": 0.00027621386676417127,
+          "oracle_brier_gap": 0.0006489026461318617,
+          "oracle_brier_capture_ratio": 0.2985719775982562,
+          "evaluation": {
+            "coefficient_rmse": 0.3830497831145381,
+            "relative_coefficient_rmse": 0.7587145011691852,
+            "mean_log_loss": 0.12217970873418332,
+            "mean_brier": 0.001201825385836096,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.294641242246728,
+                "brier": 0.0033393824806586597
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.024399895438174703,
+                "brier": 0.0001918241280343336
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.04749798851764725,
+                "brier": 7.42695488152944e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.009106899200564317,
+          "cumulative_explained_variance_ratio": 0.9931883568652333,
+          "mean_baseline_gain": 0.008798326404048054,
+          "oracle_gap": 0.0031250477195491344,
+          "oracle_capture_ratio": 0.7379057566125978,
+          "mean_baseline_brier_gain": 0.0005513507327911635,
+          "oracle_brier_gap": 0.00037376578010486945,
+          "oracle_brier_capture_ratio": 0.5959797767150286,
+          "evaluation": {
+            "coefficient_rmse": 0.368603829862834,
+            "relative_coefficient_rmse": 0.7301011075623216,
+            "mean_log_loss": 0.12294598376248018,
+            "mean_brier": 0.0009266885198091038,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.2985518738151585,
+                "brier": 0.002535630152006332
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.02428325797380174,
+                "brier": 0.0001865403548315824
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.046002819498480285,
+                "brier": 5.789505258939676e-05
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "round_number": 6,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 1.0663371700945412,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.3854250247653494,
+        "mean_brier": 0.02259890321486413,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.8998082915659457,
+            "brier": 0.06443749075285057
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.07688091992024829,
+            "brier": 0.002363926526015863
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.1795858628098543,
+            "brier": 0.0009952923657259635
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.22795884289845522,
+        "mean_brier": 0.0029554318783701415,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.51682204977492,
+            "brier": 0.007987245678235418
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.043649951849179205,
+            "brier": 0.0006665357749899263
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.12340452707126646,
+            "brier": 0.00021251418188508075
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.6265688214901524,
+          "cumulative_explained_variance_ratio": 0.6265688214901524,
+          "mean_baseline_gain": 0.10305953986599214,
+          "oracle_gap": 0.054406642000902034,
+          "oracle_capture_ratio": 0.6544868151633229,
+          "mean_baseline_brier_gain": 0.00813595128584494,
+          "oracle_brier_gap": 0.011507520050649048,
+          "oracle_brier_capture_ratio": 0.4141809330171611,
+          "evaluation": {
+            "coefficient_rmse": 0.3709138226275966,
+            "relative_coefficient_rmse": 0.34783915728522474,
+            "mean_log_loss": 0.28236548489935726,
+            "mean_brier": 0.01446295192901919,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.6324332059411499,
+                "brier": 0.04065843488878744
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.05555416106603324,
+                "brier": 0.0018228311303463572
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.1591090876908886,
+                "brier": 0.0009075897679237734
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.27213466409521825,
+          "cumulative_explained_variance_ratio": 0.8987034855853706,
+          "mean_baseline_gain": 0.14460281928459143,
+          "oracle_gap": 0.012863362582302751,
+          "oracle_capture_ratio": 0.9183103163498552,
+          "mean_baseline_brier_gain": 0.017386449994934005,
+          "oracle_brier_gap": 0.0022570213415599827,
+          "oracle_brier_capture_ratio": 0.8851006880150124,
+          "evaluation": {
+            "coefficient_rmse": 0.293242833704145,
+            "relative_coefficient_rmse": 0.27500010496506105,
+            "mean_log_loss": 0.24082220548075797,
+            "mean_brier": 0.005212453219930124,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5318452081947799,
+                "brier": 0.013760800246628875
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04703284632219201,
+                "brier": 0.0011572305593959946
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.14358856192530206,
+                "brier": 0.0007193288537655021
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.05108659751419107,
+          "cumulative_explained_variance_ratio": 0.9497900830995617,
+          "mean_baseline_gain": 0.14386254762078063,
+          "oracle_gap": 0.01360363424611355,
+          "oracle_capture_ratio": 0.9136091693795391,
+          "mean_baseline_brier_gain": 0.01716563148134993,
+          "oracle_brier_gap": 0.0024778398551440583,
+          "oracle_brier_capture_ratio": 0.8738593697265369,
+          "evaluation": {
+            "coefficient_rmse": 0.2930491242418848,
+            "relative_coefficient_rmse": 0.27481844622925705,
+            "mean_log_loss": 0.24156247714456877,
+            "mean_brier": 0.0054332717335142,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5336844825542433,
+                "brier": 0.014397063418565401
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04724133001387186,
+                "brier": 0.001181196547682652
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.14376161886559113,
+                "brier": 0.0007215552342945468
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.022546292489347197,
+          "cumulative_explained_variance_ratio": 0.972336375588909,
+          "mean_baseline_gain": 0.14392706372158096,
+          "oracle_gap": 0.013539118145313223,
+          "oracle_capture_ratio": 0.9140188833894645,
+          "mean_baseline_brier_gain": 0.017037319742229037,
+          "oracle_brier_gap": 0.0026061515942649503,
+          "oracle_brier_capture_ratio": 0.8673273399786933,
+          "evaluation": {
+            "coefficient_rmse": 0.29266823973930584,
+            "relative_coefficient_rmse": 0.27446125667115023,
+            "mean_log_loss": 0.24149796104376844,
+            "mean_brier": 0.005561583472635092,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5347974442461596,
+                "brier": 0.014810530172713492
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.047174419693349644,
+                "brier": 0.001173584896438923
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.1425220191917961,
+                "brier": 0.0007006353487528622
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.014312770801341603,
+          "cumulative_explained_variance_ratio": 0.9866491463902506,
+          "mean_baseline_gain": 0.1378554382029303,
+          "oracle_gap": 0.01961074366396387,
+          "oracle_capture_ratio": 0.8754606009273738,
+          "mean_baseline_brier_gain": 0.01196121129979589,
+          "oracle_brier_gap": 0.0076822600366980975,
+          "oracle_brier_capture_ratio": 0.6089153538546999,
+          "evaluation": {
+            "coefficient_rmse": 0.17650043612233168,
+            "relative_coefficient_rmse": 0.16552028858441012,
+            "mean_log_loss": 0.2475695865624191,
+            "mean_brier": 0.01063769191506824,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.5637953924195696,
+                "brier": 0.0306086875587064
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.044078927400710684,
+                "brier": 0.0007387981397203069
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.13483443986697694,
+                "brier": 0.0005655900467780121
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "round_number": 8,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.48086221734168955,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.05311503587454028,
+        "mean_brier": 0.0009306598376596239,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.13007634319879083,
+            "brier": 0.0027622885609227235
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.0054737656876071095,
+            "brier": 7.088440372048976e-06
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.02379499873722291,
+            "brier": 2.2602511684099054e-05
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.049638073382671066,
+        "mean_brier": 0.00012658316869989728,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.11720458380586844,
+            "brier": 0.0003378221151817946
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.005957024947873399,
+            "brier": 1.0589104064546846e-05
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.025752611394271364,
+            "brier": 3.133828685335042e-05
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.6933955925550022,
+          "cumulative_explained_variance_ratio": 0.6933955925550022,
+          "mean_baseline_gain": -0.0002443425908059127,
+          "oracle_gap": 0.003721305082675125,
+          "oracle_capture_ratio": -0.07027472725900887,
+          "mean_baseline_brier_gain": -4.1707471834431104e-05,
+          "oracle_brier_gap": 0.0008457841407941577,
+          "oracle_brier_capture_ratio": -0.05187001867420193,
+          "evaluation": {
+            "coefficient_rmse": 0.48012728420042516,
+            "relative_coefficient_rmse": 0.9984716346704733,
+            "mean_log_loss": 0.05335937846534619,
+            "mean_brier": 0.000972367309494055,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.1308218217628261,
+                "brier": 0.0028872789432069835
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.005491559427042009,
+                "brier": 7.386285103277146e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.023764754206170448,
+                "brier": 2.2436700171904044e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.23610918581077422,
+          "cumulative_explained_variance_ratio": 0.9295047783657764,
+          "mean_baseline_gain": 0.003849863081186393,
+          "oracle_gap": -0.0003729005893171808,
+          "oracle_capture_ratio": 1.1072489537028942,
+          "mean_baseline_brier_gain": 0.0007672808095484644,
+          "oracle_brier_gap": 3.679585941126224e-05,
+          "oracle_brier_capture_ratio": 0.9542383695091329,
+          "evaluation": {
+            "coefficient_rmse": 0.44063325139795934,
+            "relative_coefficient_rmse": 0.9163399317040863,
+            "mean_log_loss": 0.049265172793353885,
+            "mean_brier": 0.00016337902811115951,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.11754935545846208,
+                "brier": 0.00045443055219199447
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0054901960719097205,
+                "brier": 7.467056006903525e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.02475596684968986,
+                "brier": 2.823947613458055e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.027926276888683366,
+          "cumulative_explained_variance_ratio": 0.9574310552544597,
+          "mean_baseline_gain": 0.0011287756830451953,
+          "oracle_gap": 0.002348186808824017,
+          "oracle_capture_ratio": 0.32464419322463456,
+          "mean_baseline_brier_gain": 0.0007217168340341186,
+          "oracle_brier_gap": 8.235983492560798e-05,
+          "oracle_brier_capture_ratio": 0.8975721618285966,
+          "evaluation": {
+            "coefficient_rmse": 0.36141719088218244,
+            "relative_coefficient_rmse": 0.7516023880607109,
+            "mean_log_loss": 0.05198626019149508,
+            "mean_brier": 0.00020894300362550526,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.1241956200919366,
+                "brier": 0.0005845652423509224
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.005810893830607009,
+                "brier": 9.979446037777946e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.02595226665194164,
+                "brier": 3.2284322487815496e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.020120581250124264,
+          "cumulative_explained_variance_ratio": 0.977551636504584,
+          "mean_baseline_gain": 0.0016013633495528881,
+          "oracle_gap": 0.001875599142316324,
+          "oracle_capture_ratio": 0.4605638839353704,
+          "mean_baseline_brier_gain": 0.0007350153998543469,
+          "oracle_brier_gap": 6.906126910537967e-05,
+          "oracle_brier_capture_ratio": 0.9141110894378671,
+          "evaluation": {
+            "coefficient_rmse": 0.3595723938058641,
+            "relative_coefficient_rmse": 0.7477659521549814,
+            "mean_log_loss": 0.05151367252498739,
+            "mean_brier": 0.00019564443780527695,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.12309368629202481,
+                "brier": 0.0005456007044007677
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.005774283182965179,
+                "brier": 9.778746450732224e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.02567304809997217,
+                "brier": 3.1553862564330963e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.01710586334567274,
+          "cumulative_explained_variance_ratio": 0.9946574998502568,
+          "mean_baseline_gain": -0.0016567379083919434,
+          "oracle_gap": 0.0051337004002611555,
+          "oracle_capture_ratio": -0.47649001456477674,
+          "mean_baseline_brier_gain": 0.0006337440224066255,
+          "oracle_brier_gap": 0.00017033264655310105,
+          "oracle_brier_capture_ratio": 0.7881636750218498,
+          "evaluation": {
+            "coefficient_rmse": 0.3223838685021639,
+            "relative_coefficient_rmse": 0.6704287774663846,
+            "mean_log_loss": 0.05477177378293222,
+            "mean_brier": 0.00029691581525299833,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.13457142108366468,
+                "brier": 0.0008569341146903976
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.005762847269338462,
+                "brier": 9.70182025178479e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.023981052995793523,
+                "brier": 2.4111510816812606e-05
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "round_number": 3,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 1.067337534974521,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.037917724065278664,
+        "mean_brier": 0.005016160136595913,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.10566552424341728,
+            "brier": 0.01500854932057781
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.0018645745565216856,
+            "brier": 1.965230943405445e-05
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.006223073395897027,
+            "brier": 2.0278779775873346e-05
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.008476198113678515,
+        "mean_brier": 1.9500964320109482e-05,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.02036508557063141,
+            "brier": 5.4268676478985895e-05
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.0005522404136834579,
+            "brier": 5.183744106400653e-07
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.004511268356720677,
+            "brier": 3.715842070702486e-06
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.7741045063786184,
+          "cumulative_explained_variance_ratio": 0.7741045063786184,
+          "mean_baseline_gain": 0.003767526296331418,
+          "oracle_gap": 0.02567399965526873,
+          "oracle_capture_ratio": 0.12796640712594085,
+          "mean_baseline_brier_gain": 0.00021762303236706661,
+          "oracle_brier_gap": 0.004779036139908737,
+          "oracle_brier_capture_ratio": 0.043553707560155024,
+          "evaluation": {
+            "coefficient_rmse": 1.0166993772411423,
+            "relative_coefficient_rmse": 0.9525565661526298,
+            "mean_log_loss": 0.034150197768947246,
+            "mean_brier": 0.004798537104228846,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.09551776175970852,
+                "brier": 0.01437011233762652
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.00125921999269487,
+                "brier": 7.320036604327522e-06
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.005673611554438338,
+                "brier": 1.8178938455692647e-05
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.127845707107484,
+          "cumulative_explained_variance_ratio": 0.9019502134861024,
+          "mean_baseline_gain": 0.027858645427646447,
+          "oracle_gap": 0.0015828805239537034,
+          "oracle_capture_ratio": 0.9462364645583979,
+          "mean_baseline_brier_gain": 0.004900806258862163,
+          "oracle_brier_gap": 9.585291341364052e-05,
+          "oracle_brier_capture_ratio": 0.9808165996301119,
+          "evaluation": {
+            "coefficient_rmse": 0.4530509179440158,
+            "relative_coefficient_rmse": 0.4244682709062891,
+            "mean_log_loss": 0.010059078637632219,
+            "mean_brier": 0.00011535387773375,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.024929189179240186,
+                "brier": 0.0003417759381483506
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0005101038227031964,
+                "brier": 4.904021988609174e-07
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.004737942910953272,
+                "brier": 3.795292854038455e-06
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.04762773599099502,
+          "cumulative_explained_variance_ratio": 0.9495779494770974,
+          "mean_baseline_gain": 0.029259184757751168,
+          "oracle_gap": 0.0001823411938489828,
+          "oracle_capture_ratio": 0.993806666334186,
+          "mean_baseline_brier_gain": 0.004974890332403471,
+          "oracle_brier_gap": 2.1768839872332053e-05,
+          "oracle_brier_capture_ratio": 0.9956433210427643,
+          "evaluation": {
+            "coefficient_rmse": 0.396405736904381,
+            "relative_coefficient_rmse": 0.371396792406297,
+            "mean_log_loss": 0.008658539307527498,
+            "mean_brier": 4.1269804192441535e-05,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.020579379562539024,
+                "brier": 0.0001194785652818371
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0005192598042831469,
+                "brier": 5.035387111100614e-07
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.00487697855576032,
+                "brier": 3.8273085843774595e-06
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.02337302712704691,
+          "cumulative_explained_variance_ratio": 0.9729509766041443,
+          "mean_baseline_gain": 0.029287994614491296,
+          "oracle_gap": 0.00015353133710885314,
+          "oracle_capture_ratio": 0.9947852112909756,
+          "mean_baseline_brier_gain": 0.004976926824262451,
+          "oracle_brier_gap": 1.9732348013352247e-05,
+          "oracle_brier_capture_ratio": 0.9960508917392569,
+          "evaluation": {
+            "coefficient_rmse": 0.39485940531938835,
+            "relative_coefficient_rmse": 0.3699480177363145,
+            "mean_log_loss": 0.008629729450787368,
+            "mean_brier": 3.923331233346173e-05,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.020401560552242005,
+                "brier": 0.0001133516751693997
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0005212691054200036,
+                "brier": 5.052307068289208e-07
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.004966358694700096,
+                "brier": 3.8430311241565725e-06
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.021264658877969723,
+          "cumulative_explained_variance_ratio": 0.994215635482114,
+          "mean_baseline_gain": 0.02970998056017992,
+          "oracle_gap": -0.00026845460857977295,
+          "oracle_capture_ratio": 1.0091182301155548,
+          "mean_baseline_brier_gain": 0.00499235293174404,
+          "oracle_brier_gap": 4.306240531763851e-06,
+          "oracle_brier_capture_ratio": 0.9991381760525799,
+          "evaluation": {
+            "coefficient_rmse": 0.38063191912531386,
+            "relative_coefficient_rmse": 0.3566181331141888,
+            "mean_log_loss": 0.008207743505098742,
+            "mean_brier": 2.3807204851873333e-05,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.019155870928314434,
+                "brier": 6.707491845295319e-05
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.0005240350848849945,
+                "brier": 5.074455094285346e-07
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.004943324502096796,
+                "brier": 3.83925059323827e-06
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "round_number": 5,
+      "sample_count": 8000,
+      "mean_baseline": {
+        "coefficient_rmse": 0.7051562088683572,
+        "relative_coefficient_rmse": 1.0,
+        "mean_log_loss": 0.16972010350302802,
+        "mean_brier": 0.00658077652034613,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.4014082311326588,
+            "brier": 0.018501068915312044
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.037852550705810166,
+            "brier": 0.0010127235534428364
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06989952867061516,
+            "brier": 0.0002285370922835078
+          }
+        ]
+      },
+      "oracle_full": {
+        "coefficient_rmse": 0.0,
+        "relative_coefficient_rmse": 0.0,
+        "mean_log_loss": 0.14748187318820463,
+        "mean_brier": 0.00360656389047959,
+        "target_metrics": [
+          {
+            "target_name": "build",
+            "log_loss": 0.3470350046561861,
+            "brier": 0.00972506106885773
+          },
+          {
+            "target_name": "port",
+            "log_loss": 0.03425273612109376,
+            "brier": 0.0009275933495462591
+          },
+          {
+            "target_name": "ruin",
+            "log_loss": 0.06115787878733406,
+            "brier": 0.0001670372530347809
+          }
+        ]
+      },
+      "rank_metrics": [
+        {
+          "rank": 1,
+          "explained_variance_ratio": 0.6995695733541561,
+          "cumulative_explained_variance_ratio": 0.6995695733541561,
+          "mean_baseline_gain": -0.02053353845739983,
+          "oracle_gap": 0.04277176877222322,
+          "oracle_capture_ratio": -0.9233440865891538,
+          "mean_baseline_brier_gain": -0.0013627001063223265,
+          "oracle_brier_gap": 0.004336912736188867,
+          "oracle_brier_capture_ratio": -0.4581717166547955,
+          "evaluation": {
+            "coefficient_rmse": 0.6066838982392574,
+            "relative_coefficient_rmse": 0.8603539054316358,
+            "mean_log_loss": 0.19025364196042785,
+            "mean_brier": 0.007943476626668456,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.45304129778871155,
+                "brier": 0.022505980523023147
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.04319906528439025,
+                "brier": 0.0010751300660565488
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.07452056280818181,
+                "brier": 0.00024931929092566866
+              }
+            ]
+          }
+        },
+        {
+          "rank": 2,
+          "explained_variance_ratio": 0.20682623265826527,
+          "cumulative_explained_variance_ratio": 0.9063958060124214,
+          "mean_baseline_gain": 0.02211579459394819,
+          "oracle_gap": 0.00012243572087519694,
+          "oracle_capture_ratio": 0.9944943586273776,
+          "mean_baseline_brier_gain": 0.0013305283723034,
+          "oracle_brier_gap": 0.00164368425756314,
+          "oracle_brier_capture_ratio": 0.4473548255906317,
+          "evaluation": {
+            "coefficient_rmse": 0.25859495030292173,
+            "relative_coefficient_rmse": 0.36672009272657174,
+            "mean_log_loss": 0.14760430890907983,
+            "mean_brier": 0.00525024814804273,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.3529060349825102,
+                "brier": 0.014922776827913
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.02935985837087845,
+                "brier": 0.000699981694144171
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06054703337385081,
+                "brier": 0.000127985922071018
+              }
+            ]
+          }
+        },
+        {
+          "rank": 3,
+          "explained_variance_ratio": 0.044499202465469116,
+          "cumulative_explained_variance_ratio": 0.9508950084778905,
+          "mean_baseline_gain": 0.023659555024348106,
+          "oracle_gap": -0.0014213247095247183,
+          "oracle_capture_ratio": 1.0639135708823604,
+          "mean_baseline_brier_gain": 0.0026098280766467946,
+          "oracle_brier_gap": 0.00036438455321974534,
+          "oracle_brier_capture_ratio": 0.877485372242503,
+          "evaluation": {
+            "coefficient_rmse": 0.23217841558406396,
+            "relative_coefficient_rmse": 0.3292581312680584,
+            "mean_log_loss": 0.1460605484786799,
+            "mean_brier": 0.003970948443699335,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.34683046358398945,
+                "brier": 0.010994625758754395
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.03056825216389363,
+                "brier": 0.0007763606773701274
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.060782929688156684,
+                "brier": 0.00014185889497348396
+              }
+            ]
+          }
+        },
+        {
+          "rank": 4,
+          "explained_variance_ratio": 0.020670255766578268,
+          "cumulative_explained_variance_ratio": 0.9715652642444688,
+          "mean_baseline_gain": 0.023093983353120295,
+          "oracle_gap": -0.0008557530382969081,
+          "oracle_capture_ratio": 1.0384811662700735,
+          "mean_baseline_brier_gain": 0.0025684667492367605,
+          "oracle_brier_gap": 0.0004057458806297795,
+          "oracle_brier_capture_ratio": 0.8635787244814483,
+          "evaluation": {
+            "coefficient_rmse": 0.22806741712545595,
+            "relative_coefficient_rmse": 0.32342821953090534,
+            "mean_log_loss": 0.14662612014990772,
+            "mean_brier": 0.004012309771109369,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.3472930838411999,
+                "brier": 0.0110970355994452
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.030872074794313448,
+                "brier": 0.0007942077290261295
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06171320181420979,
+                "brier": 0.00014568598485677905
+              }
+            ]
+          }
+        },
+        {
+          "rank": 5,
+          "explained_variance_ratio": 0.019403687869250313,
+          "cumulative_explained_variance_ratio": 0.990968952113719,
+          "mean_baseline_gain": 0.022735303135541646,
+          "oracle_gap": -0.0004970728207182584,
+          "oracle_capture_ratio": 1.022352175226233,
+          "mean_baseline_brier_gain": 0.003159654804509704,
+          "oracle_brier_gap": -0.00018544217464316415,
+          "oracle_brier_capture_ratio": 1.0623500057732878,
+          "evaluation": {
+            "coefficient_rmse": 0.20916789128275723,
+            "relative_coefficient_rmse": 0.29662632002975947,
+            "mean_log_loss": 0.14698480036748637,
+            "mean_brier": 0.003421121715836426,
+            "target_metrics": [
+              {
+                "target_name": "build",
+                "log_loss": 0.3471526202771208,
+                "brier": 0.009282778333656861
+              },
+              {
+                "target_name": "port",
+                "log_loss": 0.03145371432630316,
+                "brier": 0.0008227308616387335
+              },
+              {
+                "target_name": "ruin",
+                "log_loss": 0.06234806649903511,
+                "brier": 0.00015785595221368264
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "cross_round_low_rank": "unlikely",
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md"
+}

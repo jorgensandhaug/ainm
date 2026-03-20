@@ -24,6 +24,7 @@ from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
 from astar.workflows.live_online import LiveOnlineRunResult
+from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
 from astar.workflows.results import (
     BuildSubmissionResult,
     EvaluateTeacherScienceResult,
@@ -307,6 +308,29 @@ def render_factorize_round_summaries(result: FactorizeRoundSummariesResult) -> s
             f"basis: {result.basis_path}",
         ],
     )
+
+
+def render_round_dynamics_lowrank_audit(result: RoundDynamicsLowRankAuditResult) -> str:
+    lines = [
+        f"round-dynamics-lowrank-audit {result.audit_name}",
+        f"rounds: {result.round_count}",
+        f"projection_mode: {result.projection_mode}",
+        f"cross_round_low_rank: {result.cross_round_low_rank}",
+        f"mean_baseline_log_loss: {result.mean_baseline.mean_log_loss:.6f}",
+        f"oracle_full_log_loss: {result.oracle_full.mean_log_loss:.6f}",
+    ]
+    for metric in result.rank_metrics:
+        lines.append(
+            (
+                f"rank {metric.rank}: "
+                f"log_loss={metric.evaluation.mean_log_loss:.6f} "
+                f"capture={metric.oracle_capture_ratio:.4f} "
+                f"cum_evr={metric.cumulative_explained_variance_ratio:.4f}"
+            ),
+        )
+    lines.append(f"report: {result.report_path}")
+    lines.append(f"artifact: {result.artifact_path}")
+    return "\n".join(lines)
 
 
 def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:

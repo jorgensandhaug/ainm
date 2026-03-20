@@ -52,22 +52,25 @@
 
 ## Current Workstream
 
-1. Create mandatory tracking infra.
-2. Add immutable versioned family-1 model registration for query-residual-style student variants.
-3. Benchmark a low-risk variant using more synthetic transcript coverage instead of mutating the default model.
-4. If useful, tighten validation next by adding more robust benchmark handling around stochastic episode seeds.
+1. Keep family-1 bookkeeping/validation reproducible and versioned.
+2. Keep Gate 1 open but no longer blocked: current proxy says common transitions are near-Markov, with targeted lag sensitivity around collapse/port.
+3. Gate 2 result now says the current crude terminal-law parameterization is not predictively tiny-latent enough.
+4. Next work should shift toward richer per-round effective laws:
+   - event-ledger / event-hazard models, especially build/birth dynamics
+   - richer collapse-sensitive state if returning to Gate 1 refinement
+   - only then revisit low-rank coupling / live regime inference
 
 ## Active Experiment
 
-- Candidate model: `f1_student_query_residual_p45_v01`
+- Audit complete: `f1_round_dynamics_lowrank_oracle_v1`
 - Hypothesis:
-  - adding `45` to training budget prefixes should better match actual executed query count seen in current online historical runs
-  - this keeps baseline training cost nearly unchanged, unlike the slower `samples_per_round=4` variant
-- Intended comparison target:
-  - baseline `query_residual_v7`
+  - if fitted per-round semimechanistic laws live in a tiny low-rank subspace, family 1 remains viable under the 50-query live constraint
+  - if even oracle low-rank projection needs many dimensions or still loses large predictive mass, family 1 should be downgraded or wrapped inside a broader grey-box model
 - Validation plan:
-  - smoke/small check first
-  - then full dev historical benchmark if smoke is sane
+  - fit one semimechanistic coefficient vector per replay-backed round
+  - leave one round out, fit low-rank basis on the rest, and project held-out coefficients onto rank-`k` bases
+  - measure reconstruction and induced predictive loss vs rank
+  - keep interpretation conservative because projection is oracle and tests compressibility, not live identifiability
 
 ## Runtime Finding
 
@@ -90,10 +93,14 @@
 ## Files To Watch
 
 - `data/artifacts/family1/registry.jsonl`
+- `data/artifacts/family1/markov/f1_markov_sufficiency_cellproxy_v1/report.md`
+- `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/workflows/model_eval.py`
 - `src/astar/workflows/historical_benchmark.py`
+- `src/astar/workflows/markov_sufficiency.py`
+- `src/astar/workflows/round_dynamics_lowrank.py`
 - `src/astar/cli.py`
 
 ## Running Log
@@ -126,3 +133,69 @@
 - Current conclusion:
   - best value this turn is infra/reproducibility + immutable model registration, not a new best model
   - next likely path is performance engineering / caching before more query-residual sweeps
+- Implemented `run-markov-sufficiency-audit` workflow and CLI entry:
+  - command: `uv run astar run-markov-sufficiency-audit --name f1_markov_sufficiency_cellproxy_v1`
+  - audit scope: `cell_local_dynamic_proxy__descriptor_t_vs_descriptor_t_plus_prev_class`
+  - artifact root: `data/artifacts/family1/markov/f1_markov_sufficiency_cellproxy_v1/`
+- Markov proxy audit completed on 9 replay-backed rounds / `157621632` transitions:
+  - overall current_log_loss `0.06605459`
+  - overall lag_log_loss `0.06576769`
+  - overall gain from lag `0.00028690`
+  - overall current_accuracy `0.98395490`
+  - overall lag_accuracy `0.98397741`
+  - accuracy gain `0.00002252`
+- Event-slice lag gains:
+  - `birth_or_found`: `0.00000352`
+  - `portization`: `0.00073771`
+  - `collapse`: `0.00306887`
+  - `rebuild`: `-0.00023573`
+  - `reclaim_forest`: `-0.00023513`
+- Proxy interpretation:
+  - evidence is weakly supportive of near-Markov sufficiency for common transitions
+  - but `collapse` and, smaller, `portization` still benefit from one-step lag
+  - do not treat Gate 1 as fully closed; next stronger audit should add richer lag/state context, not only previous class
+- Implemented `run-round-dynamics-lowrank-audit` workflow and CLI entry:
+  - command: `uv run astar run-round-dynamics-lowrank-audit --name f1_round_dynamics_lowrank_oracle_v1 --max-rank 5`
+  - audit scope: leave-one-round-out low-rank compression of fitted semimechanistic terminal-law coefficient vectors
+  - artifact root: `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/`
+  - note: projection is oracle holdout projection; this is a Gate 2 compressibility audit, not yet a live regime-inference test
+- Added focused regression coverage for Gate 2 audit and reran broader replay/benchmark slice:
+  - `tests/test_round_dynamics_lowrank.py`
+  - `uv run pytest tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `16 passed`
+- Full-corpus Gate 2 audit completed:
+  - artifact: `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/result.json`
+  - report: `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md`
+  - rounds `9`
+  - coefficient_dim `51`
+  - regime_dim `12`
+  - projection_mode `oracle_holdout_projection`
+  - conclusion `cross_round_low_rank = unlikely`
+- Gate 2 aggregate metrics:
+  - mean_baseline_log_loss `0.181454`
+  - oracle_full_log_loss `0.143772`
+  - rank1_log_loss `0.184262` / capture `-0.0745`
+  - rank2_log_loss `0.167039` / capture `0.3825`
+  - rank3_log_loss `0.161234` / capture `0.5366`
+  - rank5_log_loss `0.160643` / capture `0.5523`
+- Gate 2 spectral summary:
+  - singular values start `14.8155, 8.7525, 3.7519, 2.5494, 2.4784`
+  - cumulative explained variance:
+    - rank1 `0.6713`
+    - rank2 `0.9055`
+    - rank3 `0.9486`
+    - rank5 `0.9873`
+- Gate 2 interpretation:
+  - coefficient variance is visually low-rank-ish, but predictive capture is much weaker than variance capture
+  - rank2 explains ~`90.6%` of coefficient variance yet captures only ~`38%` of oracle predictive gain
+  - rank5 explains ~`98.7%` of coefficient variance yet captures only ~`55%` of oracle predictive gain
+  - therefore the bottleneck is not just latent dimension; the current semimechanistic terminal-law parameterization itself is too crude / misaligned
+  - this audit downgrades the current terminal snapshot law, not the entire family
+- Target-level note from Gate 2:
+  - build target dominates mismatch
+  - build log-loss: mean baseline `0.435386`, oracle `0.337201`, rank5 `0.385463`
+  - port log-loss improves more cleanly: `0.039670 -> 0.032287` oracle, rank5 `0.033839`
+  - ruin log-loss improves modestly: `0.069307 -> 0.061830` oracle, rank5 `0.062629`
+- Updated next-step read:
+  - strongest next family-1 baseline should be event-hazard / event-ledger based, especially for build dynamics
+  - low-rank coupling should be revisited only after richer effective laws exist
