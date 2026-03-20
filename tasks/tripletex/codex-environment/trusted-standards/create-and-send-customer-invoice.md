@@ -27,7 +27,7 @@
 4. `POST /invoice` and let the default `sendToCustomer=true` handle the send in the same write
 5. only if that invoice write fails with missing company bank account:
    - `GET /ledger/account?isBankAccount=true&fields=*`
-   - `PUT /ledger/account/{id}` with a checksum-valid unique 11-digit `bankAccountNumber`
+   - `PUT /ledger/account/{id}` on the existing invoice account (usually `1920`) with minimal payload `{ "bankAccountNumber": "12345678903" }`
    - retry the same `POST /invoice` once
 6. stop
 
@@ -62,6 +62,8 @@
 - if invoice creation fails with missing company bank account:
   - repair the existing invoice bank account and retry the same invoice write once
 - if the prompt explicitly identifies an already-existing customer, use one decisive customer read instead of blind customer create
+- if customer creation already succeeded but local process state is lost before the repaired retry:
+  - resume with `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing VAT read, and the same `POST /invoice`
 
 ## Known Pitfalls
 - do not spend `GET /customer` first on the normal fresh-account new-customer variant
@@ -73,6 +75,8 @@
 - for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
 - the same exact no-VAT branch also covers Portuguese wording such as `sem IVA`; the 2026-03-20 production run for `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` used the same `3` calls and did not need `GET /customer` or `PUT /invoice/{id}/:send`
 - for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
+- if the first `POST /invoice` fails only on missing company bank account, do not let a local helper bug or ad hoc bank-number guess force a full script restart; the minimum recovery is still one valid `PUT /ledger/account/{id}` and one retry of the same invoice payload
+- if that first failed invoice happened after a successful customer create, do not blind-retry `POST /customer`; if you lost in-memory state, resume on the existing-customer branch instead
 - French wording such as `hors TVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` succeeded in the canonical `3` calls, while the same-day persistent sandbox still exposed only `0%`, produced a wrong untaxed `44750` total when `vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422`.
 - Norwegian wording such as `eksklusiv MVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 persistent-sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` still exposed only VAT code `6` (`0%`) on the filtered outgoing VAT read for `2026-03-20`, so that sandbox state remains blocked for the taxed branch rather than a valid lower-call shortcut.
 
@@ -94,8 +98,10 @@
   - the French prompt variant `Colline SARL` / `944164340` / `Service réseau` / `44750` / `hors TVA` succeeded in the same canonical `3` calls in production and confirms that `hors TVA` must be normalized to ordinary taxed ex-VAT handling, not `0%`
   - the same-day persistent sandbox re-check on analogous org `944164341` again exposed only VAT code `6`, created a wrong untaxed `44750` total when `orderLines[].vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422 Ugyldig mva-kode.`
   - the later same-day French production run `Lumière SARL` / `959714320` / `Stockage cloud` / `34100` again finished on the same exact `3` calls and preserved the Unicode customer name exactly as prompted
+  - the later same-day French production run `Étoile SARL` / `995085488` / `Rapport d'analyse` / `7250` confirmed the conditional bank-account repair branch for the same taxed direct-line shape: after the standard `POST /customer` and filtered outgoing VAT read, the first `POST /invoice` failed on missing company bank account, `PUT /ledger/account/{id}` on invoice account `1920` with minimal payload `{ "bankAccountNumber": "12345678903" }` repaired the prerequisite, and the existing-customer resume branch `GET /customer?organizationNumber=995085488&fields=*` -> filtered outgoing VAT read -> `POST /invoice` then completed with `amountExcludingVatCurrency=7250` and `amountCurrency=9062.5`
   - the same-day persistent sandbox analog `Lumière Reflection b9572091 SARL` / `957223729` still exposed only VAT code `6` (`0%`); for that exact `34100` line, omitting `orderLines[].vatType` created a wrong untaxed `34100` total, so that sandbox account remains blocked for the taxed branch rather than a valid shortcut
   - the same-day persistent sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` re-confirmed that Norwegian wording `eksklusiv MVA` follows the same taxed branch: after the standard `POST /customer`, the filtered outgoing VAT read for `2026-03-20` still exposed only code `6` (`0%`), so that sandbox account remained blocked for the taxed branch rather than a no-VAT fallback
+  - a same-day persistent sandbox control re-check on the provided follow-up sandbox still exposed only VAT code `6` (`0%`) for `2026-03-20`; the exact taxed `7250` branch therefore remained blocked there, but the surrounding create-and-send mechanics still re-proved cleanly in `3` calls on a control line by using the available `0%` row with the same `POST /customer` -> filtered `GET /ledger/vatType` -> `POST /invoice` flow
 - exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
   - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
   - the filtered VAT read returned only code `6` (`0%`)

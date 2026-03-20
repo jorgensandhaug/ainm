@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-20-224752661Z-cbae44a2",
+  "request_id": "1fed7e1a",
+  "prompt_raw": "Opprett tre avdelinger i Tripletex: \"Lager\", \"Regnskap\" og \"Kvalitetskontroll\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-20T22:48:27.884Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-20T22:47:52.769Z",
+  "after_captured_at": "2026-03-20T22:48:58.897Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-20T22:48:58.898Z"
+}
