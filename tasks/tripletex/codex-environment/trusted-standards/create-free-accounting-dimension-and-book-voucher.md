@@ -37,7 +37,8 @@
   - `active: true`
   - `showInVoucherRegistration: true`
 - do not invent `number` or `position` on the dimension values for the standard path; sandbox proved Tripletex accepts the minimal payload and auto-assigns ordering
-- reuse the returned `dimensionIndex` from the dimension-name create response; persistent sandbox also assigned `2`, not only `1`
+- `/ledger/accountingDimensionValue/list` is `PUT` batch update, not batch create, so each new prompt-provided value still needs its own `POST /ledger/accountingDimensionValue`
+- reuse the returned `dimensionIndex` from the dimension-name create response; persistent sandbox assigned `2` in one run and `3` in later re-verification, not only `1`
 - on `POST /ledger/voucher`:
   - set `voucherType: null`
   - build a balanced two-line voucher
@@ -84,5 +85,7 @@
 - persistent sandbox re-verified on 2026-03-20:
   - `POST /ledger/accountingDimensionName` returned `422` when `dimensionName` exceeded `20` characters
   - `POST /ledger/accountingDimensionValue` succeeded with only `dimensionIndex`, `displayName`, `active`, and `showInVoucherRegistration`
+  - `PUT /ledger/accountingDimensionValue/list` is batch update only, so it is not a lower-call shortcut for creating the requested values
   - `POST /ledger/voucher` with `account: { "number": "7000" }` and again with `account: { "number": "6590" }` failed `422` on `postings.account.name`, so number-only account refs are not the trusted fast path
   - the id-based voucher write succeeded immediately after one decisive `GET /ledger/account?number=6590,1920&fields=*`
+  - later same-day re-verification with dimension `KS154433946` assigned `dimensionIndex=3`, created values `Innkjøp` and `Logistikk`, and returned the linked value on `freeAccountingDimension3.id` in the successful voucher write response

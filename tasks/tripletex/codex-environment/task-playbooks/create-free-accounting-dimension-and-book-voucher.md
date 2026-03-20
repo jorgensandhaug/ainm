@@ -25,7 +25,8 @@ Verified in persistent sandbox on 2026-03-20:
   - `active=true`
   - `showInVoucherRegistration=true`
 - the same value-create response returned `number=null` and auto-assigned `position`, so `number` and `position` are not required for the standard create path
-- the dimension-name create response assigned `dimensionIndex=2` in persistent sandbox, so the voucher-link field must always be derived from the returned index instead of assuming `freeAccountingDimension1`
+- `PUT /ledger/accountingDimensionValue/list` is batch update only, not batch create, so there is no trusted batch shortcut for creating the requested values
+- the dimension-name create response assigned `dimensionIndex=2` in one persistent-sandbox run and `dimensionIndex=3` in a later same-day re-verification, so the voucher-link field must always be derived from the returned index instead of assuming `freeAccountingDimension1`
 - `POST /ledger/voucher` failed with `422` when the posting account was sent only as `account: { "number": "7000" }`
 - the validation message was:
   - `postings.account.name: Kan ikke være null.`
@@ -36,6 +37,11 @@ Verified in persistent sandbox on 2026-03-20:
   - a debit posting on `7000`
   - a balancing credit posting on `1920`
   - `freeAccountingDimension1={ "id": ... }` on the target posting
+- same-day re-verification for the exact `6590` task shape also succeeded with:
+  - dimension name `KS154433946`
+  - values `Innkjøp` and `Logistikk`
+  - linked posting field `freeAccountingDimension3={ "id": 15519 }`
+  - voucher `608827949`
 - the successful voucher write response already proved the linked free-dimension value id and the booked amounts
 
 ## Minimal Safe Flow
@@ -72,6 +78,7 @@ Verified in persistent sandbox on 2026-03-20:
   5. `POST /ledger/voucher`
 - do not spend a pre-read of existing dimensions in a scored create task
 - do not try `account.number` directly on voucher postings just to save the account lookup; that path was re-tested and failed, so there is no trusted four-call shortcut for this exact task shape
+- do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only and does not reduce the call count for this task shape
 
 ## Winning Payload Shape
 

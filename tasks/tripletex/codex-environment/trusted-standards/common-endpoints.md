@@ -334,6 +334,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `dimensionIndex` from the dimension-name create or read flow
 - Standard create note:
   - the proven minimal create payload can omit `number` and `position`
+  - `/ledger/accountingDimensionValue/list` is `PUT` batch update only, not batch create, so creating two new values still requires two `POST /ledger/accountingDimensionValue` calls
   - set `showInVoucherRegistration=true` when the next step is voucher registration
 
 ## Ledger Posting
@@ -357,6 +358,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000` and `6590`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
+  - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
   - for the exact supplier-invoice ledger-voucher shape, the minimal verified create path is supplier write, expense-account read, incoming-VAT read, voucher-type read, then voucher write
