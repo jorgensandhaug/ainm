@@ -31,6 +31,11 @@ Persistent-sandbox re-verification on 2026-03-20 showed:
 Scored production feedback on 2026-03-20 showed:
 - an automatic `GET /department` before the first employee write can lose the call-efficiency bonus on accounts that accept the create without department repair
 
+Scored production re-verification on 2026-03-20 for `Miguel Sánchez` showed:
+- in a fresh account, direct `POST /employee` with `userType: "NO_ACCESS"` and nested `employments: [{ "startDate": ... }]` succeeded without department or division repair
+- the successful create response still did not prove `startDate`, so one decisive `GET /employee/employment?employeeId=...&fields=*` remained necessary
+- that exact prompt shape therefore settled at a minimum safe `2` calls when the initial create succeeded
+
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `Feltet må fylles ut.`
@@ -92,6 +97,7 @@ Use ISO dates. Normalize any localized prompt date first.
   5. if the write then fails with `422 employments.division.id`, do `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
   6. Inspect `response.value`
   7. If `response.value.employments` does not already include the actual `startDate`, do one decisive `GET /employee/employment?employeeId=<newId>&fields=*`
+- When step `1` succeeds directly in a fresh account, treat step `7` as the normal minimum safe second call for a start-date-scored task; do not try to save it unless the write response unexpectedly already contains the real `startDate`
 - Do not add a pre-read on `/employee` for a pure create task
 - Do not add any extra employee, department, or division reads beyond validation-driven repair branches and the conditional employment verification read
 
@@ -117,3 +123,4 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not spend extra reads on employee lookup for a pure create task
 - Do not treat `response.value.userType === null` as proof that the create failed or that `NO_ACCESS` was rejected
 - Do not skip the employment verification read just because `response.value.employments` is non-empty
+- Do not treat a one-call `POST /employee` stop as the trusted minimum path for a start-date-scored task unless the write response actually echoes the requested `startDate`
