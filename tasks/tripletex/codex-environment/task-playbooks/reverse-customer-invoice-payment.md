@@ -22,8 +22,9 @@ Do not use for:
 - The score-optimal exact-match path is usually 2 Tripletex API calls, not 3: one decisive invoice read, then the voucher-reverse write, then stop
 - A prompt ex-VAT amount can be only a locate key; the post-reversal verification target should come from the invoice object's own pre-reversal total, usually `amountCurrency` or `amount`
 - A final `GET /invoice?...id=<invoiceId>` is only an optional proof branch; it is not part of the score-optimal exact-match path
-- Payment-voucher detection must not rely only on `posting.type`; the payment posting can be `type=null` while still being the unique negative `1500` customer-ledger posting with `description` like `Betaling: ...`
-- a direct `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*))),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` can already expose enough reversal evidence on one invoice: top-level `orderLines[].description` / `displayName` carry the service text, and `postings[]` can show the null-typed negative `1500` payment posting
+- Payment-voucher detection must not rely only on `posting.type`; the payment posting can be `type=null` while still being the unique negative payment-style posting with `description` like `Betaling: ...`
+- `account.number=1500` is common on that fallback posting, but not guaranteed; some real locate reads return `account=null`, so treat missing account expansion as compatible with the same voucher-reversal path
+- a direct `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*))),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` can already expose enough reversal evidence on one invoice: top-level `orderLines[].description` / `displayName` carry the service text, and `postings[]` can show the null-typed negative payment posting even when the account expansion is absent
 - persistent sandbox on 2026-03-20 also showed a proof-only trap: a freshly created paid invoice was immediately readable on `GET /invoice/{id}` but absent from the broader same-day `/invoice` search; treat that as sandbox search lag or indexing noise, not as a reason to add `GET /customer`, extra paging, or automatic verify reads to the production exact-match path
 
 Verified on 2026-03-20 in persistent sandbox with a disposable customer/product/order fixture:
@@ -57,6 +58,33 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture 
 - one later proof-only `GET /invoice?...id=2147531258&fields=*,postings(*,voucher(*))` showed `amountCurrencyOutstanding=1000` again
 - therefore the score-optimal exact-match production path is 2 calls, while the 3rd invoice read remains only an optional proof branch outside the minimum path
 
+Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture aimed at the missing-account case:
+- created product `84388586`
+- created customer `108260054`
+- created order `401965073`
+- invoiced it as invoice `2147537052` / invoice number `64`
+- paid it with payment type `32813748`
+- the decisive locate read showed the real reverse target as:
+  - `type=null`
+  - `description="Betaling: Faktura nummer 64 til Reflection Reverse Customer 1774032662638 (10076)"`
+  - `amountCurrency=-1000`
+  - `voucherId=608833573`
+  - `account=null`
+- `PUT /ledger/voucher/608833573/:reverse?date=2026-03-20` returned reverse voucher `608833574`
+- one proof-only `GET /invoice?...id=2147537052&fields=*,postings(*,voucher(*),account(*))` showed `amountCurrencyOutstanding=1000` again
+- therefore the fallback matcher must accept the unique negative `Betaling: ...` posting even when `account` is missing; rejecting it would waste an extra locate read without improving correctness
+
+Observed production miss on 2026-03-20:
+- exact prompt shape `customer.organizationNumber=888412972` + `amountExcludingVatCurrency=35800` + line text `Diseño web`
+- the first decisive `GET /invoice` already returned the correct paid invoice and the real payment posting:
+  - `type=null`
+  - `description="Betaling: Faktura nummer 1 til Montaña SL (10001)"`
+  - `amountCurrency=-44750`
+  - `voucherId=608775910`
+  - `account=null`
+- the run still finished correctly, but it lost the efficiency point because the local resolver over-required `account.number=1500`, threw away the winning voucher candidate, and forced one extra `GET /invoice`
+- lower-call replacement for the next agent: treat the first locate read as sufficient and reverse that voucher immediately
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -73,6 +101,7 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture 
    - prefer vouchers referenced by `type=INCOMING_PAYMENT` or `type=INCOMING_PAYMENT_OPPOSITE`
    - if no such typed posting exists, accept the unique negative customer-ledger payment posting instead
    - in practice that fallback is often `account.number=1500` plus payment text such as `Betaling: ...`, even when `posting.type` is `null`
+   - but do not require `account.number=1500`; if the same unique negative `Betaling: ...` posting comes back with `account=null`, it is still the correct reverse target
 5. Reverse that voucher
    - `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
 6. Stop for the score-optimal exact-match path
@@ -111,6 +140,7 @@ Re-verified on 2026-03-20 in persistent sandbox with another disposable fixture 
 - Do not send `fields=...payments(...)` on `GET /invoice`
 - Do not reverse the original invoice voucher when the prompt is about the payment voucher
 - Do not assume the payment voucher will always surface under `posting.type=INCOMING_PAYMENT`; a real matching payment posting can have `type=null`
+- Do not require `posting.account.number=1500` before accepting the fallback payment posting; some real exact-match reads omit the `account` expansion entirely
 - Do not spend an automatic final `GET /invoice` in an exact-match scored run once the right payment voucher has been isolated and successfully reversed
 - Do not verify the reopened balance against the prompt ex-VAT amount when the invoice object itself carries the true gross/pre-reversal balance
 - Do not add separate `GET /ledger/voucher/{id}` or `GET /ledger/posting` reads when the first invoice read already isolates one payment voucher
