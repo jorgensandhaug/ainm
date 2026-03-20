@@ -44,6 +44,7 @@
 - preserve prompt text exactly, including Unicode
 - do not invent `physicalAddress`
 - do not invent `invoiceEmail`
+- localized generic email labels such as `Correo` still map to `email`
 
 ## Reuse From Write Response
 - `value.id`
@@ -71,3 +72,4 @@
 - repeatedly sandbox-proven as one-call create
 - re-verified on 2026-03-20 in persistent sandbox with `postalAddress`; the same one-call write returned the scored postal fields plus a sparse auto-generated `physicalAddress` link
 - re-verified on 2026-03-20 in persistent sandbox with only `name`, `email`, and `organizationNumber`; a single `POST /customer` returned customer `id=108246240` plus defaults `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- re-verified on 2026-03-20 in persistent sandbox with `name`, localized generic email input, `organizationNumber`, and `postalAddress` (`Parkveien 49`, `4611`, `Kristiansand`); one `POST /customer` returned customer `id=108246353`, preserved all scored postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read

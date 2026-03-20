@@ -227,6 +227,7 @@ Authentication:
 - In standard customer creation tasks with one ordinary address, prefer `postalAddress` (`addressLine1`, `postalCode`, `city`) and do not also invent `physicalAddress` unless the prompt explicitly asks for a separate physical/visiting address.
 - `POST /customer` can still return a sparse `physicalAddress` link object even when you sent only `postalAddress`. Do not treat that as evidence that the prompt required a separate visiting address, and do not spend a follow-up `GET` just to inspect it.
 - In standard customer creation tasks with one generic prompt email, map it to `email`; do not also populate `invoiceEmail` unless the prompt explicitly asks for an invoice/billing email.
+- Treat localized generic email labels such as `Correo` the same as `Email`/`E-post` in create-customer tasks; they still map to `email`, not `invoiceEmail`.
 - If using a foreign organization number, country/address fields may need to be set consistently.
 - Product creation with VAT should resolve `vatType` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, not from the unfiltered VAT catalog or `typeOfVat=LEDGER`; broader lists can expose codes that still fail `POST /product` with `Internt felt (vatTypeId): Ugyldig mva-kode.`
 - For product VAT selection, do not filter away base VAT codes by requiring `parentType` to be missing; standard code `3` (`25% Utgående avgift, høy sats`) still has `parentType.id=0`.

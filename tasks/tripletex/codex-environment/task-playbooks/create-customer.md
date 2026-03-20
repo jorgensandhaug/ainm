@@ -38,6 +38,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Post Run 372928 AS`, `codex-post-run-372928@example.no`, and `999372928`; the single `POST /customer` returned customer `id=108240652` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 269241 AS`, `codex-reflection-269241@example.no`, `999269241`, and `postalAddress`; the single `POST /customer` returned customer `id=108245322`, preserved `Sjøgata 85` and `Trondheim`, and also auto-returned a sparse `physicalAddress` link without needing any extra read
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 722064 AS`, `codex-reflection-722064@example.no`, and `999722064`; the single `POST /customer` returned customer `id=108246240` plus default `invoiceSendMethod=EMAIL` and `emailAttachmentType=ATTACHMENT`
+- re-verified on 2026-03-20 in persistent sandbox with unique payload `Solmar Reflection 6602846b AS`, `post-reflection-6602846b@solmar.no`, `999660284`, and `postalAddress` `Parkveien 49`, `4611`, `Kristiansand`; the single `POST /customer` returned customer `id=108246353`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 
 ## Minimal Flow
 
@@ -120,7 +121,7 @@ This was verified in sandbox:
 
 ## Email Mapping For Standard Customer Creates
 
-- If the prompt gives one generic email address such as `E-mail`, `Email`, or `E‑post`, map it to `email`
+- If the prompt gives one generic email address such as `E-mail`, `Email`, `E‑post`, or `Correo`, map it to `email`
 - Do not also mirror that same address into `invoiceEmail` unless the prompt explicitly says it is the invoice/billing email
 - A single prompt email does not, by itself, justify inventing a separate invoice-delivery email field
 - The standard create flow still defaults invoice delivery fields from the account/customer setup, so adding `invoiceEmail` speculatively is unnecessary
