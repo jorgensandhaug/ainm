@@ -87,6 +87,7 @@ Authentication:
 |---|---|
 | Canonical common endpoints | `./trusted-standards/common-endpoints.md` |
 | Create customer | `./trusted-standards/create-customer.md` |
+| Create supplier | `./trusted-standards/create-supplier.md` |
 | Create department | `./trusted-standards/create-department.md` |
 | Create product | `./trusted-standards/create-product.md` |
 | Create project | `./trusted-standards/create-project.md` |
@@ -110,6 +111,7 @@ Authentication:
 |---|---|
 | Create customer invoice | `./task-playbooks/create-customer-invoice.md` |
 | Create customer | `./task-playbooks/create-customer.md` |
+| Create supplier | `./task-playbooks/create-supplier.md` |
 | Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./task-playbooks/create-order-invoice-and-register-payment.md` |
 | Create department | `./task-playbooks/create-department.md` |
@@ -256,6 +258,9 @@ Authentication:
 - `POST /travelExpense` and `GET /travelExpense/{id}?fields=*` can both return `costs[]` and `perDiemCompensations[]` as link-only `id`/`url`; for exact child verification use `GET /travelExpense/cost?travelExpenseId=...&fields=*` and `GET /travelExpense/perDiemCompensation?travelExpenseId=...&fields=*`.
 - Do not default supplier-invoice registration to `POST /incomingInvoice`; follow-up verification on 2026-03-20 showed that endpoint can fail with `403 You do not have permission to access this feature.` on an ordinary account even when generic ledger-voucher booking is allowed.
 - For the exact fresh-account supplier-invoice booking shape with one prompt-provided supplier identity, start with direct `POST /supplier`; do not spend `GET /supplier?...` unless the prompt explicitly indicates an existing-supplier lookup problem.
+- For the exact standard supplier-create shape with prompt-provided `name`, generic `email`, and `organizationNumber`, the canonical minimal path is one `POST /supplier`; do not add `GET /supplier`, `GET /supplier/{id}`, `invoiceEmail`, or speculative address fields unless the prompt explicitly requires them.
+- `POST /supplier` can still return sparse `postalAddress` and `physicalAddress` link objects even when you sent no address fields. Do not treat that as evidence that the prompt required addresses, and do not spend a follow-up `GET` just to inspect them.
+- In standard supplier creation tasks with one generic prompt email, map it to `email`; do not also populate `invoiceEmail` unless the prompt explicitly asks for an invoice/billing email.
 - In the supplier-invoice fast path, `POST /supplier` can already return the supplier ledger account id. Reuse `supplier.ledgerAccount.id` for the `2400` liability posting instead of spending an extra `GET /ledger/account?number=2400`.
 - For supplier-invoice registration through `POST /ledger/voucher`, resolve VAT from `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`, not `INCOMING_INVOICE`; the standard deductible 25% code can be present in `INCOMING` while missing from `INCOMING_INVOICE`.
 - For `POST /ledger/voucher`, do not send `amountVat` even though nearby schemas/documentation mention it; sandbox mapping rejected that field on 2026-03-20. Send `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` and let Tripletex generate the VAT posting.
