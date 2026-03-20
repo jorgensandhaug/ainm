@@ -7,6 +7,8 @@ Use for tasks like:
 - create several new departments where the prompt gives the names directly
 - no update, delete, or lookup of an existing department is requested
 
+If the prompt already exactly matches `./trusted-standards/create-department.md`, stop there and execute the trusted standard directly instead of re-confirming the same endpoint here.
+
 ## Verified Findings
 
 Sandbox verification on 2026-03-19 showed:

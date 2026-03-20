@@ -22,6 +22,8 @@
 3. verify directly from write response
 4. stop
 
+For exact matches, do not spend extra time re-reading `./trusted-standards/common-endpoints.md` or `./openapi.json`; this standard already fixes the winning endpoint and payload shape.
+
 ## Payload Rules
 - one department:
   - `{ "name": "..." }`
