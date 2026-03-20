@@ -1,0 +1,53 @@
+{
+  "report_key": "terminal_comparison",
+  "title": "Terminal Comparison Round 2 Seed 2",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/report.md",
+  "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+  "seed_index": 2,
+  "metadata": {
+    "round_number": 2,
+    "replay_run_count": 40,
+    "replay_source": "/home/jorge/repos/ainm/tasks/astar/data/derived/replay_summaries/round_id=76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2.npz",
+    "analysis_source": "/home/jorge/repos/ainm/tasks/astar/data/raw/analyses/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2.json",
+    "score": null,
+    "replay_frame_count": 51
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "Replay vs ground truth by class",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, replay aggregate on left, API ground truth on right."
+    },
+    {
+      "key": "replay_atlas",
+      "title": "Replay aggregate atlas",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/replay_atlas.png",
+      "description": "All replay-derived class probability maps."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "Ground truth atlas",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/ground_truth_atlas.png",
+      "description": "All analysis ground-truth class probability maps."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "Replay minus ground truth",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/reports/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/terminal_comparison/entropy_comparison.png",
+      "description": "Uncertainty maps for replay aggregate and ground truth."
+    }
+  ]
+}

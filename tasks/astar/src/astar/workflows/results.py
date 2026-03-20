@@ -196,6 +196,19 @@ class TrainHazardTeacherResult(BaseModel):
     embedding_dim: int = Field(ge=1)
 
 
+class TrainHistoricalBucketPriorResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    round_count: int = Field(ge=0)
+    analyzed_seed_count: int = Field(ge=0)
+    cell_count: int = Field(ge=0)
+    terrain_bucket_count: int = Field(ge=0)
+    structural_bucket_count: int = Field(ge=0)
+    full_bucket_count: int = Field(ge=0)
+    checkpoint_path: Path
+
+
 class TrainSummaryStudentResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -279,3 +292,130 @@ class SyntheticBenchmarkResult(BaseModel):
     episodes: list[SyntheticBenchmarkEpisodeResult]
     artifact_path: Path
     report_path: Path
+
+
+class HistoricalBenchmarkCellIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    kl: float = Field(ge=0.0)
+    predicted_class_index: int = Field(ge=0)
+    predicted_class_name: str
+    ground_truth_class_index: int = Field(ge=0)
+    ground_truth_class_name: str
+
+
+class HistoricalBenchmarkSeedResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int | None = None
+    seed_index: int = Field(ge=0)
+    mode: str
+    model_name: str
+    training_round_count: int = Field(ge=0)
+    training_analyzed_seed_count: int = Field(ge=0)
+    training_cell_count: int = Field(ge=0)
+    policy_name: str | None = None
+    budget: int | None = Field(default=None, ge=0)
+    episode_seed: int | None = Field(default=None, ge=0)
+    executed_queries: int | None = Field(default=None, ge=0)
+    score: float
+    weighted_kl: float
+    mean_prediction_entropy: float = Field(ge=0.0)
+    mean_ground_truth_entropy: float = Field(ge=0.0)
+    argmax_agreement_rate: float = Field(ge=0.0, le=1.0)
+    predicted_class_mass: list[float]
+    ground_truth_class_mass: list[float]
+    residual_class_mass: list[float]
+    support_full_pct: float | None = Field(default=None, ge=0.0, le=1.0)
+    support_structural_pct: float | None = Field(default=None, ge=0.0, le=1.0)
+    support_terrain_pct: float | None = Field(default=None, ge=0.0, le=1.0)
+    support_global_pct: float | None = Field(default=None, ge=0.0, le=1.0)
+    full_bucket_count_p10: float | None = Field(default=None, ge=0.0)
+    full_bucket_count_p50: float | None = Field(default=None, ge=0.0)
+    full_bucket_count_p90: float | None = Field(default=None, ge=0.0)
+    visualization_seconds: float | None = Field(default=None, ge=0.0)
+    top_kl_cells: list[HistoricalBenchmarkCellIssue]
+    report_path: Path | None = None
+    manifest_path: Path | None = None
+
+
+class HistoricalBenchmarkRoundResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int | None = None
+    policy_name: str | None = None
+    budget: int | None = Field(default=None, ge=0)
+    episode_seed: int | None = Field(default=None, ge=0)
+    executed_queries: int | None = Field(default=None, ge=0)
+    evaluated_seed_count: int = Field(ge=0)
+    visualized_seed_count: int = Field(default=0, ge=0)
+    mean_score: float
+    mean_weighted_kl: float
+    evaluation_seconds: float | None = Field(default=None, ge=0.0)
+    visualization_seconds: float = Field(default=0.0, ge=0.0)
+    seed_results: list[HistoricalBenchmarkSeedResult]
+
+
+class HistoricalBenchmarkResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    benchmark_name: str
+    model_name: str
+    mode: str
+    policy_name: str | None = None
+    budget: int | None = Field(default=None, ge=0)
+    episode_seed: int | None = Field(default=None, ge=0)
+    round_ids: list[str]
+    aggregate: CompetitionAggregate
+    rounds: list[HistoricalBenchmarkRoundResult]
+    evaluated_seed_count: int = Field(ge=0)
+    visualization_policy: str
+    visualized_seed_count: int = Field(ge=0)
+    evaluation_seconds: float = Field(default=0.0, ge=0.0)
+    visualization_seconds: float = Field(default=0.0, ge=0.0)
+    artifact_write_seconds: float = Field(default=0.0, ge=0.0)
+    total_runtime_seconds: float = Field(default=0.0, ge=0.0)
+    artifact_path: Path
+    report_path: Path
+    summary_jsonl_path: Path
+    summary_csv_path: Path
+
+
+class HistoricalBenchmarkSeedDelta(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_id: str
+    round_number: int | None = None
+    seed_index: int = Field(ge=0)
+    baseline_score: float
+    candidate_score: float
+    score_delta: float
+    baseline_weighted_kl: float
+    candidate_weighted_kl: float
+    weighted_kl_delta: float
+
+
+class HistoricalBenchmarkComparison(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    baseline_model_name: str
+    candidate_model_name: str
+    mode: str
+    policy_name: str | None = None
+    budget: int | None = Field(default=None, ge=0)
+    episode_seed: int | None = Field(default=None, ge=0)
+    seed_count: int = Field(ge=0)
+    mean_score_delta: float
+    mean_weighted_kl_delta: float
+    win_rate: float
+    loss_rate: float
+    tie_rate: float
+    score_delta_ci_low: float
+    score_delta_ci_high: float
+    seeds: list[HistoricalBenchmarkSeedDelta]
+    artifact_path: Path | None = None
+    report_path: Path | None = None

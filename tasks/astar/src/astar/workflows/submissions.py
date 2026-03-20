@@ -16,6 +16,8 @@ from astar.infra.artifacts.store import (
     save_prediction_tensor,
     write_submission_record,
 )
+from astar.features.geometry import compute_round_features
+from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -57,6 +59,22 @@ def build_submission(
     prediction_paths: list[Path] = []
     submission_record_paths: list[Path] = []
     static_config = default_static_semantic_config()
+    historical_analysis_dir = paths.raw_analysis_dir(round_id)
+    exclude_round_ids = (
+        [round_id]
+        if historical_analysis_dir.exists() and any(historical_analysis_dir.glob("seed_index=*.json"))
+        else None
+    )
+    historical_bundle = None
+    if model_name == "historical_bucket_prior":
+        historical_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+            paths,
+            exclude_round_ids=exclude_round_ids,
+        )
+        historical_bundle = historical_predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+        )
 
     for seed_index, initial_state in enumerate(round_detail.initial_states):
         initial_grid = np.asarray(initial_state.grid, dtype=np.int64)
@@ -64,6 +82,10 @@ def build_submission(
             prediction = build_uniform_prediction(round_detail.map_height, round_detail.map_width)
         elif model_name == "static_semantic":
             prediction = build_static_semantic_prediction(initial_grid, static_config)
+        elif model_name == "historical_bucket_prior":
+            if historical_bundle is None:
+                raise ValueError("historical bucket prior bundle missing")
+            prediction = historical_bundle.predictions_by_seed[seed_index]
         else:
             msg = f"unsupported model: {model_name}"
             raise ValueError(msg)

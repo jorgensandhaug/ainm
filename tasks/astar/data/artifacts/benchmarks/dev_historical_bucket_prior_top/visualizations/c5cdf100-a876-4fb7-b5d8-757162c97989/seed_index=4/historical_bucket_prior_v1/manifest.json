@@ -1,0 +1,112 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 8 Seed 4 historical_bucket_prior_v1",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/report.md",
+  "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+  "seed_index": 4,
+  "metadata": {
+    "mode": "prior_only",
+    "round_number": 8,
+    "model_name": "historical_bucket_prior_v1",
+    "score": 64.15759390680519,
+    "weighted_kl": 0.14794257486185564,
+    "training_round_count": 7,
+    "training_analyzed_seed_count": 35,
+    "training_cell_count": 56000,
+    "mean_prediction_entropy": 0.714876243420949,
+    "mean_ground_truth_entropy": 0.22080723581177403,
+    "argmax_agreement_rate": 1.0,
+    "predicted_class_mass": [
+      0.6369708075632629,
+      0.12439780079605514,
+      0.01558437526341443,
+      0.015232117966255622,
+      0.17860354697098388,
+      0.029211351440023105
+    ],
+    "ground_truth_class_mass": [
+      0.7459218750000011,
+      0.01757187500000005,
+      0.0005187500000000003,
+      0.0027093749999999696,
+      0.21265312499999842,
+      0.020625
+    ],
+    "residual_class_mass": [
+      -0.10895106743673821,
+      0.1068259257960551,
+      0.01506562526341443,
+      0.012522742966255652,
+      -0.03404957802901454,
+      0.008586351440023104
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "historical_bucket_prior_v1 vs ground truth by class",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "historical_bucket_prior_v1 atlas",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/prediction_atlas.png",
+      "description": "All class probability maps for historical_bucket_prior_v1."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "historical_bucket_prior_v1 minus ground truth",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    },
+    {
+      "key": "terrain_bucket_count",
+      "title": "Terrain bucket support",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/terrain_bucket_count.png",
+      "description": "Number of historical cells in the matching terrain-only bucket."
+    },
+    {
+      "key": "structural_bucket_count",
+      "title": "Structural bucket support",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/structural_bucket_count.png",
+      "description": "Number of historical cells in the matching structural bucket."
+    },
+    {
+      "key": "full_bucket_count",
+      "title": "Full bucket support",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/full_bucket_count.png",
+      "description": "Number of historical cells in the full feature bucket."
+    },
+    {
+      "key": "support_level",
+      "title": "Fallback level",
+      "path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/dev_historical_bucket_prior_top/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/support_level.png",
+      "description": "Deepest non-empty historical bucket used by the hierarchical prior."
+    }
+  ]
+}

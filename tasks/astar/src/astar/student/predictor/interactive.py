@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel, ConfigDict
 
 from astar.core.prediction import PredictionBundle
@@ -7,7 +9,9 @@ from astar.core.trajectory import LiveQueryObs
 from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
+from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
+from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -53,13 +57,38 @@ class RoundPredictorAdapter(BaseModel):
         )
 
 
-def build_online_predictor(model_name: str) -> RoundPredictorAdapter:
+def build_online_predictor(
+    model_name: str,
+    *,
+    paths: WorkspacePaths | None = None,
+    historical_round_ids: Sequence[str] | None = None,
+) -> RoundPredictorAdapter:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":
         geometry_predictor = GeometryPriorPredictor()
         return RoundPredictorAdapter(
             predictor=geometry_predictor,
             name=geometry_predictor.name,
+        )
+    if normalized == "historical_bucket_prior":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        if historical_round_ids is not None:
+            historical_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=list(historical_round_ids),
+            )
+        else:
+            checkpoint_path = workspace_paths.model_dir("historical_bucket_prior_v1") / "checkpoint.json"
+            if checkpoint_path.exists():
+                historical_predictor = HistoricalBucketPriorPredictor.load_checkpoint(checkpoint_path)
+            else:
+                historical_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+                    workspace_paths,
+                )
+                historical_predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=historical_predictor,
+            name=historical_predictor.name,
         )
     if normalized == "latent_regime":
         latent_predictor = LatentRegimePredictor()

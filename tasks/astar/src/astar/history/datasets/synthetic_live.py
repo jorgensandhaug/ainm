@@ -7,21 +7,20 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.core.grid import Viewport
 from astar.core.trajectory import LiveQueryObs
-from astar.core.world_state import LiveSettlementObs, SettlementFullState
+from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.episodes.build import build_round_episode
 from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
 from astar.history.summaries.round_coefficients import round_regime_summary_vector
-from astar.infra.api.dto import InitialSettlement, InitialState, RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.query_plan import QueryPlanItem
-from astar.policy.registry import build_named_policy
+from astar.policy.interactive import QueryPlanPolicyAdapter, build_interactive_policy
+from astar.student.predictor.transcript import TranscriptRecorderPredictor
 from astar.workflows.materialize_episode import materialize_round_episode
+from astar.workflows.online_episode import run_online_episode
 
 
 class SyntheticEpisodeIndexRow(BaseModel):
@@ -47,45 +46,14 @@ class SyntheticEpisodeArtifact(BaseModel):
     target_paths: dict[int, Path]
 
 
-def _item_to_observation(
+def _plan_budget(
+    policy: QueryPlanPolicyAdapter,
     round_id: str,
-    query_index: int,
-    item: QueryPlanItem,
-    final_grid: np.ndarray,
-    settlements: tuple[SettlementFullState, ...],
-) -> LiveQueryObs:
-    viewport = item.viewport
-    patch = np.asarray(
-        final_grid[
-            viewport.y : viewport.y + viewport.h,
-            viewport.x : viewport.x + viewport.w,
-        ],
-        dtype=np.int64,
-    )
-    patch_settlements = tuple(
-        LiveSettlementObs(
-            x=settlement.x,
-            y=settlement.y,
-            population=settlement.population,
-            food=settlement.food,
-            wealth=settlement.wealth,
-            defense=settlement.defense,
-            has_port=settlement.has_port,
-            alive=settlement.alive,
-            owner_id=settlement.owner_id,
-        )
-        for settlement in settlements
-        if viewport.x <= settlement.x < viewport.x + viewport.w
-        and viewport.y <= settlement.y < viewport.y + viewport.h
-    )
-    return LiveQueryObs(
-        round_id=round_id,
-        seed_index=item.seed_index,
-        viewport=Viewport(x=viewport.x, y=viewport.y, w=viewport.w, h=viewport.h),
-        grid=patch,
-        settlements=patch_settlements,
-        query_index=query_index,
-    )
+    oracle: SyntheticActiveOracle,
+) -> int:
+    round_context = oracle.get_round_context(round_id)
+    plan = policy.policy.build_plan(round_context.to_round_detail())
+    return sum(item.repeats for item in plan.items)
 
 
 def _target_info(
@@ -136,58 +104,28 @@ def build_synthetic_live_dataset(
 
     rows: list[dict[str, str | int]] = []
     total_query_count = 0
-    policy = build_named_policy(policy_name)
+    oracle = SyntheticActiveOracle(paths=paths)
+    policy = build_interactive_policy(policy_name)
+    recorder = TranscriptRecorderPredictor()
 
     for round_id in selected_round_ids:
         round_episode = build_round_episode(paths, round_id)
         if round_episode.replay_run_count == 0:
             continue
         materialize_round_episode(paths, round_id)
-
-        round_detail = RoundDetail(
-            id=round_episode.metadata.round_id,
-            round_number=int(round_episode.metadata.round_number or -1),
-            status=round_episode.metadata.status,
-            map_width=round_episode.metadata.map_width,
-            map_height=round_episode.metadata.map_height,
-            seeds_count=round_episode.metadata.seeds_count,
-            initial_states=[
-                InitialState(
-                    grid=seed.initial_state.grid.tolist(),
-                    settlements=[
-                        InitialSettlement(
-                            x=item.x,
-                            y=item.y,
-                            has_port=item.has_port,
-                            alive=item.alive,
-                        )
-                        for item in seed.initial_state.settlements
-                    ],
-                )
-                for seed in round_episode.seeds
-            ],
-        )
-        plan = policy.build_plan(round_detail)
-
+        budget = _plan_budget(policy, round_id, oracle)
         learning_episode = load_round_learning_episode(paths, round_id)
 
         for sample_index in range(samples_per_round):
-            observations: list[LiveQueryObs] = []
-            for query_index, item in enumerate(plan.items):
-                seed = round_episode.seeds[item.seed_index]
-                if not seed.replay_runs:
-                    continue
-                replay_run = seed.replay_runs[(sample_index + query_index) % len(seed.replay_runs)]
-                final_frame = replay_run.frames[-1]
-                observations.append(
-                    _item_to_observation(
-                        round_id=round_id,
-                        query_index=query_index,
-                        item=item,
-                        final_grid=final_frame.grid,
-                        settlements=final_frame.settlements,
-                    ),
-                )
+            episode_run = run_online_episode(
+                oracle,
+                round_id=round_id,
+                predictor=recorder,
+                policy=policy,
+                budget=budget,
+                episode_seed=sample_index,
+            )
+            observations = episode_run.belief.observations
 
             target_sources = {}
             target_paths = {}
@@ -206,11 +144,11 @@ def build_synthetic_live_dataset(
 
             artifact = SyntheticEpisodeArtifact(
                 round_id=round_id,
-                round_number=int(round_episode.metadata.round_number or -1),
+                round_number=int(episode_run.round_context.round_number or -1),
                 sample_index=sample_index,
                 policy_name=policy.name,
                 regime_vector=round_regime_summary_vector(round_episode),
-                observations=tuple(observations),
+                observations=observations,
                 target_sources=target_sources,
                 target_paths=target_paths,
             )

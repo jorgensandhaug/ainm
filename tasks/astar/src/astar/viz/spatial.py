@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import Normalize
 
-from astar.core.score import entropy_map
+from astar.core.score import cellwise_kl_divergence, entropy_map
 from astar.core.terrain import CLASS_COLORS, CLASS_NAMES
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.viz.base import class_probability_cmap
@@ -188,6 +188,33 @@ def plot_scalar_field_comparison(
     return output_path
 
 
+def plot_scalar_field(
+    field: np.ndarray,
+    output_path: Path,
+    *,
+    title: str,
+    cmap: str = "viridis",
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> Path:
+    array = np.asarray(field, dtype=np.float64)
+    if array.ndim != 2:
+        raise ValueError("scalar field plot expects 2D array")
+
+    computed_vmin = float(array.min()) if vmin is None else vmin
+    computed_vmax = float(array.max()) if vmax is None else vmax
+    figure, axis = plt.subplots(1, 1, figsize=(5.5, 4.5))
+    image = axis.imshow(array, cmap=cmap, vmin=computed_vmin, vmax=computed_vmax)
+    _style_axis(axis, title)
+    figure.colorbar(image, ax=axis, fraction=0.046, pad=0.04)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=160)
+    plt.close(figure)
+    return output_path
+
+
 def plot_entropy_comparison(
     left: np.ndarray,
     right: np.ndarray,
@@ -207,10 +234,35 @@ def plot_entropy_comparison(
     )
 
 
+def plot_kl_divergence_map(
+    ground_truth: np.ndarray,
+    prediction: np.ndarray,
+    output_path: Path,
+    *,
+    prediction_name: str,
+) -> Path:
+    kl = cellwise_kl_divergence(ground_truth, prediction)
+    finite = kl[np.isfinite(kl)]
+    vmax = float(finite.max()) if finite.size > 0 else 1.0
+    if vmax <= 0.0:
+        vmax = 1.0
+    display = np.asarray(np.where(np.isfinite(kl), kl, vmax), dtype=np.float64)
+    return plot_scalar_field(
+        display,
+        output_path,
+        title=f"Cellwise KL: ground truth vs {prediction_name}",
+        cmap="magma",
+        vmin=0.0,
+        vmax=vmax,
+    )
+
+
 __all__ = [
     "plot_categorical_tensor_comparison",
     "plot_categorical_tensor_residuals",
     "plot_class_probability_atlas",
     "plot_entropy_comparison",
+    "plot_kl_divergence_map",
+    "plot_scalar_field",
     "plot_scalar_field_comparison",
 ]

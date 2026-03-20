@@ -1,119 +1,411 @@
 # Astar Island
 
-Single-repo Python scaffold for Astar Island: typed API models, immutable raw logs, replayable derived tables, baseline submissions, and round reports.
+CLI-first research and operations repo for the Astar Island competition.
 
-## Principles
+This repo does four things:
 
-- Python only until real bottleneck
-- raw artifacts immutable
-- derived tables/tensors reproducible
-- CLI-first, notebook-friendly, thin dashboard
-- simple code, strict types, Pydantic at boundaries
-- all Astar data/versioned artifacts live in git
+- runs legal live rounds against the official API
+- stores immutable raw round/query/replay/analysis artifacts
+- materializes reproducible derived tensors and summaries
+- trains and evaluates offline priors, teachers, students, and policies
 
-## Layout
+`README.md` is the canonical doc for this repo. Treat files under `docs/` as supplementary notes, backlog, or historical context unless they explicitly say otherwise.
 
-The repo is organized around:
+Canonical challenge-facts doc: [game_facts.md](/home/jorge/repos/ainm/tasks/astar/docs/game_facts.md)
 
-- `src/astar/core`: pure math kernel, terrain semantics, scoring, prediction objects
-- `src/astar/infra`: API, artifact paths, blob metadata, DuckDB catalog
-- `src/astar/features`: deterministic geometry, reachability, influence, motifs
-- `src/astar/observe`: evidence aggregation, policy planning, query execution
-- `src/astar/student`: online-safe predictors and posterior logic
-- `src/astar/teacher`: privileged offline models
-- `src/astar/eval`: diagnostics, backtests, reports
-- `src/astar/workflows`: live round orchestration, analysis harvest, episode materialization
-- `src/experiments`: typed Python run specs
-- `data/raw`: immutable round/query/submission/analysis payloads
-- `data/derived`: parquet + tensor outputs
-- `data/artifacts`: plans, reports, live spec artifacts, episode summaries
-- `data/catalog.duckdb`: event log and episode observability metadata
+- read it before making claims about mechanics, API surface, scoring, or replay
+- it explicitly separates official public-doc facts from richer replay facts observed from direct platform use
 
-## Quickstart
+## Reader Guide
+
+- If you are new: read [game_facts.md](/home/jorge/repos/ainm/tasks/astar/docs/game_facts.md), then `Competition`, `Mental Model`, `Pipelines`, `Common Commands`.
+- If you are working on models: read `Current Model Stack`, `Data Layout`, `Agent Notes`.
+- If you are operating live rounds: read `Live Pipeline`, `Common Commands`, `Data Policy`.
+
+## Competition
+
+The task is not standard supervised classification.
+
+You see:
+
+- 5 seeds per round sharing one hidden round parameter set
+- a full initial map for each exposed seed
+- initial settlement positions and port flags
+- up to `50` total `simulate` queries per round across all seeds
+- each query reveals one stochastic year-50 viewport, max `15 x 15`
+
+You submit:
+
+- one `H x W x 6` probability tensor per seed
+
+You are scored by:
+
+- entropy-weighted KL between your prediction tensor and organizer ground-truth final-state marginals
+
+Important class mapping:
+
+| Internal code | Meaning | Scored class |
+| --- | --- | --- |
+| `10` | ocean | `0` empty |
+| `11` | plains | `0` empty |
+| `0` | empty | `0` empty |
+| `1` | settlement | `1` settlement |
+| `2` | port | `2` port |
+| `3` | ruin | `3` ruin |
+| `4` | forest | `4` forest |
+| `5` | mountain | `5` mountain |
+
+Operationally important facts:
+
+- mountains are static
+- forests are mostly slow-moving
+- settlements, ports, ruins carry most score-relevant uncertainty
+- zero probability on a class is dangerous; use a floor
+
+The local scorer is implemented in [score.py](/home/jorge/repos/ainm/tasks/astar/src/astar/core/score.py).
+
+For exact challenge facts, source tiers, and replay caveats, use [game_facts.md](/home/jorge/repos/ainm/tasks/astar/docs/game_facts.md).
+
+## Mental Model
+
+The native object in this repo is a round episode:
+
+- `M_r`: known initial maps and settlements for the exposed seeds
+- `D_r`: live query transcript
+- `P_r`: final truth tensors when analyses exist
+
+The architecture is built around two learning problems:
+
+1. Offline across historical rounds: learn stable structure, priors, replay summaries, teacher models.
+2. Online within the current round: infer a small round-specific regime from legal live evidence and build final predictions.
+
+Short thesis:
+
+- historical rounds learn `phi`
+- live rounds infer small `z_r`
+- replay is privileged offline information
+- online predictors must use only initial maps plus legal transcript evidence
+
+## Repo Map
+
+- `src/astar/core`
+  Pure contracts and math: terrain semantics, prediction objects, validation, scoring.
+- `src/astar/infra`
+  API DTOs/client, artifact paths/store, catalog/event logging.
+- `src/astar/history`
+  Replay ingestion, episode building, materialized learning views, synthetic datasets, historical summaries.
+- `src/astar/envs`
+  Oracle contracts and live/synthetic/historical environment adapters.
+- `src/astar/features`
+  Deterministic geometry/topology features from initial maps only.
+- `src/astar/observe`
+  Query/evidence logic over live transcripts.
+- `src/astar/student`
+  Online-safe predictors and posterior logic.
+- `src/astar/teacher`
+  Privileged offline models and decoders.
+- `src/astar/policy`
+  Interactive query policies.
+- `src/astar/eval`
+  Diagnostics, backtests, synthetic benchmark evaluation, reports.
+- `src/astar/viz`
+  Plotting and rendered artifacts only.
+- `src/astar/workflows`
+  End-to-end operational and research entrypoints.
+
+## Pipelines
+
+### Live Pipeline
+
+Canonical live path:
 
 ```bash
-uv sync --extra dev
-uv run pytest
-uv run astar show-round --round-id 00000000-0000-0000-0000-000000000001
-uv run astar fetch-replay --round-id 00000000-0000-0000-0000-000000000001 --seed-index 0
-uv run astar harvest-replays --samples-per-seed 10 --max-new-replays 50
-uv run astar harvest-replays --samples-per-seed 10 --random-delay-min-seconds 60 --random-delay-max-seconds 180
-uv run astar build-submission --round-id 00000000-0000-0000-0000-000000000001 --model static_semantic
-uv run astar validate-submission --round-id 00000000-0000-0000-0000-000000000001 --seed-index 0
-uv run astar round-report --round-id 00000000-0000-0000-0000-000000000001 --seed-index 0
-uv run astar dataset-summary
-uv run astar corpus-summary
-uv run astar episode-summary --round-id 00000000-0000-0000-0000-000000000001
-uv run astar materialize-episode --round-id 00000000-0000-0000-0000-000000000001
-uv run astar run-live-online --round-id <active-round-id> --model latent_regime --policy coverage --no-submit-predictions
+uv run astar run-live-online --round-id <round-id> --model latent_regime --policy coverage
 ```
 
-On most machines, plain `uv run ...` should just work. On stricter Linux hosts,
-the repo bootstraps runtime library dirs automatically when the host exposes
-them through env vars such as `ASTAR_EXTRA_LIBRARY_DIRS` or `NIX_LD_LIBRARY_PATH`.
+That path does:
 
-## Config
+1. sync round metadata from the API
+2. construct round context from initial states
+3. iterate `policy.select -> /simulate -> predictor.update`
+4. rebuild geometry + evidence from transcript
+5. predict all seeds
+6. validate tensors
+7. persist predictions/submission records
+8. optionally submit them
+9. log the run to the DuckDB catalog
 
-Copy `.env.example` and set:
+Key seams:
 
-- `ASTAR_BASE_URL`
-- `ASTAR_BEARER_TOKEN`
+- live oracle: [live.py](/home/jorge/repos/ainm/tasks/astar/src/astar/envs/live.py)
+- online episode runner: [online_episode.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/online_episode.py)
+- live workflow wrapper: [live_online.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/live_online.py)
 
-Cookie auth is also supported with `ASTAR_ACCESS_TOKEN`.
+### Historical Data Pipeline
+
+Historical/offline work starts from raw immutable artifacts:
+
+- rounds from `/rounds/{id}`
+- query logs from `/simulate`
+- replay captures from the site replay flow for completed rounds
+- post-round analyses from `/analysis/{round_id}/{seed_index}`
+
+Then:
+
+1. build a `RoundEpisode`
+2. summarize replay runs if present
+3. compute deterministic geometry features
+4. aggregate transcript evidence
+5. save per-seed feature/evidence/replay tensors
+6. expose a `RoundLearningEpisode` for training/eval
+
+Key seams:
+
+- episode builder: [build.py](/home/jorge/repos/ainm/tasks/astar/src/astar/history/episodes/build.py)
+- replay capture: [replay_capture.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/replay_capture.py)
+- replay summarization: [summarize_replays.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/summarize_replays.py)
+- episode materialization: [materialize_episode.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/materialize_episode.py)
+- learning view loader: [learning.py](/home/jorge/repos/ainm/tasks/astar/src/astar/history/learning.py)
+
+### Offline Training Pipeline
+
+There are currently two distinct offline branches.
+
+#### 1. Direct Historical Prior
+
+Train a cellwise empirical-Bayes prior directly from saved analyses:
+
+```bash
+uv run astar train-historical-bucket-prior
+```
+
+This produces `historical_bucket_prior_v1`, a hierarchical bucketed prior over final cell marginals.
+
+#### 2. Replay-Driven Teacher/Student Stack
+
+Replay branch:
+
+1. harvest many replay trajectories from completed rounds
+2. summarize their terminal/hazard behavior
+3. fit a privileged `HazardTeacher`
+4. build synthetic live-query episodes from replay-backed rounds
+5. fit a `SummaryBankStudent` that maps evidence summaries to regime posteriors
+
+This stack exists and is testable, but it is still experimental and not yet wired into the live serving path.
+
+Training entrypoints:
+
+```bash
+uv run astar train-hazard-teacher
+uv run astar train-summary-student
+```
+
+### Synthetic Evaluation Pipeline
+
+Synthetic evaluation uses the same online episode loop as live, but swaps the oracle:
+
+- live: official API-backed oracle
+- synthetic: replay-backed oracle with live-matching semantics
+
+This is the main safe place to compare policy/predictor combinations.
+
+Entry points:
+
+```bash
+uv run astar run-synthetic-tournament --round-id <round-id>
+uv run astar run-synthetic-benchmark --manifest data/artifacts/benchmarks/smoke.json
+uv run astar compare-synthetic-benchmarks --baseline <a.json> --candidate <b.json>
+```
+
+## Current Model Stack
+
+### Live-Exposed Predictors
+
+These are the models currently available through `build_online_predictor()`:
+
+- `geometry_prior`
+  Hand-built geometry-conditioned prior over final `H x W x 6` tensor.
+- `historical_bucket_prior`
+  Historical empirical-Bayes prior learned from saved analyses.
+- `latent_regime`
+  `geometry_prior` plus a 5-dimensional residual regime inferred from transcript evidence:
+  - expansion
+  - maritime
+  - conflict
+  - winter
+  - reclamation
+
+Live predictor wiring: [interactive.py](/home/jorge/repos/ainm/tasks/astar/src/astar/student/predictor/interactive.py)
+
+### Experimental Offline Stack
+
+- `HazardTeacher`
+  Fits semimechanistic round coefficients from replay-backed episodes, then decodes a regime vector into final tensors.
+- `SummaryBankStudent`
+  kNN-style posterior model over evidence summaries, using synthetic-live episodes plus the teacher decoder.
+
+Important current-state note:
+
+- this teacher/student path exists for offline research
+- it is not yet exposed via `run-live-online`
+
+## Data Layout
+
+Canonical path layout lives in [paths.py](/home/jorge/repos/ainm/tasks/astar/src/astar/infra/artifacts/paths.py).
+
+High-level contract:
+
+- `data/raw/**`
+  Immutable source-of-truth API payloads and replay captures.
+- `data/derived/**`
+  Reproducible tensors/parquet derived from raw artifacts.
+- `data/artifacts/**`
+  Reports, model checkpoints, datasets, benchmark outputs, run manifests.
+- `data/catalog.duckdb`
+  Event log / observability catalog.
+
+Most important subtrees:
+
+- `data/raw/rounds/*.json`
+- `data/raw/queries/<round_id>/*.json`
+- `data/raw/replays/<round_id>/seed_index=<k>/*.json`
+- `data/raw/submissions/<round_id>/seed_index=<k>.json`
+- `data/raw/analyses/<round_id>/seed_index=<k>.json`
+- `data/derived/features/round_id=<round_id>/seed_index=<k>.npz`
+- `data/derived/evidence/round_id=<round_id>/seed_index=<k>.npz`
+- `data/derived/replay_summaries/round_id=<round_id>/seed_index=<k>.npz`
+- `data/derived/predictions/round_id=<round_id>/seed_index=<k>.npz`
+- `data/artifacts/datasets/*`
+- `data/artifacts/models/*`
+- `data/artifacts/benchmarks/*`
 
 ## Data Policy
 
-Everything under this project is meant to be shared through git, including:
+This project intentionally versions data artifacts in git.
+
+Committed:
 
 - `data/raw/**`
 - `data/derived/**`
 - `data/artifacts/**`
-- plans, reports, tensors, parquet tables, query logs
 
-This is intentional. The observation log is critical and losing it is unacceptable.
-
-What is **not** committed:
+Not committed:
 
 - `.env`
-- secrets/tokens
-- local caches like `.venv`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`
+- auth tokens
+- local env/cache directories
 
-Useful commands:
+Repo invariant:
+
+- raw artifacts are immutable
+- derived artifacts should be reproducible from raw inputs plus code
+
+## Common Commands
+
+Bootstrap:
 
 ```bash
-make status-project
-make stage-data
-make stage-project
-make check-data-tracked
+uv sync --extra dev
+uv run pytest
 ```
 
-`make stage-project` stages only this Astar project subtree, not unrelated repo changes outside it.
+Inspect/sync rounds:
 
-## Current Scope
+```bash
+uv run astar list-rounds
+uv run astar active-round
+uv run astar sync-round --round-id <round-id>
+uv run astar show-round --round-id <round-id>
+```
 
-Stage 1 scaffold includes:
+Live usage:
 
-- Pydantic API schemas
-- query/raw artifact logger
-- terrain mapping + local validator
-- entropy-weighted KL scorer
-- parquet replay for query/cell/settlement observations
-- uniform + static-semantic baselines
-- fixture-backed sample report
+```bash
+uv run astar run-live-online --round-id <round-id> --model latent_regime --policy coverage --no-submit-predictions
+uv run astar submit --round-id <round-id> --seed-index 0
+```
 
-The current playground layer now also includes:
+Historical data:
 
-- mainline query planning from Python policies plus JSON plan artifacts
-- deterministic geometry feature bundles per seed
-- round evidence aggregation from raw query logs
-- raw full-rollout replay capture under `data/raw/replays/<round_id>/seed_index=<seed>/`
-- episode materialization into reusable feature/evidence tensors
-- a typed historical round loader for offline learning experiments
-- a typed corpus summary for leave-one-seed-out and multi-seed holdout experiments
-- a geometry prior predictor
-- a shared round-latent heuristic predictor seam
-- round episode diagnostics and local dataset diagnostics
-- a DuckDB event catalog for live and offline observability
-- `run-live-online` as the only live execution path
+```bash
+uv run astar harvest-replays --samples-per-seed 10 --max-new-replays 50
+uv run astar ingest-replays --round-id <round-id>
+uv run astar summarize-replays --round-id <round-id>
+uv run astar fetch-round-analyses --round-id <round-id>
+uv run astar materialize-episode --round-id <round-id>
+uv run astar episode-summary --round-id <round-id>
+uv run astar dataset-summary
+uv run astar corpus-summary
+```
 
-See [architecture.md](/home/jorge/repos/ainm/tasks/astar/docs/architecture.md) for the target design.
+Offline training and eval:
+
+```bash
+uv run astar train-historical-bucket-prior
+uv run astar train-hazard-teacher
+uv run astar train-summary-student
+uv run astar run-synthetic-tournament --round-id <round-id>
+uv run astar run-synthetic-benchmark --manifest data/artifacts/benchmarks/smoke.json
+uv run astar backtest-round --round-id <round-id>
+```
+
+## Human Notes
+
+- The repo is intentionally CLI-first. Notebooks are optional views, not source of truth.
+- The real system shape is replay-driven, but live inference must remain legal and online-safe.
+- Replay is an observed offline data source, not a documented public replay API contract. See [game_facts.md](/home/jorge/repos/ainm/tasks/astar/docs/game_facts.md).
+- If you are trying to understand "what matters", start with:
+  - [cli.py](/home/jorge/repos/ainm/tasks/astar/src/astar/cli.py)
+  - [live_online.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/live_online.py)
+  - [materialize_episode.py](/home/jorge/repos/ainm/tasks/astar/src/astar/workflows/materialize_episode.py)
+  - [historical_bucket.py](/home/jorge/repos/ainm/tasks/astar/src/astar/student/predictor/historical_bucket.py)
+  - [heuristic.py](/home/jorge/repos/ainm/tasks/astar/src/astar/student/predictor/heuristic.py)
+
+## Agent Notes
+
+This section is intentionally direct.
+
+- `README.md` is canonical. Prefer updating it over creating new overlapping docs.
+- `docs/game_facts.md` is canonical for external challenge facts. Update it first if rules/mechanics/API/scoring/replay facts change.
+- Keep one obvious story:
+  - one live loop
+  - one historical materialization path
+  - one synthetic benchmark path
+- Preserve information boundaries:
+  - online/student/policy code must not consume replay trajectories directly
+  - replay and analysis are privileged offline data
+- When adding docs:
+  - describe the real system, not historical refactor steps
+  - separate current behavior from future ideas
+  - prefer concrete commands and file paths over vague prose
+- When adding code:
+  - raw artifacts immutable
+  - derived artifacts reproducible
+  - CLI is operational surface
+  - avoid notebook-only logic
+- If a new model is offline-only, say so explicitly in docs.
+
+Useful starting files for agents:
+
+- [cli.py](/home/jorge/repos/ainm/tasks/astar/src/astar/cli.py)
+- [paths.py](/home/jorge/repos/ainm/tasks/astar/src/astar/infra/artifacts/paths.py)
+- [store.py](/home/jorge/repos/ainm/tasks/astar/src/astar/infra/artifacts/store.py)
+- [interactive.py](/home/jorge/repos/ainm/tasks/astar/src/astar/student/predictor/interactive.py)
+- [coverage.py](/home/jorge/repos/ainm/tasks/astar/src/astar/policy/coverage.py)
+
+## Docs Directory
+
+`docs/` is now for supplementary material only:
+
+- `cleanup_matrix.md`
+  cleanup/refactor decision record
+- `game_facts.md`
+  canonical external challenge facts and replay caveats
+- `handoff_from_high_level_agent.md`
+  historical architecture handoff brief
+- `research_operating_system_backlog.md`
+  long-horizon backlog
+- `ideas.md`
+  raw notes
+
+If any of those disagree with this README, trust this README first, then verify in code.

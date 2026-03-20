@@ -1,0 +1,186 @@
+{
+  "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+  "round_number": 8,
+  "summary_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/c5cdf100-a876-4fb7-b5d8-757162c97989/summary.json",
+  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/c5cdf100-a876-4fb7-b5d8-757162c97989/report.md",
+  "replay_report_path": null,
+  "feature_names": [
+    "buildable",
+    "coast",
+    "coast_distance",
+    "coastal_exposure",
+    "forest_density",
+    "frontier_score",
+    "land",
+    "land_distance_to_settlement",
+    "maritime_access",
+    "mountain_density",
+    "sea_distance_to_port",
+    "settlement_basin_gap",
+    "settlement_proximity"
+  ],
+  "per_seed": [
+    {
+      "seed_index": 0,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=0.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=0.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
+      "has_prediction": true,
+      "has_analysis": true
+    },
+    {
+      "seed_index": 1,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=1.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=1.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
+      "has_prediction": true,
+      "has_analysis": true
+    },
+    {
+      "seed_index": 2,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=2.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=2.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
+      "has_prediction": true,
+      "has_analysis": true
+    },
+    {
+      "seed_index": 3,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=3.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=3.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
+      "has_prediction": true,
+      "has_analysis": true
+    },
+    {
+      "seed_index": 4,
+      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4.npz",
+      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4.npz",
+      "replay_summary_path": null,
+      "replay_run_count": 0,
+      "has_prediction": true,
+      "has_analysis": true
+    }
+  ],
+  "diagnostics": {
+    "summary": {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "round_number": 8,
+      "status": "completed",
+      "seed_count": 5,
+      "query_count": 45,
+      "repeated_window_groups": 0,
+      "submission_count": 5,
+      "analysis_count": 5,
+      "replay_run_count": 0,
+      "replay_seed_count": 0,
+      "replay_summary_count": 0
+    },
+    "per_seed": [
+      {
+        "seed_index": 0,
+        "query_count": 9,
+        "coverage_min": 1,
+        "coverage_max": 4,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 1,
+        "query_count": 9,
+        "coverage_min": 1,
+        "coverage_max": 4,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 2,
+        "query_count": 9,
+        "coverage_min": 1,
+        "coverage_max": 4,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 3,
+        "query_count": 9,
+        "coverage_min": 1,
+        "coverage_max": 4,
+        "repeated_window_groups": 0
+      },
+      {
+        "seed_index": 4,
+        "query_count": 9,
+        "coverage_min": 1,
+        "coverage_max": 4,
+        "repeated_window_groups": 0
+      }
+    ],
+    "scored_seed_count": 5,
+    "mean_ground_truth_entropy": 0.26974673436916957,
+    "score_by_seed": {
+      "0": 5.2387,
+      "1": 4.5692,
+      "2": 4.9656,
+      "3": 4.0128,
+      "4": 4.3719
+    }
+  },
+  "replay_round_summary": null,
+  "backtest_result": {
+    "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "seed_results": [
+      {
+        "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+        "seed_index": 0,
+        "score_breakdown": {
+          "weighted_kl": 0.9830348529798166,
+          "score": 5.238659405987288,
+          "entropy_sum": 539.8582198289137,
+          "nonzero_entropy_cells": 1347
+        }
+      },
+      {
+        "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+        "seed_index": 1,
+        "score_breakdown": {
+          "weighted_kl": 1.0286091229184515,
+          "score": 4.569221394666929,
+          "entropy_sum": 351.5044329850763,
+          "nonzero_entropy_cells": 1344
+        }
+      },
+      {
+        "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+        "seed_index": 2,
+        "score_breakdown": {
+          "weighted_kl": 1.0008790448811786,
+          "score": 4.965594613455352,
+          "entropy_sum": 528.2250708420147,
+          "nonzero_entropy_cells": 1346
+        }
+      },
+      {
+        "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+        "seed_index": 3,
+        "score_breakdown": {
+          "weighted_kl": 1.0718962909991785,
+          "score": 4.0127681424035115,
+          "entropy_sum": 385.0945739985134,
+          "nonzero_entropy_cells": 1297
+        }
+      },
+      {
+        "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+        "seed_index": 4,
+        "score_breakdown": {
+          "weighted_kl": 1.0433204558766154,
+          "score": 4.371948620750066,
+          "entropy_sum": 353.29157729883843,
+          "nonzero_entropy_cells": 1312
+        }
+      }
+    ]
+  }
+}

@@ -4,7 +4,12 @@ from astar.eval.backtest import BacktestRoundResult
 from astar.eval.competition import PairedBenchmarkComparison
 from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
 from astar.eval.science import ScienceRoundReport
-from astar.workflows.results import EvaluateTeacherScienceResult, SyntheticBenchmarkResult
+from astar.workflows.results import (
+    EvaluateTeacherScienceResult,
+    HistoricalBenchmarkComparison,
+    HistoricalBenchmarkResult,
+    SyntheticBenchmarkResult,
+)
 
 
 def render_round_episode_diagnostics(diagnostics: RoundEpisodeDiagnostics) -> str:
@@ -88,6 +93,97 @@ def render_synthetic_benchmark_report(result: SyntheticBenchmarkResult) -> str:
         lines.append(
             f"round={item.round_id} episode_seed={item.episode_seed} "
             f"score={item.mean_score:.4f} weighted_kl={item.mean_weighted_kl:.6f}",
+        )
+    return "\n".join(lines)
+
+
+def render_historical_benchmark_report(result: HistoricalBenchmarkResult) -> str:
+    lines = [
+        f"historical-benchmark {result.benchmark_name}",
+        f"model: {result.model_name}",
+        f"mode: {result.mode}",
+        f"policy: {result.policy_name or 'n/a'}",
+        f"budget: {result.budget if result.budget is not None else 'n/a'}",
+        f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
+        f"rounds: {len(result.rounds)}",
+        f"evaluated_seeds: {result.evaluated_seed_count}",
+        f"visualization_policy: {result.visualization_policy}",
+        f"visualized_seeds: {result.visualized_seed_count}",
+        f"mean_score: {result.aggregate.mean_score:.4f}",
+        f"mean_weighted_kl: {result.aggregate.mean_weighted_kl:.6f}",
+        f"timing_total_s: {result.total_runtime_seconds:.3f}",
+        f"timing_eval_s: {result.evaluation_seconds:.3f}",
+        f"timing_viz_s: {result.visualization_seconds:.3f}",
+        f"timing_write_s: {result.artifact_write_seconds:.3f}",
+        (
+            "round_mean_score_range: "
+            f"{result.aggregate.min_score:.4f}..{result.aggregate.max_score:.4f}"
+        ),
+        f"artifact: {result.artifact_path}",
+        f"report: {result.report_path}",
+        f"summary_jsonl: {result.summary_jsonl_path}",
+        f"summary_csv: {result.summary_csv_path}",
+    ]
+    for round_result in result.rounds:
+        round_prefix = (
+            f"#{round_result.round_number} {round_result.round_id}"
+            if round_result.round_number is not None
+            else round_result.round_id
+        )
+        executed_queries = (
+            round_result.executed_queries
+            if round_result.executed_queries is not None
+            else "n/a"
+        )
+        lines.append(
+            f"{round_prefix} seeds={round_result.evaluated_seed_count} "
+            f"visualized={round_result.visualized_seed_count} "
+            f"queries={executed_queries} "
+            f"score={round_result.mean_score:.4f} kl={round_result.mean_weighted_kl:.6f} "
+            f"eval_s={(round_result.evaluation_seconds or 0.0):.3f} "
+            f"viz_s={round_result.visualization_seconds:.3f}",
+        )
+        for seed_result in round_result.seed_results:
+            support = (
+                "n/a"
+                if seed_result.support_full_pct is None
+                else (
+                    "full="
+                    f"{seed_result.support_full_pct:.3f} "
+                    f"struct={seed_result.support_structural_pct:.3f} "
+                    f"terrain={seed_result.support_terrain_pct:.3f} "
+                    f"global={seed_result.support_global_pct:.3f}"
+                )
+            )
+            lines.append(
+                f"  seed={seed_result.seed_index} score={seed_result.score:.4f} "
+                f"kl={seed_result.weighted_kl:.6f} support={support} "
+                f"viz_s={(seed_result.visualization_seconds or 0.0):.3f}",
+            )
+    return "\n".join(lines)
+
+
+def render_historical_benchmark_comparison_report(result: HistoricalBenchmarkComparison) -> str:
+    lines = [
+        "historical-benchmark-comparison",
+        f"baseline: {result.baseline_model_name}",
+        f"candidate: {result.candidate_model_name}",
+        f"mode: {result.mode}",
+        f"policy: {result.policy_name or 'n/a'}",
+        f"budget: {result.budget if result.budget is not None else 'n/a'}",
+        f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
+        f"seeds: {result.seed_count}",
+        f"mean_score_delta: {result.mean_score_delta:.4f}",
+        f"mean_weighted_kl_delta: {result.mean_weighted_kl_delta:.6f}",
+        f"win_rate: {result.win_rate:.3f}",
+        f"loss_rate: {result.loss_rate:.3f}",
+        f"tie_rate: {result.tie_rate:.3f}",
+        f"score_delta_ci95: [{result.score_delta_ci_low:.4f}, {result.score_delta_ci_high:.4f}]",
+    ]
+    for item in result.seeds:
+        lines.append(
+            f"round={item.round_id} seed={item.seed_index} "
+            f"delta={item.score_delta:.4f} kl_delta={item.weighted_kl_delta:.6f}",
         )
     return "\n".join(lines)
 

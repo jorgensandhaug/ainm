@@ -19,6 +19,8 @@ from astar.cli_output import (
     render_fetch_analysis,
     render_fetch_round_analyses,
     render_harvest_replays,
+    render_historical_benchmark_comparison,
+    render_historical_benchmark,
     render_ingest_replays,
     render_inspect_replays,
     render_json,
@@ -39,6 +41,7 @@ from astar.cli_output import (
     render_synthetic_benchmark,
     render_synthetic_tournament,
     render_teacher_science,
+    render_train_historical_bucket_prior,
     render_train_hazard_teacher,
     render_train_summary_student,
     render_validation,
@@ -63,11 +66,13 @@ from astar.policy import build_interactive_policy, build_named_policy
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
+from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
+from astar.workflows.historical_benchmark import run_historical_benchmark
 from astar.workflows.live_online import run_live_online_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
@@ -78,6 +83,8 @@ from astar.workflows.summarize_replays import inspect_replays, summarize_round_r
 from astar.workflows.sync_round import sync_round
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
+from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
+from astar.workflows.visualize_model_prediction import visualize_model_prediction
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
 from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
@@ -162,7 +169,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     build_parser_cmd = subparsers.add_parser("build-submission")
     build_parser_cmd.add_argument("--round-id", required=True)
-    build_parser_cmd.add_argument("--model", choices=["uniform", "static_semantic"], required=True)
+    build_parser_cmd.add_argument(
+        "--model",
+        choices=["uniform", "static_semantic", "historical_bucket_prior"],
+        required=True,
+    )
 
     validate_parser = subparsers.add_parser("validate-submission")
     validate_parser.add_argument("--round-id", required=True)
@@ -184,6 +195,20 @@ def build_parser() -> argparse.ArgumentParser:
     terminal_comparison_parser.add_argument("--round-id", required=True)
     terminal_comparison_parser.add_argument("--seed-index", type=int, required=True)
 
+    model_prediction_parser = subparsers.add_parser("visualize-model-prediction")
+    model_prediction_parser.add_argument("--round-id", required=True)
+    model_prediction_parser.add_argument("--seed-index", type=int, required=True)
+    model_prediction_parser.add_argument(
+        "--model",
+        choices=[
+            "static_semantic",
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+        ],
+        required=True,
+    )
+
     fetch_round_analyses_parser = subparsers.add_parser("fetch-round-analyses")
     fetch_round_analyses_parser.add_argument("--round-id", required=True)
 
@@ -203,6 +228,11 @@ def build_parser() -> argparse.ArgumentParser:
     teacher_terminal_parser = subparsers.add_parser("build-teacher-terminal-dataset")
     teacher_terminal_parser.add_argument("--round-id", action="append", default=None)
 
+    train_historical_bucket_parser = subparsers.add_parser("train-historical-bucket-prior")
+    train_historical_bucket_parser.add_argument("--round-id", action="append", default=None)
+    train_historical_bucket_parser.add_argument("--exclude-round-id", action="append", default=None)
+    train_historical_bucket_parser.add_argument("--model-name", default="historical_bucket_prior_v1")
+
     synthetic_live_parser = subparsers.add_parser("build-synthetic-live-dataset")
     synthetic_live_parser.add_argument("--round-id", action="append", default=None)
     synthetic_live_parser.add_argument("--policy", default="coverage")
@@ -212,7 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -224,7 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -236,15 +266,47 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
     )
 
+    historical_benchmark_parser = subparsers.add_parser("run-historical-benchmark")
+    historical_benchmark_parser.add_argument(
+        "--model",
+        choices=["static_semantic", "geometry_prior", "historical_bucket_prior", "latent_regime"],
+        required=True,
+    )
+    historical_benchmark_parser.add_argument(
+        "--mode",
+        choices=["prior_only", "online_interactive"],
+        default="prior_only",
+    )
+    historical_benchmark_parser.add_argument("--round-id", action="append", default=None)
+    historical_benchmark_parser.add_argument("--policy", default="coverage")
+    historical_benchmark_parser.add_argument("--budget", type=int, default=50)
+    historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
+    historical_benchmark_parser.add_argument(
+        "--with-png",
+        choices=["none", "top", "all"],
+        default="top",
+    )
+    historical_benchmark_parser.add_argument("--name", default=None)
+
+    compare_historical_parser = subparsers.add_parser("compare-historical-benchmarks")
+    compare_historical_parser.add_argument("--baseline", required=True)
+    compare_historical_parser.add_argument("--candidate", required=True)
+    compare_historical_parser.add_argument("--bootstrap-samples", type=int, default=500)
+
     live_online_parser = subparsers.add_parser("run-live-online")
     live_online_parser.add_argument("--round-id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "latent_regime"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime"],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")
-    live_online_parser.add_argument("--budget", type=int, default=50)
+    live_online_parser.add_argument(
+        "--budget",
+        type=int,
+        default=50,
+        help="new live queries to spend this run; use 0 to load saved local raw queries only",
+    )
     live_online_parser.add_argument(
         "--submit-predictions",
         action=argparse.BooleanOptionalAction,
@@ -431,6 +493,20 @@ def _main() -> int:
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0
 
+    if args.command == "train-historical-bucket-prior":
+        bucket_result = train_historical_bucket_prior(
+            paths,
+            round_ids=args.round_id,
+            exclude_round_ids=args.exclude_round_id,
+            model_name=args.model_name,
+        )
+        _emit(
+            args.json,
+            bucket_result,
+            render_train_historical_bucket_prior(bucket_result),
+        )
+        return 0
+
     if args.command == "build-synthetic-live-dataset":
         dataset = build_synthetic_live_dataset(
             paths,
@@ -486,7 +562,7 @@ def _main() -> int:
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=build_online_predictor(args.model),
+            predictor=build_online_predictor(args.model, paths=paths),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             episode_seed=args.episode_seed,
@@ -501,7 +577,7 @@ def _main() -> int:
     if args.command == "run-synthetic-benchmark":
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=build_online_predictor(args.model),
+            predictor=build_online_predictor(args.model, paths=paths),
             policy=build_interactive_policy(args.policy),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
@@ -512,6 +588,39 @@ def _main() -> int:
             args.json,
             benchmark_result,
             render_synthetic_benchmark(benchmark_result),
+        )
+        return 0
+
+    if args.command == "run-historical-benchmark":
+        benchmark_result = run_historical_benchmark(
+            paths,
+            model_name=args.model,
+            round_ids=args.round_id,
+            mode=args.mode,
+            policy_name=args.policy,
+            budget=args.budget,
+            episode_seed=args.episode_seed,
+            visualization_policy=args.with_png,
+            benchmark_name=args.name,
+        )
+        _emit(
+            args.json,
+            benchmark_result,
+            render_historical_benchmark(benchmark_result),
+        )
+        return 0
+
+    if args.command == "compare-historical-benchmarks":
+        comparison_result = compare_historical_benchmark_artifacts(
+            paths,
+            baseline_path=Path(args.baseline),
+            candidate_path=Path(args.candidate),
+            n_bootstrap=args.bootstrap_samples,
+        )
+        _emit(
+            args.json,
+            comparison_result,
+            render_historical_benchmark_comparison(comparison_result),
         )
         return 0
 
@@ -568,7 +677,7 @@ def _main() -> int:
             paths,
             client,
             round_id=round_id,
-            predictor=build_online_predictor(args.model),
+            predictor=build_online_predictor(args.model, paths=paths),
             policy=build_interactive_policy(args.policy),
             budget=args.budget,
             submit_predictions=args.submit_predictions,
@@ -673,6 +782,17 @@ def _main() -> int:
             paths,
             args.round_id,
             args.seed_index,
+            client=client,
+        )
+        _emit(args.json, artifacts, render_visualization_report(artifacts))
+        return 0
+
+    if args.command == "visualize-model-prediction":
+        artifacts = visualize_model_prediction(
+            paths,
+            args.round_id,
+            args.seed_index,
+            args.model,
             client=client,
         )
         _emit(args.json, artifacts, render_visualization_report(artifacts))

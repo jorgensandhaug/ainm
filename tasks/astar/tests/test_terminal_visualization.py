@@ -62,6 +62,7 @@ def test_visualize_terminal_comparison_builds_manifest_and_figures(sample_paths:
         "ground_truth_atlas",
         "residual_atlas",
         "entropy_comparison",
+        "kl_divergence",
     }
     assert all(path.exists() for path in result.figure_paths.values())
     assert sample_paths.replay_summary_path(ROUND_ID, 0).exists()
@@ -70,4 +71,4 @@ def test_visualize_terminal_comparison_builds_manifest_and_figures(sample_paths:
     assert manifest["report_key"] == "terminal_comparison"
     assert manifest["seed_index"] == 0
     assert manifest["metadata"]["replay_run_count"] == 2
-    assert len(manifest["figures"]) == 6
+    assert len(manifest["figures"]) == 7
