@@ -99,6 +99,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - line or order data
   - sometimes outgoing `vatType`
   - sometimes company bank-account repair through `/ledger/account/{id}`
+- Standard fast-path note:
+  - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning path is usually invoice read, voucher reverse, invoice verify
+- Standard field note:
+  - on outgoing invoice reads, use `postings(...)` for payment-voucher discovery; `payments(...)` is not a valid `fields` member on the endpoint response shape
 
 ## Supplier
 - `/supplier`

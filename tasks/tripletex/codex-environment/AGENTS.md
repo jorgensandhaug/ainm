@@ -94,6 +94,7 @@ Authentication:
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
 | Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
 | Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
+| Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
 | Register travel expense | `./trusted-standards/register-travel-expense.md` |
 
@@ -116,6 +117,7 @@ Authentication:
 | Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
+| Reverse registered payment on customer invoice | `./task-playbooks/reverse-customer-invoice-payment.md` |
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
 | Register travel expense | `./task-playbooks/register-travel-expense.md` |
 
@@ -230,6 +232,7 @@ Authentication:
 - In that fixed-price partial-billing flow, `POST /order` may still echo `orderLines=[]` even when the embedded line was created. If the invoice write response does not already prove the project link, one targeted `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` can confirm both the line and `orders[0].project.id`.
 - If such a task requires creating the customer and the prompt gives no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` instead of inventing email or address fields.
 - For customer invoice payment tasks, `GET /invoice` can often locate the exact outgoing invoice in one read if you request `customer(*)` and `orderLines(*)` and filter locally by organization number, ex-VAT amount, and prompt text such as a service description. The payment write is `PUT /invoice/{id}/:payment`, and the write response can usually verify `amountOutstanding=0` without a follow-up `GET`.
+- For outgoing customer invoice payment-reversal tasks, `GET /invoice` exposes payment voucher candidates under `postings`, not `payments`; `fields=...payments(...)` can fail with `400 Illegal field in fields filter: payments ... InvoiceDTO`. Use `postings(*,voucher(*))`, reverse the payment voucher through `PUT /ledger/voucher/{id}/:reverse`, then verify the reopened outstanding amount with one final `GET /invoice`.
 - `GET /invoice/paymentType` can return `debitAccount.number` and `creditAccount.number` as numeric values, not strings. Normalize before applying string-prefix heuristics such as `19xx` bank account or `15xx` customer ledger checks.
 - `GET /invoice/paymentType` can also return perfectly usable incoming payment types with `creditAccount=null`. Do not reject `Betalt til bank` just because there is no `15xx` credit account in the response; prefer a payment type whose debit account is `19xx` and marked `isBankAccount=true` or `isInvoiceAccount=true`.
 - If a multi-step order/invoice/payment flow already created the order and invoice but failed before payment registration, do not restart from `POST /order`. Resume by locating the unpaid invoice with one decisive `GET /invoice` and finish the payment on that existing invoice.
