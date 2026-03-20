@@ -42,6 +42,8 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection 64b4936f AS`, `post-reflection-64b4936f@example.no`, `999493664`, and `postalAddress` `Fjordveien 129`, `2317`, `Hamar`; the single `POST /customer` returned customer `id=108248251`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in production for the German-language prompt `Grünfeld GmbH`, `886669445`, `post@grunfeld.no`, and `Kirkegata 87, 6003 Ålesund`; the single `POST /customer` returned customer `id=108268199`, preserved the exact Unicode name and city, and still needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with production-like German prompt semantics and unique payload `Grünfeld Reflection 201018 AS`, `post-reflection-201018@grunfeld.no`, `999201018`, and `postalAddress` `Kirkegata 87`, `6003`, `Ålesund`; the same single `POST /customer` returned customer `id=108268237`, preserved the exact Unicode name and city, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in production for the French-language prompt `Colline SARL`, `939137599`, `post@colline.no`, and `Kirkegata 77, 4611 Kristiansand`; the single `POST /customer` returned customer `id=108284978`, preserved the exact name, email, and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in persistent sandbox with production-like French prompt semantics and unique payload `Colline Reflection c833b15d SARL`, `post-reflection-c833b15d@colline.no`, `999833115`, and `postalAddress` `Kirkegata 77`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108285083`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 
 ## Minimal Flow
 
@@ -66,7 +68,7 @@ This was verified in sandbox:
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
 - Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
 - Do not transliterate prompt text; preserve Unicode in customer and city names exactly as given
-- Do not switch away from the standard one-call path just because the prompt prose is German or another non-Norwegian language when the actual customer fields still describe an ordinary Norwegian customer
+- Do not switch away from the standard one-call path just because the prompt prose is French, German, or another non-Norwegian language when the actual customer fields still describe an ordinary Norwegian customer
 - The winning shape is typically:
 
 ```json

@@ -44,8 +44,8 @@
 - preserve prompt text exactly, including Unicode
 - do not invent `physicalAddress`
 - do not invent `invoiceEmail`
-- localized generic email labels such as `Correo` still map to `email`
-- prompt language alone does not change this standard; a German-language prompt with ordinary Norwegian customer fields is still the same one-call create path
+- localized generic email labels such as `Correo` and `E-mail` still map to `email`
+- prompt language alone does not change this standard; French- and German-language prompts with ordinary Norwegian customer fields are still the same one-call create path
 
 ## Reuse From Write Response
 - `value.id`
@@ -78,3 +78,5 @@
 - re-verified on 2026-03-20 in persistent sandbox with `name`, generic `email`, Norwegian `organizationNumber`, and `postalAddress` (`Fjordveien 129`, `2317`, `Hamar`); one `POST /customer` returned customer `id=108248251`, preserved the exact postal fields in `response.value.postalAddress`, and still needed no follow-up read
 - re-verified on 2026-03-20 in production for the German-language prompt `Grünfeld GmbH`, `886669445`, `post@grunfeld.no`, and `Kirkegata 87, 6003 Ålesund`; one `POST /customer` returned customer `id=108268199`, preserved the exact Unicode name and city, and still needed no follow-up read
 - re-verified again on 2026-03-20 in persistent sandbox with production-like German prompt semantics and unique payload `Grünfeld Reflection 201018 AS`, `post-reflection-201018@grunfeld.no`, `999201018`, and `postalAddress` `Kirkegata 87`, `6003`, `Ålesund`; the same single `POST /customer` returned customer `id=108268237`, preserved the exact Unicode name and city, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in production for the French-language prompt `Colline SARL`, `939137599`, `post@colline.no`, and `Kirkegata 77, 4611 Kristiansand`; one `POST /customer` returned customer `id=108284978`, preserved the exact name, email, and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-20 in persistent sandbox with production-like French prompt semantics and unique payload `Colline Reflection c833b15d SARL`, `post-reflection-c833b15d@colline.no`, `999833115`, and `postalAddress` `Kirkegata 77`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108285083`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read

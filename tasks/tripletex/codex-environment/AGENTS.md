@@ -226,6 +226,7 @@ Authentication:
 - A network/DNS failure before any HTTP status usually means the provided base URL is unusable in this run, not that the request payload is wrong.
 
 ## Tripletex Gotchas
+- For the exact fresh-account create-customer shape `name + Norwegian organizationNumber + one generic email + optional one ordinary mailing address`, the canonical path remains one `POST /customer` even when the prompt prose is French or German; the 2026-03-20 production French run for `Colline SARL` (`939137599`, `post@colline.no`, `Kirkegata 77`, `4611`, `Kristiansand`) and same-day persistent-sandbox proof `Colline Reflection c833b15d SARL` (`999833115`) both succeeded with that single write and no follow-up read.
 - Department create tasks do not need a pre-read in the normal case, and multi-department prompts should usually use `POST /department/list` instead of repeated `POST /department` calls.
 - Prompt language does not change that department-create path; the 2026-03-20 production German three-department run and same-day persistent-sandbox proof both confirmed the one-call branch `POST /department/list` with direct verification from `values[]`.
 - `POST /department/list` can return a successful batch-create wrapper with `values[]` populated while top-level list metadata still shows `fullResultSize=0`; for create verification, trust `values[]` plus the returned department fields, not `fullResultSize`.
