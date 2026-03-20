@@ -9,6 +9,29 @@ Use for tasks like:
 
 For create-only invoice tasks that should stop before sending, use `./task-playbooks/create-customer-invoice.md`.
 
+## Key Finding: The Winning Send Path Is Usually The Invoice Create Itself
+
+For this task shape, do not default to:
+
+`POST /invoice?sendToCustomer=false`
+
+followed by:
+
+`PUT /invoice/{id}/:send?sendType=...`
+
+Persistent sandbox re-verification on 2026-03-20 showed a lower-call and safer path:
+
+1. create or resolve the customer
+2. resolve outgoing VAT
+3. `POST /invoice` with the default `sendToCustomer=true`
+4. stop
+
+The same sandbox session also showed:
+- explicit later `PUT /invoice/{id}/:send?sendType=MANUAL` returned `500`
+- explicit later `PUT /invoice/{id}/:send?sendType=PAPER` returned `422 Faktura kan ikke sendes via PAPER`
+
+For the common "new customer, no email/address in prompt" variant, the invoice create itself is the trusted send step.
+
 ## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:
@@ -34,6 +57,7 @@ PUT /ledger/account/{id}
 This was verified in sandbox:
 - invoice creation failed before this update
 - invoice creation succeeded after this update
+- not every 11-digit string is accepted in practice; use a checksum-valid unique 11-digit number
 
 ## Key Finding: Resolve VAT Type Dynamically
 
@@ -63,23 +87,21 @@ This was re-verified in sandbox on 2026-03-19:
 ## Minimal Flow
 
 1. Find or create the customer
-   - usually `GET /customer?organizationNumber=...&fields=*`
-2. Ensure invoice delivery method is usable
-   - if needed, update customer send method before sending
-3. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
+   - for the normal fresh-account new-customer variant, skip the pre-read and `POST /customer` directly
+   - if creating a new customer and the prompt gives no email or postal address, prefer `invoiceSendMethod: "MANUAL"`
+   - only use `GET /customer?organizationNumber=...&fields=*` when the prompt or environment actually implies an existing customer lookup
+2. Resolve a valid outgoing VAT type for the invoice date when the line VAT is not already safely implied by the resolved product/account setup
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
    - use a VAT type that actually exists in that filtered response
-4. Create invoice with `sendToCustomer=false`
+3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
    - include required dates
    - include `orders`
    - include `orderLines` inside the order, not directly on invoice input
-5. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
+4. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - update the existing invoice account with `PUT /ledger/account/{id}`
    - retry the invoice write once
-6. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
-7. Send invoice explicitly with:
-   - `PUT /invoice/{id}/:send?sendType=...`
+5. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
 
 ## Invoice Payload Notes
 
@@ -115,6 +137,8 @@ Example shape:
 
 In real tasks, replace `6` with the VAT type resolved from the filtered `GET /ledger/vatType` response for the invoice date. Do not assume the same code is valid across accounts.
 
+For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explicitly requires a separate later send step or send-channel override.
+
 ## Sparse Response Trap
 
 - `POST /invoice` can succeed while returning `orderLines` only as link objects with `id` and `url`
@@ -128,3 +152,9 @@ In real tasks, replace `6` with the VAT type resolved from the filtered `GET /le
 - Reproduce with one simple zero-VAT or standard-VAT line
 - If invoice fails after bank-account registration, use the new validation message as the next branch
 - Reuse returned IDs from write responses
+
+## Proven Send-Channel Pitfalls
+
+- Do not assume `PUT /invoice/{id}/:send?sendType=MANUAL` is the safe fallback for customers created without email/address; persistent sandbox reproduced `500` on 2026-03-20
+- Do not assume sparse customer address links mean `PAPER` send is available; persistent sandbox reproduced `422 Faktura kan ikke sendes via PAPER`
+- Do not assume organization number alone makes EHF available; the production run for this task shape reproduced `422 Faktura kan ikke sendes via EHF`

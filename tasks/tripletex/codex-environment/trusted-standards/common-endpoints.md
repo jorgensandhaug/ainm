@@ -103,6 +103,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - line or order data
   - sometimes outgoing `vatType`
   - sometimes company bank-account repair through `/ledger/account/{id}`
+- Standard create-and-send note:
+  - `POST /invoice` defaults `sendToCustomer=true`
+  - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`
+  - when creating a new customer with no email/address, explicit later `sendType=MANUAL` is not the trusted default; persistent sandbox reproduced `500` on 2026-03-20
 - Standard fast-path note:
   - for exact existing-invoice payment-reversal tasks, prefer `./trusted-standards/reverse-customer-invoice-payment.md`; the winning path is usually invoice read, voucher reverse, invoice verify
 - Standard field note:
