@@ -10,7 +10,7 @@ Tripletex API base URL:
 https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
 
 Tripletex session token:
-mcZdazaozJ44vHbJIaFVdSeGloXrZQ41RY3xbhuPDFc
+REDACTED_TRIPLETEX_SESSION_TOKEN
 
 Run scripts directory:
 /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165244395Z-bc4931a3/scripts

@@ -1,5 +1,5 @@
 const baseUrl = "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2";
-const sessionToken = "mcZdazaozJ44vHbJIaFVdSeGloXrZQ41RY3xbhuPDFc";
+const sessionToken = "REDACTED_TRIPLETEX_SESSION_TOKEN";
 
 const bookingDate = "2026-03-20";
 const description = "kontortenester";

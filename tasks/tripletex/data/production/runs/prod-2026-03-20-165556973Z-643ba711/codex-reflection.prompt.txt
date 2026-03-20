@@ -4,7 +4,7 @@ Do not ask questions.
 Do not talk to the user.
 Do not stop early after reflection.
 
-Your final answer will be saved automatically to this canonical path: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165244395Z-bc4931a3/codex-reflection.summary.md
+Your final answer will be saved automatically to this canonical path: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165556973Z-643ba711/codex-reflection.summary.md
 Treat that as the only final summary artifact for this follow-up run.
 
 All playbook and AGENTS.md edits must be written in English.
@@ -21,7 +21,7 @@ You must complete this full sequence:
 Strict rules:
 - Do not continue the original competition task against its original credentials.
 - If you need to call Tripletex during this follow-up, use only the sandbox credentials provided below.
-- Put any sandbox API scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165244395Z-bc4931a3/scripts
+- Put any sandbox API scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165556973Z-643ba711/scripts
 - Use TypeScript plus bun for API interaction.
 - If creation of certain objects are needed in the Sandbox but were not needed in the production task, omit these or any mention of verification of objects from the playbook. These will already be there when the production task comes next time
 - Re-read ./AGENTS.md and inspect ./trusted-standards/ and ./task-playbooks/ before deciding what to update.
