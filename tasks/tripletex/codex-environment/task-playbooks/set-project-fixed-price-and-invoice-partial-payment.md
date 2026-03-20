@@ -47,6 +47,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
     - `amountExcludingVatCurrency=56265`
     - `orders[0].project.fixedprice=170500`
     - `orders[0].project.projectManager.email=<resolved-assignable-project-manager-email>`
+  - in that current sandbox state, invoice account `1920` already had `bankAccountNumber=12345678903`, so the company-bank-account validation did not reproduce there
+  - therefore, for this task shape the `/ledger/account` branch must stay conditional on the first invoice write failing, not part of the default fast path
 - `invoice.projectInvoiceDetails` was `null` in this working flow, so do not rely on that collection to prove the project link
 
 ## Minimal Safe Flow
@@ -95,7 +97,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
 10. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
-   - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
    - retry `PUT /order/{id}/:invoice?...` on the same order
 11. Verify from the write response first
    - reuse the invoice totals from `response.value`
