@@ -18,12 +18,14 @@ Do not use for:
 
 - the original production run on 2026-03-20 succeeded with:
   - `GET /customer?organizationNumber=...&fields=*`
-  - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*`
+  - an initial `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` returned only a partial subset, so the script had to continue through the documented fallback chain instead of stopping
   - `POST /invoice?sendToCustomer=false`
-- that same production run did not need a `PUT /ledger/account/{id}` repair, so the extra `GET /ledger/account?isBankAccount=true&fields=*` spent there was wasted
+  - the first invoice write hit the known bank-account validation and succeeded only after the documented `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` repair -> single retry branch
 - persistent-sandbox verification on 2026-03-20 showed:
+  - `GET /product?productNumber=<a>&productNumber=<b>&productNumber=<c>&fields=*` can return all requested products when the refs are real product numbers
+  - `GET /product?ids=<id>,<id>,<id>&fields=*` can also resolve the same set decisively when you already know the product IDs
   - an existing-customer, existing-product invoice can be created directly with `POST /invoice?sendToCustomer=false` using `orderLines[].product = { "id": ... }`
-  - the `POST /invoice` response returned `orderLines` only as sparse link objects with keys `id` and `url`
+  - the `POST /invoice` response returned `orderLines` only as sparse link objects with keys `id` and `url`, even though `orderLines.length` matched the requested line count
   - one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` returned the exact product numbers, descriptions, unit prices, and VAT data for the created lines
 - sandbox constraint on 2026-03-20:
   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
@@ -41,7 +43,8 @@ Do not use for:
    - usually `GET /customer?organizationNumber=...&fields=*`
 3. Resolve any existing products referenced by numeric prompt refs
    - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-   - if that does not uniquely resolve them, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
+   - if that returns only a partial subset, do not stop; continue immediately to one fallback `GET /product?ids=<ref>,<ref>&fields=*`
+   - if that still does not uniquely resolve them and the prompt also gives exact product names, do one decisive `GET /product?count=1000&fields=*` and filter locally by exact product `number` and/or exact prompt names
 4. Create the invoice directly
    - `POST /invoice?sendToCustomer=false`
    - include `invoiceDate`, `invoiceDueDate`, `customer`
@@ -53,6 +56,7 @@ Do not use for:
    - if the task only scores invoice existence/totals and the write response already proves them, stop
 6. If exact line-level verification is needed and the write response is sparse, do one immediate read
    - `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+   - treat the response as sparse not only when `orderLines` is empty, but also when the entries are link-only objects without `product.number`, `description`, `unitPriceExcludingVatCurrency`, and `vatType.percentage`
 7. Only if `POST /invoice` fails with the company-bank-account validation, repair that prerequisite and retry once
 
 ## Exact-Match Fast Path
@@ -66,6 +70,7 @@ Do not use for:
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&productNumber=<ref>&fields=*`
   3. `POST /invoice?sendToCustomer=false`
   4. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
+- if step 2 returns only part of the referenced products, do not hard-fail there; finish the documented fallback chain before deciding the refs are unresolved
 - Do not insert an automatic `GET /ledger/account` before the first invoice write
 - Do not call `PUT /invoice/{id}/:send`
 - Do not add a delayed verification read in a separate later script/session if you already know you need line-level proof; do the one decisive `GET /invoice/{id}` immediately while the same token is still in use
@@ -137,6 +142,7 @@ on that `orderLines[]` item.
 ```
 
 - that does not mean the detailed line fields are missing from the actual invoice
+- the same trap still applies when the sparse response shows the correct number of line link objects; line count alone is not enough for exact verification
 - if you need the exact line details, do one immediate `GET /invoice/{id}` with expanded `fields` and stop there
 
 ## Bank Account Repair Branch
@@ -163,5 +169,6 @@ then the practical repair path is:
 
 - Do not spend an unconditional `GET /ledger/account` before the first invoice write
 - Do not use the send-invoice flow when the prompt only asks to create an invoice
-- Do not assume the `POST /invoice` response fully expands each line
+- Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
 - Do not postpone a needed verification read into a later separate script/session
+- Do not stop after a partial `GET /product?productNumber=...` result; continue the fallback chain in the same script
