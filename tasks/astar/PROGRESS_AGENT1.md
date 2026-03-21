@@ -311,6 +311,38 @@ Note: Barren correction does NOT trigger on the actual worst round (36e581f1). T
 13. z2 barren_v002: 75.83 full → REJECTED
 14. z2 barren_v003: 76.82 full → REJECTED
 
+## Cross-Agent Intelligence Report (2026-03-21T21:00Z)
+
+### Score Leaderboard Across ALL Agents
+
+| Agent | Model | Score | Key Approach |
+|-------|-------|-------|-------------|
+| Agent 7 | ffam_mode_v169 | **87.12** | Operator manifold + residual MLP posterior + extreme calibration tuning |
+| Agent 3 | CatBoost cellwise | **85.29** | Per-cell GBT + entropy-weighted training + 160 features |
+| Agent 1 | hazard_posterior_v15 | **83.79** | Original coefficients + particle-refined posterior |
+| Agent 4 | LGB evidence v2 | **83.06** | LightGBM per-cell + evidence features |
+| Agent 2 (us) | GLMM z2 | **78.40** | Our current best |
+| Agent 5 | stacked expansion w35 | **77.35** | QR + expansion-conditioned cell kNN |
+| Agent 6 | ensemble hv2+sx | **74.70** | HazardPosteriorV2 + QR geometric mean |
+
+### Key Techniques I MUST Incorporate
+
+1. **CALIBRATION SWEEP** (Agent 7: +9 points): probability floor, beta, prior blend, posterior ridge ALL need sweeping. Agent 7's floor went from 0.01 to 0.0003 for +5.6 points alone!
+2. **PER-CELL GBT** (Agent 3: +8 points over linear): LightGBM/CatBoost with entropy-weighted training
+3. **ORIGINAL COEFFICIENTS** (Agent 1: +3.7 points): Use exact per-round coefficients, not SVD-reconstructed
+4. **SETTLEMENT EXPANSION RATE** (Agent 5): Single most informative regime variable
+5. **ENTROPY-WEIGHTED TRAINING** (Agent 3: +1.2 points): Match scoring metric in training
+6. **CROSS-SEED EVIDENCE** (Agent 3/4): Use evidence from all 5 seeds for regime detection
+
+### What UNIVERSALLY Failed Across All Agents
+
+1. Annual/50-step rollouts (catastrophic in Agent 4, 5, 6, 7)
+2. MLP/nonlinear decoders with few rounds (overfit everywhere)
+3. More features without regularization (overfit everywhere)
+4. samples_per_round > 2 (diminishing/negative returns)
+5. Teacher blend > 0 (universally better to zero it out)
+6. Terminal tensor retrieval across rounds (maps differ, cells don't correspond)
+
 ## Recommendations for Future Work
 
 1. **Use the GLMM latent z2 model as-is** (78.4) as a strong component in any ensemble
