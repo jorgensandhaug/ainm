@@ -2798,6 +2798,15 @@ All of these have been systematically swept and are near-optimal:
 - Architecture exhausted across ALL explored axes (170+ variants tested).
 - Next improvement requires: more training data, or fundamentally different architecture.
 
+### 2026-03-21T22:30Z approx
+
+- Tested probability-delta operator target (vs logit-delta): all worse by -2.1 points
+  - Logit parameterization is definitively better for KL-based scoring
+- Tested entropy weight power sweep: power=0.5,1.0,1.5,2.0,3.0
+  - Linear weighting (power=1.0) is optimal. Higher powers overtrain on high-entropy cells.
+- Added configurable `operator_target` and `entropy_weight_power` to the architecture
+- Both axes confirmed at baseline values. Total variants now 180+.
+
 ## Complete Experiment Summary
 
 **170+ variants tested across these axes:**

@@ -194,6 +194,8 @@ def _fit_mode_operator_vector(
     ridge_lambda: float,
     probability_floor: float,
     include_interactions: bool = False,
+    operator_target: str = "logit_delta",
+    entropy_weight_power: float = 1.0,
 ) -> np.ndarray:
     feature_dim = len(_mode_feature_names(include_interactions=include_interactions))
     xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
@@ -215,12 +217,14 @@ def _fit_mode_operator_vector(
                 include_interactions=include_interactions,
             )
             flat_design = design.reshape(-1, feature_dim)
-            target_delta = (
-                _safe_log_probs(ground_truth, probability_floor) - _safe_log_probs(prior, probability_floor)
-            ).reshape(-1, CLASS_COUNT)
-            row_weights = (
-                0.05 + np.asarray(entropy_map(ground_truth), dtype=np.float64).reshape(-1) / np.log(6.0)
-            )
+            if operator_target == "prob_delta":
+                target_delta = (ground_truth - prior).reshape(-1, CLASS_COUNT)
+            else:
+                target_delta = (
+                    _safe_log_probs(ground_truth, probability_floor) - _safe_log_probs(prior, probability_floor)
+                ).reshape(-1, CLASS_COUNT)
+            raw_entropy_weight = np.asarray(entropy_map(ground_truth), dtype=np.float64).reshape(-1) / np.log(6.0)
+            row_weights = 0.05 + np.power(np.clip(raw_entropy_weight, 0.0, 1.0), entropy_weight_power)
             selected = _select_training_cells(
                 ground_truth,
                 round_detail,
@@ -641,6 +645,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     delta_clip: float = Field(default=4.0, gt=0.0)
     include_interactions: bool = False
+    operator_target: str = "logit_delta"
+    entropy_weight_power: float = Field(default=1.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -694,6 +700,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     delta_clip: float = Field(default=4.0, gt=0.0)
     include_interactions: bool = False
+    operator_target: str = "logit_delta"
+    entropy_weight_power: float = Field(default=1.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -818,6 +826,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             ridge_lambda=config.operator_ridge_lambda,
             probability_floor=config.probability_floor,
             include_interactions=config.include_interactions,
+            operator_target=config.operator_target,
+            entropy_weight_power=config.entropy_weight_power,
         )
         round_operator_vectors: list[np.ndarray] = []
         mode_round_ids: list[str] = []
@@ -828,6 +838,8 @@ class FFAMModePredictor(BaseRoundPredictor):
                 ridge_lambda=config.operator_ridge_lambda,
                 probability_floor=config.probability_floor,
                 include_interactions=config.include_interactions,
+                operator_target=config.operator_target,
+                entropy_weight_power=config.entropy_weight_power,
             )
             round_operator_vectors.append(round_operator)
             mode_round_ids.append(str(entry["round_id"]))
@@ -1084,6 +1096,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_repeat_discount=config.beta_repeat_discount,
             delta_clip=config.delta_clip,
             include_interactions=config.include_interactions,
+            operator_target=config.operator_target,
+            entropy_weight_power=config.entropy_weight_power,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_input_source=config.posterior_input_source,
@@ -1854,8 +1868,12 @@ class FFAMModePredictor(BaseRoundPredictor):
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)
             delta *= np.asarray(self.residual_class_scale, dtype=np.float64)[None, None, :]
-            logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -self.delta_clip, self.delta_clip)
-            prediction = softmax_logits(logits)
+            if self.operator_target == "prob_delta":
+                prediction = np.clip(prior + delta, self.probability_floor, 1.0)
+                prediction = prediction / np.sum(prediction, axis=-1, keepdims=True)
+            else:
+                logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -self.delta_clip, self.delta_clip)
+                prediction = softmax_logits(logits)
             if hazard_blend > 0.0 and seed_index in hazard_predictions_by_seed:
                 prediction = (
                     ((1.0 - hazard_blend) * prediction)
