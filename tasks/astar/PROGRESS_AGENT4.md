@@ -3186,8 +3186,40 @@ The key innovation is the **unified evidence-feature model**: instead of separat
 
 The model learns to optimally combine map prior information with observational evidence, including learning when to trust observations vs prior.
 
+#### Evidence v2 with ev=2: **72.67**
+- Just 2 observations per cell gives +3 over ev1
+- Achievable with overlapping viewport policy
+
+#### Evidence+prior model: **64.67** (REJECTED)
+- Adding prior comparison features caused overfitting
+
+#### Strategic assessment
+
+For LIVE rounds (active competition):
+- Only online queries available (no replays)
+- Best live-applicable evidence model: mixed training ev1 → **72.35**
+- Current champion query_residual_v11 → **79.39** (still better for live)
+- The 7-point gap comes from regime inference (transcript features), which
+  the evidence model doesn't have
+
+For REPLAY-BACKED evaluation (what we test here):
+- Evidence model with multi-replay: **83.06** (BEST EVER)
+- But this uses replay data not available during live rounds
+
+For LIVE with overlapping viewports:
+- Could potentially get ev=2-3 per cell by repeating viewports
+- Would sacrifice coverage (~50% of cells observed vs ~95%)
+- Expected score: ~73-76 range
+- Still below champion but closer
+
+#### Current recommendations
+1. For live serving: keep query_residual_v11 as champion (79.39)
+2. For offline/replay analysis: evidence v2 ev15 is strongest (83.06)
+3. For future work: explore overlapping viewport policy + evidence model
+4. For ensemble: combine evidence model with query_residual for potential gains
+
 #### Next experiments to run
-1. Use overlapping viewport query policy to get 2-3 observations per cell
-2. Ensemble evidence LGB with query_residual champion
-3. Investigate whether live online queries can provide enough evidence quality
-4. Integrate mixed-trained evidence model into live serving path
+1. Wire evidence model into live serving path with online query observations
+2. Test overlapping viewport query policy for multi-observation coverage
+3. Build ensemble of evidence model + query_residual
+4. Add settlement-level features from online queries to evidence model
