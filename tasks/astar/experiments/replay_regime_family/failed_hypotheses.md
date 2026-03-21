@@ -65,3 +65,9 @@
       - `proxy5_hazard_v5_k5_c4_r1_regime_probe_seed0to1` => `73.6657` / `0.109230`
     - current proxy leader remains `proxy5_hazard_v3_k5_r3_l32_m70_regime_probe_posterior_blend_seed0to1` at `77.1302` / `0.089726`
   - Conclusion: false for the first v5 implementation; do not promote this family further without changing the teacher/decoder structure materially.
+- For `hazard_posterior_v7` posterior-blend, stronger observation-likelihood reweighting should dominate lighter reweighting.
+  - Evidence: proxy-5 sweep on the same `v7 k5/r3 l32/m70` family
+  - `q4`: `77.2677` / `0.088458`
+  - `q8`: `76.5759` / `0.091411`
+  - `q12`: `76.6016` / `0.091345`
+  - Conclusion: false on the current proxy selector; lighter observation reweighting is better, so do not widen `q` upward without another structural change.

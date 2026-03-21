@@ -1149,8 +1149,99 @@
     - stopped low-priority information-policy sidecars
       - `proxy5_hazard_v4_k5_r3_l32_m70_regime_probe_information_seed0to1`
       - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_information_seed0to1`
-  - kept running:
+- kept running:
     - `proxy5_hazard_v7_k5_r3_l32_m70_q4_regime_probe_posterior_blend_seed0to1`
     - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_posterior_blend_seed0to1`
     - `proxy5_hazard_v7_k5_r3_l32_m70_q12_regime_probe_posterior_blend_seed0to1`
     - `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
+- resumed commit: `eddde99e`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- `br` check at resume: unavailable (`command not found`)
+- mandatory reread completed again before work:
+  - `instructions/agent1.md`
+- live machine snapshot at resume:
+  - `14:00 UTC`: load about `120.7 / 108.0 / 96.8`
+  - memory free about `817 GiB`
+  - shared box was busy but still far below memory pressure
+- stale-process cleanup completed before new model work:
+  - previously killed info-policy PIDs were gone
+  - found old orphaned agent1 benchmark workers:
+    - `3303118`
+    - `3303121`
+    - `3303122`
+    - `3303123`
+    - `3303124`
+    - `3303125`
+  - killed them; they dropped to defunct immediately
+  - post-cleanup machine snapshot:
+    - `14:02 UTC`: load about `75.2 / 96.1 / 93.6`
+    - memory free about `894 GiB`
+- new model work this session:
+  - implemented `hazard_posterior_v8`
+    - same replay-regime `HazardTeacherV2` / synthetic-live path as `v7`
+    - new posterior refinement axis only:
+      - replay-derived entropy-conditioned class weights
+      - weights applied inside particle observation likelihood reweighting
+    - rationale:
+      - benchmark score is entropy-weighted KL
+      - first `v7` diagnostics showed concentrated empty-vs-forest KL failures
+      - handoff explicitly calls for stronger posterior refinement before more giant teacher churn
+  - files added/updated:
+    - `src/astar/student/predictor/hazard_posterior_v8.py`
+    - `src/astar/student/posterior/deepset_student.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/workflows/historical_benchmark.py`
+    - `tests/test_historical_benchmark.py`
+- focused validation after the `v8` patch:
+  - `python3 -m compileall src/astar/student/posterior/deepset_student.py src/astar/student/predictor/hazard_posterior_v8.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+  - result: `22 passed in 87.51s`
+- all previously running `v7` jobs resolved while validation was running:
+  - broad result:
+    - `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+    - score: `78.6590`
+    - weighted KL: `0.083821`
+    - vs prior broad leader `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`:
+      - score delta: `+1.9529`
+      - weighted KL delta: `-0.008415`
+    - conclusion:
+      - particle-refined posterior transfer is real on broad validation
+      - `v7 + regime_probe_v1` is the new broad family leader by a large margin
+  - proxy-5 posterior-blend sweep:
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q4_regime_probe_posterior_blend_seed0to1`
+      - score: `77.2677`
+      - weighted KL: `0.088458`
+      - vs prior proxy leader `v3 l32/m70 + regime_probe_posterior_blend`:
+        - score delta: `+0.1375`
+        - weighted KL delta: `-0.001268`
+      - conclusion:
+        - new proxy leader
+        - lighter observation reweighting is better than the older `q8/q12` settings under posterior-blend
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_posterior_blend_seed0to1`
+      - score: `76.5759`
+      - weighted KL: `0.091411`
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q12_regime_probe_posterior_blend_seed0to1`
+      - score: `76.6016`
+      - weighted KL: `0.091345`
+    - comparison inside the `v7` posterior-blend sweep:
+      - `q4` beat `q8` by `+0.6918` score and `-0.002953` weighted KL
+      - `q4` beat `q12` by `+0.6661` score and `-0.002887` weighted KL
+- machine state after validation and result collection:
+  - `14:07 UTC`: load about `37.7 / 62.2 / 79.8`
+  - memory free about `919 GiB`
+  - then after polling/other-agent work:
+    - `14:11 UTC`: load about `163.8 / 109.3 / 93.4`
+    - memory free about `834 GiB`
+    - machine has `384` logical CPUs, so one more reduced-width proxy run is acceptable
+- next experiment launched immediately:
+  - `proxy5_hazard_v8_k5_r3_l32_m70_q8_regime_probe_seed0to1`
+    - session `73169`
+    - `jobs=2`
+  - rationale:
+    - broad/proxy v7 results are now strong enough that the next justified axis is score-aware class-weighted posterior refinement
+    - reduced job count respects the higher shared-machine load while still using the available box

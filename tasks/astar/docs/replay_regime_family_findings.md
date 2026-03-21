@@ -135,6 +135,20 @@
   - implication:
     - the new particle-refined posterior is not a collapse; it lands near the existing proxy frontier on its first finished run
     - this is strong enough to justify immediate broad promotion while the remaining `v7` policy/observation-weight sweeps continue
+- The full 8-round multi-seed promotion confirms `v7` is not a proxy-only illusion:
+  - `hazard_posterior_v7_k5_r3_l32_m70_q8 + regime_probe_v1`: `78.6590`, weighted KL `0.083821`
+  - prior broad leader `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_v1`: `76.7061`, weighted KL `0.092236`
+  - delta: `+1.9529` score, `-0.008415` weighted KL
+  - implication:
+    - particle-refined posterior inference transfers strongly on the broad set
+    - the current replay-regime mainline should now be `v7`, not `v4`
+- Within the `v7` posterior-blend sweep on proxy-5, lighter observation reweighting is better:
+  - `q4`: `77.2677`, weighted KL `0.088458`
+  - `q8`: `76.5759`, weighted KL `0.091411`
+  - `q12`: `76.6016`, weighted KL `0.091345`
+  - implication:
+    - stronger particle observation likelihood weighting is not monotone-helpful
+    - `q4` is the current proxy leader and the best finished posterior-blend setting in this family
 
 ## Strongly Supported Hypotheses
 
@@ -151,6 +165,8 @@
 - The modeling problem has likely shifted from “better static query template” to “better online regime identification”.
 - Predictor posterior state is a real policy lever, but it should be integrated conservatively on top of the adaptive heuristic rather than used as a dominating additive score.
 - The right fast validation set matters almost as much as the model changes themselves; a broad-proxy subset derived from finished full results is materially safer than the old hard-3 shortcut.
+- Particle-refined posterior inference is now a real broad-set win, not just a hard-slice or proxy curiosity.
+- Replay-derived posterior calibration strength is a real tuning axis inside `v7`; more observation weight is not automatically better.
 
 ## Rejected / Weak Hypotheses
 
@@ -185,6 +201,12 @@
 - For v3, the posterior-blend policy should carry its hard-slice win through full 8-round broad validation.
   - Evidence: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` is `75.0272` / `0.100043` vs `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1` at `75.0492` / `0.100129`.
   - Conclusion: false so far; the broad gain is effectively zero for v3.
+- For `v7` posterior-blend, stronger observation reweighting (`q8/q12`) should dominate lighter reweighting.
+  - Evidence:
+    - `q4`: `77.2677` / `0.088458`
+    - `q8`: `76.5759` / `0.091411`
+    - `q12`: `76.6016` / `0.091345`
+  - Conclusion: false on proxy-5; use softer observation reweighting for posterior-blend variants.
 - A first global discrete+continuous mixture-residual teacher should outperform the current continuous-only replay-regime stack once paired with the existing adaptive query policy.
   - Evidence:
     - replay-coefficient geometry supports the thesis in isolation: rank-3 low-rank RMSE is `0.4541`, while prototype+residual fits improve to `0.3802` (`k=3,r=1`) and `0.2971` (`k=3,r=2`)
@@ -197,9 +219,7 @@
 
 ## Open Questions
 
-- Does the in-flight full 8-round multi-seed `regime_probe_posterior_blend` promotion for `v4 l32/m70` preserve its hard-slice gain?
-- Can the relaunched proxy-5 posterior-blend runs identify a variant where the blend genuinely transfers beyond the hard-slice v3 illusion?
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
 - The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?
 - If mixture-structured round variation is real but v5 fails, is the missing ingredient block-structured mechanism decomposition rather than a single global prototype mixture?
-- Do the still-running `v7` posterior-blend and information-policy proxy jobs convert the near-frontier `v7 q8 + regime_probe_v1` result into a true new proxy best?
+- Does `hazard_posterior_v8` beat the new `v7` broad/proxy leaders by making the particle observation likelihood explicitly class-aware under the entropy-weighted KL objective?

@@ -370,6 +370,7 @@ def _observation_grid_loglikelihood(
     observation: LiveQueryObs,
     *,
     class_floor: float,
+    class_weights: np.ndarray,
 ) -> float:
     viewport = observation.viewport
     patch = np.asarray(
@@ -386,8 +387,14 @@ def _observation_grid_loglikelihood(
         observed_classes[..., None],
         axis=-1,
     ).reshape(-1)
+    observation_weights = np.asarray(class_weights[observed_classes.reshape(-1)], dtype=np.float64)
     safe_probabilities = np.clip(class_probabilities, class_floor, 1.0)
-    return float(np.mean(np.log(safe_probabilities))) if safe_probabilities.size else 0.0
+    if safe_probabilities.size == 0:
+        return 0.0
+    weight_sum = float(np.sum(observation_weights))
+    if not np.isfinite(weight_sum) or weight_sum <= 0.0:
+        return float(np.mean(np.log(safe_probabilities)))
+    return float(np.sum(observation_weights * np.log(safe_probabilities)) / weight_sum)
 
 
 def _posterior_reweighted_by_observations(
@@ -398,6 +405,7 @@ def _posterior_reweighted_by_observations(
     base_weights: np.ndarray,
     observation_weight: float,
     observation_class_floor: float,
+    observation_class_weights: np.ndarray,
 ) -> np.ndarray:
     if observation_weight <= 0.0 or not context.observations:
         return np.asarray(base_weights, dtype=np.float64)
@@ -420,6 +428,7 @@ def _posterior_reweighted_by_observations(
                 per_seed[particle_index],
                 observation,
                 class_floor=observation_class_floor,
+                class_weights=observation_class_weights,
             )
         log_likelihoods[particle_index] = total_log_likelihood
 
@@ -855,6 +864,9 @@ class ObservationSetParticleRefinedStudent(BaseModel):
     predicted_particle_weight: float = Field(default=0.7, ge=0.0, le=1.0)
     observation_weight: float = Field(default=8.0, gt=0.0)
     observation_class_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    observation_class_weights: np.ndarray = Field(
+        default_factory=lambda: np.ones(CLASS_COUNT, dtype=np.float64),
+    )
     teacher: object
 
     @classmethod
@@ -868,6 +880,7 @@ class ObservationSetParticleRefinedStudent(BaseModel):
         predicted_particle_weight: float = 0.7,
         observation_weight: float = 8.0,
         observation_class_floor: float = 0.01,
+        observation_class_weights: np.ndarray | None = None,
     ) -> ObservationSetParticleRefinedStudent:
         (
             summary_matrix,
@@ -881,6 +894,18 @@ class ObservationSetParticleRefinedStudent(BaseModel):
             dataset,
             ridge_alpha=ridge_alpha,
         )
+        resolved_class_weights = (
+            np.asarray(observation_class_weights, dtype=np.float64)
+            if observation_class_weights is not None
+            else np.ones(CLASS_COUNT, dtype=np.float64)
+        )
+        if resolved_class_weights.shape != (CLASS_COUNT,):
+            msg = (
+                "observation_class_weights must have shape "
+                f"({CLASS_COUNT},), got {resolved_class_weights.shape!r}"
+            )
+            raise ValueError(msg)
+        resolved_class_weights = np.clip(resolved_class_weights, 1e-6, None)
         return cls(
             dataset_name=dataset.dataset_name,
             summary_vectors=summary_matrix,
@@ -895,6 +920,7 @@ class ObservationSetParticleRefinedStudent(BaseModel):
             predicted_particle_weight=predicted_particle_weight,
             observation_weight=observation_weight,
             observation_class_floor=observation_class_floor,
+            observation_class_weights=resolved_class_weights,
             teacher=teacher,
         )
 
@@ -951,6 +977,7 @@ class ObservationSetParticleRefinedStudent(BaseModel):
             base_weights=weights,
             observation_weight=self.observation_weight,
             observation_class_floor=self.observation_class_floor,
+            observation_class_weights=self.observation_class_weights,
         )
         particle_matrix = np.stack(particles, axis=0)
         mean = np.tensordot(refined_weights, particle_matrix, axes=(0, 0))
