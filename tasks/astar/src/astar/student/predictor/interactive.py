@@ -15,6 +15,8 @@ from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredi
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 
+SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
+
 
 class RoundPredictorAdapter(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
@@ -61,13 +63,59 @@ class RoundPredictorAdapter(BaseModel):
         )
 
 
+def _build_query_residual_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    resolved_policy_name = (policy_name or "coverage").strip().lower()
+    fit_kwargs = {} if fit_kwargs is None else dict(fit_kwargs)
+    if samples_per_round is not None:
+        fit_kwargs.setdefault("samples_per_round", samples_per_round)
+    if historical_round_ids is not None:
+        predictor = QueryResidualPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            model_name=model_name,
+            **fit_kwargs,
+        )
+    else:
+        samples_suffix = ""
+        if samples_per_round is not None:
+            samples_suffix = f"__samples={samples_per_round}"
+        checkpoint_dir = workspace_paths.model_dir(
+            f"{checkpoint_stem}__policy={resolved_policy_name}{samples_suffix}",
+        )
+        checkpoint_path = checkpoint_dir / "checkpoint.json"
+        if checkpoint_path.exists():
+            predictor = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+        else:
+            predictor = QueryResidualPredictor.fit_from_workspace(
+                workspace_paths,
+                policy_name=resolved_policy_name,
+                model_name=model_name,
+                **fit_kwargs,
+            )
+            predictor.save_checkpoint(checkpoint_path)
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
     paths: WorkspacePaths | None = None,
     historical_round_ids: Sequence[str] | None = None,
     policy_name: str | None = None,
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
 ) -> RoundPredictorAdapter:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":
@@ -104,31 +152,27 @@ def build_online_predictor(
         )
     if normalized == "query_residual":
         workspace_paths = paths or WorkspacePaths.from_root(".")
-        resolved_policy_name = (policy_name or "coverage").strip().lower()
-        if historical_round_ids is not None:
-            predictor = QueryResidualPredictor.fit_from_workspace(
-                workspace_paths,
-                round_ids=list(historical_round_ids),
-                policy_name=resolved_policy_name,
-                samples_per_round=samples_per_round,
-            )
-        else:
-            checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v7__policy={resolved_policy_name}__samples={samples_per_round}",
-            )
-            checkpoint_path = checkpoint_dir / "checkpoint.json"
-            if checkpoint_path.exists():
-                predictor = QueryResidualPredictor.load_checkpoint(checkpoint_path)
-            else:
-                predictor = QueryResidualPredictor.fit_from_workspace(
-                    workspace_paths,
-                    policy_name=resolved_policy_name,
-                    samples_per_round=samples_per_round,
-                )
-                predictor.save_checkpoint(checkpoint_path)
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem="query_residual_v7",
+            model_name="query_residual_v7",
+        )
+    if normalized == SMH_RESID_LOCALGATE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_RESID_LOCALGATE_V001,
+            model_name=SMH_RESID_LOCALGATE_V001,
+            fit_kwargs={
+                "min_delta_scale": 0.0,
+                "teacher_locality_blend": True,
+            },
         )
     msg = f"unsupported online predictor: {model_name}"
     raise ValueError(msg)

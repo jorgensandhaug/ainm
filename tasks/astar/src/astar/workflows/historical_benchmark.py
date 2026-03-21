@@ -105,6 +105,10 @@ def run_historical_benchmark(
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
+    sampled_online_models = {
+        "query_residual",
+        "smh_resid_z12_h0_covbase_locgate_v001",
+    }
     if mode == "online_interactive":
         missing_replays = [
             round_id
@@ -121,9 +125,13 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    resolved_samples_per_round = samples_per_round if normalized_model_name == "query_residual" else None
-    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
-        raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
+    resolved_samples_per_round = (
+        samples_per_round if normalized_model_name in sampled_online_models else None
+    )
+    if normalized_model_name in sampled_online_models and len(selected_round_ids) < 2:
+        raise ValueError(
+            f"{normalized_model_name} requires at least two replay-backed analyzed rounds for holdout eval",
+        )
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
@@ -134,7 +142,7 @@ def run_historical_benchmark(
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
     model_suffix = ""
-    if normalized_model_name == "query_residual":
+    if normalized_model_name in sampled_online_models:
         model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":

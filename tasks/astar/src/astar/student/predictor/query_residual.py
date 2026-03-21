@@ -365,6 +365,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     teacher_regime_intercept: list[float]
     teacher_regime_weights: list[list[float]]
     teacher_blend: float = Field(ge=0.0, le=1.0)
+    teacher_locality_blend: bool = False
     regime_intercept: list[float]
     regime_weights: list[list[float]]
     beta_min: float = Field(ge=0.0)
@@ -978,6 +979,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
     )
     teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
+    teacher_locality_blend: bool = False
     regime_intercept: np.ndarray = Field(
         default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
     )
@@ -1015,6 +1017,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
         teacher_blend: float = 0.12,
+        teacher_locality_blend: bool = False,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
     ) -> QueryResidualPredictor:
@@ -1189,6 +1192,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             min_delta_scale=min_delta_scale,
             residual_class_scale=np.asarray(residual_class_scale, dtype=np.float64),
             teacher_blend=teacher_blend,
+            teacher_locality_blend=teacher_locality_blend,
             regime_intercept=np.asarray(regime_intercept, dtype=np.float64),
             regime_weights=np.asarray(regime_weights, dtype=np.float64),
             beta_min=beta_min,
@@ -1227,6 +1231,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             min_delta_scale=checkpoint.min_delta_scale,
             residual_class_scale=np.asarray(checkpoint.residual_class_scale, dtype=np.float64),
             teacher_blend=checkpoint.teacher_blend,
+            teacher_locality_blend=checkpoint.teacher_locality_blend,
             regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
             regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
             beta_min=checkpoint.beta_min,
@@ -1262,6 +1267,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             teacher_regime_intercept=np.asarray(self.teacher.regime_intercept, dtype=np.float64).tolist(),
             teacher_regime_weights=np.asarray(self.teacher.regime_weights, dtype=np.float64).tolist(),
             teacher_blend=self.teacher_blend,
+            teacher_locality_blend=self.teacher_locality_blend,
             regime_intercept=np.asarray(self.regime_intercept, dtype=np.float64).tolist(),
             regime_weights=np.asarray(self.regime_weights, dtype=np.float64).tolist(),
             beta_min=self.beta_min,
@@ -1323,6 +1329,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     0.0,
                     self.teacher_blend,
                 )
+                if self.teacher_locality_blend:
+                    local_coverage = np.clip(
+                        np.asarray(derived.local_evidence[seed_index][..., -1:], dtype=np.float64),
+                        0.0,
+                        1.0,
+                    )
+                    teacher_weight = teacher_weight * delta_scale * local_coverage
                 prediction = ((1.0 - teacher_weight) * prediction) + (teacher_weight * teacher_prior)
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)

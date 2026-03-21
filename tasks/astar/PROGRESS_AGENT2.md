@@ -231,6 +231,10 @@
   - `2 passed`
 - `uv run --extra dev pytest tests/test_historical_benchmark.py`
   - `5 passed`
+- `uv run --extra dev pytest tests/test_historical_benchmark.py`
+  - `6 passed`
+- `uv run --extra dev pytest tests/test_online_episode.py`
+  - `1 passed`
 
 ## Current Running Experiments
 
@@ -246,12 +250,20 @@
     - repaired current-checkout benchmark reproduces the old 3-round reference line closely
     - portability/scope fixes did not degrade the known coverage-policy baseline on this probe subset
 
-- New Tier-2 policy comparison now running:
-  - `uv run astar run-historical-benchmark --model query_residual --mode online_interactive --policy exploration --budget 50 --episode-seed 0 --with-png none --name agent2_dev_query_residual_3rounds_exploration_20260320 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
-- Rationale:
-  - `coverage` only spends `45` queries
-  - `exploration_v2` spends full `50` with `5` diagnostic repeats
-  - this is the cleanest immediate policy-only test before altering model logic
+- Completed Tier-2 policy comparison:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual --mode online_interactive --policy exploration --budget 50 --episode-seed 0 --with-png none --name agent2_dev_query_residual_3rounds_exploration_20260320 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - result:
+    - mean score: `73.1346`
+    - mean weighted KL: `0.104737`
+    - runtime: `973.411s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev_query_residual_3rounds_exploration_20260320/result.json`
+  - interpretation:
+    - `exploration_v2` improves over repaired `coverage` baseline on the same 3-round probe
+    - delta vs `query_residual + coverage`:
+      - score: `+0.5027`
+      - weighted KL: `-0.002310`
+    - policy is therefore a confirmed immediate lever, not just a hypothesis
 
 ### Interruption recovery note
 
@@ -262,9 +274,108 @@
 - Action:
   - restart the benchmark from a clean state after pushing current verified checkpoint commit `fbfa76c`
 
+## New Model Branch Added
+
+- Added benchmarkable online model:
+  - `smh_resid_z12_h0_covbase_locgate_v001`
+- Current intent:
+  - keep the same residual family / hazard-teacher backbone as `query_residual_v7`
+  - remove forced minimum correction by setting `min_delta_scale=0.0`
+  - localize the teacher blend to observed regions using blurred coverage, instead of a constant global teacher contribution on all unobserved cells
+- Reason:
+  - current evidence suggests `query_residual_v7` can over-correct easy rounds because it never fully turns off residual action and always injects a weak global teacher prior
+
+## Current Experiment State
+
+- Policy-only probe:
+  - complete
+  - winner over repaired coverage baseline on the fixed 3-round dev subset
+- Model-only probe:
+  - previous run was interrupted and left no benchmark artifact under `data/artifacts/benchmarks/agent2_dev_smh_resid_locgate_3rounds_coverage_20260320/`
+  - rerun needed from the now-cached coverage dataset state
+
+### 2026-03-21T08:12:00Z
+
+- Re-checked current checkout state before resuming heavy runs:
+  - `git status --short --branch` still shows branch `agent2` diverged from `origin/agent2` with local dirty artifacts
+  - no active historical benchmark process in this checkout
+  - `br list` still unavailable in this environment (`br: command not found`)
+- Important cache/validation finding from code inspection:
+  - `QueryResidualPredictor.fit_from_workspace(...)` always materializes the synthetic-live dataset over all locally available replay-backed analyzed rounds, then filters the index down to the selected training rounds
+  - therefore the existing `exploration` cache at `data/artifacts/datasets/query_residual_synthetic_live__policy=exploration__samples=1__rounds=n=8__sha1=ea07400de1/` is valid for full 8-round leave-one-round-out historical benchmarking without holdout leakage
+  - implication: the next full `query_residual + exploration` benchmark should reuse the already-built dataset instead of paying the initial 8-round synthetic transcript build again
+- Cleanup/follow-up patch prepared before next run:
+  - preserve `samples_per_round` in query-residual-family checkpoint directory names after the new shared builder refactor
+  - make `run-historical-benchmark` report `samples_per_round` consistently for `smh_resid_z12_h0_covbase_locgate_v001`
+
+### 2026-03-21T08:47:00Z
+
+- Verified the benchmark metadata / checkpoint cleanup:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `6 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` -> `1 passed`
+- Completed Tier-3 full leave-one-round-out benchmark on all `8` local analyzed rounds:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.4010`
+    - mean weighted KL: `0.101998`
+    - runtime: `1553.087s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_8rounds_exploration_20260321/result.json`
+- Promotion decision:
+  - this beats the best pre-existing full local online artifact `dev_query_residual_online50_v7`
+  - score delta: `+0.4505`
+  - weighted KL delta: `-0.004328`
+  - runtime delta vs old artifact: `-283.502s`
+- Important interpretation:
+  - `exploration_v2` is not uniformly better by round
+  - it is slightly worse on `7/8` rounds, but massively improves the catastrophic `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb` round
+  - dominant swing on that round:
+    - score delta vs old coverage benchmark: `+9.3641`
+    - weighted KL delta: `-0.061395`
+  - net effect is therefore a real robustness win, not benchmark noise
+
+## Updated Best Known Local Line
+
+- Previous best full local historical-online result in this checkout:
+  - experiment: `agent2_full_query_residual_8rounds_exploration_20260321`
+  - model: `query_residual_v7`
+  - policy: `exploration_v2`
+  - mean score: `74.4010`
+  - mean weighted KL: `0.101998`
+
+### 2026-03-21T09:18:00Z
+
+- Completed Tier-3 full leave-one-round-out benchmark for the new model branch under the promoted exploration policy:
+  - command:
+    - `uv run astar run-historical-benchmark --model smh_resid_z12_h0_covbase_locgate_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_smh_resid_locgate_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.4053`
+    - mean weighted KL: `0.101981`
+    - runtime: `1507.368s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_resid_locgate_8rounds_exploration_20260321/result.json`
+- Comparison vs prior promoted line `query_residual_v7 + exploration_v2`:
+  - score delta: `+0.0043`
+  - weighted KL delta: `-0.000017`
+  - runtime delta: `-45.719s`
+- Important interpretation:
+  - the improvement is extremely localized
+  - `7/8` rounds are bit-for-bit unchanged relative to `query_residual_v7 + exploration_v2`
+  - only round `8e839974-b13b-407b-a5e7-fc749d877195` moved:
+    - score delta: `+0.034415`
+    - weighted KL delta: `-0.000134219`
+  - therefore the localized teacher gating variant is a valid but very small refinement, not a major behavioral shift
+
+## Current Best Known Local Line
+
+- Current best full local historical-online result in this checkout:
+  - experiment: `agent2_full_smh_resid_locgate_8rounds_exploration_20260321`
+  - model: `smh_resid_z12_h0_covbase_locgate_v001`
+  - policy: `exploration_v2`
+  - mean score: `74.4053`
+  - mean weighted KL: `0.101981`
+
 ## Immediate Next Actions
 
-1. Run an existing baseline historical benchmark end-to-end and record score, runtime, and artifacts.
-2. Inspect the current semimechanistic summary / coefficient extraction path to find the narrowest high-leverage extension.
-3. Create the required family experiment registry under `experiments/semimech_hazards/`.
-4. Implement the next model iteration only after the baseline is measured and the extension point is clear.
+1. Commit and push the promoted `smh_resid_z12_h0_covbase_locgate_v001 + exploration_v2` line plus supporting code/test/doc updates.
+2. Leave the large generated replay/episode cache churn unstaged unless specifically needed in a future follow-up.
+3. If continuing later, search for higher-leverage teacher-weight / gating variants rather than more policy churn, because policy is now the dominant settled gain.
