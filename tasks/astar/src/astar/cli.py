@@ -213,6 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11",
             "query_residual_v12",
             "query_residual_v13",
+            "query_residual_v14",
         ],
         required=True,
     )
@@ -262,6 +263,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11",
             "query_residual_v12",
             "query_residual_v13",
+            "query_residual_v14",
         ],
         default="latent_regime",
     )
@@ -287,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11",
             "query_residual_v12",
             "query_residual_v13",
+            "query_residual_v14",
         ],
         default="latent_regime",
     )
@@ -316,6 +319,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11",
             "query_residual_v12",
             "query_residual_v13",
+            "query_residual_v14",
         ],
         required=True,
     )
@@ -357,6 +361,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11",
             "query_residual_v12",
             "query_residual_v13",
+            "query_residual_v14",
         ],
         default="latent_regime",
     )

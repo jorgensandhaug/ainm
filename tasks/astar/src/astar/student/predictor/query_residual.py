@@ -44,6 +44,7 @@ QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V11 = "query_residual_v11"
 QUERY_RESIDUAL_V12 = "query_residual_v12"
 QUERY_RESIDUAL_V13 = "query_residual_v13"
+QUERY_RESIDUAL_V14 = "query_residual_v14"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -54,6 +55,7 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V11,
         QUERY_RESIDUAL_V12,
         QUERY_RESIDUAL_V13,
+        QUERY_RESIDUAL_V14,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -67,6 +69,8 @@ class QueryResidualNamedVariantSpec(BaseModel):
     model_name: str
     samples_per_round: int = Field(default=1, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
+    prefix_weight_floor: float = Field(default=1.0, ge=0.0, le=1.0)
+    prefix_weight_power: float = Field(default=1.0, ge=0.0)
     cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     include_exact_local_residual: bool = False
 
@@ -95,6 +99,7 @@ def resolve_query_residual_variant_spec(
         QUERY_RESIDUAL_V11: 2,
         QUERY_RESIDUAL_V12: 3,
         QUERY_RESIDUAL_V13: 2,
+        QUERY_RESIDUAL_V14: 2,
     }.get(resolved_model_name, 1)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -105,6 +110,8 @@ def resolve_query_residual_variant_spec(
         raise ValueError("query_residual_v12 fixes samples_per_round=3")
     if resolved_model_name == QUERY_RESIDUAL_V13 and effective_samples_per_round != 2:
         raise ValueError("query_residual_v13 fixes samples_per_round=2")
+    if resolved_model_name == QUERY_RESIDUAL_V14 and effective_samples_per_round != 2:
+        raise ValueError("query_residual_v14 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V8:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
@@ -144,6 +151,15 @@ def resolve_query_residual_variant_spec(
             model_name=resolved_model_name,
             samples_per_round=2,
             budget_prefixes=(20, 35, 50),
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V14:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=2,
+            prefix_weight_floor=0.25,
+            prefix_weight_power=1.0,
             cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
             include_exact_local_residual=True,
         )
@@ -275,6 +291,21 @@ def _safe_log_probs(probabilities: np.ndarray, floor: float) -> np.ndarray:
 
 def _normalize_query_count(query_count: int) -> float:
     return float(query_count) / MAX_QUERY_BUDGET
+
+
+def _prefix_sample_weight(
+    budget_prefix: int,
+    *,
+    prefix_weight_floor: float,
+    prefix_weight_power: float,
+) -> float:
+    if prefix_weight_floor >= 1.0:
+        return 1.0
+    normalized_budget = float(np.clip(float(budget_prefix) / MAX_QUERY_BUDGET, 0.0, 1.0))
+    return float(
+        prefix_weight_floor
+        + ((1.0 - prefix_weight_floor) * (normalized_budget**prefix_weight_power)),
+    )
 
 
 def _normalize_population(value: float | None) -> float:
@@ -456,15 +487,21 @@ def _fit_linear_map(
     targets: np.ndarray,
     *,
     ridge_alpha: float,
+    sample_weights: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     design = np.concatenate(
         [np.ones((inputs.shape[0], 1), dtype=np.float64), inputs],
         axis=1,
     )
+    weights = (
+        np.ones(inputs.shape[0], dtype=np.float64)
+        if sample_weights is None
+        else np.clip(np.asarray(sample_weights, dtype=np.float64), 1e-6, None)
+    )
     penalty = np.eye(design.shape[1], dtype=np.float64)
     penalty[0, 0] = 0.0
-    lhs = design.T @ design + ridge_alpha * penalty
-    rhs = design.T @ targets
+    lhs = design.T @ (weights[:, None] * design) + ridge_alpha * penalty
+    rhs = design.T @ (weights[:, None] * targets)
     solution = np.linalg.pinv(lhs) @ rhs
     return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
 
@@ -478,6 +515,8 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     samples_per_round: int = Field(ge=1)
     cells_per_seed: int = Field(ge=1)
     budget_prefixes: list[int]
+    prefix_weight_floor: float = Field(default=1.0, ge=0.0, le=1.0)
+    prefix_weight_power: float = Field(default=1.0, ge=0.0)
     blur_sigmas: list[float]
     cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     ridge_lambda: float = Field(ge=0.0)
@@ -1157,6 +1196,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
     samples_per_round: int = Field(default=1, ge=1)
     cells_per_seed: int = Field(default=256, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
+    prefix_weight_floor: float = Field(default=1.0, ge=0.0, le=1.0)
+    prefix_weight_power: float = Field(default=1.0, ge=0.0)
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
     cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     ridge_lambda: float = Field(default=8.0, ge=0.0)
@@ -1198,6 +1239,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
         samples_per_round: int = 1,
         cells_per_seed: int = 256,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
+        prefix_weight_floor: float = 1.0,
+        prefix_weight_power: float = 1.0,
         blur_sigmas: Sequence[float] = DEFAULT_BLUR_SIGMAS,
         cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY,
         ridge_lambda: float = 8.0,
@@ -1247,7 +1290,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
         training_episode_count = 0
         sample_count = 0
-        training_prefixes: list[tuple[dict[str, object], TranscriptDerivedFeatures, np.ndarray]] = []
+        training_prefixes: list[tuple[dict[str, object], TranscriptDerivedFeatures, np.ndarray, float]] = []
 
         round_cache: dict[str, dict[str, object]] = {}
         for row in rows:
@@ -1303,6 +1346,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
             budget_values = sorted({min(int(value), len(full_observations)) for value in budget_prefixes})
             for budget in budget_values:
                 observations = full_observations[:budget]
+                prefix_weight = _prefix_sample_weight(
+                    budget,
+                    prefix_weight_floor=prefix_weight_floor,
+                    prefix_weight_power=prefix_weight_power,
+                )
                 derived = _derive_transcript_features_from_stats(
                     cached["round_detail"],  # type: ignore[arg-type]
                     cached["features"],  # type: ignore[arg-type]
@@ -1317,20 +1365,26 @@ class QueryResidualPredictor(BaseRoundPredictor):
                         cached,
                         derived,
                         np.asarray(artifact.regime_vector, dtype=np.float64),
+                        prefix_weight,
                     ),
                 )
         regime_inputs = np.stack(
-            [_regime_input_vector(derived) for _, derived, _ in training_prefixes],
+            [_regime_input_vector(derived) for _, derived, _, _ in training_prefixes],
             axis=0,
         )
-        regime_targets = np.stack([target for _, _, target in training_prefixes], axis=0)
+        regime_targets = np.stack([target for _, _, target, _ in training_prefixes], axis=0)
+        regime_sample_weights = np.asarray(
+            [weight for _, _, _, weight in training_prefixes],
+            dtype=np.float64,
+        )
         regime_intercept, regime_weights = _fit_linear_map(
             regime_inputs,
             regime_targets,
             ridge_alpha=max(ridge_lambda, 1e-3),
+            sample_weights=regime_sample_weights,
         )
 
-        for cached, derived, _ in training_prefixes:
+        for cached, derived, _, prefix_weight in training_prefixes:
             predicted_regime = np.asarray(
                 regime_intercept + (_regime_input_vector(derived) @ regime_weights),
                 dtype=np.float64,
@@ -1354,7 +1408,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 selected = cached["selected_indices"][seed_index]  # type: ignore[index]
                 batch_x = flat_design[selected]
                 batch_y = cached["target_delta"][seed_index][selected]  # type: ignore[index]
-                batch_w = cached["row_weights"][seed_index][selected]  # type: ignore[index]
+                batch_w = (
+                    cached["row_weights"][seed_index][selected]  # type: ignore[index]
+                    * prefix_weight
+                )
                 batch_aug = np.concatenate(
                     [np.ones((batch_x.shape[0], 1), dtype=np.float64), batch_x],
                     axis=1,
@@ -1376,6 +1433,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
             samples_per_round=samples_per_round,
             cells_per_seed=cells_per_seed,
             budget_prefixes=tuple(int(item) for item in budget_prefixes),
+            prefix_weight_floor=prefix_weight_floor,
+            prefix_weight_power=prefix_weight_power,
             blur_sigmas=tuple(float(item) for item in blur_sigmas),
             cell_selection_strategy=cell_selection_strategy,
             ridge_lambda=ridge_lambda,
@@ -1420,6 +1479,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
             samples_per_round=checkpoint.samples_per_round,
             cells_per_seed=checkpoint.cells_per_seed,
             budget_prefixes=tuple(checkpoint.budget_prefixes),
+            prefix_weight_floor=checkpoint.prefix_weight_floor,
+            prefix_weight_power=checkpoint.prefix_weight_power,
             blur_sigmas=tuple(checkpoint.blur_sigmas),  # type: ignore[arg-type]
             cell_selection_strategy=checkpoint.cell_selection_strategy,
             ridge_lambda=checkpoint.ridge_lambda,
@@ -1453,6 +1514,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
             samples_per_round=self.samples_per_round,
             cells_per_seed=self.cells_per_seed,
             budget_prefixes=list(self.budget_prefixes),
+            prefix_weight_floor=self.prefix_weight_floor,
+            prefix_weight_power=self.prefix_weight_power,
             blur_sigmas=list(self.blur_sigmas),
             cell_selection_strategy=self.cell_selection_strategy,
             ridge_lambda=self.ridge_lambda,
@@ -1667,6 +1730,8 @@ def fit_named_query_residual_predictor(
         model_name=spec.model_name,
         samples_per_round=spec.samples_per_round,
         budget_prefixes=spec.budget_prefixes,
+        prefix_weight_floor=spec.prefix_weight_floor,
+        prefix_weight_power=spec.prefix_weight_power,
         cell_selection_strategy=spec.cell_selection_strategy,
         include_exact_local_residual=spec.include_exact_local_residual,
     )

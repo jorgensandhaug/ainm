@@ -626,6 +626,76 @@
      - hard deletion of early prefixes is too aggressive
      - the underlying alignment idea still looks alive
      - next branch should keep early prefixes with reduced weight, not remove them
+78. New hypothesis after `v13`:
+   - later-prefix emphasis seems directionally useful for the worst round, but deleting early prefixes removes too much robustness on other rounds
+   - better ablation:
+     - keep default prefixes `(0, 5, 10, 20, 35, 50)`
+     - assign budget-dependent prefix weights during fitting
+     - apply the same prefix weights to:
+       - regime linear regression
+       - residual ridge regression
+   - first test:
+     - use a moderate linear schedule with floor `0.25`
+     - weights become approximately:
+       - `0 -> 0.25`
+       - `5 -> 0.325`
+       - `10 -> 0.40`
+       - `20 -> 0.55`
+       - `35 -> 0.775`
+       - `50 -> 1.0`
+79. Implemented weighted-prefix branch:
+   - new model name: `query_residual_v14`
+   - semantics:
+     - same architecture as `query_residual_v11`
+     - fixed `samples_per_round=2`
+     - default training prefixes remain `(0, 5, 10, 20, 35, 50)`
+     - training rows now receive budget-dependent weights with:
+       - `prefix_weight_floor=0.25`
+       - `prefix_weight_power=1.0`
+   - implementation details:
+     - generalized query-residual checkpoint/spec/model config to carry prefix-weight parameters
+     - upgraded regime linear fit helper to support weighted least squares
+     - residual ridge fit now multiplies existing entropy row weights by the prefix weight
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+80. Validation after `query_residual_v14` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `20 passed`
+81. Immediate next experiment:
+   - evaluate `query_residual_v14` on the representative 2-round/7-train holdout
+   - promotion rule unchanged:
+     - only run full corrected LOO if `v14` beats the current targeted leader `60.9581`
+82. `query_residual_v14` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v14_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v14`
+     - fixed `samples_per_round=2`
+     - training prefixes `(0, 5, 10, 20, 35, 50)`
+     - linear prefix weights with floor `0.25`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `60.7540`
+     - mean weighted KL `0.166515`
+   - per-round:
+     - `36e581...`: score `63.1168`, KL `0.153500`
+     - `f1dac9...`: score `58.3911`, KL `0.179529`
+83. Interpretation of item 82:
+   - `v14` loses to:
+     - `v11` / `v8` samples-2: `60.9581`
+     - `v13`: `60.8438`
+   - compared with `v13`, moderate prefix weighting did partly recover `36e581...`:
+     - `62.1955 -> 63.1168`
+   - but it also gave back most of the `f1dac9...` gain:
+     - `59.4920 -> 58.3911`
+   - conclusion:
+     - this prefix-weighting family appears to trace a tradeoff curve rather than dominate `v11`
+     - full corrected LOO is not justified for `v14`
+     - next hypothesis should move to a different control surface, not another nearby prefix-weight interpolation
 
 ## Open Questions
 
