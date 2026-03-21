@@ -219,7 +219,7 @@ Key findings:
 - for manual voucher payments, match supplier name to supplier id
 
 ### Non-invoice lines — MUST BE BOOKED
-**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the bank account balance is correct for bank reconciliation. Note: run 5c02a044 included all non-invoice lines but still scored 0.6 — Check 1 failure is caused by missing bank reconciliation (Step 6), not by skipped non-invoice lines.
+**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the account 1920 balance is correct for bank reconciliation. Note: run 5c02a044 included all non-invoice lines but still scored 0.6 — and runs WITH bank reconciliation (57c8f4db, 02daaa35) also scored 0.6. Check 1 failure is NOT caused by skipped non-invoice lines OR missing bank reconciliation. The root cause remains UNSOLVED (likely bank statement import via `/bank/statement/import`).
 
 Book each non-invoice line with 2 postings (bank + contra account):
 

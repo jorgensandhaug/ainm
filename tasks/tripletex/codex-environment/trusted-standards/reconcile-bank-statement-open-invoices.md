@@ -172,10 +172,10 @@ The CSV format `Dato;Forklaring;Inn;Ut;Saldo` does not directly match any suppor
 3. Close the reconciliation with `isClosed: true`
 
 **Investigation priority for next sandbox session**:
-1. Try `POST /bank/statement` (direct creation, not import) if the endpoint exists
-2. Try `POST /bank/statement/transaction` to create individual transactions on an existing statement
-3. Check if the openapi.json reveals required fields or encoding details not covered in testing
-4. Try creating BankReconciliationMatch entries directly without bank statement import
+1. Try multi-period reconciliation (create reconciliation for BOTH January AND February periods when CSV spans 2 months). Hypothesis: scorer checks each period individually. Requires querying both periods and computing per-period closing balances.
+2. Try `POST /bank/reconciliation/match` with just postings (sandbox test showed it REQUIRES `transactions` field with bank transaction IDs — fails with "Listen må inneholde elementer med ID")
+3. Download a real DNB CSV export to study the exact file format, or find Tripletex documentation for the expected file structure
+4. Try `VISMA_ACCOUNT_STATEMENT_PLATFORM_AGNOSTIC` format with a proper CAMT.053 or ISO 20022 XML file instead of CSV
 
 ## Call count
 
@@ -188,8 +188,9 @@ The CSV format `Dato;Forklaring;Inn;Ut;Saldo` does not directly match any suppor
 
 ## Proven production results
 
-**ALL 10 completed runs scored 0.6/6.** Run 57c8f4db was the first to add bank reconciliation — it did NOT fix Check 1. The bank reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transaction import (unsolved).
+**ALL 12 completed runs scored 0.6/6.** Both runs with bank reconciliation (57c8f4db, 02daaa35) scored 0.6/6 — bank reconciliation alone does NOT fix Check 1. The reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transaction import (unsolved).
 
+- **English run 11 (02daaa35): 13 calls, 0 errors, scored 0.6/6** — 2nd bank reconciliation attempt, optimal call count. 6 reads + 5 customer payments (4 full + 1 partial: Taylor Ltd 5156.25 of 10312.50) + 1 combined voucher (12 postings: 3 supplier payments Taylor+Taylor+Smith + 1 Renteinntekter Ut 1495.08 + 1 Skattetrekk Ut 1819.20 + 1 Skattetrekk Inn 1947.28) + 1 bank reconciliation (closingBalance=56951.75, Feb period). Used computed closing balance (no balance sheet fallback needed). **Confirms**: bank reconciliation does not affect the score at all.
 - **Spanish run 2 (57c8f4db): 14 calls, 0 errors, scored 0.6/6** — FIRST bank reconciliation attempt, but Check 1 still failed. 6 reads (broad accountingPeriod query) + 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500) + 1 combined voucher (12 postings: 3 supplier payments González/Torres/López + 1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06, NOT CSV saldo 139130.06). **Key finding 1**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not present in Tripletex. **Key finding 2**: bank reconciliation alone is NOT sufficient — the reconciliation object had `transactions: []`, likely needs bank statement import to populate transactions.
 - German run 2 (5fc92ebf): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
 - German run 1 (655f6c99): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
