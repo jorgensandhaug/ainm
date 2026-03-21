@@ -104,6 +104,26 @@ Verified on 2026-03-20:
   - a disposable sandbox analog matching this production task shape with exact `description="Analysebericht"` and `amountExcludingVatCurrency=30200` again proved the same two-call core after setup
   - on that `Analysebericht` analog, the decisive locate read uniquely matched the fixture invoice by organization number + exact amount + exact line description, and the `:createCreditNote` write returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and still needed no follow-up read
 
+Verified on 2026-03-21:
+- a seventh production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=996887898`
+  - `amountExcludingVatCurrency=19200`
+  - `description="Vedlikehold"`
+- that seventh production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+- an eighth production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=911680521`
+  - `amountExcludingVatCurrency=8050`
+  - `description="Systemutvikling"`
+- that eighth production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - correctness=1.0, normalized_score=4 (tied best), 5/5 checks passed
+- persistent-sandbox re-verification on 2026-03-21 with a disposable fixture matching `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050` again proved the same two-call core after setup
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
