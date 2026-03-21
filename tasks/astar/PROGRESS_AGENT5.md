@@ -686,3 +686,16 @@
 - Current conclusion:
   - keep `greybox_gated_hybrid_v01` as an experimental branch only
   - do not promote it ahead of fixed-weight hybrid v02 without much stronger evidence
+
+- Validation / policy support checks:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `12 passed`
+  - `uv run --extra dev pytest tests/test_exploration_policy.py -q` -> `2 passed`
+  - `uv run --extra dev pytest tests/test_teacher_student.py -q` -> `4 passed`
+
+- Branch checkpoint:
+  - committed teacher/student checkpoint-load support
+  - pushed safely to remote via clean detached worktree
+  - remote branch head now:
+    - `origin/agent5` -> `a27b90c`
+  - pushed commit:
+    - `a27b90c [astar] add teacher/student checkpoint loading`
