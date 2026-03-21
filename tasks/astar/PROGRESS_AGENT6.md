@@ -4184,6 +4184,16 @@
 - Key finding: k saturates at k=9 because with 4 samples/round × 2 train rounds = 8 episodes per fold, k=9 already uses everything
 - Key finding: more synthetic samples per round is counterproductive here
 
+- Observation-likelihood reweighting results (agent1's V8 key innovation):
+  - k5_r3_q12: 73.145
+  - k9_r3_q8: 73.115
+  - k7_r3_q8: 73.112
+  - k5_r3_q8: 73.099
+  - k5_r3_q4: 73.030
+  - All WORSE than k9_r3 (73.29) without observation reweighting!
+  - Key finding: with only ~8 synthetic episodes per fold, particles are too similar for observation-likelihood to differentiate
+  - Agent1 likely has more synthetic episodes or uses samples_per_round=1 (giving 1 episode per round per fold, but with their own summary-vector-from-observations function, not our evidence-based one)
+
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k9_r3_m80: 73.293** (NEW BEST)
 2. hazard_posterior_v2 k7_r3_m80: 73.25
