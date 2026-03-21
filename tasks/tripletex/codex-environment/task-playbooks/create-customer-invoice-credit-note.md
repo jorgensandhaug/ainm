@@ -132,6 +132,15 @@ Verified on 2026-03-21:
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
   - 2 API calls, 0 errors
+- a tenth production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=991882502`
+  - `amountExcludingVatCurrency=13100`
+  - `description="Opplæring"`
+- this is the second production confirmation for this exact prompt shape (first was 2026-03-20):
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - 2 API calls, 0 errors
 
 ## Minimal Flow
 
