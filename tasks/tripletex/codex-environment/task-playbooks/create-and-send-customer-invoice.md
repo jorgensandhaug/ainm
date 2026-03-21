@@ -292,27 +292,50 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - The 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` incorrectly used the order-based flow with product creation and spent 8 calls (1 error); the correct path was this standard's existing-customer variant with bank repair = 6 calls: `GET /customer` → `GET /ledger/vatType` (25%) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry; final state was correct (`amountExcludingVatCurrency=28900`, `amountCurrency=36125`)
 - The 2026-03-21 production run for `Brightstone Ltd` / `894181273` / `Cloud Storage` / `14150` / `excluding VAT` (English prompt, existing customer) confirmed the existing-customer direct-line create-and-send variant with bank repair in optimal 6 calls: `GET /customer?organizationNumber=894181273&fields=*` → `GET /ledger/vatType` (id=3, 25%) → `POST /invoice?sendToCustomer=true` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice?sendToCustomer=true` (201); final: `amountExcludingVatCurrency=14150`, `amountCurrency=17687.5`; English definite article "the customer" correctly triggered `GET /customer` instead of `POST /customer`
 - The same English definite-article heuristic applies: "the customer X" or "invoice to the customer X" implies existing customer → `GET /customer?organizationNumber=...&fields=*`; this mirrors Norwegian "kunden" (definite) vs "en kunde" (indefinite)
+- The same German definite-article heuristic applies: "den Kunden X" or "für den Kunden X" (accusative definite) implies existing customer; "einen Kunden" (accusative indefinite) would imply creating; the 2026-03-21 production run for `Brückentor GmbH` / `804379010` confirmed this: German "den Kunden" correctly indicated existing customer
 - The 2026-03-21 Bokmål production run `Nordhav AS` / `876520427` / `Analyserapport` / `7850` / `eksklusiv MVA` confirmed the existing-customer + bank-repair shape in optimal 6 calls and 0 avoidable errors: `GET /customer` (parallel with `GET /ledger/vatType`, found 25%) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` (201, `amountExcludingVatCurrency=7850`, `amountCurrency=9812.5`); Norwegian definite "kunden" correctly triggered existing-customer lookup
+- The 2026-03-21 English production run `Ironbridge Ltd` / `841254546` / `System Development` / `28500` / `excluding VAT` confirmed the same existing-customer + bank-repair shape in optimal 6 calls and 0 avoidable errors: `GET /customer` (parallel with `GET /ledger/vatType`, found vatType.id=3 at 25%) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` (201, `amountExcludingVatCurrency=28500`, `amountCurrency=35625`); second English definite-article confirmation after Brightstone Ltd
 
-## Key Finding: Product-Line Invoices Require Batch Product Creation
+## Key Finding: Product-Line Invoices Require Linked Products
 
 When the prompt gives product numbers in parentheses (e.g. "Analysis Report (9796) at 27700 NOK with 25% VAT"), these are NOT just descriptions — they are product numbers that must appear as linked products on the invoice order lines.
 
 **Description-only lines will fail product-related scorer checks** even if amounts and VAT are correct. The 2026-03-21 production run for `Oakwood Ltd` / `909722500` with 3 product lines (9796, 2145, 5995) used description-only lines and scored 5/8 (checks 3, 4, 5 failed).
 
-The correct flow adds one `POST /product/list` call:
+### New customer (fresh account) — products don't exist yet
 
-1. `GET /customer?organizationNumber=...&fields=*` (parallel)
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel)
 2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` (parallel)
 3. `POST /product/list` with `[{ "name": "Analysis Report", "number": 9796 }, ...]` (parallel with 1 and 2)
 4. `POST /invoice?sendToCustomer=true` with `product: { "id": <id> }` on each order line
 
 This is 4 calls in the happy path (3 parallel + 1 invoice), or 7 with bank-account repair.
 
-Sandbox-verified pitfalls:
+### Existing customer — products may already exist
+
+When the prompt uses a definite article (Norwegian "kunden", English "the customer", German "den Kunden"), the customer already exists AND products with the given numbers may already be pre-loaded. Blindly using `POST /product/list` will return `422 Produktnummeret X er i bruk`, wasting a call and counting as a scored error.
+
+1. `GET /customer?organizationNumber=...&fields=*` (parallel)
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` (parallel)
+3. `GET /product?fields=id,number&count=1000` (parallel with 1 and 2) — match by `String(p.number)` client-side
+4. If all products found → `POST /invoice?sendToCustomer=true` (total: 4 or 7 with bank repair)
+5. If any products missing → `POST /product/list` with only missing ones, then `POST /invoice` (total: 5 or 8 with bank repair)
+
+The 2026-03-21 production run for `Brückentor GmbH` / `804379010` hit the existing-product pitfall: the agent used `POST /product/list` which returned 422, then had additional string/number comparison bugs, totaling 11 API calls instead of the optimal 7. The correct path was: `GET /customer` + `GET /vatType` + `GET /product` (parallel) → `POST /invoice` (422 bank) → bank repair → `POST /invoice` retry.
+
+### Sandbox-verified pitfalls
 - `product: { "number": 9796 }` on order line does NOT resolve products — readback shows `product: null`; must use `product: { "id": <id> }`
 - Inline product creation via invoice (product with name+number but no id in order line) does NOT work — readback shows `product: null`
-- Products must be pre-created via `POST /product/list` (batch) or `POST /product` (single)
+- Products must be pre-created via `POST /product/list` (batch) or `POST /product` (single), or looked up via `GET /product` if they already exist
+
+### CRITICAL type pitfall: string comparison
+
+Tripletex returns `product.number` and `vatType.number` as **strings**, never numbers. All comparisons must use string-safe equality:
+- WRONG: `[2626, 7746].includes(p.number)` — silently returns false because `"2626" !== 2626`
+- WRONG: `v.number === 5` — fails because vatType number is `"5"` not `5`
+- RIGHT: `String(p.number) === String(targetNum)` or `Number(p.number) === targetNum`
+
+The Brückentor run wasted 3 calls on this bug: product lookup returned 0 matches despite products existing, and vatType 0%-exempt was not found despite being in the response.
 
 ## Key Finding: Multi-VAT-Rate Invoices
 
@@ -321,8 +344,8 @@ When the prompt specifies different VAT rates for different lines (e.g. 25%, 15%
 - 25% standard: look for `percentage === 25` (production code 3)
 - 15% food/drink: look for `percentage === 15` (production code 31)
 - 12% low rate: look for `percentage === 12` (production code 32)
-- 0% exempt (within VAT law): look for `percentage === 0` AND `number === "5"` (avgiftsfri)
-- 0% outside VAT area: look for `percentage === 0` AND `number === "6"`
-- 0% export: look for `percentage === 0` AND `number === "52"`
+- 0% exempt (within VAT law): look for `percentage === 0` AND `Number(v.number) === 5` (avgiftsfri) — remember `v.number` is a string
+- 0% outside VAT area: look for `percentage === 0` AND `Number(v.number) === 6`
+- 0% export: look for `percentage === 0` AND `Number(v.number) === 52`
 
 When the prompt says "0% VAT (exempt)", prefer code 5 (within VAT law/avgiftsfri). When the prompt says "food" or "mat", select the 15% rate (code 31). One vatType lookup serves all lines.
