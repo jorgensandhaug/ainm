@@ -1,6 +1,6 @@
 # Agent Progress Snapshot
 
-Generated: `2026-03-21T15:15:40Z`
+Generated: `2026-03-21T16:01:31Z`
 Repo top-level: `/home/jorge/ainm`
 Task prefix: `tasks/astar/`
 Files found: `9`
@@ -3127,6 +3127,172 @@ Files found: `9`
 - Important evaluation note:
   - 4-round leave-one-round-out only permits at most `2` latent dimensions per fold
   - therefore latent-dimension comparison needs at least a 6-round serious slice or the full 8-round benchmark
+
+### 2026-03-21T15:40:00Z
+
+- `smh_glmmlatent_*` serious-screen results are now in and they are the strongest pure semh teacher signal so far.
+- Tier-2 path4 coverage:
+  - experiment:
+    - `agent2_dev19_smh_glmmlatent_z2_path4_b50_coverage_20260322`
+  - model:
+    - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+  - result:
+    - `74.1727 / 0.112785`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev19_smh_glmmlatent_z2_path4_b50_coverage_20260322/report.md`
+  - read:
+    - clear gain over raw round bank `72.5515 / 0.119122`
+    - most of the gain comes from rescuing `8e839974...` while holding the other path4 rounds roughly flat
+- Tier-2 bad-half coverage:
+  - experiment:
+    - `agent2_dev19_smh_glmmlatent_z2_badhalf_b50_coverage_20260322`
+  - result:
+    - `69.5736 / 0.127049`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev19_smh_glmmlatent_z2_badhalf_b50_coverage_20260322/report.md`
+  - read:
+    - exactly flat to the raw bank on this slice
+    - important because the path4 gain is real and not paid for by an immediate bad-half collapse
+- Tier-3 serious 6-round coverage comparison:
+  - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - experiment: `agent2_dev20_smh_glmmlatent_z2_path6_b50_coverage_20260322`
+    - result: `72.8255 / 0.116068`
+    - artifact: `data/artifacts/benchmarks/agent2_dev20_smh_glmmlatent_z2_path6_b50_coverage_20260322/report.md`
+  - `smh_glmmlatent_z4_h0_covbase_calnone_v001`
+    - experiment: `agent2_dev20_smh_glmmlatent_z4_path6_b50_coverage_20260322`
+    - result: `70.5723 / 0.127226`
+    - artifact: `data/artifacts/benchmarks/agent2_dev20_smh_glmmlatent_z4_path6_b50_coverage_20260322/report.md`
+  - read:
+    - tiny manifold wins clearly; larger latent hurts badly
+    - this directly supports the handoff’s “tiny regime manifold” thesis
+    - `z2` is the only latent setting worth promoting right now
+- Round-level read from the 6-round `z2` serious slice:
+  - huge lifts on:
+    - `8e839974...` -> `92.4099 / 0.026312`
+    - `ae78003a...` -> `59.1982 / 0.175931`
+    - `c5cdf100...` -> `87.7144 / 0.043752`
+  - acceptable/improved on:
+    - `fd3c92ff...` -> `73.4843 / 0.102722`
+  - remaining pathology:
+    - `36e581f1...` -> `44.1223 / 0.273255`
+  - implication:
+    - the new teacher is good enough that the next improvement target is the prior/posterior over `z_r`, not more latent capacity
+- Query policy check on the serious slice:
+  - experiment:
+    - `agent2_dev21_smh_glmmlatent_z2_path6_b50_exploration_20260322`
+  - result:
+    - identical to coverage at `72.8255 / 0.116068`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev21_smh_glmmlatent_z2_path6_b50_exploration_20260322/report.md`
+  - read:
+    - current policy is not binding for this branch
+    - no reason to spend more time on policy before improving the regime prior
+- Promotion / follow-up state:
+  - full 8-round promotion launched:
+    - `agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322`
+  - full `z4` promotion was intentionally killed after the 6-round loss
+  - new follow-up branch launched:
+    - `smh_glmmlatent_z2_h0_covprior_calnone_v001`
+  - purpose of the new branch:
+    - use initial-map semimechanistic summaries to form a prior over round latent `z_r`
+    - target the remaining harsh-round failure on `36e581f1...`
+
+### 2026-03-21T16:20:00Z
+
+- Final manifold results for this cycle:
+  - full 8-round coverage promotion:
+    - experiment: `agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322`
+    - model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - result: `77.8193 / 0.089306`
+    - runtime: `1688.115s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322/result.json`
+  - warmed-cache full exploration follow-up:
+    - experiment: `agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322`
+    - model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - result: `78.3805 / 0.086960`
+    - runtime: `208.366s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322/result.json`
+- This is now the dominant local line in the entire checkout:
+  - vs prior best residual exploration line `query_residual_v9_v10_builtfreqgatexwide_v001` (`74.6943 / 0.100390`)
+  - delta:
+    - `+3.6862` score
+    - `-0.013430` weighted KL
+- Paired same-policy compare artifact:
+  - command:
+    - `uv run astar compare-historical-benchmarks --baseline data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321/result.json --candidate data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322/result.json --bootstrap-samples 2000`
+  - result:
+    - mean score delta: `+3.6863`
+    - mean weighted KL delta: `-0.013431`
+    - win rate: `0.625`
+    - CI95: `[0.3465, 7.3703]`
+  - artifact:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual_v9_v10_builtfreqgatexwide_v001__candidate=smh_glmmlatent_z2_h0_covbase_calnone_v001.json`
+  - interpretation:
+    - wins are large enough on most rounds to overwhelm the still-bad `36e581f1...` losses
+    - round manifold teacher is now decisively better than the old residual baseline overall
+- Dead follow-up after the win:
+  - `smh_glmmlatent_z2_h0_covprior_calnone_v001`
+  - serious 6-round result:
+    - `72.8255 / 0.116068`
+    - exactly identical to plain `z2 covbase`
+  - read:
+    - simple ridge prior from initial-map summaries into `z_r` did nothing
+    - do not promote this branch as implemented
+- Small bug fix learned from the promotion cycle:
+  - adding optional feature-prior fields broke loading of already-written latent checkpoints
+  - fix:
+    - backward-compatible default added for `feature_prior_ridge_lambda` in `SemhGlmmLatentPredictorCheckpoint`
+  - this was required to reuse the warm `z2` fold checkpoints for the fast full exploration rerun
+- Final validation after the compatibility fix:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `59 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py -q`
+    - `1 passed`
+
+### 2026-03-21T15:57:48Z
+
+- Resumed from the `z2 h0` win with the next handoff-mandated axis:
+  - hidden memory / Markov sufficiency test
+  - target model family member: `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+- Re-read `instructions/agent2.md` and verified the relevant path in Part B:
+  - after tiny low-rank round latent works, test small hidden memory before spending more time on larger latent dimension or policy
+  - this matches the observed remaining failure concentration on `36e581f1...`
+- Checked machine state before launching heavier work:
+  - load average: `24.77 / 49.42 / 62.31`
+  - available RAM: about `2.0 TiB`
+  - implication:
+    - enough headroom for parallel benchmarks later, but start with one serious gate until the new branch is correct
+- Implemented the first `h1` branch plumbing:
+  - replay transition dataset can now optionally emit collapsed-state EMA memory covariates:
+    - `occupied_recent`
+    - `ruin_recent`
+    - `port_recent`
+  - added dataset metadata/version checks for:
+    - `include_memory_features`
+    - `memory_decay`
+  - threaded memory features through the full GLMM family:
+    - pooled `smh_glmm`
+    - candidate-bank `smh_glmmbank`
+    - latent-manifold `smh_glmmlatent`
+  - added backward-compatible checkpoint fields:
+    - `memory_feature_names`
+    - `memory_decay`
+  - registered new benchmarkable model:
+    - `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+- Smoke testing exposed a real GLMM bug unrelated to the new memory idea:
+  - `_transition_probs_for_class(...)` initialized intercept logits with an in-place broadcast that is invalid
+  - fixed by explicitly materializing the broadcasted spatial intercept tensor
+  - this bug affects the whole GLMM family, so fixing it before promotion was mandatory
+- Validation after the memory wiring + broadcast fix:
+  - `python3 -m py_compile src/astar/student/predictor/smh_glmm.py src/astar/history/datasets/cell_transition.py`
+    - passed
+  - `python3 -m py_compile src/astar/student/predictor/interactive.py src/astar/student/predictor/smh_glmm.py src/astar/history/datasets/cell_transition.py src/astar/cli.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_glmmlatent_z2_h1_covbase_calnone_v001 or smh_glmmlatent_z2_h0_covbase_calnone_v001' -q`
+    - `2 passed`
+- Next action from here:
+  - run the serious 6-round gate for `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+  - only promote to full 8-round if it clears the incumbent `z2 h0` serious baseline `72.8255 / 0.116068`
 
 
 ---
@@ -7564,11 +7730,90 @@ Files found: `9`
      - no extra stacking beyond this bounded launch because the shared host still had large foreign jobs active
 
 
+481. Radical new approach: `obs_likelihood_mixture` family:
+   - 4 variants (v1-v4)
+   - approach: particle-filter-like weighting of historical round ground truths by observation likelihood
+   - **CATASTROPHIC FAILURE**: scored 3-17 on targeted holdout
+   - root cause: blending raw ground truth tensors across rounds with DIFFERENT map geometries is fundamentally broken
+   - lesson: ground truth tensors are map-specific; can't mix them across rounds
+
+482. Radical new approach: `coefficient_inverse` family:
+   - 4 variants (v1-v4)
+   - approach: solve inverse problem to estimate hazard teacher's 12-dim coefficient vector from viewport observations
+   - scores: v1=50.75, v2=52.69, v3=50.88, v4=53.98
+   - BELOW existing teacher_student_blend (~65) and far below query_residual (~77)
+   - root cause: inverse problem is too ill-conditioned with sparse stochastic viewport observations
+
+483. Radical new approach: `spatial_correction` family:
+   - 4 variants (v1-v4)
+   - approach: take query_residual_v19 as base, apply spatially-propagated observation corrections
+   - features: activity calibration from Gaussian-smoothed observation patterns, direct observed-cell correction, cross-seed consensus blending
+   - benchmarks launched, results pending
+
+484. Key per-round analysis of current best (query_residual_v19, 76.89 full LOO):
+   - best rounds: 8e8399 (84.43), 76909e (82.49), 71451d (80.15)
+   - worst rounds: 36e581 (66.58), f1dac9 (68.47)
+   - round f1dac9 is BARREN (mean build rate 0.0028, only 78 high-entropy cells) - model overpredicts activity
+   - round 36e581 is ACTIVE but UNPREDICTABLE (574 high-entropy cells) - model struggles with spatial distribution
+   - improving just these two rounds by ~5 points would push overall to ~79+
+
+485. Spatial correction results (targeted holdout, 2 hard rounds):
+   - v1 (sigma=3.0, strength=0.3): 64.56
+   - v2 (sigma=2.0, strength=0.5): 59.31
+   - v3 (sigma=4.0, strength=0.15): 67.02 (BEST initial)
+   - v4 (sigma=3.0, strength=0.4, no activity cal): 60.49
+   - INTERPRETATION: gentle correction (v3) works best, strong correction destroys
+   - v3 per-round: 36e581f1=61.83 (worse), f1dac9a9=72.21 (MUCH better)
+   - v3 dramatically helps barren round but hurts active round
+
+486. Refined spatial correction (v5-v8) based on v3's success:
+   - v5 (sigma=5.0, strength=0.08, radius=8.0): **67.38** (NEW near-best targeted)
+   - v6 (sigma=4.0, strength=0.10, radius=7.0): 67.36
+   - v7 (sigma=6.0, strength=0.12, radius=10.0): 67.23
+   - v8 (sigma=4.0, strength=0.15, radius=7.0, no cross-seed): 67.03
+   - KEY PATTERN: very gentle correction with wide sigma is optimal
+   - v5 is WITHIN 0.04 of query_residual_v21 targeted (67.42)!
+   - Full LOO launched for v5 to see if it beats v19 overall
+
+487. Summary of all new radical families (targeted holdout scores):
+   - obs_likelihood_mixture: 3-17 (catastrophic, fundamentally broken)
+   - coefficient_inverse: 50-54 (below baseline)
+   - spatial_correction: 59-67.4 (v5 competitive with best!)
+   - spatial_correction_v5 is the ONLY new family that approaches v19's territory
+
+488. `spatial_correction_v5` full LOO result: **76.64** (worse than v19's 76.89)
+   - f1dac9a9 improved: 68.47 → 70.23 (+1.76)
+   - 36e581f1 regressed: 66.58 → 65.45 (-1.13)
+   - Most other rounds also slightly regressed
+   - CONCLUSION: spatial correction adds noise on good rounds, only helps barren round
+
+489. **BREAKTHROUGH**: `adaptive_ensemble` family
+   - approach: detect barren rounds via observation build_rate, apply targeted scaling
+   - targeted holdout (2 hard rounds):
+     - v2: **73.31** (vs previous best 67.42!)
+     - v1: 72.75
+     - v4: 72.38
+     - v3: 72.15
+   - **FULL LOO result for v1: 79.26** (vs query_residual_v19's 76.89!)
+     - GAIN: +2.37 overall
+     - KEY IMPROVEMENT: f1dac9a9 barren round: 68.47 → **80.86** (+12.39!)
+     - c5cdf100: 75.50 → 82.03 (+6.53!)
+     - All other rounds UNCHANGED (correction only fires on detected barren rounds)
+   - This is the FIRST model to break 79 on full LOO
+   - v2 full LOO running (scored even higher on targeted holdout)
+
+490. Current verified leaderboard:
+   - **1st: adaptive_ensemble_v1 = 79.26** (NEW BEST!)
+   - 2nd: query_residual_v19 = 76.89
+   - 3rd: query_residual_v18 = 76.68
+   - 4th: query_residual_v21 = 76.68
+   - 5th: query_residual_v17 = 76.15
+
 ## Open Questions
 
-- Which benchmark/run currently best on local held-out rounds: `query_residual` vs `historical_bucket_prior`?
-- Where exactly are experiment ledgers stored today, if at all?
-- Is current validation strong enough for live performance selection, or should it be upgraded to better grouped/chronological round holdouts?
+- Will adaptive_ensemble_v2 beat v1 on full LOO?
+- Can the barren-round detection be improved with more features?
+- Can similar regime-specific calibration be applied to the active-but-unpredictable round?
 
 
 ---
@@ -10591,6 +10836,48 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   3. **Replay LightGBM + online Dirichlet evidence update** (agent4_cellwise_online_lgb_b6_v1)
 - All three running in parallel on this machine
 
+#### First batch results (prior-only and naive online)
+- GT-only LightGBM: `score=66.50, kl=0.150` — about equal to bucket prior
+- Replay-augmented LightGBM (per-class): `score=66.74, kl=0.150` — marginal prior gain
+- Multiclass LightGBM: `score=58.32, kl=0.203` — WORSE (miscalibrated for probability targets)
+- LGB+QR hybrid (naive beta shrinkage): `score=67.76, kl=0.142` — minimal online improvement
+- Online Dirichlet update: `score=59.72, kl=0.187` — naive Bayesian update fails
+- Interpretation: replay data doesn't help much for prior-only; naive online updates fail
+
+#### Evidence-augmented LightGBM — BREAKTHROUGH
+- KEY IDEA: Train a SINGLE unified model that takes both map features AND observed evidence features
+  - Evidence features: observed class of nearby cells, neighborhood summaries from observations, settlement stats
+  - Train on replay pairs (one as evidence, another as label) to simulate online scenario
+- Evidence v1 (1-replay evidence): `score=71.96, kl=0.114` — +5.2 points over prior!
+- Evidence v2 (3-replay averaged evidence + settlement features): `score=76.81, kl=0.090`
+  - **+10 points over prior-only!**
+  - Only 2.6 points below the champion `query_residual_v11` at 79.39
+  - Several rounds now BEAT the champion per-round scores
+  - Best rounds: 8e8399 at 84.0 (champion ~78), 76909e at 83.1
+- Simple prior ensemble (0.4 replay + 0.3 GT + 0.3 bucket): `score=68.13` — no help
+
+#### Experiment results table
+
+| Model | Mode | Score | KL | Notes |
+|-------|------|-------|-----|-------|
+| Historical bucket prior | prior-only | 66.32 | 0.142 | existing baseline |
+| GT-only LightGBM | prior-only | 66.50 | 0.150 | ~equal to baseline |
+| Replay LightGBM | prior-only | 66.74 | 0.150 | marginal |
+| Multiclass LightGBM | prior-only | 58.32 | 0.203 | miscalibrated |
+| LGB+QR hybrid | online | 67.76 | 0.142 | naive blending |
+| Dirichlet update | online | 59.72 | 0.187 | too aggressive |
+| Evidence v1 LGB | online(sim) | 71.96 | 0.114 | spatial propagation works |
+| **Evidence v2 LGB** | **online(sim)** | **76.81** | **0.090** | **breakthrough** |
+| Ensemble priors | prior-only | 68.13 | 0.138 | no help |
+| query_residual_v11 champion | online | 79.39 | 0.078 | current best |
+
+#### Next experiments to run
+1. Evidence v2 with MORE replays for evidence (5, 10 instead of 3)
+2. Evidence v2 with actual online benchmark infrastructure (not simulated coverage)
+3. Ensemble of evidence v2 + query_residual champion
+4. Temperature/calibration sweep on evidence v2
+5. Wire evidence v2 into the formal historical benchmark system
+
 
 ---
 
@@ -13004,6 +13291,106 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - Next pivot implication:
   - stop spending more cycles on minor H10 policy tweaks for now
   - if returning later, it should be with a more radical policy-learning setup, not another small heuristic retune
+
+### 2026-03-21T15:05:00Z
+
+- **RADICAL NEW DIRECTION: Cell-level kNN + Observation-Validated Ensemble**
+- Re-read full handoff and analyzed the fundamental limitations of current approach:
+  - Current hazard teacher compresses each round to only 51 logistic regression coefficients
+  - This loses enormous per-cell spatial information from the replays
+  - The low-rank manifold further compresses to ~3 dimensions
+  - Ground truth terminal probs are 40×40×6 = 9600 values per seed
+- Implemented three new fundamentally different predictors:
+
+#### 1. `greybox_cellknn_v01` — Cell-level kNN with full replay terminal probs
+- file: `src/astar/student/predictor/greybox_cellknn.py`
+- Uses per-cell terminal probability maps from replays directly (40×40×6 per seed)
+- Matches cells via feature-space similarity using 13 spatial features
+- Round identification via cell-level multinomial likelihood weighting
+- Spatial propagation from observed to unobserved cells via Gaussian smoothing
+- Uses batched numpy distance computation (no scipy needed)
+
+#### 2. `greybox_roundmatch_v01` — Round-weighted terminal probability transfer
+- file: `src/astar/student/predictor/greybox_roundmatch.py`
+- Bayesian posterior over training rounds from observed cell likelihoods
+- Map fingerprint similarity for cross-seed matching
+- Direct weighted average of full-resolution terminal prob maps
+
+#### 3. `greybox_obsval_ensemble_v01` — Observation-validated ensemble
+- file: `src/astar/student/predictor/greybox_obsval_ensemble.py`
+- Runs both cellknn and hybrid_lowrank_queryres
+- Per-cell weighting based on which model's predictions better match actual observations
+- Sigmoid gating with spatial smoothing of the observation match score
+- Designed to capture: cellknn's strength on unusual rounds + hybrid's strength on typical rounds
+
+- All three integrated into:
+  - predictor registry / online path
+  - historical benchmark transcript-model allowlist
+  - model_eval historical eval path
+  - CLI model choices
+  - test smoke matrix
+
+- Validation:
+  - `uv run python -m py_compile` — all passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q -k "greybox_cellknn or greybox_roundmatch or greybox_obsval_ensemble"` — 3 passed
+
+- Initial 3-round hard-slice results:
+
+| Model | 36e581 | c5cdf | f1dac | Mean |
+|-------|--------|-------|-------|------|
+| **existing best** | ~66 | ~78 | ~57 | ~67 |
+| `greybox_cellknn_v01` | 43.28 | 71.93 | **76.59** | 63.93 |
+| `greybox_roundmatch_v01` | 35.45 | ~46 | ~42 | 41.07 |
+
+- **KEY FINDING**: cellknn gets **76.59 on f1dac** (the hardest round), which is +19.6 points better than the existing best (~57)
+- cellknn is catastrophic on 36e581 (43.28 vs ~66), meaning it loses on typical rounds
+- roundmatch is rejected — map differences between rounds make direct position-level transfer broken
+
+- Launched parallel benchmarks:
+  - `agent5_obsval_ensemble_coverage_probe3_v01` — ensemble with coverage policy
+  - `agent5_obsval_ensemble_explr3_probe3_v01` — ensemble with exploration_r3 policy
+  - `agent5_cellknn_coverage_full8_v01` — full 8-round cellknn evaluation
+
+### 2026-03-21T15:25:00Z
+
+- Full 8-round cellknn results (pooled version):
+  - mean score `63.50`
+  - f1dac score `57.09` — **collapsed from 76.59 in 3-round probe to 57 in full 8**
+  - root cause: with 7 training rounds, cells from dissimilar rounds dilute the kNN signal
+  - confirmed: cellknn with 2 training rounds → 76.59 on f1dac; with 7 → 57.09
+
+- Observation-validated ensemble results:
+  - `coverage`: mean `65.58` — too much cellknn weight on 36e581
+  - `exploration_r3`: mean `67.20` — same problem
+  - rejected: observation-match weighting is too noisy to discriminate models
+
+- Implemented `greybox_cellknn_perround_v01`:
+  - file: `src/astar/student/predictor/greybox_cellknn_perround.py`
+  - fixes: builds SEPARATE kNN per training round, averages with round posterior weights
+  - result: mean `71.90` (explr3), f1dac `64.82` — better but still below existing best
+  - also fixed bug: round weights now computed from kNN predictions, not raw position-level terminal probs
+
+- **KEY RESULT — Stacked QR+CellKNN predictor:**
+  - file: `src/astar/student/predictor/greybox_stacked_v01.py`
+  - design: blends query_residual and cellknn_perround in logit space with configurable weight
+  - `stacked_explr3_full8_v01` (weight=0.50):
+    - mean score `75.12` — **essentially tied with existing best 75.19**
+    - f1dac `66.95` — **+9.55 points vs existing best's 57.40**
+    - 36e581 `64.20` — -2.0 vs existing
+    - trades small losses on easy rounds for massive f1dac gain
+
+- Comparison table (exploration_r3, full 8 rounds):
+
+  | Model | Mean | f1dac | 36e581 | Best round |
+  |-------|------|-------|--------|------------|
+  | existing best | 75.19 | 57.40 | 66.20 | 86.17 |
+  | stacked w50 | 75.12 | **66.95** | 64.20 | 83.13 |
+
+- Current weight sweep running:
+  - `greybox_stacked_w15` (weight=0.15)
+  - `greybox_stacked_w25` (weight=0.25)
+  - `greybox_stacked_w35` (weight=0.35)
+  - purpose: find optimal blend weight that preserves easy-round strength while keeping f1dac improvement
 
 
 ---
@@ -17079,6 +17466,84 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
     - stop rollout heuristics here
     - do not spend more smoke budget on hand-tuned annual programs until there is a fitted teacher transition layer
 
+## 2026-03-21 15:xx UTC - radical new approach sweep
+
+- Re-read handoff and full progress document.
+- Machine state:
+  - RAM `2.0 TiB` available
+  - load about `28 / 36 / 57`
+  - agent1/agent3 running many large jobs but plenty of headroom
+- Started 3 radically different predictor families:
+
+### Terminal retrieval (catastrophic reject)
+- Code: `src/astar/student/predictor/terminal_retrieval.py`
+- Hypothesis: bypass all decoders, directly retrieve and blend ground-truth analysis tensors from kNN-nearest historical rounds
+- Smoke results:
+  - `f1_terminal_retrieval_v01` (k=7): score `14.2864`, KL `0.654015`
+  - `f1_terminal_retrieval_k1_v01` (k=1): score `4.5350`, KL `1.043448`
+  - `f1_terminal_retrieval_k3_v01` (k=3): score `14.2864`, KL `0.654015`
+  - `f1_terminal_retrieval_blend30_v01` (30% prior): score `38.2245`, KL `0.321496`
+- Verdict: **catastrophic reject**
+- Scientific read: rounds have different spatial layouts, so raw terminal tensor retrieval is nonsensical - cells don't correspond between rounds
+- The 30% blend result shows the prior is doing all the work
+
+### MLP nonlinear decoder (running)
+- Code: `src/astar/student/predictor/mlp_decoder.py`
+- Hypothesis: the linear ridge decoder is the bottleneck; a 2-layer MLP with ReLU can capture nonlinear structure
+- Features: same as linear decoder (spatial basis + prior logits + regime vector)
+- Training: Adam optimizer, entropy-weighted MSE, 200 epochs, h=64
+- Status: smoke benchmarks running
+
+### MLP nonlinear decoder (catastrophic reject)
+- Code: `src/astar/student/predictor/mlp_decoder.py`
+- Results:
+  - `f1_mlp_decoder_v01` (h=64): score `42.6117`, KL `0.287668`
+  - `f1_mlp_decoder_h128_v01` (h=128): score `45.6450`, KL `0.264384`
+- Verdict: **catastrophic reject** - MLP dramatically overfits with so few training rounds
+
+### Cell-type transfer (modest positive)
+- Code: `src/astar/student/predictor/cell_type_transfer.py`
+- Hypothesis: position-invariant approach computing P(year50_class | initial_type, local_structure, round_regime) from analysis ground truths
+- Bucketed by: initial cell class, settlement proximity, coast flag, forest neighbors
+- Results:
+  - `f1_cell_type_transfer_v01` (30% prior blend): score `70.9287`, KL `0.120618`
+  - `f1_cell_type_transfer_blend50_v01` (50% prior blend): score `71.0326`, KL `0.119467`
+- Verdict: **best new non-query-residual family model**, better than summary_rate_decoder family (~69.9)
+  - Still ~2 points below supportx_v01 (~72.9)
+  - Position-invariant idea is validated
+
+### Cross-agent analysis
+- Agent1's `hazard_posterior_v8_k5_r3_l32_m70_q8`: score **79.19** on dev probe
+  - Uses HazardTeacherV2 with proper SVD-compressed low-rank regime
+  - Ridge-projected regime prediction blended with kNN particles
+  - Much richer spatial features (27 features including interactions)
+  - Entropy-conditioned class-specific observation weights
+- Agent2's `smh_resid_z12_h0_covbase_locgate_v001`: score **74.41**
+- Key insight: the scoring gap is in the teacher/coefficient infrastructure, not in the posterior or decoder
+
+### Hazard posterior V2 port (BREAKTHROUGH - new best!)
+- Code:
+  - `src/astar/history/summaries/round_coefficients_v2.py` (ported from agent1)
+  - `src/astar/teacher/dynamics/hazard_teacher_v2.py` (ported from agent1)
+  - `src/astar/student/predictor/hazard_posterior_v2_port.py`
+  - `src/astar/student/predictor/hazard_posterior_v2_port_specs.py`
+- Smoke results:
+  - `f1_hazard_posterior_v2_k5_r3_v01`: score **73.0480**, KL `0.107014`
+  - `f1_hazard_posterior_v2_k5_r5_v01`: score `73.0480`, KL `0.107014`
+  - `f1_hazard_posterior_v2_k3_r3_v01`: score `72.7596`, KL `0.108442`
+- **BEATS baseline query_residual (72.55) AND supportx_v01 (72.92) on probe3!**
+- Dev5 benchmark running for robustness confirmation
+- Next: iterate on this family with hyperparameter sweeps and dev5 validation
+
+### Current scoreboard on probe3:
+1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
+2. supportx_v01: 72.92
+3. baseline query_residual: 72.55
+4. cell_type_transfer blend50: 71.03
+5. summary_rate_decoder_dyn best: ~69.9
+6. MLP decoder: ~43-46 (reject)
+7. terminal retrieval: ~14 (reject)
+
 
 ---
 
@@ -19584,6 +20049,61 @@ Framework should accept unique query-residual family variant names directly so b
   - passed: `102`
   - committed + pushed promoted state to `origin/agent7`
   - commit: `df87640a`
+
+### 2026-03-21T15:00Z approx
+
+- Massive parallel sweep of new ffam_mode variants v45-v76.
+- Identified two key underexplored axes via 16-way parallel hard-gate probes:
+  - **prior_blend reduction**: v52 (prior_blend=0.05, ood=0.20) scored 69.02 vs v44's 67.49
+  - **operator ridge lambda reduction**: v45/v46 (lambda=4.0/2.0) showed mild gains
+- Promoted v52 and v59 to full 8-round dev:
+  - v52 = 78.28
+  - v59 = 78.46 (combo: q=4 + lambda=4 + prior=0.07 + temp=1.0)
+- Follow-up sweep v61-v66 pushed prior reduction further:
+  - v62 (prior=0.02, ood=0.10) = 69.45 hard-gate
+  - v61 (prior=0.03, ood=0.15) = 69.40 hard-gate
+- Combo variants v67-v72 on full dev:
+  - **v67 = 78.85** (q=4 + lambda=4 + prior=0.02 + ood=0.10 + temp=1.0) ← new best
+  - v70 = 78.57, v71 = 78.56
+- Final squeeze v73-v76:
+  - **v76 = 79.13** (v67 + posterior_ridge_lambda=4.0) ← NEW CHAMPION!
+  - v75 = 78.88, v73 = 78.86
+- Per-round comparison v44 vs v76:
+  - Round 3: 64.13 → 72.90 (+8.77!)
+  - Round 8: 80.32 → 84.70 (+4.38!)
+  - Round 7: 65.44 → 67.27 (+1.83)
+  - Round 6: 78.69 → 77.50 (-1.19)
+  - Round 4: 86.98 → 86.12 (-0.86)
+  - Round 2: 84.91 → 84.13 (-0.78)
+  - Round 1: 82.02 → 81.43 (-0.59)
+  - Round 5: 79.60 → 79.04 (-0.56)
+  - Net: +1.37 points aggregate
+- v77-v82 launched for additional squeeze around v76
+
+## Current Champion
+
+- best observed local full-dev system:
+  - model: `ffam_mode_v76`
+  - policy: `exploration_r3`
+  - `samples_per_round=2`
+  - score: `79.1349`
+  - mean weighted KL: `0.080358`
+  - key changes vs v44:
+    - `projected_mode_dim=4` (was 3)
+    - `operator_ridge_lambda=4.0` (was 8.0)
+    - `posterior_ridge_lambda=4.0` (was 8.0)
+    - `prior_blend=0.02` (was 0.10)
+    - `posterior_ood_prior_blend=0.10` (was 0.28)
+    - `temperature=1.0` (was 1.02)
+
+## Key Findings This Session
+
+1. **Prior blend was too conservative**: Reducing prior_blend from 0.10 to 0.02 gave +1.53 on hard gate
+2. **Ridge regularization was too strong**: Reducing both operator and posterior ridge from 8.0 to 4.0 improved full-dev by +0.28
+3. **Higher mode dim q=4 helps with MLP**: The nonlinear posterior can navigate the higher-dimensional space
+4. **Temperature=1.0 is optimal**: No temperature softening needed
+5. **More cells_per_seed hurts**: Increasing from 512 to 1024 dramatically worsened results
+6. **Cluster count=3 is neutral**: No improvement over 2 clusters
 
 
 ---
