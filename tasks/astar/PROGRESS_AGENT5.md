@@ -2755,7 +2755,18 @@
   - Key: using original round coefficients instead of SVD reconstruction
   - Policy: regime_probe_v1 instead of exploration_r3
 
-- **Current absolute best model: `query_residual` recalibrated (t=1.0, p=0.0, b=6/24) at 80.24**
+- **Current absolute best model: `query_residual` recalibrated (t=1.0, p=0.0, b=6/24) at 80.37**
+  - Optimal settings: exploration_r3 policy, samples_per_round=2
+  - Coverage policy is WORSE (79.50) despite Agent4's finding
+  - spr1 (79.83) < spr2 (80.37) > spr4 (80.24)
+
+- Cross-agent review key findings:
+  - Agent1 achieves **83.89** with hazard_posterior_v15 + regime_probe_v1 policy
+  - Agent4 achieves **79.65** with recalibrated QR + coverage
+  - Agent3 found prior_blend=0.0 monotonically improves from 0.35→0.0
+  - Agent2 reached 78.40 with GLMM z2 model (different architecture)
+  - Agent6 confirmed hazard teacher is at its ceiling
+  - Agent7 found exploration_r3 is optimal repeat policy
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
