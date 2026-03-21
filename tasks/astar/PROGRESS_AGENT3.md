@@ -1900,6 +1900,49 @@
      - fixed immediately
      - rerun result:
        - `3 passed`
+204. Monitoring update while item 201 gate continues:
+   - no `teacher_student_blend_v13..v16` artifact has finished yet
+   - machine-wide memory snapshot after more agents ramped up:
+     - memory used: about `459 GiB`
+     - memory available: about `2.5 TiB`
+   - my four active corrected holdout runs had grown to about `19.8-29.6 GiB` RSS each
+   - decision still holds:
+     - do not add more benchmark processes until the current gate lands a ranking
+205. Next model hypothesis after item 204:
+   - current teacher blend still keys off round-total query count
+   - that ignores which seed actually received informative coverage
+   - test a seed-adaptive teacher weight:
+     - increase blend when a seed has more direct evidence / buildable coverage
+     - decrease blend when a seed has sparse or repetitive evidence
+206. Implemented seed-adaptive teacher weighting:
+   - new teacher-weight mode:
+     - `seed_adaptive`
+   - evidence signal now combines:
+     - per-seed query count
+     - buildable-cell coverage fraction
+     - repeated-window penalty
+   - new variants:
+     - `teacher_student_blend_v19`
+     - `teacher_student_blend_v20`
+   - both sit on top of:
+     - temporal summary encoder
+     - coefficient-residual head
+     - spatial dynamic blending
+     - confidence gating
+207. Validation for item 206:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v20_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip -q`
+   - result:
+     - `3 passed`
+208. Launch-path hardening after item 201:
+   - added real file-backed targeted holdout launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - reason:
+     - avoid multiprocessing spawn failure from inline `python - <<'PY'`
+     - future corrected holdout runs can now use file-backed `__main__`
+   - smoke:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --help`
+     - passed
 
 
 ## Open Questions

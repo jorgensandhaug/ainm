@@ -53,8 +53,12 @@ SUMMARY_BANK_STUDENT_V15 = "teacher_student_blend_v15"
 SUMMARY_BANK_STUDENT_V16 = "teacher_student_blend_v16"
 SUMMARY_BANK_STUDENT_V17 = "teacher_student_blend_v17"
 SUMMARY_BANK_STUDENT_V18 = "teacher_student_blend_v18"
+SUMMARY_BANK_STUDENT_V19 = "teacher_student_blend_v19"
+SUMMARY_BANK_STUDENT_V20 = "teacher_student_blend_v20"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
+TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
+TEACHER_WEIGHT_MODE_SEED_ADAPTIVE = "seed_adaptive"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
     {
         SUMMARY_BANK_STUDENT_ALIAS,
@@ -76,6 +80,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V16,
         SUMMARY_BANK_STUDENT_V17,
         SUMMARY_BANK_STUDENT_V18,
+        SUMMARY_BANK_STUDENT_V19,
+        SUMMARY_BANK_STUDENT_V20,
     },
 )
 
@@ -94,6 +100,7 @@ class SummaryBankVariantSpec(BaseModel):
     ridge_alpha: float = Field(default=1.0, gt=0.0)
     blend_mode: str = BLEND_MODE_GLOBAL
     use_confidence_gate: bool = False
+    teacher_weight_mode: str = TEACHER_WEIGHT_MODE_ROUND_TOTAL
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -135,6 +142,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V16: 8,
         SUMMARY_BANK_STUDENT_V17: 4,
         SUMMARY_BANK_STUDENT_V18: 8,
+        SUMMARY_BANK_STUDENT_V19: 4,
+        SUMMARY_BANK_STUDENT_V20: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -175,6 +184,40 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v17 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V18 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v18 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V19 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v19 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V20 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v20 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V20:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.85,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V19:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.78,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V18:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -491,22 +534,57 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     query_count_scale: float = Field(default=20.0, gt=0.0)
     blend_mode: str = BLEND_MODE_GLOBAL
     use_confidence_gate: bool = False
+    teacher_weight_mode: str = TEACHER_WEIGHT_MODE_ROUND_TOTAL
 
-    def _teacher_weight(self, evidence: RoundEvidenceBundle) -> float:
-        if evidence.total_queries <= 0:
+    def _teacher_weight_for_seed(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+    ) -> float:
+        if self.teacher_weight_mode == TEACHER_WEIGHT_MODE_ROUND_TOTAL:
+            if context.evidence_bundle.total_queries <= 0:
+                return 0.0
+            return float(
+                np.clip(context.evidence_bundle.total_queries / self.query_count_scale, 0.0, 1.0)
+                * self.teacher_weight_max,
+            )
+        if self.teacher_weight_mode != TEACHER_WEIGHT_MODE_SEED_ADAPTIVE:
+            raise ValueError(
+                f"unsupported summary-bank teacher weight mode: {self.teacher_weight_mode}",
+            )
+        seed_evidence = context.evidence_bundle.per_seed[seed_index]
+        if seed_evidence.query_count <= 0:
             return 0.0
-        return float(
-            np.clip(evidence.total_queries / self.query_count_scale, 0.0, 1.0)
-            * self.teacher_weight_max,
+        seed_features = context.geometry_bundle.per_seed[seed_index]
+        buildable = seed_features.feature("buildable") > 0.5
+        coverage = np.asarray(seed_evidence.coverage_counts, dtype=np.float64) > 0.0
+        buildable_coverage = (
+            float(np.mean(coverage[buildable])) if np.any(buildable) else float(np.mean(coverage))
         )
+        query_component = float(
+            np.clip(seed_evidence.query_count / self.query_count_scale, 0.0, 1.0),
+        )
+        repeat_fraction = float(
+            seed_evidence.repeated_window_groups / max(float(seed_evidence.query_count), 1.0),
+        )
+        repeat_efficiency = float(np.clip(1.0 - repeat_fraction, 0.0, 1.0))
+        evidence_strength = float(
+            np.clip(
+                (0.50 * query_component) + (0.35 * buildable_coverage) + (0.15 * repeat_efficiency),
+                0.0,
+                1.0,
+            ),
+        )
+        return float(self.teacher_weight_max * evidence_strength)
 
     def _teacher_blend_map(
         self,
         context: LiveInferenceContext,
         *,
         seed_index: int,
-        teacher_weight: float,
     ) -> float | np.ndarray:
+        teacher_weight = self._teacher_weight_for_seed(context, seed_index=seed_index)
         if self.blend_mode == BLEND_MODE_GLOBAL:
             confidence = (
                 self.student.summary_confidence(context) if self.use_confidence_gate else 1.0
@@ -551,8 +629,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
             context.geometry_bundle,
             None,
         )
-        teacher_weight = self._teacher_weight(context.evidence_bundle)
-        if teacher_weight <= 0.0:
+        if context.evidence_bundle.total_queries <= 0:
             return PredictionBundle(
                 round_id=context.round_context.round_id,
                 model_name=self.name,
@@ -564,7 +641,6 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
             blend_map = self._teacher_blend_map(
                 context,
                 seed_index=seed.seed_index,
-                teacher_weight=teacher_weight,
             )
             predictions_by_seed[seed.seed_index] = np.asarray(
                 ((1.0 - blend_map) * base_bundle.predictions_by_seed[seed.seed_index])
@@ -624,6 +700,7 @@ def load_or_fit_named_summary_bank_predictor(
             query_count_scale=spec.query_count_scale,
             blend_mode=spec.blend_mode,
             use_confidence_gate=spec.use_confidence_gate,
+            teacher_weight_mode=spec.teacher_weight_mode,
         )
 
     base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
@@ -669,6 +746,7 @@ def load_or_fit_named_summary_bank_predictor(
         query_count_scale=spec.query_count_scale,
         blend_mode=spec.blend_mode,
         use_confidence_gate=spec.use_confidence_gate,
+        teacher_weight_mode=spec.teacher_weight_mode,
     )
 
 
@@ -692,6 +770,8 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V16",
     "SUMMARY_BANK_STUDENT_V17",
     "SUMMARY_BANK_STUDENT_V18",
+    "SUMMARY_BANK_STUDENT_V19",
+    "SUMMARY_BANK_STUDENT_V20",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",
