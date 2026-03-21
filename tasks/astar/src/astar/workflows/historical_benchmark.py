@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import csv
 import json
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from time import perf_counter
 
@@ -99,6 +101,56 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
+def _evaluate_historical_benchmark_round(
+    workspace_root: Path,
+    *,
+    held_out_round_id: str,
+    selected_round_ids: tuple[str, ...],
+    model_name: str,
+    mode: str,
+    policy_name: str,
+    samples_per_round: int,
+    budget: int,
+    resolved_episode_seeds: tuple[int, ...] | None,
+) -> tuple[str, float, list[ModelSeedEvaluationContext]]:
+    paths = WorkspacePaths.from_root(workspace_root)
+    training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+    evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
+    round_seconds = 0.0
+    predictor_started_at = perf_counter()
+    online_predictor = (
+        None
+        if mode != "online_interactive"
+        else build_online_predictor(
+            model_name,
+            paths=paths,
+            historical_round_ids=training_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+        )
+    )
+    round_seconds += perf_counter() - predictor_started_at
+    round_contexts: list[ModelSeedEvaluationContext] = []
+    for current_episode_seed in evaluation_seeds:
+        evaluation_started_at = perf_counter()
+        round_contexts.extend(
+            evaluate_model_on_round(
+                paths,
+                round_id=held_out_round_id,
+                model_name=model_name,
+                training_round_ids=training_round_ids,
+                mode=mode,
+                policy_name=policy_name if mode == "online_interactive" else None,
+                samples_per_round=samples_per_round,
+                budget=budget,
+                episode_seed=0 if current_episode_seed is None else current_episode_seed,
+                online_predictor=online_predictor,
+            ),
+        )
+        round_seconds += perf_counter() - evaluation_started_at
+    return held_out_round_id, round_seconds, round_contexts
+
+
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
@@ -110,13 +162,17 @@ def run_historical_benchmark(
     budget: int = 50,
     episode_seed: int = 0,
     episode_seed_count: int = 1,
+    jobs: int = 1,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
     if episode_seed_count < 1:
         raise ValueError("episode_seed_count must be >= 1")
+    if jobs < 1:
+        raise ValueError("jobs must be >= 1")
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
+    resolved_jobs = min(jobs, len(selected_round_ids))
     if mode == "online_interactive":
         missing_replays = [
             round_id
@@ -199,45 +255,58 @@ def run_historical_benchmark(
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    for held_out_round_id in selected_round_ids:
-        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-        evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
-        round_seconds = 0.0
-        predictor_started_at = perf_counter()
-        online_predictor = (
-            None
-            if mode != "online_interactive"
-            else build_online_predictor(
-                model_name,
-                paths=paths,
-                historical_round_ids=training_round_ids,
+    round_payloads: dict[str, tuple[float, list[ModelSeedEvaluationContext]]] = {}
+    selected_round_ids_tuple = tuple(selected_round_ids)
+    resolved_episode_seeds_tuple = (
+        None if resolved_episode_seeds is None else tuple(resolved_episode_seeds)
+    )
+    if resolved_jobs == 1:
+        for held_out_round_id in selected_round_ids:
+            round_id, round_seconds, round_contexts = _evaluate_historical_benchmark_round(
+                paths.root,
+                held_out_round_id=held_out_round_id,
+                selected_round_ids=selected_round_ids_tuple,
+                model_name=model_name,
+                mode=mode,
                 policy_name=policy_name,
                 samples_per_round=samples_per_round,
-            )
-        )
-        round_seconds += perf_counter() - predictor_started_at
-        keys: list[tuple[str, int, int | None]] = []
-        for current_episode_seed in evaluation_seeds:
-            evaluation_started_at = perf_counter()
-            contexts = evaluate_model_on_round(
-                paths,
-                round_id=held_out_round_id,
-                model_name=model_name,
-                training_round_ids=training_round_ids,
-                mode=mode,
-                policy_name=policy_name if mode == "online_interactive" else None,
-                samples_per_round=samples_per_round,
                 budget=budget,
-                episode_seed=0 if current_episode_seed is None else current_episode_seed,
-                online_predictor=online_predictor,
+                resolved_episode_seeds=resolved_episode_seeds_tuple,
             )
-            round_seconds += perf_counter() - evaluation_started_at
-            for context in contexts:
-                key = (context.round_id, context.seed_index, context.episode_seed)
-                keys.append(key)
-                contexts_by_key[key] = context
-                seed_results_by_key[key] = context.to_seed_result()
+            round_payloads[round_id] = (round_seconds, round_contexts)
+    else:
+        with ProcessPoolExecutor(
+            max_workers=resolved_jobs,
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as executor:
+            future_by_round_id = {
+                executor.submit(
+                    _evaluate_historical_benchmark_round,
+                    paths.root,
+                    held_out_round_id=held_out_round_id,
+                    selected_round_ids=selected_round_ids_tuple,
+                    model_name=model_name,
+                    mode=mode,
+                    policy_name=policy_name,
+                    samples_per_round=samples_per_round,
+                    budget=budget,
+                    resolved_episode_seeds=resolved_episode_seeds_tuple,
+                ): held_out_round_id
+                for held_out_round_id in selected_round_ids
+            }
+            for future in as_completed(future_by_round_id):
+                round_id, round_seconds, round_contexts = future.result()
+                round_payloads[round_id] = (round_seconds, round_contexts)
+
+    for held_out_round_id in selected_round_ids:
+        round_seconds, round_contexts = round_payloads.get(held_out_round_id, (0.0, []))
         round_evaluation_seconds[held_out_round_id] = round_seconds
+        keys: list[tuple[str, int, int | None]] = []
+        for context in round_contexts:
+            key = (context.round_id, context.seed_index, context.episode_seed)
+            keys.append(key)
+            contexts_by_key[key] = context
+            seed_results_by_key[key] = context.to_seed_result()
         if not keys:
             continue
         per_round_keys[held_out_round_id] = keys
@@ -346,6 +415,7 @@ def run_historical_benchmark(
         benchmark_name=run_name,
         model_name=model_name,
         mode=mode,
+        jobs=resolved_jobs,
         policy_name=resolved_policy_name,
         samples_per_round=resolved_samples_per_round,
         budget=None if mode == "prior_only" else budget,
@@ -400,6 +470,7 @@ def run_historical_benchmark(
             artifact_path=artifact_path,
             payload_json={
                 "mode": mode,
+                "jobs": result.jobs,
                 "round_count": len(result.rounds),
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,

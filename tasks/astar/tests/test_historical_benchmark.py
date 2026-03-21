@@ -174,6 +174,27 @@ def test_query_residual_online_historical_benchmark_multi_episode_runs(
             assert seed_result.episode_seed in {1, 2}
 
 
+def test_run_historical_benchmark_jobs_parallel_sets_result_metadata(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="historical_bucket_prior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        jobs=2,
+        visualization_policy="none",
+        benchmark_name="test_historical_benchmark_jobs2",
+    )
+
+    assert result.jobs == 2
+    report_text = result.report_path.read_text(encoding="utf-8")
+    assert "jobs: 2" in report_text
+
+
 def test_hazard_posterior_knn_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)

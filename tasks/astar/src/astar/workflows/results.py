@@ -370,6 +370,7 @@ class HistoricalBenchmarkResult(BaseModel):
     benchmark_name: str
     model_name: str
     mode: str
+    jobs: int = Field(default=1, ge=1)
     policy_name: str | None = None
     samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)

@@ -111,6 +111,7 @@ def render_historical_benchmark_report(result: HistoricalBenchmarkResult) -> str
         f"historical-benchmark {result.benchmark_name}",
         f"model: {result.model_name}",
         f"mode: {result.mode}",
+        f"jobs: {result.jobs}",
         f"policy: {result.policy_name or 'n/a'}",
         f"samples_per_round: {result.samples_per_round if result.samples_per_round is not None else 'n/a'}",
         f"budget: {result.budget if result.budget is not None else 'n/a'}",

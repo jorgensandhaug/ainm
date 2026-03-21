@@ -3,6 +3,45 @@
 ### Session Continuation
 
 - date: 2026-03-21 UTC
+- resumed commit: `cbc6262`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- live machine snapshot before new work:
+  - load avg: `120.12 / 102.48 / 73.92`
+  - mem used: `1.2 TiB`
+  - mem free: `1.7 TiB`
+- other-agent activity confirmed:
+  - many large agent5 hybrid sweeps active
+  - agent4 already using `run-historical-benchmark --jobs 3`
+  - agent7/agent2 also running live historical probes
+- own active runs on resume:
+  - `dev_hazard_v2_k5_r3_coverage_online50_v1`
+  - `dev_hazard_v2_k5_r3_exploration_online50_v1`
+- new objective:
+  - add native `--jobs` support to historical benchmark on this branch
+  - validate it
+  - then relaunch heavier v2 exploration using controlled parallelism rather than extra top-level shells
+- implementation/result:
+  - added true round-parallel historical benchmark execution with `ProcessPoolExecutor`
+  - exposed `jobs` through CLI, result artifacts, rendered reports, and catalog payloads
+  - added focused regression coverage for `jobs=2`
+  - initial fork-based pool passed but emitted multiprocessing deadlock warning in multithreaded parent
+  - changed pool start method to `spawn`; warning cleared
+  - validation:
+    - `python3 -m compileall src/astar/workflows/historical_benchmark.py src/astar/cli.py src/astar/eval/reports.py tests/test_historical_benchmark.py`
+    - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+    - result: `11 passed in 32.01s`
+- live machine snapshot after validation:
+  - load avg: `96.01 / 96.21 / 77.93`
+  - mem used: `979 GiB`
+  - mem free: `1.9 TiB`
+- current status after validation:
+  - old full raw-v2 promotions still running and still have no `report.md`
+  - next model step chosen from handoff: move beyond summary-space kNN into a learned student posterior / small-teacher continuation
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
 - resumed commit: `43c3671`
 - branch: `agent1`
 - remote tracking: `origin/agent1`
