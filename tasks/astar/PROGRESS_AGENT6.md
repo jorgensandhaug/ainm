@@ -4258,6 +4258,16 @@
   - V3 k5_r3: 72.44 vs V2 k5_r3: 73.05
   - V3's extra complexity overfits with few training rounds
 
+### CROSS-AGENT ANALYSIS (critical insights from other agents):
+- **Agent7** (87.12 best): probability_floor=0.01 is massively over-conservative
+  - floor=0.001 → +5.6 points over floor=0.01
+  - Applied to our ensemble: **79.19 probe3** (+3.81 over 75.38!)
+- **Agent1** (83.79 best): original coefficients instead of SVD-reconstructed
+  - Also uses observation-frequency blending (+0.58 pts)
+  - Uses `predicted_particle_weight=0.30` (trusts particles more)
+- **Agent5** (77.39 best): logit-space ensemble with expansion-conditioned kNN
+- **Agent2** (78.40 best on full 8): GLMM with 2D latent
+
 ### Per-round analysis (full 8-round ensemble):
 | Round | Score | Note |
 |-------|-------|------|
