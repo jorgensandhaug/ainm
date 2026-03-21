@@ -1331,6 +1331,24 @@ def test_round_heatmap_factor_residual_vector_has_spatial_content() -> None:
     assert np.max(np.abs(vector)) > 0.0
 
 
+def test_round_heatmap_residual_memory_variant_alias_resolves() -> None:
+    from astar.student.predictor.round_heatmap_residual_memory import (
+        ROUND_HEATMAP_RESIDUAL_MEMORY_V1,
+        is_round_heatmap_residual_memory_model_name,
+        resolve_round_heatmap_residual_memory_model_name,
+        resolve_round_heatmap_residual_memory_variant_spec,
+    )
+
+    assert is_round_heatmap_residual_memory_model_name("round_heatmap_residual_memory")
+    assert (
+        resolve_round_heatmap_residual_memory_model_name("round_heatmap_residual_memory")
+        == ROUND_HEATMAP_RESIDUAL_MEMORY_V1
+    )
+    spec = resolve_round_heatmap_residual_memory_variant_spec("round_heatmap_residual_memory_v4")
+    assert spec.samples_per_round == 16
+    assert spec.k_neighbors == 3
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

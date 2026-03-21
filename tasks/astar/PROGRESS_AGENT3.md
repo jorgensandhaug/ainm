@@ -4133,6 +4133,35 @@
      - only `4` variants live
      - `jobs=1` each
      - no extra wave stacked on top because the shared box still has large non-agent3 memory load
+457. New hypothesis branch started while transcript + heatmap waves run:
+   - family:
+     - `round_heatmap_residual_memory`
+   - hypothesis:
+     - whole-round spatial evidence may still be a good state representation, but the linear low-rank map in `round_heatmap_factor_residual` may be too restrictive
+     - nearest-neighbor residual transfer over heatmap state could capture discrete round regimes without relying on transcript order
+     - if transcript-memory branches failed mainly because the ordered state was noisy, a heatmap-state memory should recover the nonparametric benefit with cleaner retrieval geometry
+   - objective:
+     - test nonlinear whole-round spatial-state retrieval on top of base `v59/v60`
+458. Implemented + validated `round_heatmap_residual_memory`:
+   - new file:
+     - `src/astar/student/predictor/round_heatmap_residual_memory.py`
+   - reproducible models:
+     - `round_heatmap_residual_memory`
+     - `round_heatmap_residual_memory_v1`
+     - `round_heatmap_residual_memory_v2`
+     - `round_heatmap_residual_memory_v3`
+     - `round_heatmap_residual_memory_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, `k=5`, correction scale `0.75`, distance scale `2.0`
+     - `v3/v4`: base `v59/v60`, samples `16`, `k=3`, correction scale `1.00`, distance scale `1.5`
+   - model form:
+     - whole-round spatial evidence heatmap vector -> normalized kNN retrieval over residual bundles -> apply jointly across all seeds on top of base `v59/v60`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_heatmap_residual_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_heatmap_residual_memory_historical_benchmark_model tests/test_teacher_student.py::test_round_heatmap_residual_memory_variant_alias_resolves tests/test_historical_benchmark.py::test_round_heatmap_residual_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions
