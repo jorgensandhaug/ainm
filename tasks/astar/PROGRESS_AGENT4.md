@@ -1022,3 +1022,133 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - strongest validated evidence:
     - searched seeds `0,1`: `76.8626 / 0.088911`
     - unseen seeds `2,3`: `76.7034 / 0.089665`
+
+### 2026-03-21T07:40Z
+
+- Post-push continuation start.
+- Current branch state after push:
+  - commit `3370b5c`
+  - pushed to `origin/agent4`
+- Next frontier hypotheses after the large calibration win:
+  1. exploration-trained `query_residual_v11` may need the same serving calibration and could now be competitive again
+  2. repeat-allocation policy results may change under the new much-lower-prior / stronger exact-count blend regime
+  3. if both fail, current calibrated coverage-trained exploration hybrid remains default champion
+
+### 2026-03-21T07:50Z
+
+- Tested exploration-trained `query_residual_v11` under the same calibrated serving settings:
+  - serving overrides:
+    - `prior_blend=0.0`
+    - `beta_min=6.0`
+    - `beta_scale=24.0`
+  - 8-round seed01 result:
+    - mean score `76.674806`
+    - mean weighted KL `0.089837`
+- Interpretation:
+  - huge improvement over the old exploration-trained calibration
+  - but still below coverage-trained calibrated alias `76.8626 / 0.088911`
+  - keep coverage-trained family as champion
+
+### 2026-03-21T08:00Z
+
+- Re-tested policy family under the new calibrated alias `query_residual_v11_covtrain_p0_b624`.
+- Single-seed quick screen (`episode_seed=0`):
+  - `coverage`: `76.891811`, `0.088688`
+  - `exploration_global_v1`: `76.793712`, `0.089271`
+  - `exploration_focus_v1`: `76.714580`, `0.089684`
+- Immediate conclusion:
+  - concentrated repeat policies still do not beat the best baseline
+  - but unexpectedly, `coverage` now edged out `exploration_v2` on this seed
+
+### 2026-03-21T08:10Z
+
+- Materialized calibrated coverage-policy benchmark artifacts:
+  - `dev_query_residual_v11_covtrain_p0_b624_coverage_seed01`
+    - `76.7994`
+    - `0.089116`
+  - `dev_query_residual_v11_covtrain_p0_b624_coverage_seed23`
+    - `76.9992`
+    - `0.088112`
+- Policy comparison under same calibrated alias:
+  - searched seeds `0,1`:
+    - coverage vs exploration delta `-0.0632`
+    - weighted-KL delta `+0.000205`
+    - CI includes zero
+  - unseen seeds `2,3`:
+    - coverage vs exploration delta `+0.2958`
+    - weighted-KL delta `-0.001553`
+    - CI95 entirely positive on score
+- Combined across seeds `0..3`:
+  - exploration:
+    - mean score `76.782986`
+    - mean weighted KL `0.089288`
+  - coverage:
+    - mean score `76.899299`
+    - mean weighted KL `0.088614`
+- New interpretation:
+  - after fixing posterior calibration, the extra 5 exploration repeats are no longer clearly worth their opportunity cost
+  - current best overall deployed policy/model pair is now:
+    - model `query_residual_v11_covtrain_p0_b624`
+    - policy `coverage`
+
+### 2026-03-21T08:12Z
+
+- Next highest-value experiment:
+  - tune serving calibration directly for `coverage` under the same train-fold checkpoints
+  - rationale:
+    - current `p0_b624` point was discovered under exploration serving
+    - coverage now appears stronger overall
+    - coverage may prefer slightly different `prior_blend` / `beta` tradeoff because observed cells are single-sample only
+
+### 2026-03-21T08:20Z
+
+- Coverage-specific calibration sweep completed.
+- Single-seed (`episode_seed=0`) coverage results:
+  - current point `prior=0.00`, `beta=(6,24)`:
+    - `76.891811`
+    - `0.088688`
+  - stronger shrinkage:
+    - `prior=0.00`, `beta=(8,32)`:
+      - `76.886375`
+      - `0.088758`
+    - `prior=0.00`, `beta=(10,40)`:
+      - `76.860362`
+      - `0.088901`
+  - reintroducing prior anchor hurt:
+    - `prior=0.05`, `beta=(6,24)`:
+      - `76.684270`
+      - `0.089735`
+    - `prior=0.10`, `beta=(6,24)`:
+      - `76.440378`
+      - `0.090964`
+- Conclusion:
+  - current calibrated point `p0_b624` is already the best tested coverage-serving calibration
+  - no further improvement found in the immediate local neighborhood
+
+## Current Best Known Scores
+
+- best previous multi-episode branch champion:
+  - `dev_query_residual_v11_covtrain_exploration_seed01`
+  - mean score `74.6485`
+  - mean weighted KL `0.100186`
+- best calibrated exploration-serving alias:
+  - `dev_query_residual_v11_covtrain_p0_b624_seed01`
+  - mean score `76.8626`
+  - mean weighted KL `0.088911`
+- best current overall policy/model pair:
+  - `dev_query_residual_v11_covtrain_p0_b624_coverage_seed23`
+  - mean score `76.9992`
+  - mean weighted KL `0.088112`
+- combined policy summary across seeds `0..3` for the calibrated alias:
+  - exploration:
+    - mean score `76.782986`
+    - mean weighted KL `0.089288`
+  - coverage:
+    - mean score `76.899299`
+    - mean weighted KL `0.088614`
+  - coverage delta vs exploration:
+    - score `+0.116313`
+    - weighted KL `-0.000674`
+- current champion:
+  - model `query_residual_v11_covtrain_p0_b624`
+  - policy `coverage`
