@@ -84,15 +84,17 @@ def _round_scope_token(round_ids: Sequence[str]) -> str:
 
 def _cached_dataset_name(
     *,
+    cache_family: str = "hazard_posterior_v2",
     policy_name: str,
     samples_per_round: int,
     round_ids: Sequence[str],
     latent_rank: int,
 ) -> str:
+    normalized_family = cache_family.strip().lower()
     normalized_policy = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
     return (
-        f"hazard_posterior_v2_synthetic_live__policy={normalized_policy}"
+        f"{normalized_family}_synthetic_live__policy={normalized_policy}"
         f"__samples={samples_per_round}"
         f"__rank={latent_rank}"
         f"__rounds={scope_token}"
@@ -102,6 +104,7 @@ def _cached_dataset_name(
 def _ensure_synthetic_dataset(
     paths: WorkspacePaths,
     *,
+    cache_family: str = "hazard_posterior_v2",
     policy_name: str,
     samples_per_round: int,
     round_ids: Sequence[str],
@@ -109,6 +112,7 @@ def _ensure_synthetic_dataset(
     regime_vectors_by_round: dict[str, np.ndarray],
 ) -> SyntheticEpisodeDatasetRef:
     dataset_name = _cached_dataset_name(
+        cache_family=cache_family,
         policy_name=policy_name,
         samples_per_round=samples_per_round,
         round_ids=round_ids,

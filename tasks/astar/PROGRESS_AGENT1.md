@@ -3,6 +3,89 @@
 ### Session Continuation
 
 - date: 2026-03-21 UTC
+- resumed commit: `0885d868`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- `br` check at resume: unavailable (`command not found`)
+- mandatory re-reads completed again before more work:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent1.md`
+- live machine snapshot before new model work:
+  - load avg: `17.92 / 33.79 / 42.25`
+  - mem used: `959 GiB`
+  - mem free: `1.9 TiB`
+- other-agent activity visible:
+  - agent6 full historical benchmark saturating >`100%` CPU
+  - agent2 full benchmark active
+  - agent3 running multiple targeted holdout jobs
+  - enough memory/CPU headroom remains for more agent1 experimentation, but shared-machine contention is still real
+- own long-running jobs confirmed alive:
+  - `proxy5_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v3_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+- broad posterior-blend status rechecked explicitly:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`: `76.7061`, KL `0.092236`
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_online50_v1`: `76.2794`, KL `0.094765`
+  - delta for v4 posterior-blend vs plain `regime_probe_v1`:
+    - score: `-0.4268`
+    - weighted KL: `+0.002529`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`: `75.0492`, KL `0.100129`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`: `75.0272`, KL `0.100043`
+- conclusion from that recheck:
+  - policy-side posterior modulation is now exhausted on broad validation for both v3 and v4
+  - next gains need to come from the regime/teacher layer itself, matching the handoff’s unresolved low-rank-vs-mixture / block-structured question
+- immediate objective of this session:
+  - add replay-summary factorization support for v2 semimechanistic coefficients
+  - use that to measure low-rank + clustered structure directly
+  - implement a new discrete+continuous mixture-residual teacher / predictor family rather than more policy tweaks
+- diagnostic launched for current v2 coefficient bank:
+  - session `75458`
+  - purpose: quantify low-rank reconstruction vs prototype+residual reconstruction on replay-backed rounds before finalizing teacher v3 design
+- diagnostic result from the v2 coefficient bank across 9 replay-backed rounds:
+  - singular-value mass by axis: `0.4562, 0.2259, 0.1910, 0.0564, 0.0315, 0.0181, 0.0129, 0.0080`
+  - pure low-rank reconstruction RMSE:
+    - rank 1: `0.9400`
+    - rank 2: `0.7187`
+    - rank 3: `0.4541`
+    - rank 4: `0.3385`
+  - prototype-only reconstruction RMSE:
+    - `k=2`: `1.0096`
+    - `k=3`: `0.8435`
+    - `k=4`: `0.5428`
+  - prototype + residual reconstruction RMSE:
+    - `k=3 + residual_rank=1`: `0.3802`
+    - `k=3 + residual_rank=2`: `0.2971`
+    - `k=2 + residual_rank=2`: `0.2971`
+  - interpretation:
+    - coefficient variation is not well described by clustering alone
+    - but a discrete+continuous regime is measurably better than continuous-only low rank at comparable latent size
+    - this directly supports the handoff’s “mixture / block-structured + small continuous residual” direction
+- new implementation completed from that diagnostic:
+  - added `HazardTeacherV3`
+    - discrete prototype mixture over round-coefficient space
+    - continuous residual basis after subtracting prototype reconstruction
+    - round regime vector is now `prototype_weights || residual_coords`
+  - added `hazard_posterior_v5`
+    - default family: `k=5`, `c=3`, `r=2`, `ridge=16`, `mix=50`
+    - uses the existing refined observation-set student on the new v5 teacher latent
+  - added synthetic-live cache-family namespacing
+    - prevents cross-family cache aliasing when two teacher families share the same latent dimension
+    - required for correct v5 benchmarking
+- focused validation after the v5 patch:
+  - `python3 -m compileall src/astar/teacher/dynamics/hazard_teacher_v3.py src/astar/student/predictor/hazard_posterior_v2.py src/astar/student/predictor/hazard_posterior_v5.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+  - result: `18 passed`
+- immediate next step after this log entry:
+  - commit/push the v5 family immediately
+  - launch proxy-5 sweeps on `regime_probe_v1` with the first compact mixture-residual anchors:
+    - `hazard_posterior_v5_k5_c3_r1_l16_m50`
+    - `hazard_posterior_v5_k5_c3_r2_l16_m50`
+    - `hazard_posterior_v5_k5_c2_r2_l16_m50`
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
 - resumed commit: `e5b029db`
 - branch: `agent1`
 - remote tracking: `origin/agent1`
