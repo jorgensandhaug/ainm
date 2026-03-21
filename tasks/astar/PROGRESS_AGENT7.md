@@ -1597,3 +1597,30 @@ Framework should accept unique query-residual family variant names directly so b
 - Next:
   - launch `v7..v9` on the same hard gate immediately
   - if direct operator retrieval also inherits the `12.45 / 18.53 / 4.63` triple, the current linear-operator decoder family is exhausted more broadly and the next move becomes supervised factorization or mixed decoders
+
+### 2026-03-21T10:35Z approx
+
+- Hard-gate probe verdict for new operator-retrieval branch `ffam_mode_v7..v9`:
+  - roots:
+    - `v7` -> `/tmp/astar_ffam_mode_v7_s2_e8JTFB`
+    - `v8` -> `/tmp/astar_ffam_mode_v8_s2_JKiXB9`
+    - `v9` -> `/tmp/astar_ffam_mode_v9_s2_uDMCME`
+  - completed round scores observed before wrapper finish:
+    - `ae7800...` -> `18.5339`
+    - `c5cdf1...` -> `4.6316`
+  - this already makes all three mathematically dead against hard-gate baseline `63.9805`:
+    - partial sum `23.1655`
+    - even two perfect `100.0` remaining rounds would cap mean score at `55.7914`
+- Consequence:
+  - killed `v7..v9` probes immediately; no need to waste more compute
+  - direct historical-round operator particle mixture did not rescue the current linear-operator decoder family
+  - stronger posterior/retrieval alone is not enough; decoder misspecification is dominating
+- Current conclusion after exhausting both low-rank-mode and direct-operator-retrieval branches:
+  - the current **linear-operator decoder family is broadly exhausted**
+  - both:
+    - projected mode reconstruction
+    - full historical-round operator particle retrieval
+    fail hard on live-like rounds
+  - next rational branch from handoff is:
+    - supervised factorization / discrete-mixture regime extraction if any operator family work continues
+    - or more likely a genuinely stronger decoder family / mixed decoder ensemble, not more operator-posterior tuning
