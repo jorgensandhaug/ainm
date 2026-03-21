@@ -75,6 +75,10 @@ GLMM_DT_LOWFLOOR_V001 = "glmm_dt_lowfloor_v001"  # GLMM also gets lower floor
 CELLWISE_GBT_V001 = "cellwise_gbt_v001"
 CELLWISE_GBT_V002 = "cellwise_gbt_v002"
 CELLWISE_GBT_V003 = "cellwise_gbt_v003"
+GLMM_DT_OBSBLEND_V001 = "glmm_dt_obsblend_v001"  # Best ensemble + obs blending
+GLMM_DT_OBSBLEND_V002 = "glmm_dt_obsblend_v002"
+GLMM_DT_ENSEMBLE_V010 = "glmm_dt_ensemble_v010"  # 55% DT
+GLMM_DT_ENSEMBLE_V011 = "glmm_dt_ensemble_v011"  # 60% DT
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1961,6 +1965,69 @@ def build_online_predictor(
             GLMM_DT_ENSEMBLE_V007: 0.50,  # 50% GLMM, 50% DT
         }
         dt_weight = dt_weight_map[normalized]
+        return RoundPredictorAdapter(
+            predictor=FixedPredictionBlendPredictor(
+                left_predictor=glmm_adapter.predictor,
+                right_predictor=dt_adapter.predictor,
+                right_weight=dt_weight,
+                name=normalized,
+            ),
+            name=normalized,
+        )
+    if normalized in (GLMM_DT_OBSBLEND_V001, GLMM_DT_OBSBLEND_V002):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V002,
+            model_name=DIRECT_TERMINAL_Z2_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
+        )
+        blend_predictor = FixedPredictionBlendPredictor(
+            left_predictor=glmm_adapter.predictor,
+            right_predictor=dt_adapter.predictor,
+            right_weight=0.50,
+            name=f"{normalized}_base",
+        )
+        temp_map = {
+            GLMM_DT_OBSBLEND_V001: 30.0,  # gentle obs blending (Agent 3 best)
+            GLMM_DT_OBSBLEND_V002: 20.0,  # moderate obs blending (Agent 1 best)
+        }
+        obs_predictor = ExactObservationBlendPredictor(
+            base_predictor=blend_predictor,
+            beta_min=temp_map[normalized],
+            beta_scale=0.0,
+            probability_floor=3e-4,
+            name=normalized,
+        )
+        return RoundPredictorAdapter(
+            predictor=obs_predictor,
+            name=normalized,
+        )
+    if normalized in (GLMM_DT_ENSEMBLE_V010, GLMM_DT_ENSEMBLE_V011):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V002,
+            model_name=DIRECT_TERMINAL_Z2_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
+        )
+        dt_weight = {GLMM_DT_ENSEMBLE_V010: 0.55, GLMM_DT_ENSEMBLE_V011: 0.60}[normalized]
         return RoundPredictorAdapter(
             predictor=FixedPredictionBlendPredictor(
                 left_predictor=glmm_adapter.predictor,
