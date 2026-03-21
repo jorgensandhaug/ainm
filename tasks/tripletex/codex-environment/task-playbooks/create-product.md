@@ -56,6 +56,12 @@ Fresh-account production verification on 2026-03-21 also showed:
 - 7th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape across languages: de/en/es/pt/fr
 
 Fresh-account production verification on 2026-03-21 also showed:
+- an exact standard-25% product-create task (`Training Session` / `7908` / `26250 NOK excluding VAT`) succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=32812.5` and `vatType.id=3`
+- 1 call, 0 errors, minimal-call execution
+- 8th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape; second English-language confirmation
+
+Fresh-account production verification on 2026-03-21 also showed:
 - an exact 15% reduced-rate VAT product-create task (`Eplejuice` / `9026` / `49700 kr eksklusiv MVA` / `15%` for næringsmidler/food) succeeded with the 2-call path
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` resolved `id=31` for `15%` (`Utgående avgift, middels sats`)
 - `POST /product` returned `priceIncludingVatCurrency=57155` and `vatType.id=31`
