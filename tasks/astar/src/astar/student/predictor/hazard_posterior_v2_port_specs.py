@@ -19,6 +19,7 @@ class HazardPosteriorV2PortModelSpec(BaseModel):
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_variant: str = "basic"
     observation_weight: float = Field(default=0.0, ge=0.0)
+    teacher_version: int = Field(default=2, ge=2, le=3)
 
 
 _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
@@ -184,6 +185,25 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         ridge_alpha=32.0,
         predicted_particle_weight=0.7,
         samples_per_round=8,
+    ),
+    # === V3 TEACHER VARIANTS (richer spatial features) ===
+    # V3 teacher with k5 r3
+    "f1_hazard_posterior_v3_k5_r3_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v3_k5_r3_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        teacher_version=3,
+    ),
+    # V3 teacher with k7 r3
+    "f1_hazard_posterior_v3_k7_r3_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v3_k7_r3_v01",
+        k_neighbors=7,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        teacher_version=3,
     ),
     # === OBSERVATION REWEIGHTING VARIANTS (key agent1 innovation) ===
     # k5 r3 with observation reweighting q8 (agent1's best config)

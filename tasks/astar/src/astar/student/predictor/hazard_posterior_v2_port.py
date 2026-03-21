@@ -187,18 +187,26 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
         probability_floor: float = 0.01,
         summary_feature_variant: str = "basic",
         observation_weight: float = 0.0,
+        teacher_version: int = 2,
         synthetic_dataset_name: str | None = None,
     ) -> HazardPosteriorV2PortPredictor:
         selected = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected) < 2:
             raise ValueError("hazard posterior v2 requires at least two analyzed rounds")
 
-        # Build V2 teacher
+        # Build teacher (V2 or V3)
         episodes = [build_round_episode(paths, rid) for rid in selected]
-        teacher = HazardTeacherV2(name=f"{model_name}__teacher").fit(
-            episodes,
-            latent_rank=latent_rank,
-        )
+        if teacher_version == 3:
+            from astar.teacher.dynamics.hazard_teacher_v3 import HazardTeacherV3
+            teacher = HazardTeacherV3(name=f"{model_name}__teacher_v3").fit(
+                episodes,
+                latent_rank=latent_rank,
+            )
+        else:
+            teacher = HazardTeacherV2(name=f"{model_name}__teacher").fit(
+                episodes,
+                latent_rank=latent_rank,
+            )
 
         # Build summary bank
         dataset_name = synthetic_dataset_name or f"{model_name}__synthetic_live"

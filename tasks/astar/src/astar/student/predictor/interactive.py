@@ -473,6 +473,7 @@ def build_online_predictor(
             probability_floor=hazard_v2_port_spec.probability_floor,
             summary_feature_variant=hazard_v2_port_spec.summary_feature_variant,
             observation_weight=hazard_v2_port_spec.observation_weight,
+            teacher_version=hazard_v2_port_spec.teacher_version,
         )
         return RoundPredictorAdapter(
             predictor=predictor,
