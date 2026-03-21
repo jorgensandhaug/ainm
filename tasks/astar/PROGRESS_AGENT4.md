@@ -3090,8 +3090,40 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - score: 79.39
   - weighted_kl: 0.078
 
+#### Additional results after initial breakthrough
+
+- Evidence v2 ev1 (single-replay, live-like): `score=69.70, kl=0.128`
+  - Still better than prior-only (66.74) but much worse than multi-replay (83.06)
+  - Shows that single observations are noisier but still useful
+  - This is the scenario that would apply in actual live rounds
+- Formal historical benchmark for replay LGB: `score=66.74` — matches standalone script exactly
+- Wired gbx_cellwise_lgb and gbx_cellwise_replay_lgb into formal benchmark infrastructure
+
+#### Key scientific insight
+
+The evidence model's power comes from two distinct sources:
+1. **Spatial propagation**: Neighborhood features propagate observed cell classes to unobserved cells
+   - This alone accounts for +3 to +5 points (ev1 vs prior-only)
+2. **Evidence averaging**: Multi-replay averaging provides smoother, more calibrated evidence
+   - This accounts for +13 additional points (ev15 vs ev1)
+   - But requires multiple independent observations per cell
+   - In actual live rounds, we only get ONE observation per cell per query
+
+#### Implication for live serving
+
+The multi-replay evidence model (83.06) is not directly applicable to live rounds because:
+- Live rounds give only 1 stochastic observation per cell
+- The model was trained and evaluated with 15 averaged replays as evidence
+- In live conditions, performance would be closer to ev1 (69.70)
+
+To make the evidence model competitive in live rounds, we need either:
+1. Use the 50-query budget strategically to observe OVERLAPPING viewports (getting multiple observations for some cells)
+2. Use the evidence model as one component in an ensemble with query_residual
+3. Train the evidence model to be robust to single-observation noise
+4. Use the evidence model only for prior (no evidence features) and keep query_residual for online correction
+
 #### Next experiments to run
-1. Wire evidence v2 into the formal historical benchmark system for apples-to-apples comparison
-2. Temperature/calibration sweep on evidence v2
-3. Ensemble of evidence v2 + query_residual champion
-4. Try using the evidence model as a replacement prior for query_residual
+1. Train with multi-replay evidence, serve with single evidence (train/serve mismatch)
+2. Ensemble evidence LGB + query_residual
+3. Use LightGBM prior as replacement for bucket prior in query_residual
+4. Explore overlapping viewport query policies for multi-observation coverage
