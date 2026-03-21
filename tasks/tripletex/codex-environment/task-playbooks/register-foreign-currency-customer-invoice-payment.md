@@ -10,9 +10,8 @@ Use for tasks like:
 
 Do not use for:
 - creating the invoice itself
-- ordinary company-currency invoice payments
 - supplier-invoice payments
-- prompts where the decisive invoice read returns only company-currency invoices or only an ex-VAT coincidence
+- prompts too ambiguous to isolate one unpaid invoice safely
 
 ## CRITICAL: Read the trusted standard first
 Always read `./trusted-standards/register-foreign-currency-customer-invoice-payment.md` before writing any code. It documents API traps that caused 0% scores in production.
@@ -48,6 +47,10 @@ Row 0 is universally reserved as "system-generated" by Tripletex. `POST /ledger/
 ### Trap 7: Manual voucher on EUR invoice (unnecessary, risks double-entry)
 For EUR invoices, the `:payment` endpoint auto-books FX gain (8060) and loss (8160). Creating an additional manual voucher doubles the entry.
 - Fix: ONLY create manual agio vouchers for NOK invoices where the auto-mechanism cannot work
+
+### Trap 8: Voucher `account: { number }` without ID (422 error)
+`POST /ledger/voucher` requires `account: { id: ... }`. Using `account: { number: 1920 }` or `account: { number: 1920, name: "Bankinnskudd" }` → 422 ("Internt felt (account): Feltet må fylles ut"). The `GET /ledger/account` call cannot be skipped in the NOK fallback path.
+- Fix: always resolve account IDs via `GET /ledger/account?number=1920,8060&fields=id,number` before creating vouchers
 
 ## Minimal Flow (3 calls)
 
@@ -125,5 +128,8 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - `amount === amountCurrency` → invoice is NOK, not foreign currency — use manual agio voucher
 - Manual `POST /ledger/voucher` on EUR invoice → corrupts state (auto-booked by `:payment`)
 - Manual `POST /ledger/voucher` on NOK invoice → REQUIRED for agio, use `row: 1`+ (row 0 → 422)
-- `account: { number: ... }` in voucher body → 422; must use `account: { id: ... }` from GET /ledger/account
+- `account: { number: ... }` in voucher body → 422; must use `account: { id: ... }` from GET /ledger/account — `account: { number, name }` also fails with "Internt felt (account): Feltet må fylles ut"
 - Prompt amount is typically ex-VAT → multiply by 1.25 for full outstanding
+
+## Production Confirmations
+- prod-2026-03-21-200502800Z-86050544: NOK fallback, 5 calls, 0 errors — Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83, agio 12301 NOK on 8060 (first full-score NOK-fallback run)

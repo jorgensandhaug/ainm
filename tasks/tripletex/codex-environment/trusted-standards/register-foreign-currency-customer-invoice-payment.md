@@ -14,14 +14,12 @@ You MUST `cat` or read this entire file before writing any script. Do NOT write 
 - prompt gives customer identifier plus exact invoice-currency amount
 - prompt also gives either the settlement exchange rate or the company-currency paid amount
 - prompt explicitly wants the realized FX gain or loss booked on payment
-- one decisive `GET /invoice` can isolate the exact unpaid foreign-currency invoice
+- one decisive `GET /invoice` can isolate the target invoice (may be EUR or NOK — this standard handles both via inline fallback)
 
 ## Do Not Use This Standard If
-- the decisive invoice read returns only company-currency invoices
-- the prompt amount could just be an ex-VAT locator on a company-currency invoice
 - the task includes creating the order or invoice first
 - the task is a supplier-invoice payment
-- the prompt is too ambiguous to isolate one foreign-currency invoice safely
+- the prompt is too ambiguous to isolate one unpaid invoice safely
 
 ## Standard Flow (3 calls, 0 errors)
 
@@ -165,6 +163,15 @@ The script pattern:
    d. 5 calls total
 4. In BOTH cases, register a payment AND book the FX difference. NEVER stop without paying. NEVER stop without booking agio if the prompt requests it.
 
+## Production Confirmation History
+
+### prod-2026-03-21-200502800Z-86050544 (Nynorsk prompt, Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83):
+- NOK fallback path: invoice `2147632528` had `amountExcludingVat=12301`, `amountOutstanding=15376.25`, `amount===amountCurrency` (NOK)
+- 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(1920,8060) → manual agio voucher
+- Agio: 12301 × (11.83 − 10.83) = 12301 NOK booked on 8060 (voucher `609126234`)
+- Payment type `37104879` ("Betalt til bank", debitAccount 1920)
+- First full-score NOK-fallback production confirmation with manual agio
+
 ## Production Failure History
 
 ### prod-2026-03-21-193537525Z-840df81a (50% score — task 27, Solmar SL / 877276260 / 18687 EUR):
@@ -201,3 +208,4 @@ The script pattern:
 - 2026-03-21 sandbox proof: manual agio voucher `609118154` with `row: 1` on 1920 (debit +12613.73) and 8060 (credit -12613.73) succeeded; invoice `2147630683` remained closed (`amountOutstanding=0`); 8060 posting verified
 - 2026-03-21 sandbox proof: `GET /ledger/account?number=1920,8060&fields=id,number` returns exactly 2 accounts with correct IDs — comma-separated `number` query param works for precise multi-account lookup
 - 2026-03-21 sandbox auto-generated EUR payment voucher structure (voucher 339, invoice 333): `1920 +135899.19` (bank), `1500 -135899.19 / amountCurrency=-12689` (customer), `8160 +7429.41` (disagio), `1500 -7429.41 / amountCurrency=0` (disagio counter); the auto FX posting uses 1500/8160, but manual voucher uses 1920/8060 to avoid touching customer balance
+- 2026-03-21 sandbox proof: `POST /ledger/voucher` with `account: { number: 1920 }` (no ID) → 422 "account.name: Kan ikke være null"; with `account: { number: 1920, name: "Bankinnskudd" }` → 422 "Internt felt (account): Feltet må fylles ut" — confirms `account: { id }` is the only working format, `GET /ledger/account` cannot be skipped in the NOK fallback path
