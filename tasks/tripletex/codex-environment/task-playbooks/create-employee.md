@@ -58,6 +58,17 @@ Persistent-sandbox reflection re-verification on 2026-03-20 showed:
 - this is sandbox-only evidence for the repair branches, not a reason to pre-read `department` or `division` in fresh-account scored runs
 - a later same-session Portuguese analog `João Rodrigues Reflection 1774047088805` repeated that exact branch with reused department `837842` and division `108244566`, confirming that `/division` should still be read only after the second `422`, not immediately after the first one
 
+Scored production re-verification on 2026-03-21 for `Ingrid Johansen` showed:
+- a Norwegian-language prompt with `9. November 1995` and `13. January 2026` hit the department-repair branch in production for the first time
+- `POST /employee` (no dept) → `422 department.id` → `GET /department` (found existing dept `737348`) → `POST /employee` (with dept) → `201` → `GET /employee/employment` → confirmed `startDate: "2026-01-13"`
+- total `4` calls, `1` error (the expected `422`); this is the minimum for the dept-repair branch
+- out of 5 known production create-employee runs (Sánchez, Bernard, Harris, Rodrigues, Johansen), 4 succeeded without dept repair (`2` calls) and 1 needed it (`4` calls); the no-pre-read strategy remains optimal on average
+- the agent used `userType: "STANDARD"` instead of the recommended `"NO_ACCESS"` — the write still succeeded but `"NO_ACCESS"` remains the safer default
+
+Persistent-sandbox re-verification on 2026-03-21 showed:
+- `POST /employee?fields=*` still returns sparse `employments` (id + url only); `fields=*` on POST does not expand nested employment objects
+- `GET /employee/{id}?fields=employments(*)` is an equivalent alternative to `GET /employee/employment?employeeId=...&fields=*` for verifying `startDate`; both return the same data in one call
+
 Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `validationMessages[].field == "department.id"` with message `Feltet må fylles ut.`
@@ -151,3 +162,4 @@ Use ISO dates. Normalize any localized prompt date first.
 - Do not treat `response.value.userType === null` as proof that the create failed or that `NO_ACCESS` was rejected
 - Do not skip the employment verification read just because `response.value.employments` is non-empty
 - Do not treat a one-call `POST /employee` stop as the trusted minimum path for a start-date-scored task unless the write response actually echoes the requested `startDate`
+- Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"` unless the prompt explicitly requests login access

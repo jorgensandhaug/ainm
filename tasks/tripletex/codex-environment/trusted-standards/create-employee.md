@@ -29,7 +29,7 @@
 - send only prompt-required employee fields
 - do not pre-read or prefill `department` by default for an exact create-only task; add it only when the prompt explicitly requires it or a validation repair branch proves it is needed
 - do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
-- if prompt/task requires a user type/role field, include explicit `userType`
+- always include explicit `userType: "NO_ACCESS"` unless the prompt explicitly asks for login access; do not use `"STANDARD"` as the default — `"NO_ACCESS"` is the proven safe choice for create-only tasks
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
 - do not invent personal data not given by prompt
@@ -51,6 +51,7 @@
 - for the exact prompt shape `name + birth date + email + start date`, the current minimum safe success path is usually `2` calls in fresh accounts: `POST /employee`, then `GET /employee/employment?employeeId=...&fields=*`
 - the 2026-03-20 production English run for `Thomas Harris` (`1991-06-04`, `thomas.harris@example.org`, start `2026-10-06`) re-confirmed that same `2`-call branch and again showed that the successful create response still did not prove `startDate`
 - the later 2026-03-20 production Portuguese run for `João Rodrigues` (`1980-09-05`, `joao.rodrigues@example.org`, start `2026-08-08`) re-confirmed the same `2`-call branch after ISO-normalizing `5. September 1980` and `8. August 2026`, with the Unicode first name preserved exactly
+- the 2026-03-21 production Norwegian run for `Ingrid Johansen` (`1995-11-09`, `ingrid.johansen@example.org`, start `2026-01-13`) hit the department-repair branch: `POST /employee` → `422 department.id` → `GET /department` (found existing dept) → `POST /employee` with dept → `201` → `GET /employee/employment` → confirmed `startDate`; total `4` calls, `1` error; this is the first production confirmation of the department-repair branch and shows it is the minimum for dept-required accounts
 - a one-call stop after `POST /employee` is not yet a trusted standard for start-date-scored tasks because the successful create response often omits the actual `startDate`
 
 ## Known Recovery Branches
@@ -69,3 +70,6 @@
 - persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
 - a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`
 - a later same-session persistent-sandbox reflection run on 2026-03-20 for `João Rodrigues Reflection 1774047088805` repeated that exact repair order with existing department `837842` and division `108244566`, confirming again that `/division` should stay a second-stage reactive read rather than a speculative read after the first `422`
+- the 2026-03-21 production run for `Ingrid Johansen` is the first scored production confirmation of the department-repair branch; out of 5 known production create-employee runs, 4 succeeded without department repair (`2` calls) and 1 needed it (`4` calls, `1` error); the no-pre-read strategy remains correct on average
+- persistent sandbox re-verification on 2026-03-21 confirmed that `POST /employee?fields=*` still returns sparse `employments` (id + url only); `fields=*` on POST does not expand nested employment objects, so the employment verification read remains necessary for start-date-scored tasks
+- the same sandbox session confirmed that `GET /employee/{id}?fields=employments(*)` is an equivalent alternative to `GET /employee/employment?employeeId=...&fields=*` for verifying `startDate`; both return the same employment data in one call
