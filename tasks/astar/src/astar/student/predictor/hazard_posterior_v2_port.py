@@ -17,7 +17,9 @@ from pydantic import ConfigDict, Field
 
 from astar.core.prediction import PredictionBundle
 from astar.core.score import entropy_map
-from astar.core.terrain import CLASS_COUNT
+from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
+from astar.core.trajectory import LiveQueryObs
+from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import build_round_context_from_detail
 from astar.features.geometry import RoundFeatureBundle
 from astar.history.datasets.synthetic_live import (
@@ -28,11 +30,12 @@ from astar.history.episodes.build import build_round_episode
 from astar.history.episodes.models import RoundEpisode
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.observe.evidence import RoundEvidenceBundle
+from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
 from astar.student.posterior.deepset_student import (
     _summary_vector_from_artifact,
     _summary_vector_from_evidence,
 )
+from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor
 from astar.student.predictor.round import BaseRoundPredictor
 from astar.student.predictor.summary_bank_decoder import (
@@ -46,6 +49,89 @@ def _standardize(features: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     means = np.mean(features, axis=0)
     scales = np.sqrt(np.maximum(np.var(features, axis=0), 1.0e-6))
     return means, scales
+
+
+def _observation_grid_loglikelihood(
+    predictive_tensor: np.ndarray,
+    observation: LiveQueryObs,
+    *,
+    class_floor: float = 0.01,
+    class_weights: np.ndarray | None = None,
+) -> float:
+    """Compute log-likelihood of observed cells under the predictive tensor."""
+    viewport = observation.viewport
+    patch = np.asarray(
+        predictive_tensor[
+            viewport.y : viewport.y + viewport.h,
+            viewport.x : viewport.x + viewport.w,
+            :,
+        ],
+        dtype=np.float64,
+    )
+    observed_classes = collapse_internal_grid(np.asarray(observation.grid, dtype=np.int64))
+    class_probabilities = np.take_along_axis(
+        patch,
+        observed_classes[..., None],
+        axis=-1,
+    ).reshape(-1)
+    safe_probabilities = np.clip(class_probabilities, class_floor, 1.0)
+    if safe_probabilities.size == 0:
+        return 0.0
+    if class_weights is not None:
+        obs_weights = np.asarray(class_weights[observed_classes.reshape(-1)], dtype=np.float64)
+        weight_sum = float(np.sum(obs_weights))
+        if np.isfinite(weight_sum) and weight_sum > 0.0:
+            return float(np.sum(obs_weights * np.log(safe_probabilities)) / weight_sum)
+    return float(np.mean(np.log(safe_probabilities)))
+
+
+def _posterior_reweighted_by_observations(
+    observations: tuple[LiveQueryObs, ...],
+    round_context: object,
+    *,
+    teacher: HazardTeacherV2,
+    particles: tuple[np.ndarray, ...],
+    base_weights: np.ndarray,
+    observation_weight: float,
+    class_floor: float = 0.01,
+    class_weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """Reweight regime particles by how well they explain observed cells."""
+    if observation_weight <= 0.0 or not observations:
+        return np.asarray(base_weights, dtype=np.float64)
+
+    seed_cache: dict[int, list[np.ndarray]] = {}
+    log_likelihoods = np.zeros(len(particles), dtype=np.float64)
+
+    for particle_index in range(len(particles)):
+        total_ll = 0.0
+        for obs in observations:
+            per_seed = seed_cache.setdefault(obs.seed_index, [])
+            while len(per_seed) <= particle_index:
+                seed = round_context.seeds[obs.seed_index]
+                per_seed.append(
+                    np.asarray(
+                        teacher.terminal_tensor(seed, particles[len(per_seed)]),
+                        dtype=np.float64,
+                    ),
+                )
+            total_ll += _observation_grid_loglikelihood(
+                per_seed[particle_index],
+                obs,
+                class_floor=class_floor,
+                class_weights=class_weights,
+            )
+        log_likelihoods[particle_index] = total_ll
+
+    log_prior = np.log(np.clip(np.asarray(base_weights, dtype=np.float64), 1e-12, None))
+    centered_ll = log_likelihoods - float(np.mean(log_likelihoods))
+    logits = log_prior + observation_weight * centered_ll
+    logits = logits - float(np.max(logits))
+    refined = np.exp(np.clip(logits, -60.0, 0.0))
+    total = float(np.sum(refined))
+    if not np.isfinite(total) or total <= 0.0:
+        return np.asarray(base_weights, dtype=np.float64)
+    return np.asarray(refined / total, dtype=np.float64)
 
 
 class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
@@ -79,6 +165,10 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
     latent_rank: int = Field(default=3, ge=1)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_variant: str = "basic"
+    observation_weight: float = Field(default=0.0, ge=0.0)
+    observation_class_weights: np.ndarray = Field(
+        default_factory=lambda: np.ones(CLASS_COUNT, dtype=np.float64),
+    )
 
     @classmethod
     def fit_from_workspace(
@@ -96,6 +186,7 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
         model_name: str = "f1_hazard_posterior_v2_v01",
         probability_floor: float = 0.01,
         summary_feature_variant: str = "basic",
+        observation_weight: float = 0.0,
         synthetic_dataset_name: str | None = None,
     ) -> HazardPosteriorV2PortPredictor:
         selected = _round_ids_with_replays_and_analyses(paths, round_ids)
@@ -173,6 +264,28 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
             np.max(np.abs(centered_regime), axis=0),
         )
 
+        # Compute entropy-conditioned class weights for observation reweighting
+        obs_class_weights = np.ones(CLASS_COUNT, dtype=np.float64)
+        if observation_weight > 0.0:
+            class_mass = np.zeros(CLASS_COUNT, dtype=np.float64)
+            entropy_weighted_mass = np.zeros(CLASS_COUNT, dtype=np.float64)
+            for ep in episodes:
+                for seed in ep.seeds:
+                    tt = seed.terminal_truth
+                    if tt is None:
+                        continue
+                    probs = np.asarray(tt.probs, dtype=np.float64)
+                    class_mass += np.sum(probs, axis=(0, 1))
+                    entropy_weighted_mass += np.sum(
+                        entropy_map(probs)[..., None] * probs, axis=(0, 1),
+                    )
+            if float(np.sum(class_mass)) > 0.0:
+                cond_ent = entropy_weighted_mass / np.clip(class_mass, 1e-9, None)
+                normed = cond_ent / max(float(np.mean(cond_ent)), 1e-9)
+                w = np.power(np.clip(normed, 1e-9, None), 0.5)
+                w = w / max(float(np.mean(w)), 1e-9)
+                obs_class_weights = np.clip(w, 0.6, 1.8).astype(np.float64)
+
         return cls(
             name=model_name,
             teacher=teacher,
@@ -189,6 +302,8 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
             latent_rank=latent_rank,
             probability_floor=probability_floor,
             summary_feature_variant=summary_feature_variant,
+            observation_weight=observation_weight,
+            observation_class_weights=obs_class_weights,
         )
 
     def _predict_regime_mean(self, normalized_query: np.ndarray) -> np.ndarray:
@@ -249,6 +364,65 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
             mean=np.asarray(mean, dtype=np.float64),
             particles=particles,
             weights=np.asarray(weights, dtype=np.float64),
+        )
+
+    def _infer_regime_with_observations(
+        self,
+        evidence: RoundEvidenceBundle | None,
+        observations: tuple[LiveQueryObs, ...],
+        round_context: object,
+    ) -> RegimePosteriorState:
+        """Infer regime posterior and optionally refine with observation likelihood."""
+        posterior = self._infer_regime(evidence)
+
+        if (
+            self.observation_weight > 0.0
+            and observations
+            and posterior.particles is not None
+            and posterior.weights is not None
+        ):
+            refined_weights = _posterior_reweighted_by_observations(
+                observations,
+                round_context,
+                teacher=self.teacher,
+                particles=posterior.particles,
+                base_weights=posterior.weights,
+                observation_weight=self.observation_weight,
+                class_weights=self.observation_class_weights,
+            )
+            particle_matrix = np.stack(posterior.particles, axis=0)
+            mean = np.tensordot(refined_weights, particle_matrix, axes=(0, 0))
+            return RegimePosteriorState(
+                mean=np.asarray(mean, dtype=np.float64),
+                particles=posterior.particles,
+                weights=refined_weights,
+            )
+
+        return posterior
+
+    def build_prediction_bundle_from_context(
+        self,
+        context: LiveInferenceContext,
+    ) -> PredictionBundle:
+        """Predict using full context including observation-likelihood reweighting."""
+        posterior = self._infer_regime_with_observations(
+            context.evidence_bundle,
+            context.observations,
+            context.round_context,
+        )
+
+        predictions: dict[int, np.ndarray] = {}
+        for seed in context.round_context.seeds:
+            prediction = self.teacher.posterior_predictive(seed, posterior)
+            predictions[seed.seed_index] = apply_probability_floor(
+                prediction,
+                self.probability_floor,
+            )
+
+        return PredictionBundle(
+            round_id=context.round_context.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions,
         )
 
     def build_prediction_bundle(

@@ -18,6 +18,7 @@ class HazardPosteriorV2PortModelSpec(BaseModel):
     predicted_particle_weight: float = Field(default=0.7, ge=0.0, le=1.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_variant: str = "basic"
+    observation_weight: float = Field(default=0.0, ge=0.0)
 
 
 _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
@@ -183,6 +184,52 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         ridge_alpha=32.0,
         predicted_particle_weight=0.7,
         samples_per_round=8,
+    ),
+    # === OBSERVATION REWEIGHTING VARIANTS (key agent1 innovation) ===
+    # k5 r3 with observation reweighting q8 (agent1's best config)
+    "f1_hazard_posterior_v2_k5_r3_q8_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_q8_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        observation_weight=8.0,
+    ),
+    # k7 r3 with observation reweighting q8
+    "f1_hazard_posterior_v2_k7_r3_q8_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k7_r3_q8_v01",
+        k_neighbors=7,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        observation_weight=8.0,
+    ),
+    # k9 r3 with observation reweighting q8
+    "f1_hazard_posterior_v2_k9_r3_q8_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k9_r3_q8_v01",
+        k_neighbors=9,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        observation_weight=8.0,
+    ),
+    # k5 r3 with moderate observation reweighting q4
+    "f1_hazard_posterior_v2_k5_r3_q4_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_q4_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        observation_weight=4.0,
+    ),
+    # k5 r3 with high observation reweighting q12
+    "f1_hazard_posterior_v2_k5_r3_q12_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_q12_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        observation_weight=12.0,
     ),
 }
 
