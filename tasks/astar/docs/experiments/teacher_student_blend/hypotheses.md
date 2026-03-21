@@ -47,6 +47,8 @@
 - `v97` / `v98`: test whether the pre-exact-evidence `k=5` setting becomes competitive again once local evidence is correcting observed cells directly
 - `v99` / `v100`: a single sharp `k=1` expert may still be too noisy on far-unobserved cells, so route those cells to a smoother `k=5` secondary expert using distance from observed coverage
 - `v101` / `v102`: test the stronger smoothing version of the same dual-expert routing idea with a `k=7` secondary expert and a slower distance ramp
+- `v103` / `v104`: far-unobserved cells may need a geometry-aware backup expert rather than just smoother temporal residuals, so route them to a semantic secondary encoder
+- `v105` / `v106`: test the same dual-expert routing idea with a simpler spatial secondary encoder instead of the semantic one
 
 ## Evaluation Rule
 

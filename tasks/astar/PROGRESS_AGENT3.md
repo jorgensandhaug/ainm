@@ -3388,6 +3388,27 @@
    - machine remained healthy:
      - about `1.0 TiB` used
      - about `1.9 TiB` available
+384. Parallel hypothesis after item 379:
+   - if dual-student routing helps only a little with a smoother temporal backup, the real missing signal may be encoder diversity rather than neighbor-count diversity
+385. Implemented dual-student encoder-diversity variants:
+   - new variants:
+     - `teacher_student_blend_v103`
+     - `teacher_student_blend_v104`
+     - `teacher_student_blend_v105`
+     - `teacher_student_blend_v106`
+   - mapping:
+     - `v103` = `v59` backbone + semantic `k=5` secondary expert + distance scale `2.0`
+     - `v104` = `v60` backbone + semantic `k=5` secondary expert + distance scale `2.0`
+     - `v105` = `v59` backbone + spatial `k=5` secondary expert + distance scale `2.0`
+     - `v106` = `v60` backbone + spatial `k=5` secondary expert + distance scale `2.0`
+   - architecture extension:
+     - `SummaryBankVariantSpec` now supports `secondary_summary_encoder`
+     - secondary checkpoints can now encode a different summary family from the primary student while reusing the same teacher/base caches
+386. Validation for item 385:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_variant_with_secondary_student_can_use_distinct_encoder tests/test_historical_benchmark.py::test_teacher_student_blend_v104_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v106_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

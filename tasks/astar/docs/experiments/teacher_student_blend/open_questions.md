@@ -34,5 +34,6 @@
 - Is the apparent `k=1` optimum only a pre-local-evidence effect?
 - Does a true two-expert student beat all single-student branches by letting a sharp `k=1` expert own observed / near-observed cells while a smoother expert owns far-unobserved cells?
 - If dual-student routing helps, is `k=5` or `k=7` the better secondary expert and how quickly should the route transition with coverage distance?
+- If dual-student routing helps, is the real gain from extra smoothness or from a different secondary encoder family (`semantic_v3` / `spatial_v2`)?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

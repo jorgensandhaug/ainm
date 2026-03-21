@@ -846,6 +846,26 @@ def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     assert predictor_b.secondary_student.k_neighbors == 5
 
 
+def test_summary_bank_variant_with_secondary_student_can_use_distinct_encoder(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+
+    from astar.student.posterior.deepset_student import SUMMARY_ENCODER_SEMANTIC_V3
+    from astar.student.predictor.summary_bank import load_or_fit_named_summary_bank_predictor
+
+    predictor = load_or_fit_named_summary_bank_predictor(
+        sample_paths,
+        model_name="teacher_student_blend_v103",
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+    )
+
+    assert predictor.secondary_student is not None
+    assert predictor.secondary_student.summary_encoder == SUMMARY_ENCODER_SEMANTIC_V3
+
+
 def test_summary_bank_variants_share_base_prior_and_teacher_cache(
     sample_paths: RepoPaths,
 ) -> None:
