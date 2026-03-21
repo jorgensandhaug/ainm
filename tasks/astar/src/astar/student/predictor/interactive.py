@@ -67,6 +67,10 @@ GLMM_DT_ENSEMBLE_V004 = "glmm_dt_ensemble_v004"
 GLMM_DT_ENSEMBLE_V005 = "glmm_dt_ensemble_v005"
 GLMM_DT_ENSEMBLE_V006 = "glmm_dt_ensemble_v006"
 GLMM_DT_ENSEMBLE_V007 = "glmm_dt_ensemble_v007"
+DIRECT_TERMINAL_Z2_V004 = "direct_terminal_z2_v004"  # lower floor
+GLMM_DT_ENSEMBLE_V008 = "glmm_dt_ensemble_v008"  # 50% DT with lower floor
+GLMM_DT_ENSEMBLE_V009 = "glmm_dt_ensemble_v009"  # 40% DT with lower floor
+GLMM_DT_LOWFLOOR_V001 = "glmm_dt_lowfloor_v001"  # GLMM also gets lower floor
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1958,6 +1962,45 @@ def build_online_predictor(
                 left_predictor=glmm_adapter.predictor,
                 right_predictor=dt_adapter.predictor,
                 right_weight=dt_weight,
+                name=normalized,
+            ),
+            name=normalized,
+        )
+    if normalized == DIRECT_TERMINAL_Z2_V004:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V004,
+            model_name=DIRECT_TERMINAL_Z2_V004,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200, "prediction_floor": 3e-4},
+        )
+    if normalized in (GLMM_DT_ENSEMBLE_V008, GLMM_DT_ENSEMBLE_V009, GLMM_DT_LOWFLOOR_V001):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2, "prediction_floor": 3e-4},
+        )
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V004,
+            model_name=DIRECT_TERMINAL_Z2_V004,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200, "prediction_floor": 3e-4},
+        )
+        weight_map = {
+            GLMM_DT_ENSEMBLE_V008: 0.50,
+            GLMM_DT_ENSEMBLE_V009: 0.40,
+            GLMM_DT_LOWFLOOR_V001: 0.35,
+        }
+        return RoundPredictorAdapter(
+            predictor=FixedPredictionBlendPredictor(
+                left_predictor=glmm_adapter.predictor,
+                right_predictor=dt_adapter.predictor,
+                right_weight=weight_map[normalized],
                 name=normalized,
             ),
             name=normalized,
