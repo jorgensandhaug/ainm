@@ -107,4 +107,7 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
 - 4th production run `454452ef` on `2026-03-21` (Spanish prompt) confirmed the identical 3-call path:
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
-  - 4 consecutive optimal runs across 4 languages (English, Spanish, Portuguese, Spanish) confirm this standard is stable
+- 5th production run `2916e388` on `2026-03-21` (English prompt) confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
+  - 5 consecutive optimal runs across en/es/pt prompts confirm this standard is stable
+  - sandbox re-verified: `POST /project/list` without `projectManager` still returns `422`; `projectManager.id=0` also returns `422`; `/token/session/>whoAmI` returns the same `employeeId` as `assignableProjectManagers[0]` in fresh accounts but does not save a call
