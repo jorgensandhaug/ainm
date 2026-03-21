@@ -19,25 +19,23 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 
 ## Production Run Results (2026-03-21)
 
-### Nynorsk run (task 23, 13 calls, 0 errors)
-- 5 customer payments via `PUT /invoice/{id}/:payment` (4 full + 1 partial 6500 of 13000 outstanding)
+### English run 4 (task 23, 11 calls, 0 errors) — OPTIMAL
+- 5 reads fired in parallel: `/invoice`, `/invoice/paymentType`, `/supplier`, `/supplierInvoice`, `/ledger/account`
+- 5 customer payments via `PUT /invoice/{id}/:payment` (4 full + 1 partial 2312.50 of 4625 outstanding)
 - `GET /supplierInvoice` returned 0 results; fell back to manual voucher path
-- 3 supplier payments via 3 separate `POST /ledger/voucher` (debit 2400, credit 1920)
-- total: 5 reads + 5 customer payments + 3 supplier vouchers = 13 calls
-- **wasted 2 calls**: the 3 supplier vouchers should have been 1 combined voucher with 6 postings (sandbox proof below)
+- 3 supplier payments combined into 1 `POST /ledger/voucher` with 6 postings (debit 2400, credit 1920)
+- total: 5 reads + 5 customer payments + 1 combined supplier voucher = **11 calls** (matches theoretical floor)
+- matching order mattered: Lewis Ltd had 2 invoices (#1 outstanding 4625, #5 outstanding 23562.50); first bank line (2312.50) matched #1 as partial, second bank line (23562.50) matched #5 as full
+
+### Earlier Nynorsk run (task 23, 13 calls, 0 errors)
+- same shape but 3 separate supplier vouchers instead of 1 combined → wasted 2 calls
 
 ### Earlier English run (task 23, score 0/0)
-- the agent matched 5 customer incoming payments correctly via `PUT /invoice/{id}/:payment`
-- all 5 customer payments succeeded (4 full, 1 partial at 5156.25 on outstanding 10312.5)
-- supplier side: `GET /supplierInvoice` (both filtered and unfiltered) returned 0 results for all suppliers in the account
-- the agent then wasted the remaining 300s budget on exploratory debug scripts trying alternative supplier lookup strategies
-- the run timed out with `completion_reason: "timeout"`
+- customer payments succeeded (4 full, 1 partial) but agent wasted 300s on supplier debug scripts after `/supplierInvoice` returned 0 → timed out
 
 ### Earlier French run
-- the first resolver assumptions were too literal
-- the bank text `Faktura 1001` .. `1005` did not equal Tripletex `invoiceNumber`
-- the live open customer invoices were `1` .. `5`, and the decisive signal was customer name plus amount plus the open-invoice inventory
-- `/incomingInvoice*` was a pure waste branch
+- bank text `Faktura 1001`..`1005` did not equal Tripletex `invoiceNumber`; live invoices were `1`..`5`
+- decisive signal was customer name + amount + open-invoice inventory, not invoice number label
 
 ## Proven Customer-Side Path
 
@@ -100,17 +98,19 @@ Key findings:
 
 ### What is safe
 - never use `/incomingInvoice*` in scored runs for this repo
-- first resolve supplier ids from one `GET /supplier?count=1000&fields=*`
-- then query `/supplierInvoice` with `supplierId=...`
-- if supplier-specific `/supplierInvoice` returns payable rows, use `POST /supplierInvoice/{id}/:addPayment`
-- if no `/supplierInvoice` objects exist, fall back to manual voucher payment (debit 2400, credit 1920)
+- fire one broad `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` in the initial parallel batch
+- do NOT query `/supplierInvoice` per-supplier — use the broad query to decide the path in one call
+- if broad query returns payable rows, match by supplier name + amount, then use `POST /supplierInvoice/{id}/:addPayment`
+- if broad query returns 0 (common case in production), fall back to manual voucher payment (debit 2400, credit 1920)
+- resolve supplier ids from one `GET /supplier?count=1000&fields=*` (needed for manual voucher's `supplier: { id }` field)
 - to resolve account ids for manual voucher, use one `GET /ledger/account?number=2400,1920&fields=*`
 
 ### What is unsafe
-- do not trust an empty unfiltered `GET /supplierInvoice?...` as proof that no supplier invoices exist
+- do not fire per-supplier `GET /supplierInvoice?supplierId=...` queries — use one broad query instead
 - do not trust `voucherId=` lookup on `/supplierInvoice` as a decisive resolver
 - do not assume `POST /supplierInvoice/{id}/:addPayment` is always usable on imported supplier invoices
 - do not spend calls on `:approve` or `putPostings` retries after the validation errors above
+- do not use `amountCurrencyOutstanding` in `/supplierInvoice` fields filter — it causes `400`
 
 ## Minimal-Call Guidance
 
@@ -188,3 +188,5 @@ Key findings:
 - row 0 is system-reserved; start manual voucher postings at `row: 1` and increment per posting
 - do not create M separate `POST /ledger/voucher` calls for M supplier payments; combine all into one voucher with 2M postings
 - fire `GET /ledger/account?number=2400,1920&fields=*` speculatively in the initial parallel batch; it is wasted only in the rare has-supplier-invoices case
+- `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes a `400`; use `fields=*,supplier(*)` instead (the DTO only has `amountOutstanding`)
+- when matching customer invoices, use `amountCurrencyOutstanding` (exists on `InvoiceDTO`); when matching supplier invoices, use `amountOutstanding`

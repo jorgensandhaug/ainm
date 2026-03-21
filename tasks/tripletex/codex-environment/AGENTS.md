@@ -119,6 +119,7 @@ Authentication:
 | Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
 | Month-end closing (accrual reversal, depreciation, salary accrual) | `./trusted-standards/month-end-closing.md` |
 | Simplified year-end closing (depreciation, prepaid reversal, tax) | `./trusted-standards/simplified-year-end-closing.md` |
+| Reconcile bank statement with open invoices | `./trusted-standards/reconcile-bank-statement-open-invoices.md` |
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
