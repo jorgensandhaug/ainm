@@ -2225,6 +2225,38 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_temporal_multiscale_encoder_zero_observation_shape tests/test_historical_benchmark.py::test_teacher_student_blend_v30_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `4 passed`
+242. Corrected-holdout results that landed while item 240 was validating:
+   - finished:
+     - `teacher_student_blend_v13`: mean score `61.3244`, mean weighted KL `0.163762`
+     - `teacher_student_blend_v14`: mean score `59.9971`, mean weighted KL `0.170906`
+     - `teacher_student_blend_v15`: mean score `61.2680`, mean weighted KL `0.164093`
+     - `teacher_student_blend_v16`: mean score `59.9179`, mean weighted KL `0.171375`
+     - `teacher_student_blend_v25`: mean score `57.3173`, mean weighted KL `0.188013`
+     - `teacher_student_blend_v27`: mean score `57.3173`, mean weighted KL `0.188013`
+     - `teacher_student_blend_v28`: mean score `57.2599`, mean weighted KL `0.188463`
+   - immediate read:
+     - the local-evidence blur branch is materially worse on this corrected gate
+     - among finished runs so far, simpler coefficient-residual variants `v13` / `v15` are stronger
+243. New hypothesis after item 242:
+   - multiscale temporal summaries may still help
+   - but they should be tested on the stronger simpler backbone instead of on the clearly underperforming local-evidence blur branch
+   - next branch:
+     - `v31` / `v32` = `v13` / `v14` backbone + `summary_temporal_multiscale_v5`
+244. Implemented simpler-backbone multiscale variants:
+   - new variants:
+     - `teacher_student_blend_v31`
+     - `teacher_student_blend_v32`
+   - architecture:
+     - global teacher blend
+     - coefficient-residual head
+     - normalized multiscale temporal summary
+     - no confidence gate
+     - no local evidence correction
+245. Validation for item 244:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_temporal_multiscale_encoder_zero_observation_shape tests/test_historical_benchmark.py::test_teacher_student_blend_v30_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_teacher_student_blend_v32_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions
