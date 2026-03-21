@@ -9,35 +9,40 @@ import {
   type NotImplementedTaskInput,
 } from "../shared/not-implemented";
 
-export const UNKNOWN_TASK_27_TASK_ID = "27";
-export const UNKNOWN_TASK_27_TX_TASK_ID = "27";
-export const UNKNOWN_TASK_27_INPUT_SCHEMA_ID = "27.v1";
+export const REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID = "27";
+export const REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TX_TASK_ID =
+  "27";
+export const REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_INPUT_SCHEMA_ID =
+  "27.v1";
 
 export const task = createNotImplementedTaskSpec({
-  taskId: UNKNOWN_TASK_27_TASK_ID,
-  txTaskId: UNKNOWN_TASK_27_TX_TASK_ID,
-  taskName: "Unknown task 27",
+  taskId: REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID,
+  txTaskId: REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TX_TASK_ID,
+  taskName: "Register foreign-currency payment with exchange gain",
   summary:
-    "Tier 3 placeholder for tx_task_id 27 with no checked-in prompt examples yet.",
-  signature: "unknownTask27()",
+    "Register a customer invoice payment in a foreign currency and book the exchange rate difference (agio) to the correct account.",
+  signature: "registerForeignCurrencyPaymentWithExchangeGain()",
 });
 
-export type UnknownTask27Strategy = TaskStrategy<
+export type RegisterForeignCurrencyPaymentWithExchangeGainStrategy =
+  TaskStrategy<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_27_TASK_ID
->;
+    typeof REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID
+  >;
 
-export type UnknownTask27TaskModule = TaskModule<
+export type RegisterForeignCurrencyPaymentWithExchangeGainTaskModule =
+  TaskModule<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_27_TASK_ID
->;
+    typeof REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID
+  >;
 
-export type UnknownTask27TaskUnderstandingResult = TaskUnderstandingResult<
-  NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_27_TASK_ID
->;
+export type RegisterForeignCurrencyPaymentWithExchangeGainTaskUnderstandingResult =
+  TaskUnderstandingResult<
+    NotImplementedTaskInput,
+    typeof REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID
+  >;
 
-export async function loadTaskModule(): Promise<UnknownTask27TaskModule> {
+export async function loadTaskModule(): Promise<RegisterForeignCurrencyPaymentWithExchangeGainTaskModule> {
   const { strategy } = await import("./strategies/not-implemented");
 
   return {
@@ -51,5 +56,5 @@ export const taskRegistration = {
   loadTaskModule,
 } satisfies TaskRegistration<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_27_TASK_ID
+  typeof REGISTER_FOREIGN_CURRENCY_PAYMENT_WITH_EXCHANGE_GAIN_TASK_ID
 >;

@@ -42,6 +42,7 @@ export function createNotImplementedTaskSpec<TTaskId extends string>(input: {
     summary: input.summary,
     inputSchemaId: `${input.taskId}.v1`,
     requiredFields: [] as const,
+    optionalFields: [] as const,
     extractionNotes:
       input.extractionNotes ??
       [

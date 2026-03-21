@@ -29,15 +29,15 @@ const EXPECTED_CANONICAL_MAPPING = [
   ["18", "reverse-customer-invoice-payment"],
   ["19", "onboard-employee-from-contract"],
   ["20", "register-supplier-invoice-pdf"],
-  ["21", "unknown-task-21"],
+  ["21", "correct-ledger-errors-audit"],
   ["22", "register-receipt-expense-voucher"],
   ["23", "unknown-task-23"],
   ["24", "correct-ledger-errors"],
   ["25", "overdue-reminder-fee-and-partial-payment"],
   ["26", "unknown-task-26"],
-  ["27", "unknown-task-27"],
+  ["27", "register-foreign-currency-payment-with-exchange-gain"],
   ["28", "analyze-expense-increase-create-internal-projects"],
-  ["29", "unknown-task-29"],
+  ["29", "full-project-lifecycle"],
   ["30", "unknown-task-30"],
 ] as const;
 

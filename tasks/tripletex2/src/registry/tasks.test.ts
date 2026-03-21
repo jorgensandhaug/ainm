@@ -88,6 +88,15 @@ test("every canonical task now loads a task module with at least one strategy", 
   }
 });
 
+test("canonical registry metadata matches the registered task specs", () => {
+  for (const canonicalTask of CANONICAL_TASK_REGISTRY) {
+    const taskSpec = getTaskSpec(canonicalTask.taskId);
+    assert.ok(taskSpec, canonicalTask.taskId);
+    assert.equal(taskSpec?.taskName, canonicalTask.taskName);
+    assert.equal(taskSpec?.summary, canonicalTask.summary);
+  }
+});
+
 test("implemented task remains the real registered task module", async () => {
   const taskSpec = getTaskSpec("08");
   assert.ok(taskSpec);

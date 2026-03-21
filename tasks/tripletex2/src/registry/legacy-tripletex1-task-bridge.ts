@@ -223,7 +223,7 @@ export const CANONICAL_TASK_REGISTRY = [
     taskSlug: "onboard-employee-from-contract",
     taskName: "Onboard employee from contract",
     summary:
-      "Create a new employee from a contract, creating the department if needed and writing employment details with the resolved occupation code.",
+      "Create a new employee from a contract, creating the department if needed and writing nested employment details with the resolved occupation code.",
     legacyTripletex1TaskIds: ["19"],
   },
   {
@@ -232,16 +232,16 @@ export const CANONICAL_TASK_REGISTRY = [
     taskSlug: "register-supplier-invoice-pdf",
     taskName: "Register supplier invoice with PDF attachment",
     summary:
-      "Register an incoming supplier invoice from a PDF attachment and attach the PDF to the created voucher.",
+      "Register an incoming supplier invoice from prompt-plus-PDF data and attach the source PDF to the created voucher.",
     legacyTripletex1TaskIds: ["20"],
   },
   {
     taskId: "21",
     txTaskId: "21",
-    taskSlug: "unknown-task-21",
-    taskName: "Unknown task 21",
+    taskSlug: "correct-ledger-errors-audit",
+    taskName: "Correct ledger errors",
     summary:
-      "Tier 3 placeholder for tx_task_id 21 with no checked-in prompt examples yet.",
+      "Audit Jan-Feb 2026 vouchers for four known ledger errors and post the corrective entries.",
     legacyTripletex1TaskIds: ["21"],
   },
   {
@@ -268,7 +268,7 @@ export const CANONICAL_TASK_REGISTRY = [
     taskSlug: "correct-ledger-errors",
     taskName: "Correct ledger errors",
     summary:
-      "Review Jan-Feb 2026 vouchers for four known bookkeeping errors and post corrective entries.",
+      "Review the Jan-Feb 2026 ledger for the four known anomalies and post one corrective voucher that repairs them.",
     legacyTripletex1TaskIds: ["24"],
   },
   {
@@ -292,10 +292,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "27",
     txTaskId: "27",
-    taskSlug: "unknown-task-27",
-    taskName: "Unknown task 27",
+    taskSlug: "register-foreign-currency-payment-with-exchange-gain",
+    taskName: "Register foreign-currency payment with exchange gain",
     summary:
-      "Tier 3 placeholder for tx_task_id 27 with no checked-in prompt examples yet.",
+      "Register a customer invoice payment in a foreign currency and book the exchange rate difference (agio) to the correct account.",
     legacyTripletex1TaskIds: ["27"],
   },
   {
@@ -304,16 +304,16 @@ export const CANONICAL_TASK_REGISTRY = [
     taskSlug: "analyze-expense-increase-create-internal-projects",
     taskName: "Analyze expense increase and create internal projects",
     summary:
-      "Analyze January-versus-February 2026 expense-account increases, then create one internal project and one activity for each of the top three accounts.",
+      "Analyze January-versus-February 2026 ledger expenses, select the three expense accounts with the largest increase, and create one internal project plus one activity for each selected account.",
     legacyTripletex1TaskIds: ["28"],
   },
   {
     taskId: "29",
     txTaskId: "29",
-    taskSlug: "unknown-task-29",
-    taskName: "Unknown task 29",
+    taskSlug: "full-project-lifecycle",
+    taskName: "Full project lifecycle",
     summary:
-      "Tier 3 placeholder for tx_task_id 29 with no checked-in prompt examples yet.",
+      "Create or reuse the customer, supplier, and employees needed for a project, register project hours and supplier costs, then create the project invoice through the order-to-invoice path.",
     legacyTripletex1TaskIds: ["29"],
   },
   {
