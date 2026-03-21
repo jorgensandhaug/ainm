@@ -284,6 +284,53 @@
   - updated perf read:
     - full-tier current-corpus `query_residual` reevaluation is now too slow for routine loop use
     - next benchmark step should come only with another speed pass or a narrower dev slice
+- New current dev tier defined and run:
+  - chose a 5-round analyzed∩replay slice spanning early/mid/late rounds:
+    - round 1 `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+    - round 4 `8e839974-b13b-407b-a5e7-fc749d877195`
+    - round 5 `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - round 6 `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - round 8 `c5cdf100-a876-4fb7-b5d8-757162c97989`
+  - rationale:
+    - smoke alone was too noisy after the stale-baseline issue
+    - 8-round current-corpus rerun was too slow
+    - needed a practical current dev slice that still widens coverage beyond the 3-round smoke set
+- Fresh baseline dev5 benchmark:
+  - artifact: `data/artifacts/benchmarks/dev5_query_residual_current_v01/result.json`
+  - score `75.9730`
+  - KL `0.093840`
+  - wall `9:52.42`
+  - max RSS `23.89 GB`
+- Fresh supportbase dev5 benchmark:
+  - artifact: `data/artifacts/benchmarks/dev5_f1_student_query_residual_supportbase_v01_current_v01/result.json`
+  - score `75.9740`
+  - KL `0.093849`
+  - wall `3:12.26`
+  - max RSS `13.36 GB`
+- Fresh dev5 paired compare:
+  - compare artifact again updated at the standard path:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_supportbase_v01.json`
+  - metrics:
+    - mean score delta `+0.0010`
+    - mean KL delta `+0.000008`
+    - win rate `0.480`
+    - loss rate `0.520`
+    - CI95 `[-0.0150, 0.0243]`
+- Updated interpretation:
+  - `supportbase_v01` is **not** a robust improvement
+  - on current exact smoke it was slightly positive
+  - on broader current dev5 it collapses to an effective tie / no-improvement result
+  - therefore:
+    - do not promote `supportbase_v01`
+    - keep the new exact smoke gate, but use the dev5 slice before calling any small smoke edge real
+- New perf read from dev5:
+  - current-corpus query-residual evaluation remains a major bottleneck
+  - baseline dev5 consumed nearly `24 GB` RSS and about `10 min` wall
+  - supportbase dev5 was much cheaper after the baseline run, which suggests cache/warm-state effects are strong and exploitable
+- Current next-step read:
+  - model-wise: `supportbase_v01` is back to non-promotion status
+  - validation-wise: exact smoke + current dev5 is a better decision stack than the old synthetic fit-audit
+  - engineering-wise: the next useful branch is benchmark-speed work for current-corpus query-residual reevaluation, or a new model branch screened by the exact smoke gate first
 - Updated next-step read:
   - keep the new online-audit as the benchmark-faithful smoke gate for `query_residual`
   - stop trusting old smoke artifacts when replay corpus may have changed underneath them
