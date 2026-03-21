@@ -27,7 +27,13 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 - total: 5 reads + 5 customer payments + 1 combined supplier voucher = **11 calls** (matches theoretical floor)
 - matching order mattered: Lewis Ltd had 2 invoices (#1 outstanding 4625, #5 outstanding 23562.50); first bank line (2312.50) matched #1 as partial, second bank line (23562.50) matched #5 as full
 
-### Earlier Nynorsk run (task 23, 13 calls, 0 errors)
+### Nynorsk run 2 (c76bbef3, 11 calls, 0 errors) — OPTIMAL
+- 5 reads fired in parallel, 5 customer payments (all full, no partial), 3 supplier payments combined into 1 voucher
+- CSV had non-invoice lines (Renteinntekter, Bankgebyr) correctly skipped
+- names: Neset AS, Eide AS, Lunde AS, Stølsvik AS, Haugen AS (customers); Lunde AS, Neset AS, Stølsvik AS (suppliers)
+- confirms trusted standard is correct for Nynorsk task variant
+
+### Earlier Nynorsk run 1 (task 23, 13 calls, 0 errors)
 - same shape but 3 separate supplier vouchers instead of 1 combined → wasted 2 calls
 
 ### Earlier English run (task 23, score 0/0)

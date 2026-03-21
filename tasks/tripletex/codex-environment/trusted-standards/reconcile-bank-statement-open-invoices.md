@@ -68,7 +68,8 @@ Row numbering starts at 1 (row 0 is system-reserved). Voucher date = earliest pa
 ## Proven production results
 
 - English run 4: 11 calls, 0 errors, 5 customer (1 partial) + 3 supplier combined into 1 voucher
-- Nynorsk run: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
+- Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
+- Nynorsk run 2 (c76bbef3): 11 calls, 0 errors, 5 customer (all full) + 3 supplier combined into 1 voucher — optimal
 
 ## Critical pitfalls
 
