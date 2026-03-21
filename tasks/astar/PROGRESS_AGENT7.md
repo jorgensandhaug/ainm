@@ -2732,6 +2732,24 @@ All of these have been systematically swept and are near-optimal:
 - class_scale (all 1.0), delta_clip (4+), interaction features (+0.11)
 - cells_per_seed (512), samples_per_round (2), multi-seed ensemble (neutral)
 
+### 2026-03-21T18:30Z approx
+
+- Revisited decoder architectures with new calibration:
+  - Particle mixture alone (v153) = 82.57 (terrible - not competitive)
+  - Operator hybrid (v154) = 86.28 (near baseline)
+  - **Cluster-operator hybrid (v155) = 86.68** ← good!
+  - Pure mode projection (v156) = 85.98
+- Tuned cluster-operator-hybrid blend:
+  - **v157 (blend=0.08, ood=0.20) = 86.91** ← NEW CHAMPION
+  - Lower particle contribution is optimal (just a small OOD safety net)
+
+## Current Champion
+
+- model: `ffam_mode_v157`
+- score: **86.9072**
+- per-round: R1:84.1 R2:89.2 R3:90.2 R4:93.6 R5:84.5 R6:88.0 R7:73.2 R8:92.2
+- total improvement from v44: **+9.15 points** (77.76 → 86.91, +11.8%)
+
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
 | Rank | Model | Score | Key difference vs v104 |
