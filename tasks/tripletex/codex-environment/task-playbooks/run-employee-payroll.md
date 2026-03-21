@@ -158,14 +158,13 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 5. If the employee read already shows the exact underconfigured branch `dateOfBirth=null` plus `employments=[]`, skip `GET /division` and always create a new division — `POST /division` succeeds even when divisions exist (harmless duplicate), saving 1 call
    - `Promise.all`: `POST /division` (with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number, `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }`) + `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` — these are independent and run in parallel
    - do NOT use the company's own org number (juridisk enhet → 422); do NOT spend `GET /municipality`
-   - DEPRECATED: do NOT use the manual-voucher fallback even when the prompt allows it — it creates no payslip and likely scores 0 on payslip-related checks; production run 5cfc2bc5 used the voucher fallback and the postings stored `amount: 0` because only `amount` was sent (not `amountGross`/`amountGrossCurrency`); always use the 9-call salary path with `POST /division`
-6. After both division creation and dateOfBirth repair complete, create the employment and resolve lookups in parallel:
-   - `Promise.all`: `POST /employee/employment` with inline `employmentDetails[]` (needs division.id from step 5) + `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
+   - DEPRECATED: do NOT use the manual-voucher fallback even when the prompt allows it — it creates no payslip and likely scores 0 on payslip-related checks; always use the 8-call salary path with `POST /division`
+6. After both division creation and dateOfBirth repair complete, create the employment:
+   - `POST /employee/employment` with inline `employmentDetails[]` (needs division.id from step 5)
    - inline `employmentDetails[]` saves 1 call vs separate POST; include: `date`, `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary`, `annualSalary`
    - CRITICAL: `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored; without it, `monthlySalary` silently stays 0
-   - employment creation and reads are independent (employment is employee-scoped, reads are account-scoped)
-   - do NOT hardcode voucherType ids — they vary across accounts
-7. Create the payroll transaction and Lønnsbilag voucher — steps 7+8 are independent writes and SHOULD be parallelized with `Promise.all` (salary transaction creates payslip, voucher creates ledger entries)
+   - NOTE: `GET /salary/type` and `GET /ledger/account` should already be resolved from step 1 (parallel with GET /employee); do NOT spend them here
+7. Create the payroll transaction and Lønnsbilag voucher — these are independent writes and SHOULD be parallelized with `Promise.all`:
    - `POST /salary/transaction?generateTaxDeduction=true` — ALWAYS use generateTaxDeduction=true; without it the payslip has no Skattetrekk spec
    - include:
      - `date`
@@ -174,10 +173,8 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - `paySlipsAvailableDate`
      - one `payslips[]` entry for the target employee
      - embedded manual `specifications[]` entries for the requested salary lines
-8. Create a booked salary voucher (Lønnsbilag) for the ledger entries — the salary transaction only creates a draft payslip with no ledger postings
-   - voucherType and account ids should already be resolved from step 6 (parallel reads)
-   - `POST /ledger/voucher?sendToLedger=true` with:
-     - `voucherType: { id: <resolved Lønnsbilag id> }` — do NOT hardcode; ids vary across accounts
+   - `POST /ledger/voucher?sendToLedger=true` — run in parallel with the salary transaction:
+     - `voucherType: { name: "Lønnsbilag" }` — use name directly, do NOT spend `GET /ledger/voucherType`; sandbox-verified 2026-03-21
      - `date: <payroll date>`
      - `description: "Lønn <month> <year> - Fastlønn <amount> + Bonus <amount>"`
      - CRITICAL: every posting MUST include explicit `row` field starting from 1 (e.g. `row: 1`, `row: 2`, `row: 3`); without `row`, Lønnsbilag reserves guiRow 0 for system-generated content → `422`
