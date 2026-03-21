@@ -29,6 +29,10 @@ from astar.student.predictor.summary_bank import (
     is_summary_bank_model_name,
     resolve_summary_bank_variant_spec,
 )
+from astar.student.predictor.transcript_memory import (
+    is_transcript_memory_model_name,
+    resolve_transcript_memory_samples_per_round,
+)
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -194,6 +198,10 @@ def run_historical_benchmark(
         raise ValueError(
             "evidence_field_blend requires at least two replay-backed analyzed rounds for holdout eval",
         )
+    if mode == "online_interactive" and is_transcript_memory_model_name(normalized_model_name) and len(selected_round_ids) < 2:
+        raise ValueError(
+            "transcript_memory requires at least two replay-backed analyzed rounds for holdout eval",
+        )
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
@@ -217,7 +225,14 @@ def run_historical_benchmark(
                     samples_per_round=samples_per_round,
                 )
                 if is_evidence_field_model_name(normalized_model_name)
-                else None
+                else (
+                    resolve_transcript_memory_samples_per_round(
+                        normalized_model_name,
+                        samples_per_round=samples_per_round,
+                    )
+                    if is_transcript_memory_model_name(normalized_model_name)
+                    else None
+                )
             )
         )
     )
@@ -226,6 +241,7 @@ def run_historical_benchmark(
         is_query_residual_model_name(normalized_model_name)
         or is_summary_bank_model_name(normalized_model_name)
         or is_evidence_field_model_name(normalized_model_name)
+        or is_transcript_memory_model_name(normalized_model_name)
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""

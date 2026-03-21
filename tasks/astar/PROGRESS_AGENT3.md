@@ -3727,6 +3727,53 @@
 422. Short first poll after item 421:
    - `v11-v14` were still pending
    - no result artifact had landed yet at the first poll
+423. Global-state corrected-gate results landed and failed hard:
+   - aggregate results:
+     - `v11`: mean score `59.2561`, mean weighted KL `0.174820`
+     - `v12`: mean score `59.1783`, mean weighted KL `0.175261`
+     - `v13`: mean score `56.9547`, mean weighted KL `0.188653`
+     - `v14`: mean score `56.8772`, mean weighted KL `0.189131`
+424. Read from item 423:
+   - global state-feature maps are worse than both local-field branches
+   - the whole evidence-field family is now clearly dominated and was stopped
+   - next branch should stop painting heuristic fields entirely and instead retrieve terminal tensors directly from replay-backed synthetic transcript memory
+425. New radical hypothesis after item 424:
+   - use replay-backed synthetic live episodes as a direct nearest-neighbor memory bank
+   - compute compact per-seed transcript vectors from:
+     - pooled observed class frequencies
+     - seed observed class frequencies
+     - seed/global settlement-state summaries
+     - simple geometry summary scalars
+   - retrieve nearest historical synthetic transcripts and average their terminal target tensors directly
+   - blend that direct memory prediction with the strong `teacher_student_blend` base model instead of fitting another residual/field heuristic
+426. Implemented the new `transcript_memory` family:
+   - new file:
+     - `src/astar/student/predictor/transcript_memory.py`
+   - reproducible models:
+     - `transcript_memory`
+     - `transcript_memory_v1`
+     - `transcript_memory_v2`
+     - `transcript_memory_v3`
+     - `transcript_memory_v4`
+     - `transcript_memory_v5`
+     - `transcript_memory_v6`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, `k=5`, blend `0.35`
+     - `v3/v4`: base `v59/v60`, samples `16`, `k=5`, blend `0.35`
+     - `v5/v6`: base `v59/v60`, samples `16`, `k=3`, blend `0.50`
+427. Framework wiring for item 426:
+   - `interactive.py` supports transcript-memory models online
+   - `historical_benchmark.py`, `targeted_holdout_benchmark.py`, and `model_eval.py` resolve transcript-memory sample defaults and artifacts correctly
+   - `cli.py` exposes transcript-memory models through the centralized online model-choice set
+428. Validation for item 426:
+   - command:
+     - `uv run pytest tests/test_cli.py::test_cli_accepts_transcript_memory_historical_benchmark_model tests/test_teacher_student.py::test_transcript_memory_seed_vector_reflects_observed_class_counts tests/test_historical_benchmark.py::test_transcript_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - result:
+     - `3 passed`
+   - extra checks:
+     - `uv run python -m py_compile src/astar/student/predictor/transcript_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py`
+   - robustness fix during validation:
+     - transcript-memory target loading now falls back to raw analysis JSON when derived analysis `.npz` tensors are absent in small test workspaces
 
 
 ## Open Questions

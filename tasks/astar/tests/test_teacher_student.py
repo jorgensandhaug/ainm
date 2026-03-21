@@ -1041,6 +1041,66 @@ def test_evidence_field_global_state_refinement_uses_seed_level_state_summary() 
     assert refined[0, 0, 2] > prediction[0, 0, 2]
 
 
+def test_transcript_memory_seed_vector_reflects_observed_class_counts() -> None:
+    from astar.features.geometry import RoundFeatureBundle, SeedFeatureBundle
+    from astar.observe.evidence import RoundEvidenceBundle, SeedEvidenceBundle
+    from astar.student.predictor.transcript_memory import _seed_memory_vector
+
+    seed0_counts = np.zeros((2, 2, 6), dtype=np.int64)
+    seed0_counts[0, 0, 1] = 3
+    seed1_counts = np.zeros((2, 2, 6), dtype=np.int64)
+    round_evidence = RoundEvidenceBundle(
+        round_id="round",
+        per_seed={
+            0: SeedEvidenceBundle(
+                round_id="round",
+                seed_index=0,
+                query_count=1,
+                repeated_window_groups=0,
+                coverage_counts=np.zeros((2, 2), dtype=np.int64),
+                observed_class_counts=np.sum(seed0_counts, axis=(0, 1)),
+                observed_class_frequencies=np.asarray([0.0, 1.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64),
+                observed_class_count_tensor=seed0_counts,
+            ),
+            1: SeedEvidenceBundle(
+                round_id="round",
+                seed_index=1,
+                query_count=0,
+                repeated_window_groups=0,
+                coverage_counts=np.zeros((2, 2), dtype=np.int64),
+                observed_class_counts=np.sum(seed1_counts, axis=(0, 1)),
+                observed_class_frequencies=np.zeros(6, dtype=np.float64),
+                observed_class_count_tensor=seed1_counts,
+            ),
+        },
+    )
+    per_seed_features = {
+        seed_index: SeedFeatureBundle(
+            round_id="round",
+            seed_index=seed_index,
+            height=2,
+            width=2,
+            features={
+                "buildable": np.ones((2, 2), dtype=np.float64),
+                "coast": np.zeros((2, 2), dtype=np.float64),
+                "settlement_proximity": np.ones((2, 2), dtype=np.float64),
+                "coastal_exposure": np.zeros((2, 2), dtype=np.float64),
+                "maritime_access": np.zeros((2, 2), dtype=np.float64),
+                "frontier_score": np.ones((2, 2), dtype=np.float64),
+                "forest_density": np.zeros((2, 2), dtype=np.float64),
+                "mountain_density": np.zeros((2, 2), dtype=np.float64),
+            },
+        )
+        for seed_index in (0, 1)
+    }
+    round_features = RoundFeatureBundle(round_id="round", per_seed=per_seed_features)
+
+    vector = _seed_memory_vector(round_evidence, round_features, seed_index=0)
+
+    assert vector.shape[0] > 10
+    assert np.max(vector) > 0.0
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
