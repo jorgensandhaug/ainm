@@ -51,8 +51,9 @@ from astar.cli_output import (
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.eval.backtest import backtest_round_from_saved_analyses
 from astar.eval.diagnostics import build_local_dataset_diagnostics, build_round_episode_diagnostics
-from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.datasets.event_ledger import build_replay_event_ledger_dataset
+from astar.history.datasets.hazard_riskset import build_hazard_riskset_dataset
+from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
 from astar.history.replay.ingest import ingest_replays
@@ -238,6 +239,16 @@ def build_parser() -> argparse.ArgumentParser:
     event_ledger_parser = subparsers.add_parser("build-event-ledger")
     event_ledger_parser.add_argument("--round-id", action="append", default=None)
     event_ledger_parser.add_argument("--dataset-name", default="replay_event_ledger_v1")
+
+    hazard_riskset_parser = subparsers.add_parser("build-hazard-riskset")
+    hazard_riskset_parser.add_argument(
+        "--event",
+        required=True,
+        choices=["birth", "portization", "collapse", "rebuild", "reclaim_forest", "reclaim_empty"],
+    )
+    hazard_riskset_parser.add_argument("--round-id", action="append", default=None)
+    hazard_riskset_parser.add_argument("--dataset-name", default=None)
+    hazard_riskset_parser.add_argument("--negative-ratio", type=float, default=8.0)
 
     teacher_terminal_parser = subparsers.add_parser("build-teacher-terminal-dataset")
     teacher_terminal_parser.add_argument("--round-id", action="append", default=None)
@@ -521,6 +532,17 @@ def _main() -> int:
             paths,
             round_ids=args.round_id,
             dataset_name=args.dataset_name,
+        )
+        _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "build-hazard-riskset":
+        dataset = build_hazard_riskset_dataset(
+            paths,
+            event_type=args.event,
+            round_ids=args.round_id,
+            dataset_name=args.dataset_name,
+            negative_ratio=args.negative_ratio,
         )
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0

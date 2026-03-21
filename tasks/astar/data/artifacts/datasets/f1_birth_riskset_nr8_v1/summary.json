@@ -1,0 +1,18 @@
+{
+  "dataset_name": "f1_birth_riskset_nr8_v1",
+  "dataset_kind": "hazard_riskset",
+  "event_type": "birth",
+  "negative_ratio": 8.0,
+  "negative_keep_probability": 0.042128109248440015,
+  "row_count": 6789262,
+  "round_count": 9,
+  "replay_run_count": 2313,
+  "eligible_count": 143995679,
+  "positive_count": 754311,
+  "negative_total": 143241368,
+  "sampled_negative_count": 6034951,
+  "sampled_positive_count": 754311,
+  "observed_positive_rate": 0.11110353378614642,
+  "population_positive_rate": 0.005238428022551983,
+  "index_path": "/home/jorge/agent6/tasks/astar/data/artifacts/datasets/f1_birth_riskset_nr8_v1/riskset.parquet"
+}

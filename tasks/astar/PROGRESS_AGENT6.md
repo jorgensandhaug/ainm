@@ -56,21 +56,21 @@
 2. Keep Gate 1 open but no longer blocked: current proxy says common transitions are near-Markov, with targeted lag sensitivity around collapse/port.
 3. Gate 2 result now says the current crude terminal-law parameterization is not predictively tiny-latent enough.
 4. Next work should shift toward richer per-round effective laws:
-   - replay event-ledger is now built; next missing piece is hazard-training support with eligible negatives, especially for build/birth
+   - replay event-ledger is now built; birth/build risk-set dataset is now also built
    - richer collapse-sensitive state if returning to Gate 1 refinement
+   - next missing piece is actual held-out hazard fitting on top of the risk set
    - only then revisit low-rank coupling / live regime inference
 
 ## Active Experiment
 
-- Dataset complete: `f1_replay_event_ledger_v1`
+- Dataset complete: `f1_birth_riskset_nr8_v1`
 - Hypothesis:
-  - a clean replay event ledger is the decisive preprocessing layer needed before real family-1 hazard models
-  - if the ledger shows sane event counts and no obvious invariant violations, the next step should be an eligible-cell hazard dataset rather than more terminal-law engineering
+  - build/birth is the dominant miss from Gate 2, so the first real hazard-training substrate should target build eligibility directly
+  - weighted negative downsampling should make full-corpus build hazard training tractable without corrupting prevalence
 - Validation plan:
-  - extract discrete structural events plus settlement stat deltas from full replay transitions
-  - attach static geometry and local neighbor context
-  - scan for basic impossibility violations in the same pass
-  - build versioned artifact and inspect real-corpus event mix before designing hazard-training data
+  - define birth event eligibility over full replay transitions
+  - include all positives, deterministically downsample negatives, and store inverse-probability weights
+  - materialize a versioned dataset and inspect prevalence / per-round mass before fitting the first hazard model
 
 ## Runtime Finding
 
@@ -96,9 +96,11 @@
 - `data/artifacts/family1/markov/f1_markov_sufficiency_cellproxy_v1/report.md`
 - `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md`
 - `data/artifacts/datasets/f1_replay_event_ledger_v1/summary.json`
+- `data/artifacts/datasets/f1_birth_riskset_nr8_v1/summary.json`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/history/datasets/event_ledger.py`
+- `src/astar/history/datasets/hazard_riskset.py`
 - `src/astar/workflows/model_eval.py`
 - `src/astar/workflows/historical_benchmark.py`
 - `src/astar/workflows/markov_sufficiency.py`
@@ -247,3 +249,43 @@
   - the replay event ledger is now real, versioned, and large enough to support actual hazard-model work
   - build/birth and collapse remain the dominant structural event masses
   - next concrete step should be a hazard-training dataset with eligible negatives / risk sets, not more positive-only event summaries
+- Implemented weighted hazard-riskset dataset builder:
+  - file: `src/astar/history/datasets/hazard_riskset.py`
+  - CLI: `uv run astar build-hazard-riskset --event birth --negative-ratio 8 --dataset-name f1_birth_riskset_nr8_v1`
+  - supports:
+    - `birth`
+    - `portization`
+    - `collapse`
+    - `rebuild`
+    - `reclaim_forest`
+    - `reclaim_empty`
+  - includes deterministic negative downsampling + inverse-probability `sample_weight`
+- Added regression test:
+  - `tests/test_hazard_riskset.py`
+- Validation rerun after risk-set changes:
+  - `uv run pytest tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `18 passed`
+- First full-corpus risk-set artifact built for the dominant event:
+  - dataset dir: `data/artifacts/datasets/f1_birth_riskset_nr8_v1/`
+  - event: `birth`
+  - rows: `6789262`
+  - replay runs: `2313`
+  - eligible population size: `143995679`
+  - positives: `754311`
+  - sampled negatives: `6034951`
+  - negative keep probability: `0.0421281`
+  - observed positive rate in stored sample: `0.111104`
+  - true population positive rate: `0.00523843`
+  - parquet size: `38M`
+- Per-round birth mass in sampled risk set:
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `202917`
+  - `76909e29-f664-4b2f-b16b-61b7507277e9`: `140328`
+  - `71451d74-be9f-471f-aacd-a41f3b68a9cd`: `108553`
+  - `36e581f1-73f8-453f-ab98-cbe3052b701b`: `104549`
+  - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `92152`
+- Runtime note:
+  - full-corpus birth risk-set build is currently a multi-minute two-pass job
+  - it is workable for checkpoint builds, but should be optimized before large model sweeps
+- Updated next-step read:
+  - next mainline move should be a held-out round build-hazard model using this weighted risk set
+  - collapse should likely be second, not first, because build/birth still dominates error mass

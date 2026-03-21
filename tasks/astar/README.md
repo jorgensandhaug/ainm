@@ -335,6 +335,7 @@ uv run astar fetch-round-analyses --round-id <round-id>
 uv run astar materialize-episode --round-id <round-id>
 uv run astar episode-summary --round-id <round-id>
 uv run astar build-event-ledger
+uv run astar build-hazard-riskset --event birth --negative-ratio 8
 uv run astar dataset-summary
 uv run astar corpus-summary
 ```

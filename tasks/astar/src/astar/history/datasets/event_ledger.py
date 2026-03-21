@@ -266,7 +266,7 @@ def build_replay_event_ledger_dataset(
 
         per_round_event_counts[round_id] = per_round_counter
 
-    table = pl.DataFrame(rows)
+    table = pl.DataFrame(rows, infer_schema_length=None)
     table.write_parquet(index_path)
     summary = {
         "dataset_name": dataset_name,
