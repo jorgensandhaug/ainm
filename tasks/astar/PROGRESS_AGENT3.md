@@ -2703,6 +2703,26 @@
      - memory available: about `1.8 TiB`
    - decision:
      - enough headroom remained to keep branching off the exact-local-evidence family without stopping the live queue
+294. New hypothesis after item 290:
+   - exact-local-evidence fixed queried-cell calibration, but the unobserved-cell teacher blend is still using the simple round-total weighting path from `v45/v46`
+   - next decisive test:
+     - port seed-adaptive teacher weighting plus confidence gating onto the winning exact-local-evidence `k=1` line
+295. Implemented gated exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v55`
+     - `teacher_student_blend_v56`
+     - `teacher_student_blend_v57`
+     - `teacher_student_blend_v58`
+   - mapping:
+     - `v55` = `v51` + confidence gate + seed-adaptive teacher weighting
+     - `v56` = `v52` + confidence gate + seed-adaptive teacher weighting
+     - `v57` = `v53` + confidence gate + seed-adaptive teacher weighting
+     - `v58` = `v54` + confidence gate + seed-adaptive teacher weighting
+296. Validation for item 295:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v56_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v58_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

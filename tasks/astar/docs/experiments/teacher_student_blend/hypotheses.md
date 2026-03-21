@@ -23,6 +23,8 @@
 - `v49` / `v50`: push the same combined branch to `samples=1` to test whether the strongest line is simply nearest-neighbor residuals plus minimal synthetic duplication
 - `v51` / `v52`: exact observed-cell posterior updates may help much more on the new `k=1` line than they did on older branches, because the global prior is now stronger and local evidence only needs to correct queried cells
 - `v53` / `v54`: if that exact-local-evidence gain is real, stack it with the lower-sample `k=1` line instead of only testing it at `samples=4`
+- `v55` / `v56`: exact observed-cell updates solved queried-cell calibration, but unobserved cells may still benefit from seed-adaptive teacher weighting and confidence gating on the same `k=1` backbone
+- `v57` / `v58`: test that same gated teacher-blend idea on the lower-sample exact-local-evidence line instead of assuming the `samples=4` optimum transfers
 
 ## Evaluation Rule
 
