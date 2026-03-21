@@ -1467,3 +1467,129 @@
   - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
   - result:
     - `25 passed`
+- Next `query_residual` branch after killing the local settlement-state map family:
+  - hypothesis:
+    - the residual learner sees residual means by region, but not how reliable those residual summaries are
+    - transcripts with weak coverage in buildable / coastal / near / far regions should be treated differently from transcripts with strong support there
+  - planned variant:
+    - add only support/reliability channels
+    - no new hidden-state content, no new settlement-state maps
+    - expose per-seed and global observed coverage fractions for key geometry regions as constant local-evidence channels
+  - target model name:
+    - `f1_student_query_residual_support_v01`
+  - validation plan:
+    - fit-audit screen first
+    - smoke benchmark only if baseline residual fit actually improves
+- Implemented `f1_student_query_residual_support_v01`:
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/student/predictor/query_residual_specs.py`
+    - `tests/test_query_residual_feature_variants.py`
+  - change:
+    - added support/reliability channels as constant local-evidence maps
+    - channels carry per-seed and global observed coverage fractions for:
+      - buildable cells
+      - coastal cells
+      - near-settlement cells
+      - far-from-settlement cells
+    - no new hidden-state content; this is only transcript support information
+- Validation after landing `support_v01`:
+  - `uv run pytest tests/test_query_residual_feature_variants.py tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `15 passed`
+- Real fit-audit screen for `f1_student_query_residual_support_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-query-residual-fit-audit --model f1_student_query_residual_support_v01 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --dataset-name f1_query_residual_fit_probe3_b50_s2_v01 --name f1_query_residual_fit_f1_student_query_residual_support_v01_probe3_b50s2_v01 --policy coverage --samples-per-round 2 --budget 50`
+  - report:
+    - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_f1_student_query_residual_support_v01_probe3_b50s2_v01/report.md`
+  - result:
+    - aggregate score `72.229500`
+    - weighted KL `0.108882`
+    - regime MAE `0.066319`
+    - regime MSE `0.010029`
+    - raw-delta RMSE `0.591974`
+    - served-delta RMSE `0.571794`
+    - wall `0:40.22`
+    - max RSS about `0.33 GB`
+- `support_v01` branch conclusion:
+  - still below baseline, so no smoke benchmark justified
+  - but importantly:
+    - much better than `localstate_v01` / `localblur_v01`
+    - slightly better than `state_v01`
+  - read:
+    - transcript support / reliability looks more promising than queried settlement-state map features
+    - current miss may be confounding:
+      - `support_v01` still inherits the extra `state_v01` summary block
+      - those state summaries are already known to be mildly negative
+  - next sharper test:
+    - baseline `v1` + support only
+    - do not carry over the `state_v01` summary expansion
+- Implemented `f1_student_query_residual_supportbase_v01`:
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/student/predictor/query_residual_specs.py`
+    - `tests/test_query_residual_feature_variants.py`
+  - change:
+    - same support/reliability channels as `support_v01`
+    - but with the true baseline `v1` global/seed summary block instead of the mildly negative `state_v01` summary expansion
+- Validation after landing `supportbase_v01`:
+  - `uv run pytest tests/test_query_residual_feature_variants.py tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `15 passed`
+- Real fit-audit screen for `f1_student_query_residual_supportbase_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-query-residual-fit-audit --model f1_student_query_residual_supportbase_v01 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --dataset-name f1_query_residual_fit_probe3_b50_s2_v01 --name f1_query_residual_fit_f1_student_query_residual_supportbase_v01_probe3_b50s2_v01 --policy coverage --samples-per-round 2 --budget 50`
+  - report:
+    - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_f1_student_query_residual_supportbase_v01_probe3_b50s2_v01/report.md`
+  - result:
+    - aggregate score `72.550147`
+    - weighted KL `0.107401`
+    - regime MAE `0.066033`
+    - regime MSE `0.009956`
+    - raw-delta RMSE `0.580410`
+    - served-delta RMSE `0.562948`
+    - wall `0:40.08`
+    - max RSS about `0.33 GB`
+  - read:
+    - this was the first post-audit `query_residual` branch that actually beat the audit baseline on all tracked metrics
+    - so it passed the audit gate and earned a real smoke benchmark
+- Real smoke benchmark for `f1_student_query_residual_supportbase_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_supportbase_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_supportbase_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_supportbase_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_supportbase_v01.json`
+  - smoke result:
+    - mean score `72.570472`
+    - weighted KL `0.107299`
+    - benchmark runtime `98.729s`
+    - `/usr/bin/time -v` wall `1:50.61`
+    - max RSS about `10.13 GB`
+  - paired compare vs `query_residual_v7`:
+    - mean score delta `-0.5322`
+    - weighted KL delta `+0.002515`
+    - win rate `0.333`
+    - loss rate `0.667`
+    - CI95 `[-0.8678, -0.0904]`
+- `supportbase_v01` branch conclusion:
+  - reject on real smoke benchmark
+  - important validation read:
+    - the fit audit gave a small false positive here
+    - audit improvement margin was real but too small to transfer to the actual online smoke benchmark
+  - concrete read from the benchmark:
+    - round `8e839974-b13b-407b-a5e7-fc749d877195` got hit hard
+    - round `ae78003a-4efe-425a-881a-d16a39bca0ad` improved
+    - so the support family may help some round regimes but is not robust enough as currently specified
+  - family-level conclusion so far:
+    - local settlement-state map features:
+      - dead
+    - support / reliability features:
+      - more promising, but current simple region-coverage fractions still fail the actual smoke benchmark
+  - next best path:
+    - either demand a larger audit margin before paying for smoke
+    - or make the validation more benchmark-faithful for this family
+    - model-side next branch should likely target support mismatch more structurally than four coarse region fractions
+- Broader validation after the `support` family sweeps:
+  - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `25 passed`

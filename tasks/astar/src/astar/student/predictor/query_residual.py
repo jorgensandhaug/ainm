@@ -664,7 +664,9 @@ def _derive_transcript_features_from_stats(
     residual_by_seed: dict[int, np.ndarray] = {}
     observed_mask_by_seed: dict[int, np.ndarray] = {}
     exact_counts: dict[int, np.ndarray] = {}
+    local_evidence_base: dict[int, np.ndarray] = {}
     local_evidence: dict[int, np.ndarray] = {}
+    support_context_by_seed: dict[int, np.ndarray] = {}
     seed_summaries: dict[int, np.ndarray] = {}
 
     total_queries = sum(stats.query_count for stats in per_seed_stats.values())
@@ -676,6 +678,10 @@ def _derive_transcript_features_from_stats(
     total_near_cells = 0.0
     total_mid_cells = 0.0
     total_far_cells = 0.0
+    available_coastal_cells = 0.0
+    available_buildable_cells = 0.0
+    available_near_cells = 0.0
+    available_far_cells = 0.0
     pooled_residual = np.zeros(CLASS_COUNT, dtype=np.float64)
     pooled_coastal_residual = np.zeros(CLASS_COUNT, dtype=np.float64)
     pooled_inland_residual = np.zeros(CLASS_COUNT, dtype=np.float64)
@@ -773,6 +779,10 @@ def _derive_transcript_features_from_stats(
         near_count = float(np.sum(near_observed))
         mid_count = float(np.sum(mid_observed))
         far_count = float(np.sum(far_observed))
+        coastal_available = float(np.sum(coastal_mask))
+        buildable_available = float(np.sum(buildable_mask))
+        near_available = float(np.sum(near_mask))
+        far_available = float(np.sum(far_mask))
         total_observed_cells += observed_cells
         total_coastal_cells += coastal_count
         total_inland_cells += inland_count
@@ -781,6 +791,10 @@ def _derive_transcript_features_from_stats(
         total_near_cells += near_count
         total_mid_cells += mid_count
         total_far_cells += far_count
+        available_coastal_cells += coastal_available
+        available_buildable_cells += buildable_available
+        available_near_cells += near_available
+        available_far_cells += far_available
         pooled_residual += np.sum(residual * observed_mask[..., None], axis=(0, 1))
         pooled_coastal_residual += np.sum(residual * coastal_observed[..., None], axis=(0, 1))
         pooled_inland_residual += np.sum(residual * inland_observed[..., None], axis=(0, 1))
@@ -824,7 +838,7 @@ def _derive_transcript_features_from_stats(
         blur_defense_large = _gaussian_blur(stats.local_defense_map, blur_sigmas[1])[..., None]
         blur_distress_small = _gaussian_blur(stats.local_distress_map, blur_sigmas[0])[..., None]
         blur_distress_large = _gaussian_blur(stats.local_distress_map, blur_sigmas[1])[..., None]
-        local_evidence[seed_index] = np.concatenate(
+        local_evidence_base[seed_index] = np.concatenate(
             [
                 observed_count_feature[..., None],
                 blur_residual_small,
@@ -843,6 +857,45 @@ def _derive_transcript_features_from_stats(
                 blur_defense_large,
                 blur_distress_small,
                 blur_distress_large,
+            ],
+            axis=-1,
+        )
+        support_context_by_seed[seed_index] = np.asarray(
+            [
+                buildable_count / max(buildable_available, 1.0),
+                coastal_count / max(coastal_available, 1.0),
+                near_count / max(near_available, 1.0),
+                far_count / max(far_available, 1.0),
+            ],
+            dtype=np.float64,
+        )
+
+    global_support_context = np.asarray(
+        [
+            total_buildable_cells / max(available_buildable_cells, 1.0),
+            total_coastal_cells / max(available_coastal_cells, 1.0),
+            total_near_cells / max(available_near_cells, 1.0),
+            total_far_cells / max(available_far_cells, 1.0),
+        ],
+        dtype=np.float64,
+    )
+    for seed_index, base_evidence in local_evidence_base.items():
+        height, width = base_evidence.shape[:2]
+        support_context = np.concatenate(
+            [
+                support_context_by_seed[seed_index],
+                global_support_context,
+            ],
+            axis=0,
+        )
+        support_maps = np.broadcast_to(
+            support_context,
+            (height, width, len(support_context)),
+        )
+        local_evidence[seed_index] = np.concatenate(
+            [
+                base_evidence,
+                support_maps,
             ],
             axis=-1,
         )
@@ -982,6 +1035,16 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
     names.extend([f"local_blur15_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"local_blur40_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend(["local_blur15_coverage", "local_blur40_coverage"])
+    support_names = [
+        "support_seed_buildable_observed_frac",
+        "support_seed_coastal_observed_frac",
+        "support_seed_near_observed_frac",
+        "support_seed_far_observed_frac",
+        "support_global_buildable_observed_frac",
+        "support_global_coastal_observed_frac",
+        "support_global_near_observed_frac",
+        "support_global_far_observed_frac",
+    ]
     if normalized in {"v1", "v2_state", "v3_state_tails"}:
         return names
     blurred_state_names = [
@@ -997,6 +1060,9 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
     if normalized == "v5_localblur":
         names.extend(blurred_state_names)
         return names
+    if normalized in {"v6_support", "v7_supportbase"}:
+        names.extend(support_names)
+        return names
     names.extend(
         [
             "local_population",
@@ -1006,6 +1072,7 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
             *blurred_state_names,
         ],
     )
+    names.extend(support_names)
     return names
 
 
@@ -1042,6 +1109,10 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
         return (state_global_len, state_seed_len)
     if normalized == "v5_localblur":
         return (state_global_len, state_seed_len)
+    if normalized == "v6_support":
+        return (state_global_len, state_seed_len)
+    if normalized == "v7_supportbase":
+        return (base_global_len, base_seed_len)
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
 

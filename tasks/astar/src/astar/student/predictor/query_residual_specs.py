@@ -75,6 +75,16 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         model_name="f1_student_query_residual_localblur_v01",
         feature_variant="v5_localblur",
     ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_support_v01",),
+        model_name="f1_student_query_residual_support_v01",
+        feature_variant="v6_support",
+    ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_supportbase_v01",),
+        model_name="f1_student_query_residual_supportbase_v01",
+        feature_variant="v7_supportbase",
+    ),
 )
 
 _QUERY_RESIDUAL_MODEL_SPECS_BY_NAME = {
