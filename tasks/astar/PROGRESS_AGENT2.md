@@ -589,6 +589,106 @@
 - Read:
   - on this dev slice, extra budget and `exploration_v2` are not adding value for the current hybrid family,
   - so the next meaningful promotion step is a broader 8-round serious benchmark, not more local policy tuning on the same slice.
+
+## 2026-03-21 Full Promotion + Exact-Observation Student
+
+### First full serious benchmark for fixed hybrid
+
+- `smh_coeffbank_z0_h0_covlike_hbblend50_v001`
+  - full 8-round result:
+    - mean score `71.3164`
+    - mean weighted KL `0.116452`
+    - runtime `1394.942s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_coeffbank_hbblend50_8rounds_coverage_20260321/result.json`
+- Interpretation:
+  - the semimech/bucket hybrid generalizes,
+  - but it is still well below the old residual line (`74.4010`) and far below the best local residual artifact (`74.6943`),
+  - so the next bottleneck is the student update mechanism, not the round-law family itself.
+
+### Structural diagnosis from the first full run
+
+- Versus `query_residual_v7 + exploration_v2`, the semh hybrid only clearly wins on:
+  - `c5cdf100...` by `+8.4141`
+  - `f1dac9a9...` by `+0.5504`
+- It loses badly on:
+  - `ae78003a...` by `-9.5887`
+  - `71451d74...` by `-6.7030`
+  - `8e839974...` by `-3.5035`
+  - `fd3c92ff...` by `-2.8865`
+- This read suggested:
+  - the semh hybrid prior is useful,
+  - but it still underuses local transcript evidence relative to the residual family.
+
+### New student branch: exact-observation conditioning on top of semh hybrid
+
+- Implemented generic `ExactObservationBlendPredictor`.
+- Applied it to the best semh fixed blends:
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001`
+- Mechanism:
+  - keep the semh hybrid predictive tensor,
+  - then blend exact observed per-cell class counts into directly observed cells with entropy-scaled pseudo-count strength.
+
+### Exact-observation dev results on the fixed 4-round slice
+
+- `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+  - mean score `66.4867`
+  - mean weighted KL `0.148727`
+  - runtime `73.893s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev8_smh_coeffbank_hbblend50_exactobs_path4_b50_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001`
+  - mean score `66.5158`
+  - mean weighted KL `0.146162`
+  - runtime `78.536s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev8_smh_coeffbank_hbblend60_exactobs_path4_b50_coverage_20260321/result.json`
+- Improvement vs non-exact `hbblend50` on same slice:
+  - score `64.7681 -> 66.4867`
+  - weighted KL `0.161315 -> 0.148727`
+- Read:
+  - exact local observation conditioning is a real missing piece,
+  - much more important than the previous policy/budget sweeps.
+
+### Exact-observation full 8-round promotion results
+
+- `smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001`
+  - mean score `72.2646`
+  - mean weighted KL `0.110844`
+  - runtime `207.638s`
+  - artifact: `data/artifacts/benchmarks/agent2_full_smh_coeffbank_hbblend60_exactobs_8rounds_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+  - mean score `72.4834`
+  - mean weighted KL `0.110286`
+  - runtime `213.990s`
+  - artifact: `data/artifacts/benchmarks/agent2_full_smh_coeffbank_hbblend50_exactobs_8rounds_coverage_20260321/result.json`
+- Current semh full-score leader:
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+- Delta vs prior non-exact full leader `hbblend50`:
+  - score `+1.1670`
+  - weighted KL `-0.006166`
+- This is still below the old best local residual line:
+  - score gap vs `query_residual_v9_v10_builtfreqgatexwide_v001`: `-2.2109`
+  - weighted KL gap: `+0.009896`
+
+### One failed follow-up after exact-observation success
+
+- Built-frequency-gated semh exactobs probe:
+  - `smh_coeffbank_z0_h0_covlike_hbbuiltfreq_exactobs_v001`
+  - 4-round dev result:
+    - `64.2903 / 0.162718`
+    - artifact: `data/artifacts/benchmarks/agent2_dev9_smh_coeffbank_hbbuiltfreq_exactobs_path4_b50_coverage_20260321/result.json`
+- Read:
+  - the exactobs branch does not want the same monotone built-frequency round gate that helped the residual family,
+  - code path removed after the probe; only experiment record retained here.
+
+### Current semh state after this sweep
+
+- Best full standalone semh family result so far:
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+  - `72.4834 / 0.110286`
+- Family status:
+  - clearly viable and much stronger than the first pure coeff-bank line,
+  - but still not yet strong enough to replace the old residual line on full local holdout,
+  - the remaining gap appears to be richer transcript-conditioned student structure, not basic semimech prior quality.
   - interpretation:
     - `exploration_v2` improves over repaired `coverage` baseline on the same 3-round probe
     - delta vs `query_residual + coverage`:

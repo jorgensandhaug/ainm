@@ -97,6 +97,22 @@
   - practical read:
     - fixed blending dominates the first adaptive blend on this family
     - the curve rises strongly through `50%` coeff-bank weight and then flattens
+- `smh_coeffbank* + historical_bucket + exact-observation conditioning` result:
+  - this is the first student-side improvement that materially closes the full-holdout gap
+  - 4-round dev:
+    - `hbblend50_exactobs`: `66.4867 / 0.148727`
+    - `hbblend60_exactobs`: `66.5158 / 0.146162`
+  - 8-round full:
+    - `hbblend50_exactobs`: `72.4834 / 0.110286`
+    - `hbblend60_exactobs`: `72.2646 / 0.110844`
+  - full improvement vs non-exact `hbblend50`:
+    - `+1.1670` score
+    - `-0.006166` weighted KL
+  - current best full standalone semh line:
+    - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+- Negative follow-up after exactobs:
+  - `hbbuiltfreq_exactobs` failed at `64.2903 / 0.162718` on the 4-round dev slice
+  - implication: exactobs branch does not want the same monotone built-frequency gate that helped the residual family
 - Important validation lesson:
   - 2-round leave-one-round-out is invalid for coeff-bank model selection because each fold has only one candidate law
   - therefore dev selection for posterior-over-round-laws families needs at least `4` rounds
@@ -108,6 +124,10 @@
 - Updated implication after the hybrid sweep:
   - the hybrid is now the mainline standalone `smh_*` branch
   - next question is broader round-held-out promotion, not whether complementarity exists
+- Updated implication after exactobs full sweep:
+  - hybrid prior quality is no longer the main blocker
+  - the remaining gap is a stronger semh-native transcript-conditioned student layer
+  - most plausible next branch is a residual/local-conditioning student on top of the semh exactobs prior rather than more fixed-weight sweeps
 
 ## Runtime / infra findings for this branch
 
