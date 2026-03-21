@@ -65,17 +65,21 @@ export const strategy = {
     ctx: StrategyContext,
     input: CreateEmployeeInput,
   ): Promise<StrategyResult> {
-    const name = splitEmployeeName(input.employeeName);
+    const normalizedEmployeeName = normalizeEmployeeName(input.employeeName);
+    const normalizedBirthDate = normalizeIsoDate(input.birthDate, "birthDate");
+    const normalizedEmail = normalizeEmail(input.email);
+    const normalizedStartDate = normalizeIsoDate(input.startDate, "startDate");
+    const name = splitEmployeeName(normalizedEmployeeName);
     const userType = normalizeUserType(input.userType);
     const basePayload = {
       firstName: name.firstName,
       lastName: name.lastName,
-      dateOfBirth: input.birthDate,
-      email: input.email.trim(),
+      dateOfBirth: normalizedBirthDate,
+      email: normalizedEmail,
       userType,
       employments: [
         {
-          startDate: input.startDate,
+          startDate: normalizedStartDate,
         },
       ],
     };
@@ -85,11 +89,11 @@ export const strategy = {
     try {
       employeeResponse = await createEmployee(ctx, basePayload);
     } catch (error) {
-      if (!isValidationError(error)) {
+      if (!shouldAttemptDepartmentRepair(error)) {
         throw error;
       }
 
-      const department = await resolveDepartment(ctx, input.employeeName);
+      const department = await resolveDepartment(ctx, normalizedEmployeeName);
 
       try {
         employeeResponse = await createEmployee(ctx, {
@@ -97,7 +101,7 @@ export const strategy = {
           department: { id: department.id },
         });
       } catch (retryError) {
-        if (!isValidationError(retryError)) {
+        if (!shouldAttemptDivisionRepair(retryError)) {
           throw retryError;
         }
 
@@ -107,7 +111,7 @@ export const strategy = {
           department: { id: department.id },
           employments: [
             {
-              startDate: input.startDate,
+              startDate: normalizedStartDate,
               division: { id: division.id },
             },
           ],
@@ -120,7 +124,12 @@ export const strategy = {
     const notes: string[] = [];
     let employmentId = pickEmploymentId(employee.employments ?? []);
 
-    if (!responseProvesStartDate(employee.employments ?? [], input.startDate)) {
+    if (
+      !responseProvesStartDate(
+        employee.employments ?? [],
+        normalizedStartDate,
+      )
+    ) {
       const employmentResponse = await ctx.tripletex.get<ListResponse<EmploymentSummary>>(
         "/employee/employment",
         {
@@ -132,7 +141,7 @@ export const strategy = {
       );
       const employment = pickEmploymentForStartDate(
         employmentResponse.values ?? [],
-        input.startDate,
+        normalizedStartDate,
       );
       employmentId = employment.id ?? employmentId;
       notes.push(
@@ -153,11 +162,11 @@ export const strategy = {
       },
       notes,
       verification: {
-        employeeName: input.employeeName,
-        startDate: input.startDate,
+        employeeName: normalizedEmployeeName,
+        startDate: normalizedStartDate,
         userTypeRequested: userType,
-        email: employee.email ?? input.email.trim(),
-        dateOfBirth: employee.dateOfBirth ?? input.birthDate,
+        email: employee.email ?? normalizedEmail,
+        dateOfBirth: employee.dateOfBirth ?? normalizedBirthDate,
       },
     };
   },
@@ -231,7 +240,7 @@ function splitEmployeeName(employeeName: string): {
   firstName: string;
   lastName: string;
 } {
-  const trimmed = employeeName.trim();
+  const trimmed = normalizeEmployeeName(employeeName);
   const parts = trimmed.split(/\s+/).filter(Boolean);
 
   if (parts.length < 2) {
@@ -244,6 +253,102 @@ function splitEmployeeName(employeeName: string): {
     firstName: parts.slice(0, -1).join(" "),
     lastName: parts[parts.length - 1],
   };
+}
+
+function normalizeEmployeeName(value: string): string {
+  const normalized = stripWrappingQuotes(value).trim().replace(/\s+/g, " ");
+  if (normalized.length === 0) {
+    throw new Error("employeeName must be a non-empty string.");
+  }
+
+  return normalized;
+}
+
+function normalizeEmail(value: string): string {
+  let normalized = stripWrappingQuotes(value).trim();
+  normalized = normalized.replace(/^mailto:/i, "");
+
+  const bracketMatch = normalized.match(/<([^<>\s@]+@[^<>\s@]+)>/);
+  if (bracketMatch) {
+    normalized = bracketMatch[1];
+  }
+
+  normalized = normalized.trim().toLowerCase();
+
+  if (!/^[^@\s]+@[^@\s]+$/.test(normalized)) {
+    throw new Error("email must be a valid email address.");
+  }
+
+  return normalized;
+}
+
+function normalizeIsoDate(value: string, fieldName: string): string {
+  const trimmed = stripWrappingQuotes(value).trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty string.`);
+  }
+
+  const isoMatch = trimmed.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/,
+  );
+  if (isoMatch) {
+    return formatIsoDate(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]),
+      Number(isoMatch[3]),
+      fieldName,
+    );
+  }
+
+  const yearFirstMatch = trimmed.match(/^(\d{4})[/.](\d{1,2})[/.](\d{1,2})$/);
+  if (yearFirstMatch) {
+    return formatIsoDate(
+      Number(yearFirstMatch[1]),
+      Number(yearFirstMatch[2]),
+      Number(yearFirstMatch[3]),
+      fieldName,
+    );
+  }
+
+  const dayMonthYearMatch = trimmed.match(
+    /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/,
+  );
+  if (dayMonthYearMatch) {
+    const first = Number(dayMonthYearMatch[1]);
+    const second = Number(dayMonthYearMatch[2]);
+    const year = Number(dayMonthYearMatch[3]);
+
+    if (first > 12 || second <= 12) {
+      return formatIsoDate(year, second, first, fieldName);
+    }
+
+    return formatIsoDate(year, first, second, fieldName);
+  }
+
+  const words = foldNaturalLanguageDate(trimmed);
+  const dayFirstWordsMatch = words.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/);
+  if (dayFirstWordsMatch) {
+    return formatIsoDate(
+      Number(dayFirstWordsMatch[3]),
+      lookupMonth(dayFirstWordsMatch[2], fieldName),
+      Number(dayFirstWordsMatch[1]),
+      fieldName,
+    );
+  }
+
+  const monthFirstWordsMatch = words.match(/^([a-z]+)\s+(\d{1,2})\s+(\d{4})$/);
+  if (monthFirstWordsMatch) {
+    return formatIsoDate(
+      Number(monthFirstWordsMatch[3]),
+      lookupMonth(monthFirstWordsMatch[1], fieldName),
+      Number(monthFirstWordsMatch[2]),
+      fieldName,
+    );
+  }
+
+  throw new Error(
+    `${fieldName} must be a valid date string that can be normalized to YYYY-MM-DD.`,
+  );
 }
 
 function normalizeUserType(rawUserType: string | undefined): EmployeeUserType {
@@ -263,6 +368,69 @@ function normalizeUserType(rawUserType: string | undefined): EmployeeUserType {
   throw new Error(
     `Unsupported userType "${rawUserType}". Expected STANDARD, EXTENDED, or NO_ACCESS.`,
   );
+}
+
+function formatIsoDate(
+  year: number,
+  month: number,
+  day: number,
+  fieldName: string,
+): string {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    throw new Error(`${fieldName} must contain numeric date parts.`);
+  }
+
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    throw new Error(`${fieldName} must be a valid calendar date.`);
+  }
+
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function foldNaturalLanguageDate(value: string): string {
+  return stripDiacritics(value)
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\b(\d{1,2})(st|nd|rd|th)\b/g, "$1")
+    .replace(/\bde\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function lookupMonth(token: string, fieldName: string): number {
+  const month = NATURAL_LANGUAGE_MONTHS[token];
+  if (typeof month !== "number") {
+    throw new Error(`${fieldName} includes an unsupported month name "${token}".`);
+  }
+
+  return month;
+}
+
+function stripWrappingQuotes(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if (
+    (first === `"` && last === `"`) ||
+    (first === `'` && last === `'`)
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 function responseProvesStartDate(
@@ -322,3 +490,101 @@ function requireId(value: number | undefined, entityName: string): number {
 function isValidationError(error: unknown): error is TripletexHttpError {
   return error instanceof TripletexHttpError && error.status === 422;
 }
+
+function shouldAttemptDepartmentRepair(
+  error: unknown,
+): error is TripletexHttpError {
+  if (!isValidationError(error)) {
+    return false;
+  }
+
+  return !hasInputFieldValidationHint(error.message);
+}
+
+function shouldAttemptDivisionRepair(
+  error: unknown,
+): error is TripletexHttpError {
+  if (!isValidationError(error)) {
+    return false;
+  }
+
+  return !hasInputFieldValidationHint(error.message);
+}
+
+function hasInputFieldValidationHint(message: string): boolean {
+  const hint = stripDiacritics(message).toLowerCase();
+  return INPUT_FIELD_ERROR_HINTS.some((fieldHint) => hint.includes(fieldHint));
+}
+
+const INPUT_FIELD_ERROR_HINTS = [
+  "dateofbirth",
+  "birthdate",
+  "startdate",
+  "email",
+  "firstname",
+  "lastname",
+  "fornavn",
+  "etternavn",
+  "epost",
+  "e-post",
+  "fodselsdato",
+  "employments.startdate",
+];
+
+const NATURAL_LANGUAGE_MONTHS: Readonly<Record<string, number>> = {
+  jan: 1,
+  januar: 1,
+  january: 1,
+  janeiro: 1,
+  enero: 1,
+  feb: 2,
+  februar: 2,
+  february: 2,
+  fevereiro: 2,
+  febrero: 2,
+  mar: 3,
+  mars: 3,
+  march: 3,
+  marco: 3,
+  marzo: 3,
+  apr: 4,
+  april: 4,
+  abr: 4,
+  abril: 4,
+  mai: 5,
+  may: 5,
+  maio: 5,
+  mayo: 5,
+  jun: 6,
+  juni: 6,
+  june: 6,
+  junho: 6,
+  junio: 6,
+  jul: 7,
+  juli: 7,
+  july: 7,
+  julho: 7,
+  julio: 7,
+  aug: 8,
+  august: 8,
+  agosto: 8,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  septiembre: 9,
+  setembro: 9,
+  okt: 10,
+  oct: 10,
+  october: 10,
+  octubre: 10,
+  outubro: 10,
+  nov: 11,
+  november: 11,
+  noviembre: 11,
+  novembro: 11,
+  des: 12,
+  dec: 12,
+  december: 12,
+  diciembre: 12,
+  dezembro: 12,
+};
