@@ -1943,6 +1943,58 @@
    - smoke:
      - `uv run python scripts/run_targeted_holdout_benchmark.py --help`
      - passed
+209. Repo/task startup hygiene note:
+   - attempted required `br list`
+   - result:
+     - `br: command not found`
+   - continued without beads because the tool is unavailable in this environment
+210. Machine-wide health check before next outer wave:
+   - snapshot:
+     - memory used: about `621 GiB`
+     - memory available: about `2.3 TiB`
+   - active first-wave agent3 runs:
+     - `teacher_student_blend_v13`
+     - `teacher_student_blend_v14`
+     - `teacher_student_blend_v15`
+     - `teacher_student_blend_v16`
+   - decision:
+     - enough headroom remained for another outer wave with `jobs=1` per model
+211. Second corrected-holdout outer wave launched:
+   - file-backed launcher used:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - models:
+     - `teacher_student_blend_v17`
+     - `teacher_student_blend_v18`
+     - `teacher_student_blend_v19`
+     - `teacher_student_blend_v20`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launch policy:
+     - `jobs=1` inside each model
+     - outer model parallelism only
+212. New hypothesis after item 211:
+   - current `teacher_student_blend` uses the query transcript only through a global / seed summary bank
+   - it still does not inject exact observed per-cell terminal frequencies into the final tensor
+   - test whether a local empirical-Bayes posterior update on observed cells improves calibration and score without changing the family backbone
+213. Implemented exact local evidence posterior variants:
+   - added observed-cell posterior correction on top of the blended base/teacher prediction:
+     - posterior uses observed class counts at queried cells
+     - shrinkage stays tied to local prior entropy via `beta_min` / `beta_scale`
+   - new variants:
+     - `teacher_student_blend_v21`
+     - `teacher_student_blend_v22`
+   - both keep:
+     - temporal summary encoder
+     - coefficient-residual head
+     - spatial dynamic blending
+     - confidence gate
+     - seed-adaptive teacher weighting
+214. Validation for item 213:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_exact_local_evidence_posterior_uses_observed_counts tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip tests/test_historical_benchmark.py::test_teacher_student_blend_v22_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `4 passed`
 
 
 ## Open Questions
