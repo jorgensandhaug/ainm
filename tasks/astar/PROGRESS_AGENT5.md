@@ -2614,9 +2614,36 @@
   | fd3c92 | 78.38 | 79.18 | +0.80 |
   | **Mean** | **75.19** | **75.82** | **+0.63** |
 
+### 2026-03-21T17:15:00Z
+
+- **NEW ABSOLUTE BEST: stacked w20 spr4 → 76.06 (+0.87 over old best)**
+
+- `greybox_stacked_w20`, policy `exploration_r3`, `samples_per_round=4`:
+  - mean score: **76.0640**
+  - f1dac: **63.93** (+6.53 over old best 57.40)
+  - 36e581: **67.41** (+1.21 over old best 66.20, now BETTER than old best!)
+
+- Full per-round comparison (new best vs old best):
+
+  | Round | Old Best | **New Best (w20 spr4)** | Delta |
+  |-------|---------|------------------------|-------|
+  | 36e581 | 66.20 | **67.41** | **+1.21** |
+  | 71451d | 79.39 | 80.79 | +1.40 |
+  | 76909e | 83.20 | 82.76 | -0.44 |
+  | 8e8399 | 86.17 | 85.28 | -0.89 |
+  | ae7800 | 78.88 | 75.03 | -3.85 |
+  | c5cdf | 71.50 | **74.24** | **+2.74** |
+  | f1dac | 57.40 | **63.93** | **+6.53** |
+  | fd3c92 | 78.38 | 79.08 | +0.70 |
+  | **Mean** | **75.19** | **76.06** | **+0.87** |
+
+- The model wins on 5 of 8 rounds and loses only on easy rounds
+- The largest loss is ae7800 (-3.85) which needs investigation
+- The largest gain is f1dac (+6.53) which was the hardest round
+
 - **Next actions**:
-  1. Try samples_per_round=4 for QR component (currently 1)
-  2. Try different cellknn configurations (k_neighbors, spatial_sigma)
-  3. Add regime-hostility detection for adaptive cellknn weighting
-  4. Explore combining stacked with lowrank hazard hybrid
-  5. Try stacking with cellknn_perround vs pooled cellknn
+  1. Investigate ae7800 regression
+  2. Try different cellknn configurations (k, sigma)
+  3. Try adaptive cellknn weight based on detected regime hostility
+  4. Try stacking with lowrank hazard hybrid instead of pure QR
+  5. Push results
