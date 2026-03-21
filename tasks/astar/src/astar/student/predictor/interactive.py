@@ -54,6 +54,8 @@ SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003 = "smh_glmmlatent_z2_h0_covbase_barren_
 SMH_GLMM_QR_ENSEMBLE_V001 = "smh_glmm_qr_ensemble_v001"
 SMH_GLMM_QR_ENSEMBLE_V002 = "smh_glmm_qr_ensemble_v002"
 SMH_GLMM_QR_ENSEMBLE_V003 = "smh_glmm_qr_ensemble_v003"
+SMH_GLMM_QR_ENSEMBLE_V004 = "smh_glmm_qr_ensemble_v004"
+SMH_GLMM_QR_ENSEMBLE_V005 = "smh_glmm_qr_ensemble_v005"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1880,7 +1882,7 @@ def build_online_predictor(
                 ),
             },
         )
-    if normalized in (SMH_GLMM_QR_ENSEMBLE_V001, SMH_GLMM_QR_ENSEMBLE_V002, SMH_GLMM_QR_ENSEMBLE_V003):
+    if normalized in (SMH_GLMM_QR_ENSEMBLE_V001, SMH_GLMM_QR_ENSEMBLE_V002, SMH_GLMM_QR_ENSEMBLE_V003, SMH_GLMM_QR_ENSEMBLE_V004, SMH_GLMM_QR_ENSEMBLE_V005):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -1901,6 +1903,8 @@ def build_online_predictor(
             SMH_GLMM_QR_ENSEMBLE_V001: {"barren_threshold": 0.03, "barren_qr_weight": 0.7, "normal_qr_weight": 0.2},
             SMH_GLMM_QR_ENSEMBLE_V002: {"barren_threshold": 0.03, "barren_qr_weight": 0.5, "normal_qr_weight": 0.15},
             SMH_GLMM_QR_ENSEMBLE_V003: {"barren_threshold": 0.05, "barren_qr_weight": 0.6, "normal_qr_weight": 0.1},
+            SMH_GLMM_QR_ENSEMBLE_V004: {"barren_threshold": 0.03, "barren_qr_weight": 0.7, "normal_qr_weight": 0.0},
+            SMH_GLMM_QR_ENSEMBLE_V005: {"barren_threshold": 0.03, "barren_qr_weight": 0.5, "normal_qr_weight": 0.0},
         }[normalized]
         return RoundPredictorAdapter(
             predictor=RegimeAdaptiveEnsemblePredictor(

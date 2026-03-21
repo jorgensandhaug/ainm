@@ -143,6 +143,8 @@ def run_historical_benchmark(
         "smh_glmm_qr_ensemble_v001",
         "smh_glmm_qr_ensemble_v002",
         "smh_glmm_qr_ensemble_v003",
+        "smh_glmm_qr_ensemble_v004",
+        "smh_glmm_qr_ensemble_v005",
         "smh_resid_z12_h0_covbase_locgate_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
         "smh_coeffbank_z0_h0_covmarkpostw06_v001",
