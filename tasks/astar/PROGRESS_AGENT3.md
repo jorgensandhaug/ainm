@@ -267,6 +267,31 @@
      - `data/artifacts/models/query_residual_v7__policy=coverage__samples=1__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
    - run was intentionally stopped after caching `3/8` folds to avoid leaving an orphan long-running process at turn end
    - rerunning the same benchmark command should reuse those completed fold checkpoints
+35. Corrected full leave-one-round-out benchmark complete for `query_residual_v7`:
+   - artifact: `data/artifacts/benchmarks/agent3_dev_query_residual_v7_full_corrected/result.json`
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v7 --mode online_interactive --policy coverage --samples-per-round 1 --budget 50 --with-png none --name agent3_dev_query_residual_v7_full_corrected`
+   - result:
+     - mean score `74.2553`
+     - mean weighted KL `0.102772`
+     - rounds `8`
+     - evaluated seeds `40`
+     - total runtime `1076.540s` on resumed cached-fold run
+     - round mean score range `54.5655..84.8249`
+36. Apples-to-apples conclusion after corrected full runs:
+   - `query_residual_v8` beats corrected `query_residual_v7`
+   - delta:
+     - score `+0.0673`
+     - weighted KL `-0.001216`
+   - interpretation:
+     - the gain is small but real on full local held-out rounds
+     - `v8` remains current best verified model family variant in this workspace
+     - biggest remaining weakness still concentrated on:
+       - `f1dac9...`
+       - `36e581...`
+37. Next hypothesis:
+   - current model naming still hides important training-regime choices behind CLI flags (`samples_per_round`, training transcript policy)
+   - next improvement should make those choices explicit in named variants and test whether more synthetic transcript diversity helps the two remaining weak rounds without harming the rest
 
 ## Open Questions
 
