@@ -33,7 +33,7 @@
 - Ignore generic repo-wide startup rituals such as `br list` during scored Tripletex runs unless the prompt explicitly asks for them.
 - Assume a hard `300s` budget. Plan before calling APIs.
 - For exact trusted-standard matches: ALWAYS read (cat) the matching trusted standard `.md` file BEFORE writing any script. Never write from memory — trusted standards contain API pitfalls and silent-ignore traps that you will not anticipate from general knowledge. Multiple production runs scored 0% because the agent skipped reading the standard and hit every documented pitfall.
-- After reading the matched standard, immediately write and execute the script. Do not also read `AGENTS.md`, `openapi.json`, or multiple playbook files. A 2026-03-21 production run for `Ridgepoint Ltd` / `970844708` / products `3957`+`8149`+`8092` scored `0/1` because the agent spent all `300s` reading documentation files; the immediate retry with the same task succeeded in 6 calls (3 core + 3 bank-account repair) by reading only the trusted standard then executing.
+- After reading the matched standard, immediately write and execute the script. Do not also read `AGENTS.md`, `openapi.json`, the playbook, or any other file. Reading multiple large files burns context and thinking time — two production runs timed out with 0 API calls because the agent read both trusted standard + playbook + AGENTS.md and spent the entire 300s budget processing the combined text without ever writing a script.
 - Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
 - The prompt provides a run-specific scripts directory.
 - Put all API-interaction scripts only in that provided scripts directory.
