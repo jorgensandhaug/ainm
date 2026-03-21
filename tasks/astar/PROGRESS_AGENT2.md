@@ -1490,3 +1490,376 @@
   - `covmark` summary posterior variants with a small weight bracket
   - Tier-2 path4 coverage screen first
   - promote only if the new standalone line beats current standalone semh best `hbexact_calresid_blend045`
+
+### 2026-03-22T00:20:00Z
+
+- Negative result / infra read on the `covmark` summary-posterior coeffbank branch:
+  - core idea:
+    - keep the standalone semh coeffbank candidate bank
+    - add a synthetic-live transcript-summary posterior term using legal evidence only
+    - summary focused on:
+      - coverage / repeats
+      - built share
+      - mean population / food / wealth / defense
+  - engineering added:
+    - summary-aware `smh_coeffbank*` variants:
+      - `smh_coeffbank_z0_h0_covmarkpostw06_v001`
+      - `smh_coeffbank_z0_h0_covmarkpostw12_v001`
+      - `smh_coeffbank_z0_h0_covmarkpostw24_v001`
+    - best-effort catalog logging through replay/materialization/synthetic dataset paths
+    - atomic `.npz` writes plus retry-on-read for shared replay-summary artifacts
+  - concrete benchmark read so far:
+    - `agent2_dev12_smh_covmarkpostw24_path4_b50_coverage_20260321_retry2`
+    - result: `57.1899 / 0.190069`
+    - artifact: `data/artifacts/benchmarks/agent2_dev12_smh_covmarkpostw24_path4_b50_coverage_20260321_retry2/result.json`
+    - interpretation: decisively bad; strong summary posterior over-concentrates on the wrong round laws
+    - faster sidecar `w12` 2-round probe also came back bad:
+      - `agent2_dev12b_smh_covmarkpostw12_path2_b50_coverage_20260321`
+      - result: `60.2595 / 0.169219`
+  - decision:
+    - stop this branch before full promotion
+    - do not spend more time on stronger summary weights
+    - next pivot should stay semh-only but use cheaper, lower-risk online gating on the already strong anchor/student pair
+
+### 2026-03-22T01:05:00Z
+
+- Cheap semh-only built-frequency gate sweep on the strong rescue pair:
+  - left anchor:
+    - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+  - right specialist:
+    - `smh_coeffbank_z0_h0_covlike_calbase_resid_v001`
+  - new variants:
+    - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgate_v001`
+    - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgatewide_v001`
+    - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgatexwide_v001`
+- Tier-2 path4 coverage results:
+  - `builtfreqgate`: `72.1278 / 0.110826`
+  - `builtfreqgatewide`: `72.2246 / 0.110182`
+  - `builtfreqgatexwide`: `72.3808 / 0.109225`
+- Read:
+  - this gate family is operationally cheap and clean
+  - but it is decisively weaker than the raw semh student on the hard slice
+  - not worth promoting to full benchmark
+
+### 2026-03-22T01:20:00Z
+
+- Exact-observation wrapper sweep on semh student-heavy lines:
+  - new variants:
+    - `smh_coeffbank_z0_h0_covlike_calbase_resid_exactobs_v001`
+    - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend045_exactobs_v001`
+    - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend050_exactobs_v001`
+- Tier-2 path4 coverage results:
+  - `calbase_resid_exactobs`:
+    - `74.6782 / 0.097572`
+    - major positive read; clearly above the old pure `calbase_resid` path4 result `74.3819 / 0.098890`
+  - `blend045_exactobs`:
+    - `72.3918 / 0.109980`
+  - `blend050_exactobs`:
+    - `72.7750 / 0.107844`
+- Read:
+  - the right place for exact observation handling is the pure semh residual-student line, not the outer rescue blend
+  - this is the first semh-only refinement this round with a strong positive path4 delta
+  - full 8-round promotion launched immediately:
+    - `agent2_full_smh_calbase_resid_exactobs_8rounds_coverage_20260322`
+
+### 2026-03-21T14:20:00Z
+
+- Re-read the family-specific handoff again with focus on the early ladder:
+  - `smh_glmm_*` pooled teacher first
+  - replay-to-transition dataset before more student-side patching
+  - roundfit/manifold later, not more coeffbank-only tuning first
+- Confirmed the current repo gap against that plan:
+  - `src/astar/history/datasets/teacher_transition.py` is still only coarse aggregate counts
+  - it is not the replay-derived cell/year transition table the handoff calls for
+- Closed the `residshrink_exactobs` side branch after the pending slice runs finished:
+  - bad-half 4-round result:
+    - baseline `smh_coeffbank_z0_h0_covlike_calbase_resid_exactobs_v001`
+    - `68.3887 / 0.129666`
+    - artifact: `data/artifacts/benchmarks/agent2_dev15_smh_calbase_resid_exactobs_badhalf_b50_coverage_20260322/report.md`
+  - bad-half 4-round shrink result:
+    - `smh_coeffbank_z0_h0_covlike_calbase_residshrink_exactobs_v001`
+    - `68.3742 / 0.129513`
+    - artifact: `data/artifacts/benchmarks/agent2_dev15_smh_calbase_residshrink_exactobs_badhalf_b50_coverage_20260322/report.md`
+  - good path4 shrink result:
+    - `73.1593 / 0.104567`
+    - artifact: `data/artifacts/benchmarks/agent2_dev15c_smh_calbase_residshrink_exactobs_path4_b50_coverage_20260322/report.md`
+  - read:
+    - shrink gives a tiny KL improvement on the hard half but loses score
+    - shrink also clearly degrades the strong path4 slice versus prior exactobs `74.6782 / 0.097572`
+    - decision: kill this line; do not promote or tune further
+- New semh-native teacher branch implemented now:
+  - new cached replay transition dataset:
+    - `src/astar/history/datasets/cell_transition.py`
+    - one parquet part per round/seed
+    - rows are per-cell per-year aggregated current-class -> next-class counts across replay runs
+    - includes static semimechanistic geometry features from `seed_feature_dict(...)`
+  - new pooled visible-state Markov teacher:
+    - `src/astar/student/predictor/smh_glmm.py`
+    - model name: `smh_glmm_z0_h0_covbase_calnone_v001`
+    - separate softmax transition head per current class
+    - pooled across historical rounds
+    - trained from replay transition counts with ridge-regularized Adam in pure NumPy
+    - rolled forward for `50` yearly steps to produce the terminal tensor
+    - hard constraints retained for initial ocean and mountain cells
+  - framework wiring landed in:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+    - `tests/test_historical_benchmark.py`
+- Validation state:
+  - `python3 -m py_compile` passed on the new dataset/predictor/wiring files
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_glmm_z0_h0_covbase_calnone_v001' -q`
+    - `1 passed`
+- Benchmarks launched and running:
+  - `agent2_dev16_smh_glmm_path4_b50_coverage_20260322`
+  - `agent2_dev16_smh_glmm_badhalf_b50_coverage_20260322`
+
+### 2026-03-21T14:35:00Z
+
+- First true `smh_glmm_*` pooled-teacher read completed.
+- Tier-2 path4 coverage result:
+  - experiment:
+    - `agent2_dev16_smh_glmm_path4_b50_coverage_20260322`
+  - model:
+    - `smh_glmm_z0_h0_covbase_calnone_v001`
+  - result:
+    - `63.6771 / 0.197350`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev16_smh_glmm_path4_b50_coverage_20260322/report.md`
+  - round decomposition:
+    - `8e839974...`: `90.3867 / 0.033697`
+    - `ae78003a...`: `20.6336 / 0.527482`
+    - `c5cdf100...`: `82.5591 / 0.064026`
+    - `f1dac9a9...`: `61.1290 / 0.164193`
+- Tier-2 bad-half coverage result:
+  - experiment:
+    - `agent2_dev16_smh_glmm_badhalf_b50_coverage_20260322`
+  - model:
+    - `smh_glmm_z0_h0_covbase_calnone_v001`
+  - result:
+    - `69.5653 / 0.125860`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev16_smh_glmm_badhalf_b50_coverage_20260322/report.md`
+  - round decomposition:
+    - `36e581f1...`: `51.1213 / 0.224064`
+    - `71451d74...`: `79.0880 / 0.078259`
+    - `76909e29...`: `73.8337 / 0.101401`
+    - `fd3c92ff...`: `74.2182 / 0.099717`
+- Scientific read:
+  - this is the handoff hypothesis in action:
+    - a pooled visible-state semimechanistic transition law is clearly not hopeless
+    - it is excellent on several rounds and catastrophically wrong on a few others
+  - therefore the main issue is not “semh GLMM has no signal”
+  - the main issue is “round law variation is real and pooled `z0` is too restrictive”
+  - this is strong evidence to move immediately from pooled `smh_glmm_z0_*` to round-specific / candidate-law inference instead of spending another loop on pooled-only tuning
+- Immediate follow-up branch opened from this result:
+  - new model name:
+    - `smh_glmmbank_zhist_h0_covbase_calnone_v001`
+  - structure:
+    - fit one GLMM transition teacher per historical round law
+    - roll each candidate teacher forward on the new map
+    - use online patch likelihood to posterior-weight candidate round laws
+  - smoke validation:
+    - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_glmmbank_zhist_h0_covbase_calnone_v001' -q`
+    - `1 passed`
+  - benchmarks launched and running:
+    - `agent2_dev17_smh_glmmbank_path4_b50_coverage_20260322`
+    - `agent2_dev17_smh_glmmbank_badhalf_b50_coverage_20260322`
+
+### 2026-03-21T15:05:00Z
+
+- `smh_glmmbank_*` results completed and clarified the next move.
+- Tier-2 path4 coverage result:
+  - experiment:
+    - `agent2_dev17_smh_glmmbank_path4_b50_coverage_20260322`
+  - model:
+    - `smh_glmmbank_zhist_h0_covbase_calnone_v001`
+  - result:
+    - `72.5515 / 0.119122`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev17_smh_glmmbank_path4_b50_coverage_20260322/report.md`
+- Tier-2 bad-half coverage result:
+  - experiment:
+    - `agent2_dev17_smh_glmmbank_badhalf_b50_coverage_20260322`
+  - model:
+    - `smh_glmmbank_zhist_h0_covbase_calnone_v001`
+  - result:
+    - `69.5736 / 0.127049`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev17_smh_glmmbank_badhalf_b50_coverage_20260322/report.md`
+- Scientific read:
+  - round-specific law bank is the right direction
+  - it massively fixes the path4 pooled-law failure
+  - but it is still too jagged / overfit on the tougher bad-half slice
+  - therefore the next branch should be regime-manifold compression, not more pooled-only work
+- Negative calibration follow-up closed immediately:
+  - model:
+    - `smh_glmmbank_zhist_h0_covbase_calobs_v001`
+  - path4 result:
+    - `70.8331 / 0.124272`
+    - artifact: `data/artifacts/benchmarks/agent2_dev18_smh_glmmbank_calobs_path4_b50_coverage_20260322/report.md`
+  - bad-half result:
+    - `68.7955 / 0.129639`
+    - artifact: `data/artifacts/benchmarks/agent2_dev18_smh_glmmbank_calobs_badhalf_b50_coverage_20260322/report.md`
+  - read:
+    - naive exact-observation wrapping hurts both dev slices
+    - do not continue this wrapper line
+
+### 2026-03-21T15:22:00Z
+
+- New manifold branch implemented:
+  - new model family members:
+    - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - `smh_glmmlatent_z4_h0_covbase_calnone_v001`
+    - `smh_glmmlatent_z6_h0_covbase_calnone_v001`
+  - code:
+    - `src/astar/student/predictor/smh_glmm.py`
+  - structure:
+    - fit one GLMM transition law per historical round
+    - flatten coefficient tensors
+    - fit a low-rank PCA-style round manifold
+    - reconstruct denoised candidate round laws in that manifold
+    - infer posterior over historical round laws from online patch likelihood
+    - roll forward the posterior-mean latent law once, instead of mixing terminal tensors directly
+  - motivation:
+    - this is the first true `z_r` branch aligned with handoff Phases 4-6
+    - it tests whether low-rank regime compression can keep the path4 bank gain while smoothing the bad-half failures
+- Framework wiring updated in:
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/cli.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `tests/test_historical_benchmark.py`
+- Validation:
+  - `python3 -m py_compile src/astar/student/predictor/smh_glmm.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_glmmlatent' -q`
+    - `3 passed`
+- Benchmarks launched:
+  - `agent2_dev19_smh_glmmlatent_z2_path4_b50_coverage_20260322`
+  - `agent2_dev19_smh_glmmlatent_z2_badhalf_b50_coverage_20260322`
+  - `agent2_dev20_smh_glmmlatent_z2_path6_b50_coverage_20260322`
+  - `agent2_dev20_smh_glmmlatent_z4_path6_b50_coverage_20260322`
+- Important evaluation note:
+  - 4-round leave-one-round-out only permits at most `2` latent dimensions per fold
+  - therefore latent-dimension comparison needs at least a 6-round serious slice or the full 8-round benchmark
+
+### 2026-03-21T15:40:00Z
+
+- `smh_glmmlatent_*` serious-screen results are now in and they are the strongest pure semh teacher signal so far.
+- Tier-2 path4 coverage:
+  - experiment:
+    - `agent2_dev19_smh_glmmlatent_z2_path4_b50_coverage_20260322`
+  - model:
+    - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+  - result:
+    - `74.1727 / 0.112785`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev19_smh_glmmlatent_z2_path4_b50_coverage_20260322/report.md`
+  - read:
+    - clear gain over raw round bank `72.5515 / 0.119122`
+    - most of the gain comes from rescuing `8e839974...` while holding the other path4 rounds roughly flat
+- Tier-2 bad-half coverage:
+  - experiment:
+    - `agent2_dev19_smh_glmmlatent_z2_badhalf_b50_coverage_20260322`
+  - result:
+    - `69.5736 / 0.127049`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev19_smh_glmmlatent_z2_badhalf_b50_coverage_20260322/report.md`
+  - read:
+    - exactly flat to the raw bank on this slice
+    - important because the path4 gain is real and not paid for by an immediate bad-half collapse
+- Tier-3 serious 6-round coverage comparison:
+  - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - experiment: `agent2_dev20_smh_glmmlatent_z2_path6_b50_coverage_20260322`
+    - result: `72.8255 / 0.116068`
+    - artifact: `data/artifacts/benchmarks/agent2_dev20_smh_glmmlatent_z2_path6_b50_coverage_20260322/report.md`
+  - `smh_glmmlatent_z4_h0_covbase_calnone_v001`
+    - experiment: `agent2_dev20_smh_glmmlatent_z4_path6_b50_coverage_20260322`
+    - result: `70.5723 / 0.127226`
+    - artifact: `data/artifacts/benchmarks/agent2_dev20_smh_glmmlatent_z4_path6_b50_coverage_20260322/report.md`
+  - read:
+    - tiny manifold wins clearly; larger latent hurts badly
+    - this directly supports the handoff’s “tiny regime manifold” thesis
+    - `z2` is the only latent setting worth promoting right now
+- Round-level read from the 6-round `z2` serious slice:
+  - huge lifts on:
+    - `8e839974...` -> `92.4099 / 0.026312`
+    - `ae78003a...` -> `59.1982 / 0.175931`
+    - `c5cdf100...` -> `87.7144 / 0.043752`
+  - acceptable/improved on:
+    - `fd3c92ff...` -> `73.4843 / 0.102722`
+  - remaining pathology:
+    - `36e581f1...` -> `44.1223 / 0.273255`
+  - implication:
+    - the new teacher is good enough that the next improvement target is the prior/posterior over `z_r`, not more latent capacity
+- Query policy check on the serious slice:
+  - experiment:
+    - `agent2_dev21_smh_glmmlatent_z2_path6_b50_exploration_20260322`
+  - result:
+    - identical to coverage at `72.8255 / 0.116068`
+  - artifact:
+    - `data/artifacts/benchmarks/agent2_dev21_smh_glmmlatent_z2_path6_b50_exploration_20260322/report.md`
+  - read:
+    - current policy is not binding for this branch
+    - no reason to spend more time on policy before improving the regime prior
+- Promotion / follow-up state:
+  - full 8-round promotion launched:
+    - `agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322`
+  - full `z4` promotion was intentionally killed after the 6-round loss
+  - new follow-up branch launched:
+    - `smh_glmmlatent_z2_h0_covprior_calnone_v001`
+  - purpose of the new branch:
+    - use initial-map semimechanistic summaries to form a prior over round latent `z_r`
+    - target the remaining harsh-round failure on `36e581f1...`
+
+### 2026-03-21T16:20:00Z
+
+- Final manifold results for this cycle:
+  - full 8-round coverage promotion:
+    - experiment: `agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322`
+    - model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - result: `77.8193 / 0.089306`
+    - runtime: `1688.115s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_coverage_20260322/result.json`
+  - warmed-cache full exploration follow-up:
+    - experiment: `agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322`
+    - model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+    - result: `78.3805 / 0.086960`
+    - runtime: `208.366s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322/result.json`
+- This is now the dominant local line in the entire checkout:
+  - vs prior best residual exploration line `query_residual_v9_v10_builtfreqgatexwide_v001` (`74.6943 / 0.100390`)
+  - delta:
+    - `+3.6862` score
+    - `-0.013430` weighted KL
+- Paired same-policy compare artifact:
+  - command:
+    - `uv run astar compare-historical-benchmarks --baseline data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321/result.json --candidate data/artifacts/benchmarks/agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322/result.json --bootstrap-samples 2000`
+  - result:
+    - mean score delta: `+3.6863`
+    - mean weighted KL delta: `-0.013431`
+    - win rate: `0.625`
+    - CI95: `[0.3465, 7.3703]`
+  - artifact:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual_v9_v10_builtfreqgatexwide_v001__candidate=smh_glmmlatent_z2_h0_covbase_calnone_v001.json`
+  - interpretation:
+    - wins are large enough on most rounds to overwhelm the still-bad `36e581f1...` losses
+    - round manifold teacher is now decisively better than the old residual baseline overall
+- Dead follow-up after the win:
+  - `smh_glmmlatent_z2_h0_covprior_calnone_v001`
+  - serious 6-round result:
+    - `72.8255 / 0.116068`
+    - exactly identical to plain `z2 covbase`
+  - read:
+    - simple ridge prior from initial-map summaries into `z_r` did nothing
+    - do not promote this branch as implemented
+- Small bug fix learned from the promotion cycle:
+  - adding optional feature-prior fields broke loading of already-written latent checkpoints
+  - fix:
+    - backward-compatible default added for `feature_prior_ridge_lambda` in `SemhGlmmLatentPredictorCheckpoint`
+  - this was required to reuse the warm `z2` fold checkpoints for the fast full exploration rerun
+- Final validation after the compatibility fix:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `59 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py -q`
+    - `1 passed`

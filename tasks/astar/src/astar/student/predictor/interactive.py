@@ -21,11 +21,32 @@ from astar.student.predictor.smh import (
     SemimechCoefficientBankPredictor,
     SemimechKnnPredictor,
 )
+from astar.student.predictor.smh_glmm import (
+    SemhGlmmBankPredictor,
+    SemhGlmmLatentPredictor,
+    SemhGlmmPredictor,
+)
 from astar.student.predictor.smh_student import SemhResidualStudentPredictor
 
+SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001 = "smh_glmm_z0_h0_covbase_calnone_v001"
+SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001 = "smh_glmmbank_zhist_h0_covbase_calnone_v001"
+SMH_GLMMBANK_ZHIST_H0_COVBASE_CALOBS_V001 = "smh_glmmbank_zhist_h0_covbase_calobs_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z2_h0_covbase_calnone_v001"
+SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z4_h0_covbase_calnone_v001"
+SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z6_h0_covbase_calnone_v001"
+SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001 = "smh_glmmlatent_z2_h0_covprior_calnone_v001"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
+SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_EXACTOBS_V001 = (
+    "smh_coeffbank_z0_h0_covlike_calbase_resid_exactobs_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001 = (
+    "smh_coeffbank_z0_h0_covlike_calbase_residshrink_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_EXACTOBS_V001 = (
+    "smh_coeffbank_z0_h0_covlike_calbase_residshrink_exactobs_v001"
+)
 SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTFOCUS_V001 = "smh_coeffbank_z0_h0_covlike_builtfocus_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTSHARP_V001 = "smh_coeffbank_z0_h0_covlike_builtsharp_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND25_V001 = "smh_coeffbank_z0_h0_covlike_hbblend25_v001"
@@ -62,8 +83,23 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_V001 = (
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend050_v001"
 )
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_EXACTOBS_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend045_exactobs_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_EXACTOBS_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend050_exactobs_v001"
+)
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATE_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgate_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEWIDE_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgatewide_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEXWIDE_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_builtfreqgatexwide_v001"
 )
 SMH_COEFFBANK_Z0_H0_COVMARKPOSTW06_V001 = "smh_coeffbank_z0_h0_covmarkpostw06_v001"
 SMH_COEFFBANK_Z0_H0_COVMARKPOSTW12_V001 = "smh_coeffbank_z0_h0_covmarkpostw12_v001"
@@ -597,6 +633,18 @@ def _smh_calbase_resid_fit_kwargs() -> dict[str, object]:
     }
 
 
+def _smh_calbase_residshrink_fit_kwargs() -> dict[str, object]:
+    return {
+        "cells_per_seed": 384,
+        "include_exact_local_residual": True,
+        "prior_blend": 0.30,
+        "signal_scale": 0.08,
+        "teacher_blend": 0.06,
+        "teacher_locality_blend": True,
+        "min_delta_scale": 0.0,
+    }
+
+
 def _smh_hbblend_exactobs_resid_fit_kwargs() -> dict[str, object]:
     return {
         "cells_per_seed": 384,
@@ -816,6 +864,162 @@ def _build_smh_adapter(
         k_neighbors=k_neighbors,
         distance_power=distance_power,
         terminal_blend_weight=terminal_blend_weight,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
+def _load_or_fit_smh_glmm_predictor(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> SemhGlmmPredictor:
+    checkpoint_dir = workspace_paths.model_dir(
+        _smh_checkpoint_dir_name(
+            checkpoint_stem,
+            historical_round_ids=historical_round_ids,
+        ),
+    )
+    checkpoint_path = checkpoint_dir / "smh_glmm_predictor.json"
+    if checkpoint_path.exists():
+        return SemhGlmmPredictor.load_checkpoint(checkpoint_path)
+    predictor = SemhGlmmPredictor.fit_from_workspace(
+        workspace_paths,
+        round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        model_name=model_name,
+        dataset_name=_smh_checkpoint_dir_name(
+            f"{checkpoint_stem}__cell_transition",
+            historical_round_ids=historical_round_ids,
+        ),
+        **({} if fit_kwargs is None else fit_kwargs),
+    )
+    predictor.save_checkpoint(checkpoint_dir)
+    return predictor
+
+
+def _build_smh_glmm_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    predictor = _load_or_fit_smh_glmm_predictor(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        checkpoint_stem=checkpoint_stem,
+        model_name=model_name,
+        fit_kwargs=fit_kwargs,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
+def _load_or_fit_smh_glmm_bank_predictor(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> SemhGlmmBankPredictor:
+    checkpoint_dir = workspace_paths.model_dir(
+        _smh_checkpoint_dir_name(
+            checkpoint_stem,
+            historical_round_ids=historical_round_ids,
+        ),
+    )
+    checkpoint_path = checkpoint_dir / "smh_glmm_bank_predictor.json"
+    if checkpoint_path.exists():
+        return SemhGlmmBankPredictor.load_checkpoint(checkpoint_path)
+    predictor = SemhGlmmBankPredictor.fit_from_workspace(
+        workspace_paths,
+        round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        model_name=model_name,
+        dataset_name=_smh_checkpoint_dir_name(
+            f"{checkpoint_stem}__cell_transition",
+            historical_round_ids=historical_round_ids,
+        ),
+        **({} if fit_kwargs is None else fit_kwargs),
+    )
+    predictor.save_checkpoint(checkpoint_dir)
+    return predictor
+
+
+def _build_smh_glmm_bank_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    predictor = _load_or_fit_smh_glmm_bank_predictor(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        checkpoint_stem=checkpoint_stem,
+        model_name=model_name,
+        fit_kwargs=fit_kwargs,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
+def _load_or_fit_smh_glmm_latent_predictor(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> SemhGlmmLatentPredictor:
+    checkpoint_dir = workspace_paths.model_dir(
+        _smh_checkpoint_dir_name(
+            checkpoint_stem,
+            historical_round_ids=historical_round_ids,
+        ),
+    )
+    checkpoint_path = checkpoint_dir / "smh_glmm_latent_predictor.json"
+    if checkpoint_path.exists():
+        return SemhGlmmLatentPredictor.load_checkpoint(checkpoint_path)
+    predictor = SemhGlmmLatentPredictor.fit_from_workspace(
+        workspace_paths,
+        round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        model_name=model_name,
+        dataset_name=_smh_checkpoint_dir_name(
+            f"{checkpoint_stem}__cell_transition",
+            historical_round_ids=historical_round_ids,
+        ),
+        **({} if fit_kwargs is None else fit_kwargs),
+    )
+    predictor.save_checkpoint(checkpoint_dir)
+    return predictor
+
+
+def _build_smh_glmm_latent_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    predictor = _load_or_fit_smh_glmm_latent_predictor(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        checkpoint_stem=checkpoint_stem,
+        model_name=model_name,
+        fit_kwargs=fit_kwargs,
     )
     return RoundPredictorAdapter(
         predictor=predictor,
@@ -1158,6 +1362,45 @@ def _build_smh_hbexact_calresid_adaptive_adapter(
     )
 
 
+def _build_smh_hbexact_calresid_builtfreqgate_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    min_right_weight: float,
+    max_right_weight: float,
+    built_frequency_intercept: float,
+    built_frequency_slope: float,
+    min_round_target_right_weight: float,
+    max_round_target_right_weight: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_smh_hbexact_calresid_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    predictor = BuiltFrequencyAdaptiveBlendPredictor(
+        left_predictor=left_predictor,
+        right_predictor=right_predictor,
+        target_right_weight=0.45,
+        min_right_weight=min_right_weight,
+        max_right_weight=max_right_weight,
+        weight_exponent=1.0,
+        built_frequency_intercept=built_frequency_intercept,
+        built_frequency_slope=built_frequency_slope,
+        min_round_target_right_weight=min_round_target_right_weight,
+        max_round_target_right_weight=max_round_target_right_weight,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
@@ -1326,6 +1569,74 @@ def build_online_predictor(
                 "teacher_locality_blend": True,
             },
         )
+    if normalized == SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001,
+        )
+    if normalized == SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_bank_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001,
+        )
+    if normalized == SMH_GLMMBANK_ZHIST_H0_COVBASE_CALOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_glmm_bank_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001,
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_GLMMBANK_ZHIST_H0_COVBASE_CALOBS_V001,
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+    if normalized == SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 4},
+        )
+    if normalized == SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 6},
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001,
+            fit_kwargs={
+                "latent_dim": 2,
+                "feature_prior": True,
+                "feature_prior_ridge_lambda": 8.0,
+            },
+        )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return _build_smh_coeffbank_adapter(
@@ -1381,6 +1692,50 @@ def build_online_predictor(
             model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
             base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
             fit_kwargs=_smh_calbase_resid_fit_kwargs(),
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
+            fit_kwargs=_smh_calbase_resid_fit_kwargs(),
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_EXACTOBS_V001,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
+            fit_kwargs=_smh_calbase_residshrink_fit_kwargs(),
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
+            fit_kwargs=_smh_calbase_residshrink_fit_kwargs(),
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESIDSHRINK_EXACTOBS_V001,
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -1452,6 +1807,34 @@ def build_online_predictor(
             blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001,
             right_weight=0.50,
         )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_V001,
+            right_weight=0.45,
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_EXACTOBS_V001,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001,
+            right_weight=0.50,
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_EXACTOBS_V001,
+        )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return _build_smh_hbexact_calresid_adaptive_adapter(
@@ -1461,6 +1844,51 @@ def build_online_predictor(
             samples_per_round=samples_per_round,
             blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001,
             target_right_weight=0.25,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATE_V001,
+            min_right_weight=0.20,
+            max_right_weight=0.65,
+            built_frequency_intercept=0.75,
+            built_frequency_slope=-1.20,
+            min_round_target_right_weight=0.25,
+            max_round_target_right_weight=0.65,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEWIDE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEWIDE_V001,
+            min_right_weight=0.15,
+            max_right_weight=0.70,
+            built_frequency_intercept=0.82,
+            built_frequency_slope=-1.40,
+            min_round_target_right_weight=0.20,
+            max_round_target_right_weight=0.70,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEXWIDE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BUILTFREQGATEXWIDE_V001,
+            min_right_weight=0.10,
+            max_right_weight=0.75,
+            built_frequency_intercept=0.90,
+            built_frequency_slope=-1.60,
+            min_round_target_right_weight=0.15,
+            max_round_target_right_weight=0.75,
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTFOCUS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
