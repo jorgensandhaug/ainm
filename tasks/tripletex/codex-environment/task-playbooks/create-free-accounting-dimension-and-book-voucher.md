@@ -57,6 +57,8 @@ Verified in persistent sandbox on 2026-03-20:
 - across those same-day production runs, the linked voucher value was not tied to create order: one run linked the first created value and another linked the second, so the local resolver must choose the value by exact returned `displayName`, not by index or assumed position
 - the successful voucher write response already proved the linked free-dimension value id and the booked amounts
 - the persistent sandbox later returned `422 Maximum of 3 accounting dimensions allowed` on `POST /ledger/accountingDimensionName` once all three free-dimension slots were occupied; that is a real account-state blocker, not a cue to add search/update/delete calls in a production create-only run
+- persistent sandbox re-verified on 2026-03-21: `POST /ledger/voucher` without `row` on postings → `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; adding only `row: 1` and `row: 2` → `201`; `date`, `description`, and `currency` on individual postings are optional (Tripletex auto-fills them from the voucher-level values)
+- the 2026-03-21 production run for exact prompt `Prosjekttype` / `Forskning` / `Internt` / `7000` / `32550` hit this exact `row` trap: first voucher attempt without `row` → 422, retry with `row: 1`/`row: 2` → 201, final score 2.96/4 (6 calls instead of 5, 1 avoidable 422)
 
 ## Minimal Safe Flow
 
@@ -118,20 +120,17 @@ Dimension value create:
 }
 ```
 
-Voucher create:
+Voucher create (true minimal shape — `date`, `description`, `currency` on postings are optional):
 
 ```json
 {
-  "date": "2026-03-20",
+  "date": "2026-03-21",
   "description": "Bilag konto 7000, Prosjekttype \"Internt\"",
   "voucherType": null,
   "postings": [
     {
       "row": 1,
-      "date": "2026-03-20",
-      "description": "Prosjekttype \"Internt\"",
       "account": { "id": 424191158 },
-      "currency": { "id": 1 },
       "amount": 39700,
       "amountCurrency": 39700,
       "amountGross": 39700,
@@ -140,10 +139,7 @@ Voucher create:
     },
     {
       "row": 2,
-      "date": "2026-03-20",
-      "description": "Prosjekttype \"Internt\"",
       "account": { "id": 424190862 },
-      "currency": { "id": 1 },
       "amount": -39700,
       "amountCurrency": -39700,
       "amountGross": -39700,
@@ -153,7 +149,7 @@ Voucher create:
 }
 ```
 
-Replace the ids and amounts with the values resolved in the current account. The important shape is: id-based account refs, `voucherType=null`, balanced positive and negative gross amounts, and the correct `freeAccountingDimension{n}` key.
+Replace the ids and amounts with the values resolved in the current account. The critical shape is: `row` starting at `1` (MANDATORY — row `0` is reserved for system-generated postings), id-based account refs, `voucherType=null`, balanced positive and negative gross amounts, and the correct `freeAccountingDimension{n}` key.
 
 ## Validation Traps
 
@@ -164,6 +160,7 @@ Replace the ids and amounts with the values resolved in the current account. The
 - do not invent dimension-value `number` or `position` fields unless the prompt explicitly scores them
 - do not attach the dimension value to both voucher postings unless the prompt explicitly requires that
 - do not add `vatType` for the standard zero-VAT manual-voucher shape
+- do not omit `row` on voucher postings; without explicit `row` values starting at `1`, Tripletex defaults to row `0` which is reserved for system-generated postings, causing `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; sandbox-verified on 2026-03-21: posting without `row` → 422, posting with only `row` added → 201
 - do not append sandbox-only uniqueness suffixes that push `dimensionName` past `20` characters
 - if `POST /ledger/accountingDimensionName` fails with `422 Maximum of 3 accounting dimensions allowed`, stop and treat the run as blocked by account state unless the prompt explicitly requests a reuse/update path
 

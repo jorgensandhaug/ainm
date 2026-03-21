@@ -45,6 +45,8 @@
   - build a balanced two-line voucher
   - use the resolved ledger-account ids, not `account.number` alone
   - on the scored posting, attach the chosen value as `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the returned `dimensionIndex`
+  - each posting MUST include `row` starting at `1` (not `0`); row `0` is reserved for system-generated postings and Tripletex will reject the voucher with `422` if any user posting lands on row `0`
+  - `date`, `description`, and `currency` on individual postings are optional; Tripletex auto-fills them from the voucher-level values
 - if the prompt gives only the target ledger account and omits the balancing account, the standard fallback is the existing bank account `1920`
 - for a zero-VAT manual voucher, omit `vatType` and send the same value in:
   - `amount`
@@ -76,6 +78,19 @@
   - linked free-dimension value id
 - for the exact create-dimension-plus-two-values-plus-one-voucher task shape, this five-call flow remains the minimal realistic path because the lower-call number-only voucher shortcut is not valid
 
+## Minimal Voucher Posting Shape
+
+The true minimal required fields per posting are:
+- `row` (integer, starting at `1`)
+- `account: { "id": ... }`
+- `amount`
+- `amountCurrency`
+- `amountGross`
+- `amountGrossCurrency`
+- on the scored posting: `freeAccountingDimension{n}: { "id": ... }`
+
+Optional posting fields (auto-filled by Tripletex): `date`, `description`, `currency`.
+
 ## Known Recovery Branches
 - if `GET /ledger/account?number=<target-account>,1920&fields=*` does not return `1920`, do one fallback `GET /ledger/account?isBankAccount=true&fields=*` and choose the existing invoice or bank account from that result
 - `GET /ledger/account?number=<target-account>,1920&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally, or you can falsely conclude the target account is missing and burn extra recovery calls
@@ -100,3 +115,8 @@
   - a same-day persistent-sandbox re-proof for account `6300` reused existing dimension value `15253` only because the sandbox was already full on free dimensions, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only voucher shortcut, then succeeded immediately after `GET /ledger/account?number=6300,1920&fields=*` with an id-based voucher write
   - a later same-day persistent-sandbox re-proof for account `7300` hit the same full-dimension blocker, reused existing dimension value `15253` only for voucher-path verification, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only shortcut, then succeeded immediately after `GET /ledger/account?number=7300,1920&fields=*` with voucher `608867443`
   - a later same-day persistent-sandbox reflection for account `6340` hit the same full-dimension blocker `422 Maximum of 3 accounting dimensions allowed`, reused existing dimension value `15253` only for voucher-path verification, reproduced the same `422 postings.account.name: Kan ikke være null.` on the number-only shortcut, then succeeded immediately after `GET /ledger/account?number=6340,1920&fields=*` with voucher `608868815`
+- persistent sandbox re-verified on 2026-03-21:
+  - `POST /ledger/voucher` without `row` on postings → `422 Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex.`; Tripletex defaults unset `row` to `0` which is reserved for system-generated postings
+  - adding only `row: 1` and `row: 2` to the same payload → `201` with voucher `609065728`
+  - `date`, `description`, and `currency` on individual postings are confirmed optional; Tripletex auto-fills them from the voucher-level values
+  - the 2026-03-21 production run for exact prompt `Prosjekttype` / `Forskning` / `Internt` / `7000` / `32550` hit this exact trap: first voucher attempt without `row` → 422, retry with `row` → 201, scored 2.96/4 (6 calls, 1 avoidable 422) — perfect correctness (13/13, 6/6 checks) but suboptimal efficiency
