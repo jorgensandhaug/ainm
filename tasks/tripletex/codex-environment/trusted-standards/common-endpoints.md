@@ -1,6 +1,6 @@
 # Common Endpoints
 
-**ABSOLUTE RULE: NO BETA API ENDPOINTS.** NEVER use any endpoint marked as beta in the OpenAPI spec. Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in EVERY environment (production AND sandbox). This includes `/incomingInvoice*`, `/bank/reconciliation*`, and any endpoint with `(BETA)` in its summary. Do not attempt, retry, explore, or use as fallback. Every attempt has scored 0%.
+**ABSOLUTE RULE: NO BETA API ENDPOINTS.** NEVER use any endpoint marked as beta in the OpenAPI spec. Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in EVERY environment (production AND sandbox). This includes `/incomingInvoice*` and any endpoint with `(BETA)` in its summary. Do not attempt, retry, explore, or use as fallback. Every attempt has scored 0%. Note: `/bank/reconciliation*` and `/bank/statement*` are NOT beta and work normally.
 
 Verified against `./openapi.json`.
 
@@ -64,6 +64,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/employee`
   - `GET` search
   - `POST` create
+- `/employee/list`
+  - `POST` batch-create multiple employees in one call; returns `{ values: [...] }`; saves 1 call when creating 2+ employees; NOT beta
 - `/employee/{id}`
   - `GET` read
   - `PUT` update
@@ -168,7 +170,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
   - for the exact task-12-like branch where the employee read shows one exact employee with `dateOfBirth=null` and `employments=[]`, the decisive gate is `GET /division?count=1&fields=*` before any salary-type lookup
   - if that division read returns one usable row, the lower-zero-risk path is `GET /salary/type?count=1000&fields=*`, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`, `POST /employee/employment`, then `POST /salary/transaction`
-  - SUPERSEDED: the 2026-03-20 "stop blocked" and voucher fallback guidance is obsolete — `POST /division` with full payload (`organizationNumber`, `startDate`, `municipalityDate`, `municipality: { id: 1 }`) succeeds and creates a division even when divisions exist; always use the 9-call salary path with `POST /division` for underconfigured employees; the voucher fallback creates no payslip and likely scores 0 on payslip checks; see `./trusted-standards/run-employee-payroll.md` for the current canonical path
+  - SUPERSEDED: the 2026-03-20 "stop blocked" and voucher fallback guidance is obsolete — `POST /division` with full payload (`organizationNumber`, `startDate`, `municipalityDate`, `municipality: { id: 1 }`) succeeds and creates a division even when divisions exist; always use the 8-call salary path with `POST /division` for underconfigured employees; the voucher fallback creates no payslip and likely scores 0 on payslip checks; see `./trusted-standards/run-employee-payroll.md` for the current canonical path
   - do not add `POST /employee/employment/details` by default in that repair branch; persistent sandbox on 2026-03-20 proved payroll can succeed without it for manual salary lines
   - do not add speculative `/salary/settings` or company-module activation reads to the default payroll path; only branch into feature-state investigation after a live `403` permission response from salary endpoints
 - Standard verification note:
@@ -727,8 +729,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 ## Ledger Voucher Type
 - `/ledger/voucherType`
   - `GET` search — supports `?name=<exact name>&count=1&fields=*` filter for targeted lookup (e.g. `?name=Lønnsbilag`)
-  - voucherType ids are **account-specific** — do NOT hardcode them; always resolve by name
-  - production proof 2026-03-21: hardcoded Lønnsbilag id `9744848` (from sandbox) failed with `422 Ugyldig bilagstype` in production where the id was `8145240`
+  - voucherType ids are **account-specific** — do NOT hardcode them
+  - for payroll Lønnsbilag vouchers: prefer `voucherType: { name: "Lønnsbilag" }` inline in `POST /ledger/voucher` — this resolves the type by name without a separate GET call; sandbox-verified 2026-03-21; saves 1 call
+  - for other voucher types: use `GET /ledger/voucherType?name=<name>&count=1&fields=*` if the id is needed
 
 ## Ledger Voucher
 - `/ledger/voucher`
@@ -757,7 +760,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if the task scores receipt preservation on the voucher, create the manual voucher first and then use `POST /ledger/voucher/{voucherId}/attachment`; 2026-03-21 persistent sandbox showed `POST /ledger/voucher/importDocument` creates an attachment-backed voucher shell whose `description` and `postings` were not editable through the later `PUT /ledger/voucher/{id}` branch
   - on voucher postings, `department: { "name": ... }` is not a safe shortcut; 2026-03-21 persistent sandbox returned `201` for a `Drift` name-only posting but persisted `department=null`, so use exact `department.id`
   - for manual postings on customer ledger account `1500`, include the matching `customer: { "id": ... }`; the 2026-03-21 persistent sandbox exact reminder-fee proof succeeded with that shape on voucher `608897119`
-  - DEPRECATED: the payroll voucher fallback (voucherType null, postings on 5000/1920) should NOT be used for payroll tasks — it creates no payslip and the `amount` field alone silently stores 0; always use the 9-call salary path with `POST /division`; if a manual voucher is needed for non-payroll purposes, use `amountGross`/`amountGrossCurrency` (not just `amount`)
+  - DEPRECATED: the payroll voucher fallback (voucherType null, postings on 5000/1920) should NOT be used for payroll tasks — it creates no payslip and the `amount` field alone silently stores 0; always use the 8-call salary path with `POST /division`; if a manual voucher is needed for non-payroll purposes, use `amountGross`/`amountGrossCurrency` (not just `amount`)
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
   - on 2026-03-20 persistent sandbox re-verification, `GET /ledger/account?number=5000,1920&fields=*` returned both accounts and the next `POST /ledger/voucher` with balanced `50600` / `-50600` salary-cost postings succeeded

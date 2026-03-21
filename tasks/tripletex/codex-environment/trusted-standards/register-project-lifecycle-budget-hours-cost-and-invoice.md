@@ -22,22 +22,26 @@
 3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs
 4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager
 
-## Standard Flow (17 calls, 0 errors)
+## Standard Flow (16 calls, 0 errors)
 
 1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` (3 parallel)
-2. `POST /employee` × 2 + `POST /project` with `isFixedPrice: true` + `fixedprice` (3 parallel)
+2. `POST /employee/list` (both employees in one batch) + `POST /project` with `isFixedPrice: true` + `fixedprice` (2 parallel)
 3. `POST /project/projectActivity` with `budgetHours` + `POST /project/participant` (PM, `adminAccess: true`) + `POST /project/participant` (other, `adminAccess: false`) (3 parallel)
-4. `POST /timesheet/entry/list` + `POST /supplier` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (5 parallel)
-5. `POST /project/orderline` + `POST /ledger/voucher` (2 parallel — needs supplierId + accountIds + voucherTypeId from step 4)
-6. if account 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
-7. `POST /invoice?sendToCustomer=false` (1 call)
+4. `POST /timesheet/entry/list` + `POST /supplier` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `POST /project/orderline` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (6 parallel)
+5. `POST /ledger/voucher` + (if 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`) (1-2 parallel)
+6. `POST /invoice?sendToCustomer=false` (1 call)
 
 ## Payload Shapes
 
-### Employee (POST /employee) — NO `employments[]`
+### Employees (POST /employee/list) — batch both in ONE call, NO `employments[]`
 ```json
-{ "firstName": "X", "lastName": "Y", "email": "x@example.org", "dateOfBirth": "1985-01-15", "userType": "NO_ACCESS", "department": { "id": "<deptId>" } }
+[
+  { "firstName": "X", "lastName": "Y", "email": "x@example.org", "dateOfBirth": "1990-01-01", "userType": "NO_ACCESS", "department": { "id": "<deptId>" } },
+  { "firstName": "A", "lastName": "B", "email": "a@example.org", "dateOfBirth": "1992-06-15", "userType": "NO_ACCESS", "department": { "id": "<deptId>" } }
+]
 ```
+- returns `{ values: [emp1, emp2] }` — use `values[0].id` and `values[1].id`
+- saves 1 call vs two separate POST /employee
 
 ### Project (POST /project)
 ```json
@@ -100,6 +104,7 @@
 
 ## Do NOT
 - include `employments[]` on employees (avoids division/startDate traps, saves GET /division)
+- use two separate `POST /employee` calls — use `POST /employee/list` batch (saves 1 call)
 - use `POST /supplierInvoice` (no POST method in spec)
 - use individual `POST /timesheet/entry` (use batch /list)
 - use `POST /order` + `PUT /order/:invoice` (use direct POST /invoice)
