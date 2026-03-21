@@ -114,6 +114,17 @@
   - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`
   - left older comparator running:
     - `dev_hazard_v4_k5_r3_l16_m50_exploration_online50_v1`
+- quick “2 worst rounds” shortcut check was run and rejected as a validation design:
+  - rounds: `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`, `36e581f1-73f8-453f-ab98-cbe3052b701b`
+  - all tested models collapsed identically to `16.5721`, KL `0.815797`
+  - tested:
+    - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_v1`
+    - `hazard_posterior_v4_k5_r3_l16_m50 + exploration_v2`
+    - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_v1`
+  - conclusion:
+    - with only two rounds, leave-one-round-out means each holdout trains on a single round
+    - this shortcut is too degenerate to guide family selection
+    - keep using broader multi-round validation
 
 ### Session Continuation
 
