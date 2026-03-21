@@ -20,15 +20,15 @@
     "18": "18.reverse-payment.v1",
     "12": "12.repair-aware-payroll.v1",
     "14": "14.set-fixed-price-milestone.v1",
-    "19": "19.not-implemented.v1",
+    "19": "19.onboard-employee-from-contract.v1",
     "20": "20.register-supplier-invoice-pdf.v1",
     "21": "21.not-implemented.v1",
     "22": "22.not-implemented.v1",
     "23": "23.not-implemented.v1",
-    "25": "25.not-implemented.v1",
+    "25": "25.overdue-reminder-fee.v1",
     "26": "26.not-implemented.v1",
     "27": "27.not-implemented.v1",
-    "28": "28.not-implemented.v1",
+    "28": "28.cost-analysis-projects.v1",
     "29": "29.not-implemented.v1",
     "30": "30.not-implemented.v1"
   }

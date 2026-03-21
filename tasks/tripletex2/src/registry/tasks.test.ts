@@ -105,12 +105,21 @@ test("implemented task remains the real registered task module", async () => {
   );
 });
 
-test("tier 3 task stubs load the pinned not-implemented strategy", async () => {
+test("task 19 now loads the contract-onboarding strategy", async () => {
   const taskModule = await loadTaskModule("19");
-  assert.equal(taskModule.task.taskName, "Unknown task 19");
+  assert.equal(taskModule.task.taskName, "Onboard employee from contract");
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["19.not-implemented.v1"],
+    ["19.onboard-employee-from-contract.v1"],
+  );
+});
+
+test("tier 3 task stubs still load the pinned not-implemented strategy", async () => {
+  const taskModule = await loadTaskModule("21");
+  assert.equal(taskModule.task.taskName, "Unknown task 21");
+  assert.deepEqual(
+    taskModule.strategies.map((strategy) => strategy.strategyId),
+    ["21.not-implemented.v1"],
   );
 });
 

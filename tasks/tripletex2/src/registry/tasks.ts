@@ -38,7 +38,7 @@ import { taskRegistration as unknownTask23 } from "../tasks/task-23/task";
 import { taskRegistration as unknownTask25 } from "../tasks/task-25/task";
 import { taskRegistration as unknownTask26 } from "../tasks/task-26/task";
 import { taskRegistration as unknownTask27 } from "../tasks/task-27/task";
-import { taskRegistration as unknownTask28 } from "../tasks/task-28/task";
+import { taskRegistration as analyzeExpenseIncreaseCreateInternalProjectsTask } from "../tasks/task-28/task";
 import { taskRegistration as unknownTask29 } from "../tasks/task-29/task";
 import { taskRegistration as unknownTask30 } from "../tasks/task-30/task";
 
@@ -69,7 +69,7 @@ const registeredTaskRegistrations = [
   unknownTask25,
   unknownTask26,
   unknownTask27,
-  unknownTask28,
+  analyzeExpenseIncreaseCreateInternalProjectsTask,
   unknownTask29,
   unknownTask30,
 ] as const;
