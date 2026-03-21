@@ -12,6 +12,7 @@
 - `v27` / `v28`: class-weighted geometry-gated diffusion should beat uniform diffusion by emphasizing built-class signal over empty/static spill
 - `v29` / `v30`: quarter-scale multiscale temporal summaries should beat coarse half-split temporal summaries by preserving early/mid/late query-phase information
 - `v31` / `v32`: quarter-scale multiscale temporal summaries may work better on the simpler global-blend backbone if the newer local-evidence stack is overfitting the corrected holdout
+- `v33` / `v34`: multiscale temporal summaries may work better with spatial-dynamic blending than with global blending if phase information mostly matters on buildable/frontier cells
 
 ## Evaluation Rule
 

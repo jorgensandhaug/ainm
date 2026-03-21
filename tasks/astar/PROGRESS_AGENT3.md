@@ -2291,6 +2291,25 @@
    - launch policy:
      - `jobs=1`
      - outer model parallelism only
+248. New sibling hypothesis after item 247:
+   - if multiscale temporal summaries help, they may interact with spatial-dynamic blending rather than only with global blending
+   - next branch:
+     - `v33` / `v34` = `v15` / `v16` backbone + `summary_temporal_multiscale_v5`
+249. Implemented spatial-dynamic multiscale variants:
+   - new variants:
+     - `teacher_student_blend_v33`
+     - `teacher_student_blend_v34`
+   - architecture:
+     - spatial-dynamic teacher blend
+     - coefficient-residual head
+     - normalized multiscale temporal summary
+     - no confidence gate
+     - no local evidence correction
+250. Validation for item 249:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_temporal_multiscale_encoder_zero_observation_shape tests/test_historical_benchmark.py::test_teacher_student_blend_v32_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_teacher_student_blend_v34_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions
