@@ -139,7 +139,7 @@ def _coverage_mask(h, w):
 
 def run_benchmark(
     *, name="agent4_evidence_sett_v1",
-    max_replays=58, serve_ev=1, n_estimators=800, max_depth=8, floor=0.01,
+    max_replays=58, serve_ev=1, n_estimators=800, max_depth=8, floor=0.0003,
 ):
     import lightgbm as lgb
     from astar.core.score import score_prediction
