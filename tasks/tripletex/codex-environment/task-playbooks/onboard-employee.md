@@ -58,6 +58,7 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
 | Innkjøper / 3323 | `innkjøper` | `2503` | `3416102` |
+| Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
@@ -72,8 +73,9 @@ For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and
 - some "Senior" prefixed titles DO exist (SENIORINGENIØR, SENIORKONSULENT, SENIORPROGRAMMERER) but "SENIORUTVIKLER" does not
 
 ### Dynamic Lookup
-For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
+For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=10&fields=id,nameNO` — then pick the row whose `nameNO` is an exact match (case-insensitive). Do NOT blindly take the first result with `count=1`.
 
+**Critical pitfall**: The `nameNO` filter is a substring-containing match sorted alphabetically. `nameNO=regnskapssjef&count=1` returns KONSERNREGNSKAPSSJEF (id 2881, wrong) as the first result, not REGNSKAPSSJEF (id 4679, correct), because "K" sorts before "R".
 **Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix, and the exact `2511` branch returned 19 exact-prefix matches in sandbox.
 **Critical pitfall**: Do NOT send `occupationCode: { code: ... }` on `POST /employee`. Sandbox returned `201` for both `{ code: "2511" }` and `{ code: "2511102" }`, but readback showed `occupationCode: null`.
 
@@ -90,7 +92,7 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
 1. Resolve prerequisites in parallel (steps can run concurrently):
    - `GET /division?count=1&fields=id`
    - `POST /department` with the prompt department name
-   - if the prompt has a job title that is NOT in known hardcoded mappings: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
+   - if the prompt has a job title that is NOT in known hardcoded mappings: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=10&fields=id,nameNO` — pick the exact `nameNO` match, not the first result
 2. Create the employee with all employment configuration in one write:
    - `POST /employee`
    - include `department.id` from step 1
@@ -152,7 +154,8 @@ Standard worktime (per-employee):
 
 - Do not omit `occupationCode` when the prompt or attachment provides a job title — it is scored
 - Do not use `POST /salary/settings/standardTime` for employee standard time — that is company-wide; use `POST /employee/standardTime` instead
-- Do not search occupation codes by `code=<4-digit>` — use `nameNO=<name>&count=1` instead
+- Do not search occupation codes by `code=<4-digit>` — use `nameNO=<name>&count=10&fields=id,nameNO` and pick the exact match
+- Do not use `nameNO=<term>&count=1` for dynamic lookups — substring matching + alphabetical sorting means the first result may be wrong (e.g., KONSERNREGNSKAPSSJEF before REGNSKAPSSJEF)
 - Do not spend `GET /employee/employment/occupationCode?code=2511...` for the exact STYRK-only `2511` contract branch — use hardcoded id `301`
 - Do not send `occupationCode` by `code` on `POST /employee`; send it by `id`
 - Do not assume the simple `create-employee` standard covers onboarding prompts with salary/worktime configuration
@@ -189,3 +192,10 @@ Run 2026-03-21 (Seniorutvikler offer letter, French prompt, 100% employment, sta
 - improvement over third run: 4 calls instead of 6, correct occupation code instead of wrong one
 - sandbox readback confirmed: occupationCode.id=5935, annualSalary=880000, hoursPerDay=7.5
 - this is the minimum-call floor for the Seniorutvikler + standard-worktime shape: 4 calls
+
+Run 2026-03-21 (Regnskapssjef offer letter, German prompt, 100% employment, standard worktime 7.5h): 5 calls, 0 4xx errors but WRONG occupation code
+- `nameNO=regnskapssjef&count=1` returned id 2881 (KONSERNREGNSKAPSSJEF) — wrong, should be id 4679 (REGNSKAPSSJEF)
+- root cause: `nameNO` filter is substring-containing, sorted alphabetically; "KONSERN..." sorts before "REGNSKAP..."
+- correct mapping: Regnskapssjef → id 4679 (REGNSKAPSSJEF, code 1231115), now hardcoded
+- optimal was 4 calls with hardcoded mapping; actual was 5 calls with wrong code
+- this is the minimum-call floor for the Regnskapssjef + standard-worktime shape: 4 calls

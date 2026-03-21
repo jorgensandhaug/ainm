@@ -101,14 +101,18 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard lookup note:
   - the `code` filter is a substring-containing match, NOT exact or prefix
   - searching `code=4110` returns unrelated codes that contain "4110" anywhere in their 7-digit code (e.g., `3341103` ADJUNKT)
+  - the `nameNO` filter is ALSO a substring-containing match, sorted alphabetically — `nameNO=regnskapssjef&count=1` returns KONSERNREGNSKAPSSJEF (id 2881) first, not REGNSKAPSSJEF (id 4679), because "K" sorts before "R"
+  - for dynamic lookups, use `nameNO=<term>&count=10&fields=id,nameNO` and pick the exact `nameNO` match from the result set; do NOT blindly take the first result with `count=1`
   - the reliable lookup for a 4-digit STYRK group code is by `nameNO` with the Norwegian occupation name
-  - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110
+  - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110 (safe because no other code contains "kontormedarbeider" as a substring)
   - the exact STYRK-only `2511` branch is NOT uniquely resolvable from `GET /employee/employment/occupationCode?code=2511...`; persistent sandbox on 2026-03-21 returned 19 exact-`2511` rows
   - occupation code ids are reference data and are the same across sandbox and production accounts
   - known hardcoded mappings (verified sandbox + production 2026-03-21):
     - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
     - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
+    - `regnskapssjef` → id `4679` (REGNSKAPSSJEF, code `1231115`) — do NOT use id `2881` (KONSERNREGNSKAPSSJEF), which is the wrong first result from `nameNO=regnskapssjef&count=1`
     - `innkjøper` → id `2503` (INNKJØPER, code `3416102`, STYRK 3323)
+    - `systemutvikler` (for Seniorutvikler) → id `5935` (SYSTEMUTVIKLER, code `2130109`)
     - exact STYRK-only `2511` contract branch → id `301` (AUTORISERT REGNSKAPSFØRER, code `2511102`)
   - important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøper" maps to Tripletex code `3416102`, and `code=3323` returns 0 results)
   - on employee writes, send `occupationCode` by `id`, not by `code`

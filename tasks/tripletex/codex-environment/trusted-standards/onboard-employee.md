@@ -65,6 +65,7 @@ These occupation code ids are reference data and are the same across all Triplet
 |---|---|---|---|
 | Kontormedarbeider / STYRK 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / STYRK 1233 | `salgssjef` | `4930` | `1233105` |
+| Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | Innkjøper / STYRK 3323 | `innkjøper` | `2503` | `3416102` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
@@ -81,7 +82,9 @@ For the exact STYRK-only contract shape that provides `3323` and no job title, u
 - always check the hardcoded mappings table first — common "Senior"-prefixed titles are already mapped there
 
 ### Dynamic Lookup
-- for unknown job titles, search `nameNO=<Norwegian-job-title>&count=1&fields=id` and use the first result
+- CRITICAL: the `nameNO` filter is a substring-containing match, NOT an exact match, and results are sorted alphabetically — `nameNO=regnskapssjef&count=1` returns KONSERNREGNSKAPSSJEF (id 2881) first, NOT REGNSKAPSSJEF (id 4679), because "K" sorts before "R"
+- for unknown job titles, search `nameNO=<Norwegian-job-title>&count=10&fields=id,nameNO` and find the row whose `nameNO` is the exact match (case-insensitive); do NOT blindly take the first result
+- if no exact match exists in the results, use the first result as a best-effort fallback
 - if the prompt gives only a 4-digit STYRK group and there is no verified hardcoded mapping for that exact group, resolve the STYRK code to the Norwegian occupation name first, then search by `nameNO`
 - important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøper" maps to Tripletex code `3416102`, not `3323xxx`; and `code=3323` returns 0 results)
 - if the prompt gives only a 4-digit STYRK group and there is no verified hardcoded mapping for that exact group, a blind `code=<4-digit>` search is not safe because one group can fan out to many 7-digit occupations
@@ -179,7 +182,8 @@ Standard worktime (per-employee):
 - do not use `POST /salary/settings/standardTime` for employee-specific standard time — use `POST /employee/standardTime` instead; the salary/settings endpoint is company-wide
 - do not reuse the simple `create-employee` standard for this richer onboarding shape; that standard optimizes for employee-card creation, not a fully configured employment relationship
 - do not spend `POST /employee/employment/details` as a separate default step here; nested `employmentDetails` in the employee create payload already persists
-- do not search occupation codes by `code=<4-digit-STYRK>` — the `code` filter is a substring-containing match that returns wrong codes; always use `nameNO=<occupation-name>&count=1`
+- do not search occupation codes by `code=<4-digit-STYRK>` — the `code` filter is a substring-containing match that returns wrong codes; always use `nameNO=<occupation-name>`
+- CRITICAL: do not use `nameNO=<term>&count=1` for dynamic lookups — the `nameNO` filter is a substring-containing match sorted alphabetically, so `nameNO=regnskapssjef&count=1` returns KONSERNREGNSKAPSSJEF (id 2881) first, not REGNSKAPSSJEF (id 4679); always use `count=10&fields=id,nameNO` and pick the exact `nameNO` match from the result set
 - do not pick the first result from a `code=4110` search — it will match codes like `3341103` (ADJUNKT) that contain "4110" as a substring, which is a completely different STYRK group
 - for the exact STYRK-only `2511` contract shape, do not spend `GET /employee/employment/occupationCode?code=2511...` — sandbox returned 19 exact-`2511` rows, so that read is ambiguous and wastes a call
 - do not send `occupationCode: { "code": "2511" }` or `occupationCode: { "code": "2511102" }` on `POST /employee`; sandbox returned `201` but read back `occupationCode: null`
@@ -232,3 +236,11 @@ Standard worktime (per-employee):
   - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-11-03
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=5935, nameNO=SYSTEMUTVIKLER, code=2130109, percentageOfFullTimeEquivalent=100, annualSalary=880000, employmentForm=PERMANENT, hoursPerDay=7.5
   - this is the minimum-call floor for the Seniorutvikler + standard-worktime shape: 4 calls
+- production run on 2026-03-21 (sixth run, Regnskapssjef offer letter, German prompt, 100% employment, Økonomi department, with standard worktime 7.5h) used 5 calls: GET /division, POST /department, GET /occupationCode?nameNO=regnskapssjef&count=1, POST /employee, POST /employee/standardTime — 0 errors but WRONG occupation code
+  - `nameNO=regnskapssjef&count=1` returned id 2881 (KONSERNREGNSKAPSSJEF, code 1231118) as the first result — this is "Group Accounting Manager", NOT "Accounting Manager"
+  - the correct match is REGNSKAPSSJEF (id 4679, code 1231115) — the second result when searching with count≥2
+  - root cause: `nameNO` filter is a substring-containing match sorted alphabetically; "KONSERN..." sorts before "REGNSKAP..." so it appears first
+  - sandbox re-verification on 2026-03-21: `nameNO=regnskapssjef&count=5` returned 3 results: KONSERNREGNSKAPSSJEF (id 2881), REGNSKAPSSJEF (id 4679), SKATTEREGNSKAPSSJEF (id 5341)
+  - sandbox confirmed: POST /employee with occupationCode {id: 4679} → 201, readback confirmed occupationCode.id=4679, nameNO=REGNSKAPSSJEF, code=1231115
+  - hardcoding Regnskapssjef → id 4679 saves 1 call and avoids the wrong-code trap, reducing optimal flow from 5 to 4 calls
+  - this is the minimum-call floor for the Regnskapssjef + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
