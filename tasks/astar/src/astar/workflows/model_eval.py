@@ -20,7 +20,11 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
-from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual import (
+    QueryResidualPredictor,
+    is_query_residual_model_name,
+    resolve_query_residual_training_spec,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -219,11 +223,20 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
+    if is_query_residual_model_name(normalized):
+        checkpoint_model_name, resolved_samples_per_round, cell_selection_strategy, include_exact_local_residual = (
+            resolve_query_residual_training_spec(
+                normalized,
+                samples_per_round=samples_per_round,
+            )
+        )
         predictor = QueryResidualPredictor.fit_from_workspace(
             paths,
             round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
+            samples_per_round=resolved_samples_per_round,
+            model_name=checkpoint_model_name,
+            cell_selection_strategy=cell_selection_strategy,
+            include_exact_local_residual=include_exact_local_residual,
         )
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (
@@ -367,7 +380,14 @@ def evaluate_model_on_round(
             )
         )
         resolved_policy_name = None
-        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
+        resolved_samples_per_round = (
+            resolve_query_residual_training_spec(
+                model_name.strip().lower(),
+                samples_per_round=samples_per_round,
+            )[1]
+            if is_query_residual_model_name(model_name.strip().lower())
+            else None
+        )
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0
@@ -392,7 +412,14 @@ def evaluate_model_on_round(
             predictor=online_predictor,
         )
         resolved_policy_name = build_interactive_policy(policy_name).name
-        resolved_samples_per_round = samples_per_round
+        resolved_samples_per_round = (
+            resolve_query_residual_training_spec(
+                model_name.strip().lower(),
+                samples_per_round=samples_per_round,
+            )[1]
+            if is_query_residual_model_name(model_name.strip().lower())
+            else samples_per_round
+        )
         resolved_budget = budget
         resolved_episode_seed = episode_seed
     else:

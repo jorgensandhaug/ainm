@@ -184,12 +184,20 @@ def render_historical_benchmark_comparison_report(result: HistoricalBenchmarkCom
             else ",".join(str(item) for item in result.episode_seeds)
         )
     )
+    same_policy = result.baseline_policy_name == result.candidate_policy_name
     lines = [
         "historical-benchmark-comparison",
         f"baseline: {result.baseline_model_name}",
         f"candidate: {result.candidate_model_name}",
         f"mode: {result.mode}",
-        f"policy: {result.policy_name or 'n/a'}",
+        (
+            f"policy: {result.policy_name or 'n/a'}"
+            if same_policy
+            else (
+                f"baseline_policy: {result.baseline_policy_name or 'n/a'}\n"
+                f"candidate_policy: {result.candidate_policy_name or 'n/a'}"
+            )
+        ),
         f"budget: {result.budget if result.budget is not None else 'n/a'}",
         f"episode_seeds: {episode_seed_label}",
         f"seeds: {result.seed_count}",

@@ -13,6 +13,10 @@ from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.interactive import build_online_predictor
+from astar.student.predictor.query_residual import (
+    is_query_residual_model_name,
+    resolve_query_residual_training_spec,
+)
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -125,8 +129,15 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    resolved_samples_per_round = samples_per_round if normalized_model_name == "query_residual" else None
-    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
+    resolved_samples_per_round = (
+        resolve_query_residual_training_spec(
+            normalized_model_name,
+            samples_per_round=samples_per_round,
+        )[1]
+        if is_query_residual_model_name(normalized_model_name)
+        else None
+    )
+    if is_query_residual_model_name(normalized_model_name) and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
@@ -138,8 +149,8 @@ def run_historical_benchmark(
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
     model_suffix = ""
-    if normalized_model_name == "query_residual":
-        model_suffix = f"__samples={samples_per_round}"
+    if is_query_residual_model_name(normalized_model_name):
+        model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""
     resolved_episode_seeds = (
         None

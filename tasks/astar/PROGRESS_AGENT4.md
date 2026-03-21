@@ -543,3 +543,236 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
     - full 8-round single-seed dev
   - but also on full 8-round multi-episode validation
   - this is now the strongest local evidence in agent4 branch so far
+
+### 2026-03-21T02:44Z
+
+- Re-read required docs/handoff in current turn:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent4.md`
+  - `PROGRESS_AGENT4.md`
+- Re-checked git state:
+  - branch `agent4`
+  - worktree clean
+- Re-checked task tracker:
+  - `br list` still blocked, command not installed in shell
+- New working hypothesis:
+  - current policy gain comes mainly from using the otherwise-idle last `5` queries
+  - current `exploration_v2` is very weak scientifically:
+    - static
+    - non-adaptive
+    - exactly one extra hotspot repeat per seed
+    - does not optimize those `5` repeats globally for round-latent identification
+- Next concrete experiment:
+  - add stronger repeat-allocation policy variants under same legal `50`-query budget
+  - benchmark them first on held-out subset, then promote only if they beat `exploration_v2`
+
+### 2026-03-21T02:55Z
+
+- Implemented new static query-allocation variants in `src/astar/policy/coverage.py` + `src/astar/policy/registry.py`:
+  - existing `exploration_v2`: one top repeat per seed
+  - new `exploration_global_v1`: allocate the last `5` queries to top global seed/viewports, allowing seed concentration
+  - new `exploration_focus_v1`: allocate all last `5` queries to the single best global hotspot
+- Added policy tests in `tests/test_exploration_policy.py`:
+  - verify `exploration_global_v1` matches exact top-global motif ranking
+  - verify `exploration_focus_v1` repeats the single best global viewport
+- Narrow regression checks passed:
+  - `uv run python -m py_compile src/astar/policy/coverage.py src/astar/policy/registry.py tests/test_exploration_policy.py`
+  - `uv run pytest tests/test_exploration_policy.py tests/test_history_datasets.py tests/test_historical_benchmark.py`
+  - `12 passed`
+- Started full 8-round single-seed benchmark for:
+  - `dev_query_residual_exploration_global1`
+  - status at log time: still running
+- Quick qualitative allocation audit on real dev rounds:
+  - `exploration_global_v1` can concentrate repeats on stronger seeds, e.g. `3,1,1`
+  - `exploration_focus_v1` can spend all `5` repeats on one seed/hotspot
+  - this directly tests whether regime information is better concentrated than spread one-per-seed
+
+### 2026-03-21T03:05Z
+
+- While `exploration_global_v1` full benchmark was running, improved validation/analysis tooling for policy research:
+  - `compare_historical_benchmarks` no longer rejects paired comparisons only because policies differ
+  - comparison now keys strictly on `(round_id, seed_index, episode_seed)` plus matching mode/budget/episode seeds
+  - report now records `baseline_policy_name` and `candidate_policy_name`
+  - long comparison artifact names now fall back to hashed run suffixes to avoid OS filename-length failures
+- Files changed:
+  - `src/astar/workflows/results.py`
+  - `src/astar/eval/reports.py`
+  - `src/astar/workflows/compare_historical_benchmarks.py`
+  - `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run python -m py_compile src/astar/workflows/results.py src/astar/eval/reports.py src/astar/workflows/compare_historical_benchmarks.py tests/test_historical_benchmark.py`
+  - `uv run pytest tests/test_historical_benchmark.py`
+  - `6 passed`
+
+### 2026-03-21T03:45Z
+
+- Full 8-round single-seed policy experiment completed:
+  - run: `dev_query_residual_exploration_global1`
+  - model: `query_residual`
+  - policy: `exploration_global_v1`
+  - mean score `73.4448`
+  - mean weighted KL `0.107623`
+  - runtime `2341.1s`
+- Paired comparison vs current single-seed champion `dev_query_residual_exploration_scopefix1`:
+  - artifact: `data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_global_v1__budget=50__episode_seeds=0__baseline=query_residual__candidate=query_residual__run_sha1=22d4986f57.md`
+  - score delta `-0.9563`
+  - weighted-KL delta `+0.005625`
+  - win rate `0.425`
+  - CI95 entirely negative on score delta
+- Interpretation:
+  - concentrating the extra `5` repeats across fewer seeds is bad overall
+  - it helped `36e581...`
+  - but materially hurt `c5cdf...` and especially `f1dac...`
+  - `exploration_focus_v1` is therefore deprioritized as an even more concentrated version of a losing direction
+
+### 2026-03-21T03:55Z
+
+- Ported minimal high-value iteration-speed improvement from local sibling worktree:
+  - scoped checkpoint caching for holdout-trained `query_residual`
+  - purpose: reuse fitted fold predictors across repeated benchmarks on same train-scope/policy/model
+- Files changed:
+  - `src/astar/student/predictor/query_residual.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `tests/test_historical_benchmark.py`
+- Verification:
+  - new test `test_query_residual_scoped_checkpoint_reuse`
+  - `uv run pytest tests/test_historical_benchmark.py`
+  - `7 passed`
+
+### 2026-03-21T04:05Z
+
+- Found strong local signal in sibling worktree `agent3`:
+  - full 8-round single-seed benchmark `agent3_dev_query_residual_v11_full_corrected`
+  - model `query_residual_v11`
+  - policy `coverage`
+  - mean score `74.6870`
+  - mean weighted KL `0.099885`
+  - better than current agent4 single-seed champion `74.4011`
+- Ported only the minimal `v11` ingredients, not the whole variant matrix:
+  - named model `query_residual_v11`
+  - fixed effective `samples_per_round=2`
+  - stratified entropy training-cell selection
+  - exact local residual channels in transcript features
+- Files changed:
+  - `src/astar/student/predictor/query_residual.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Verification:
+  - added smoke test `test_query_residual_v11_online_historical_benchmark_runs`
+  - `uv run python -m py_compile src/astar/student/predictor/query_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - `uv run pytest tests/test_historical_benchmark.py`
+  - `8 passed`
+- Next run started:
+  - full 8-round single-seed replication on this branch
+  - command target name: `dev_query_residual_v11_coverage1`
+
+### 2026-03-21T04:40Z
+
+- Full 8-round single-seed replication completed for local `query_residual_v11` port:
+  - run: `dev_query_residual_v11_coverage1`
+  - model: `query_residual_v11`
+  - policy: `coverage`
+  - samples_per_round: `2`
+  - mean score `74.6870`
+  - mean weighted KL `0.099885`
+  - runtime `1794.6s`
+- Result exactly matched sibling local worktree signal, so port is faithful.
+- This is now the best single-seed score seen in agent4 branch:
+  - previous single-seed champion:
+    - `dev_query_residual_exploration_scopefix1`
+    - `74.4011`
+    - `0.101998`
+  - new delta:
+    - score `+0.2859`
+    - weighted KL `-0.002113`
+- Paired comparison artifact vs previous single-seed champion:
+  - `data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=coverage__budget=50__episode_seeds=0__baseline=query_residual__candidate=query_residual_v11.md`
+- Comparison interpretation:
+  - gains are concentrated, not uniform
+  - large improvements on hard rounds, especially `36e581...` and `f1dac...`
+  - mild regressions on some easier rounds remain
+  - but mean score and KL both improve
+- Next highest-value experiment started immediately:
+  - `dev_query_residual_v11_exploration1`
+  - objective: test whether the stronger `v11` model still benefits from the extra `5` exploration repeats
+
+### 2026-03-21T05:20Z
+
+- Full 8-round single-seed `v11` policy ablations finished:
+  - `dev_query_residual_v11_exploration1`
+    - `74.0566`
+    - `0.103085`
+    - verdict: reject full exploration retrain for `v11`
+  - paired vs `dev_query_residual_v11_coverage1`:
+    - score delta `-0.6304`
+    - weighted-KL delta `+0.003201`
+    - CI95 entirely negative on score
+- Scientific interpretation:
+  - exploration helped the older `query_residual` family
+  - but once the posterior/training target is strengthened (`v11`), retraining on exploration transcripts is harmful
+  - the likely issue is not the extra observations alone, but the exploration-conditioned synthetic training distribution
+
+### 2026-03-21T05:30Z
+
+- Stronger multi-episode validation for `v11+coverage` completed:
+  - run: `dev_query_residual_v11_coverage_seed01`
+  - mean score `74.5264`
+  - mean weighted KL `0.100625`
+  - runtime `161.7s`
+- Comparisons:
+  - vs old multi-episode coverage `dev_query_residual_online50_scopefix1_seed01`:
+    - score delta `+0.4115`
+    - weighted-KL delta `-0.002875`
+  - vs previous multi-episode branch champion `dev_query_residual_exploration_scopefix1_seed01`:
+    - score delta `-0.0322`
+    - weighted-KL delta `-0.000378`
+    - effectively near-tie on score, better on KL
+- Conclusion at that point:
+  - `v11+coverage` became best coverage-family model
+  - but did not clearly dominate the old exploration champion on score
+
+### 2026-03-21T05:40Z
+
+- Tested hybrid decoupling hypothesis:
+  - keep the stronger `v11` predictor trained on `coverage`
+  - serve it under `exploration_v2` transcript collection
+  - rationale: exploration observations may help, while exploration-conditioned training had already shown harm
+- Implemented tiny alias:
+  - model name `query_residual_v11_covtrain`
+  - train policy fixed to `coverage`
+  - serve policy still chosen by benchmark/live runner
+  - cached `v11+coverage` fold checkpoints reused directly
+- Verification:
+  - added smoke test `test_query_residual_v11_covtrain_online_historical_benchmark_runs`
+  - `uv run pytest tests/test_historical_benchmark.py`
+  - `9 passed`
+- Single-seed hybrid result:
+  - run: `dev_query_residual_v11_covtrain_exploration1`
+  - mean score `74.5850`
+  - mean weighted KL `0.100585`
+  - better than full `v11+exploration` retrain
+  - still slightly below `v11+coverage` on single-seed mean score
+- Multi-episode hybrid result:
+  - run: `dev_query_residual_v11_covtrain_exploration_seed01`
+  - mean score `74.6485`
+  - mean weighted KL `0.100186`
+  - this is now the best mean score and best KL under the strongest local seed01 validation run available in agent4 branch
+- Paired comparisons:
+  - vs old branch champion `dev_query_residual_exploration_scopefix1_seed01`:
+    - score delta `+0.0898`
+    - weighted-KL delta `-0.000817`
+    - win rate `0.500`
+  - vs `dev_query_residual_v11_coverage_seed01`:
+    - score delta `+0.1221`
+    - weighted-KL delta `-0.000439`
+    - win rate `0.575`
+- Notes:
+  - one extra single-seed comparison command hit a DuckDB catalog lock due concurrent comparison logging; benchmark artifacts themselves were unaffected
+  - strongest current promotion candidate is now:
+    - model: `query_residual_v11_covtrain`
+    - serve policy: `exploration_v2`
+    - benchmark: `dev_query_residual_v11_covtrain_exploration_seed01`
