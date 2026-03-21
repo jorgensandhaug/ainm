@@ -3456,3 +3456,18 @@ Cross-agent intelligence was decisive here — the floor insight alone is worth 
 - Agent3 CatBoost: 85.29
 - Agent1 hazard_posterior_v15: 83.79
 - Agent6 ensemble: ~79.6
+
+### 2026-03-21T23:00Z — CatBoost GT-Evidence Results
+
+| Model | ev | Config | Score |
+|-------|-----|--------|-------|
+| **CatBoost GT-evidence** | **1** | **d6 i500** | **82.54** |
+| LightGBM GT-evidence | 1 | d8 n800 | 82.05 |
+| CatBoost GT-evidence | 3 | d6 i500 | **84.57** |
+| CatBoost GT-evidence | 5 | d6 i500 | **85.61** |
+| **CatBoost GT-evidence** | **15** | d6 i500 | **86.32** |
+| LightGBM GT-evidence | 15 | d8 n800 | 86.64 |
+
+CatBoost is +0.49 better than LightGBM at ev1 (single observation).
+LightGBM is slightly better at ev15 (more complex data).
+Both are valid approaches depending on evidence quality.

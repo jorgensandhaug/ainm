@@ -11,7 +11,9 @@ from pathlib import Path
 import numpy as np
 
 # Reuse evidence building from the GT-evidence script
-from scripts.agent4_gt_evidence_model import _build_evidence, _load_replay_data, _coverage_mask
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from agent4_gt_evidence_model import _build_evidence, _load_replay_data, _coverage_mask
 
 def run_catboost_benchmark(
     *, name="agent4_gt_catboost_ev1_v1",
