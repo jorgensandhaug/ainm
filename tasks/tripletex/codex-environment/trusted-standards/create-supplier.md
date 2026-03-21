@@ -95,3 +95,4 @@
 - 2026-03-21: Spanish prompt `Dorada SL` / `958363060` with `faktura@doradasl.no` — 1 POST with mirrored email, 0 errors; score attribution ambiguous at capture time but agent path identical to 6 consecutive perfect-score runs
 - 2026-03-21: Portuguese prompt `Floresta Lda` / `981154614` with `faktura@florestalda.no` — 1 POST with mirrored email, 0 errors; 8th run using this exact standard path (nb/en/es/fr/pt all confirmed)
 - 2026-03-21: English prompt `Oakwood Ltd` / `887507295` with `faktura@oakwoodltd.no` — 1 POST with mirrored email, 1 call 0 errors; 9th run using this exact standard path; score pending
+- 2026-03-21: Norwegian prompt `Tindra AS` / `888286195` with `faktura@tindra.no` — 1 POST with mirrored email, 1 call 0 errors; 10th run using this exact standard path
