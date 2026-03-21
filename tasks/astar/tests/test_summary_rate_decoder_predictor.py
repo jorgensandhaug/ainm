@@ -191,13 +191,24 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01"
     )
 
+    collapse_dyn_portmaritime_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_portmaritime_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
+    )
+
 
 def test_summary_rate_decoder_classwise_gate_tensor() -> None:
-    spatial_names = ["buildable", "coast"]
+    spatial_names = ["buildable", "coast", "maritime_access"]
     spatial_basis = np.asarray(
         [
-            [[1.0, 1.0], [1.0, 0.0]],
-            [[0.0, 0.0], [1.0, 1.0]],
+            [[1.0, 1.0, 1.0], [1.0, 0.0, 0.5]],
+            [[0.0, 0.0, 0.2], [1.0, 1.0, 0.8]],
         ],
         dtype=np.float64,
     )
@@ -214,10 +225,19 @@ def test_summary_rate_decoder_classwise_gate_tensor() -> None:
         active_class_indices=(1, 2, 3),
         gate_variant="classwise",
     )
+    portmaritime = _active_delta_gate_tensor(
+        spatial_names,
+        spatial_basis,
+        active_class_indices=(1, 2, 3),
+        gate_variant="port_maritime",
+    )
 
     assert np.allclose(portcoast[:, :, 0], 1.0)
     assert np.allclose(portcoast[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 1])
     assert np.allclose(portcoast[:, :, 2], 1.0)
+    assert np.allclose(portmaritime[:, :, 0], 1.0)
+    assert np.allclose(portmaritime[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 2])
+    assert np.allclose(portmaritime[:, :, 2], 1.0)
     assert np.allclose(classwise[:, :, 0], spatial_basis[:, :, 0])
     assert np.allclose(classwise[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 1])
     assert np.allclose(classwise[:, :, 2], spatial_basis[:, :, 0])
@@ -396,6 +416,20 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     assert (
         parsed_collapse_dyn_classwise.model
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01"
+    )
+
+    parsed_collapse_dyn_portmaritime = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_portmaritime.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
     )
 
     parsed_stress = parser.parse_args(

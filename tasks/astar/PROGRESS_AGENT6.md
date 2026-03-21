@@ -3292,3 +3292,60 @@
   - launch 2 current-smoke benchmarks in parallel:
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01`
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01`
+
+- Current-smoke results:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01_probe3_current/result.json`
+    - score `69.8793`
+    - weighted KL `0.127436`
+    - wall `6:56.08`
+    - max RSS `17.47 GiB`
+    - vs dyn control `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`:
+      - delta `-0.0386`
+      - KL delta `+0.000168`
+      - win rate `0.467`
+      - CI95 `[-0.0871, 0.0036]`
+      - comparison artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01.json`
+    - per-round read vs dyn control:
+      - round 4: `+0.0294`
+      - round 5: `-0.1470`
+      - round 6: `+0.0018`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01_probe3_current/result.json`
+    - score `69.8529`
+    - weighted KL `0.127552`
+    - wall `7:01.58`
+    - max RSS `17.55 GiB`
+    - vs dyn control:
+      - delta `-0.0649`
+      - KL delta `+0.000284`
+      - win rate `0.600`
+      - CI95 `[-0.1385, 0.0037]`
+      - comparison artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01.json`
+    - per-round read vs dyn control:
+      - round 4: `+0.0537`
+      - round 5: `-0.2519`
+      - round 6: `+0.0035`
+
+- Main read after hard class-aware gates:
+  - both hard-mask variants improve rounds 4 and 6 slightly
+  - both give back more on round 5
+  - `classwise` over-tightens round 5 the most
+  - so binary spatial hard masks are not the right decoder follow-up
+  - but `port_coast` being only mildly negative suggests the promising sub-idea is still:
+    - port corrections should be guided by maritime geometry
+    - just not with a hard coastline mask
+
+- New immediate follow-up landed locally:
+  - softer port-only maritime gate:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01`
+  - mechanism:
+    - gate only the port-class correction with `buildable * maritime_access`
+    - leave settlement/ruin corrections ungated
+  - rationale:
+    - preserve the almost-neutral `port_coast` directional signal
+    - soften it enough to avoid the round-5 hard-mask penalty

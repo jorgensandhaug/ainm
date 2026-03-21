@@ -231,6 +231,14 @@ SUMMARY_RATE_DECODER_MODEL_SPECS = (
         active_class_indices=(1, 2, 3),
         active_delta_gate="classwise",
     ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        active_delta_gate="port_maritime",
+    ),
 )
 
 _SUMMARY_RATE_DECODER_MODEL_SPECS_BY_NAME = {

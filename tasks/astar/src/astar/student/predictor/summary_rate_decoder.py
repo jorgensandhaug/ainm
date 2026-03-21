@@ -155,11 +155,21 @@ def _active_delta_gate_tensor(
     buildable = np.asarray(spatial_basis[:, :, feature_index["buildable"]], dtype=np.float64)
     coast = np.asarray(spatial_basis[:, :, feature_index["coast"]], dtype=np.float64)
     port_coast = buildable * coast
+    maritime_access = np.clip(
+        np.asarray(spatial_basis[:, :, feature_index["maritime_access"]], dtype=np.float64),
+        0.0,
+        1.0,
+    )
+    port_maritime = buildable * maritime_access
     gate_tensor = np.ones(spatial_basis.shape[:2] + (class_count,), dtype=np.float64)
     for column_index, class_index in enumerate(active_class_indices):
         if gate_variant == "port_coast":
             if class_index == 2:
                 gate_tensor[:, :, column_index] = port_coast
+            continue
+        if gate_variant == "port_maritime":
+            if class_index == 2:
+                gate_tensor[:, :, column_index] = port_maritime
             continue
         if gate_variant == "classwise":
             if class_index == 2:
@@ -220,7 +230,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         normalized_active_class_indices = tuple(dict.fromkeys(active_class_indices or ()))
         if any(class_index < 0 or class_index >= CLASS_COUNT for class_index in normalized_active_class_indices):
             raise ValueError(f"active class index must be in [0, {CLASS_COUNT - 1}]")
-        if active_delta_gate not in {"none", "buildable", "port_coast", "classwise"}:
+        if active_delta_gate not in {"none", "buildable", "port_coast", "port_maritime", "classwise"}:
             raise ValueError(f"unsupported active delta gate: {active_delta_gate}")
 
         target_frame = _target_frame(
