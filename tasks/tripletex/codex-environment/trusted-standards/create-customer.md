@@ -45,7 +45,7 @@
 - do not invent `physicalAddress`
 - do not invent `invoiceEmail`
 - localized generic email labels such as `Correo` and `E-mail` still map to `email`
-- prompt language alone does not change this standard; French-, German-, and Spanish-language prompts with ordinary Norwegian customer fields are still the same one-call create path
+- prompt language alone does not change this standard; French-, German-, Spanish-, and Portuguese-language prompts with ordinary Norwegian customer fields are still the same one-call create path
 
 ## Reuse From Write Response
 - `value.id`

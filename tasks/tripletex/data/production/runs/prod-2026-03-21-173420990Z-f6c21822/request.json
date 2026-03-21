@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett tre avdelingar i Tripletex: \"Produksjon\", \"Lager\" og \"Kvalitetskontroll\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "5jcwwsKdUzBROjNNG1RCMb9HAyp9fs9ssRGPgBJZfos"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Wir haben eine Rechnung über 13892 EUR an Nordlicht GmbH (Org.-Nr. 961232880) gesendet, als der Wechselkurs 10.38 NOK/EUR betrug. Der Kunde hat nun bezahlt, aber der Kurs liegt bei 11.28 NOK/EUR. Erfassen Sie die Zahlung und buchen Sie die Wechselkursdifferenz (agio) auf das korrekte Konto.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "-pijy2bVJPXFofA1MXEhRSo-imxDY9lFGjphwTzJUFM"
+  }
+}
