@@ -696,6 +696,53 @@
      - this prefix-weighting family appears to trace a tradeoff curve rather than dominate `v11`
      - full corrected LOO is not justified for `v14`
      - next hypothesis should move to a different control surface, not another nearby prefix-weight interpolation
+84. New hypothesis after rejecting `v14`:
+   - query residual already consumes teacher priors inside the learned design tensor
+   - current inference also applies an extra fixed `teacher_blend=0.12` on unobserved cells after the learned correction
+   - that fixed blend may be double-counting teacher information and may hurt rounds where inferred-regime teacher priors are biased
+   - decisive ablation:
+     - keep the teacher-derived features
+     - remove only the final heuristic teacher blend
+85. Implemented teacher-blend ablation branch:
+   - new model name: `query_residual_v15`
+   - semantics:
+     - same architecture as `query_residual_v11`
+     - fixed `samples_per_round=2`
+     - same stratified entropy cell selection
+     - same exact local residual features
+     - fixed `teacher_blend=0.0`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+86. Validation after `query_residual_v15` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `21 passed`
+87. `query_residual_v15` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v15_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v15`
+     - fixed `samples_per_round=2`
+     - fixed `teacher_blend=0.0`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `60.9581`
+     - mean weighted KL `0.165517`
+   - per-round:
+     - `36e581...`: score `63.8284`, KL `0.149753`
+     - `f1dac9...`: score `58.0878`, KL `0.181280`
+88. Interpretation of item 87:
+   - `v15` exactly matches the current targeted leader `v11` / `v8` samples-2 on this proxy
+   - implication:
+     - the explicit final `teacher_blend` heuristic appears effectively inert under this regime
+     - removing it does not buy score, but it also does not damage score
+   - next branch should target a different anchor:
+     - `prior_blend`
+     - delta scaling
+     - exact-cell blend strength
 
 ## Open Questions
 
