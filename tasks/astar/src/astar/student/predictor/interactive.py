@@ -12,6 +12,7 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
 from astar.student.predictor.greybox_expansion_conditioned import GreyboxExpansionConditionedPredictor
+from astar.student.predictor.greybox_multiregime import GreyboxMultiRegimePredictor
 from astar.student.predictor.greybox_tristack import GreyboxTriStackPredictor
 from astar.student.predictor.greybox_stacked_expansion import GreyboxStackedExpansionPredictor
 from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
@@ -379,6 +380,46 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if normalized.startswith("greybox_multiregime") or normalized.startswith("greybox_stacked_multiregime"):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        is_stacked = "stacked" in normalized
+        weight = 0.35
+        if "_w" in normalized:
+            try:
+                parts = normalized.split("_w")
+                w_part = parts[-1].split("_")[0] if parts[-1] else ""
+                if w_part.isdigit():
+                    weight = int(w_part) / 100.0
+            except (ValueError, IndexError):
+                pass
+
+        if is_stacked:
+            # Stacked QR + multiregime
+            from astar.student.predictor.greybox_stacked_expansion import GreyboxStackedExpansionPredictor
+            qr = QueryResidualPredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=None if historical_round_ids is None else list(historical_round_ids),
+                policy_name=(policy_name or "coverage").strip().lower(),
+                samples_per_round=samples_per_round,
+            )
+            mr = GreyboxMultiRegimePredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            )
+            # Reuse stacked expansion structure with multiregime instead
+            predictor = GreyboxStackedExpansionPredictor(
+                name=normalized,
+                query_residual=qr,
+                expansion_pred=mr,  # type: ignore[arg-type]
+                round_ids=tuple(mr.round_ids),
+                expansion_weight=weight,
+            )
+        else:
+            predictor = GreyboxMultiRegimePredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     if normalized == "greybox_expansion_conditioned":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
