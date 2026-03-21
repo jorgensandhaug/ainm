@@ -1166,6 +1166,103 @@ def test_transcript_sequence_factor_residual_ridge_weights_fit_targets() -> None
     assert np.allclose(preds, targets, atol=1e-3)
 
 
+def test_round_transcript_residual_memory_round_vector_includes_cross_seed_state() -> None:
+    from astar.features.geometry import RoundFeatureBundle, SeedFeatureBundle
+    from astar.observe.evidence import RoundEvidenceBundle, SeedEvidenceBundle
+    from astar.student.predictor.round_transcript_residual_memory import _round_vector
+    from astar.core.grid import Viewport
+    from astar.core.trajectory import LiveQueryObs
+    from astar.core.world_state import LiveSettlementObs
+    from astar.envs.types import RoundContext, SeedContext
+    from astar.core.world_state import InitialWorldState, InitialSettlementState
+
+    counts = np.zeros((2, 2, 6), dtype=np.int64)
+    counts[0, 0, 1] = 1
+    round_context = RoundContext(
+        round_id="round",
+        status="completed",
+        map_width=2,
+        map_height=2,
+        seeds=tuple(
+            SeedContext(
+                seed_index=i,
+                initial_state=InitialWorldState(
+                    grid=np.zeros((2, 2), dtype=np.int64),
+                    settlements=(InitialSettlementState(x=0, y=0, has_port=False, alive=True),),
+                ),
+            )
+            for i in range(2)
+        ),
+    )
+    round_evidence = RoundEvidenceBundle(
+        round_id="round",
+        per_seed={
+            i: SeedEvidenceBundle(
+                round_id="round",
+                seed_index=i,
+                query_count=1,
+                repeated_window_groups=0,
+                coverage_counts=np.zeros((2, 2), dtype=np.int64),
+                observed_class_counts=np.sum(counts, axis=(0, 1)),
+                observed_class_frequencies=np.asarray([0.0, 1.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64),
+                observed_class_count_tensor=counts,
+            )
+            for i in range(2)
+        },
+    )
+    round_features = RoundFeatureBundle(
+        round_id="round",
+        per_seed={
+            i: SeedFeatureBundle(
+                round_id="round",
+                seed_index=i,
+                height=2,
+                width=2,
+                features={
+                    "buildable": np.ones((2, 2), dtype=np.float64),
+                    "coast": np.zeros((2, 2), dtype=np.float64),
+                    "settlement_proximity": np.ones((2, 2), dtype=np.float64),
+                    "coastal_exposure": np.zeros((2, 2), dtype=np.float64),
+                    "maritime_access": np.zeros((2, 2), dtype=np.float64),
+                    "frontier_score": np.ones((2, 2), dtype=np.float64),
+                    "forest_density": np.zeros((2, 2), dtype=np.float64),
+                    "mountain_density": np.zeros((2, 2), dtype=np.float64),
+                },
+            )
+            for i in range(2)
+        },
+    )
+    observations = (
+        LiveQueryObs(
+            round_id="round",
+            seed_index=0,
+            viewport=Viewport(x=0, y=0, w=2, h=2),
+            grid=np.asarray([[0, 1], [1, 1]], dtype=np.int64),
+            settlements=(LiveSettlementObs(x=0, y=0, population=2.0, food=0.5, wealth=0.3, defense=0.1, has_port=False, alive=True),),
+            query_index=0,
+        ),
+        LiveQueryObs(
+            round_id="round",
+            seed_index=1,
+            viewport=Viewport(x=0, y=0, w=2, h=2),
+            grid=np.asarray([[2, 2], [3, 3]], dtype=np.int64),
+            settlements=(LiveSettlementObs(x=0, y=0, population=4.0, food=0.9, wealth=1.1, defense=0.7, has_port=True, alive=True),),
+            query_index=0,
+        ),
+    )
+
+    vector = _round_vector(
+        round_context,
+        round_evidence,
+        round_features,
+        observations,
+        max_queries=1,
+    )
+
+    assert vector.shape[0] > 100
+    assert np.max(np.abs(vector)) > 0.0
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

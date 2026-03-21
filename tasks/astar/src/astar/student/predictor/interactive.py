@@ -41,6 +41,10 @@ from astar.student.predictor.transcript_sequence_factor_residual import (
     is_transcript_sequence_factor_residual_model_name,
     load_or_fit_named_transcript_sequence_factor_residual_predictor,
 )
+from astar.student.predictor.round_transcript_residual_memory import (
+    is_round_transcript_residual_memory_model_name,
+    load_or_fit_named_round_transcript_residual_memory_predictor,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -217,6 +221,20 @@ def build_online_predictor(
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         predictor = load_or_fit_named_transcript_sequence_factor_residual_predictor(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_round_transcript_residual_memory_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = load_or_fit_named_round_transcript_residual_memory_predictor(
             workspace_paths,
             model_name=normalized,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),

@@ -3937,6 +3937,34 @@
    - launch policy:
      - all new gates use `jobs=1`
      - factor-residual family limited to `4` variants live at once because transcript-memory, transcript-residual-memory, and transcript-sequence-residual-memory waves are already running on the shared machine
+441. New hypothesis branch started while all prior radical families still build/cache:
+   - family:
+     - `round_transcript_residual_memory`
+   - hypothesis:
+     - per-seed transcript retrieval may miss the shared within-round law that ties all five seeds together
+     - retrieve a whole-round residual bundle using the concatenated ordered transcript state of every seed, then apply the matched bundle back to each seed prediction jointly
+   - objective:
+     - explicitly model cross-seed round coupling rather than only pooled scalar context
+442. Implemented + validated `round_transcript_residual_memory`:
+   - new file:
+     - `src/astar/student/predictor/round_transcript_residual_memory.py`
+   - reproducible models:
+     - `round_transcript_residual_memory`
+     - `round_transcript_residual_memory_v1`
+     - `round_transcript_residual_memory_v2`
+     - `round_transcript_residual_memory_v3`
+     - `round_transcript_residual_memory_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, last `4` queries, `k=5`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, last `8` queries, `k=3`, correction scale `1.00`
+   - model form:
+     - concatenate ordered transcript-state vectors across all seeds, add pooled mean/std summary, retrieve nearest whole-round residual bundles, then apply matched per-seed residuals jointly
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_transcript_residual_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_transcript_residual_memory_historical_benchmark_model tests/test_teacher_student.py::test_round_transcript_residual_memory_round_vector_includes_cross_seed_state tests/test_historical_benchmark.py::test_round_transcript_residual_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions
