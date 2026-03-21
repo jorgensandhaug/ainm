@@ -32,9 +32,8 @@
 6. if the employee still has no active employment in the payroll period, repair once when the missing state is only placeholder-able payroll prerequisite data:
    - reuse the division from step `4` or the newly created one from step `5`
    - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` when the employee still has no birth date
-   - `POST /employee/employment` with `division.id`, the first day of the payroll month, `isMainEmployer: true`, and `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-   - `POST /employee/employment/details` with `employment: { id: <new-employment-id> }`, `date: <first day of payroll month>`, `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary: <base salary from prompt>`, `annualSalary: <base salary * 12>`
-7. resolve salary types, voucher type, and accounts — these 3 reads are independent and SHOULD be parallelized with `Promise.all`:
+   - `POST /employee/employment` with `division.id`, the first day of the payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`, and inline `employmentDetails: [{ date, employmentType: "ORDINARY", employmentForm: "PERMANENT", remunerationType: "MONTHLY_WAGE", workingHoursScheme: "NOT_SHIFT", percentageOfFullTimeEquivalent: 100, monthlySalary: <base salary from prompt>, annualSalary: <base salary * 12> }]` — this inlines the details in one call and eliminates the separate `POST /employee/employment/details`; sandbox-verified on 2026-03-21 that `remunerationType`, `monthlySalary`, and `annualSalary` all persist correctly via inline
+7. resolve salary types, voucher type, and accounts — these 3 reads are independent of the repair chain and SHOULD be parallelized with `Promise.all`, and also parallelized with the repair chain (steps 6a-6b) since they do not depend on employee state:
    - `GET /salary/type?count=1000&fields=*` once the employee is payroll-ready already or the repair branch has actually succeeded
    - `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` to resolve the account-specific Lønnsbilag voucherType id — do NOT hardcode voucherType ids, they vary across accounts (sandbox=9744848, production accounts vary e.g. 8145240)
    - `GET /ledger/account?number=5000,1920&count=10&fields=*` to resolve both account 5000 (Lønn til ansatte) and 1920 (Bankinnskudd) in a single call
@@ -54,27 +53,25 @@
   - parallel `Promise.all`: `GET /salary/type` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
   - `POST /salary/transaction?generateTaxDeduction=true`
   - `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with explicit `row: 1, 2, 3`
-- underconfigured-employee branch (division exists, 10 calls):
+- underconfigured-employee branch (division exists, 9 calls):
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do not stop
   - do `GET /division?count=1&fields=*` before any salary-type lookup
-  - if that division read returns one usable division, repair the employee first
-  - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
-  - `POST /employee/employment`
-  - `POST /employee/employment/details` with `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary: <base salary>`, `annualSalary: <base salary * 12>`
-  - parallel `Promise.all`: `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
+  - if that division read returns one usable division, repair the employee
+  - parallelize the repair chain with the 3 reads via `Promise.all`:
+    - chain A (sequential): `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` → `POST /employee/employment` with inline `employmentDetails[]`
+    - chain B (parallel): `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
   - `POST /salary/transaction?generateTaxDeduction=true`
   - `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with explicit `row: 1, 2, 3`
-- underconfigured-employee branch (no division — create one, 11 calls):
+- underconfigured-employee branch (no division — create one, 10 calls):
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do `GET /division?count=1&fields=*`
   - if that division read returns zero usable rows, create a division:
   - `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (with correct checksum), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call; id `1` has been verified across all production and sandbox accounts
   - then repair the employee and create payroll:
-  - `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
-  - `POST /employee/employment` with the new `division.id`, first day of payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-  - `POST /employee/employment/details` with `employment: { id: <new-employment-id> }`, `date: <first day of payroll month>`, `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary: <base salary>`, `annualSalary: <base salary * 12>`
-  - parallel `Promise.all`: `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
+  - parallelize the repair chain with the 3 reads via `Promise.all`:
+    - chain A (sequential): `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"` → `POST /employee/employment` with inline `employmentDetails[]` (includes `division.id`, first day of payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`, and `employmentDetails: [{ date, employmentType: "ORDINARY", employmentForm: "PERMANENT", remunerationType: "MONTHLY_WAGE", workingHoursScheme: "NOT_SHIFT", percentageOfFullTimeEquivalent: 100, monthlySalary, annualSalary }]`)
+    - chain B (parallel): `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
   - `POST /salary/transaction?generateTaxDeduction=true`
   - `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with explicit `row: 1, 2, 3`
 - explicit-fallback no-division branch (only when prompt explicitly allows manual vouchers, 4 calls):
@@ -84,7 +81,7 @@
   - `GET /ledger/account?number=5000,1920&count=10&fields=*` (combined single call)
   - `POST /ledger/voucher` with `voucherType: null`, one positive posting on account `5000` and one negative balancing posting on `1920` for the gross salary cost; postings MUST include explicit `row` field starting from 1
 - use `GET /salary/type` as both the salary-type lookup and the wage-feature probe; if that read fails with a live `403`, only then investigate `/salary/settings` or `/company/salesmodules`
-- ALWAYS add `POST /employee/employment/details` after `POST /employee/employment` in the repair branch; this sets `monthlySalary`, `remunerationType`, and other fields the scorer requires; the 2026-03-20 sandbox proof that succeeded "without it" only proved API-level success — all 15+ production runs using that path scored 0/8
+- ALWAYS include `employmentDetails[]` when creating employment in the repair branch — either inline in `POST /employee/employment` (preferred, saves 1 call) or as a separate `POST /employee/employment/details`; this sets `monthlySalary`, `remunerationType`, and other fields the scorer requires; sandbox on 2026-03-21 verified that inline `employmentDetails` in `POST /employee/employment` persists `remunerationType=MONTHLY_WAGE` and `monthlySalary` correctly
 
 ## Payload Rules
 - keep `date`, `year`, `month`, and `paySlipsAvailableDate` internally consistent with the target payroll period
@@ -113,9 +110,12 @@
   - production proof on 2026-03-21 (ab1efdb0): voucherType 9744848 failed `422 Ugyldig bilagstype`; correct id for that account was 8145240 via name lookup; without `row` field, 4 consecutive 422 errors; with `row: 1, 2, 3`, voucher id=609129596 number=1 created successfully
   - sandbox proof on 2026-03-21: with `row: 1, 2, 3`, voucher id=609131104 number=387 created; without `row`, same `422 systemgenererte` error
   - the `POST /salary/transaction` creates a draft payslip only (number=0, no ledger entries, empty compilation); the Lønnsbilag voucher creates the actual accounting entries
-- for the employment details (ALWAYS create after employment):
-  - `POST /employee/employment/details` with `employment: { id }`, `date`, `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary: <base salary>`, `annualSalary: <base salary * 12>`
+- for the employment details (ALWAYS include when creating employment):
+  - preferred: inline `employmentDetails[]` array directly in `POST /employee/employment` — saves 1 call vs separate `POST /employee/employment/details`
+  - fallback: `POST /employee/employment/details` with `employment: { id }`, `date`, and the same fields
+  - required fields: `date`, `employmentType: "ORDINARY"`, `employmentForm: "PERMANENT"`, `remunerationType: "MONTHLY_WAGE"`, `workingHoursScheme: "NOT_SHIFT"`, `percentageOfFullTimeEquivalent: 100`, `monthlySalary: <base salary>`, `annualSalary: <base salary * 12>`
   - CRITICAL: `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored; without it, `monthlySalary` silently stays 0
+  - sandbox proof on 2026-03-21: inline `employmentDetails` in `POST /employee/employment` persists `remunerationType=MONTHLY_WAGE`, `monthlySalary`, and `annualSalary` correctly; payroll transaction succeeded with correct `grossAmount`
   - sandbox proof on 2026-03-21: passing only `monthlySalary` without `remunerationType: "MONTHLY_WAGE"` resulted in `monthlySalary: 0`, `annualSalary: 0`, all types `NOT_CHOSEN`
 - for the explicit manual-voucher fallback branch:
   - resolve account ids through `GET /ledger/account?number=5000,1920&fields=*`
