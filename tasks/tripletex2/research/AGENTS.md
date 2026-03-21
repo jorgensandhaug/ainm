@@ -4,7 +4,7 @@ Packet = context.
 
 This `research/AGENTS.md` file = instructions and doctrine.
 
-Read the packet first. Do not start coding, planning, or speculating before you have read the packet end to end.
+Read the packet first. 
 
 Identify the current frontier to beat before coding. Making a strategy that is not better is pointless.
 
