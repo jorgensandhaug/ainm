@@ -4531,9 +4531,26 @@
    - 5th: adaptive_ensemble_v10 = 79.02
    - 6th: query_residual_v19 = 76.89
 
+494. Extended adaptive_ensemble full LOO results:
+   - **v7: 79.34** (STILL BEST - binary, threshold=0.03, scale=0.3/0.2)
+   - v16: 79.32 (binary, threshold=0.03, scale=0.35/0.25)
+   - v14: 79.27 (binary, threshold=0.03, scale=0.25/0.18)
+   - v1: 79.26 (binary, threshold=0.03, scale=0.4/0.3)
+   - v9: 79.22 (graduated)
+   - v13: 79.14 (binary, threshold=0.03, scale=0.2/0.15 - too aggressive)
+   - v8: 79.03 (binary, threshold=0.03, scale=0.5/0.4)
+   - v10: 79.02 (graduated)
+   - v15: 78.90 (binary, threshold=0.03, scale=0.15/0.10 - way too aggressive)
+   - v2: 78.60 (binary, threshold=0.02)
+
+495. Scaling sensitivity analysis:
+   - Optimal settlement scale: ~0.3 (range: 0.25-0.35 within 0.1 of best)
+   - Optimal ruin scale: ~0.2 (range: 0.18-0.25 within 0.1 of best)
+   - More aggressive hurts: v13 (0.2/0.15) loses 0.2, v15 (0.15/0.10) loses 0.44
+   - Less aggressive also hurts: v1 (0.4/0.3) loses 0.08, v8 (0.5/0.4) loses 0.31
+
 ## Open Questions
 
-- Can we find even more aggressive scaling that helps the barren rounds without overshooting?
-- Can we build a continuous (non-binary) correction that smoothly adapts to activity level?
-- Should we try the adaptive_ensemble approach on top of other base models?
-- Can we detect other regime types beyond barren (e.g., high-conflict, port-heavy)?
+- Can the remaining worst round (36e581f1 at 66.58) be improved?
+- Can we detect and calibrate other regime types (high-conflict, port-heavy)?
+- Is there a way to break above 80 on full LOO?
