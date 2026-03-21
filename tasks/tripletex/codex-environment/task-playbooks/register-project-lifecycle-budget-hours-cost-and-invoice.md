@@ -69,6 +69,15 @@ Production run for `Cloud-Migration Eichenhof` on 2026-03-21 was incomplete beca
 - total calls: 16 (13 success + 3 errors), task incomplete
 - the correct path would have been 14-15 calls with 0 errors by: (a) conditionally omitting `division` when no division exists, (b) using `"12345678903"` for the bank-account repair
 
+Production run for `ERP-implementering Havbris` on 2026-03-21 completed with 1 avoidable 422 and 1 duplicate call:
+- the `splitHours` function used `new Date(start + "T00:00:00")` (local time) then `.toISOString().slice(0, 10)` (UTC), shifting all timesheet dates back by 1 day in CET/CEST timezone
+- `POST /timesheet/entry/list` failed `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.` because the first entry date was `2026-03-20` instead of `2026-03-21`
+- the supplier POST ran in parallel and succeeded before the error was caught
+- the recovery script (run2) re-created the supplier (duplicate) and re-ran timesheet with UTC-safe dates using `new Date(Date.UTC(y, m-1, d + offset))`
+- total calls: 17 (15 ideal with bank fix + 1 wasted 422 + 1 duplicate supplier), 1 error
+- the correct implementation: always use `Date.UTC()` for date construction in timesheet splitting
+- sandbox re-proof confirmed the full 14-call path with UTC-safe dates succeeds with 0 errors
+
 Production run for `Migração Cloud Horizonte` on 2026-03-21 completed with 1 avoidable 422:
 - the agent sent `activity: { name: "PROJECT_SPECIFIC_ACTIVITY", isChargeable: false }` without `activityType` on `POST /project/projectActivity`
 - got `422 activity.activityType: Kan ikke være null.`, wasting 1 call
@@ -117,6 +126,7 @@ Previous non-batched order-first path was `15-22` calls depending on extra looku
 - **Project startDate**: must be on or before the earliest planned timesheet entry date; set it to the run date or use timesheet dates >= project startDate
 - **Department + Division**: for this multi-employee task shape, always read department and division proactively before the first `POST /employee`; if no department exists, create one with `POST /department`; if no division exists (empty array from `GET /division`), omit `division` entirely from the employment object — do NOT send `division: { id: undefined }` or `division: null`, because Tripletex interprets the presence of the `division` key as creating a new division and fails with `422 employments.division.name: Feltet kan ikke være tomt.`
 - **Timesheet dates**: all timesheet entry dates must be >= project `startDate`; use consecutive dates starting from the project start date, max 24 hours per entry per employee per date
+- **Timesheet date arithmetic**: CRITICAL — use UTC-safe date construction; `new Date(dateStr + "T00:00:00")` creates a local-time Date and `.toISOString().slice(0, 10)` converts to UTC, shifting dates back 1 day in CET/CEST; use `new Date(Date.UTC(y, m-1, d))` instead; the 2026-03-21 production run `ERP-implementering Havbris` hit this exact trap and wasted 1 call + 1 duplicate supplier recovery
 - **Batch timesheet**: use `POST /timesheet/entry/list` with an array of all entries for all employees; this is 1 API call regardless of entry count
 - **Lifecycle invoice**: on this exact family, prefer direct `POST /invoice?sendToCustomer=false` with embedded `orders[]`; do not default to `POST /order` -> `PUT /order/{id}/:invoice`
 - **Invoice due date**: the direct lifecycle-invoice branch requires explicit root `invoiceDueDate`; omitting it fails `422 invoiceDueDate: Kan ikke være null.`
@@ -260,3 +270,4 @@ Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
 - Do not send `division: { id: undefined }` or `division: null` in employee payloads when `GET /division` returned empty; Tripletex treats the presence of the `division` key as a create-division intent and fails `422 employments.division.name: Feltet kan ikke være tomt.`; conditionally build the employment object and only include `division` when a valid division id exists
 - Do not use arbitrary 11-digit bank account numbers for the bank-account repair step; Norwegian bank accounts require a valid MOD11 check digit; always use the proven value `"12345678903"`; the 2026-03-21 production run `Cloud-Migration Eichenhof` used `"12345678901"` and failed `422`, leaving the invoice uncreated
 - Do not omit `activityType` from the inline `activity` object on `POST /project/projectActivity`; both `name` (any descriptive string) and `activityType: "PROJECT_SPECIFIC_ACTIVITY"` are mandatory; the 2026-03-21 production run `Migração Cloud Horizonte` sent only `name` and got `422 activity.activityType: Kan ikke være null.`, wasting 1 call; sandbox re-proof confirmed that `activityType` alone also fails with `422 name: Aktivitetsnavn må fylles ut.`
+- Do not use `new Date(dateStr + "T00:00:00")` then `.toISOString().slice(0, 10)` for timesheet date splitting; this creates local-time dates and the UTC conversion shifts them back by 1 day in CET/CEST timezones; use `new Date(Date.UTC(y, m-1, d))` instead; the 2026-03-21 production run `ERP-implementering Havbris` hit this trap: the first timesheet date became `2026-03-20` instead of `2026-03-21`, failing with `422` and wasting 2 calls (1 failed timesheet + 1 duplicate supplier in recovery)

@@ -63,6 +63,8 @@
 - timesheet batch:
   - split totals above `24` into distinct dates before the first write
   - keep every date on or after the project `startDate`
+  - CRITICAL: use UTC-safe date arithmetic for splitting; `new Date(dateStr + "T00:00:00")` creates a local-time Date, and `.toISOString().slice(0, 10)` converts to UTC, which shifts dates back by 1 day in CET/CEST timezones — use `new Date(Date.UTC(y, m-1, d))` instead
+  - the 2026-03-21 production run `ERP-implementering Havbris` hit this exact trap: the `splitHours` function used local-time Date construction, causing the first timesheet date to be `2026-03-20` (1 day before project startDate), which failed `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
 - cost-only project order line:
   - include `project.id`
   - include `description`
@@ -149,3 +151,10 @@
   - agent sent `name: "PROJECT_SPECIFIC_ACTIVITY"` without `activityType` — got `422 activity.activityType: Kan ikke være null.`; resume added both `name` + `activityType` — `201`
   - sandbox re-proof: `activityType` alone → `422 name`; `name` alone → `422 activityType`; both → `201`
   - total: 16 calls (15 ideal + 1 wasted 422); full 14-call path re-proven in sandbox with 0 errors
+- the 2026-03-21 production run `ERP-implementering Havbris` exposed a JavaScript timezone pitfall in date splitting:
+  - the `splitHours` function used `new Date(start + "T00:00:00")` (local time) then `.toISOString().slice(0, 10)` (UTC), shifting dates back 1 day in CET/CEST
+  - `POST /timesheet/entry/list` failed `422` because the first entry date was `2026-03-20` (before project startDate `2026-03-21`)
+  - the fix: use `Date.UTC()` for date construction, e.g. `new Date(Date.UTC(y, m-1, d + offset))` then `.toISOString().slice(0, 10)`
+  - the recovery script reran steps 6-9 with correct UTC dates, but also re-created the supplier (already created in the failed parallel batch), wasting 1 extra call
+  - total: 17 calls (15 ideal with bank fix + 1 wasted 422 + 1 duplicate supplier), 1 error
+  - sandbox re-proof confirmed the full 14-call path with UTC-safe date splitting succeeds with 0 errors

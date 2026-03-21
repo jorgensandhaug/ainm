@@ -336,6 +336,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `projectChargeableHours` has a hard per-entry ceiling of `24`; `POST /timesheet/entry` above that returns `422 projectChargeableHours: Kan ikke være over 24`
   - Tripletex allows only one timesheet entry per `employee + project + activity + date`; a second same-day write for the same tuple returns `409 Det er allerede registrert timer ...`
   - for project-hour prompts whose total hours exceed `24`, plan a multi-day split before the first write instead of sending one oversized entry or stacking multiple same-day entries
+  - CRITICAL: when splitting hours across dates, use UTC-safe date arithmetic; `new Date(dateStr + "T00:00:00")` creates a local-time Date and `.toISOString().slice(0, 10)` converts to UTC, shifting dates back by 1 day in CET/CEST timezones; use `new Date(Date.UTC(y, m-1, d))` instead; the 2026-03-21 production run `ERP-implementering Havbris` hit this trap and wasted 2 calls
   - if such a run already partially succeeded on one day chunk before the duplicate branch surfaced, use one decisive `GET /timesheet/entry?...` on the intended date window and write only the missing dates
   - that non-chargeable timesheet response is only a true blocker when the prompt explicitly scores internal billability semantics or true project-hour reserve consumption
   - do not make `/timesheet/week/:approve` part of the default fast path for project-hour invoice tasks; it can return `403` even for the token owner
