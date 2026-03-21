@@ -55,75 +55,65 @@ monthly_depreciation = acquisition_cost / (useful_life_years * 12)
 - Create missing accounts with `POST /ledger/account` (just `number` and `name` suffice)
 - If 2+ accounts are missing, use batch create `POST /ledger/account/list` to save a call
 
-## Minimum API Flow
+## Minimum API Flow (3 calls — combined voucher)
 
-### Phase 1: One GET for all accounts
-`GET /ledger/account?number=<all-needed>&fields=*`
-- Include ALL accounts from the task: prepaid account, expense contra, depreciation expense, accumulated depreciation, salary expense, accrued salary
-- Example: `number=1720,6300,6030,1209,5000,2900`
-- Check which are returned; note missing ones
+All three entries can be combined into a single voucher with 6 posting lines.
+This is the recommended approach unless the task explicitly requires separate vouchers ("eget bilag").
 
-### Phase 2: Create missing accounts (0-1 calls)
-- If 1 missing: `POST /ledger/account` with `{ number, name }`
-- If 2+ missing: `POST /ledger/account/list` with array of `{ number, name }` objects
-- Both work with just `number` and `name`; Tripletex auto-infers `type` from the account number range
+### Step 1: Account lookup (1 GET)
+```
+GET /ledger/account?number=<all-needed>&fields=*
+```
+Include ALL accounts: prepaid, expense contra, depreciation expense, accumulated depreciation, salary expense, accrued salary.
+
+Example: `number=1720,6300,6030,1209,5000,2900`
+
+Check which accounts were returned. If any are missing (especially 6030, 1209), create them before step 2.
+
+### Step 1b: Create missing accounts (0-1 calls)
+- If 1 missing: `POST /ledger/account` with `{ number: <num>, name: "<name>" }`
+- If 2+ missing: `POST /ledger/account/list` with array of `{ number: <num>, name: "<name>" }` objects
+- Tripletex auto-infers account `type` from the number range
 - Reuse returned IDs from the create response
 
-### Phase 3: Post vouchers (3 calls, or 1 if combined)
-Three separate `POST /ledger/voucher` calls:
-
-**Voucher 1: Accrual reversal**
+### Step 2: Combined voucher (1 POST)
 ```json
 {
   "date": "YYYY-MM-DD",
-  "description": "Periodisering forskuddsbetalte kostnader <month> <year>",
+  "description": "Månedsavslutning <month> <year>",
   "postings": [
-    { "row": 1, "account": { "id": <expenseAcctId> }, "amountGross": <amount>, "amountGrossCurrency": <amount>, "description": "Periodisering forskuddsbetalt kostnad" },
-    { "row": 2, "account": { "id": <prepaidAcctId> }, "amountGross": -<amount>, "amountGrossCurrency": -<amount>, "description": "Forskuddsbetalt kostnad" }
+    { "row": 1, "account": { "id": "<expenseId>" }, "amountGross": "<accrualAmt>", "amountGrossCurrency": "<accrualAmt>", "description": "Periodisering forskuddsbetalt kostnad" },
+    { "row": 2, "account": { "id": "<prepaidId>" }, "amountGross": "-<accrualAmt>", "amountGrossCurrency": "-<accrualAmt>", "description": "Forskuddsbetalt kostnad" },
+    { "row": 3, "account": { "id": "<depExpenseId>" }, "amountGross": "<depAmt>", "amountGrossCurrency": "<depAmt>", "description": "Avskrivning maskiner og anlegg" },
+    { "row": 4, "account": { "id": "<accumDepId>" }, "amountGross": "-<depAmt>", "amountGrossCurrency": "-<depAmt>", "description": "Akk. avskrivning maskiner og anlegg" },
+    { "row": 5, "account": { "id": "<salaryExpId>" }, "amountGross": "<salaryAmt>", "amountGrossCurrency": "<salaryAmt>", "description": "Lønn til ansatte" },
+    { "row": 6, "account": { "id": "<salaryLiabId>" }, "amountGross": "-<salaryAmt>", "amountGrossCurrency": "-<salaryAmt>", "description": "Påløpt lønn" }
   ]
 }
 ```
 
-**Voucher 2: Depreciation**
-```json
-{
-  "date": "YYYY-MM-DD",
-  "description": "Avskrivning driftsmidler <month> <year>",
-  "postings": [
-    { "row": 1, "account": { "id": <depExpenseAcctId> }, "amountGross": <depAmount>, "amountGrossCurrency": <depAmount>, "description": "Avskrivning maskiner og anlegg" },
-    { "row": 2, "account": { "id": <accumDepAcctId> }, "amountGross": -<depAmount>, "amountGrossCurrency": -<depAmount>, "description": "Akk. avskrivning maskiner og anlegg" }
-  ]
-}
-```
+Use the last day of the closing month as the voucher date.
 
-**Voucher 3: Salary accrual**
-```json
-{
-  "date": "YYYY-MM-DD",
-  "description": "Lønnsavsetning <month> <year>",
-  "postings": [
-    { "row": 1, "account": { "id": <salaryExpenseAcctId> }, "amountGross": <salaryAmount>, "amountGrossCurrency": <salaryAmount>, "description": "Lønn til ansatte" },
-    { "row": 2, "account": { "id": <accruedSalaryAcctId> }, "amountGross": -<salaryAmount>, "amountGrossCurrency": -<salaryAmount>, "description": "Påløpt lønn" }
-  ]
-}
+### Step 3: Trial balance verification (1 GET)
 ```
+GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY-MM+1-01&fields=*,account(*)&count=10000
+```
+Sum all `balanceOut` values — should equal zero (within floating-point tolerance).
 
-### Phase 4: Trial balance verification (optional, 1 GET)
-`GET /balanceSheet?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&fields=*,account(*)&count=10000`
-- Sum all `balanceOut` values — should equal zero for a balanced set of entries
-- `dateTo` is exclusive: for March 2026, use `dateTo=2026-04-01`
-- This is a read-only verification step with no side effect — likely not scored, but confirms correctness
+For March 2026: `dateFrom=2026-01-01&dateTo=2026-04-01`
+
+Note: `dateTo` is exclusive — `2026-04-01` includes all of March.
+
+## Separate Vouchers Alternative (5 calls)
+
+If the task explicitly says "eget bilag" or requires separate vouchers per entry, post 3 separate `POST /ledger/voucher` calls (each with 2 posting lines, rows 1 and 2).
+
+Total: 1 GET (accounts) + 3 POST (vouchers) + 1 GET (trial balance) = 5 calls.
 
 ## Call Count Summary
-- Best case (all accounts exist): 1 GET + 3 POST + 1 GET = 5 calls
-- Typical case (2 accounts missing): 1 GET + 1 POST (batch) + 3 POST + 1 GET = 6 calls
-- Without verification: subtract 1 GET
-
-## Combined Voucher Optimization
-All three entries can be combined into one voucher with 6 posting rows (rows 1-6).
-This saves 2 POST calls but risks losing points if the scorer expects separate vouchers for each entry type.
-- Use combined approach only if the task says "book all as one voucher" or similar
-- Default to separate vouchers for safety
+- Optimal (combined voucher, all accounts exist): 1 GET + 1 POST + 1 GET = **3 calls**
+- With 2 missing accounts: 1 GET + 1 POST (batch create) + 1 POST (voucher) + 1 GET = **4 calls**
+- Without trial balance verification: subtract 1 GET
 
 ## Critical Pitfalls
 - **row=0 is reserved**: Postings MUST use `row: 1`, `row: 2`, etc. Row 0 is system-generated and triggers `422`.
@@ -137,12 +127,11 @@ This saves 2 POST calls but risks losing points if the scorer expects separate v
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
-  - Account 1720 = "Andre depositum" (ASSETS), account 5000 = "Lønn til ansatte" (OPERATING_EXPENSES), account 2900 = "Forskudd fra kunder" (LIABILITIES)
-  - Accounts 6030 and 1209 do NOT exist in the standard chart; must be created
-  - `POST /ledger/account` with just `{ number, name }` succeeds (201), auto-infers account type
-  - `POST /ledger/account/list` batch create succeeds (201) for multiple accounts
-  - Account number+name refs on voucher postings fail (422); account ID required
-  - `POST /ledger/voucher` with row 1/2 balanced postings succeeds (201)
-  - Combined 6-line voucher with rows 1-6 succeeds (201)
+  - Account 1720 = "Andre depositum", 5000 = "Lønn til ansatte", 2900 = "Forskudd fra kunder"
+  - Accounts 6030 and 1209 existed in sandbox (non-default IDs suggest created by prior tests)
+  - Combined 6-line voucher with rows 1-6 succeeded (voucher 112): all three entries in a single POST
+  - Separate 2-line vouchers for each entry also succeeded (vouchers 109, 110, 111)
   - `GET /balanceSheet` with dateFrom/dateTo/fields/count returns correct cumulative balances
   - Depreciation 270750/96 = 2820.31 calculated and posted correctly
+  - Monthly accrual reversal 2450 NOK from 1720 to 6390 succeeded
+  - Salary accrual 45000 NOK from 5000 to 2900 succeeded
