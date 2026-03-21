@@ -22,8 +22,8 @@ from tests.test_historical_bucket_baseline import (
 from tests.test_history_datasets import _write_replays_for_all_seeds
 
 
-def test_ffam_mode_default_alias_promoted_to_v44() -> None:
-    assert resolve_ffam_mode_config("ffam_mode").model_name == "ffam_mode_v44"
+def test_ffam_mode_default_alias_promoted_to_v76() -> None:
+    assert resolve_ffam_mode_config("ffam_mode").model_name == "ffam_mode_v76"
 
 
 def test_run_historical_benchmark_writes_summaries(sample_paths: RepoPaths) -> None:
@@ -166,6 +166,38 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_mode_v42",
         "ffam_mode_v43",
         "ffam_mode_v44",
+        "ffam_mode_v45",
+        "ffam_mode_v46",
+        "ffam_mode_v47",
+        "ffam_mode_v48",
+        "ffam_mode_v49",
+        "ffam_mode_v50",
+        "ffam_mode_v51",
+        "ffam_mode_v52",
+        "ffam_mode_v53",
+        "ffam_mode_v54",
+        "ffam_mode_v55",
+        "ffam_mode_v56",
+        "ffam_mode_v57",
+        "ffam_mode_v58",
+        "ffam_mode_v59",
+        "ffam_mode_v60",
+        "ffam_mode_v61",
+        "ffam_mode_v62",
+        "ffam_mode_v63",
+        "ffam_mode_v64",
+        "ffam_mode_v65",
+        "ffam_mode_v66",
+        "ffam_mode_v67",
+        "ffam_mode_v68",
+        "ffam_mode_v69",
+        "ffam_mode_v70",
+        "ffam_mode_v71",
+        "ffam_mode_v72",
+        "ffam_mode_v73",
+        "ffam_mode_v74",
+        "ffam_mode_v75",
+        "ffam_mode_v76",
         "ffam_operator_v1",
         "ffam_operator_v2",
         "ffam_operator_v3",

@@ -2498,3 +2498,58 @@ Framework should accept unique query-residual family variant names directly so b
   - passed: `102`
   - committed + pushed promoted state to `origin/agent7`
   - commit: `df87640a`
+
+### 2026-03-21T15:00Z approx
+
+- Massive parallel sweep of new ffam_mode variants v45-v76.
+- Identified two key underexplored axes via 16-way parallel hard-gate probes:
+  - **prior_blend reduction**: v52 (prior_blend=0.05, ood=0.20) scored 69.02 vs v44's 67.49
+  - **operator ridge lambda reduction**: v45/v46 (lambda=4.0/2.0) showed mild gains
+- Promoted v52 and v59 to full 8-round dev:
+  - v52 = 78.28
+  - v59 = 78.46 (combo: q=4 + lambda=4 + prior=0.07 + temp=1.0)
+- Follow-up sweep v61-v66 pushed prior reduction further:
+  - v62 (prior=0.02, ood=0.10) = 69.45 hard-gate
+  - v61 (prior=0.03, ood=0.15) = 69.40 hard-gate
+- Combo variants v67-v72 on full dev:
+  - **v67 = 78.85** (q=4 + lambda=4 + prior=0.02 + ood=0.10 + temp=1.0) ← new best
+  - v70 = 78.57, v71 = 78.56
+- Final squeeze v73-v76:
+  - **v76 = 79.13** (v67 + posterior_ridge_lambda=4.0) ← NEW CHAMPION!
+  - v75 = 78.88, v73 = 78.86
+- Per-round comparison v44 vs v76:
+  - Round 3: 64.13 → 72.90 (+8.77!)
+  - Round 8: 80.32 → 84.70 (+4.38!)
+  - Round 7: 65.44 → 67.27 (+1.83)
+  - Round 6: 78.69 → 77.50 (-1.19)
+  - Round 4: 86.98 → 86.12 (-0.86)
+  - Round 2: 84.91 → 84.13 (-0.78)
+  - Round 1: 82.02 → 81.43 (-0.59)
+  - Round 5: 79.60 → 79.04 (-0.56)
+  - Net: +1.37 points aggregate
+- v77-v82 launched for additional squeeze around v76
+
+## Current Champion
+
+- best observed local full-dev system:
+  - model: `ffam_mode_v76`
+  - policy: `exploration_r3`
+  - `samples_per_round=2`
+  - score: `79.1349`
+  - mean weighted KL: `0.080358`
+  - key changes vs v44:
+    - `projected_mode_dim=4` (was 3)
+    - `operator_ridge_lambda=4.0` (was 8.0)
+    - `posterior_ridge_lambda=4.0` (was 8.0)
+    - `prior_blend=0.02` (was 0.10)
+    - `posterior_ood_prior_blend=0.10` (was 0.28)
+    - `temperature=1.0` (was 1.02)
+
+## Key Findings This Session
+
+1. **Prior blend was too conservative**: Reducing prior_blend from 0.10 to 0.02 gave +1.53 on hard gate
+2. **Ridge regularization was too strong**: Reducing both operator and posterior ridge from 8.0 to 4.0 improved full-dev by +0.28
+3. **Higher mode dim q=4 helps with MLP**: The nonlinear posterior can navigate the higher-dimensional space
+4. **Temperature=1.0 is optimal**: No temperature softening needed
+5. **More cells_per_seed hurts**: Increasing from 512 to 1024 dramatically worsened results
+6. **Cluster count=3 is neutral**: No improvement over 2 clusters
