@@ -520,7 +520,7 @@ The Codex agent receives the prompt, optional files, and the registered task sur
 
 This boundary is deliberate: the task-understanding step returns task identity and typed values only. It must not return a solve plan, API-call outline, or strategy-selection hint. The runtime picks the pinned strategy deterministically after receiving the handoff.
 
-The Codex task-understanding agent is configured via `codex-environment/AGENTS.md` and executed through `codex exec`.
+The Codex task-understanding agent is configured via `codex-environment/TASK_UNDERSTANDING.md` and executed through `codex exec`.
 
 ## Example mental model
 

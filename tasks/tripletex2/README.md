@@ -52,7 +52,7 @@ That is why deterministic per-task strategies are the center of gravity.
 
 - **Live sandbox verified** for `create-and-send-invoice` (3-call strategy, invoice 2147551798)
 - **30/30 tests green**
-- **Codex/codex-environment/AGENTS.md task understanding** wired into the real solve pipeline
+- **Codex/`codex-environment/TASK_UNDERSTANDING.md` task understanding** wired into the real solve pipeline
 - **`POST /solve` endpoint** with bearer auth, concurrency limiting, request-id logging, run staging, canonical artifact + trace sidecar writing
 - **Two deterministic strategies** for `create-and-send-invoice` (3-call auto-send vs 4-call explicit-send)
 - **Replay harness**, **strategy comparison tooling**, and **combined live/native reporting** all operational
@@ -63,7 +63,7 @@ That is why deterministic per-task strategies are the center of gravity.
 
 - `train_requests/` — flattened request corpus used for prompt analysis and replay shape understanding
 - `docs/` — the canonical architectural and process doctrine for this repo
-- `codex-environment/` — Codex runtime working directory with `AGENTS.md`, `openapi.json`, trusted standards, and playbooks
+- `codex-environment/` — Codex runtime assets for scored runs (`AGENTS.md`) and task understanding (`TASK_UNDERSTANDING.md`), plus `openapi.json`, trusted standards, and playbooks
 - `scripts/` — importers, replay harness, reporting CLI, and smoke tools
 - `src/` — the deterministic runtime, task registry, strategies, and `/solve` server
 - `configs/` — active strategy selection configs
@@ -311,7 +311,7 @@ Practical rule: treat replay as wiring proof, live sandbox as API-shape proof, a
 
 ## Task-Understanding Loop
 
-The default solve pipeline now uses a Codex/`codex-environment/AGENTS.md` task-understanding handoff before deterministic strategy execution. You can probe that boundary directly with:
+The default solve pipeline now uses a Codex/`codex-environment/TASK_UNDERSTANDING.md` task-understanding handoff before deterministic strategy execution. You can probe that boundary directly with:
 
 ```bash
 bun scripts/run_codex_task_understanding_sample.ts

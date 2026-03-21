@@ -16,9 +16,11 @@ const TRIPLETEX2_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
+const DEFAULT_CODEX_TASK_UNDERSTANDING_CWD = TRIPLETEX2_ROOT;
+const DEFAULT_TASK_UNDERSTANDING_CONTRACT_PATH = path.join(
   TRIPLETEX2_ROOT,
   "codex-environment",
+  "TASK_UNDERSTANDING.md",
 );
 const DEFAULT_CODEX_EXECUTABLE = process.env.CODEX_BIN ?? "codex";
 const DEFAULT_CODEX_MODEL =
@@ -38,6 +40,7 @@ const TASK_UNDERSTANDING_CODES = [
 ] as const satisfies readonly TaskUnderstandingCode[];
 
 export interface CodexTaskUnderstandingOptions {
+  contractPath?: string;
   cwd?: string;
   executable?: string;
   model?: string;
@@ -110,12 +113,18 @@ export async function runCodexTaskUnderstanding(
   input: ClassifierExtractorInput,
   options: CodexTaskUnderstandingOptions = {},
 ): Promise<CodexTaskUnderstandingRunResult> {
-  const cwd = options.cwd ?? DEFAULT_CODEX_ENVIRONMENT_DIR;
+  const cwd = options.cwd ?? DEFAULT_CODEX_TASK_UNDERSTANDING_CWD;
+  const contractPath =
+    options.contractPath ?? DEFAULT_TASK_UNDERSTANDING_CONTRACT_PATH;
   const executable = options.executable ?? DEFAULT_CODEX_EXECUTABLE;
   const model = options.model ?? DEFAULT_CODEX_MODEL;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const executor = options.executor ?? executeCodexTaskUnderstanding;
-  const prompt = buildCodexTaskUnderstandingPrompt(input);
+  const contractText = await readFile(contractPath, "utf8");
+  const prompt = buildCodexTaskUnderstandingPrompt(input, {
+    contractPath: formatPromptPath(path.relative(cwd, contractPath)),
+    contractText,
+  });
   const rawResponseText = await executor({
     cwd,
     executable,
@@ -130,7 +139,7 @@ export async function runCodexTaskUnderstanding(
   return {
     result: adapted.result,
     notes: [
-      `Task understanding ran via ${path.basename(executable)} exec using ./AGENTS.md and a JSON-schema-constrained response.`,
+      `Task understanding ran via ${path.basename(executable)} exec using ./codex-environment/TASK_UNDERSTANDING.md and a JSON-schema-constrained response.`,
       "This path requires a locally installed, authenticated Codex CLI.",
       ...adapted.notes,
     ],
@@ -139,10 +148,19 @@ export async function runCodexTaskUnderstanding(
 
 export function buildCodexTaskUnderstandingPrompt(
   input: ClassifierExtractorInput,
+  contract: {
+    contractPath: string;
+    contractText: string;
+  },
 ): string {
   const lines = [
     "Tripletex2 task-understanding run.",
-    "Follow ./AGENTS.md exactly.",
+    "Follow the task-understanding contract below exactly.",
+    `Contract path: ${contract.contractPath}`,
+    "",
+    "Task-understanding contract:",
+    contract.contractText,
+    "",
     "Return only JSON that matches the provided output schema.",
     "Do not return a solve plan, strategy hint, or API sequence.",
     "",
@@ -168,6 +186,14 @@ export function buildCodexTaskUnderstandingPrompt(
       file.textContent,
     ]),
   ].join("\n");
+}
+
+function formatPromptPath(relativePath: string): string {
+  if (relativePath.startsWith(".")) {
+    return relativePath;
+  }
+
+  return `./${relativePath}`;
 }
 
 export function adaptCodexTaskUnderstandingResult(
