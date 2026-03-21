@@ -13,6 +13,7 @@ from astar.history.summaries.hazards import (
     ReplayHazardSeedSummary,
     build_round_hazard_summary,
 )
+from astar.infra.artifacts.atomic import atomic_write_text
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_round_record, save_named_arrays
 from astar.infra.catalog.db import CatalogDB
@@ -96,7 +97,8 @@ def summarize_round_replays(
     replay_artifact_dir.mkdir(parents=True, exist_ok=True)
     round_summary_path = replay_artifact_dir / "round_summary.json"
     report_path = replay_artifact_dir / "report.md"
-    round_summary_path.write_text(
+    atomic_write_text(
+        round_summary_path,
         json.dumps(to_jsonable(hazard_summary), indent=2),
         encoding="utf-8",
     )
@@ -125,7 +127,7 @@ def summarize_round_replays(
                 "",
             ],
         )
-    report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
+    atomic_write_text(report_path, "\n".join(report_lines).strip() + "\n", encoding="utf-8")
 
     catalog = CatalogDB(paths.catalog_path)
     catalog.log_event(

@@ -14,6 +14,7 @@ from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.episodes.build import build_round_episode
 from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
 from astar.history.summaries.round_coefficients import round_regime_summary_vector
+from astar.infra.artifacts.atomic import atomic_write_parquet, atomic_write_text, file_lock
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
@@ -21,7 +22,6 @@ from astar.infra.serialization.json_utils import to_jsonable
 from astar.envs.base import InteractiveQueryPolicy
 from astar.policy.interactive import QueryPlanPolicyAdapter, build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
-from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.online_episode import run_online_episode
 
 
@@ -89,6 +89,44 @@ def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
     return SyntheticEpisodeArtifact.model_validate(payload)
 
 
+def load_synthetic_live_dataset_ref(
+    paths: WorkspacePaths,
+    dataset_name: str,
+) -> SyntheticEpisodeDatasetRef:
+    dataset_dir = paths.dataset_dir(dataset_name)
+    summary_path = dataset_dir / "summary.json"
+    index_path = dataset_dir / "index.parquet"
+    if not summary_path.exists() or not index_path.exists():
+        raise FileNotFoundError(dataset_name)
+    try:
+        episode_paths = (
+            pl.read_parquet(index_path, columns=["episode_path"])
+            .get_column("episode_path")
+            .to_list()
+        )
+        if any(not Path(str(item)).exists() for item in episode_paths):
+            raise FileNotFoundError(f"{dataset_name}: stale episode paths")
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise
+    except Exception as exc:
+        raise FileNotFoundError(f"{dataset_name}: invalid cache ({type(exc).__name__})") from exc
+    row_count = int(len(episode_paths))
+    return SyntheticEpisodeDatasetRef(
+        dataset_name=str(summary.get("dataset_name", dataset_name)),
+        dataset_kind=str(summary.get("dataset_kind", "synthetic_live")),
+        dataset_dir=dataset_dir,
+        summary_path=summary_path,
+        index_path=index_path,
+        row_count=row_count,
+        round_count=int(summary.get("round_count", 0)),
+        policy_name=str(summary.get("policy_name", "coverage")),
+        episode_count=int(summary.get("episode_count", row_count)),
+        total_query_count=int(summary.get("total_query_count", 0)),
+        samples_per_round=int(summary.get("samples_per_round", 1)),
+    )
+
+
 def build_synthetic_live_dataset(
     paths: WorkspacePaths,
     *,
@@ -97,6 +135,7 @@ def build_synthetic_live_dataset(
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
     regime_vectors_by_round: Mapping[str, np.ndarray] | None = None,
+    reuse_existing: bool = False,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -104,120 +143,132 @@ def build_synthetic_live_dataset(
         if round_dir.is_dir()
     )
     dataset_dir = paths.dataset_dir(dataset_name)
-    episodes_dir = dataset_dir / "episodes"
-    episodes_dir.mkdir(parents=True, exist_ok=True)
-    index_path = dataset_dir / "index.parquet"
-    summary_path = dataset_dir / "summary.json"
+    lock_path = paths.artifacts_dir / "locks" / f"dataset__{dataset_name}.lock"
+    with file_lock(lock_path):
+        if reuse_existing:
+            try:
+                return load_synthetic_live_dataset_ref(paths, dataset_name)
+            except FileNotFoundError:
+                pass
 
-    rows: list[dict[str, str | int]] = []
-    total_query_count = 0
-    oracle = SyntheticActiveOracle(paths=paths)
-    policy = build_interactive_policy(policy_name)
-    recorder = TranscriptRecorderPredictor()
+        episodes_dir = dataset_dir / "episodes"
+        episodes_dir.mkdir(parents=True, exist_ok=True)
+        index_path = dataset_dir / "index.parquet"
+        summary_path = dataset_dir / "summary.json"
 
-    for round_id in selected_round_ids:
-        round_episode = build_round_episode(paths, round_id)
-        if round_episode.replay_run_count == 0:
-            continue
-        materialize_round_episode(paths, round_id)
-        budget = _plan_budget(policy, round_id, oracle)
-        learning_episode = load_round_learning_episode(paths, round_id)
+        rows: list[dict[str, str | int]] = []
+        total_query_count = 0
+        oracle = SyntheticActiveOracle(paths=paths)
+        policy = build_interactive_policy(policy_name)
+        recorder = TranscriptRecorderPredictor()
 
-        for sample_index in range(samples_per_round):
-            episode_run = run_online_episode(
-                oracle,
-                round_id=round_id,
-                predictor=recorder,
-                policy=policy,
-                budget=budget,
-                episode_seed=sample_index,
-            )
-            observations = episode_run.belief.observations
+        for round_id in selected_round_ids:
+            round_episode = build_round_episode(paths, round_id)
+            if round_episode.replay_run_count == 0:
+                continue
+            budget = _plan_budget(policy, round_id, oracle)
+            learning_episode = load_round_learning_episode(paths, round_id)
 
-            target_sources = {}
-            target_paths = {}
-            for seed_index in range(round_episode.metadata.seeds_count):
-                try:
-                    target_source, target_path = _target_info(
-                        paths,
-                        round_id,
-                        seed_index,
-                        learning_episode,
-                    )
-                except ValueError:
-                    continue
-                target_sources[seed_index] = target_source
-                target_paths[seed_index] = target_path
+            for sample_index in range(samples_per_round):
+                episode_run = run_online_episode(
+                    oracle,
+                    round_id=round_id,
+                    predictor=recorder,
+                    policy=policy,
+                    budget=budget,
+                    episode_seed=sample_index,
+                )
+                observations = episode_run.belief.observations
 
-            artifact = SyntheticEpisodeArtifact(
-                round_id=round_id,
-                round_number=int(episode_run.round_context.round_number or -1),
-                map_width=episode_run.round_context.map_width,
-                map_height=episode_run.round_context.map_height,
-                sample_index=sample_index,
-                policy_name=policy.name,
-                regime_vector=(
-                    np.asarray(regime_vectors_by_round[round_id], dtype=np.float64)
-                    if regime_vectors_by_round is not None
-                    else round_regime_summary_vector(round_episode)
-                ),
-                observations=observations,
-                target_sources=target_sources,
-                target_paths=target_paths,
-            )
-            episode_path = episodes_dir / f"{round_id}__sample_index={sample_index}.json"
-            episode_path.write_text(
-                json.dumps(to_jsonable(artifact), indent=2),
-                encoding="utf-8",
-            )
-            rows.append(
-                {
-                    "round_id": round_id,
-                    "sample_index": sample_index,
-                    "policy_name": policy.name,
-                    "query_count": len(observations),
-                    "episode_path": str(episode_path),
-                },
-            )
-            total_query_count += len(observations)
+                target_sources = {}
+                target_paths = {}
+                for seed_index in range(round_episode.metadata.seeds_count):
+                    try:
+                        target_source, target_path = _target_info(
+                            paths,
+                            round_id,
+                            seed_index,
+                            learning_episode,
+                        )
+                    except ValueError:
+                        continue
+                    target_sources[seed_index] = target_source
+                    target_paths[seed_index] = target_path
 
-    index_table = pl.DataFrame(rows)
-    index_table.write_parquet(index_path)
-    summary = {
-        "dataset_name": dataset_name,
-        "dataset_kind": "synthetic_live",
-        "policy_name": policy.name,
-        "episode_count": index_table.height,
-        "samples_per_round": samples_per_round,
-        "total_query_count": total_query_count,
-        "round_count": len({row["round_id"] for row in rows}),
-        "regime_vector_source": (
-            "external"
-            if regime_vectors_by_round is not None
-            else "round_regime_summary_v1"
-        ),
-        "index_path": str(index_path),
-    }
-    summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")
-    CatalogDB(paths.catalog_path).log_event(
-        CatalogEvent(
-            event_kind="synthetic_episode_built",
-            status="ok",
-            artifact_path=summary_path,
-            payload_json=summary,
-            spec_name=dataset_name,
-        ),
-    )
-    return SyntheticEpisodeDatasetRef(
-        dataset_name=dataset_name,
-        dataset_kind="synthetic_live",
-        dataset_dir=dataset_dir,
-        summary_path=summary_path,
-        index_path=index_path,
-        row_count=index_table.height,
-        round_count=len({row["round_id"] for row in rows}),
-        policy_name=policy.name,
-        episode_count=index_table.height,
-        total_query_count=total_query_count,
-        samples_per_round=samples_per_round,
-    )
+                artifact = SyntheticEpisodeArtifact(
+                    round_id=round_id,
+                    round_number=int(episode_run.round_context.round_number or -1),
+                    map_width=episode_run.round_context.map_width,
+                    map_height=episode_run.round_context.map_height,
+                    sample_index=sample_index,
+                    policy_name=policy.name,
+                    regime_vector=(
+                        np.asarray(regime_vectors_by_round[round_id], dtype=np.float64)
+                        if regime_vectors_by_round is not None
+                        else round_regime_summary_vector(round_episode)
+                    ),
+                    observations=observations,
+                    target_sources=target_sources,
+                    target_paths=target_paths,
+                )
+                episode_path = episodes_dir / f"{round_id}__sample_index={sample_index}.json"
+                atomic_write_text(
+                    episode_path,
+                    json.dumps(to_jsonable(artifact), indent=2),
+                    encoding="utf-8",
+                )
+                rows.append(
+                    {
+                        "round_id": round_id,
+                        "sample_index": sample_index,
+                        "policy_name": policy.name,
+                        "query_count": len(observations),
+                        "episode_path": str(episode_path),
+                    },
+                )
+                total_query_count += len(observations)
+
+        index_table = pl.DataFrame(rows)
+        atomic_write_parquet(index_path, index_table)
+        summary = {
+            "dataset_name": dataset_name,
+            "dataset_kind": "synthetic_live",
+            "policy_name": policy.name,
+            "episode_count": index_table.height,
+            "samples_per_round": samples_per_round,
+            "total_query_count": total_query_count,
+            "round_count": len({row["round_id"] for row in rows}),
+            "regime_vector_source": (
+                "external"
+                if regime_vectors_by_round is not None
+                else "round_regime_summary_v1"
+            ),
+            "index_path": str(index_path),
+        }
+        atomic_write_text(
+            summary_path,
+            json.dumps(to_jsonable(summary), indent=2),
+            encoding="utf-8",
+        )
+        CatalogDB(paths.catalog_path).log_event(
+            CatalogEvent(
+                event_kind="synthetic_episode_built",
+                status="ok",
+                artifact_path=summary_path,
+                payload_json=summary,
+                spec_name=dataset_name,
+            ),
+        )
+        return SyntheticEpisodeDatasetRef(
+            dataset_name=dataset_name,
+            dataset_kind="synthetic_live",
+            dataset_dir=dataset_dir,
+            summary_path=summary_path,
+            index_path=index_path,
+            row_count=index_table.height,
+            round_count=len({row["round_id"] for row in rows}),
+            policy_name=policy.name,
+            episode_count=index_table.height,
+            total_query_count=total_query_count,
+            samples_per_round=samples_per_round,
+        )

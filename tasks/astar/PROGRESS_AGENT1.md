@@ -3,6 +3,97 @@
 ### Session Continuation
 
 - date: 2026-03-21 UTC
+- resumed commit: `e5b029db`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- `br` check at resume: unavailable (`command not found`)
+- mandatory re-reads completed again before more work:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent1.md`
+- live machine snapshot before this patch:
+  - load avg: `25.60 / 46.70 / 61.51`
+  - mem used: `1.1 TiB`
+  - mem free: `1.7 TiB`
+- other-agent activity visible:
+  - agent5 still running broad `jobs=6` sweeps
+  - agent7 still running multiple historical probes
+  - agent3/agent6 also active
+  - enough headroom remains, but shared-cache safety matters more than raw job count
+- own broad in-flight promotions at resume:
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_online50_v1`
+- broad completed results incorporated into selection logic:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`: `76.7061`, KL `0.092236`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`: `75.0492`, KL `0.100129`
+  - conclusion:
+    - `regime_probe_v1` generalizes materially above old `query_residual_v7`
+    - v4 is the stronger broad base family than v3 before posterior blending
+- validation design refinement completed before this patch:
+  - brute-force searched all 4/5/6-round subsets against completed broad runs
+  - selected new proxy-5 slice preserving broad ranking/means much better than the old hard-3
+  - proxy-5 rounds:
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - proxy-5 fit quality vs full means across completed comparison models:
+    - score RMSE about `0.55`
+    - KL RMSE about `0.00256`
+- proxy-5 posterior-blend results completed before this patch:
+  - `hazard_posterior_v3_k5_r3_l32_m70 + regime_probe_posterior_blend_v1`: `77.1302`, KL `0.089726`
+  - `hazard_posterior_v4_k5_r3_l24_m60 + regime_probe_posterior_blend_v1`: `75.9784`, KL `0.095898`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_blend_v1`: `76.4560`, KL `0.093084`
+  - current proxy ordering among completed runs:
+    - v3 `l32/m70`
+    - v4 `l32/m70`
+    - v4 `l24/m60`
+- proxy-5 failures isolated before this patch:
+  - `v3 l16/m50` failed with `EOFError` reading replay summary / cached synthetic dataset
+  - `v3 l24/m60` failed with `zipfile.BadZipFile` reading evidence tensor
+  - `v4 l16/m50` failed with parquet corruption reading synthetic dataset `index.parquet`
+  - common cause:
+    - concurrent builders are writing shared `npz` / `json` / `parquet` artifacts directly into final cache paths without atomic replace or locking
+    - broad supercomputer use is therefore currently limited by infra correctness, not model ideas
+- immediate objective of this patch:
+  - harden shared materialization and synthetic-dataset cache paths for concurrent builders
+  - add regression tests for corrupt cache rebuild / rematerialization
+  - then relaunch the failed proxy-5 runs under the repaired cache path
+- additive posterior broad promotions were explicitly killed before this patch:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_online50_v1`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_online50_v1`
+  - reason: dominated by posterior-blend policy on the hard slice
+- infra hardening implemented in this patch:
+  - added atomic file helpers and file locks for shared cache/materialization paths
+  - `npz` writes now use atomic temp-file replace
+  - synthetic dataset episode `json`, `index.parquet`, and `summary.json` writes now use atomic replace
+  - synthetic dataset builds now take a dataset-specific file lock and can reuse a now-valid cache after waiting
+  - round materialization now takes a round-specific file lock
+  - `load_round_learning_episode(...)` now self-heals one corrupt/missing round tensor set by rematerializing once
+  - cached synthetic dataset loaders now treat corrupt parquet/json cache state as rebuildable cache miss
+- focused validation after the infra patch:
+  - `python3 -m compileall src/astar/infra/artifacts/atomic.py src/astar/infra/artifacts/store.py src/astar/history/datasets/synthetic_live.py src/astar/history/learning.py src/astar/workflows/materialize_episode.py src/astar/workflows/summarize_replays.py src/astar/student/predictor/hazard_posterior.py src/astar/student/predictor/hazard_posterior_v2.py src/astar/student/predictor/query_residual.py tests/test_episode_materialization.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_episode_materialization.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - result: `26 passed`
+- new regression coverage added:
+  - corrupt materialized round arrays trigger rematerialization and load successfully
+  - corrupt `hazard_posterior_v2` synthetic dataset cache rebuilds successfully
+- machine snapshot before relaunching failed proxy runs:
+  - load avg: `36.74 / 40.34 / 48.23`
+  - mem used: `1.1 TiB`
+  - mem free: `1.7 TiB`
+- broad blend promotions still in flight after validation:
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_online50_v1`
+- failed proxy-5 runs relaunched after the fix with `--jobs 3` in persistent sessions:
+  - session `68725`: `proxy5_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+  - session `42725`: `proxy5_hazard_v3_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
+  - session `49390`: `proxy5_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
 - resumed commit: `55495d1`
 - branch: `agent1`
 - remote tracking: `origin/agent1`

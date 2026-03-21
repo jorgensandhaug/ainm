@@ -3,9 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.student.predictor.hazard_posterior_v2 import (
+    _ensure_synthetic_dataset as _ensure_hazard_v2_synthetic_dataset,
+    _cached_dataset_name as _cached_hazard_v2_dataset_name,
+)
 from astar.student.predictor.query_residual import _ensure_synthetic_dataset
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
@@ -507,6 +512,44 @@ def test_query_residual_rebuilds_stale_legacy_synthetic_dataset(
     )
 
     index_table = pl.read_parquet(index_path)
+    assert index_table.height == 2
+    assert all(Path(path).exists() for path in index_table.get_column("episode_path").to_list())
+
+
+def test_hazard_posterior_v2_rebuilds_corrupt_synthetic_dataset_cache(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    dataset_name = _cached_hazard_v2_dataset_name(
+        policy_name="coverage",
+        samples_per_round=1,
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        latent_rank=2,
+    )
+    corrupt_dir = sample_paths.dataset_dir(dataset_name)
+    corrupt_dir.mkdir(parents=True, exist_ok=True)
+    (corrupt_dir / "summary.json").write_text("{}", encoding="utf-8")
+    (corrupt_dir / "index.parquet").write_bytes(b"corrupt-parquet")
+
+    dataset = _ensure_hazard_v2_synthetic_dataset(
+        sample_paths,
+        policy_name="coverage",
+        samples_per_round=1,
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        latent_rank=2,
+        regime_vectors_by_round={
+            ROUND_ID: np.asarray([0.0, 1.0], dtype=np.float64),
+            TRAIN_ROUND_ID: np.asarray([1.0, 0.0], dtype=np.float64),
+        },
+    )
+
+    assert dataset.index_path is not None
+    index_table = pl.read_parquet(dataset.index_path)
     assert index_table.height == 2
     assert all(Path(path).exists() for path in index_table.get_column("episode_path").to_list())
 

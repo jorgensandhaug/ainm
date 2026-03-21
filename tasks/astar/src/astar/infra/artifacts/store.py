@@ -15,6 +15,7 @@ from astar.infra.api.dto import (
     StoredRoundRecord,
     StoredSubmissionRecord,
 )
+from astar.infra.artifacts.atomic import atomic_write_npz, atomic_write_text
 from astar.infra.artifacts.paths import WorkspacePaths
 
 
@@ -33,9 +34,7 @@ class ReplayFileRecord(BaseModel):
 
 
 def _write_json(path: Path, payload: BaseModel) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(payload.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return atomic_write_text(path, payload.model_dump_json(indent=2), encoding="utf-8")
 
 
 def _replay_filename(record: StoredReplayRecord) -> str:
@@ -161,9 +160,7 @@ def read_analysis_records(
 
 
 def save_prediction_tensor(path: Path, prediction: FloatArray) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, prediction=prediction)
-    return path
+    return atomic_write_npz(path, {"prediction": prediction})
 
 
 def load_prediction_tensor(path: Path) -> FloatArray:
@@ -176,18 +173,14 @@ def save_analysis_tensor(
     prediction: FloatArray | None,
     ground_truth: FloatArray,
 ) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
     arrays: dict[str, FloatArray] = {"ground_truth": ground_truth}
     if prediction is not None:
         arrays["prediction"] = prediction
-    np.savez_compressed(path, **arrays)
-    return path
+    return atomic_write_npz(path, arrays)
 
 
 def save_named_arrays(path: Path, arrays: Mapping[str, np.ndarray]) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(file=path, **dict(arrays))  # type: ignore[arg-type]
-    return path
+    return atomic_write_npz(path, arrays)
 
 
 def load_named_arrays(path: Path) -> dict[str, np.ndarray]:

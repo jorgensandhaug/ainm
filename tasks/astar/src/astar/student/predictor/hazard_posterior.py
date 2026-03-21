@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Sequence
-from pathlib import Path
 
 import numpy as np
-import polars as pl
 from pydantic import ConfigDict, Field
 
 from astar.core.prediction import PredictionBundle
@@ -14,7 +11,10 @@ from astar.envs.conversion import round_context_to_online_episode
 from astar.envs.types import build_round_context_from_detail
 from astar.features.geometry import RoundFeatureBundle
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
-from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+from astar.history.datasets.synthetic_live import (
+    build_synthetic_live_dataset,
+    load_synthetic_live_dataset_ref,
+)
 from astar.history.episodes.build import build_round_episode
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -82,37 +82,6 @@ def _cached_dataset_name(
     )
 
 
-def _load_cached_dataset_ref(
-    paths: WorkspacePaths,
-    dataset_name: str,
-) -> SyntheticEpisodeDatasetRef:
-    dataset_dir = paths.dataset_dir(dataset_name)
-    summary_path = dataset_dir / "summary.json"
-    index_path = dataset_dir / "index.parquet"
-    if not summary_path.exists() or not index_path.exists():
-        raise FileNotFoundError(dataset_name)
-    episode_paths = (
-        pl.read_parquet(index_path, columns=["episode_path"]).get_column("episode_path").to_list()
-    )
-    if any(not Path(str(item)).exists() for item in episode_paths):
-        raise FileNotFoundError(f"{dataset_name}: stale episode paths")
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    row_count = int(len(episode_paths))
-    return SyntheticEpisodeDatasetRef(
-        dataset_name=str(summary.get("dataset_name", dataset_name)),
-        dataset_kind=str(summary.get("dataset_kind", "synthetic_live")),
-        dataset_dir=dataset_dir,
-        summary_path=summary_path,
-        index_path=index_path,
-        row_count=row_count,
-        round_count=int(summary.get("round_count", 0)),
-        policy_name=str(summary.get("policy_name", "coverage")),
-        episode_count=int(summary.get("episode_count", row_count)),
-        total_query_count=int(summary.get("total_query_count", 0)),
-        samples_per_round=int(summary.get("samples_per_round", 1)),
-    )
-
-
 def _ensure_synthetic_dataset(
     paths: WorkspacePaths,
     *,
@@ -126,7 +95,7 @@ def _ensure_synthetic_dataset(
         round_ids=round_ids,
     )
     try:
-        return _load_cached_dataset_ref(paths, dataset_name)
+        return load_synthetic_live_dataset_ref(paths, dataset_name)
     except FileNotFoundError:
         return build_synthetic_live_dataset(
             paths,
@@ -134,6 +103,7 @@ def _ensure_synthetic_dataset(
             round_ids=list(round_ids),
             samples_per_round=samples_per_round,
             dataset_name=dataset_name,
+            reuse_existing=True,
         )
 
 

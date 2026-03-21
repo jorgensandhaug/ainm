@@ -39,3 +39,16 @@ def test_round_learning_episode_can_hide_evidence_for_seed(sample_paths: RepoPat
     assert masked.per_seed[0].query_count == 0
     assert np.all(masked.per_seed[0].coverage_counts == 0)
     assert masked.per_seed[1].query_count == episode.per_seed[1].query_count
+
+
+def test_load_round_learning_episode_rebuilds_corrupt_materialized_arrays(
+    sample_paths: RepoPaths,
+) -> None:
+    materialize_round_episode(sample_paths, ROUND_ID)
+    sample_paths.feature_tensor_path(ROUND_ID, 0).write_bytes(b"corrupt-feature")
+    sample_paths.evidence_tensor_path(ROUND_ID, 0).write_bytes(b"corrupt-evidence")
+
+    episode = load_round_learning_episode(sample_paths, ROUND_ID)
+
+    assert episode.per_seed[0].feature("buildable").shape == episode.per_seed[0].initial_grid.shape
+    assert episode.per_seed[0].query_count > 0

@@ -12,6 +12,7 @@ from astar.eval.reports import (
 )
 from astar.features.geometry import compute_round_features
 from astar.history.episodes.build import build_round_episode
+from astar.infra.artifacts.atomic import atomic_write_text, file_lock
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import (
     read_analysis_records,
@@ -85,136 +86,143 @@ def materialize_round_episode(
     paths: WorkspacePaths,
     round_id: str,
 ) -> MaterializeEpisodeResult:
-    round_record = read_round_record(paths, round_id)
-    features = compute_round_features(round_record.round)
-    evidence = build_round_evidence(paths, round_id)
-    diagnostics = build_round_episode_diagnostics(paths, round_id)
-    analyses = read_analysis_records(paths, round_id)
-    round_episode = build_round_episode(paths, round_id)
-    replay_round_summary = None
-    replay_report_path = None
-    if round_episode.replay_run_count > 0:
-        replay_result = summarize_round_replays(paths, round_id)
-        replay_round_summary = replay_result.hazard_summary
-        replay_report_path = replay_result.report_path
+    lock_path = paths.artifacts_dir / "locks" / f"materialize__{round_id}.lock"
+    with file_lock(lock_path):
+        round_record = read_round_record(paths, round_id)
+        features = compute_round_features(round_record.round)
+        evidence = build_round_evidence(paths, round_id)
+        diagnostics = build_round_episode_diagnostics(paths, round_id)
+        analyses = read_analysis_records(paths, round_id)
+        round_episode = build_round_episode(paths, round_id)
+        replay_round_summary = None
+        replay_report_path = None
+        if round_episode.replay_run_count > 0:
+            replay_result = summarize_round_replays(paths, round_id)
+            replay_round_summary = replay_result.hazard_summary
+            replay_report_path = replay_result.report_path
 
-    feature_names: list[str] | None = None
-    per_seed: list[MaterializedSeedArtifacts] = []
-    for seed_index in range(round_record.round.seeds_count):
-        seed_features = features.per_seed[seed_index]
-        seed_evidence = evidence.per_seed[seed_index]
-        initial_state = round_record.round.initial_states[seed_index]
-        initial_grid = np.asarray(initial_state.grid, dtype=np.int64)
+        feature_names: list[str] | None = None
+        per_seed: list[MaterializedSeedArtifacts] = []
+        for seed_index in range(round_record.round.seeds_count):
+            seed_features = features.per_seed[seed_index]
+            seed_evidence = evidence.per_seed[seed_index]
+            initial_state = round_record.round.initial_states[seed_index]
+            initial_grid = np.asarray(initial_state.grid, dtype=np.int64)
 
-        feature_path = save_named_arrays(
-            paths.feature_tensor_path(round_id, seed_index),
-            _feature_payload(
-                initial_grid=initial_grid,
-                seed_features=seed_features.features,
-                settlement_x=np.asarray(
-                    [item.x for item in initial_state.settlements],
-                    dtype=np.int64,
+            feature_path = save_named_arrays(
+                paths.feature_tensor_path(round_id, seed_index),
+                _feature_payload(
+                    initial_grid=initial_grid,
+                    seed_features=seed_features.features,
+                    settlement_x=np.asarray(
+                        [item.x for item in initial_state.settlements],
+                        dtype=np.int64,
+                    ),
+                    settlement_y=np.asarray(
+                        [item.y for item in initial_state.settlements],
+                        dtype=np.int64,
+                    ),
+                    settlement_has_port=np.asarray(
+                        [int(item.has_port) for item in initial_state.settlements],
+                        dtype=np.int64,
+                    ),
+                    settlement_alive=np.asarray(
+                        [int(item.alive) for item in initial_state.settlements],
+                        dtype=np.int64,
+                    ),
                 ),
-                settlement_y=np.asarray(
-                    [item.y for item in initial_state.settlements],
-                    dtype=np.int64,
+            )
+            evidence_path = save_named_arrays(
+                paths.evidence_tensor_path(round_id, seed_index),
+                _evidence_payload(
+                    query_count=seed_evidence.query_count,
+                    repeated_window_groups=seed_evidence.repeated_window_groups,
+                    coverage_counts=seed_evidence.coverage_counts,
+                    observed_class_counts=seed_evidence.observed_class_counts,
+                    observed_class_frequencies=seed_evidence.observed_class_frequencies,
+                    observed_class_count_tensor=seed_evidence.observed_class_count_tensor,
+                    mean_population=seed_evidence.mean_population,
+                    mean_food=seed_evidence.mean_food,
+                    mean_wealth=seed_evidence.mean_wealth,
+                    mean_defense=seed_evidence.mean_defense,
                 ),
-                settlement_has_port=np.asarray(
-                    [int(item.has_port) for item in initial_state.settlements],
-                    dtype=np.int64,
+            )
+            if feature_names is None:
+                feature_names = sorted(seed_features.features)
+            per_seed.append(
+                MaterializedSeedArtifacts(
+                    seed_index=seed_index,
+                    feature_path=feature_path,
+                    evidence_path=evidence_path,
+                    replay_summary_path=(
+                        paths.replay_summary_path(round_id, seed_index)
+                        if paths.replay_summary_path(round_id, seed_index).exists()
+                        else None
+                    ),
+                    replay_run_count=len(round_episode.seeds[seed_index].replay_runs),
+                    has_prediction=paths.prediction_tensor_path(round_id, seed_index).exists(),
+                    has_analysis=seed_index in analyses,
                 ),
-                settlement_alive=np.asarray(
-                    [int(item.alive) for item in initial_state.settlements],
-                    dtype=np.int64,
-                ),
-            ),
-        )
-        evidence_path = save_named_arrays(
-            paths.evidence_tensor_path(round_id, seed_index),
-            _evidence_payload(
-                query_count=seed_evidence.query_count,
-                repeated_window_groups=seed_evidence.repeated_window_groups,
-                coverage_counts=seed_evidence.coverage_counts,
-                observed_class_counts=seed_evidence.observed_class_counts,
-                observed_class_frequencies=seed_evidence.observed_class_frequencies,
-                observed_class_count_tensor=seed_evidence.observed_class_count_tensor,
-                mean_population=seed_evidence.mean_population,
-                mean_food=seed_evidence.mean_food,
-                mean_wealth=seed_evidence.mean_wealth,
-                mean_defense=seed_evidence.mean_defense,
-            ),
-        )
-        if feature_names is None:
-            feature_names = sorted(seed_features.features)
-        per_seed.append(
-            MaterializedSeedArtifacts(
-                seed_index=seed_index,
-                feature_path=feature_path,
-                evidence_path=evidence_path,
-                replay_summary_path=(
-                    paths.replay_summary_path(round_id, seed_index)
-                    if paths.replay_summary_path(round_id, seed_index).exists()
-                    else None
-                ),
-                replay_run_count=len(round_episode.seeds[seed_index].replay_runs),
-                has_prediction=paths.prediction_tensor_path(round_id, seed_index).exists(),
-                has_analysis=seed_index in analyses,
-            ),
-        )
+            )
 
-    backtest_result = None
-    if analyses and all(
-        paths.prediction_tensor_path(round_id, seed_index).exists() for seed_index in analyses
-    ):
-        backtest_result = backtest_round_from_saved_analyses(paths, round_id)
+        backtest_result = None
+        if analyses and all(
+            paths.prediction_tensor_path(round_id, seed_index).exists() for seed_index in analyses
+        ):
+            backtest_result = backtest_round_from_saved_analyses(paths, round_id)
 
-    result = MaterializeEpisodeResult(
-        round_id=round_id,
-        round_number=round_record.round.round_number,
-        summary_path=paths.episode_dir(round_id) / "summary.json",
-        report_path=paths.episode_dir(round_id) / "report.md",
-        replay_report_path=replay_report_path,
-        feature_names=feature_names or [],
-        per_seed=per_seed,
-        diagnostics=diagnostics,
-        replay_round_summary=replay_round_summary,
-        backtest_result=backtest_result,
-    )
-    result.summary_path.parent.mkdir(parents=True, exist_ok=True)
-    result.summary_path.write_text(
-        json.dumps(to_jsonable(result), indent=2),
-        encoding="utf-8",
-    )
-
-    report_lines = [
-        f"# Episode {result.round_number} {result.round_id}",
-        "",
-        render_round_episode_diagnostics(diagnostics),
-        "",
-        f"feature_names: {', '.join(result.feature_names)}",
-    ]
-    if replay_round_summary is not None:
-        report_lines.extend(
-            [
-                "",
-                f"replay_seed_count: {replay_round_summary.replay_seed_count}",
-                f"replay_run_count: {replay_round_summary.replay_run_count}",
-                f"replay_report: {replay_report_path}",
-                f"replay_coefficients_mean: {replay_round_summary.coefficient_mean.tolist()}",
-            ],
-        )
-    if backtest_result is not None:
-        report_lines.extend(["", render_backtest_round_report(backtest_result)])
-    result.report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
-
-    catalog = CatalogDB(paths.catalog_path)
-    catalog.log_event(
-        CatalogEvent(
-            event_kind="episode_materialized",
+        result = MaterializeEpisodeResult(
             round_id=round_id,
-            status="ok",
-            artifact_path=result.summary_path,
-            payload_json=to_jsonable(result),
-        ),
-    )
-    return result
+            round_number=round_record.round.round_number,
+            summary_path=paths.episode_dir(round_id) / "summary.json",
+            report_path=paths.episode_dir(round_id) / "report.md",
+            replay_report_path=replay_report_path,
+            feature_names=feature_names or [],
+            per_seed=per_seed,
+            diagnostics=diagnostics,
+            replay_round_summary=replay_round_summary,
+            backtest_result=backtest_result,
+        )
+        result.summary_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(
+            result.summary_path,
+            json.dumps(to_jsonable(result), indent=2),
+            encoding="utf-8",
+        )
+
+        report_lines = [
+            f"# Episode {result.round_number} {result.round_id}",
+            "",
+            render_round_episode_diagnostics(diagnostics),
+            "",
+            f"feature_names: {', '.join(result.feature_names)}",
+        ]
+        if replay_round_summary is not None:
+            report_lines.extend(
+                [
+                    "",
+                    f"replay_seed_count: {replay_round_summary.replay_seed_count}",
+                    f"replay_run_count: {replay_round_summary.replay_run_count}",
+                    f"replay_report: {replay_report_path}",
+                    f"replay_coefficients_mean: {replay_round_summary.coefficient_mean.tolist()}",
+                ],
+            )
+        if backtest_result is not None:
+            report_lines.extend(["", render_backtest_round_report(backtest_result)])
+        atomic_write_text(
+            result.report_path,
+            "\n".join(report_lines).strip() + "\n",
+            encoding="utf-8",
+        )
+
+        catalog = CatalogDB(paths.catalog_path)
+        catalog.log_event(
+            CatalogEvent(
+                event_kind="episode_materialized",
+                round_id=round_id,
+                status="ok",
+                artifact_path=result.summary_path,
+                payload_json=to_jsonable(result),
+            ),
+        )
+        return result

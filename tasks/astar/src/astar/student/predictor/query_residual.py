@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 from collections.abc import Sequence
 from pathlib import Path
@@ -16,6 +15,7 @@ from astar.core.terrain import CLASS_COUNT, CLASS_NAMES, collapse_internal_grid,
 from astar.core.trajectory import LiveQueryObs
 from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
+from astar.history.datasets.synthetic_live import load_synthetic_live_dataset_ref
 from astar.history.episodes.build import build_round_episode
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -82,23 +82,6 @@ def _cached_synthetic_dataset_name(
     )
 
 
-def _load_synthetic_dataset_ref(
-    paths: WorkspacePaths,
-    dataset_name: str,
-) -> tuple[Path, Path]:
-    dataset_dir = paths.dataset_dir(dataset_name)
-    summary_path = dataset_dir / "summary.json"
-    index_path = dataset_dir / "index.parquet"
-    if not summary_path.exists() or not index_path.exists():
-        raise FileNotFoundError(dataset_name)
-    episode_paths = (
-        pl.read_parquet(index_path, columns=["episode_path"]).get_column("episode_path").to_list()
-    )
-    if any(not Path(str(item)).exists() for item in episode_paths):
-        raise FileNotFoundError(f"{dataset_name}: stale episode paths")
-    return summary_path, index_path
-
-
 def _ensure_synthetic_dataset(
     paths: WorkspacePaths,
     *,
@@ -111,15 +94,19 @@ def _ensure_synthetic_dataset(
     legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
     if samples_per_round == 1:
         try:
-            _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
-            return index_path
+            dataset = load_synthetic_live_dataset_ref(paths, legacy_dataset_name)
+            if dataset.index_path is None:
+                raise ValueError("synthetic live dataset did not produce an index path")
+            return dataset.index_path
         except FileNotFoundError:
             pass
 
     dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
     try:
-        _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
-        return index_path
+        dataset = load_synthetic_live_dataset_ref(paths, dataset_name)
+        if dataset.index_path is None:
+            raise ValueError("synthetic live dataset did not produce an index path")
+        return dataset.index_path
     except FileNotFoundError:
         dataset = build_synthetic_live_dataset(
             paths,
@@ -127,6 +114,7 @@ def _ensure_synthetic_dataset(
             round_ids=None if round_ids is None else list(round_ids),
             samples_per_round=samples_per_round,
             dataset_name=dataset_name,
+            reuse_existing=True,
         )
         if dataset.index_path is None:
             raise ValueError("synthetic live dataset did not produce an index path")

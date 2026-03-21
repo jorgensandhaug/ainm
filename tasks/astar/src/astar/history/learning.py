@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import zipfile
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +14,14 @@ from astar.infra.artifacts.store import (
     read_analysis_records,
     read_round_record,
     read_submission_records,
+)
+
+_REPAIRABLE_ARRAY_LOAD_ERRORS = (
+    EOFError,
+    FileNotFoundError,
+    OSError,
+    ValueError,
+    zipfile.BadZipFile,
 )
 
 
@@ -107,10 +117,25 @@ def load_round_learning_episode(
     analyses = read_analysis_records(paths, round_id)
     submissions = read_submission_records(paths, round_id)
 
+    repaired_round = False
+
+    def _load_payload(path: Path) -> dict[str, np.ndarray]:
+        nonlocal repaired_round
+        try:
+            return load_named_arrays(path)
+        except _REPAIRABLE_ARRAY_LOAD_ERRORS:
+            if repaired_round:
+                raise
+            from astar.workflows.materialize_episode import materialize_round_episode
+
+            materialize_round_episode(paths, round_id)
+            repaired_round = True
+            return load_named_arrays(path)
+
     per_seed: dict[int, SeedLearningArrays] = {}
     for seed_index in range(round_record.round.seeds_count):
-        feature_payload = load_named_arrays(paths.feature_tensor_path(round_id, seed_index))
-        evidence_payload = load_named_arrays(paths.evidence_tensor_path(round_id, seed_index))
+        feature_payload = _load_payload(paths.feature_tensor_path(round_id, seed_index))
+        evidence_payload = _load_payload(paths.evidence_tensor_path(round_id, seed_index))
 
         feature_names = [str(name) for name in feature_payload["feature_names"].tolist()]
         submitted_prediction = None
@@ -122,7 +147,7 @@ def load_round_learning_episode(
         replay_payload = None
         replay_summary_path = paths.replay_summary_path(round_id, seed_index)
         if replay_summary_path.exists():
-            replay_payload = load_named_arrays(replay_summary_path)
+            replay_payload = _load_payload(replay_summary_path)
 
         ground_truth = None
         if seed_index in analyses:
