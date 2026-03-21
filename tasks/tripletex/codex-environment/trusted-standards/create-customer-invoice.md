@@ -105,3 +105,12 @@
   - product VAT inheritance worked correctly: products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%), and reusing them on the invoice lines produced correct totals `amountExcludingVatCurrency=33650` / `amountCurrency=38707.5`
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - persistent sandbox re-proof on 2026-03-21 with the same amounts and catalog-read path produced the same `amountExcludingVatCurrency=33650` in 3 calls (sandbox had no bank-account issue)
+- the 2026-03-21 production run for `Sierra SL` / `909007135` / products `Desarrollo de sistemas (8344)` + `Horas de consultoría (9563)` + `Informe de análisis (8060)` / VAT `25%` + `15% food` + `0% exempt` succeeded with the optimal 3 API calls and 0 errors:
+  - `GET /customer?organizationNumber=909007135&fields=*` resolved the customer in one call
+  - `GET /product?number=8344,9563,8060&fields=*` (comma-separated, OR semantics) resolved all 3 products in one call — first production confirmation of the comma-separated `number` query approach
+  - products carried correct `vatType.id` values: `3` (25%), `31` (15%), `6` (0%); reusing them on the invoice lines with explicit `vatType: { id: product.vatType.id }` produced correct totals
+  - `POST /invoice?sendToCustomer=false` succeeded with `amountExcludingVatCurrency=45050` / `amountCurrency=51362.5`
+  - no bank-account repair was needed
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - this is the first production run achieving the theoretical 3-call minimum for the exact-number existing-product create-only invoice shape with mixed VAT
+  - persistent sandbox re-proof on 2026-03-21 with analog products `2109`, `1175`, `9974` and comma-separated query confirmed the same 3-call path; invoice returned `amountExcludingVatCurrency=45050` (sandbox 0% only, so `amountCurrency=45050`); readback confirmed all products linked with correct numbers, descriptions, and unit prices

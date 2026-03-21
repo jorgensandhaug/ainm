@@ -1,5 +1,7 @@
 # Common Endpoints
 
+**ABSOLUTE RULE: NO BETA API ENDPOINTS.** NEVER use any endpoint marked as beta in the OpenAPI spec. Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in EVERY environment (production AND sandbox). This includes `/incomingInvoice*`, `/bank/reconciliation*`, and any endpoint with `(BETA)` in its summary. Do not attempt, retry, explore, or use as fallback. Every attempt has scored 0%.
+
 Verified against `./openapi.json`.
 
 Use this as the exact endpoint-shape reference for the most common Tripletex resources.
@@ -200,7 +202,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
   - `GET /product?productNumber=...&fields=*` can return the matched identifier under `number` rather than `productNumber`; normalize both keys before deciding a direct numeric resolver failed
   - **type pitfall**: `product.number` is always a **string** in the JSON response (e.g. `"6247"`), never an integer; use `String(p.number) === String(ref)` or loose equality — strict `=== intLiteral` silently fails
-  - **primary product resolver**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call; sandbox-verified on 2026-03-21 with 2- and 3-product queries
+  - **primary product resolver**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call; sandbox-verified on 2026-03-21 with 2- and 3-product queries; first production-confirmed on 2026-03-21 with `number=8344,9563,8060` returning all 3 products in the `Sierra SL` / `909007135` invoice run (3 calls, 0 errors)
   - verify the returned count matches the expected product count; if any are missing, fall back to `GET /product?count=1000&fields=*` with local filtering by `number` and/or `name`
   - do NOT use `number=X&number=Y` (repeated query params) — this uses non-OR semantics and only returns the first value; use comma-separated format instead
   - `productNumber` is not a valid field in ProductDTO's `fields` filter (returns 400); it exists only as a query parameter, and even then is unreliable across accounts

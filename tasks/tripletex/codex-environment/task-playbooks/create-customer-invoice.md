@@ -103,6 +103,13 @@ Do not use for:
   - the correct lower-call path was `GET /customer` -> `GET /product?count=1000&fields=*` -> `POST /invoice?sendToCustomer=false` -> conditional bank-account repair -> retry = 6 calls
   - product VAT inheritance worked: products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%) and reusing them produced correct totals `amountExcludingVatCurrency=33650` / `amountCurrency=38707.5`
   - persistent sandbox re-proof on 2026-03-21 with the same amounts confirmed the catalog-read path in 3 calls (sandbox had no bank-account issue)
+- the 2026-03-21 production run for `Sierra SL` / `909007135` / products `Desarrollo de sistemas (8344)` + `Horas de consultoría (9563)` + `Informe de análisis (8060)` / VAT `25%` + `15% food` + `0% exempt` succeeded with the optimal 3 API calls and 0 errors:
+  - `GET /customer?organizationNumber=909007135&fields=*` -> `GET /product?number=8344,9563,8060&fields=*` -> `POST /invoice?sendToCustomer=false`
+  - first production confirmation of the comma-separated `number=X,Y,Z` product query approach (OR semantics); returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=45050` / `amountCurrency=51362.5`
+  - no bank-account repair needed, no `/ledger/vatType` call needed
+  - this is the first production run achieving the theoretical 3-call minimum for the mixed-VAT exact-number existing-product create-only invoice shape
+  - persistent sandbox re-proof on 2026-03-21 with comma-separated query and analog products confirmed the same 3-call path
 
 ## Minimal Flow
 
