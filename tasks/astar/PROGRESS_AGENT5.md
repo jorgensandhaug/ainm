@@ -2711,6 +2711,23 @@
 | 4 | stacked w20 (QR+CellKNN) | explr3 | 4 | 76.06 | 63.93 | 63.9-85.3 |
 | 5 | hybrid_lowrank_queryres (OLD BEST) | explr3 | 4 | 75.19 | 57.40 | 57.4-86.2 |
 
+### 2026-03-21T19:00:00Z
+
+- **Three-way tristack** (QR + expansion + cellknn) implemented and benchmarked
+- Results:
+
+  | Config | Mean | f1dac |
+  |--------|------|-------|
+  | tristack e25_c10 | 77.37 | 68.53 |
+  | **tristack e30_c05** | **77.39** | 68.73 |
+  | tristack e30_c10 | 77.39 | 69.45 |
+  | tristack e35_c05 | 77.38 | 69.63 |
+
+- The tristack provides marginal improvement over 2-way (+0.04)
+- More configs running: e35_c10, e25_c15, e20_c15
+- Fine expansion weight tuning failed (CLI missing those weight choices)
+- Current absolute best remains: **stacked_expansion w35 at 77.35** or **tristack e30_c05 at 77.39**
+
 ## Key Technical Achievements
 
 1. **Cell-level kNN predictor** (`greybox_cellknn_v01`, `greybox_cellknn_perround_v01`)
