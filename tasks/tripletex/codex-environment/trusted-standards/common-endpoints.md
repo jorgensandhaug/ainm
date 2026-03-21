@@ -338,6 +338,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - if the customer create already succeeded but process state is lost before the repaired retry, resume on the existing-customer branch rather than attempting `POST /customer` again
   - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
   - for ordinary direct-line service prompts explicitly priced excluding VAT / MVA, the same 3-call path is still the safe minimum, but the VAT selector must pick an exact `25%` row from the filtered outgoing result; if the filtered read exposes only `0%`, treat the run as blocked in that account instead of sending a `0%` invoice
+  - for the exact overdue-invoice task shape `one implied overdue invoice + exact manual reminder fee 65 on 1500/3400 + separate fee invoice + partial payment 5000`, do not jump to `/invoice/{id}/:createReminder` just because the prompt says `purregebyr`; persistent sandbox on 2026-03-21 required an explicit send type, rejected `type=REMINDER`, and the first working reminder branch still charged only `38`, not the prompt-required `65`
+  - for that same overdue-invoice reminder-fee shape, the proven downstream exact-match path is overdue-invoice locate read -> payment-type read -> `GET /ledger/account?number=1500,3400&fields=*` -> filtered outgoing `0%` VAT read -> `POST /ledger/voucher` -> `POST /invoice` -> `PUT /invoice/{id}/:payment`
 - Standard payment note:
   - `PUT /order/{id}/:invoice` supports combined prepayment through query params `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`
   - for the exact order-to-invoice-to-full-payment task shape, the lower-call path is to resolve one incoming `paymentTypeId` before invoicing, then pass a minimal positive `paidAmount` seed and the same id as `paymentTypeIdRestAmount`
@@ -469,6 +471,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - this is the canonical bank-account repair endpoint
   - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, `6300`, `7300`, `6340`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
+  - when the prompt explicitly gives ledger account numbers, trust those numbers over account-name semantics; persistent sandbox on 2026-03-21 returned requested account `3400` as `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded on that exact row
 
 ## Ledger Accounting Dimension Name
 - `/ledger/accountingDimensionName`
@@ -525,6 +528,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
   - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
+  - for manual postings on customer ledger account `1500`, include the matching `customer: { "id": ... }`; the 2026-03-21 persistent sandbox exact reminder-fee proof succeeded with that shape on voucher `608897119`
   - for payroll fallback prompts that explicitly allow manual vouchers on the `5000` series, the proven low-call resolver is `GET /ledger/account?number=5000,1920&fields=*` and the proven payload is a balanced two-line voucher with the gross salary amount on account `5000` and the negative balancing line on `1920`
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
