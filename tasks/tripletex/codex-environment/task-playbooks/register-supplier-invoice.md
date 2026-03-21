@@ -448,6 +448,19 @@ Proven outcome:
 - this breaks the 8-run optimal streak; fix: always include buyer PostalAddress in XML template
 - sandbox re-proof: without buyer PostalAddress → 422 (BR-10); with → 201; PartyTaxScheme optional
 
+2026-03-21 production run for `Forêt SARL` / `823356366` / `INV-2026-6107` / `80437` / `6340` / `25%`:
+- used 7 calls, 2 errors — suboptimal due to two bugs: (1) FormData Content-Type set manually → 400, (2) buyer EndpointID `000000000` failed PEPPOL mod11 → 422
+- French-language prompt with PDF attachment, description "Programvarelisens"
+- PDF data: address `Solveien 51, 9008 Tromsø`, bank account `68474635604`
+- supplier created with `postalAddress` and `bankAccountPresentation`
+- first importDocument: 400 (Content-Type header on FormData → 415 Unsupported Media Type)
+- second importDocument: 422 (buyer EndpointID `000000000` → PEPPOL-COMMON-R041)
+- third importDocument with `123456785` buyer EndpointID: 201
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: net=64350, gross=80437 → stored net=64349.6, VAT=16087.4
+- voucher `609178672`, supplier `108438104`
+- both bugs now documented; sandbox re-proof: `000000000` → 422; `123456785` → 201; `999999999` → 201
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
@@ -488,8 +501,17 @@ Proven outcome:
 - omitting `row` causes `422 "Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex."`
 
 ### XML org number validation
-- the org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 check
-- random 9-digit numbers will fail `422`; use the real supplier org number from the prompt
+- ALL org numbers in the XML must pass PEPPOL mod11 check — this includes BOTH the supplier and buyer `EndpointID`/`CompanyID`
+- do NOT use `000000000` as the buyer EndpointID — it fails PEPPOL-COMMON-R041 despite technically passing mod11 arithmetic
+- use `123456785` or `999999999` as the hardcoded buyer EndpointID constant (both sandbox-proven valid)
+- random 9-digit numbers will fail `422`; use the real supplier org number from the prompt for supplier fields
+- 2026-03-21 production run for `Forêt SARL` / `823356366` wasted 1 API call (422) because buyer EndpointID was `000000000`
+
+### FormData Content-Type for importDocument
+- when using `FormData` for `importDocument`, do NOT manually set the `Content-Type` header
+- let `fetch` set it automatically with the multipart boundary
+- manually setting any Content-Type on a FormData body causes `400 HTTP 415 Unsupported Media Type`
+- 2026-03-21 production run for `Forêt SARL` wasted 1 API call (400) from this exact mistake
 
 ### VAT rounding on non-reconciling PDF amounts
 - when the PDF's net × (1 + VAT%) ≠ gross (e.g. net=41050, gross=51312, but 41050×1.25=51312.5), Tripletex recalculates net from gross
@@ -512,3 +534,5 @@ Proven outcome:
 - ALWAYS book the voucher after setting postings: `PUT sendToLedger=true` with only `{ version }` — without this the voucher is unbooked and scores 0%
 - NEVER send postings in the booking PUT — only send `{ version }`
 - preserve the prompt description's exact casing — do NOT capitalize or normalize; if the prompt says "kontortjenester" use exactly that, not "Kontortjenester"
+- use `123456785` as the hardcoded buyer EndpointID in the XML template — do NOT use `000000000` (fails PEPPOL-COMMON-R041); `999999999` also works
+- when using FormData for importDocument, do NOT set Content-Type header — let fetch handle it; manually setting any Content-Type causes 400/415
