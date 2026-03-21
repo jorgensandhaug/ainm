@@ -1453,3 +1453,78 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - run heavier parallel held-out probes for:
     - `gbx_transition_teacher`
     - `gbx_transition_teacher_mapprior`
+
+### 2026-03-21T11:05Z
+
+- Added a new grey-box family baseline:
+  - `gbx_prior_maponly_bucket_v1`
+  - files:
+    - `src/astar/history/summaries/map_summary.py`
+    - `src/astar/student/predictor/gbx_map_prior.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/workflows/model_eval.py`
+    - `src/astar/cli.py`
+    - `tests/test_historical_benchmark.py`
+- Model idea:
+  - use only the five visible initial maps
+  - compute round-level map summary
+  - choose nearest historical rounds in map-summary space
+  - form weighted per-round bucket priors
+  - decode final per-cell class probabilities with the same terrain/structural/full shrinkage stack as the historical bucket baseline
+- Why:
+  - this is the handoff's mandatory map-only terminal predictor class
+  - it is live-legal
+  - it is very fast, so it can be swept aggressively
+- Verification:
+  - `uv run python -m py_compile src/astar/history/summaries/map_summary.py src/astar/student/predictor/gbx_map_prior.py src/astar/student/predictor/interactive.py src/astar/teacher/dynamics/transition_teacher.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+    - `15 passed in 23.40s`
+- First benchmark results:
+  - `tmp_gbx_prior_maponly_bucket_probe3_jobs3`
+    - mean score `52.9048`
+    - mean weighted KL `0.313887`
+  - `dev_gbx_prior_maponly_bucket_prior1_jobs8`
+    - mean score `66.3208`
+    - mean weighted KL `0.141605`
+  - matched comparator:
+    - `dev_historical_bucket_prior_prior1_jobs8`
+    - mean score `66.0233`
+    - mean weighted KL `0.148488`
+- Interpretation:
+  - round-map conditioning does help over the older unconditioned bucket prior
+  - gain is small
+  - this family is useful as a fast prior / ensemble member, not as a standalone winner yet
+
+### 2026-03-21T11:12Z
+
+- Wired the semimechanistic event-hazard family into held-out benchmark eval:
+  - `hazard_teacher_v1`
+  - new map-conditioned variant:
+    - `hazard_teacher_mapprior_v1`
+- Files:
+  - `src/astar/teacher/dynamics/hazard_teacher.py`
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Main additions:
+  - map-summary -> regime prior for `HazardTeacher`
+  - map-posterior particle selection like the transition teacher path
+  - historical benchmark model wiring for both hazard-teacher priors
+- Verification:
+  - `uv run python -m py_compile src/astar/teacher/dynamics/hazard_teacher.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+    - `17 passed in 26.48s`
+- Running now:
+  - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_cached`
+  - `dev_gbx_transition_teacher_mapprior_prior1_jobs8`
+  - `tmp_hazard_teacher_mapprior_probe3_jobs3`
+  - `dev_hazard_teacher_mapprior_prior1_jobs8`
+  - bucket hyperparameter sweep over:
+    - `neighbor_count in {1,2,3,5}`
+    - shrinkage tuples:
+      - `(16,8,4)`
+      - `(32,12,6)`
+      - `(64,24,12)`
+      - `(96,32,16)`

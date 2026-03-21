@@ -19,6 +19,10 @@ from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
+from astar.student.predictor.gbx_map_prior import (
+    GBX_PRIOR_MAPONLY_BUCKET_MODEL,
+    GreyBoxMapOnlyBucketPredictor,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import (
@@ -30,6 +34,11 @@ from astar.student.predictor.query_residual import (
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
+)
+from astar.teacher.dynamics.hazard_teacher import (
+    HAZARD_TEACHER_MAPPRIOR_MODEL,
+    HAZARD_TEACHER_MODEL,
+    HazardTeacher,
 )
 from astar.teacher.dynamics.transition_teacher import (
     GBX_TRANSITION_TEACHER_MODEL,
@@ -230,6 +239,67 @@ def _build_prediction_bundle(
             diagnostics_by_seed,
             predictor.analyzed_seed_count,
             predictor.cell_count,
+        )
+
+    if normalized in {"gbx_prior_maponly_bucket", GBX_PRIOR_MAPONLY_BUCKET_MODEL}:
+        predictor = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, None)
+        return (
+            bundle,
+            {},
+            predictor.analyzed_seed_count,
+            predictor.cell_count,
+        )
+
+    if normalized in {
+        "hazard_teacher",
+        HAZARD_TEACHER_MODEL,
+        "hazard_teacher_mapprior",
+        HAZARD_TEACHER_MAPPRIOR_MODEL,
+    }:
+        replay_episodes = [
+            build_round_episode(paths, training_round_id)
+            for training_round_id in training_round_ids
+        ]
+        teacher = HazardTeacher(
+            name=HAZARD_TEACHER_MODEL,
+        ).fit(
+            [episode for episode in replay_episodes if episode.replay_run_count > 0],
+        )
+        round_context = build_round_context_from_detail(round_detail)
+        if normalized in {"hazard_teacher_mapprior", HAZARD_TEACHER_MAPPRIOR_MODEL}:
+            teacher = teacher.model_copy(update={"name": HAZARD_TEACHER_MAPPRIOR_MODEL})
+            posterior = teacher.map_posterior(round_context.seeds)
+        elif teacher.regime_bank.size > 0:
+            regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)
+            posterior = RegimePosteriorState(
+                mean=np.asarray(np.mean(teacher.regime_bank, axis=0), dtype=np.float64),
+                particles=regime_particles,
+                weights=np.full(len(regime_particles), 1.0 / len(regime_particles), dtype=np.float64),
+            )
+        else:
+            posterior = RegimePosteriorState(mean=np.zeros(12, dtype=np.float64))
+        predictions_by_seed = {
+            seed.seed_index: teacher.posterior_predictive(seed, posterior)
+            for seed in round_context.seeds
+        }
+        return (
+            PredictionBundle(
+                round_id=round_id,
+                model_name=teacher.name,
+                predictions_by_seed=predictions_by_seed,
+            ),
+            {},
+            sum(seed.terminal_truth is not None for episode in replay_episodes for seed in episode.seeds),
+            sum(
+                int(np.prod(np.asarray(seed.initial_state.grid, dtype=np.int64).shape))
+                for episode in replay_episodes
+                for seed in episode.seeds
+                if seed.terminal_truth is not None
+            ),
         )
 
     if normalized in {

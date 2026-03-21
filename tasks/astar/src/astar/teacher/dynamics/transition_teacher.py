@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import ReplayRun
 from astar.history.episodes.models import RoundEpisode
 from astar.history.replay.events import build_transition_feature_stack, local_class_ratio_stack
+from astar.history.summaries.map_summary import round_map_summary_names, round_map_summary_vector
 from astar.history.summaries.round_coefficients import round_regime_summary_vector, seed_feature_dict, seed_feature_names
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.serialization.json_utils import to_jsonable
@@ -109,71 +109,6 @@ def _initial_one_hot(grid: np.ndarray) -> np.ndarray:
     for class_index in range(CLASS_COUNT):
         result[:, :, class_index] = (collapsed == class_index).astype(np.float64)
     return result
-
-
-def _seed_map_summary_names() -> list[str]:
-    names = [f"initial_class_mass_{class_index}" for class_index in range(CLASS_COUNT)]
-    names.extend(
-        [
-            "buildable_mean",
-            "coast_mean",
-            "frontier_mean",
-            "settlement_proximity_mean",
-            "coastal_exposure_mean",
-            "maritime_access_mean",
-            "forest_density_mean",
-            "mountain_density_mean",
-            "settlement_count",
-            "port_count",
-        ],
-    )
-    return names
-
-
-def _seed_map_summary_vector(seed: SeedLike) -> np.ndarray:
-    collapsed = collapse_internal_grid(np.asarray(seed.initial_state.grid, dtype=np.int64))
-    class_mass = np.bincount(
-        collapsed.reshape(-1),
-        minlength=CLASS_COUNT,
-    ).astype(np.float64)
-    class_mass = class_mass / float(np.sum(class_mass))
-    feature_dict = seed_feature_dict(seed.initial_state)
-    settlements = tuple(seed.initial_state.settlements)
-    port_count = sum(1 for item in settlements if item.has_port)
-    return np.asarray(
-        [
-            *class_mass.tolist(),
-            float(np.mean(feature_dict["buildable"])),
-            float(np.mean(feature_dict["coast"])),
-            float(np.mean(feature_dict["frontier_score"])),
-            float(np.mean(feature_dict["settlement_proximity"])),
-            float(np.mean(feature_dict["coastal_exposure"])),
-            float(np.mean(feature_dict["maritime_access"])),
-            float(np.mean(feature_dict["forest_density"])),
-            float(np.mean(feature_dict["mountain_density"])),
-            float(len(settlements)),
-            float(port_count),
-        ],
-        dtype=np.float64,
-    )
-
-
-def _round_map_summary_names() -> list[str]:
-    seed_names = _seed_map_summary_names()
-    names = [f"map_mean__{name}" for name in seed_names]
-    names.extend(f"map_std__{name}" for name in seed_names)
-    return names
-
-
-def _round_map_summary_vector(seeds: Sequence[SeedLike]) -> np.ndarray:
-    seed_vectors = np.stack([_seed_map_summary_vector(seed) for seed in seeds], axis=0)
-    return np.concatenate(
-        [
-            np.mean(seed_vectors, axis=0),
-            np.std(seed_vectors, axis=0),
-        ],
-        axis=0,
-    ).astype(np.float64)
 
 
 class RoundTransitionCoefficients(BaseModel):
@@ -307,7 +242,7 @@ class GreyBoxTransitionTeacher(BaseModel):
         ]
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
         map_bank = np.stack(
-            [_round_map_summary_vector(tuple(episode.seeds)) for episode in replay_episodes],
+            [round_map_summary_vector(tuple(episode.seeds)) for episode in replay_episodes],
             axis=0,
         )
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
@@ -369,7 +304,7 @@ class GreyBoxTransitionTeacher(BaseModel):
                 "rank_scores": tuple(rank_scores),
                 "rank_selection": rank_selection,
                 "selected_rank": selected_rank,
-                "map_feature_names": tuple(_round_map_summary_names()),
+                "map_feature_names": tuple(round_map_summary_names()),
                 "map_intercept": map_intercept,
                 "map_weights": map_weights,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
@@ -458,7 +393,7 @@ class GreyBoxTransitionTeacher(BaseModel):
             if self.regime_bank.size == 0:
                 return np.zeros(12, dtype=np.float64)
             return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
-        map_vector = _round_map_summary_vector(seeds)
+        map_vector = round_map_summary_vector(seeds)
         regime = np.asarray(self.map_intercept + (map_vector @ self.map_weights), dtype=np.float64)
         return np.clip(regime, -0.25, 1.25)
 

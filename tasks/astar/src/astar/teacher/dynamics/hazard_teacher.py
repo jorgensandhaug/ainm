@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
 from astar.history.episodes.models import RoundEpisode
+from astar.history.summaries.map_summary import round_map_summary_names, round_map_summary_vector
 from astar.history.summaries.manifold import (
     factorize_round_coefficients,
     fit_regime_coordinate_map,
@@ -21,6 +22,10 @@ from astar.history.summaries.round_coefficients import (
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
+
+
+HAZARD_TEACHER_MODEL = "hazard_teacher_v1"
+HAZARD_TEACHER_MAPPRIOR_MODEL = "hazard_teacher_mapprior_v1"
 
 
 def _fit_linear_map(
@@ -77,12 +82,17 @@ class HazardTeacherCheckpoint(BaseModel):
     rank_scores: list[float] = Field(default_factory=list)
     rank_selection: str = "direct_coefficients"
     selected_rank: int = Field(default=1, ge=1)
+    map_feature_names: list[str] = Field(default_factory=list)
+    map_intercept: list[float] = Field(default_factory=list)
+    map_weights: list[list[float]] = Field(default_factory=list)
+    map_neighbor_count: int = Field(default=3, ge=1)
+    map_distance_floor: float = Field(default=1e-3, gt=0.0)
 
 
 class HazardTeacher(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "hazard_teacher_v1"
+    name: str = HAZARD_TEACHER_MODEL
     feature_names: list[str] = Field(default_factory=list)
     round_ids: tuple[str, ...] = ()
     round_numbers: tuple[int, ...] = ()
@@ -96,6 +106,11 @@ class HazardTeacher(BaseModel):
     rank_scores: tuple[float, ...] = ()
     rank_selection: str = "direct_coefficients"
     selected_rank: int = Field(default=1, ge=1)
+    map_feature_names: tuple[str, ...] = ()
+    map_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(12, dtype=np.float64))
+    map_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 12), dtype=np.float64))
+    map_neighbor_count: int = Field(default=3, ge=1)
+    map_distance_floor: float = Field(default=1e-3, gt=0.0)
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
@@ -116,6 +131,10 @@ class HazardTeacher(BaseModel):
             fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
         ]
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
+        map_bank = np.stack(
+            [round_map_summary_vector(tuple(episode.seeds)) for episode in replay_episodes],
+            axis=0,
+        )
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
         if rank_selection == "direct_coefficients":
             regime_intercept, regime_weights = _fit_linear_map(
@@ -145,6 +164,11 @@ class HazardTeacher(BaseModel):
             candidate_ranks = tuple(int(item) for item in manifold.candidate_ranks)
             rank_scores = tuple(float(item) for item in manifold.rank_scores)
             selected_rank = int(manifold.effective_rank)
+        map_intercept, map_weights = _fit_linear_map(
+            map_bank,
+            regime_bank,
+            ridge_alpha=ridge_alpha,
+        )
 
         replay_bank_round_ids: list[str] = []
         replay_bank_seed_indexes: list[int] = []
@@ -172,6 +196,9 @@ class HazardTeacher(BaseModel):
                 "rank_scores": rank_scores,
                 "rank_selection": rank_selection,
                 "selected_rank": selected_rank,
+                "map_feature_names": tuple(round_map_summary_names()),
+                "map_intercept": map_intercept,
+                "map_weights": map_weights,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -198,6 +225,11 @@ class HazardTeacher(BaseModel):
             rank_scores=list(self.rank_scores),
             rank_selection=self.rank_selection,
             selected_rank=self.selected_rank,
+            map_feature_names=list(self.map_feature_names),
+            map_intercept=self.map_intercept.tolist(),
+            map_weights=self.map_weights.tolist(),
+            map_neighbor_count=self.map_neighbor_count,
+            map_distance_floor=self.map_distance_floor,
         )
 
     def save_checkpoint(self, path: Path) -> Path:
@@ -221,6 +253,11 @@ class HazardTeacher(BaseModel):
             rank_scores=tuple(checkpoint.rank_scores),
             rank_selection=checkpoint.rank_selection,
             selected_rank=checkpoint.selected_rank,
+            map_feature_names=tuple(checkpoint.map_feature_names),
+            map_intercept=np.asarray(checkpoint.map_intercept, dtype=np.float64),
+            map_weights=np.asarray(checkpoint.map_weights, dtype=np.float64),
+            map_neighbor_count=checkpoint.map_neighbor_count,
+            map_distance_floor=checkpoint.map_distance_floor,
         )
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
@@ -249,8 +286,33 @@ class HazardTeacher(BaseModel):
                 self.coefficient_mean,
                 self.coefficient_basis,
                 latent,
-            )
+        )
         return latent
+
+    def map_regime_prior(self, seeds: Sequence[SeedLike]) -> np.ndarray:
+        if self.map_weights.size == 0:
+            if self.regime_bank.size == 0:
+                return np.zeros(12, dtype=np.float64)
+            return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
+        map_vector = round_map_summary_vector(seeds)
+        regime = np.asarray(self.map_intercept + (map_vector @ self.map_weights), dtype=np.float64)
+        return np.clip(regime, -0.25, 1.25)
+
+    def map_posterior(self, seeds: Sequence[SeedLike]) -> RegimePosteriorState:
+        prior_regime = self.map_regime_prior(seeds)
+        if self.regime_bank.size == 0:
+            return RegimePosteriorState(mean=prior_regime)
+        distances = np.linalg.norm(self.regime_bank - prior_regime[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.map_neighbor_count, len(distances))]
+        selected_particles = tuple(np.asarray(self.regime_bank[index], dtype=np.float64) for index in order)
+        weights = 1.0 / np.clip(distances[order], self.map_distance_floor, None)
+        weights = weights / np.sum(weights)
+        mean = np.tensordot(weights, np.stack(selected_particles, axis=0), axes=(0, 0))
+        return RegimePosteriorState(
+            mean=np.asarray(mean, dtype=np.float64),
+            particles=selected_particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
 
     def _split_coefficients(
         self,

@@ -10,6 +10,10 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.student.predictor.gbx_map_prior import (
+    GBX_PRIOR_MAPONLY_BUCKET_MODEL,
+    GreyBoxMapOnlyBucketPredictor,
+)
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import (
@@ -107,6 +111,16 @@ def build_online_predictor(
         return RoundPredictorAdapter(
             predictor=historical_predictor,
             name=historical_predictor.name,
+        )
+    if normalized in {"gbx_prior_maponly_bucket", GBX_PRIOR_MAPONLY_BUCKET_MODEL}:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        gbx_prior = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=gbx_prior,
+            name=gbx_prior.name,
         )
     if normalized == "latent_regime":
         latent_predictor = LatentRegimePredictor()
