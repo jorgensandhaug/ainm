@@ -4170,7 +4170,10 @@
   - k7_r3_m80: 73.25
   - k7_r3_m90: 73.21
 - Key finding: more neighbors keeps helping (k5→k7→k9 monotonic improvement on smoke)
-- Full 8-round validation running for k7_r3
+- Full 8-round result for k7_r3: score **70.7983**, KL `0.118917`
+  - Lower than dev5 because it includes 3 additional harder rounds
+  - The old 8-round qr baseline was 73.95 but on a stale corpus - not directly comparable
+  - Need a fresh 8-round qr baseline on current corpus for fair comparison
 
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k9_r3: 73.29** (NEW BEST)
