@@ -12,24 +12,24 @@ import {
   txTaskIdToSlug,
 } from "./legacy-tripletex1-task-bridge";
 import { createTaskRegistry } from "./task-registry";
-import { taskRegistration as createCustomerTask } from "../tasks/task-create-customer/task";
-import { taskRegistration as createSupplierTask } from "../tasks/task-create-supplier/task";
-import { taskRegistration as createDepartmentTask } from "../tasks/task-create-department/task";
-import { taskRegistration as createProductTask } from "../tasks/task-create-product/task";
-import { taskRegistration as createProjectTask } from "../tasks/task-create-project/task";
-import { taskRegistration as createEmployeeTask } from "../tasks/task-create-employee/task";
-import { taskRegistration as createAccountingDimensionAndPostVoucherTask } from "../tasks/task-create-accounting-dimension-and-post-voucher/task";
-import { taskRegistration as createAndSendInvoiceTask } from "../tasks/task-create-and-send-invoice/task";
-import { taskRegistration as createCustomerInvoiceTask } from "../tasks/task-create-customer-invoice/task";
-import { taskRegistration as issueFullCreditNoteTask } from "../tasks/task-issue-full-credit-note/task";
-import { taskRegistration as createOrderInvoiceAndRegisterPaymentTask } from "../tasks/task-create-order-invoice-and-register-payment/task";
-import { taskRegistration as runPayrollWithBonusTask } from "../tasks/task-run-payroll-with-bonus/task";
-import { taskRegistration as registerTravelExpenseTask } from "../tasks/task-register-travel-expense/task";
-import { taskRegistration as setProjectFixedPriceAndInvoiceMilestoneTask } from "../tasks/task-set-project-fixed-price-and-invoice-milestone/task";
-import { taskRegistration as registerProjectHoursAndCreateProjectInvoiceTask } from "../tasks/task-register-project-hours-and-create-project-invoice/task";
-import { taskRegistration as registerSupplierInvoiceTask } from "../tasks/task-register-supplier-invoice/task";
-import { taskRegistration as registerCustomerInvoicePaymentTask } from "../tasks/task-register-customer-invoice-payment/task";
-import { taskRegistration as reverseCustomerInvoicePaymentTask } from "../tasks/task-reverse-customer-invoice-payment/task";
+import { taskRegistration as createCustomerTask } from "../tasks/task-01/task";
+import { taskRegistration as createSupplierTask } from "../tasks/task-02/task";
+import { taskRegistration as createDepartmentTask } from "../tasks/task-03/task";
+import { taskRegistration as createProductTask } from "../tasks/task-04/task";
+import { taskRegistration as createProjectTask } from "../tasks/task-05/task";
+import { taskRegistration as createEmployeeTask } from "../tasks/task-06/task";
+import { taskRegistration as createAccountingDimensionAndPostVoucherTask } from "../tasks/task-07/task";
+import { taskRegistration as createAndSendInvoiceTask } from "../tasks/task-08/task";
+import { taskRegistration as createCustomerInvoiceTask } from "../tasks/task-09/task";
+import { taskRegistration as issueFullCreditNoteTask } from "../tasks/task-10/task";
+import { taskRegistration as createOrderInvoiceAndRegisterPaymentTask } from "../tasks/task-11/task";
+import { taskRegistration as runPayrollWithBonusTask } from "../tasks/task-12/task";
+import { taskRegistration as registerTravelExpenseTask } from "../tasks/task-13/task";
+import { taskRegistration as setProjectFixedPriceAndInvoiceMilestoneTask } from "../tasks/task-14/task";
+import { taskRegistration as registerProjectHoursAndCreateProjectInvoiceTask } from "../tasks/task-15/task";
+import { taskRegistration as registerSupplierInvoiceTask } from "../tasks/task-16/task";
+import { taskRegistration as registerCustomerInvoicePaymentTask } from "../tasks/task-17/task";
+import { taskRegistration as reverseCustomerInvoicePaymentTask } from "../tasks/task-18/task";
 
 const implementedTaskRegistrations = [
   createCustomerTask,

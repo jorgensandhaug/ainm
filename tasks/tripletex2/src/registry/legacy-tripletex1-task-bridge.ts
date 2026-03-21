@@ -5,7 +5,7 @@ import type {
 import {
   CREATE_AND_SEND_INVOICE_TASK_ID,
   task as createAndSendInvoiceTask,
-} from "../tasks/task-create-and-send-invoice/task";
+} from "../tasks/task-08/task";
 
 export type LegacyTripletex1InferenceStatus =
   | "unique_attempt_delta"
@@ -49,6 +49,7 @@ export const LEGACY_TRIPLETEX1_TASK_BRIDGE_EVIDENCE_SOURCES = [
 export interface CanonicalTaskRegistryEntry {
   taskId: string;
   txTaskId: string;
+  taskSlug: string;
   taskName: string;
   summary: string;
   legacyTripletex1TaskIds: readonly string[];
@@ -56,56 +57,63 @@ export interface CanonicalTaskRegistryEntry {
 
 export const CANONICAL_TASK_REGISTRY = [
   {
-    taskId: "create-customer",
+    taskId: "01",
     txTaskId: "01",
+    taskSlug: "create-customer",
     taskName: "Create customer",
     summary:
       "Create a customer with organization number, address, and contact email.",
     legacyTripletex1TaskIds: ["01"],
   },
   {
-    taskId: "create-supplier",
+    taskId: "02",
     txTaskId: "02",
+    taskSlug: "create-supplier",
     taskName: "Create supplier",
     summary:
       "Create a supplier with organization number and invoice email details.",
     legacyTripletex1TaskIds: ["02"],
   },
   {
-    taskId: "create-department",
+    taskId: "03",
     txTaskId: "03",
+    taskSlug: "create-department",
     taskName: "Create department",
     summary:
       "Create one or more new departments with the requested names.",
     legacyTripletex1TaskIds: ["03"],
   },
   {
-    taskId: "create-product",
+    taskId: "04",
     txTaskId: "04",
+    taskSlug: "create-product",
     taskName: "Create product",
     summary:
       "Create a product with product number, price, and the required VAT treatment.",
     legacyTripletex1TaskIds: ["04"],
   },
   {
-    taskId: "create-project",
+    taskId: "05",
     txTaskId: "05",
+    taskSlug: "create-project",
     taskName: "Create project",
     summary:
       "Create a project for an existing customer and assign a project manager.",
     legacyTripletex1TaskIds: ["05"],
   },
   {
-    taskId: "create-employee",
+    taskId: "06",
     txTaskId: "06",
+    taskSlug: "create-employee",
     taskName: "Create employee",
     summary:
       "Create a new employee with identifying details, contact email, and start date.",
     legacyTripletex1TaskIds: ["06"],
   },
   {
-    taskId: "create-accounting-dimension-and-post-voucher",
+    taskId: "07",
     txTaskId: "07",
+    taskSlug: "create-accounting-dimension-and-post-voucher",
     taskName: "Create accounting dimension and post voucher",
     summary:
       "Create a custom accounting dimension with values, then post a voucher linked to one value.",
@@ -114,85 +122,96 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: CREATE_AND_SEND_INVOICE_TASK_ID,
     txTaskId: "08",
+    taskSlug: "create-and-send-invoice",
     taskName: createAndSendInvoiceTask.taskName,
     summary: createAndSendInvoiceTask.summary,
     legacyTripletex1TaskIds: ["08"],
   },
   {
-    taskId: "create-customer-invoice",
+    taskId: "09",
     txTaskId: "09",
+    taskSlug: "create-customer-invoice",
     taskName: "Create customer invoice",
     summary:
       "Create a customer invoice with explicit product lines and mixed VAT handling.",
     legacyTripletex1TaskIds: ["09"],
   },
   {
-    taskId: "issue-full-credit-note",
+    taskId: "10",
     txTaskId: "10",
+    taskSlug: "issue-full-credit-note",
     taskName: "Issue full credit note",
     summary:
       "Find an invoice and issue a full credit note that reverses the entire amount.",
     legacyTripletex1TaskIds: ["10"],
   },
   {
-    taskId: "create-order-invoice-and-register-payment",
+    taskId: "11",
     txTaskId: "11",
+    taskSlug: "create-order-invoice-and-register-payment",
     taskName: "Create order, invoice, and register payment",
     summary:
       "Create a sales order, convert it to an invoice, and register full payment.",
     legacyTripletex1TaskIds: ["11"],
   },
   {
-    taskId: "run-payroll-with-bonus",
+    taskId: "12",
     txTaskId: "12",
+    taskSlug: "run-payroll-with-bonus",
     taskName: "Run payroll with bonus",
     summary:
       "Process payroll for an employee and include a one-time bonus amount.",
     legacyTripletex1TaskIds: ["12"],
   },
   {
-    taskId: "register-travel-expense",
+    taskId: "13",
     txTaskId: "13",
+    taskSlug: "register-travel-expense",
     taskName: "Register travel expense",
     summary:
       "Register a travel expense claim with per diem and named out-of-pocket expenses.",
     legacyTripletex1TaskIds: ["13"],
   },
   {
-    taskId: "set-project-fixed-price-and-invoice-milestone",
+    taskId: "14",
     txTaskId: "14",
+    taskSlug: "set-project-fixed-price-and-invoice-milestone",
     taskName: "Set project fixed price and invoice milestone",
     summary:
       "Set a fixed project price and invoice a requested milestone percentage.",
     legacyTripletex1TaskIds: ["14"],
   },
   {
-    taskId: "register-project-hours-and-create-project-invoice",
+    taskId: "15",
     txTaskId: "15",
+    taskSlug: "register-project-hours-and-create-project-invoice",
     taskName: "Register project hours and create project invoice",
     summary:
       "Register billable hours to a project activity and generate the resulting project invoice.",
     legacyTripletex1TaskIds: ["15"],
   },
   {
-    taskId: "register-supplier-invoice",
+    taskId: "16",
     txTaskId: "16",
+    taskSlug: "register-supplier-invoice",
     taskName: "Register supplier invoice",
     summary:
       "Register an incoming supplier invoice with the requested account and input VAT.",
     legacyTripletex1TaskIds: ["16"],
   },
   {
-    taskId: "register-customer-invoice-payment",
+    taskId: "17",
     txTaskId: "17",
+    taskSlug: "register-customer-invoice-payment",
     taskName: "Register customer invoice payment",
     summary:
       "Locate an unpaid customer invoice and register full payment against it.",
     legacyTripletex1TaskIds: ["17"],
   },
   {
-    taskId: "reverse-customer-invoice-payment",
+    taskId: "18",
     txTaskId: "18",
+    taskSlug: "reverse-customer-invoice-payment",
     taskName: "Reverse customer invoice payment",
     summary:
       "Reverse a customer invoice payment so the invoice becomes unpaid again.",
@@ -228,12 +247,12 @@ function buildLookupRecord(
 export const txTaskIdToSlug = buildLookupRecord(
   CANONICAL_TASK_REGISTRY,
   (entry) => entry.txTaskId,
-  (entry) => entry.taskId,
+  (entry) => entry.taskSlug,
 );
 
 export const slugToTxTaskId = buildLookupRecord(
   CANONICAL_TASK_REGISTRY,
-  (entry) => entry.taskId,
+  (entry) => entry.taskSlug,
   (entry) => entry.txTaskId,
 );
 

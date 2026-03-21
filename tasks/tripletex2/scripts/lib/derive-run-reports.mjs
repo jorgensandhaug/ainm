@@ -1565,7 +1565,8 @@ function formatStrategyMarkdownCell(strategy) {
 }
 
 function formatTaskLabel(task) {
-  return task.txTaskId ? `[${task.txTaskId}] ${task.taskId}` : task.taskId;
+  const displayName = task.taskName ?? task.taskId;
+  return task.txTaskId ? `[${task.txTaskId}] ${displayName}` : displayName;
 }
 
 function formatEvidenceSummary(run) {

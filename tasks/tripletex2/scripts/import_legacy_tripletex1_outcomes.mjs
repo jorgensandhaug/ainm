@@ -19,7 +19,7 @@ const LEGACY_SELECTION_CONFIG_ID = "legacy-tripletex1-implicit-selection.v1";
 
 export const CANONICAL_TASK_REGISTRY = [
   {
-    taskId: "create-customer",
+    taskId: "01",
     txTaskId: "01",
     taskName: "Create customer",
     summary:
@@ -27,7 +27,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["01"],
   },
   {
-    taskId: "create-supplier",
+    taskId: "02",
     txTaskId: "02",
     taskName: "Create supplier",
     summary:
@@ -35,7 +35,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["02"],
   },
   {
-    taskId: "create-department",
+    taskId: "03",
     txTaskId: "03",
     taskName: "Create department",
     summary:
@@ -43,7 +43,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["03"],
   },
   {
-    taskId: "create-product",
+    taskId: "04",
     txTaskId: "04",
     taskName: "Create product",
     summary:
@@ -51,7 +51,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["04"],
   },
   {
-    taskId: "create-project",
+    taskId: "05",
     txTaskId: "05",
     taskName: "Create project",
     summary:
@@ -59,7 +59,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["05"],
   },
   {
-    taskId: "create-employee",
+    taskId: "06",
     txTaskId: "06",
     taskName: "Create employee",
     summary:
@@ -67,7 +67,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["06"],
   },
   {
-    taskId: "create-accounting-dimension-and-post-voucher",
+    taskId: "07",
     txTaskId: "07",
     taskName: "Create accounting dimension and post voucher",
     summary:
@@ -75,7 +75,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["07"],
   },
   {
-    taskId: "create-and-send-invoice",
+    taskId: "08",
     txTaskId: "08",
     taskName: "Create and send invoice",
     summary:
@@ -83,7 +83,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["08"],
   },
   {
-    taskId: "create-customer-invoice",
+    taskId: "09",
     txTaskId: "09",
     taskName: "Create customer invoice",
     summary:
@@ -91,7 +91,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["09"],
   },
   {
-    taskId: "issue-full-credit-note",
+    taskId: "10",
     txTaskId: "10",
     taskName: "Issue full credit note",
     summary:
@@ -99,7 +99,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["10"],
   },
   {
-    taskId: "create-order-invoice-and-register-payment",
+    taskId: "11",
     txTaskId: "11",
     taskName: "Create order, invoice, and register payment",
     summary:
@@ -107,7 +107,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["11"],
   },
   {
-    taskId: "run-payroll-with-bonus",
+    taskId: "12",
     txTaskId: "12",
     taskName: "Run payroll with bonus",
     summary:
@@ -115,7 +115,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["12"],
   },
   {
-    taskId: "register-travel-expense",
+    taskId: "13",
     txTaskId: "13",
     taskName: "Register travel expense",
     summary:
@@ -123,7 +123,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["13"],
   },
   {
-    taskId: "set-project-fixed-price-and-invoice-milestone",
+    taskId: "14",
     txTaskId: "14",
     taskName: "Set project fixed price and invoice milestone",
     summary:
@@ -131,7 +131,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["14"],
   },
   {
-    taskId: "register-project-hours-and-create-project-invoice",
+    taskId: "15",
     txTaskId: "15",
     taskName: "Register project hours and create project invoice",
     summary:
@@ -139,7 +139,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["15"],
   },
   {
-    taskId: "register-supplier-invoice",
+    taskId: "16",
     txTaskId: "16",
     taskName: "Register supplier invoice",
     summary:
@@ -147,7 +147,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["16"],
   },
   {
-    taskId: "register-customer-invoice-payment",
+    taskId: "17",
     txTaskId: "17",
     taskName: "Register customer invoice payment",
     summary:
@@ -155,7 +155,7 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["17"],
   },
   {
-    taskId: "reverse-customer-invoice-payment",
+    taskId: "18",
     txTaskId: "18",
     taskName: "Reverse customer invoice payment",
     summary:

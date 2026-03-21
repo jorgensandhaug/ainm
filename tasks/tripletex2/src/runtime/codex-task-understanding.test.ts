@@ -26,14 +26,15 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
   assert.match(prompt, /Registered task surfaces:/);
   assert.match(prompt, /Attachment text:/);
   assert.match(prompt, /hello tripletex/);
-  assert.match(prompt, /create-and-send-invoice/);
+  assert.match(prompt, /"taskId": "08"/);
+  assert.match(prompt, /"taskName": "Create and send invoice"/);
 });
 
 test("adaptCodexTaskUnderstandingResult accepts newly implemented task surfaces", () => {
   const adapted = adaptCodexTaskUnderstandingResult(
     {
       status: "resolved",
-      taskId: "create-employee",
+      taskId: "06",
       input: {
         employeeName: "Joao Rodrigues",
         birthDate: "1980-09-05",
@@ -47,7 +48,7 @@ test("adaptCodexTaskUnderstandingResult accepts newly implemented task surfaces"
 
   assert.deepEqual(adapted.result, {
     status: "resolved",
-    taskId: "create-employee",
+    taskId: "06",
     input: {
       employeeName: "Joao Rodrigues",
       birthDate: "1980-09-05",
@@ -64,7 +65,7 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
   const adapted = adaptCodexTaskUnderstandingResult(
     {
       status: "resolved",
-      taskId: "create-and-send-invoice",
+      taskId: "08",
       input: {
         customerName: "Nordhav AS",
         organizationNumber: "876520427",
@@ -81,8 +82,8 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
     status: "unresolved",
     code: "invalid-field-value",
     message:
-      'Extracted field "surpriseField" is not part of task "create-and-send-invoice".',
-    taskId: "create-and-send-invoice",
+      'Extracted field "surpriseField" is not part of task "08".',
+    taskId: "08",
     partialInput: {
       customerName: "Nordhav AS",
       organizationNumber: "876520427",

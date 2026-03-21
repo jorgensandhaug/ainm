@@ -49,18 +49,18 @@ test("task registrations seed every canonical task id exactly once", () => {
 });
 
 test("newly surfaced canonical tasks load real modules and draft strategies", async () => {
-  const taskSpec = getTaskSpec("create-department");
+  const taskSpec = getTaskSpec("03");
   assert.ok(taskSpec);
   assert.equal(taskSpec.implementationStatus, "implemented");
   assert.equal(taskSpec.txTaskId, "03");
-  assert.equal(taskSpec.inputSchemaId, "create-department.v1");
+  assert.equal(taskSpec.inputSchemaId, "03.v1");
   assert.deepEqual(taskSpec.requiredFields, ["departmentNames"]);
 
-  const taskModule = await loadTaskModule("create-department");
+  const taskModule = await loadTaskModule("03");
   assert.ok(taskModule);
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["create-department.not-implemented.v1"],
+    ["03.not-implemented.v1"],
   );
 });
 
@@ -77,19 +77,19 @@ test("every canonical task now loads a task module with at least one strategy", 
 });
 
 test("implemented task remains the real registered task module", async () => {
-  const taskSpec = getTaskSpec("create-and-send-invoice");
+  const taskSpec = getTaskSpec("08");
   assert.ok(taskSpec);
   assert.equal(taskSpec.implementationStatus, "implemented");
   assert.equal(taskSpec.txTaskId, "08");
 
-  const taskModule = await loadTaskModule("create-and-send-invoice");
+  const taskModule = await loadTaskModule("08");
   assert.ok(taskModule);
-  assert.equal(taskModule.task.taskId, "create-and-send-invoice");
+  assert.equal(taskModule.task.taskId, "08");
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
     [
-      "create-and-send-invoice.order-then-invoice-send.v1",
-      "create-and-send-invoice.order-then-invoice-then-send.v1",
+      "08.order-then-invoice-send.v1",
+      "08.order-then-invoice-then-send.v1",
     ],
   );
 });
@@ -101,7 +101,7 @@ test("registry exposes bidirectional tx task id lookups", () => {
   assert.equal(slugToTxTaskId["create-and-send-invoice"], "08");
 
   for (const task of CANONICAL_TASK_REGISTRY) {
-    assert.equal(txTaskIdToSlug[task.txTaskId], task.taskId);
-    assert.equal(slugToTxTaskId[task.taskId], task.txTaskId);
+    assert.equal(txTaskIdToSlug[task.txTaskId], task.taskSlug);
+    assert.equal(slugToTxTaskId[task.taskSlug], task.txTaskId);
   }
 });

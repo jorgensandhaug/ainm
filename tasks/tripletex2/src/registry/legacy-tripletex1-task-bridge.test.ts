@@ -31,24 +31,24 @@ const EXPECTED_CANONICAL_MAPPING = [
 
 test("canonical registry matches the fixed tx_task_id numbering", () => {
   assert.deepEqual(
-    CANONICAL_TASK_REGISTRY.map((task) => [task.txTaskId, task.taskId]),
+    CANONICAL_TASK_REGISTRY.map((task) => [task.txTaskId, task.taskSlug]),
     EXPECTED_CANONICAL_MAPPING,
   );
 });
 
-test("legacy bridge maps every tx_task_id to the canonical slug", () => {
+test("legacy bridge maps every tx_task_id to the canonical numeric task id", () => {
   assert.deepEqual(
     EXPECTED_CANONICAL_MAPPING.map(([txTaskId]) => [
       txTaskId,
       LEGACY_TRIPLETEX1_TASK_BRIDGE[txTaskId]?.canonicalTaskId,
     ]),
-    EXPECTED_CANONICAL_MAPPING,
+    EXPECTED_CANONICAL_MAPPING.map(([txTaskId]) => [txTaskId, txTaskId]),
   );
 });
 
 test("txTaskId and slug lookups are bidirectional", () => {
-  for (const [txTaskId, taskId] of EXPECTED_CANONICAL_MAPPING) {
-    assert.equal(txTaskIdToSlug[txTaskId], taskId);
-    assert.equal(slugToTxTaskId[taskId], txTaskId);
+  for (const [txTaskId, taskSlug] of EXPECTED_CANONICAL_MAPPING) {
+    assert.equal(txTaskIdToSlug[txTaskId], taskSlug);
+    assert.equal(slugToTxTaskId[taskSlug], txTaskId);
   }
 });

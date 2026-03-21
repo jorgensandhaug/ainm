@@ -24,7 +24,7 @@ test("POST /solve writes staging plus a canonical success artifact and respects 
     taskUnderstanding: {
       result: {
         status: "resolved",
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         input: {
           customerName: "Nordhav AS",
           organizationNumber: "876520427",
@@ -234,7 +234,7 @@ test("POST /solve enforces the concurrency limit", async () => {
     taskUnderstanding: {
       result: {
         status: "resolved",
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         input: {
           customerName: "Nordhav AS",
           organizationNumber: "876520427",
@@ -301,7 +301,7 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
     taskUnderstanding: {
       result: {
         status: "resolved",
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         input: {
           customerName: "Nordhav AS",
           organizationNumber: "876520427",

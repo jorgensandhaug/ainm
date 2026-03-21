@@ -50,7 +50,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
       taskUnderstanding: {
         result: {
           status: "resolved",
-          taskId: "create-and-send-invoice",
+          taskId: "08",
           input: {
             customerName: "Nordhav AS",
             organizationNumber: "876520427",
@@ -99,7 +99,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
   assert.equal(artifact.selection.selectionConfigId, "active-strategies-2026-03-20-task-stubs-a");
   assert.equal(
     artifact.strategy.strategyPath,
-    "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
+    "src/tasks/task-08/strategies/order-then-invoice-send.ts",
   );
   assert.equal(artifact.execution.runtimeStatus, "completed");
   assert.equal(artifact.execution.apiCallCount, 3);
@@ -164,8 +164,8 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
     {
       mode: "sandbox",
       selectionConfigOverride: createSelectionConfigOverride({
-        "create-and-send-invoice":
-          "create-and-send-invoice.order-then-invoice-then-send.v1",
+        "08":
+          "08.order-then-invoice-then-send.v1",
       }),
       runContext: {
         runId: "sandbox-explicit-send-run",
@@ -175,7 +175,7 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
       taskUnderstanding: {
         result: {
           status: "resolved",
-          taskId: "create-and-send-invoice",
+          taskId: "08",
           input: {
             customerName: "Nordhav AS",
             organizationNumber: "876520427",
@@ -213,11 +213,11 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
   );
   assert.equal(
     artifact.strategy.strategyId,
-    "create-and-send-invoice.order-then-invoice-then-send.v1",
+    "08.order-then-invoice-then-send.v1",
   );
   assert.equal(
     artifact.strategy.strategyPath,
-    "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-then-send.ts",
+    "src/tasks/task-08/strategies/order-then-invoice-then-send.ts",
   );
   assert.equal(artifact.execution.runtimeStatus, "completed");
   assert.equal(artifact.execution.apiCallCount, 4);
@@ -267,7 +267,7 @@ test("runCompetitionSolvePipeline uses Codex/AGENTS task understanding by defaul
 
           return JSON.stringify({
             status: "resolved",
-            taskId: "create-and-send-invoice",
+            taskId: "08",
             inputJson: JSON.stringify({
               customerName: "Nordhav AS",
               organizationNumber: "876520427",
@@ -407,33 +407,33 @@ function createSelectionConfigOverride(
     schemaVersion: "tripletex2.active-strategy-selection.v1",
     selectionConfigId: "active-strategies-2026-03-20-explicit-invoice-send",
     taskStrategies: {
-      "create-accounting-dimension-and-post-voucher":
-        "create-accounting-dimension-and-post-voucher.not-implemented.v1",
-      "create-and-send-invoice":
-        "create-and-send-invoice.order-then-invoice-send.v1",
-      "create-customer": "create-customer.not-implemented.v1",
-      "create-customer-invoice": "create-customer-invoice.not-implemented.v1",
-      "create-department": "create-department.not-implemented.v1",
-      "create-employee": "create-employee.not-implemented.v1",
-      "create-order-invoice-and-register-payment":
-        "create-order-invoice-and-register-payment.not-implemented.v1",
-      "create-product": "create-product.not-implemented.v1",
-      "create-project": "create-project.not-implemented.v1",
-      "create-supplier": "create-supplier.not-implemented.v1",
-      "issue-full-credit-note": "issue-full-credit-note.not-implemented.v1",
-      "register-customer-invoice-payment":
-        "register-customer-invoice-payment.not-implemented.v1",
-      "register-project-hours-and-create-project-invoice":
-        "register-project-hours-and-create-project-invoice.not-implemented.v1",
-      "register-supplier-invoice":
-        "register-supplier-invoice.not-implemented.v1",
-      "register-travel-expense":
-        "register-travel-expense.not-implemented.v1",
-      "reverse-customer-invoice-payment":
-        "reverse-customer-invoice-payment.not-implemented.v1",
-      "run-payroll-with-bonus": "run-payroll-with-bonus.not-implemented.v1",
-      "set-project-fixed-price-and-invoice-milestone":
-        "set-project-fixed-price-and-invoice-milestone.not-implemented.v1",
+      "07":
+        "07.not-implemented.v1",
+      "08":
+        "08.order-then-invoice-send.v1",
+      "01": "01.not-implemented.v1",
+      "09": "09.not-implemented.v1",
+      "03": "03.not-implemented.v1",
+      "06": "06.not-implemented.v1",
+      "11":
+        "11.not-implemented.v1",
+      "04": "04.not-implemented.v1",
+      "05": "05.not-implemented.v1",
+      "02": "02.not-implemented.v1",
+      "10": "10.not-implemented.v1",
+      "17":
+        "17.not-implemented.v1",
+      "15":
+        "15.not-implemented.v1",
+      "16":
+        "16.not-implemented.v1",
+      "13":
+        "13.not-implemented.v1",
+      "18":
+        "18.not-implemented.v1",
+      "12": "12.not-implemented.v1",
+      "14":
+        "14.not-implemented.v1",
       ...overrides,
     },
   };
