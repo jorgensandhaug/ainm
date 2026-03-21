@@ -21,6 +21,11 @@ The task has a hard 300s budget. **Three production runs have scored 0 due to ti
 
 ## Production Run Results (2026-03-21)
 
+### Spanish run 2 (57c8f4db, 14 calls, 0 errors) — FIRST run with bank reconciliation (score pending)
+- 6 reads in parallel (broad accountingPeriod query, not targeted), 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500), 3 supplier payments (González/Torres/López SL) + 3 non-invoice (1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) combined into 1 voucher (12 postings), 1 balance sheet read, 1 bank reconciliation (closingBalance=39130.06)
+- **Key finding**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not in Tripletex. Balance sheet read saved from 422. Next run should compute closing balance as `sum(Inn) - sum(|Ut|)` to save 1 call.
+- Used 14 calls; optimal is 13 (skip balance sheet read, compute instead)
+
 ### German run 2 (5fc92ebf, 11 calls, 0 errors) — likely SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
 - 5 reads fired in parallel (OLD path, no `/ledger/accountingPeriod`), 5 customer payments (4 full + 1 partial: Meyer GmbH 10750 of 21500), 3 supplier payments + 3 Bankgebyr (1 Ut expense + 2 Inn refunds) combined into 1 voucher (12 postings)
 - Wagner GmbH had 2 invoices (#1 outstanding 23625, #2 outstanding 28812.50) — matched in order correctly
@@ -168,7 +173,7 @@ Key findings:
 - **total: 2 reads + N customer payments**
 
 ### Mixed incoming/outgoing runs
-1. parse CSV locally — extract ending saldo from last row's Saldo column
+1. parse CSV locally — compute closing balance as `sum(Inn) - sum(|Ut|)` from ALL CSV lines
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)`
@@ -179,10 +184,11 @@ Key findings:
 3. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
 4. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
 5. `PUT /invoice/{id}/:payment` once per matched incoming line
-6. **Bank reconciliation (CRITICAL for Check 1)**: read balance sheet for actual 1920 balance, then `POST /bank/reconciliation` with `isClosed: true` (see trusted standard Step 6)
-- **no-supplier-invoice floor: 6 reads + N customer payments + 1 combined voucher + 1 balance read + 1 bank recon = 6 + N + 3**
-- **optimized (trust CSV saldo): 6 reads + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 2**
-- example: 5 customer + 3 supplier + 3 non-invoice, trust CSV saldo = 6 + 5 + 2 = **13 calls**
+6. **Bank reconciliation (CRITICAL for Check 1)**: `POST /bank/reconciliation` with `isClosed: true` using computed closing balance (see trusted standard Step 6)
+- **no-supplier-invoice floor: 6 reads + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 2**
+- **with balance sheet safety read: 6 reads + N customer payments + 1 combined voucher + 1 balance read + 1 bank recon = 6 + N + 3**
+- example: 5 customer + 3 supplier + 3 non-invoice, computed balance = 6 + 5 + 2 = **13 calls**
+- **DO NOT use CSV ending saldo** — it includes opening balance not in Tripletex (production-proved: 57c8f4db)
 
 ### Critical: do not split into multiple scripts or debug passes
 - write one comprehensive script that handles the complete flow
@@ -237,7 +243,7 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **BANK RECONCILIATION REQUIRED**: All 8 completed runs without bank reconciliation scored 0.6/6 (Check 1 always failed). Must create a closed bank reconciliation via `POST /bank/reconciliation` with `isClosed: true` after all payments/postings. `bankAccountClosingBalanceCurrency` must match actual account 1920 balance (read from balance sheet AFTER all postings). If proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10).
+- **BANK RECONCILIATION REQUIRED**: Run 57c8f4db was the first to create one (score pending). All 9 prior runs scored 0.6/6 (Check 1 failed). Must create a closed bank reconciliation via `POST /bank/reconciliation` with `isClosed: true` after all payments/postings. `bankAccountClosingBalanceCurrency` must match actual account 1920 balance — compute as `sum(Inn) - sum(|Ut|)` from all CSV lines. DO NOT use CSV ending saldo (includes opening balance not in Tripletex). If proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10).
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)

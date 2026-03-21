@@ -105,11 +105,19 @@
   - used comma-separated `number=8400,2535` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
   - 5 calls, 0 errors, outstanding=0 — 4th confirmation of the canonical 5-call path on this task shape
   - 3rd consecutive clean comma-separated product lookup confirmation
+- production confirmation on 2026-03-21 for Spanish prompt `Río Verde SL` / `937237243` / `Informe de análisis (5700)` + `Diseño web (2680)` / prices `33200` + `17200`:
+  - used comma-separated `number=5700,2680` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
+  - 5 calls, 0 errors, outstanding=0 — 5th confirmation of the canonical 5-call path
+  - confirms Spanish-language prompt triggers no endpoint deviation
 - sandbox investigation on 2026-03-21 disproved three call-reduction hypotheses:
   - `POST /order` with `product: { number: "..." }` instead of `product: { id }`: accepted (201) but creates orphaned order lines — product fields are null in readback, no linkage to existing product
   - `POST /order` with `customer: { organizationNumber: "..." }` instead of `customer: { id }`: rejected (422, "customer.name: Kan ikke være null") — API treats it as creating a new customer
   - hardcoded `paymentTypeId=1`: rejected (422, "Ugyldig verdi") — paymentTypeId is account-specific, must be resolved via GET /invoice/paymentType
   - conclusion: 5 calls is the proven floor for this task shape on a fresh run
+- sandbox investigation on 2026-03-21 disproved paymentTypeId omission hypothesis:
+  - `PUT /order/{id}/:invoice` with `paidAmount=0.01` but no `paymentTypeId`: rejected (422, "Både paidAmount og paymentTypeId må oppgis ved registrering av en forhåndsbetalt faktura")
+  - `PUT /invoice/{id}/:payment` with `paidAmount` but no `paymentTypeId`: rejected (422, "paymentTypeId: Kan ikke være null")
+  - conclusion: `paymentTypeId` is always required for any payment path — the GET /invoice/paymentType call cannot be eliminated
 
 ## Product Lookup Strategy
 - **primary**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call

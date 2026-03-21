@@ -136,6 +136,10 @@ Exact-match tasks should now prefer the trusted standard:
   - used comma-separated `number=8400,2535` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
   - 5 calls, 0 errors, outstanding=0 — 4th confirmation of the canonical 5-call path
   - sandbox investigation disproved three call-reduction hypotheses: inline `product: { number }` creates orphaned lines (no product linkage), inline `customer: { organizationNumber }` rejected (422, requires name), hardcoded `paymentTypeId=1` rejected (422) — 5 calls is the proven floor
+- production run on 2026-03-21 for Spanish prompt `Río Verde SL` / `937237243` / `Informe de análisis (5700)` + `Diseño web (2680)` / prices `33200` + `17200`:
+  - used comma-separated `number=5700,2680` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
+  - 5 calls, 0 errors, outstanding=0 — 5th confirmation of the canonical 5-call path
+  - sandbox also disproved paymentTypeId omission: `PUT /order/:invoice` with `paidAmount` but no `paymentTypeId` → 422; `PUT /invoice/:payment` without `paymentTypeId` → 422; GET /invoice/paymentType cannot be eliminated
 
 ## Minimal Flow
 
