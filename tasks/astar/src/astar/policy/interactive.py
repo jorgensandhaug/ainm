@@ -13,7 +13,7 @@ from astar.policy.query_plan import QueryPlanPolicy
 from astar.policy.registry import build_named_policy
 
 _ADAPTIVE_PATTERN = re.compile(r"^adaptive(?:_r(\d+))?$")
-_PREDICTIVE_REPEAT_PATTERN = re.compile(r"^(postinfo|scoregain)(?:_r(\d+))?$")
+_PREDICTIVE_REPEAT_PATTERN = re.compile(r"^(postinfo|scoregain)(?:_probe)?(?:_r(\d+))?$")
 
 
 def _expand_query_items(items: list[QueryPlanItem]) -> list[QueryPlanItem]:

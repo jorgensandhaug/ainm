@@ -289,29 +289,34 @@ def build_named_predictive_repeat_policy(
     replicate_budget: int,
 ) -> PredictiveRepeatPolicy:
     normalized = name.strip().lower()
+    probe_mode = "_probe" in normalized
     if normalized.startswith("scoregain"):
         return PredictiveRepeatPolicy(
             name=normalized,
             predictor=predictor,
             replicate_budget=replicate_budget,
-            min_queries_before_repeat=6,
+            min_queries_before_repeat=1 if probe_mode else 6,
             unseen_motif_weight=0.18,
             unseen_entropy_weight=0.54,
             unseen_dynamic_weight=0.28,
             repeat_motif_weight=0.08,
-            repeat_prediction_entropy_weight=0.16,
+            repeat_prediction_entropy_weight=0.20 if probe_mode else 0.16,
             repeat_dynamic_weight=0.12,
-            repeat_discrepancy_weight=1.05,
+            repeat_discrepancy_weight=1.12 if probe_mode else 1.05,
             repeat_empirical_entropy_weight=0.55,
             repeat_settlement_weight=0.10,
             discrepancy_scale=4.5,
             repeat_penalty=0.08,
-            repeat_margin=-0.02,
+            repeat_margin=-0.05 if probe_mode else -0.02,
         )
     return PredictiveRepeatPolicy(
         name=normalized,
         predictor=predictor,
         replicate_budget=replicate_budget,
+        min_queries_before_repeat=1 if probe_mode else 10,
+        repeat_prediction_entropy_weight=0.24 if probe_mode else 0.20,
+        repeat_discrepancy_weight=0.92 if probe_mode else 0.85,
+        repeat_margin=-0.02 if probe_mode else 0.03,
     )
 
 

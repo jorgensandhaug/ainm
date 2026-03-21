@@ -1,0 +1,40 @@
+{"budget": 50, "elapsed_seconds": 367.1038194139983, "episode_seed": 0, "fit_policy_name": "exploration_r3", "model_name": "greybox_hazard_lowrank", "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb", "rows": [{"eval_policy_name": "exploration_r3", "executed_queries": 48, "fit_policy_name": "exploration_r3", "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb", "score": 59.04509529775912, "weighted_kl": 0.17577664819514768}, {"eval_policy_name": "scoregain_r5", "executed_queries": 50, "fit_policy_name": "exploration_r3", "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb", "score": 57.05999879357982, "weighted_kl": 0.18720798486658005}, {"eval_policy_name": "scoregain_probe_r5", "executed_queries": 50, "fit_policy_name": "exploration_r3", "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb", "score": 57.76462702134395, "weighted_kl": 0.18311127873264396}, {"eval_policy_name": "postinfo_probe_r5", "executed_queries": 50, "fit_policy_name": "exploration_r3", "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb", "score": 56.437173640020816, "weighted_kl": 0.19091530709281201}], "samples_per_round": 4}
+# ranking
+[
+  {
+    "eval_policy_name": "exploration_r3",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 48.0,
+    "mean_score": 59.04509529775912,
+    "mean_weighted_kl": 0.17577664819514768,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  },
+  {
+    "eval_policy_name": "scoregain_probe_r5",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 50.0,
+    "mean_score": 57.76462702134395,
+    "mean_weighted_kl": 0.18311127873264396,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  },
+  {
+    "eval_policy_name": "scoregain_r5",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 50.0,
+    "mean_score": 57.05999879357982,
+    "mean_weighted_kl": 0.18720798486658005,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  },
+  {
+    "eval_policy_name": "postinfo_probe_r5",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 50.0,
+    "mean_score": 56.437173640020816,
+    "mean_weighted_kl": 0.19091530709281201,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  }
+]

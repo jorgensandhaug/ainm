@@ -2168,3 +2168,241 @@
     - expected and good
     - for a predictor that ignores transcript evidence, changing eval policy should not move the score
     - this confirms the harness is measuring policy effects rather than accidentally changing predictor training/config
+
+### 2026-03-21T14:24:00Z
+
+- Committed implementation checkpoint:
+  - local commit:
+    - `e992715d` `[astar] add predictor-aware H10 policy sweep`
+- Pushed to remote `origin/agent5`.
+- Because local `agent5` history had diverged from remote-sha equivalents, direct push was rejected.
+- Safe push procedure used:
+  - fetched `origin/agent5`
+  - created temporary worktree at `/tmp/agent5_push_h10_61TZyr`
+  - cherry-picked the new H10 commit on top of remote tip
+  - resolved one cherry-pick conflict in `src/astar/cli.py`
+  - pushed detached-head result back to `origin/agent5`
+- Remote push result:
+  - remote advanced from `eb2f8129` to `aba6e521`
+  - this is the pushed remote equivalent of the local H10 implementation commit
+
+### 2026-03-21T14:26:00Z
+
+- Added a faster directional scout while the 3-round batches run:
+  - model `greybox_hazard_lowrank`
+  - fit-policy `exploration_r3`
+  - eval round `f1dac...` only
+  - eval policies:
+    - `coverage`
+    - `postinfo_r5`
+    - `scoregain_r5`
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_f1quick_v01.log`
+  - session:
+    - `24149`
+  - purpose:
+    - get earlier read on whether the new H10 policies help or hurt the hardest round before the larger sweep finishes
+
+### 2026-03-21T14:34:00Z
+
+- First real H10 win landed from the fast scout:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_f1quick_v01.log`
+  - protocol:
+    - model `greybox_hazard_lowrank`
+    - fixed fit-policy `exploration_r3`
+    - held-out round `f1dac...`
+    - eval policies:
+      - `coverage`
+      - `postinfo_r5`
+      - `scoregain_r5`
+  - result:
+    - `coverage`
+      - executed queries `45`
+      - score `54.823086`
+      - KL `0.200507`
+    - `postinfo_r5`
+      - executed queries `50`
+      - score `56.561333`
+      - KL `0.190155`
+      - delta vs coverage `+1.738247`
+    - `scoregain_r5`
+      - executed queries `50`
+      - score `57.059999`
+      - KL `0.187208`
+      - delta vs coverage `+2.236913`
+- Interpretation:
+  - this is exactly the kind of evidence H10 was asking for
+  - on the hardest round, predictor-aware repeated diagnostics appear materially better than plain coverage under a fixed nontrivial predictor stack
+  - `scoregain_r5` is currently the lead policy variant among the new family
+- Immediate follow-up:
+  - launched second fast scout to check for collateral damage on a stronger round:
+    - model `greybox_hazard_lowrank`
+    - fit-policy `exploration_r3`
+    - held-out round `c5cdf...`
+    - eval policies:
+      - `coverage`
+      - `postinfo_r5`
+      - `scoregain_r5`
+    - log:
+      - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_c5quick_v01.log`
+    - session:
+      - `41645`
+
+### 2026-03-21T14:41:00Z
+
+- Full 3-round hazard-lowrank sweeps finished.
+- Fixed fit-policy `exploration_r3`:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_probe3_v01.log`
+  - ranking:
+    - `exploration_r3` `67.597100`
+    - `scoregain_r5` `66.994710`
+    - `adaptive_r5` `66.750926`
+    - `postinfo_r5` `66.665429`
+    - `coverage` `66.361502`
+  - read:
+    - new H10 variants beat plain `coverage`
+    - but they still lose to existing `exploration_r3`
+- Fixed fit-policy `coverage`:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitcoverage_probe3_v01.log`
+  - ranking:
+    - `adaptive_r5` `67.024982`
+    - `exploration_r3` `66.972997`
+    - `coverage` `66.858707`
+    - `scoregain_r5` `66.819979`
+    - `postinfo_r3` `66.794100`
+  - read:
+    - again, the new H10 variants are competitive but not winning
+- Important corrected interpretation:
+  - the earlier `f1dac` scout was only a win vs `coverage`
+  - against the stronger existing repeated-diagnostic baseline `exploration_r3`, the first H10 variants are still behind
+- Therefore current next move is not to promote `scoregain_r5` as-is.
+- New hypothesis from the evidence:
+  - the failure mode is likely **not enough early repeats**
+  - `exploration_r3` may still win because it probes repeated diagnostics earlier
+- Implemented new variants in response:
+  - `postinfo_probe_rN`
+  - `scoregain_probe_rN`
+  - change:
+    - allow repeat scoring immediately after the first diagnostic hits instead of waiting
+    - slightly stronger repeat bias / discrepancy emphasis
+- Validation after adding probe variants:
+  - `uv run python -m py_compile src/astar/policy/predictive_repeat.py src/astar/policy/interactive.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_online_episode.py -q`
+    - `2 passed`
+- Actions:
+  - killed redundant `c5quick` scout after the full 3-round hazard log already supplied that row
+  - launched new decisive scout:
+    - model `greybox_hazard_lowrank`
+    - fit-policy `exploration_r3`
+    - held-out round `f1dac...`
+    - eval policies:
+      - `exploration_r3`
+      - `scoregain_r5`
+      - `scoregain_probe_r5`
+      - `postinfo_probe_r5`
+    - log:
+      - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_f1probe_v01.log`
+    - session:
+      - `56022`
+
+### 2026-03-21T14:45:00Z
+
+- Both 3-round `greybox_student_joint_repeataware` fixed-stack sweeps finished.
+- Fit-policy `exploration_r3`:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_studentjoint_repeataware_fitexplr3_probe3_v01.log`
+  - ranking:
+    - `exploration_r3` `67.917127`
+    - `postinfo_r3` `67.784857`
+    - `adaptive_r5` `67.627767`
+    - `scoregain_r3` `67.540597`
+    - `scoregain_r5` `67.379483`
+    - `postinfo_r5` `67.247199`
+    - `coverage` `67.236816`
+  - read:
+    - first H10 variants are competitive
+    - but still not beating `exploration_r3`
+    - closest is `postinfo_r3`, gap about `-0.1323`
+- Fit-policy `coverage`:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_studentjoint_repeataware_fitcoverage_probe3_v01.log`
+  - ranking:
+    - `adaptive_r5` `67.833378`
+    - `exploration_r3` `67.532316`
+    - `coverage` `67.483458`
+    - `scoregain_r3` `67.306240`
+    - `postinfo_r3` `67.213218`
+    - `postinfo_r5` `66.732298`
+    - `scoregain_r5` `66.653172`
+  - read:
+    - existing repeat policies still dominate
+    - new H10 variants not yet ready for promotion on this stronger student either
+- Combined current evidence:
+  - predictor-aware H10 family has real signal
+  - but the first implementation is mostly improving over plain `coverage`, not over the best existing repeated-diagnostic baselines
+  - likely missing piece:
+    - earlier repeated probes / more exploration-like front-loading
+- This is why the current live scout is now focused on:
+  - `scoregain_probe_r5`
+  - `postinfo_probe_r5`
+  - versus `exploration_r3` on `f1dac...`
+
+### 2026-03-21T14:53:00Z
+
+- `f1probe` scout finished:
+  - log:
+    - `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_f1probe_v01.log`
+  - protocol:
+    - model `greybox_hazard_lowrank`
+    - fixed fit-policy `exploration_r3`
+    - held-out round `f1dac...`
+    - eval policies:
+      - `exploration_r3`
+      - `scoregain_r5`
+      - `scoregain_probe_r5`
+      - `postinfo_probe_r5`
+  - result:
+    - `exploration_r3`
+      - score `59.045095`
+      - KL `0.175777`
+    - `scoregain_r5`
+      - score `57.059999`
+      - KL `0.187208`
+    - `scoregain_probe_r5`
+      - score `57.764627`
+      - KL `0.183111`
+    - `postinfo_probe_r5`
+      - score `56.437174`
+      - KL `0.190915`
+- Interpretation:
+  - early repeats do help:
+    - `scoregain_probe_r5` > `scoregain_r5`
+    - delta about `+0.7046`
+  - but the gap to `exploration_r3` on `f1dac...` is still large:
+    - about `-1.2805`
+  - so this probe-first correction moves in the right direction but is **not enough**
+- Practical conclusion:
+  - H10 current branch is scientifically useful and nontrivial
+  - but still rejected as a promotion candidate over the best existing repeat baselines
+  - especially:
+    - `exploration_r3` remains stronger than all tested new H10 variants under the fixed stacks tested here
+- Current best findings from this H10 cycle:
+  - on `greybox_hazard_lowrank`:
+    - fixed fit-policy `exploration_r3`
+    - best eval policy remains `exploration_r3`
+    - mean `67.597100`
+  - on `greybox_student_joint_repeataware`:
+    - fixed fit-policy `exploration_r3`
+    - best eval policy remains `exploration_r3`
+    - mean `67.917127`
+  - closest new challenger:
+    - `postinfo_r3` on `greybox_student_joint_repeataware` with fit-policy `exploration_r3`
+    - mean `67.784857`
+    - still below by about `-0.1323`
+- Next pivot implication:
+  - stop spending more cycles on minor H10 policy tweaks for now
+  - if returning later, it should be with a more radical policy-learning setup, not another small heuristic retune

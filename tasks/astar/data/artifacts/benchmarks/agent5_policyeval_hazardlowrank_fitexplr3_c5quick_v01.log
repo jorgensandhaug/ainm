@@ -1,0 +1,31 @@
+{"budget": 50, "elapsed_seconds": 293.1983824859999, "episode_seed": 0, "fit_policy_name": "exploration_r3", "model_name": "greybox_hazard_lowrank", "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989", "rows": [{"eval_policy_name": "coverage", "executed_queries": 45, "fit_policy_name": "exploration_r3", "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989", "score": 78.97567805379818, "weighted_kl": 0.07878987083061917}, {"eval_policy_name": "postinfo_r5", "executed_queries": 50, "fit_policy_name": "exploration_r3", "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989", "score": 78.76439458878954, "weighted_kl": 0.07972017792820492}, {"eval_policy_name": "scoregain_r5", "executed_queries": 50, "fit_policy_name": "exploration_r3", "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989", "score": 78.61173579426058, "weighted_kl": 0.08036250684067113}], "samples_per_round": 4}
+# ranking
+[
+  {
+    "eval_policy_name": "coverage",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 45.0,
+    "mean_score": 78.97567805379818,
+    "mean_weighted_kl": 0.07878987083061917,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  },
+  {
+    "eval_policy_name": "postinfo_r5",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 50.0,
+    "mean_score": 78.76439458878954,
+    "mean_weighted_kl": 0.07972017792820492,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  },
+  {
+    "eval_policy_name": "scoregain_r5",
+    "fit_policy_name": "exploration_r3",
+    "mean_executed_queries": 50.0,
+    "mean_score": 78.61173579426058,
+    "mean_weighted_kl": 0.08036250684067113,
+    "model_name": "greybox_hazard_lowrank",
+    "round_count": 1
+  }
+]
