@@ -4215,8 +4215,8 @@
 8. baseline query_residual: 72.55
 
 ### Current scoreboard on dev5:
-1. **hazard_posterior_v2 k7_r3: 77.40** (BEST, +1.17 vs supportx)
-2. hazard_posterior_v2 k5_r3: 77.39
+1. **ENSEMBLE hv2+qr 50/50: 79.50** (MASSIVE NEW BEST, +3.53 vs baseline, +3.27 vs supportx!)
+2. hazard_posterior_v2 k7_r3: 77.40
 3. supportx_v01: 76.23
 4. baseline query_residual: 75.97
 
