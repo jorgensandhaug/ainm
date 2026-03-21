@@ -107,3 +107,11 @@
   - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"` after the prompt omitted departureFrom and the employee read did not provide a concrete location; generic placeholders are not a trusted correctness path
   - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`
   - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step
+  - sandbox re-verified on 2026-03-21: `costCategory` and `paymentType` with `id=0` succeed at `POST /travelExpense` but fail at `PUT /travelExpense/:deliver` with `422`; real lookup IDs are required for delivery
+  - sandbox re-verified on 2026-03-21: `perDiemCompensations` without `rateType` also succeed at `POST` but fail at `PUT :deliver` with `422 Sats eller satskategori må spesifiseres`; the rate lookup cannot be skipped
+- production confirmed on 2026-03-21:
+  - `Pablo Rodríguez` / `pablo.rodriguez@example.org` / `Conferencia Ålesund` / 5-day per-diem (800/day) + flight 2750 + taxi 700
+  - duration-only prompt (no explicit dates), employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - the forced-action branch with deterministic dates `2026-03-17..2026-03-21` produced a clean 7-call run: employee → company → costCategory + paymentType + rate (parallel) → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, travel expense `11149202`, `costs.length=2`, `perDiemCompensations.length=1`
+  - no `rateType.rate` matched the prompt day rate of `800`, so the first returned `rateType.id=25886` (rate `397`) was used; `PUT :deliver` still accepted the manual per-diem `count=5, rate=800, amount=4000`

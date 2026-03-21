@@ -229,3 +229,14 @@ For the travel-expense create, the sandbox-proven shape was:
 - do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch
 - do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape
 - do not add exploratory `GET /travelExpense`, repeated `GET /employee`, or alternate company/address probes just because the prompt omitted dates; those calls still do not tell you which inferred range is scorer-correct
+- do not try `costCategory` or `paymentType` with `id=0` to skip lookups; `POST` accepts `id=0` but `PUT :deliver` rejects it with `422`
+- do not try posting `perDiemCompensations` without `rateType` to skip the rate lookup; `POST` accepts it but `PUT :deliver` rejects it with `422`
+
+## Production Confirmations
+
+- 2026-03-21 `Pablo Rodríguez` / `pablo.rodriguez@example.org` / `Conferencia Ålesund` / 5-day per-diem 800/day + flight 2750 + taxi 700:
+  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - deterministic dates `2026-03-17..2026-03-21`, `overnightAccommodation=HOTEL`
+  - 7-call forced-action branch: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, expense `11149202`, 2 costs, 1 per-diem
+  - no `rateType.rate` matched prompt rate 800; used first returned `rateType.id=25886` (rate 397); delivery accepted manual `count=5, rate=800, amount=4000`
