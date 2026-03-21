@@ -123,3 +123,28 @@ Note: Barren correction does NOT trigger on the actual worst round (36e581f1). T
 4. The fundamental bottleneck is the **limited number of independent rounds** (~8). With only 7 training rounds in leave-one-out, there is not enough diversity to handle novel regimes.
 
 5. The worst round (36e581f1, score 49) fails because it represents a regime that is far from all training rounds in the latent space. No amount of model tuning can fix this without more training rounds.
+
+## Summary of All 14+ Experiments (chronological)
+
+1. z2 covnbr (6 neighborhood features): 67.21 dev4 → REJECTED
+2. z2 covnbr3 (3 neighborhood features): 70.36 dev4 → REJECTED
+3. z4 covnbr: 67.21 dev4 → REJECTED (identical to z2)
+4. z2 calobs (exact obs blend): 76.20 full → REJECTED
+5. z2 r01 (ridge=0.01): 72.02 full → REJECTED
+6. z2 r10 (ridge=0.1): 66.36 full → REJECTED
+7. z2 e50 (50 epochs): 78.40 full → +0.02 (negligible improvement)
+8. z3 (latent dim 3): 77.34 full → REJECTED
+9. z2 hbblend20 (GLMM+bucket ensemble): 77.17 full → REJECTED
+10. z2 covpoly (polynomial time×static interactions): 74.15 full → REJECTED
+11. z2 tmix (tensor mixing): 78.38 full → identical
+12. z2 barren_v001 (barren correction): 76.01 full → REJECTED
+13. z2 barren_v002: 75.83 full → REJECTED
+14. z2 barren_v003: 76.82 full → REJECTED
+
+## Recommendations for Future Work
+
+1. **Use the GLMM latent z2 model as-is** (78.4) as a strong component in any ensemble
+2. **The main bottleneck is round diversity** - getting more historical rounds would help more than any model change
+3. **For the worst rounds**, the model needs to detect novel regimes and fall back gracefully - this requires a different inference strategy, not better features
+4. **Neural network transition models** could potentially capture non-linear dynamics better, but would need careful regularization to avoid overfitting with few rounds
+5. **Combining GLMM with agent3's query_residual+barren approach** in an ensemble could potentially reach 81+ by getting the best of both failure modes
