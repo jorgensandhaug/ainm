@@ -503,6 +503,55 @@
 64. Current post-`v11` branch state:
    - best verified full corrected local model remains `query_residual_v11`
    - validation output is now stronger than when `v11` was first benchmarked, but `v11` itself has not yet been rerun under the upgraded reporting schema
+65. `query_residual_v12` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v12_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v12`
+     - fixed `samples_per_round=3`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `60.6939`
+     - mean weighted KL `0.166922`
+   - per-round:
+     - `36e581...`: score `63.3508`, KL `0.152266`
+     - `f1dac9...`: score `58.0371`, KL `0.181579`
+66. Interpretation of item 65:
+   - increasing transcript diversity from `2 -> 3` did not continue the gain trend on the representative holdout
+   - comparison:
+     - `v11` / samples-2: `60.9581`
+     - `v10` / samples-2: `60.8660`
+     - `v12` / samples-3: `60.6939`
+   - conclusion:
+     - `v12` is rejected
+     - current best branch remains `query_residual_v11`
+67. Next clean-up / validation step:
+   - rerun full corrected LOO for `query_residual_v11` once under the upgraded benchmark-reporting schema
+   - objective:
+     - preserve the same best-model score
+     - regenerate its benchmark artifact/report with official weighted mean, round std, and worst-round summary baked in
+68. Full corrected `query_residual_v11` rerun complete under upgraded reporting schema:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v11_full_corrected_metrics/result.json`
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v11 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v11_full_corrected_metrics`
+   - result:
+     - mean score `74.6870`
+     - mean weighted KL `0.099885`
+     - official weighted mean score `74.3921`
+     - official weighted mean weighted-KL `0.101119`
+     - round mean score std `8.8320`
+     - round mean weighted-KL std `0.041624`
+     - worst round:
+       - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+       - mean score `58.0878`
+       - mean weighted KL `0.181280`
+     - runtime `176.262s`
+69. Interpretation of item 68:
+   - cached-fold rerun reproduced the exact same best `v11` score, so the validation/reporting upgrade did not perturb model behavior
+   - benchmark artifact for the current lead model now includes the stronger native selection metrics
 
 ## Open Questions
 
