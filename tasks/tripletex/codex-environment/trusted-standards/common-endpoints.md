@@ -388,6 +388,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/invoice`
   - `GET` search charged outgoing invoices
   - `POST` create
+  - **GET query param pitfall**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
+  - **GET query param pitfall**: `customerOrganizationNumber`, `customerOrgNumber`, and `currency` are NOT valid query params — they are silently ignored; the only valid customer filter is `customerId` (internal ID); always filter locally after `currency(*)` / `customer(*)` expansion
+  - **GET expansion pitfall**: `fields=*` without `currency(*)` returns `currency` as a sparse link stub without `code`; always use `fields=*,currency(*)` when currency matters
 - `/invoice/{id}`
   - `GET` read
 - `/invoice/{id}/:createCreditNote`
@@ -398,6 +401,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` send
 - `/invoice/paymentType`
   - `GET` payment-type lookup
+  - **expansion pitfall**: `fields=*` without `debitAccount(*)` returns debit account as a sparse link without `number` or `isBankAccount`; always use `fields=*,debitAccount(*)`
+  - **field pitfall**: `isIncoming` and `isBankAccount` do NOT exist as top-level fields on the payment type object; they only exist on the expanded `debitAccount` subobject
 - `/invoice/details`
   - `GET` search project-invoice details
 - `/invoice/details/{id}`

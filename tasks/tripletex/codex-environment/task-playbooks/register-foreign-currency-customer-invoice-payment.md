@@ -33,27 +33,30 @@ Verified in persistent sandbox on 2026-03-21:
 ## Minimal Flow
 
 1. Locate the exact foreign-currency invoice with one decisive read
-   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&customerOrgNumber=<org>&fields=*,currency(*)`
+   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&fields=*,currency(*)`
    - `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
    - `currency(*)` expansion is REQUIRED; plain `fields=*` returns currency as a sparse link stub without `code`
+   - **`customerOrganizationNumber`, `customerOrgNumber`, and `currency` are NOT valid query params** for GET /invoice — they are silently ignored; the only valid customer filter is `customerId` (internal ID); always filter locally
+   - in a fresh production account there are typically very few invoices, so fetching all and filtering locally is cheap
 2. **Validate the invoice is actually in a foreign currency**
    - check `currency.code` — must NOT be `NOK` (company currency)
    - quick-check: if `amount === amountCurrency`, the invoice is in the company currency → fall back to simple payment
    - a real EUR invoice has `amount ≠ amountCurrency` (e.g., `amount=23178.37` NOK vs `amountCurrency=2052` EUR)
    - the prompt ex-VAT amount matching `amountExcludingVatCurrency` on a NOK invoice is NOT proof of a foreign-currency invoice
 3. Filter locally to one exact invoice
-   - exact customer organization number if provided
-   - exact foreign invoice currency, for example `currency.code=EUR`
+   - exact foreign invoice currency, for example `currency.code=EUR` (filtered locally, NOT as a query param)
    - positive `amountCurrencyOutstanding`
    - exact prompt invoice-currency amount against `amountCurrencyOutstanding` and/or `amountCurrency`
-   - for the prompt amount: match against `amountCurrencyOutstanding` (total incl. VAT), NOT `amountExcludingVatCurrency` (ex-VAT); the prompt amount "2052 EUR" likely refers to the ex-VAT amount, so look for `amountCurrencyOutstanding` = `2052 * 1.25 = 2565` if 25% VAT applies
+   - for the prompt amount: match against `amountCurrencyOutstanding` (total incl. VAT), NOT `amountExcludingVatCurrency` (ex-VAT); the prompt amount "11660 EUR" refers to the ex-VAT amount, so look for `amountCurrencyOutstanding` = `11660 * 1.25 = 14575` if 25% VAT applies; also check `amountExcludingVatCurrency === 11660` to confirm
    - if needed, prompt original-rate tie-break against company-currency `amount` / `amountOutstanding`
 4. Reuse a previously resolved same-run incoming company-currency payment type if available
 5. Otherwise resolve one usable company-currency bank payment type
    - `GET /invoice/paymentType?fields=*,debitAccount(*)`
    - `debitAccount(*)` expansion is REQUIRED; without it, debit account comes back as a link stub without `number` or `isBankAccount`
+   - **`isIncoming` and `isBankAccount` are NOT top-level fields on the payment type object** — they exist only on the expanded `debitAccount` subobject; do not filter by `paymentType.isIncoming` or `paymentType.isBankAccount`
    - select: `debitAccount.number >= 1900 && < 2000` with `debitAccount.isBankAccount === true`
    - if `isBankAccount` is not present, match on `debitAccount.number` alone
+   - description-based fallback: "Betalt til bank" is the standard Norwegian bank payment type; match `description.toLowerCase().includes("bank")` as a last resort
    - do not choose a payment type in the same foreign currency when the prompt explicitly requires realized FX-loss booking on settlement
 6. Register the payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<company-currency-paid-amount>&paidAmountCurrency=<invoice-currency-outstanding>`
@@ -100,6 +103,9 @@ If the invoice is in NOK (company currency), do NOT apply FX logic:
 - `GET /invoice` REQUIRES `invoiceDateFrom` and `invoiceDateTo`; omitting them returns `422`; use wide bounds like `invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date+1>`
 - `fields=*` without `currency(*)` returns currency as a sparse link without `code`; ALWAYS use `fields=*,currency(*)`
 - `GET /invoice/paymentType?fields=*` without `debitAccount(*)` returns debit account as a sparse link; ALWAYS use `fields=*,debitAccount(*)`
+- **`customerOrganizationNumber`, `customerOrgNumber`, and `currency` are silently ignored** by GET /invoice; sandbox proof 2026-03-21 confirmed `currency=DOESNOTEXIST` returns the same results as no filter; always filter locally after `currency(*)` expansion
+- **`isIncoming` and `isBankAccount` do NOT exist as top-level fields** on `/invoice/paymentType` response; they only exist on expanded `debitAccount` subobject; filtering by `paymentType.isIncoming` always fails
+- The prompt amount is typically ex-VAT; "facture de 11660 EUR" means `amountExcludingVatCurrency=11660` and `amountCurrencyOutstanding=14575` (25% MVA); match against `amountCurrencyOutstanding` for the payment, not the ex-VAT amount
 - Do not reinterpret a prompt foreign-currency amount as proof of a foreign-currency invoice if the decisive invoice read returns only company-currency invoices
 - Do not treat a company-currency invoice whose `amountExcludingVatCurrency` coincidentally matches the prompt amount as this exact task shape
 - Quick company-currency check: if `amount === amountCurrency`, the invoice is in company currency (NOK); a real EUR invoice has `amount != amountCurrency`

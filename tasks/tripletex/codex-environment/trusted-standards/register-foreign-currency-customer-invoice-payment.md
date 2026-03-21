@@ -21,9 +21,12 @@
 - the prompt is too ambiguous to isolate one foreign-currency invoice safely
 
 ## Standard Flow
-1. `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&customerOrgNumber=<org>&fields=*,currency(*)` to identify the exact unpaid foreign-currency invoice
+1. `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&fields=*,currency(*)` to get all invoices, then filter locally
    - `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
    - `fields=*,currency(*)` is REQUIRED; plain `fields=*` returns `currency` as a sparse link stub without `code`
+   - **`customerOrganizationNumber`, `customerOrgNumber`, and `currency` are NOT valid query params** for GET /invoice — they are silently ignored and return all invoices regardless; the only valid customer filter is `customerId` (internal ID)
+   - filter locally: `currency.code !== "NOK"` AND `amountCurrencyOutstanding > 0`; if the prompt gives an ex-VAT amount, match against `amountExcludingVatCurrency`; the full invoice total incl. 25% VAT is `promptAmount * 1.25`
+   - in a fresh production account there are typically very few invoices, so fetching all and filtering locally is cheap and avoids a preliminary GET /customer call
 2. Validate that the located invoice is actually in a foreign currency:
    - check `currency.code` — it must NOT be `NOK` (company currency)
    - quick-check: if `amount === amountCurrency`, the invoice is in the company currency; do NOT apply FX logic
@@ -31,8 +34,10 @@
 3. Reuse a previously resolved same-run incoming `paymentTypeId` if one is already known for the same company and payment currency
 4. Otherwise `GET /invoice/paymentType?fields=*,debitAccount(*)` once to resolve a valid incoming company-currency bank payment type
    - `debitAccount(*)` expansion is REQUIRED; plain `fields=*` returns the debit account as a sparse link without `number` or `isBankAccount`
+   - **`isIncoming` and `isBankAccount` are NOT top-level fields on the payment type object** — they exist only on the expanded `debitAccount` subobject; do not filter by `paymentType.isIncoming` or `paymentType.isBankAccount`
    - select a payment type whose `debitAccount.number` is in the `19xx` range and `debitAccount.isBankAccount===true`
    - if `isBankAccount` is not present, match on `debitAccount.number >= 1900 && < 2000` alone
+   - description-based fallback: "Betalt til bank" is the standard Norwegian bank payment type name; match `description.toLowerCase().includes("bank")` as a last resort
 5. `PUT /invoice/{id}/:payment` with both `paidAmount` and `paidAmountCurrency`
 6. verify from payment write response
 7. stop
@@ -75,11 +80,14 @@
 
 ## Pitfalls
 - `GET /invoice` REQUIRES `invoiceDateFrom` and `invoiceDateTo`; omitting them returns `422 invoiceDateTo: Kan ikke være null.` — the 2026-03-21 production run wasted 1 call on this exact `422`
-- `fields=*` without `currency(*)` returns `currency` as `{ id, url }` with no `code`; the 2026-03-21 production run did not expand currency and failed to detect the invoice was in NOK
+- `fields=*` without `currency(*)` returns `currency` as `{ id, url }` with no `code`; the 2026-03-21 production run did not expand currency and could not validate the invoice was foreign-currency
 - `GET /invoice/paymentType?fields=*` without `debitAccount(*)` returns debit account as a link stub with no `number` or `isBankAccount`; the 2026-03-21 production run had to use fragile fallback logic to select the payment type
+- **`customerOrganizationNumber`, `customerOrgNumber`, and `currency` are silently ignored** by GET /invoice — sandbox proof on 2026-03-21 confirmed `currency=DOESNOTEXIST` and `customerOrganizationNumber=000000000` both return fullResultSize identical to unfiltered; the only valid customer filter is `customerId` (internal ID); always filter locally by `currency.code` after expansion
+- **`isIncoming` and `isBankAccount` do NOT exist as top-level fields** on the `/invoice/paymentType` response object; they only exist on the expanded `debitAccount` subobject when `debitAccount(*)` is used; filtering by `paymentType.isIncoming` always fails
 - for a true EUR invoice, `amount != amountCurrency` (e.g., `amount=23178.37 NOK` vs `amountCurrency=2052 EUR`); when `amount === amountCurrency`, the invoice is in the company currency and no FX applies
 - the `:payment` endpoint auto-books FX gain/loss: account 8160 (Valutatap/disagio) for loss, account 8060 (Valutagevinst/agio) for gain; the 2026-03-21 sandbox proof on EUR invoice `2147608960` showed a +8.7 NOK gain auto-posted on account 8060
 - `paidAmount` is the NOK amount debited to the bank; `paidAmountCurrency` closes the foreign-currency customer receivable; the FX difference between the original NOK booking and the settlement NOK amount is auto-booked
+- the prompt amount is typically ex-VAT; when the prompt says "facture de 11660 EUR", the invoice total with 25% MVA is `11660 * 1.25 = 14575 EUR`; match against `amountCurrencyOutstanding` (total incl. VAT), not `amountExcludingVatCurrency`
 
 ## OpenAPI / Sandbox Status
 - `/invoice`, `/invoice/{id}/:payment`, and `/invoice/paymentType` verified in `./openapi.json`
