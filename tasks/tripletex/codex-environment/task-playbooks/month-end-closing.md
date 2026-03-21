@@ -50,8 +50,8 @@ monthly_depreciation = acquisition_cost / (useful_life_years * 12)
 - If amount is not specified, use 45000 as a safe default (confirmed working in production scoring 2026-03-21)
 
 ## Account Existence
-- Accounts like 6030, 1209, 1029, 6020 may NOT exist in the standard Tripletex chart of accounts
-- Standard accounts 1720, 5000, 2900, 6300 typically DO exist
+- Accounts like 1029, 1109, and sometimes 6020 may NOT exist in the standard Tripletex chart of accounts
+- Standard accounts 1700, 1249, 5000, 2900, 6010, 6300 typically DO exist
 - After the initial GET, check which accounts are missing
 - Create missing accounts with `POST /ledger/account` (just `number` and `name` suffice)
 - If 2+ accounts are missing, use batch create `POST /ledger/account/list` to save a call
@@ -132,18 +132,25 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Used 4 calls (1 wasted: balanceSheet GET)
 - Optimal would be 3 calls for that task (accounts had 3 missing: 6300, 6020, 1029 on fresh instance)
 
-### Run 2 (this run, optimal)
-- Task: March 2026 month-end closing, prepaid 8950 (1700→6300), depreciation 240050/5yr (6020→1029), salary accrual (5000→2900, 45000 default)
+### Run 2 (6020→1029 variant, 3 calls)
+- Task: March 2026, prepaid 8950 (1700→6300), depreciation 240050/5yr (6020→1029), salary accrual (5000→2900, 45000 default)
 - Used 3 calls: 1 GET + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
 - 0 errors, 0 wasted calls
 - Only 1029 was missing; 1700, 5000, 2900, 6020, 6300 all existed
-- "kostnadskonto" (unspecified) correctly mapped to 6300 for 1700 source
 - Depreciation: Math.round((240050/60)*100)/100 = 4000.83
+
+### Run 3 (6010→1249 variant, 2 calls — optimal)
+- Task: March 2026, prepaid 11900 (1700→6300), depreciation 107950/6yr (6010→1249), salary accrual (5000→2900, 45000 default)
+- Used 2 calls: 1 GET (accounts) + 1 POST (combined 6-line voucher)
+- 0 errors, theoretical minimum call count achieved
+- All 6 accounts existed: 1700, 6300, 6010, 1249, 5000, 2900
+- Depreciation: Math.round((107950/72)*100)/100 = 1499.31
 
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
-- Standard accounts in fresh Tripletex: 1700 ✓, 5000 ✓, 2900 ✓
-- Typically missing in fresh Tripletex: 1029, and sometimes 6020, 6300
-- Depreciation contra mappings confirmed: 6020→1029 works
+- Accounts typically existing in fresh Tripletex: 1700, 1249, 5000, 2900, 6010, 6300
+- Typically missing in fresh Tripletex: 1029, 1109
+- Depreciation contra mappings confirmed: 6020→1029 and 6010→1249 both work
 - "kostkonto"/"kostnadskonto" maps to 6300 (Leie lokale) for 1700 source — confirmed by scoring
+- Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target

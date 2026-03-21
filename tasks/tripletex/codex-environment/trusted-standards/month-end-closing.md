@@ -51,8 +51,8 @@ GET /ledger/account?number=<all-needed>&fields=id,number,name&count=100
 ```
 Include ALL accounts needed. Example: `number=1700,6300,6020,1029,5000,2900`
 
-Check which accounts were returned. Typically missing in fresh Tripletex: **1029**, and sometimes **6020**, **6300**, **6020**.
-Accounts **1700**, **5000**, **2900** typically exist.
+Check which accounts were returned. Typically missing in fresh Tripletex: **1029**, **1109**, and sometimes **6020**, **6300**.
+Accounts **1700**, **1249**, **5000**, **2900**, **6010** typically exist.
 
 ### Call 2 (conditional): Create missing accounts (0–1 POST)
 - If 1 missing: `POST /ledger/account` with `{ number, name }`
@@ -99,14 +99,20 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - **Do NOT batch-create vouchers**: `/ledger/voucher/list` is PUT-only. Each voucher is `POST /ledger/voucher`.
 - **Do NOT batch-create accounts that already exist**: `POST /ledger/account/list` with existing accounts → 422 "Finnes fra før". Always check first.
 
-## Production Verification (2026-03-21)
-- Task: March 2026 month-end closing with 8950 kr prepaid (1700→6300), 240050/5yr depreciation (6020→1029), salary accrual (5000→2900, 45000 default)
+## Production Verification
+
+### Run 1 (2026-03-21, 6020→1029 variant, 3 calls)
+- Task: March 2026, prepaid 8950 (1700→6300), depreciation 240050/5yr (6020→1029), salary accrual (5000→2900, 45000 default)
 - Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
-- 0 errors, all calls succeeded
-- Depreciation: 240050/60 = 4000.83
-- Voucher date: 2026-03-31
-- Missing account: only 1029 (fresh Tripletex)
-- Existing accounts: 1700, 5000, 2900, 6020, 6300
+- 0 errors. Depreciation: 240050/60 = 4000.83
+- Missing account: only 1029. Existing: 1700, 5000, 2900, 6020, 6300
+
+### Run 2 (2026-03-21, 6010→1249 variant, 2 calls — optimal)
+- Task: March 2026, prepaid 11900 (1700→6300), depreciation 107950/6yr (6010→1249), salary accrual (5000→2900, 45000 default)
+- Used 2 calls: 1 GET (accounts) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: 107950/72 = 1499.31
+- All 6 accounts existed in fresh Tripletex: 1700, 6300, 6010, 1249, 5000, 2900
+- Achieves theoretical minimum call count
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
@@ -114,3 +120,7 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - Combined 6-line voucher with all account IDs → 201, 6 postings confirmed
   - 2-call path works when all accounts exist (sandbox had 1029 from prior runs)
   - Account 2900 may have display name "Forskudd fra kunder" in some environments; posting still works correctly for salary accrual
+  - Account 1249 exists in default chart as "Andre transportmidler"; works correctly for accumulated depreciation postings
+  - 6010→1249 mapping confirmed working: sandbox voucher with 6 postings created successfully
+  - Accounts typically existing in both sandbox and fresh production: 1700, 1249, 5000, 2900, 6010, 6300
+  - Account 1109 (Akk. avskr. bygninger) is missing in sandbox; 1029 also typically missing in fresh production
