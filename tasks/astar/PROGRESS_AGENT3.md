@@ -4888,9 +4888,28 @@ Key techniques to incorporate from other agents:
 
    Total session improvement: **+8.49 points** (76.89 → 85.38)
 
+521. **EXPLORATION POLICY BREAKTHROUGH**:
+   - exploration (5 repeats): **86.32** (+0.94 over coverage!)
+   - exploration_r7 and r10: identical 86.32 (no gain beyond 5 repeats)
+   - exploration_r1: 86.00
+   - exploration_r3: 85.43
+   - coverage (baseline): 85.38
+   - More repeats help our CatBoost because repeated observations at same cells give variance info
+   - Per-round with exploration: worst=73.64 (36e581f1), best=91.84 (c5cdf100)
+
+522. **FINAL SESSION LEADERBOARD (ALL-TIME)**:
+   - **CatBoost + exploration + obs-blend: 86.32** (NEW ALL-TIME BEST!)
+   - CatBoost + obs-blend (coverage): 85.38
+   - CatBoost big (coverage): 85.29
+   - LGB v5_d8: 84.94
+   - adaptive_ensemble_v17: 79.98
+   - query_residual_v19: 76.89
+
+   **Total session improvement: +9.43 points** (76.89 → 86.32)
+
 ## Open Questions
 
-- Should we switch from coverage to exploration_r3 policy?
-- Can we ensemble our CatBoost with other agents' models?
-- Need to wire CatBoost into live pipeline for next round
-- Can further feature engineering push past 86?
+- Can we push past 87?
+- Need to wire CatBoost + exploration into live pipeline
+- Can ensemble with Agent1's hazard posterior help?
+- What else can improve round 36e581f1 (73.64)?
