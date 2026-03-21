@@ -256,10 +256,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "23",
     txTaskId: "23",
-    taskSlug: "unknown-task-23",
-    taskName: "Unknown task 23",
+    taskSlug: "reconcile-bank-statement",
+    taskName: "Reconcile bank statement",
     summary:
-      "Tier 3 placeholder for tx_task_id 23 with no checked-in prompt examples yet.",
+      "Reconcile an attached bank-statement CSV against open customer and supplier invoices, including partial payments and non-invoice bank lines.",
     legacyTripletex1TaskIds: ["23"],
   },
   {

@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+  "createdAt": "2026-03-21T20:53:25.811Z",
+  "taskId": "06",
+  "strategyId": "06.create-employee.v1",
+  "candidateId": "06.create-employee.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-21T20-29-38-015Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+  "sandboxReset": {
+    "command": "bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/scripts/reset_research_sandbox.ts apply --task 06 --strategy 06.create-employee.v1",
+    "exitCode": 0,
+    "stdout": "research sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v1\",\"scannedVerificationReports\":5,\"historicalEmployeeTargets\":1,\"historicalEmploymentsEnded\":1,\"taskSpecificEmploymentsEnded\":0,\"matchedEmployeesByEmail\":1,\"warnings\":0}\nended-employment\t2836302\t18667403\t2026-10-06\thistorical:verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z\n",
+    "stderr": "",
+    "durationMs": 528,
+    "highlights": [
+      "research sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v1\",\"scannedVerificationReports\":5,\"historicalEmployeeTargets\":1,\"historicalEmploymentsEnded\":1,\"taskSpecificEmploymentsEnded\":0,\"matchedEmployeesByEmail\":1,\"warnings\":0}",
+      "ended-employment\t2836302\t18667403\t2026-10-06\thistorical:verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z"
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 6,
+    "baselineCallBudget": 2,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 2,
+    "checks": [
+      {
+        "checkId": "employee-readback",
+        "description": "Read the created employee and confirm the normalized identity fields.",
+        "status": "passed",
+        "requestPath": "/employee/18667476",
+        "requestQuery": {
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "firstName",
+            "expectedPath": "result.verification.firstName",
+            "actualValue": "Thomas",
+            "expectedValue": "Thomas",
+            "passed": true
+          },
+          {
+            "actualPath": "lastName",
+            "expectedPath": "result.verification.lastName",
+            "actualValue": "Harris",
+            "expectedValue": "Harris",
+            "passed": true
+          },
+          {
+            "actualPath": "email",
+            "expectedPath": "result.verification.email",
+            "actualValue": "thomas.harris@example.org",
+            "expectedValue": "thomas.harris@example.org",
+            "passed": true
+          },
+          {
+            "actualPath": "dateOfBirth",
+            "expectedPath": "result.verification.dateOfBirth",
+            "actualValue": "1991-06-04",
+            "expectedValue": "1991-06-04",
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 18667476,
+          "version": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18667476",
+          "firstName": "Thomas",
+          "lastName": "Harris",
+          "displayName": "Thomas Harris",
+          "employeeNumber": "",
+          "dateOfBirth": "1991-06-04",
+          "email": "thomas.harris@example.org",
+          "phoneNumberMobileCountry": {
+            "id": 161,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+          },
+          "phoneNumberMobile": "",
+          "phoneNumberHome": "",
+          "phoneNumberWork": "",
+          "nationalIdentityNumber": "",
+          "dnumber": "",
+          "internationalId": {
+            "intAmeldingType": null,
+            "country": null,
+            "number": ""
+          },
+          "bankAccountNumber": "",
+          "iban": "",
+          "bic": "",
+          "creditorBankCountryId": 0,
+          "usesAbroadPayment": false,
+          "userType": null,
+          "allowInformationRegistration": true,
+          "isContact": false,
+          "isProxy": false,
+          "comments": "",
+          "address": null,
+          "department": {
+            "id": 837842,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/department/837842"
+          },
+          "employments": [
+            {
+              "id": 2836335,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2836335"
+            }
+          ],
+          "holidayAllowanceEarned": {
+            "year": 0,
+            "amount": 0,
+            "basis": 0,
+            "amountExtraHolidayWeek": 0
+          },
+          "employeeCategory": null,
+          "isAuthProjectOverviewURL": true,
+          "pictureId": 0,
+          "companyId": 108114337,
+          "vismaConnect2FAactive": false
+        }
+      },
+      {
+        "checkId": "employment-readback",
+        "description": "Read employments for the created employee and confirm the scored start date.",
+        "status": "passed",
+        "requestPath": "/employee/employment",
+        "requestQuery": {
+          "employeeId": "18667476",
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "startDate",
+            "expectedPath": "result.verification.startDate",
+            "actualValue": "2026-10-06",
+            "expectedValue": "2026-10-06",
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2836335,
+          "version": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2836335",
+          "employee": {
+            "id": 18667476,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18667476"
+          },
+          "employmentId": "",
+          "startDate": "2026-10-06",
+          "endDate": null,
+          "employmentEndReason": null,
+          "division": {
+            "id": 108244566,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/division/108244566"
+          },
+          "lastSalaryChangeDate": null,
+          "noEmploymentRelationship": false,
+          "isMainEmployer": true,
+          "taxDeductionCode": "loennFraHovedarbeidsgiver",
+          "employmentDetails": [],
+          "isRemoveAccessAtEmploymentEnded": false,
+          "latestSalary": null
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": true,
+    "withinBudget": false,
+    "message": "Challenger produced the expected sandbox state but used 6 calls against a 2-call baseline budget."
+  }
+}

@@ -15,7 +15,7 @@ import {
   upsertCandidateRecord,
   writeCandidateStore,
 } from "./candidate-store";
-import { repoRoot, resolveResearchPath, writeJsonFile } from "./store";
+import { resolveResearchPath, writeJsonFile } from "./store";
 import {
   type CandidateRecord,
   type CandidateStatus,
@@ -26,8 +26,7 @@ import {
   type ResearchVerificationAssertion,
   RESEARCH_VERIFICATION_REPORT_SCHEMA_VERSION,
 } from "./types";
-
-const SANDBOX_RESET_TIMEOUT_MS = 45_000;
+import { runResearchSandboxReset } from "./sandbox-reset";
 
 export interface RunSandboxVerificationOptions {
   packet: ResearchTaskPacket;
@@ -38,6 +37,7 @@ export interface RunSandboxVerificationOptions {
   candidateStorePath?: string;
   reportRoot?: string;
   now?: () => Date;
+  sandboxResetOverride?: ResearchVerificationReport["sandboxReset"];
 }
 
 export interface RunSandboxVerificationResult {
@@ -88,7 +88,16 @@ export async function runSandboxVerification(
     );
   }
 
-  const sandboxReset = await runSandboxReset(sandboxCredentials);
+  const sandboxReset =
+    options.sandboxResetOverride ??
+    (await runSandboxReset({
+      base_url: sandboxCredentials.base_url,
+      session_token: sandboxCredentials.session_token,
+      taskId: options.packet.taskId,
+      strategyId: options.strategyId,
+      input: options.input,
+      now: options.now,
+    }));
   if (sandboxReset.exitCode !== 0) {
     const failure = await writeVerificationFailureReport({
       candidateStorePath:
@@ -430,56 +439,24 @@ function createInspectionClient(credentials: {
   });
 }
 
-async function runSandboxReset(credentials: {
+async function runSandboxReset(input: {
   base_url: string;
   session_token: string;
+  taskId: string;
+  strategyId: string;
+  input: Record<string, unknown>;
+  now?: () => Date;
 }): Promise<ResearchVerificationReport["sandboxReset"]> {
-  const command = [
-    "bun",
-    path.join(repoRoot, "tasks", "tripletex", "src", "reset-sandbox.ts"),
-    "apply",
-  ];
-  const process = Bun.spawn(command, {
-    cwd: repoRoot,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: {
-      ...Bun.env,
-      TRIPLETEX_TEST_BASE_URL: credentials.base_url,
-      TRIPLETEX_TEST_SESSION_TOKEN: credentials.session_token,
+  return runResearchSandboxReset({
+    credentials: {
+      base_url: input.base_url,
+      session_token: input.session_token,
     },
+    taskId: input.taskId,
+    strategyId: input.strategyId,
+    input: input.input,
+    now: input.now,
   });
-  const startedAt = Date.now();
-  const stdoutPromise = new Response(process.stdout).text();
-  const stderrPromise = new Response(process.stderr).text();
-  let timedOut = false;
-  const exitCode = await Promise.race<number>([
-    process.exited,
-    Bun.sleep(SANDBOX_RESET_TIMEOUT_MS).then(() => {
-      timedOut = true;
-      process.kill();
-      return 124;
-    }),
-  ]);
-  const [stdout, rawStderr] = await Promise.all([stdoutPromise, stderrPromise]);
-  const stderr = timedOut
-    ? [
-        rawStderr.trim(),
-        `Sandbox reset timed out after ${SANDBOX_RESET_TIMEOUT_MS}ms.`,
-      ]
-        .filter(Boolean)
-        .join("\n")
-    : rawStderr;
-
-  return {
-    command: command.join(" "),
-    exitCode,
-    stdout,
-    stderr,
-    durationMs: Date.now() - startedAt,
-    ...(timedOut ? { timedOut: true } : {}),
-    highlights: extractResetHighlights(stdout, stderr),
-  };
 }
 
 async function writeVerificationFailureReport(input: {

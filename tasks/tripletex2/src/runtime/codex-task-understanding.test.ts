@@ -5,6 +5,8 @@ import { taskSpecs } from "../registry/tasks";
 import {
   adaptCodexTaskUnderstandingResult,
   buildCodexTaskUnderstandingPrompt,
+  type CodexTaskUnderstandingExecutorInput,
+  runCodexTaskUnderstanding,
 } from "./codex-task-understanding";
 
 test("buildCodexTaskUnderstandingPrompt includes the request, files, and registered task surfaces", () => {
@@ -137,4 +139,39 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
       surpriseField: "nope",
     },
   });
+});
+
+test("runCodexTaskUnderstanding keeps the tmux window by default for audit history", async () => {
+  let observedExecutorInput: CodexTaskUnderstandingExecutorInput | undefined;
+
+  await runCodexTaskUnderstanding(
+    {
+      request: {
+        prompt: "No matching task here.",
+        files: [],
+      },
+      taskSpecs,
+    },
+    {
+      executor: async (input) => {
+        observedExecutorInput = input;
+        return JSON.stringify({
+          status: "unresolved",
+          taskId: null,
+          inputJson: null,
+          code: "no-task-match",
+          message: "No task matched.",
+          partialInputJson: null,
+          notes: [],
+        });
+      },
+    },
+  );
+
+  assert.equal(
+    observedExecutorInput
+      ? "cleanupTmuxWindowOnExit" in observedExecutorInput
+      : false,
+    false,
+  );
 });

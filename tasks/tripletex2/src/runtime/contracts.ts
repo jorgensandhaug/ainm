@@ -62,7 +62,7 @@ export type RunSidecarMediaType =
   | "text/markdown"
   | "text/plain";
 export type HypothesisCheck = "supported" | "mixed" | "unsupported";
-export type HttpMethod = "GET" | "POST" | "PUT";
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export type QueryValue = string | number | boolean | null | undefined;
 export type SerializedQueryValue = Exclude<QueryValue, undefined>;
@@ -127,6 +127,10 @@ export interface TripletexClient {
     options?: TripletexRequestOptions,
   ): Promise<TResponse>;
   put<TResponse>(
+    path: string,
+    options?: TripletexRequestOptions,
+  ): Promise<TResponse>;
+  delete<TResponse>(
     path: string,
     options?: TripletexRequestOptions,
   ): Promise<TResponse>;

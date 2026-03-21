@@ -24,7 +24,7 @@
     "20": "20.register-supplier-invoice-pdf.v1",
     "21": "21.correct-ledger-errors.v1",
     "22": "22.receipt-expense-booking.v1",
-    "23": "23.not-implemented.v1",
+    "23": "23.reconcile-bank-statement.v1",
     "24": "24.correct-ledger-errors.v1",
     "25": "25.overdue-reminder-fee.v1",
     "26": "26.not-implemented.v1",

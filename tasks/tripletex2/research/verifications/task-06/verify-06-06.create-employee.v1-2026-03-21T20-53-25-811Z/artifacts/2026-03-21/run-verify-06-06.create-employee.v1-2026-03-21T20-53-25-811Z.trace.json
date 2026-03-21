@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-21T20:53:26.343Z",
+  "payload": {
+    "notes": [
+      "Captured 6 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 108,
+        "errorCode": "18000",
+        "index": 1,
+        "method": "POST",
+        "path": "/employee",
+        "requestSummary": "create employee with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422
+      },
+      {
+        "durationMs": 82,
+        "index": 2,
+        "method": "GET",
+        "path": "/department",
+        "query": {
+          "count": 1,
+          "fields": "*",
+          "isInactive": false
+        },
+        "requestSummary": "lookup department by isInactive, count, fields",
+        "responseSummary": "department list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 159,
+        "errorCode": "18000",
+        "index": 3,
+        "method": "POST",
+        "path": "/employee",
+        "requestSummary": "create employee with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422
+      },
+      {
+        "durationMs": 95,
+        "index": 4,
+        "method": "GET",
+        "path": "/division",
+        "query": {
+          "count": 1,
+          "fields": "*"
+        },
+        "requestSummary": "lookup division by count, fields",
+        "responseSummary": "division list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 166,
+        "entityIds": {
+          "employeeId": 18667476
+        },
+        "index": 5,
+        "method": "POST",
+        "path": "/employee",
+        "requestSummary": "create employee with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "employeeId 18667476",
+        "status": 201
+      },
+      {
+        "durationMs": 95,
+        "index": 6,
+        "method": "GET",
+        "path": "/employee/employment",
+        "query": {
+          "employeeId": 18667476,
+          "fields": "*"
+        },
+        "requestSummary": "lookup employment by employeeId, fields",
+        "responseSummary": "employment list 1 item",
+        "status": 200
+      }
+    ]
+  }
+}

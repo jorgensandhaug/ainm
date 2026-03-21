@@ -17,7 +17,6 @@ import {
   buildTmuxCodexCommand,
   DEFAULT_CODEX_ENVIRONMENT_DIR,
   DEFAULT_TMUX_SESSION_NAME,
-  killTmuxWindow,
   launchTmuxCommand,
 } from "./tmux-solve";
 
@@ -379,9 +378,6 @@ async function executeCodexTaskUnderstanding(
     return rawResponseText;
   } finally {
     registration.cleanup();
-    await killTmuxWindow(tmuxTarget).catch(() => {
-      // The window may already be gone if tmux or Codex failed early.
-    });
     await rm(tempDir, { recursive: true, force: true });
   }
 }

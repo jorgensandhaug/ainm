@@ -1449,18 +1449,8 @@ async function handleSolveTimeout(
   >,
 ): Promise<void> {
   const log = options.logger;
-  const runCommand = options.runCommand ?? defaultRunCommand;
   const tmuxTarget = `${preparedRun.tmuxSessionName}:${preparedRun.tmuxWindow}`;
   const timedOutAt = resolveNow(options.now).toISOString();
-  let killWindowSucceeded = false;
-  let killWindowError: string | undefined;
-
-  try {
-    await killTmuxWindow(tmuxTarget, { runCommand });
-    killWindowSucceeded = true;
-  } catch (error) {
-    killWindowError = error instanceof Error ? error.message : String(error);
-  }
 
   await writeFile(
     path.join(preparedRun.runDir, TIMEOUT_STATUS_FILENAME),
@@ -1477,9 +1467,7 @@ async function handleSolveTimeout(
         solve_timeout_ms: options.solveTimeoutMs ?? DEFAULT_SOLVE_TIMEOUT_MS,
         matched_session_id: matchedSession?.sessionMeta.id,
         matched_session_path: matchedSession?.path,
-        kill_window_attempted: true,
-        kill_window_succeeded: killWindowSucceeded,
-        ...(killWindowError ? { kill_window_error: killWindowError } : {}),
+        tmux_window_cleanup: "manual",
       },
       null,
       2,
@@ -1493,17 +1481,8 @@ async function handleSolveTimeout(
     tmuxTarget,
     solveTimeoutMs: options.solveTimeoutMs ?? DEFAULT_SOLVE_TIMEOUT_MS,
     matchedSessionId: matchedSession?.sessionMeta.id,
-    killWindowSucceeded,
-    ...(killWindowError ? { killWindowError } : {}),
+    tmuxWindowCleanup: "manual",
   });
-}
-
-export async function killTmuxWindow(
-  tmuxTarget: string,
-  options: Pick<TmuxSolveOptions, "runCommand"> = {},
-): Promise<void> {
-  const runCommand = options.runCommand ?? defaultRunCommand;
-  await runCommand(["tmux", "kill-window", "-t", tmuxTarget]);
 }
 
 async function defaultTmuxSessionExists(sessionName: string): Promise<boolean> {

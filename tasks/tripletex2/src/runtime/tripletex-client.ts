@@ -84,6 +84,9 @@ export function createTripletexClient(
     put<TResponse>(path: string, options?: TripletexRequestOptions) {
       return request<TResponse>("PUT", path, options);
     },
+    delete<TResponse>(path: string, options?: TripletexRequestOptions) {
+      return request<TResponse>("DELETE", path, options);
+    },
   };
 
   async function request<TResponse>(

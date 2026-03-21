@@ -529,7 +529,7 @@ test(
     taskUnderstanding: {
       result: {
         status: "resolved",
-        taskId: "23",
+        taskId: "26",
         input: {},
       } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
       taskSource: "manual-label",
@@ -613,8 +613,8 @@ test(
   assert.deepEqual(
     JSON.parse(await readFile(promptCorpusPath, "utf8").then((value) => value.trim())),
     {
-      taskId: "23",
-      txTaskId: "23",
+      taskId: "26",
+      txTaskId: "26",
       status: "resolved",
       prompt:
         "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",

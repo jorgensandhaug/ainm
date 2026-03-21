@@ -1,0 +1,237 @@
+{
+  "fixture": {
+    "today": "2026-03-21",
+    "organizationNumber": "928436933",
+    "customerName": "Task23 Sandbox adf4bdff AS",
+    "invoiceId": 2147639820,
+    "invoiceNumber": 373,
+    "outstandingBefore": 1000,
+    "csvText": "Date;Description;Amount\n2026-03-21;Betaling faktura 373;1000.00"
+  },
+  "task23Result": {
+    "createdEntityIds": {
+      "customerInvoice1": 2147639820
+    },
+    "notes": [
+      "Processed 1 bank rows from task23-adf4bdff.csv.",
+      "Registered 1 customer payments, 0 supplier payments, and 0 direct vouchers."
+    ],
+    "verification": {
+      "attachmentFileName": "task23-adf4bdff.csv",
+      "processedRows": [
+        {
+          "rowNumber": 2,
+          "date": "2026-03-21",
+          "description": "Betaling faktura 373",
+          "amountNok": 1000,
+          "action": "customer-payment",
+          "targetId": 2147639820,
+          "targetNumber": 373,
+          "remainingOutstanding": 0
+        }
+      ],
+      "incomingPaymentTypeId": 32813748,
+      "outgoingPaymentTypeId": 32813751
+    }
+  },
+  "verification": {
+    "outstandingAfter": 0,
+    "paidInFull": true
+  },
+  "api": {
+    "setup": {
+      "apiCallCount": 5,
+      "api4xxCount": 0,
+      "api5xxCount": 0,
+      "apiCalls": [
+        {
+          "method": "POST",
+          "path": "/customer",
+          "requestSummary": "create customer with name, organizationNumber, email, postalAddress",
+          "responseSummary": "customerId 108429357",
+          "status": 201,
+          "durationMs": 237,
+          "entityIds": {
+            "customerId": 108429357
+          },
+          "index": 1
+        },
+        {
+          "method": "GET",
+          "path": "/customer",
+          "query": {
+            "organizationNumber": "928436933",
+            "count": 10,
+            "fields": "id,name,organizationNumber"
+          },
+          "requestSummary": "lookup customer by organizationNumber, count, fields",
+          "responseSummary": "customer list 1 item",
+          "status": 200,
+          "durationMs": 86,
+          "index": 2
+        },
+        {
+          "method": "GET",
+          "path": "/ledger/vatType",
+          "query": {
+            "typeOfVat": "OUTGOING",
+            "vatDate": "2026-03-21",
+            "fields": "id,percentage"
+          },
+          "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+          "responseSummary": "vatType list 1 item",
+          "status": 200,
+          "durationMs": 92,
+          "index": 3
+        },
+        {
+          "method": "POST",
+          "path": "/invoice",
+          "query": {
+            "sendToCustomer": true
+          },
+          "requestSummary": "create invoice by sendToCustomer with invoiceDate, invoiceDueDate, customer, orders",
+          "responseSummary": "invoiceId 2147639820",
+          "status": 201,
+          "durationMs": 349,
+          "entityIds": {
+            "invoiceId": 2147639820
+          },
+          "index": 4
+        },
+        {
+          "method": "GET",
+          "path": "/invoice/2147639820",
+          "query": {
+            "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*)),postings(*,voucher(*))"
+          },
+          "requestSummary": "lookup invoice by fields",
+          "responseSummary": "invoiceId 2147639820",
+          "status": 200,
+          "durationMs": 127,
+          "entityIds": {
+            "invoiceId": 2147639820
+          },
+          "index": 5
+        }
+      ]
+    },
+    "task23": {
+      "apiCallCount": 6,
+      "api4xxCount": 0,
+      "api5xxCount": 0,
+      "apiCalls": [
+        {
+          "method": "GET",
+          "path": "/invoice",
+          "query": {
+            "invoiceDateFrom": "2000-01-01",
+            "invoiceDateTo": "2026-03-22",
+            "count": 1000,
+            "sorting": "-invoiceDate",
+            "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*))"
+          },
+          "requestSummary": "lookup invoice by invoiceDateFrom, invoiceDateTo, count, sorting, fields",
+          "responseSummary": "invoice list 360 items",
+          "status": 200,
+          "durationMs": 660,
+          "index": 1
+        },
+        {
+          "method": "GET",
+          "path": "/supplierInvoice",
+          "query": {
+            "invoiceDateFrom": "2000-01-01",
+            "invoiceDateTo": "2026-03-22",
+            "count": 1000,
+            "sorting": "-invoiceDate",
+            "fields": "*,supplier(*),payments(*),voucher(*)"
+          },
+          "requestSummary": "lookup supplierInvoice by invoiceDateFrom, invoiceDateTo, count, sorting, fields",
+          "responseSummary": "supplierInvoice list 69 items",
+          "status": 200,
+          "durationMs": 295,
+          "index": 2
+        },
+        {
+          "method": "GET",
+          "path": "/invoice/paymentType",
+          "query": {
+            "count": 1000,
+            "fields": "*,debitAccount(*),creditAccount(*)"
+          },
+          "requestSummary": "lookup paymentType by count, fields",
+          "responseSummary": "paymentType list 2 items",
+          "status": 200,
+          "durationMs": 104,
+          "index": 3
+        },
+        {
+          "method": "GET",
+          "path": "/ledger/paymentTypeOut",
+          "query": {
+            "count": 1000,
+            "fields": "*,creditAccount(*)"
+          },
+          "requestSummary": "lookup paymentTypeOut by count, fields",
+          "responseSummary": "paymentTypeOut list 4 items",
+          "status": 200,
+          "durationMs": 111,
+          "index": 4
+        },
+        {
+          "method": "GET",
+          "path": "/ledger/account",
+          "query": {
+            "number": "1920,7770,7790,8050,8060",
+            "fields": "*"
+          },
+          "requestSummary": "lookup account by number, fields",
+          "responseSummary": "account list 5 items",
+          "status": 200,
+          "durationMs": 118,
+          "index": 5
+        },
+        {
+          "method": "PUT",
+          "path": "/invoice/2147639820/:payment",
+          "query": {
+            "paymentDate": "2026-03-21",
+            "paymentTypeId": 32813748,
+            "paidAmount": 1000
+          },
+          "requestSummary": "update payment by paymentDate, paymentTypeId, paidAmount",
+          "responseSummary": "paymentId 2147639820",
+          "status": 200,
+          "durationMs": 285,
+          "entityIds": {
+            "paymentId": 2147639820
+          },
+          "index": 6
+        }
+      ]
+    },
+    "proof": {
+      "apiCallCount": 1,
+      "api4xxCount": 0,
+      "api5xxCount": 0,
+      "apiCalls": [
+        {
+          "method": "GET",
+          "path": "/invoice/2147639820",
+          "query": {
+            "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*)),postings(*,voucher(*))"
+          },
+          "requestSummary": "lookup invoice by fields",
+          "responseSummary": "invoiceId 2147639820",
+          "status": 200,
+          "durationMs": 140,
+          "entityIds": {
+            "invoiceId": 2147639820
+          },
+          "index": 1
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-queue.v1",
-  "updatedAt": "2026-03-21T20:56:35.000Z",
+  "updatedAt": "2026-03-21T21:38:12.930Z",
   "entries": [
     {
       "taskId": "06",
@@ -225,15 +225,17 @@
     {
       "taskId": "23",
       "txTaskId": "23",
-      "taskSlug": "unknown-task-23",
-      "taskName": "Unknown task 23",
+      "taskSlug": "reconcile-bank-statement",
+      "taskName": "Reconcile bank statement",
       "priority": 15,
       "band": "focus",
       "queueEligibility": "ready",
       "bestKnownScore": 0.6,
       "maxScore": 6,
       "notes": [
-        "Secondary open Tier 3 frontier."
+        "Secondary open Tier 3 frontier.",
+        "Candidate 23.reconcile-bank-statement.v1 is logged with a manual sandbox proof for the one-row customer-payment branch.",
+        "Current verified branch is correct but still over the checked-in 3-call lower bound, using 6 calls for the exact one-row incoming customer-payment shape."
       ]
     },
     {
