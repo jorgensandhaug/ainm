@@ -38,6 +38,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
   - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
+  - `GET /department?name=...` is a containing search, not an exact-match resolver; persistent sandbox on 2026-03-21 returned `Drift sandbox 20260320-223143` for query `name=Drift`, so local filtering must still require exact `department.name`
   - 2026-03-20 production re-confirmed that the same one-call branch remained minimal for Norwegian prompts creating `HR`, `Salg`, and `Økonomi` and for `Lager`, `Regnskap`, and `Kvalitetskontroll`; the write response alone still proved correctness
   - same-day persistent-sandbox re-proof with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
 
@@ -531,6 +532,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
   - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
+  - if the task scores receipt preservation on the voucher, create the manual voucher first and then use `POST /ledger/voucher/{voucherId}/attachment`; 2026-03-21 persistent sandbox showed `POST /ledger/voucher/importDocument` creates an attachment-backed voucher shell whose `description` and `postings` were not editable through the later `PUT /ledger/voucher/{id}` branch
+  - on voucher postings, `department: { "name": ... }` is not a safe shortcut; 2026-03-21 persistent sandbox returned `201` for a `Drift` name-only posting but persisted `department=null`, so use exact `department.id`
   - for manual postings on customer ledger account `1500`, include the matching `customer: { "id": ... }`; the 2026-03-21 persistent sandbox exact reminder-fee proof succeeded with that shape on voucher `608897119`
   - for payroll fallback prompts that explicitly allow manual vouchers on the `5000` series, the proven low-call resolver is `GET /ledger/account?number=5000,1920&fields=*` and the proven payload is a balanced two-line voucher with the gross salary amount on account `5000` and the negative balancing line on `1920`
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
@@ -539,6 +542,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
+  - for receipt-backed manual vouchers, the attachment upload response on `/ledger/voucher/{voucherId}/attachment` is the decisive proof that the final voucher now preserves the source document; do not add `GET /ledger/voucher/{id}` by default once that write already returned `attachment.id`
   - for the exact supplier-invoice shape that scores a real supplier invoice, the fresh-account default is supplier write, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
   - if that same supplier-invoice shape explicitly points to an already-existing supplier, or the run context is retry/persistent, use supplier lookup instead of the supplier write as the first step
   - the 2026-03-20 persistent-sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` / `6500` / `25%` confirmed the create-first branch at `5` calls and again showed no default verification read is needed after the final voucher write

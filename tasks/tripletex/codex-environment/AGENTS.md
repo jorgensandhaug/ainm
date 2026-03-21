@@ -99,6 +99,7 @@ Authentication:
 | Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
+| Register receipt expense voucher | `./trusted-standards/register-receipt-expense-voucher.md` |
 | Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
 | Create customer invoice credit note | `./trusted-standards/create-customer-invoice-credit-note.md` |
 | Create and send customer invoice | `./trusted-standards/create-and-send-customer-invoice.md` |
@@ -131,6 +132,7 @@ Authentication:
 | Create project | `./task-playbooks/create-project.md` |
 | Register project hours and create project invoice | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
 | Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
+| Register receipt expense voucher | `./task-playbooks/register-receipt-expense-voucher.md` |
 | Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
 | Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
@@ -419,6 +421,9 @@ Authentication:
 - Same-day persistent-sandbox reflection for the exact `6340` amount shape first hit the expected create blocker `422 Maximum of 3 accounting dimensions allowed`, then re-proved the voucher branch by reusing existing value `15253`: number-only `POST /ledger/voucher` failed again with `422 postings.account.name: Kan ikke være null.`, and the next id-based write after `GET /ledger/account?number=6340,1920&fields=*` succeeded with voucher `608868815`.
 - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer, not a string. If you filter locally, compare numerically or you can falsely conclude the target account is missing and waste recovery reads or reruns.
 - For manual vouchers that only score one target ledger-account posting and do not specify the balancing account, a simple two-line voucher against existing bank account `1920` succeeded in persistent sandbox on 2026-03-20.
+- For exact receipt-backed business-lunch expense prompts like attached `Forretningslunsj` + department name + correct account/VAT treatment, the corrected branch is a manual voucher on `7360` / `1920` plus a separate `POST /ledger/voucher/{voucherId}/attachment`; the earlier 2026-03-21 production run that used `7350` and no attachment scored `0/10`.
+- In that same receipt-backed voucher shape, do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}`; 2026-03-21 persistent sandbox returned `422` that `description` and `postings` were not editable for that imported voucher type.
+- Also in that receipt-backed voucher shape, do not rely on `department: { "name": "Drift" }`; 2026-03-21 persistent sandbox returned `201` but silently stored `department=null`, and `GET /department?name=Drift...` can return containing matches such as `Drift sandbox ...` unless you exact-filter locally.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.
 
