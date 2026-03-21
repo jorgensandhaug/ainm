@@ -79,6 +79,15 @@ The same no-VAT branch also covers German wording such as `ohne MwSt.`. The 2026
 2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
 3. `POST /invoice`
 
+The same no-VAT branch also covers Spanish wording such as `sin IVA`. The 2026-03-21 production run for `Río Verde SL` / `894012358` / `Sesión de formación` / `29100` used 6 calls (with bank-account repair) and confirmed `amountExcludingVatCurrency=amountCurrency=29100`:
+
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel with step 2)
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` (found 0% at code 5)
+3. `POST /invoice` (422 — missing company bank account)
+4. `GET /ledger/account?isBankAccount=true&fields=*`
+5. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
+6. `POST /invoice` (201 — success)
+
 ## Key Finding: Company Bank Account Registration Is A Repair Branch
 
 If `POST /invoice` fails with:
