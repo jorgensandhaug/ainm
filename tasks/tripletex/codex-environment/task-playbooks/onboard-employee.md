@@ -61,13 +61,13 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
-| Regnskapsfører / 3313 | `regnskapsfører` | `4672` | `3432101` |
+| Regnskapsmedarbeider / 3313 | `regnskapsmedarbeider` | `4677` | `4121115` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
 For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and skip the occupation-code GET.
-For the exact STYRK-only `3313` contract shape, also use hardcoded id `4672` directly — STYRK-08 3313 (Regnskapsmedarbeidere og bokholdere) maps to STYRK-98 3432 (Regnskapsførere), and REGNSKAPSFØRER (id 4672, code 3432101) is the primary occupation in that group.
+For the exact STYRK-only `3313` contract shape, also use hardcoded id `4677` directly — STYRK-08 3313 is literally "Regnskapsmedarbeidere og bokholdere", and REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the direct match. Do NOT use REGNSKAPSFØRER (id 4672) — two production runs with that code both scored 18/22.
 
 ### Compound Job Titles with "Senior" Prefix
 - `nameNO=seniorutvikler` returns 0 results — this compound title does not exist in Tripletex
@@ -103,6 +103,7 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
    - include nested `employmentDetails[]` with `occupationCode: { id: ... }` (hardcoded or resolved)
    - when the contract gives only STYRK `2511`, send `occupationCode: { id: 301 }`
    - when the contract gives only STYRK `3323`, send `occupationCode: { id: 2503 }`
+   - when the contract gives only STYRK `3313`, send `occupationCode: { id: 4677 }` (REGNSKAPSMEDARBEIDER)
 3. If prompt provides standard worktime hours per day:
    - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: ... }`
 4. Stop after the successful writes
@@ -159,6 +160,7 @@ Standard worktime (per-employee):
 - Do not use `POST /salary/settings/standardTime` for employee standard time — that is company-wide; use `POST /employee/standardTime` instead
 - Do not search occupation codes by `code=<4-digit>` — use `nameNO=<name>&count=10&fields=id,nameNO` and pick the exact match
 - Do not use `nameNO=<term>&count=1` for dynamic lookups — substring matching + alphabetical sorting means the first result may be wrong (e.g., KONSERNREGNSKAPSSJEF before REGNSKAPSSJEF)
+- Do not use REGNSKAPSFØRER (id 4672) for STYRK 3313 — two production runs scored 18/22 with that code; use REGNSKAPSMEDARBEIDER (id 4677) instead
 - Do not spend `GET /employee/employment/occupationCode?code=2511...` for the exact STYRK-only `2511` contract branch — use hardcoded id `301`
 - Do not send `occupationCode` by `code` on `POST /employee`; send it by `id`
 - Do not assume the simple `create-employee` standard covers onboarding prompts with salary/worktime configuration
@@ -226,3 +228,11 @@ Run 2026-03-21 (STYRK 3313 contract, Portuguese prompt, 100% employment, no stan
 - 2 failed checks (10, 13) — root cause uncertain; all visible fields verified correct in sandbox readback
 - standard worktime was not set because the contract did not mention it; this may account for 1 failed check
 - hardcoding STYRK 3313 → id 4672 saves 1 call, reducing optimal flow from 4 to 3 calls for this contract shape
+
+Run 2026-03-21 (STYRK 3313 contract, Spanish prompt, 80% employment, no standard worktime): 3 calls, 0 errors, scored 18/22 (2/15 checks failed, checks 10 and 13)
+- first production use of hardcoded STYRK 3313 → id 4672 (REGNSKAPSFØRER), saving 1 call vs 9th run
+- GET /division (0 rows, fresh account) → POST /department → POST /employee
+- same checks 10+13 failure pattern as 9th run — confirms REGNSKAPSFØRER (4672) is wrong for STYRK 3313
+- sandbox investigation: REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the literal STYRK-08 3313 group name match ("Regnskapsmedarbeidere og bokholdere")
+- corrected hardcoded mapping: STYRK 3313 → id 4677 (REGNSKAPSMEDARBEIDER) — to be verified in next production run
+- hypothesis: check 10 = wrong occupation code, check 13 = missing standard worktime (7.5h/day)
