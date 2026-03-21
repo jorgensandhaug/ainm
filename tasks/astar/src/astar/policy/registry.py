@@ -27,6 +27,36 @@ def _entropy_bias_scorer() -> ViewportMotifScorer:
     )
 
 
+def _port_bias_scorer() -> ViewportMotifScorer:
+    return ViewportMotifScorer(
+        settlement_weight=6.0,
+        settlement_pair_weight=4.0,
+        port_weight=8.0,
+        coastal_settlement_weight=7.0,
+        coastline_weight=5.0,
+        terrain_entropy_weight=1.5,
+        edge_density_weight=1.5,
+        forest_weight=0.25,
+        mountain_weight=0.25,
+        ocean_penalty_weight=0.75,
+    )
+
+
+def _frontier_bias_scorer() -> ViewportMotifScorer:
+    return ViewportMotifScorer(
+        settlement_weight=5.0,
+        settlement_pair_weight=6.5,
+        port_weight=2.0,
+        coastal_settlement_weight=2.5,
+        coastline_weight=3.0,
+        terrain_entropy_weight=5.5,
+        edge_density_weight=6.0,
+        forest_weight=1.0,
+        mountain_weight=1.0,
+        ocean_penalty_weight=0.5,
+    )
+
+
 def default_policy_name_for_model(model_name: str | None = None) -> str:
     if model_name is not None and is_query_residual_model_name(model_name):
         return QUERY_RESIDUAL_DEFAULT_POLICY_NAME
@@ -101,6 +131,40 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             probe_first=True,
             selection_mode="global_top",
             motif_scorer=_entropy_bias_scorer(),
+        )
+    if normalized == "exploration_port_r3":
+        return CoverageThenReplicatePolicy(
+            name="exploration_port_r3",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=_port_bias_scorer(),
+        )
+    if normalized == "exploration_frontier_r3":
+        return CoverageThenReplicatePolicy(
+            name="exploration_frontier_r3",
+            replicate_budget=3,
+            probe_first=False,
+            motif_scorer=_frontier_bias_scorer(),
+        )
+    if normalized == "exploration_hybrid_r3":
+        return CoverageThenReplicatePolicy(
+            name="exploration_hybrid_r3",
+            replicate_budget=2,
+            late_replicate_budget=1,
+            probe_first=True,
+            motif_scorer=_port_bias_scorer(),
+            late_motif_scorer=_frontier_bias_scorer(),
+        )
+    if normalized == "exploration_hybrid_r3_global":
+        return CoverageThenReplicatePolicy(
+            name="exploration_hybrid_r3_global",
+            replicate_budget=2,
+            late_replicate_budget=1,
+            probe_first=True,
+            selection_mode="global_top",
+            late_selection_mode="global_top",
+            motif_scorer=_port_bias_scorer(),
+            late_motif_scorer=_frontier_bias_scorer(),
         )
     if normalized in {"exploration_r4", "exploration_v2_r4"}:
         return CoverageThenReplicatePolicy(

@@ -16,25 +16,31 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
     viewport_w: int = Field(default=15, ge=1)
     viewport_h: int = Field(default=15, ge=1)
     replicate_budget: int = Field(default=5, ge=0)
+    late_replicate_budget: int = Field(default=0, ge=0)
     probe_first: bool = True
     selection_mode: Literal["per_seed_best", "global_top"] = "per_seed_best"
     motif_scorer: ViewportMotifScorer = Field(default_factory=ViewportMotifScorer)
+    late_selection_mode: Literal["per_seed_best", "global_top"] = "per_seed_best"
+    late_motif_scorer: ViewportMotifScorer | None = None
 
     def _repeat_candidates(
         self,
         round_detail: RoundDetail,
         viewports: list,
+        *,
+        selection_mode: Literal["per_seed_best", "global_top"],
+        scorer: ViewportMotifScorer,
     ) -> list[ViewportMotifScore]:
         ranked_per_seed = [
             rank_seed_viewports(
                 round_detail,
                 seed_index,
                 viewports,
-                scorer=self.motif_scorer,
+                scorer=scorer,
             )
             for seed_index in range(round_detail.seeds_count)
         ]
-        if self.selection_mode == "global_top":
+        if selection_mode == "global_top":
             return [item for ranked in ranked_per_seed for item in ranked]
         return [ranked[0] for ranked in ranked_per_seed]
 
@@ -54,11 +60,16 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
             for seed_index in range(round_detail.seeds_count)
             for viewport in viewports
         ]
-        if self.replicate_budget <= 0:
+        if self.replicate_budget <= 0 and self.late_replicate_budget <= 0:
             return QueryPlan(round_id=round_detail.id, policy_name=self.name, items=items)
 
         ranked = sorted(
-            self._repeat_candidates(round_detail, viewports),
+            self._repeat_candidates(
+                round_detail,
+                viewports,
+                selection_mode=self.selection_mode,
+                scorer=self.motif_scorer,
+            ),
             key=lambda item: (
                 -item.diagnostic_score,
                 item.seed_index,
@@ -79,8 +90,38 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
                     diagnostic_score=item.diagnostic_score,
                 ),
             )
+        late_items: list[QueryPlanItem] = []
+        if self.late_replicate_budget > 0:
+            late_scorer = self.late_motif_scorer or self.motif_scorer
+            late_ranked = sorted(
+                self._repeat_candidates(
+                    round_detail,
+                    viewports,
+                    selection_mode=self.late_selection_mode,
+                    scorer=late_scorer,
+                ),
+                key=lambda item: (
+                    -item.diagnostic_score,
+                    item.seed_index,
+                    item.viewport.y,
+                    item.viewport.x,
+                ),
+            )
+            for item in late_ranked[: self.late_replicate_budget]:
+                late_items.append(
+                    QueryPlanItem(
+                        round_id=round_detail.id,
+                        seed_index=item.seed_index,
+                        viewport=item.viewport,
+                        repeats=1,
+                        tag="late_repeat",
+                        diagnostic_score=item.diagnostic_score,
+                    ),
+                )
         if self.probe_first:
             items = diagnostic_items + items
         else:
             items = items + diagnostic_items
+        if late_items:
+            items = items + late_items
         return QueryPlan(round_id=round_detail.id, policy_name=self.name, items=items)

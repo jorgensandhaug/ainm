@@ -38,16 +38,27 @@ def test_exploration_plan_adds_one_repeat_per_seed(sample_paths: WorkspacePaths)
 
 
 @pytest.mark.parametrize(
-    ("policy_name", "expected_plan_name", "expected_repeat_budget", "expected_selection_mode"),
+    (
+        "policy_name",
+        "expected_plan_name",
+        "expected_repeat_budget",
+        "expected_late_repeat_budget",
+        "expected_selection_mode",
+        "expected_probe_first",
+    ),
     [
-        ("exploration_r1", "exploration_r1", 1, "per_seed_best"),
-        ("exploration_r2", "exploration_r2", 2, "per_seed_best"),
-        ("exploration_r3", "exploration_r3", 3, "per_seed_best"),
-        ("exploration_r3_global", "exploration_r3_global", 3, "global_top"),
-        ("exploration_r3_entropy", "exploration_r3_entropy", 3, "per_seed_best"),
-        ("exploration_r3_global_entropy", "exploration_r3_global_entropy", 3, "global_top"),
-        ("exploration_r4", "exploration_r4", 4, "per_seed_best"),
-        ("exploration_v2", "exploration_v2", 5, "per_seed_best"),
+        ("exploration_r1", "exploration_r1", 1, 0, "per_seed_best", True),
+        ("exploration_r2", "exploration_r2", 2, 0, "per_seed_best", True),
+        ("exploration_r3", "exploration_r3", 3, 0, "per_seed_best", True),
+        ("exploration_r3_global", "exploration_r3_global", 3, 0, "global_top", True),
+        ("exploration_r3_entropy", "exploration_r3_entropy", 3, 0, "per_seed_best", True),
+        ("exploration_r3_global_entropy", "exploration_r3_global_entropy", 3, 0, "global_top", True),
+        ("exploration_port_r3", "exploration_port_r3", 3, 0, "per_seed_best", True),
+        ("exploration_frontier_r3", "exploration_frontier_r3", 3, 0, "per_seed_best", False),
+        ("exploration_hybrid_r3", "exploration_hybrid_r3", 2, 1, "per_seed_best", True),
+        ("exploration_hybrid_r3_global", "exploration_hybrid_r3_global", 2, 1, "global_top", True),
+        ("exploration_r4", "exploration_r4", 4, 0, "per_seed_best", True),
+        ("exploration_v2", "exploration_v2", 5, 0, "per_seed_best", True),
     ],
 )
 def test_named_exploration_policies_resolve_repeat_budgets(
@@ -55,7 +66,9 @@ def test_named_exploration_policies_resolve_repeat_budgets(
     policy_name: str,
     expected_plan_name: str,
     expected_repeat_budget: int,
+    expected_late_repeat_budget: int,
     expected_selection_mode: str,
+    expected_probe_first: bool,
 ) -> None:
     round_record = read_round_record(sample_paths, ROUND_ID)
 
@@ -63,12 +76,30 @@ def test_named_exploration_policies_resolve_repeat_budgets(
     assert isinstance(policy, CoverageThenReplicatePolicy)
     assert policy.name == expected_plan_name
     assert policy.replicate_budget == expected_repeat_budget
-    assert policy.probe_first is True
+    assert policy.late_replicate_budget == expected_late_repeat_budget
+    assert policy.probe_first is expected_probe_first
     assert policy.selection_mode == expected_selection_mode
 
     plan = policy.build_plan(round_record.round)
     repeat_items = [item for item in plan.items if item.tag == "diagnostic_repeat"]
+    late_repeat_items = [item for item in plan.items if item.tag == "late_repeat"]
     assert len(repeat_items) == expected_repeat_budget
+    assert len(late_repeat_items) == expected_late_repeat_budget
+
+
+def test_hybrid_policy_places_late_repeats_after_coverage(sample_paths: WorkspacePaths) -> None:
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    policy = build_named_policy("exploration_hybrid_r3")
+    assert isinstance(policy, CoverageThenReplicatePolicy)
+
+    plan = policy.build_plan(round_record.round)
+    tags = [item.tag for item in plan.items]
+    coverage_indexes = [index for index, tag in enumerate(tags) if tag == "coverage"]
+    late_indexes = [index for index, tag in enumerate(tags) if tag == "late_repeat"]
+
+    assert late_indexes
+    assert coverage_indexes
+    assert min(late_indexes) > max(coverage_indexes)
 
 
 def test_global_top_repeat_selection_can_reuse_same_seed() -> None:

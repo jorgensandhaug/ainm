@@ -2273,3 +2273,76 @@ Framework should accept unique query-residual family variant names directly so b
   - stronger hazard blend is monotonically worse in this sweep
   - direct semimechanistic decoder blending is directionally plausible but not promotable in this form
   - no full-dev spend justified
+
+### 2026-03-21T13:29Z approx
+
+- Machine/load check before policy sweep:
+  - RAM: `2.9 TiB total`, `1.2 TiB free`, `1.4 TiB available`
+  - load average: `68.35 / 93.13 / 75.01`
+  - despite the spike, this is still modest versus `384` CPUs, so another bounded `4`-way sweep is acceptable
+
+### 2026-03-21T13:30Z approx
+
+- Moved to handoff sections:
+  - `15.2 Fixed diagnostic motif library`
+  - `15.5 Hybrid policy`
+  - `27. Core policy principle`
+  - `28. How to discover diagnostic motifs`
+- Important framework constraint:
+  - this repo’s current policy interface is static query-plan generation from the known map only
+  - so true posterior-adaptive info-gain querying is not expressible without changing the interface itself
+  - near-term policy work therefore has to operate through better fixed motif libraries and better ordering of repeats
+- New hypothesis:
+  - current FFAM champ still uses borrowed `exploration_r3`
+  - better fixed motif libraries can improve regime identifiability
+  - a static hybrid plan with:
+    - early port/coastal diagnostic repeats
+    - late frontier/entropy-sensitive repeats
+    may help more than the existing one-scorer repeat heuristic
+- Implemented in [`src/astar/policy/coverage.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/coverage.py):
+  - support for `late_replicate_budget`
+  - support for separate late-stage scorer and selection mode
+  - hybrid static plans with early and late repeated windows
+- Added new named policies in [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py):
+  - `exploration_port_r3`
+  - `exploration_frontier_r3`
+  - `exploration_hybrid_r3`
+  - `exploration_hybrid_r3_global`
+- Added tests in [`tests/test_exploration_policy.py`](/home/jorge/agent7/tasks/astar/tests/test_exploration_policy.py):
+  - named-policy resolution for the new variants
+  - hybrid-plan late-repeat ordering check
+- Validation:
+  - `uv run --extra dev pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - passed: `112`
+- Next action:
+  - benchmark `ffam_mode_v17` with the four new policy variants on the hard gate `{7,3,6,8}`
+  - only spend full 8-round dev budget if one beats current `exploration_r3` hard-gate `62.3382`
+- Probe batch launched on hard gate `{7,3,6,8}` with `ffam_mode_v17`:
+  - `exploration_port_r3` (session `77560`)
+  - `exploration_frontier_r3` (session `15350`)
+  - `exploration_hybrid_r3` (session `66750`)
+  - `exploration_hybrid_r3_global` (session `64848`)
+
+### 2026-03-21T13:37Z approx
+
+- Policy hard-gate results available so far:
+  - [`exploration_frontier_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_frontier_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.8661`
+    - mean weighted KL `0.158012`
+  - [`exploration_hybrid_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_hybrid_r3_r3r6r7r8_s2/result.json)
+    - mean score `65.4330`
+    - mean weighted KL `0.146768`
+  - [`exploration_hybrid_r3_global`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_hybrid_r3_global_r3r6r7r8_s2/result.json)
+    - mean score `65.4364`
+    - mean weighted KL `0.146747`
+  - [`exploration_port_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_port_r3_r3r6r7r8_s2/result.json)
+    - mean score `65.2517`
+    - mean weighted KL `0.147910`
+- Interpretation:
+  - frontier-late repeat placement alone already beats current `exploration_r3` hard-gate `62.3382`
+  - hybrid early-port + late-frontier is a much larger improvement
+  - port-only early repeats are also strongly positive, but still behind the hybrid variants
+  - both hybrid policies are strong enough to justify immediate full 8-round dev spend
+- Full 8-round dev promotions launched:
+  - `agent7_dev_ffam_mode_v17_exploration_hybrid_r3_s2` (session `99928`)
+  - `agent7_dev_ffam_mode_v17_exploration_hybrid_r3_global_s2` (session `65755`)
