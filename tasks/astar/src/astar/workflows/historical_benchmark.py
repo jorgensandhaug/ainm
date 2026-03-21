@@ -181,6 +181,8 @@ def run_historical_benchmark(
         "greybox_hazard_bayesfamily_anchor35_scale30_v03",
         "greybox_hazard_bayesfamily_anchor55_scale10_v04",
         "greybox_student_joint",
+        "greybox_student_joint_repeataware",
+        "greybox_student_joint_repeataware_v01",
         "greybox_coefficient_knn",
         "greybox_hybrid_lowrank_coefficientknn",
         "greybox_hazard_mixture",

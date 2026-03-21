@@ -1750,3 +1750,149 @@
     - sweep harness remains useful for search/ranking candidate regions
     - official historical benchmark remains the canonical model-selection metric
     - current practical lead is still `greybox_hybrid_lowrank_queryres_v03`, but with less margin than the sweep had suggested
+
+### 2026-03-21T12:35:00Z
+
+- Re-read `instructions/agent5.md` again with focus on the next unexhausted branch:
+  - Phase 8 legal online student
+  - Phase 9 query policy implications
+  - hypotheses `H8`, `H9`, `H10`
+- Current read from the handoff:
+  - `H6` cluster-family work now looks exhausted / rejected here
+  - the biggest remaining mismatch between handoff and current code is:
+    - preferred repeat-aware set-style student encoder
+    - explicit direct tensor head beyond posterior-only inference
+- Current code audit:
+  - `greybox_student_joint_v02` is only:
+    - transcript-summary features
+    - linear ridge map
+    - low-rank residual basis
+  - it is **not** really a repeat-aware set encoder
+  - `src/astar/student/posterior/deepset_student.py` is also not a real deepset stack:
+    - it is a small summary-vector kNN bank
+- Machine / shared-box check before launching more work:
+  - `uptime`:
+    - load about `34.1 / 39.5 / 46.3` on `384` cores
+  - `free -h`:
+    - RAM about `1.8 TiB free`, `1.9 TiB available`
+  - notable active jobs:
+    - `agent6` summary-rate decoder runs
+    - `agent2` coeffbank full-8 coverage run
+    - `agent7` `ffam_mode_v17` exploration sweeps
+    - `agent3` transcript-memory targeted holdout runs
+  - conclusion:
+    - large headroom still available
+    - safe to run several heavy local probes in parallel after implementation
+- New implementation decision:
+  - pivot to a stronger **repeat-aware direct student head**
+  - target model family:
+    - `greybox_student_joint_repeataware_*`
+  - design goal:
+    - keep the strong low-rank grey-box teacher path
+    - add an explicit direct tensor correction head trained on legal synthetic transcripts
+    - encode transcript windows in an order-invariant / repeat-aware way rather than only coarse aggregate stats
+    - allow nonlinear memory retrieval rather than only one global ridge map
+- Expected immediate work:
+  - implement repeat-aware transcript feature encoder
+  - implement a direct residual-memory / local-neighbor student head
+  - wire model into registry / benchmark / tests
+  - run hard-slice sweeps first
+
+### 2026-03-21T12:58:00Z
+
+- Implemented new Phase-8/9-aligned branch:
+  - `greybox_student_joint_repeataware`
+  - file:
+    - `src/astar/student/predictor/greybox_student_joint_repeataware.py`
+- Core model design:
+  - keep `greybox_hazard_lowrank` as the structural grey-box backbone
+  - add a **repeat-aware direct tensor head**
+  - training targets stay:
+    - final tensor logit residuals vs corrected low-rank baseline
+  - encoder additions vs old `greybox_student_joint_v02`:
+    - exact-count / repeated-cell summary features
+    - repeated-window-group features from legal transcript windows
+    - nonlinear memory bank over transcript feature vectors
+  - prediction head:
+    - global ridge coordinates
+    - plus kNN memory coordinates
+    - blended before decoding residual low-rank tensor correction
+- Important implementation choices:
+  - repeat-aware features compare observed window statistics against the **uncorrected** low-rank structural prediction
+    - reason:
+      - if compared only against the exact-cell-corrected baseline, observed-window residual signal would collapse toward zero
+  - final output still preserves:
+    - low-rank grey-box base
+    - exact observed-cell correction
+    - probability floor
+- New sweep harness added:
+  - `scripts/agent5_student_joint_repeataware_sweep.py`
+  - validation protocol:
+    - strict held-out-round evaluation
+    - training universe = all selected rounds except the held-out round
+    - allows cheaper targeted probes on the hard slice without the misleading 3-round-only training trap
+- Registry / framework integration completed:
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Validation:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_student_joint_repeataware.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - first pytest run caught a real bug:
+    - zero-feature fallback width for empty window-group features was wrong
+    - fixed immediately
+  - re-verify:
+    - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `24 passed in 73.98s`
+- Resource-management action:
+  - identified stale orphaned local jobs:
+    - PIDs `2257190..2257194`
+    - old `agent5_bayesfamily_anchor55_full8_sweep_v01` workers
+  - killed them to free CPU before new sweeps
+- Machine state right before new batch:
+  - load about `24.3 / 29.8 / 38.1` on `384` cores
+  - RAM about `1.9 TiB free`, `2.0 TiB available`
+  - notable other-agent work now includes transcript-memory / sequence-memory targeted probes from `agent3`
+- Single-config strict sanity probe completed:
+  - command:
+    - `uv run python scripts/agent5_student_joint_repeataware_sweep.py --policy coverage --budget 50 --episode-seed 0 --eval-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --samples-per-round 4 --residual-rank 4 --ridge-lambda 12 --k-neighbors 24 --memory-weight 0.45 --correction-blend 0.35 --correction-scale 0.40 --max-workers 1`
+  - result:
+    - `36e581...` score `66.446831`
+    - weighted KL `0.136366`
+    - runtime `456.469s`
+  - interpretation:
+    - close to the old conservative `greybox_student_joint` on `36e581...`
+    - good enough to justify a wider hard-slice batch
+    - not yet evidence of a lead
+- First strict hard-slice batch launched with BLAS thread caps:
+  - eval rounds:
+    - `36e581...`
+    - `c5cdf...`
+    - `f1dac...`
+  - logs / sessions:
+    - coverage, `rank=4 k=24 mw=0.00 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_cov_r4_k24_mw000_b35_s40_v01.log`
+      - session `12032`
+    - coverage, `rank=4 k=16 mw=0.25 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_cov_r4_k16_mw025_b35_s40_v01.log`
+      - session `81998`
+    - coverage, `rank=4 k=24 mw=0.45 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_cov_r4_k24_mw045_b35_s40_v01.log`
+      - session `75171`
+    - coverage, `rank=6 k=24 mw=0.45 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_cov_r6_k24_mw045_b35_s40_v01.log`
+      - session `6608`
+    - exploration_r3, `rank=4 k=24 mw=0.00 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_explr3_r4_k24_mw000_b35_s40_v01.log`
+      - session `19574`
+    - exploration_r3, `rank=4 k=16 mw=0.25 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_explr3_r4_k16_mw025_b35_s40_v01.log`
+      - session `70209`
+    - exploration_r3, `rank=4 k=24 mw=0.45 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_explr3_r4_k24_mw045_b35_s40_v01.log`
+      - session `89996`
+    - exploration_r3, `rank=6 k=24 mw=0.45 blend=0.35 scale=0.40`
+      - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_explr3_r6_k24_mw045_b35_s40_v01.log`
+      - session `50699`

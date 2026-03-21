@@ -35,6 +35,9 @@ from astar.student.predictor.greybox_regime import (
     GreyboxRegimeRidgePredictor,
 )
 from astar.student.predictor.greybox_student_joint import GreyboxStudentJointPredictor
+from astar.student.predictor.greybox_student_joint_repeataware import (
+    GreyboxStudentJointRepeatAwarePredictor,
+)
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
@@ -364,6 +367,20 @@ def _build_prediction_bundle(
             predictor.lowrank_predictor.base_predictor.cell_count,
         )
 
+    if normalized in {"greybox_student_joint_repeataware", "greybox_student_joint_repeataware_v01"}:
+        predictor = GreyboxStudentJointRepeatAwarePredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
     if normalized == "greybox_coefficient_knn":
         predictor = GreyboxCoefficientKnnPredictor.fit_from_workspace(
             paths,
@@ -592,6 +609,8 @@ def evaluate_model_on_round(
                 "greybox_hazard_clusteredbayes",
                 *bayesfamily_model_names(),
                 "greybox_student_joint",
+                "greybox_student_joint_repeataware",
+                "greybox_student_joint_repeataware_v01",
                 "greybox_coefficient_knn",
                 "greybox_hybrid_lowrank_coefficientknn",
                 "greybox_hazard_mixture",
