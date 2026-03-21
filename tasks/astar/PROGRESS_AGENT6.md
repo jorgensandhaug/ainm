@@ -370,6 +370,7 @@
   - dataset dir: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/`
   - summary: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/summary.json`
   - local parquet: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/riskset.parquet`
+  - kept local only; `.gitignore` restored to exclude `data/artifacts/datasets/*/riskset.parquet`
   - event: `collapse`
   - rows: `8478769`
   - replay runs: `2313`
