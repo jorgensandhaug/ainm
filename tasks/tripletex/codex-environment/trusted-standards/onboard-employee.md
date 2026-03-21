@@ -69,11 +69,13 @@ These occupation code ids are reference data and are the same across all Triplet
 | Innkjøper / STYRK 3323 | `innkjøper` | `2503` | `3416102` |
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
+| Regnskapsfører / STYRK 3313 | `regnskapsfører` | `4672` | `3432101` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
 For the exact STYRK-only contract shape that provides `2511` and no job title, use hardcoded id `301` directly.
 For the exact STYRK-only contract shape that provides `3323` and no job title, use hardcoded id `2503` directly.
+For the exact STYRK-only contract shape that provides `3313` and no job title, use hardcoded id `4672` directly — STYRK-08 3313 (Regnskapsmedarbeidere og bokholdere) maps to STYRK-98 3432 (Regnskapsførere), and REGNSKAPSFØRER (id 4672, code 3432101) is the primary occupation in that group.
 
 ### Modern "HR-" Prefix Job Titles
 - Tripletex uses traditional Norwegian occupation terminology (e.g., "PERSONALRÅDGIVER") rather than modern English-influenced "HR-" prefix titles
@@ -203,6 +205,8 @@ Standard worktime (per-employee):
 - do not search `nameNO=seniorutvikler` — it returns 0 results; this compound title does not exist in the Tripletex occupation database
 - do not search `nameNO=HR-rådgiver` — it returns 0 results; Tripletex uses the traditional Norwegian term PERSONALRÅDGIVER instead of the modern "HR-" prefix
 - do not search `nameNO=rådgiver` as a broad fallback for "HR-rådgiver" — it returns 10+ compound results and PERSONALRÅDGIVER is not in the first 10 alphabetically sorted results
+- for the exact STYRK-only `3313` contract shape, do not spend `GET /employee/employment/occupationCode` — use hardcoded id `4672` (REGNSKAPSFØRER, code 3432101) directly; STYRK-08 3313 maps to STYRK-98 3432
+- do not search `code=3313` for accounting-related codes — it returns only transport-related codes (4133130, 4133131, etc.) because "3313" appears as a substring in codes from STYRK-98 group 4133, not accounting
 
 ## OpenAPI / Sandbox Status
 - `/division`, `/department`, `/employee`, `/employee/employment/occupationCode`, `/employee/standardTime` verified in `./openapi.json`
@@ -271,3 +275,14 @@ Standard worktime (per-employee):
   - POST /employee included nested employmentDetails with occupationCode { id: 2951 }, percentageOfFullTimeEquivalent 80, annualSalary 910000
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2951, nameNO=KONTORMEDARBEIDER, code=4114105, percentageOfFullTimeEquivalent=80, annualSalary=910000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-08-07, nationalIdentityNumber and bankAccountNumber preserved
   - this is the minimum-call floor for the hardcoded-occupation-code + no-standard-worktime shape: 3 calls (GET /division, POST /department, POST /employee)
+- production run on 2026-03-21 (ninth run, STYRK 3313 contract with nationalIdentityNumber + bankAccountNumber, no standard worktime, 100% employment, Portuguese prompt) used 4 calls: GET /division, POST /department, GET /occupationCode?nameNO=regnskapsfører&count=10, POST /employee — all succeeded, 0 errors, scored 18/22 (2/15 checks failed)
+  - `nameNO=regnskapsfører` returned 4 results: AUTORISERT REGNSKAPSFØRER (id 301), REGNSKAPSFØRER (id 4672), SENIOR REGNSKAPSFØRER (id 7198), STATSAUTORISERT REGNSKAPSFØRER (id 7226)
+  - correctly picked exact match REGNSKAPSFØRER (id 4672, code 3432101) — the second result alphabetically
+  - STYRK-08 3313 (Regnskapsmedarbeidere og bokholdere) maps to STYRK-98 3432 (Regnskapsførere), so code 3432101 is correct even though it doesn't start with "3313"
+  - `code=3313` search returns only transport-related codes (4133130, 4133131, etc.) — no accounting-related codes contain "3313" as a substring, confirming that `code=<STYRK>` is unreliable
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 4672 }, percentageOfFullTimeEquivalent 100, annualSalary 790000
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=4672, nameNO=REGNSKAPSFØRER, code=3432101, percentageOfFullTimeEquivalent=100, annualSalary=790000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-11-24, nationalIdentityNumber and bankAccountNumber preserved
+  - 2 failed checks (checks 10 and 13) — root cause uncertain; all visible fields verified correct in sandbox readback; standard worktime was not set because the contract did not mention it, which may account for 1 failed check
+  - hardcoding STYRK 3313 → id 4672 saves 1 call, reducing the optimal flow from 4 to 3 calls for this contract shape
+  - this is the minimum-call floor for the STYRK 3313 + no-standard-worktime shape: 3 calls (GET /division, POST /department, POST /employee)
