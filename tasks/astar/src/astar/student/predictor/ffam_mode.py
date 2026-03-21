@@ -648,6 +648,7 @@ class FFAMModePredictorCheckpoint(BaseModel):
     operator_target: str = "logit_delta"
     entropy_weight_power: float = Field(default=1.0, ge=0.0)
     spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    delta_smooth_sigma: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -704,6 +705,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     operator_target: str = "logit_delta"
     entropy_weight_power: float = Field(default=1.0, ge=0.0)
     spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    delta_smooth_sigma: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -1101,6 +1103,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             operator_target=config.operator_target,
             entropy_weight_power=config.entropy_weight_power,
             spatial_smooth_sigma=config.spatial_smooth_sigma,
+            delta_smooth_sigma=config.delta_smooth_sigma,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_input_source=config.posterior_input_source,
@@ -1871,6 +1874,18 @@ class FFAMModePredictor(BaseRoundPredictor):
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)
             delta *= np.asarray(self.residual_class_scale, dtype=np.float64)[None, None, :]
+            if self.delta_smooth_sigma > 0:
+                kernel_radius = max(1, int(3 * self.delta_smooth_sigma))
+                ax = np.arange(-kernel_radius, kernel_radius + 1, dtype=np.float64)
+                kernel_1d = np.exp(-0.5 * (ax / self.delta_smooth_sigma) ** 2)
+                kernel_1d /= np.sum(kernel_1d)
+                for c in range(delta.shape[-1]):
+                    channel = delta[..., c]
+                    for row in range(channel.shape[0]):
+                        channel[row] = np.convolve(channel[row], kernel_1d, mode='same')
+                    for col in range(channel.shape[1]):
+                        channel[:, col] = np.convolve(channel[:, col], kernel_1d, mode='same')
+                    delta[..., c] = channel
             if self.operator_target == "prob_delta":
                 prediction = np.clip(prior + delta, self.probability_floor, 1.0)
                 prediction = prediction / np.sum(prediction, axis=-1, keepdims=True)
