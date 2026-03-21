@@ -108,17 +108,31 @@ Sandbox proof (2026-03-21): paying NOK invoice `2147609133` with mismatched `pai
 - if the decisive invoice read shows that the prompt amount only matches `amountExcludingVatCurrency` or `amountExcludingVat` on a company-currency invoice, stop treating the prompt as an exact foreign-currency-payment match
 - if the decisive invoice read returns an invoice where `amount === amountCurrency` and `currency.code === "NOK"`, this is a company-currency invoice; fall back to simple payment with no FX logic, even if the prompt explicitly says EUR or agio/disagio
 
+## CRITICAL: Script Must Handle Both EUR and NOK Cases
+
+The script MUST contain fallback logic for NOK invoices. Do NOT write a script that only handles EUR invoices and exits with an error when it finds NOK. This caused a 0% timeout in production run 67c52406.
+
+The script pattern:
+1. Fetch invoices, filter for foreign currency with outstanding > 0
+2. If a matching EUR/foreign invoice is found → use FX payment logic (paidAmount + paidAmountCurrency)
+3. If NO foreign invoice found → find the NOK invoice matching `amountExcludingVat` → use simple payment (paidAmount = amountOutstanding only)
+4. In BOTH cases, register the payment. NEVER stop without registering a payment.
+
 ## Production Failure History
 
-### Run 1 (0% score): Timed out reading docs, never executed API calls
-### Run 2 (50% score — 2/4 checks failed):
-- Used `customerOrganizationNumber=959783748` and `currency=EUR` as query params — both silently ignored
+### prod-2026-03-21-180635197Z-67c52406 (0% score — task 27, Solmar SL / 877276260 / 18687 EUR):
+- Correctly used `fields=*,currency(*)` and detected invoice was NOK
+- Script only handled EUR case; when 0 foreign candidates found, it exited with error
+- Agent wrote a second inspection script but then timed out without ever registering any payment
+- Root cause: script had no NOK fallback — should have immediately fallen back to simple payment
+### Earlier run (50% score — 2/4 checks failed):
+- Used `customerOrganizationNumber` and `currency` as query params — both silently ignored
 - Used `fields=*` without `currency(*)` — could not verify invoice was actually EUR
 - Used `fields=*` without `debitAccount(*)` on payment type — filtered by nonexistent `p.isIncoming` and `p.isBankAccount`
 - Ended up paying a NOK invoice as if it were EUR — checks 1-2 passed (payment registered) but checks 3-4 failed (no agio booked)
-### Run 3 (0% score):
+### Earlier run (0% score):
 - Correctly used `currency(*)` and detected invoice was NOK
-- But then manually created a `POST /ledger/voucher` to book agio — this corrupted the accounting state
+- Manually created a `POST /ledger/voucher` to book agio — this corrupted the accounting state
 - Should have used the Company-Currency Fallback (simple payment, no FX logic)
 
 ## OpenAPI / Sandbox Status
