@@ -48,6 +48,7 @@ from astar.student.predictor.mlp_decoder_specs import supported_mlp_decoder_mode
 from astar.student.predictor.cell_type_transfer_specs import supported_cell_type_transfer_model_names
 from astar.student.predictor.hazard_posterior_v2_port_specs import supported_hazard_posterior_v2_port_model_names
 from astar.student.predictor.ensemble_specs import supported_ensemble_model_names
+from astar.student.predictor.adaptive_ensemble_specs import supported_adaptive_ensemble_model_names
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -184,6 +185,7 @@ def run_historical_benchmark(
         *supported_cell_type_transfer_model_names(),
         *supported_hazard_posterior_v2_port_model_names(),
         *supported_ensemble_model_names(),
+        *supported_adaptive_ensemble_model_names(),
     }:
         raise ValueError(
             f"{normalized_model_name} requires mode=online_interactive for historical benchmark",

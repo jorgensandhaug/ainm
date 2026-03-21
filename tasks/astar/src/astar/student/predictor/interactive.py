@@ -102,6 +102,11 @@ from astar.student.predictor.ensemble_specs import (
     resolve_ensemble_model_spec,
     supported_ensemble_model_names,
 )
+from astar.student.predictor.adaptive_ensemble import AdaptiveEnsemblePredictor
+from astar.student.predictor.adaptive_ensemble_specs import (
+    resolve_adaptive_ensemble_model_spec,
+    supported_adaptive_ensemble_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -416,6 +421,24 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    adaptive_ensemble_spec = resolve_adaptive_ensemble_model_spec(normalized)
+    if adaptive_ensemble_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = AdaptiveEnsemblePredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=historical_round_ids,
+            model_names=list(adaptive_ensemble_spec.component_model_names),
+            model_name=adaptive_ensemble_spec.model_name,
+            probability_floor=adaptive_ensemble_spec.probability_floor,
+            policy_name=policy_name or adaptive_ensemble_spec.policy_name,
+            base_weight_global=adaptive_ensemble_spec.base_weight_global,
+            coverage_boost=adaptive_ensemble_spec.coverage_boost,
+            blur_sigma=adaptive_ensemble_spec.blur_sigma,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     ensemble_spec = resolve_ensemble_model_spec(normalized)
     if ensemble_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -633,4 +656,5 @@ __all__ = [
     "supported_cell_type_transfer_model_names",
     "supported_hazard_posterior_v2_port_model_names",
     "supported_ensemble_model_names",
+    "supported_adaptive_ensemble_model_names",
 ]
