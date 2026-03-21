@@ -4095,9 +4095,35 @@
 - Training: Adam optimizer, entropy-weighted MSE, 200 epochs, h=64
 - Status: smoke benchmarks running
 
-### Cell-type transfer (running)
+### MLP nonlinear decoder (catastrophic reject)
+- Code: `src/astar/student/predictor/mlp_decoder.py`
+- Results:
+  - `f1_mlp_decoder_v01` (h=64): score `42.6117`, KL `0.287668`
+  - `f1_mlp_decoder_h128_v01` (h=128): score `45.6450`, KL `0.264384`
+- Verdict: **catastrophic reject** - MLP dramatically overfits with so few training rounds
+
+### Cell-type transfer (modest positive)
 - Code: `src/astar/student/predictor/cell_type_transfer.py`
 - Hypothesis: position-invariant approach computing P(year50_class | initial_type, local_structure, round_regime) from analysis ground truths
 - Bucketed by: initial cell class, settlement proximity, coast flag, forest neighbors
-- Uses kNN on transcript summaries to identify nearest rounds, then blends per-bucket distributions
-- Status: smoke benchmarks running
+- Results:
+  - `f1_cell_type_transfer_v01` (30% prior blend): score `70.9287`, KL `0.120618`
+  - `f1_cell_type_transfer_blend50_v01` (50% prior blend): score `71.0326`, KL `0.119467`
+- Verdict: **best new non-query-residual family model**, better than summary_rate_decoder family (~69.9)
+  - Still ~2 points below supportx_v01 (~72.9)
+  - Position-invariant idea is validated
+
+### Cross-agent analysis
+- Agent1's `hazard_posterior_v8_k5_r3_l32_m70_q8`: score **79.19** on dev probe
+  - Uses HazardTeacherV2 with proper SVD-compressed low-rank regime
+  - Ridge-projected regime prediction blended with kNN particles
+  - Much richer spatial features (27 features including interactions)
+  - Entropy-conditioned class-specific observation weights
+- Agent2's `smh_resid_z12_h0_covbase_locgate_v001`: score **74.41**
+- Key insight: the scoring gap is in the teacher/coefficient infrastructure, not in the posterior or decoder
+
+### Next best path
+- Port agent1's V2 coefficient fitting + teacher infrastructure
+- Build a proper low-rank regime latent with SVD compression
+- Add ridge-projected regime prediction for better online inference
+- This is the most promising path to >75 score
