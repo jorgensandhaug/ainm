@@ -20,6 +20,7 @@ from astar.student.predictor.greybox_regime import (
     GreyboxRegimeKnnPredictor,
     GreyboxRegimeRidgePredictor,
 )
+from astar.student.predictor.greybox_student_joint import GreyboxStudentJointPredictor
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
@@ -139,6 +140,18 @@ def build_online_predictor(
     if normalized == "greybox_hazard_lowrank":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_student_joint":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxStudentJointPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=(policy_name or "coverage").strip().lower(),

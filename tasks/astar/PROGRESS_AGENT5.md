@@ -259,6 +259,135 @@
   - `c5cdf...`: `78.5253`
   - `36e581...`: `64.6992`
 
+### 2026-03-21T10:25:44Z
+
+- Re-read full handoff plus canon docs again before continuing:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent5.md`
+- Reconfirmed handoff intent:
+  - `query_residual` was only baseline/infra bootstrap
+  - main target remains grey-box teacher/student/policy family
+  - highest-priority missing branches still include better teacher parameterization, direct student head, and stronger policy/validation protocols
+- Machine-health snapshot before launching more work:
+  - host `c4d-monster-01.c.ai-nm26osl-1706.internal`
+  - RAM `2.9TiB total`, `2.0TiB available`
+  - load averages `48.96 / 58.73 / 62.44` on `384` cores
+  - plenty of safe headroom for more parallel experiments
+- Checked competing machine usage:
+  - other agents currently running several heavy teacher/student sweeps
+  - notable large-memory jobs from `agent1` and `agent3`
+  - still enough headroom that `4-16` worker historical benchmarks remain safe
+- `br list` checked again and still unavailable in current env (`command not found`).
+- Current local tree is dirty mainly from:
+  - benchmark/dataset/replay artifact generation
+  - unfinished local hook-up for `greybox_hybrid_lowrank_coefficientknn`
+- Two full 8-round benchmarks still running from prior turn and need harvest before selecting next lead:
+  - session `4989`: `greybox_hybrid_lowrank_queryres`, `policy=exploration_r3`, default weight `0.35`
+  - session `11477`: `greybox_hybrid_lowrank_queryres_w45`, `policy=exploration_r3`, weight `0.45`
+- Current working decision:
+  - treat official historical benchmark as canonical selector
+  - avoid more pure `query_residual` tuning
+  - focus next on actual new grey-box family branches beyond current monolithic low-rank hazard decoder
+
+### 2026-03-21T10:50:00Z
+
+- Implemented new direct-head branch from handoff H9 / Phase 8:
+  - `greybox_student_joint`
+  - file: `src/astar/student/predictor/greybox_student_joint.py`
+- Core design:
+  - base predictor = `GreyboxHazardLowRankPredictor` with prior-heavier blend (`prior_blend=0.55`)
+  - train legal transcript encoder on synthetic live episodes from held-in rounds only
+  - target = round-shared delta-logit tensor between lowrank base prediction and historical ground truth
+  - compress delta tensors with low-rank basis
+  - regress transcript features -> residual-basis coordinates
+  - inference = lowrank base + direct tensor correction + exact observed-cell re-imposition
+- Reasoning:
+  - this is not another pure residual-only baseline
+  - it is the missing “joint student / direct tensor head” branch from the handoff
+  - hypothesis: transcript evidence can explain low-dimensional cross-seed correction patterns the lowrank teacher misses
+- Framework integration added:
+  - online predictor registry
+  - historical eval path
+  - CLI model choices
+  - historical benchmark smoke coverage in tests
+- Verification:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_student_joint.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/cli.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `16 passed in 49.59s`
+- New targeted held-out probes launched with full 7-round training and 3 held-out rounds `{36e581..., c5cdf..., f1dac...}`:
+  - `agent5_student_joint_probe3_default`
+    - config: `samples=4`, `rank=6`, `ridge=8.0`, `correction_blend=0.85`, `correction_scale=0.75`
+  - `agent5_student_joint_probe3_aggressive`
+    - config: `samples=4`, `rank=8`, `ridge=6.0`, `correction_blend=1.0`, `correction_scale=1.0`
+  - `agent5_student_joint_probe3_conservative`
+    - config: `samples=4`, `rank=4`, `ridge=12.0`, `correction_blend=0.65`, `correction_scale=0.55`
+- Probe outputs are set to write `result.json` under `data/artifacts/benchmarks/<name>/`.
+
+### 2026-03-21T10:45:00Z
+
+- Implemented new direct student branch aligned with handoff Phase 8 / H9:
+  - model family entry: `greybox_student_joint`
+  - internal name: `greybox_student_joint_v01`
+- Design:
+  - fit existing `greybox_hazard_lowrank` predictor as teacher-backed base
+  - build legal synthetic transcript prefixes from held-in rounds only
+  - for each prefix, compute low-rank base prediction for the whole round
+  - supervise a low-rank direct tensor head on the round-shared logit correction between base prediction and true final tensors
+  - infer correction from transcript regime features + inferred low-rank coords + prediction summary stats
+  - apply correction to the full 5-seed prediction tensor, then reapply exact observed-cell blending and probability floor
+- Why this branch matters:
+  - this is not another pure residual baseline
+  - it directly targets the handoff requirement of a legal online student with both latent/teacher structure and a direct tensor head
+  - correction is round-shared across all seeds, exploiting the shared hidden round parameters more explicitly than cellwise-only residual fitting
+- Integrated:
+  - predictor registry / online path
+  - historical eval path
+  - CLI choices
+  - historical benchmark allowlist
+  - smoke coverage in `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run python -m py_compile ...` for touched files passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` passed with `16 passed in 54.58s`
+- In-flight evaluation:
+  - 3-round held-out probe running:
+    - benchmark `agent5_student_joint_coverage_probe3_v01`
+    - rounds `{36e581..., c5cdf..., f1dac...}`
+    - `policy=coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - session `19824`
+
+### 2026-03-21T10:55:00Z
+
+- Harvested prior in-flight full 8-round `exploration_r3` historical benchmarks:
+  - `agent5_hybrid_lowrank_queryres_explorationr3_online50_v03w35`
+    - model `greybox_hybrid_lowrank_queryres`
+    - mean score `75.1931115`
+    - mean weighted KL `0.09779810`
+  - `agent5_hybrid_lowrank_queryres_w45_explorationr3_online50_v01`
+    - model `greybox_hybrid_lowrank_queryres_w45`
+    - mean score `75.1355846`
+    - mean weighted KL `0.09799999`
+- Interpretation:
+  - both beat previous official coverage lead `74.9420879`
+  - default low-rank weight `0.35` remains best of the two
+  - current best visible official full-8 result in this workspace is now `exploration_r3 + greybox_hybrid_lowrank_queryres_v03`
+- First direct-joint-student probe result:
+  - benchmark `agent5_student_joint_coverage_probe3_v01`
+  - mean score `37.9554`
+  - mean weighted KL `0.395407`
+  - per-round:
+    - `36e581...`: `16.7019`
+    - `c5cdf...`: `73.4436`
+    - `f1dac...`: `23.7208`
+- Conclusion from first joint-student default:
+  - branch is directionally interesting only on `c5cdf...`
+  - default correction head is far too aggressive and catastrophically degrades `36e581...` and `f1dac...`
+  - do not promote this default
+  - immediate next action: conservative shrinkage ablations (`lower rank`, `lower correction_scale`, `lower correction_blend`)
+
 ### 2026-03-21T10:00:00Z
 
 - Added round-level parallelism to `run_historical_benchmark` behind an explicit `max_workers` argument.
