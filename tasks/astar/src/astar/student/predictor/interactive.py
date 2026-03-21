@@ -51,6 +51,9 @@ SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001 = "smh_glmmlatent_z2_h0_covbase_tmix_v001
 SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001 = "smh_glmmlatent_z2_h0_covbase_barren_v001"
 SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V002 = "smh_glmmlatent_z2_h0_covbase_barren_v002"
 SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003 = "smh_glmmlatent_z2_h0_covbase_barren_v003"
+SMH_GLMM_QR_ENSEMBLE_V001 = "smh_glmm_qr_ensemble_v001"
+SMH_GLMM_QR_ENSEMBLE_V002 = "smh_glmm_qr_ensemble_v002"
+SMH_GLMM_QR_ENSEMBLE_V003 = "smh_glmm_qr_ensemble_v003"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -477,6 +480,61 @@ class BarrenRoundCorrectionPredictor(BaseRoundPredictor):
         evidence=None,
     ) -> PredictionBundle:
         return self.base_predictor.build_prediction_bundle(round_detail, features, evidence)
+
+
+class RegimeAdaptiveEnsemblePredictor(BaseRoundPredictor):
+    """Blend two models adaptively based on observed regime."""
+
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    glmm_predictor: BaseRoundPredictor
+    qr_predictor: BaseRoundPredictor
+    name: str = "smh_glmm_qr_ensemble_v001"
+    barren_threshold: float = 0.03
+    barren_qr_weight: float = 0.7  # weight on QR when barren
+    normal_qr_weight: float = 0.2  # weight on QR normally
+    probability_floor: float = 0.005
+
+    def _detect_build_rate(self, observations: tuple) -> float:
+        total_cells = 0
+        built_cells = 0
+        for obs in observations:
+            grid = np.asarray(obs.grid, dtype=np.int64)
+            from astar.core.terrain import collapse_internal_grid as _collapse
+            collapsed = _collapse(grid)
+            total_cells += collapsed.size
+            built_cells += int(np.sum((collapsed == 1) | (collapsed == 2) | (collapsed == 3)))
+        return float(built_cells) / max(total_cells, 1)
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        glmm_bundle = _bundle_from_context(self.glmm_predictor, context)
+        qr_bundle = _bundle_from_context(self.qr_predictor, context)
+        build_rate = self._detect_build_rate(context.observations)
+        qr_weight = self.barren_qr_weight if build_rate < self.barren_threshold else self.normal_qr_weight
+        glmm_weight = 1.0 - qr_weight
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed_index in glmm_bundle.predictions_by_seed:
+            glmm_pred = np.asarray(glmm_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            qr_pred = np.asarray(qr_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            blended = glmm_weight * glmm_pred + qr_weight * qr_pred
+            floored = np.maximum(blended, self.probability_floor)
+            predictions_by_seed[seed_index] = floored / floored.sum(axis=-1, keepdims=True)
+        return PredictionBundle(
+            round_id=glmm_bundle.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        return self.glmm_predictor.build_prediction_bundle(round_detail, features, evidence)
 
 
 class ExactObservationBlendPredictor(BaseRoundPredictor):
@@ -1821,6 +1879,37 @@ def build_online_predictor(
                     "nbr_ruin_frac",
                 ),
             },
+        )
+    if normalized in (SMH_GLMM_QR_ENSEMBLE_V001, SMH_GLMM_QR_ENSEMBLE_V002, SMH_GLMM_QR_ENSEMBLE_V003):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        qr_predictor = _load_or_fit_query_residual_predictor(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem="query_residual_v7",
+            model_name="query_residual",
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+        )
+        params = {
+            SMH_GLMM_QR_ENSEMBLE_V001: {"barren_threshold": 0.03, "barren_qr_weight": 0.7, "normal_qr_weight": 0.2},
+            SMH_GLMM_QR_ENSEMBLE_V002: {"barren_threshold": 0.03, "barren_qr_weight": 0.5, "normal_qr_weight": 0.15},
+            SMH_GLMM_QR_ENSEMBLE_V003: {"barren_threshold": 0.05, "barren_qr_weight": 0.6, "normal_qr_weight": 0.1},
+        }[normalized]
+        return RoundPredictorAdapter(
+            predictor=RegimeAdaptiveEnsemblePredictor(
+                glmm_predictor=glmm_adapter.predictor,
+                qr_predictor=qr_predictor,
+                name=normalized,
+                **params,
+            ),
+            name=normalized,
         )
     if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
