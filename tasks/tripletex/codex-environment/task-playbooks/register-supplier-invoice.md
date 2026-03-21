@@ -491,6 +491,15 @@ Proven outcome:
 - voucher `609191746`, supplier `108444991`
 - confirms Nynorsk description spelling "kontortenester" (vs Bokmål "kontortjenester") preserved exactly
 
+2026-03-22 production run for `Montaña SL` / `831519975` / `INV-2026-1443` / `50050` / `6300` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Spanish-language text-only prompt (no PDF), description "servicios de oficina"
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 50050/1.25=40040 net, 10010 VAT (no rounding)
+- voucher `609209769`, supplier `108456935`
+- sandbox re-proof: importDocument returns empty postings array — GET /ledger/account cannot be skipped; single PUT with postings+sendToLedger=true still fails with 422; 5 calls confirmed as true minimum
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:

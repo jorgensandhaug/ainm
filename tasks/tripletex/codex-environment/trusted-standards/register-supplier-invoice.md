@@ -492,3 +492,16 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - description preserved with exact casing "services de bureau" from French prompt
 - accounts confirmed across production runs: 6300, 6340, 6500, 6540, 7000, 7140 — standard works for all expense accounts
 - sandbox re-proof confirmed: account 7140 exists in sandbox with same name "Reisekostnad, ikke oppgavepliktig"; 5 calls remains the true minimum
+
+2026-03-22 production run for `Montaña SL` / `831519975` / `INV-2026-1443` / `50050` / `6300` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Spanish-language text-only prompt (no PDF), description "servicios de oficina"
+- no address or bank data to extract (text-only)
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 50050/1.25=40040 net, 10010 VAT (no rounding)
+- voucher `609209769`, supplier `108456935`
+- description preserved with exact casing "servicios de oficina" from Spanish prompt
+- sandbox re-proof confirmed: importDocument returns empty postings (no account IDs to extract — GET /ledger/account remains required); single PUT with postings+sendToLedger=true still fails with 422; 5 calls remains the true minimum
