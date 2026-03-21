@@ -64,6 +64,9 @@ GLMM_DT_ENSEMBLE_V001 = "glmm_dt_ensemble_v001"
 GLMM_DT_ENSEMBLE_V002 = "glmm_dt_ensemble_v002"
 GLMM_DT_ENSEMBLE_V003 = "glmm_dt_ensemble_v003"
 GLMM_DT_ENSEMBLE_V004 = "glmm_dt_ensemble_v004"
+GLMM_DT_ENSEMBLE_V005 = "glmm_dt_ensemble_v005"
+GLMM_DT_ENSEMBLE_V006 = "glmm_dt_ensemble_v006"
+GLMM_DT_ENSEMBLE_V007 = "glmm_dt_ensemble_v007"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1923,7 +1926,7 @@ def build_online_predictor(
                 ),
             },
         )
-    if normalized in (GLMM_DT_ENSEMBLE_V001, GLMM_DT_ENSEMBLE_V002, GLMM_DT_ENSEMBLE_V003, GLMM_DT_ENSEMBLE_V004):
+    if normalized in (GLMM_DT_ENSEMBLE_V001, GLMM_DT_ENSEMBLE_V002, GLMM_DT_ENSEMBLE_V003, GLMM_DT_ENSEMBLE_V004, GLMM_DT_ENSEMBLE_V005, GLMM_DT_ENSEMBLE_V006, GLMM_DT_ENSEMBLE_V007):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -1945,6 +1948,9 @@ def build_online_predictor(
             GLMM_DT_ENSEMBLE_V002: 0.25,  # 75% GLMM, 25% DT
             GLMM_DT_ENSEMBLE_V003: 0.35,  # 65% GLMM, 35% DT
             GLMM_DT_ENSEMBLE_V004: 0.10,  # 90% GLMM, 10% DT
+            GLMM_DT_ENSEMBLE_V005: 0.40,  # 60% GLMM, 40% DT
+            GLMM_DT_ENSEMBLE_V006: 0.45,  # 55% GLMM, 45% DT
+            GLMM_DT_ENSEMBLE_V007: 0.50,  # 50% GLMM, 50% DT
         }
         dt_weight = dt_weight_map[normalized]
         return RoundPredictorAdapter(
