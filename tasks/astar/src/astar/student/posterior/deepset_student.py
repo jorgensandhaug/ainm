@@ -43,10 +43,15 @@ def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
     grouped: dict[int, list[LiveQueryObs]] = {}
     for observation in artifact.observations:
         grouped.setdefault(observation.seed_index, []).append(observation)
+    seed_indexes = sorted(
+        set(grouped)
+        | {int(seed_index) for seed_index in artifact.target_paths}
+        | {int(seed_index) for seed_index in artifact.target_sources}
+    )
 
     components: list[float] = []
-    for seed_index in sorted(grouped):
-        observations = grouped[seed_index]
+    for seed_index in seed_indexes:
+        observations = grouped.get(seed_index, [])
         class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
         populations: list[float] = []
         foods: list[float] = []

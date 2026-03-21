@@ -12,7 +12,9 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.birth_posterior_specs import supported_birth_posterior_model_names
 from astar.student.predictor.query_residual_specs import resolve_query_residual_model_spec
+from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -123,7 +125,12 @@ def run_historical_benchmark(
     normalized_model_name = model_name.strip().lower()
     if resolve_query_residual_model_spec(normalized_model_name) is not None and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
-    if mode == "prior_only" and normalized_model_name in {"latent_regime", "f1_event_regime_v01"}:
+    if mode == "prior_only" and normalized_model_name in {
+        "latent_regime",
+        "f1_event_regime_v01",
+        *supported_birth_posterior_model_names(),
+        *supported_summary_bank_model_names(),
+    }:
         raise ValueError(
             f"{normalized_model_name} requires mode=online_interactive for historical benchmark",
         )

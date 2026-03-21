@@ -715,3 +715,91 @@
   - next modeling path should be one of:
     - benchmarkable birth-led posterior event model using the now-validated synthetic-live posterior substrate
     - or a richer collapse latent target / teacher before another collapse-heavy benchmarkable model
+- Started direct modelization off the posterior audit:
+  - hypothesis:
+    - a learned birth posterior from synthetic-live kNN summaries, layered onto the structural event prior, might be the first benchmarkable model that actually cashes out the strong birth-posterior audit signal
+  - landed:
+    - immutable birth-posterior model specs
+    - `BirthPosteriorEventPredictor`
+    - online predictor wiring
+    - smoke tests
+- Found and fixed a real shared-summary bug while modelizing:
+  - `src/astar/student/posterior/deepset_student.py::_summary_vector_from_artifact(...)` was dropping unqueried seeds
+  - live evidence summaries always include all seeds, so small-budget synthetic artifacts and live inference could disagree in dimensionality
+  - fix:
+    - artifact summaries now include the union of:
+      - observed seed indexes
+      - `target_paths` keys
+      - `target_sources` keys
+  - this is a real correctness fix for any low-budget student / posterior path, not just the new birth model
+- New predictor/test coverage added:
+  - `tests/test_birth_posterior_predictor.py`
+  - `tests/test_summary_bank_predictor.py`
+- Regression after the new predictor plumbing + summary-vector fix:
+  - `uv run pytest tests/test_summary_bank_predictor.py tests/test_birth_posterior_predictor.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_hazard_riskset.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `25 passed`
+- Birth-led posterior event model results:
+  - model: `f1_birth_posterior_event_b50s4k7_v01`
+  - command:
+    - `uv run astar run-historical-benchmark --model f1_birth_posterior_event_b50s4k7_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_birth_posterior_event_b50s4k7_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_birth_posterior_event_b50s4k7_v01_probe3/result.json`
+  - result:
+    - mean score `4.8769`
+    - mean weighted KL `1.061218`
+    - runtime `251.651s`
+  - read:
+    - catastrophic
+    - birth posterior alone does not translate into a useful terminal predictor through this lightweight event overlay
+- Second birth-led variant also rejected:
+  - model: `f1_birth_posterior_event_b50s4k7m25_v01`
+  - command:
+    - `uv run astar run-historical-benchmark --model f1_birth_posterior_event_b50s4k7m25_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_birth_posterior_event_b50s4k7m25_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_birth_posterior_event_b50s4k7m25_v01_probe3/result.json`
+  - result:
+    - mean score `4.8803`
+    - mean weighted KL `1.060713`
+    - runtime `64.175s`
+  - paired compare vs `tmp_query_residual_probe_3rounds_v7`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_birth_posterior_event_b50s4k7m25_v01.json`
+    - mean score delta `-68.2224`
+    - mean weighted KL delta `+0.955929`
+    - win rate `0.000`
+  - read:
+    - reject the birth-overlay branch
+    - the posterior signal is real diagnostically, but this simple hand-shaped decoding path is useless competitively
+- Next benchmarkable family branch tried after the birth-overlay rejection:
+  - immutable summary-bank teacher model:
+    - `f1_summary_bank_teacher_b50s4k7_v01`
+  - idea:
+    - use the already-existing `SummaryBankStudent` logic directly as an online family member, but decode through `HazardTeacher` rather than a hand-built event overlay
+- Summary-bank teacher smoke result:
+  - command:
+    - `uv run astar run-historical-benchmark --model f1_summary_bank_teacher_b50s4k7_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_bank_teacher_b50s4k7_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_bank_teacher_b50s4k7_v01_probe3/result.json`
+  - result:
+    - mean score `58.6812`
+    - mean weighted KL `0.184266`
+    - runtime `448.874s`
+  - paired compare vs `tmp_query_residual_probe_3rounds_v7`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_summary_bank_teacher_b50s4k7_v01.json`
+    - mean score delta `-14.4215`
+    - mean weighted KL delta `+0.079483`
+    - win rate `0.000`
+  - read:
+    - much better than the failed birth overlays
+    - still not competitive with `query_residual`
+    - and the runtime is heavy for only moderate quality
+- Updated branch read after these benchmarkable attempts:
+  - synthetic-live posterior inference is now validated and cheap enough
+  - but naive decoding matters a lot:
+    - simple birth overlay: unusable
+    - direct summary-bank teacher decode: respectable but still clearly behind query-residual
+  - likely next profitable branch is not another shallow decoder sweep
+  - better next path:
+    - use the validated posterior substrate inside a stronger decoder / residualized decoder, or
+    - derive better live-inferable latent targets closer to score-relevant terminal tensors than coarse birth/collapse rates or the current crude semimechanistic teacher regime

@@ -10,6 +10,11 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.student.predictor.birth_posterior import BirthPosteriorEventPredictor
+from astar.student.predictor.birth_posterior_specs import (
+    resolve_birth_posterior_model_spec,
+    supported_birth_posterior_model_names,
+)
 from astar.student.predictor.heuristic import (
     EventRegimePredictor,
     GeometryPriorPredictor,
@@ -22,6 +27,11 @@ from astar.student.predictor.query_residual_specs import (
     supported_query_residual_model_names,
 )
 from astar.student.predictor.round import BaseRoundPredictor
+from astar.student.predictor.summary_bank import SummaryBankTeacherPredictor
+from astar.student.predictor.summary_bank_specs import (
+    resolve_summary_bank_model_spec,
+    supported_summary_bank_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -115,6 +125,44 @@ def build_online_predictor(
             predictor=event_predictor,
             name=event_predictor.name,
         )
+    birth_posterior_spec = resolve_birth_posterior_model_spec(normalized)
+    if birth_posterior_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = BirthPosteriorEventPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=birth_posterior_spec.policy_name,
+            budget=birth_posterior_spec.budget,
+            samples_per_round=birth_posterior_spec.samples_per_round,
+            k_neighbors=birth_posterior_spec.k_neighbors,
+            birth_signal_scale=birth_posterior_spec.birth_signal_scale,
+            birth_gain=birth_posterior_spec.birth_gain,
+            maritime_from_birth=birth_posterior_spec.maritime_from_birth,
+            model_name=birth_posterior_spec.model_name,
+            probability_floor=birth_posterior_spec.probability_floor,
+            birth_dataset_name=birth_posterior_spec.birth_dataset_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    summary_bank_spec = resolve_summary_bank_model_spec(normalized)
+    if summary_bank_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = SummaryBankTeacherPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=summary_bank_spec.policy_name,
+            budget=summary_bank_spec.budget,
+            samples_per_round=summary_bank_spec.samples_per_round,
+            k_neighbors=summary_bank_spec.k_neighbors,
+            model_name=summary_bank_spec.model_name,
+            probability_floor=summary_bank_spec.probability_floor,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     query_residual_spec = resolve_query_residual_model_spec(normalized)
     if query_residual_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -178,5 +226,7 @@ __all__ = [
     "OnlinePredictor",
     "RoundPredictorAdapter",
     "build_online_predictor",
+    "supported_birth_posterior_model_names",
     "supported_query_residual_model_names",
+    "supported_summary_bank_model_names",
 ]
