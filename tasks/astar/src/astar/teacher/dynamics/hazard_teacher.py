@@ -131,6 +131,18 @@ class HazardTeacher(BaseModel):
         path.write_text(json.dumps(to_jsonable(self.checkpoint()), indent=2), encoding="utf-8")
         return path
 
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> HazardTeacher:
+        checkpoint = HazardTeacherCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        return cls(
+            name=checkpoint.name,
+            feature_names=list(checkpoint.feature_names),
+            round_ids=tuple(checkpoint.round_ids),
+            round_numbers=tuple(checkpoint.round_numbers),
+            regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
+        )
+
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
         return round_regime_summary_vector(episode)
 
@@ -309,6 +321,16 @@ class HazardTeacher(BaseModel):
         del n_rollouts
         coefficient_vector = self._coefficients_from_regime(np.asarray(regime, dtype=np.float64))
         return self._decode_terminal_tensor(seed, coefficient_vector)
+
+    def decode_coefficients(
+        self,
+        seed: SeedLike,
+        coefficient_vector: np.ndarray,
+    ) -> np.ndarray:
+        return self._decode_terminal_tensor(
+            seed,
+            np.asarray(coefficient_vector, dtype=np.float64),
+        )
 
     def posterior_predictive(
         self,

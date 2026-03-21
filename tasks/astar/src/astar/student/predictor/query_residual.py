@@ -390,6 +390,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     regime_weights: list[list[float]]
     beta_min: float = Field(ge=0.0)
     beta_scale: float = Field(ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v1"
     manifold_neighbor_count: int = Field(default=0, ge=0)
     manifold_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -1179,6 +1180,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     )
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v1"
     manifold_neighbor_count: int = Field(default=0, ge=0)
     manifold_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -1253,6 +1255,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             teacher_blend=config.teacher_blend,
             beta_min=config.beta_min,
             beta_scale=config.beta_scale,
+            beta_repeat_discount=config.beta_repeat_discount,
             synthetic_dataset_version=config.synthetic_dataset_version,
             manifold_neighbor_count=config.manifold_neighbor_count,
             manifold_bandwidth=config.manifold_bandwidth,
@@ -1312,6 +1315,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         teacher_blend: float = 0.12,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
+        beta_repeat_discount: float = 0.0,
         synthetic_dataset_version: str = "v1",
         manifold_neighbor_count: int = 0,
         manifold_bandwidth: float = 1.0,
@@ -1504,6 +1508,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(regime_weights, dtype=np.float64),
             beta_min=beta_min,
             beta_scale=beta_scale,
+            beta_repeat_discount=beta_repeat_discount,
             synthetic_dataset_version=synthetic_dataset_version,
             manifold_neighbor_count=manifold_neighbor_count,
             manifold_bandwidth=manifold_bandwidth,
@@ -1557,6 +1562,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
             beta_min=checkpoint.beta_min,
             beta_scale=checkpoint.beta_scale,
+            beta_repeat_discount=checkpoint.beta_repeat_discount,
             synthetic_dataset_version=checkpoint.synthetic_dataset_version,
             manifold_neighbor_count=checkpoint.manifold_neighbor_count,
             manifold_bandwidth=checkpoint.manifold_bandwidth,
@@ -1614,6 +1620,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(self.regime_weights, dtype=np.float64).tolist(),
             beta_min=self.beta_min,
             beta_scale=self.beta_scale,
+            beta_repeat_discount=self.beta_repeat_discount,
             synthetic_dataset_version=self.synthetic_dataset_version,
             manifold_neighbor_count=self.manifold_neighbor_count,
             manifold_bandwidth=self.manifold_bandwidth,
@@ -1929,6 +1936,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
             return prediction
         prior_entropy = np.asarray(entropy_map(prior), dtype=np.float64)[..., None]
         beta = self.beta_min + self.beta_scale * (1.0 - (prior_entropy / math.log(6.0)))
+        if self.beta_repeat_discount > 0.0:
+            beta = beta / (
+                1.0
+                + (
+                    self.beta_repeat_discount
+                    * np.maximum(count_total - 1.0, 0.0)
+                )
+            )
         blended = np.where(
             count_total > 0.0,
             (beta * prediction + exact_counts) / np.maximum(beta + count_total, 1e-6),

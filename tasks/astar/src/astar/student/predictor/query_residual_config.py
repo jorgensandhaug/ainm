@@ -25,6 +25,7 @@ class QueryResidualConfig(BaseModel):
     teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     manifold_neighbor_count: int = Field(default=0, ge=0)
     manifold_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -102,6 +103,41 @@ QUERY_RESIDUAL_CONFIGS: dict[str, QueryResidualConfig] = {
         synthetic_dataset_version="v2",
         beta_min=2.0,
         beta_scale=8.0,
+    ),
+    "query_residual_v15": QueryResidualConfig(
+        model_name="query_residual_v15",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_repeat_discount=1.5,
+    ),
+    "query_residual_v16": QueryResidualConfig(
+        model_name="query_residual_v16",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_repeat_discount=3.0,
+    ),
+    "query_residual_v17": QueryResidualConfig(
+        model_name="query_residual_v17",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_min=2.0,
+        beta_scale=8.0,
+        prior_blend=0.4,
+    ),
+    "query_residual_v18": QueryResidualConfig(
+        model_name="query_residual_v18",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_min=2.0,
+        beta_scale=8.0,
+        prior_blend=0.45,
+    ),
+    "query_residual_v19": QueryResidualConfig(
+        model_name="query_residual_v19",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_min=3.0,
+        beta_scale=10.0,
     ),
 }
 

@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS event_log (
 """
 
 
+def _is_lock_error(exc: duckdb.IOException) -> bool:
+    return "Could not set lock" in str(exc)
+
+
 class CatalogDB:
     def __init__(self, path: Path) -> None:
         self._path = path
@@ -37,38 +41,48 @@ class CatalogDB:
             try:
                 return duckdb.connect(str(self._path), read_only=read_only)
             except duckdb.IOException as exc:
-                if "Could not set lock" not in str(exc):
+                if not _is_lock_error(exc):
                     raise
                 last_error = exc
         assert last_error is not None
         raise last_error
 
-    def initialize(self) -> None:
-        with self._connect() as connection:
-            connection.execute(_SCHEMA_SQL)
+    def initialize(self, *, best_effort: bool = False) -> None:
+        try:
+            with self._connect() as connection:
+                connection.execute(_SCHEMA_SQL)
+        except duckdb.IOException as exc:
+            if best_effort and _is_lock_error(exc):
+                return
+            raise
 
     def log_event(self, event: CatalogEvent) -> None:
-        self.initialize()
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO event_log (
-                    event_id, happened_at, event_kind, round_id, seed_index, spec_name,
-                    status, artifact_path, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                [
-                    event.event_id,
-                    event.happened_at,
-                    event.event_kind,
-                    event.round_id,
-                    event.seed_index,
-                    event.spec_name,
-                    event.status,
-                    None if event.artifact_path is None else str(event.artifact_path),
-                    json.dumps(to_jsonable(event.payload_json), sort_keys=True),
-                ],
-            )
+        try:
+            self.initialize(best_effort=True)
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO event_log (
+                        event_id, happened_at, event_kind, round_id, seed_index, spec_name,
+                        status, artifact_path, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        event.event_id,
+                        event.happened_at,
+                        event.event_kind,
+                        event.round_id,
+                        event.seed_index,
+                        event.spec_name,
+                        event.status,
+                        None if event.artifact_path is None else str(event.artifact_path),
+                        json.dumps(to_jsonable(event.payload_json), sort_keys=True),
+                    ],
+                )
+        except duckdb.IOException as exc:
+            if _is_lock_error(exc):
+                return
+            raise
 
     def summarize_dataset(self) -> CatalogDatasetSummary:
         if not self._path.exists():

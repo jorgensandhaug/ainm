@@ -29,6 +29,39 @@ from astar.workflows.results import (
 from astar.workflows.summarize_replays import summarize_round_replays
 
 
+def _load_existing_materialization(
+    paths: WorkspacePaths,
+    round_id: str,
+) -> MaterializeEpisodeResult | None:
+    summary_path = paths.episode_dir(round_id) / "summary.json"
+    if not summary_path.exists():
+        return None
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    per_seed = [
+        MaterializedSeedArtifacts.model_validate(item)
+        for item in payload.get("per_seed", [])
+    ]
+    for seed_result in per_seed:
+        if not seed_result.feature_path.exists() or not seed_result.evidence_path.exists():
+            return None
+        if seed_result.replay_summary_path is not None and not seed_result.replay_summary_path.exists():
+            return None
+    diagnostics = build_round_episode_diagnostics(paths, round_id)
+    replay_report_path = payload.get("replay_report_path")
+    return MaterializeEpisodeResult(
+        round_id=round_id,
+        round_number=int(payload.get("round_number", -1)),
+        summary_path=summary_path,
+        report_path=paths.episode_dir(round_id) / "report.md",
+        replay_report_path=None if replay_report_path is None else replay_report_path,
+        feature_names=list(payload.get("feature_names", [])),
+        per_seed=per_seed,
+        diagnostics=diagnostics,
+        replay_round_summary=None,
+        backtest_result=None,
+    )
+
+
 def _feature_payload(
     initial_grid: np.ndarray,
     seed_features: dict[str, np.ndarray],
@@ -85,6 +118,10 @@ def materialize_round_episode(
     paths: WorkspacePaths,
     round_id: str,
 ) -> MaterializeEpisodeResult:
+    existing = _load_existing_materialization(paths, round_id)
+    if existing is not None:
+        return existing
+
     round_record = read_round_record(paths, round_id)
     features = compute_round_features(round_record.round)
     evidence = build_round_evidence(paths, round_id)
@@ -207,14 +244,16 @@ def materialize_round_episode(
         report_lines.extend(["", render_backtest_round_report(backtest_result)])
     result.report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
 
-    catalog = CatalogDB(paths.catalog_path)
-    catalog.log_event(
-        CatalogEvent(
-            event_kind="episode_materialized",
-            round_id=round_id,
-            status="ok",
-            artifact_path=result.summary_path,
-            payload_json=to_jsonable(result),
-        ),
-    )
+    try:
+        CatalogDB(paths.catalog_path).log_event(
+            CatalogEvent(
+                event_kind="episode_materialized",
+                round_id=round_id,
+                status="ok",
+                artifact_path=result.summary_path,
+                payload_json=to_jsonable(result),
+            ),
+        )
+    except Exception:
+        pass
     return result

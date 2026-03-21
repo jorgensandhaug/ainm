@@ -7,7 +7,7 @@ import numpy as np
 
 from astar.features.geometry import compute_round_features
 from astar.history.replay.frame_stats import ReplaySeedAggregate, summarize_replay_runs
-from astar.history.replay.ingest import ingest_replays, load_seed_replay_runs
+from astar.history.replay.ingest import load_seed_replay_runs
 from astar.history.replay.inspect import inspect_replay_source, inspect_round_replays
 from astar.history.summaries.hazards import (
     ReplayHazardSeedSummary,
@@ -61,7 +61,6 @@ def summarize_round_replays(
     round_id: str,
 ) -> SummarizeReplaysResult:
     round_record = read_round_record(paths, round_id)
-    ingest_replays(paths, round_id=round_id)
     round_features = compute_round_features(round_record.round)
 
     runs_by_seed = {
@@ -127,16 +126,18 @@ def summarize_round_replays(
         )
     report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
 
-    catalog = CatalogDB(paths.catalog_path)
-    catalog.log_event(
-        CatalogEvent(
-            event_kind="replay_summary_built",
-            round_id=round_id,
-            status="ok",
-            artifact_path=round_summary_path,
-            payload_json=to_jsonable(hazard_summary),
-        ),
-    )
+    try:
+        CatalogDB(paths.catalog_path).log_event(
+            CatalogEvent(
+                event_kind="replay_summary_built",
+                round_id=round_id,
+                status="ok",
+                artifact_path=round_summary_path,
+                payload_json=to_jsonable(hazard_summary),
+            ),
+        )
+    except Exception:
+        pass
 
     return SummarizeReplaysResult(
         round_id=round_id,
