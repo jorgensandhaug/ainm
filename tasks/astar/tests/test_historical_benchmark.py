@@ -5,6 +5,7 @@ from pathlib import Path
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.student.predictor.interactive import build_online_predictor
+from astar.student.predictor.gbx_transcript_regime import GreyBoxTranscriptRegimeKNNPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
@@ -542,6 +543,116 @@ def test_query_residual_v11_covtrain_online_historical_benchmark_runs(sample_pat
     assert result.rounds[0].seed_results[0].model_name == "query_residual_v11_covtrain"
 
 
+def test_gbx_transcript_regime_knn_terminal_mapknn_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_transcript_regime_knn_terminal_mapknn",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_gbx_transcript_regime_knn_terminal_mapknn_online",
+    )
+
+    predictor = build_online_predictor(
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 1
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.rounds[0].seed_results[0].model_name == "gbx_transcript_regime_knn_terminal_mapknn_v1"
+    assert predictor.name == "gbx_transcript_regime_knn_terminal_mapknn_v1"
+
+
+def test_gbx_maponly_transcriptregime_mapknn_blend50_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_maponly_transcriptregime_mapknn_blend50",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_gbx_maponly_transcriptregime_mapknn_blend50_online",
+    )
+
+    predictor = build_online_predictor(
+        "gbx_maponly_transcriptregime_mapknn_blend50",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 1
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.rounds[0].seed_results[0].model_name == "gbx_maponly_transcriptregime_mapknn_blend50_v1"
+    assert predictor.name == "gbx_maponly_transcriptregime_mapknn_blend50_v1"
+    assert predictor.predictor.transcript_weight == 0.5
+
+
+def test_gbx_maponly_transcriptregime_alt_blends_build(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    for model_name, expected_name in (
+        (
+            "gbx_maponly_transcriptregime_mapllr_blend20",
+            "gbx_maponly_transcriptregime_mapllr_blend20_v1",
+        ),
+        (
+            "gbx_maponly_transcriptregime_mapprior_blend20",
+            "gbx_maponly_transcriptregime_mapprior_blend20_v1",
+        ),
+    ):
+        predictor = build_online_predictor(
+            model_name,
+            paths=sample_paths,
+            historical_round_ids=[TRAIN_ROUND_ID],
+            policy_name="coverage",
+            samples_per_round=1,
+        )
+        assert predictor.name == expected_name
+
+
 def test_query_residual_v11_covtrain_p0_b624_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
@@ -730,3 +841,57 @@ def test_query_residual_scoped_checkpoint_reuse(
     )
 
     assert predictor.name == "query_residual_v8"
+
+
+def test_gbx_transcript_regime_scoped_checkpoint_reuse(
+    sample_paths: RepoPaths,
+    monkeypatch,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    build_online_predictor(
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    def _fail_fit(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("scoped checkpoint should be reused")
+
+    monkeypatch.setattr(GreyBoxTranscriptRegimeKNNPredictor, "fit_from_workspace", classmethod(_fail_fit))
+    predictor = build_online_predictor(
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_transcript_regime_knn_terminal_mapknn_v1"
+
+
+def test_gbx_transcript_regime_accepts_canonical_exploration_policy_name(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="exploration_v2",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_transcript_regime_knn_terminal_mapknn_v1"
+    assert predictor.predictor.policy_name == "exploration_v2"

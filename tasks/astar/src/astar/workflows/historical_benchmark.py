@@ -422,6 +422,11 @@ def run_historical_benchmark(
         round_mean_scores,
         round_mean_weighted_kls,
     )
+    benchmark_samples_per_round = (
+        None
+        if mode == "prior_only"
+        else (resolved_samples_per_round if resolved_samples_per_round is not None else samples_per_round)
+    )
     all_seed_results = [
         seed_result
         for round_result in round_results
@@ -432,7 +437,7 @@ def run_historical_benchmark(
         model_name=model_name,
         mode=mode,
         policy_name=resolved_policy_name,
-        samples_per_round=resolved_samples_per_round,
+        samples_per_round=benchmark_samples_per_round,
         budget=None if mode == "prior_only" else budget,
         episode_seeds=resolved_episode_seeds,
         episode_seed=(

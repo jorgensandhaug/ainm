@@ -272,6 +272,184 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - round `36e581f1-73f8-453f-ab98-cbe3052b701b` improved on all 5 seeds
   - this round had been missing from legacy synthetic transcript coverage
 
+### 2026-03-21T10:56Z
+
+- Re-read:
+  - `instructions/agent4.md`
+  - `README.md`
+  - `docs/game_facts.md`
+  - `AGENTS.md`
+- Re-checked machine state before launching more work:
+  - CPU count `384`
+  - memory available about `1.8 TiB`
+  - load average about `35.6 / 46.5 / 53.2`
+- Checked current sibling activity from process table:
+  - agent7 running many `ffam_mode_*` online historical probes
+  - agent6 running regime-posterior audit jobs
+  - agent5 running greybox student ablations
+  - agent2 running `smh_coeffbank_*` online historical benchmark
+- `br list` still unavailable in this shell: `br: command not found`
+- Interpretation:
+  - RAM headroom is huge
+  - CPU is active but far from saturated for this box
+  - safe to use more benchmark parallelism after new code lands
+
+### 2026-03-21T10:58Z
+
+- Re-read online-student seam in:
+  - `src/astar/student/posterior/deepset_student.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/student/predictor/base.py`
+  - `src/astar/workflows/train_student.py`
+  - `src/astar/history/datasets/synthetic_live.py`
+  - `src/astar/teacher/dynamics/terminal_teacher.py`
+  - `src/astar/workflows/historical_benchmark.py`
+- Key finding:
+  - repo already has a transcript-summary `SummaryBankStudent`
+  - but it is tied to the weak hazard teacher and not wired into live / historical online serving
+- New branch decision:
+  - stop further terminal-only prior tuning
+  - implement a real online grey-box student family
+  - use synthetic-live transcript bank + regime residual inference + stronger terminal decoder
+
+### 2026-03-21T11:00Z
+
+- Chosen new model design before patching:
+  - transcript-conditioned kNN posterior over round regime residual
+  - residualized around terminal-teacher map prior to factor out geography
+  - decoder is terminal teacher, first target variant `mapknn`
+- Planned inference:
+  - build compact transcript summary from legal observations only
+  - concatenate that with current map-prior regime signal
+  - standardize features
+  - infer regime residual by weighted kNN over synthetic-live episodes
+  - decode final tensor with `GreyBoxTerminalTeacher.posterior_predictive(...)`
+- Planned validation:
+  - add online historical benchmark smoke tests
+  - then launch parallel 3-round probes across decoder variants / policies
+
+### 2026-03-21T11:18Z
+
+- Implemented new online grey-box student family:
+  - file: `src/astar/student/predictor/gbx_transcript_regime.py`
+  - models:
+    - `gbx_transcript_regime_knn_terminal_mapknn`
+    - `gbx_transcript_regime_knn_terminal_mapllr`
+    - `gbx_transcript_regime_knn_terminal_mapprior`
+- Core design now in code:
+  - build compact transcript summaries from legal query observations only
+  - append current round terminal-teacher map-prior regime
+  - standardize feature bank
+  - infer regime **residual** by weighted kNN over synthetic-live episodes
+  - decode posterior predictive final tensor with `GreyBoxTerminalTeacher`
+- Important engineering choices:
+  - residualize around terminal-teacher map prior, not absolute regime
+  - reuse fold-scoped terminal-teacher checkpoints
+  - reuse fold-scoped synthetic-live datasets
+  - synthetic dataset cache name is shared across transcript-regime variants so mapknn/mapllr/mapprior do not rebuild identical transcripts
+- Wired serving path in:
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/cli.py`
+- Small validation improvement:
+  - top-level `HistoricalBenchmarkResult.samples_per_round` now reports actual online `samples_per_round` for all online models, not only `query_residual`
+
+### 2026-03-21T11:19Z
+
+- Verification after implementation:
+  - `uv run python -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+    - `28 passed`
+  - focused rerun after dataset-cache sharing patch:
+    - `uv run pytest tests/test_historical_benchmark.py::test_gbx_transcript_regime_knn_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_transcript_regime_scoped_checkpoint_reuse -q`
+    - `2 passed`
+
+### 2026-03-21T11:20Z
+
+- Next immediate experiment plan:
+  - launch real historical online probes on hard replay-backed rounds
+  - first sweep dimensions:
+    - decoder variant: `mapknn`, `mapllr`, `mapprior`
+    - policy: `coverage`, `exploration`
+    - training transcripts: `samples_per_round=4`
+- Reason:
+  - enough transcript diversity to test whether the student family has signal
+  - still cheap enough for many-way parallel search on this machine
+
+### 2026-03-21T11:24Z
+
+- Found + fixed first serving bug before long runs:
+  - canonical policy names like `exploration_v2` were being normalized a second time inside the new transcript-regime student path
+  - this broke `historical_benchmark`, because it passes canonical policy names after resolving aliases
+- Fix:
+  - added explicit alias/canonical policy resolver for transcript-regime models
+  - checkpoint paths now canonicalize to one policy token
+  - synthetic-live dataset builds use the alias name the policy registry actually accepts
+- Added regression test:
+  - `test_gbx_transcript_regime_accepts_canonical_exploration_policy_name`
+  - targeted rerun:
+    - `3 passed`
+
+### 2026-03-21T11:26Z
+
+- Found parallelism blocker under real benchmark load:
+  - concurrent synthetic-live/materialization paths were crashing on DuckDB catalog lock contention
+  - root seam: `src/astar/infra/catalog/db.py`
+- Fix:
+  - expanded transient lock retry budget in `CatalogDB._connect(...)`
+  - purpose is not to weaken logging, only to serialize through temporary lock contention instead of failing the worker
+- This is directly relevant to the user's request for heavy parallel experimentation on this machine
+
+### 2026-03-21T11:28Z
+
+- Launched 6 managed real probes on hard 4-round replay subset with `samples_per_round=4`, `budget=50`, `jobs=4`, `with-png=none`:
+  - `agent4_probe_gbx_trk_mapknn_cov_s4_r4`
+  - `agent4_probe_gbx_trk_mapknn_exp_s4_r4`
+  - `agent4_probe_gbx_trk_mapllr_cov_s4_r4`
+  - `agent4_probe_gbx_trk_mapllr_exp_s4_r4`
+  - `agent4_probe_gbx_trk_mapprior_cov_s4_r4`
+  - `agent4_probe_gbx_trk_mapprior_exp_s4_r4`
+- Round subset:
+  - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Current managed exec session ids:
+  - coverage:
+    - mapknn `30692`
+    - mapllr `39776`
+    - mapprior `71945`
+  - exploration:
+    - mapknn `21875`
+    - mapllr `81325`
+    - mapprior `23418`
+
+### 2026-03-21T11:31Z
+
+- First parallel probe launch exposed a remaining systems issue:
+  - benchmark workers were still colliding on dataset/materialization-time catalog writes
+  - even after expanding DuckDB retry budget, starting all folds cold at once was still fragile
+- New operational decision:
+  - stop cold-starting many transcript-regime benchmarks at once
+  - prebuild the exact fold-scoped synthetic transcript datasets serially first
+  - then rerun the benchmark sweep against warm caches
+- Added another throughput guard in `gbx_transcript_regime.py`:
+  - per-dataset `.build.lock`
+  - purpose: multiple model variants should not rebuild the same synthetic-live dataset concurrently
+
+### 2026-03-21T11:32Z
+
+- Started serial prebuild over the 4-round hard subset for:
+  - policy `coverage`
+  - policy `exploration`
+  - `samples_per_round=4`
+  - all 4 leave-one-round-out training folds
+- Current managed prebuild session id:
+  - `65342`
+- Expected effect:
+  - later benchmark workers become mostly read-only on synthetic transcript data
+  - should remove the main catalog-lock failure mode from the sweep
+
 ## Current Best Known Scores
 
 - active best on full 8-round dev benchmark:
@@ -1993,3 +2171,150 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - but its calibration/composition errors are too large for simple ensembling tricks to turn it into the best prior
   - this terminal-family branch is now reasonably exhausted for cheap next-step variants
   - next productive branch should move away from terminal-only correction and back toward a different grey-box teacher/student design
+
+### 2026-03-21T11:39Z
+
+- Re-read `instructions/agent4.md`, `README.md`, and `docs/game_facts.md`, then checked current box health before scaling out.
+  - load roughly `43-48`
+  - memory free roughly `1.9 TiB`
+  - other agents are using CPU, not materially constraining RAM
+- Confirmed local replay-backed analyzed-round set is now `8`, not `4`:
+  - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+  - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+  - `76909e29-f664-4b2f-b16b-61b7507277e9`
+  - `8e839974-b13b-407b-a5e7-fc749d877195`
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+- New development branch added in `src/astar/student/predictor/interactive.py`:
+  - `gbx_maponly_transcriptregime_mapknn_blend20`
+  - `gbx_maponly_transcriptregime_mapknn_blend30`
+  - `gbx_maponly_transcriptregime_mapknn_blend40`
+  - `gbx_maponly_transcriptregime_mapknn_blend50`
+  - `gbx_maponly_transcriptregime_mapknn_blend60`
+- Mechanism:
+  - base predictor is `gbx_prior_maponly_bucket`
+  - residual online student is `gbx_transcript_regime_knn_terminal_mapknn`
+  - final prediction is convex blend of the two full terminal distributions with probability-floor re-normalization
+- This is the first actual online serving implementation of the partial-eval result found earlier:
+  - raw transcript-regime student alone was weak
+  - but convex blending over the strong map prior gave a large partial lift on the ready held-outs
+  - so the right next step is not more raw-student tuning first; it is end-to-end validation of the blend family
+- CLI exposure added in `src/astar/cli.py` for:
+  - historical benchmark
+  - synthetic tournament
+  - synthetic benchmark
+  - live online
+- Verification passed:
+  - `uv run python -m py_compile src/astar/student/predictor/interactive.py tests/test_historical_benchmark.py src/astar/cli.py`
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_maponly_transcriptregime_mapknn_blend50_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_transcript_regime_knn_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_transcript_regime_scoped_checkpoint_reuse tests/test_historical_benchmark.py::test_gbx_transcript_regime_accepts_canonical_exploration_policy_name -q`
+  - result: `4 passed`
+- Runtime step in progress:
+  - prewarming `gbx_transcript_regime_knn_terminal_mapknn` fold checkpoints on all `8` replay-backed rounds for both `coverage` and `exploration_v2`
+  - reason: avoid concurrent fold-fit races when launching many alpha-sweep historical benchmarks in parallel
+
+### 2026-03-21T11:48Z
+
+- Added scoped checkpoint locking for transcript-regime student builds in `src/astar/student/predictor/interactive.py`.
+  - problem:
+    - once the new blend family existed, the natural next step was many parallel 8-round benchmarks
+    - without a lock, many workers could try to write the same fold checkpoint at once
+  - fix:
+    - `checkpoint.json.lock` guard with recheck/wait loop around transcript predictor fit/save
+  - this is a real infrastructure improvement for high-parallelism exploration, not model-specific glue
+- Used the new lock path to switch from a bad serial prewarm to aggressive fold-parallel prewarm.
+  - after cleanup of one stale interrupted dataset lock, all `16/16` transcript fold checkpoints were populated:
+    - `8` held-out folds for `coverage`
+    - `8` held-out folds for `exploration_v2`
+- Verified current box state while scaling up:
+  - load around `50-56`
+  - available RAM around `1.6-1.7 TiB`
+  - still plenty of headroom for parallel historical sweeps
+- Small CLI wiring miss found and fixed:
+  - `run-historical-benchmark` parser list initially omitted the new blend model names even though the predictor implementation existed
+  - patched `src/astar/cli.py`
+- Small policy-interface fact confirmed:
+  - historical benchmark CLI accepts `exploration`, not canonical label `exploration_v2`
+  - predictor internals still resolve that to `exploration_v2` where needed
+- Active experiment state after infrastructure setup:
+  - baseline 8-round coverage online artifact already exists:
+    - `dev_gbx_prior_maponly_bucket_online_cov_seed02_jobs8_v1`
+    - mean score `66.320826`
+    - mean weighted KL `0.141605`
+    - evaluated seeds `120`
+  - active runs now:
+    - full 8-round `coverage` alpha sweep for:
+      - `blend20`
+      - `blend30`
+      - `blend40`
+      - `blend50`
+      - `blend60`
+    - one single-process `blend50` debug benchmark to get the first finished end-to-end artifact as soon as possible
+
+### 2026-03-21T12:02Z
+
+- Full 8-round, 3-episode-seed sweep finished for the new online transcript-regime blend family.
+- Coverage policy results, all on:
+  - `mode=online_interactive`
+  - `policy=coverage`
+  - `budget=50`
+  - `samples_per_round=4`
+  - `episode_seeds=0,1,2`
+  - `evaluated_seeds=120`
+- Baseline:
+  - `dev_gbx_prior_maponly_bucket_online_cov_seed02_jobs8_v1`
+  - score `66.320826`
+  - weighted KL `0.141605`
+- `mapknn` blend sweep:
+  - `blend05`: `67.030274 / 0.137836`
+  - `blend10`: `67.542060 / 0.135267`
+  - `blend15`: `67.875563 / 0.133705`
+  - `blend20`: `68.042288 / 0.133045`
+  - `blend30`: `67.906326 / 0.134215`
+  - `blend40`: `67.179212 / 0.138598`
+  - `blend50`: `65.886313 / 0.146339`
+  - `blend60`: `64.035880 / 0.157893`
+- Scientific read from the full sweep:
+  - the partial 2-held-out optimum near `0.5` was overfit and does not survive all `8` rounds
+  - on the full local replay set, the useful transcript residual is real but must be weakly blended
+  - best alpha is `0.20`
+  - score/KL both degrade monotonically after `0.20`
+- Strongest new model so far:
+  - `gbx_maponly_transcriptregime_mapknn_blend20`
+  - report:
+    - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_mapknn_blend20_cov_seed02_jobs8_v1/report.md`
+  - paired vs baseline:
+    - comparison:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seeds=0-1-2__baseline=gbx_prior_maponly_bucket__candidate=gbx_maponly_transcriptregime_mapknn_blend20.md`
+    - score delta `+1.721461`
+    - weighted KL delta `-0.008559`
+    - win rate `0.650`
+    - score CI95 `[1.0407, 2.3402]`
+  - paired vs `blend15`:
+    - comparison:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seeds=0-1-2__baseline=gbx_maponly_transcriptregime_mapknn_blend15__candidate=gbx_maponly_transcriptregime_mapknn_blend20.md`
+    - score delta `+0.166725`
+    - weighted KL delta `-0.000660`
+    - score CI95 `[0.0394, 0.2983]`
+- Exploration-policy robustness check on the top low-alpha candidates:
+  - `blend10`: `67.379679 / 0.136213`
+  - `blend15`: `67.669998 / 0.134881`
+  - `blend20`: `67.814703 / 0.134328`
+  - same ranking as coverage: `blend20 > blend15 > blend10`
+  - direct paired manual compare coverage vs exploration for `blend20` over `120` paired seeds:
+    - score delta `+0.227585` for coverage
+    - weighted KL delta `-0.001283` for coverage
+    - bootstrap CI95 for score delta `[0.0847, 0.3886]`
+- Negative alternative residual-source probes at the winning alpha:
+  - `gbx_maponly_transcriptregime_mapllr_blend20`: `66.179025 / 0.143797`
+  - `gbx_maponly_transcriptregime_mapprior_blend20`: `66.318294 / 0.143270`
+  - both are clearly below `mapknn blend20`
+- Supporting infra/testing outcomes from this sweep:
+  - added smoke coverage for alt blend aliases in `tests/test_historical_benchmark.py`
+  - targeted verification:
+    - `uv run pytest tests/test_historical_benchmark.py::test_gbx_maponly_transcriptregime_mapknn_blend50_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_transcriptregime_alt_blends_build tests/test_historical_benchmark.py::test_gbx_transcript_regime_accepts_canonical_exploration_policy_name -q`
+    - result: `3 passed`
+- One remaining infra annoyance found:
+  - `compare-historical-benchmarks` cross-policy artifact writing can hit `OSError: [Errno 36] File name too long` for long model names because the auto-generated comparison filename is too long
+  - I worked around that with a direct paired-analysis script instead of spending the turn on filename-shortening plumbing

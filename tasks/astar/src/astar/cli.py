@@ -237,6 +237,16 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v11_covtrain",
             "query_residual_v11_covtrain_p0_b624",
             "query_residual_v11_covtrain_p0_b624_t100",
+            "gbx_maponly_transcriptregime_mapknn_blend05",
+            "gbx_maponly_transcriptregime_mapknn_blend10",
+            "gbx_maponly_transcriptregime_mapknn_blend15",
+            "gbx_maponly_transcriptregime_mapknn_blend20",
+            "gbx_maponly_transcriptregime_mapknn_blend30",
+            "gbx_maponly_transcriptregime_mapknn_blend40",
+            "gbx_maponly_transcriptregime_mapknn_blend50",
+            "gbx_maponly_transcriptregime_mapknn_blend60",
+            "gbx_maponly_transcriptregime_mapllr_blend20",
+            "gbx_maponly_transcriptregime_mapprior_blend20",
         ],
         required=True,
     )
@@ -274,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
+        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "gbx_transcript_regime_knn_terminal_mapknn", "gbx_transcript_regime_knn_terminal_mapllr", "gbx_transcript_regime_knn_terminal_mapprior", "gbx_maponly_transcriptregime_mapknn_blend05", "gbx_maponly_transcriptregime_mapknn_blend10", "gbx_maponly_transcriptregime_mapknn_blend15", "gbx_maponly_transcriptregime_mapknn_blend20", "gbx_maponly_transcriptregime_mapknn_blend30", "gbx_maponly_transcriptregime_mapknn_blend40", "gbx_maponly_transcriptregime_mapknn_blend50", "gbx_maponly_transcriptregime_mapknn_blend60", "gbx_maponly_transcriptregime_mapllr_blend20", "gbx_maponly_transcriptregime_mapprior_blend20", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -287,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
+        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "gbx_transcript_regime_knn_terminal_mapknn", "gbx_transcript_regime_knn_terminal_mapllr", "gbx_transcript_regime_knn_terminal_mapprior", "gbx_maponly_transcriptregime_mapknn_blend05", "gbx_maponly_transcriptregime_mapknn_blend10", "gbx_maponly_transcriptregime_mapknn_blend15", "gbx_maponly_transcriptregime_mapknn_blend20", "gbx_maponly_transcriptregime_mapknn_blend30", "gbx_maponly_transcriptregime_mapknn_blend40", "gbx_maponly_transcriptregime_mapknn_blend50", "gbx_maponly_transcriptregime_mapknn_blend60", "gbx_maponly_transcriptregime_mapllr_blend20", "gbx_maponly_transcriptregime_mapprior_blend20", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -335,6 +345,19 @@ def build_parser() -> argparse.ArgumentParser:
             "gbx_transition_teacher_graph_phase_global",
             "gbx_transition_teacher_graph_phase_global_mapprior",
             "latent_regime",
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_regime_knn_terminal_mapllr",
+            "gbx_transcript_regime_knn_terminal_mapprior",
+            "gbx_maponly_transcriptregime_mapknn_blend05",
+            "gbx_maponly_transcriptregime_mapknn_blend10",
+            "gbx_maponly_transcriptregime_mapknn_blend15",
+            "gbx_maponly_transcriptregime_mapknn_blend20",
+            "gbx_maponly_transcriptregime_mapknn_blend30",
+            "gbx_maponly_transcriptregime_mapknn_blend40",
+            "gbx_maponly_transcriptregime_mapknn_blend50",
+            "gbx_maponly_transcriptregime_mapknn_blend60",
+            "gbx_maponly_transcriptregime_mapllr_blend20",
+            "gbx_maponly_transcriptregime_mapprior_blend20",
             "query_residual",
             "query_residual_v11",
             "query_residual_v11_covtrain",
@@ -371,7 +394,7 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
+        choices=["geometry_prior", "historical_bucket_prior", "gbx_prior_maponly_bucket", "latent_regime", "gbx_transcript_regime_knn_terminal_mapknn", "gbx_transcript_regime_knn_terminal_mapllr", "gbx_transcript_regime_knn_terminal_mapprior", "gbx_maponly_transcriptregime_mapknn_blend05", "gbx_maponly_transcriptregime_mapknn_blend10", "gbx_maponly_transcriptregime_mapknn_blend15", "gbx_maponly_transcriptregime_mapknn_blend20", "gbx_maponly_transcriptregime_mapknn_blend30", "gbx_maponly_transcriptregime_mapknn_blend40", "gbx_maponly_transcriptregime_mapknn_blend50", "gbx_maponly_transcriptregime_mapknn_blend60", "gbx_maponly_transcriptregime_mapllr_blend20", "gbx_maponly_transcriptregime_mapprior_blend20", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624", "query_residual_v11_covtrain_p0_b624_t100"],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

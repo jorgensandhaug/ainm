@@ -31,7 +31,8 @@ class CatalogDB:
     def _connect(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         last_error: duckdb.IOException | None = None
-        for delay_seconds in (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6):
+        delay_seconds = 0.0
+        for _attempt in range(12):
             if delay_seconds > 0.0:
                 time.sleep(delay_seconds)
             try:
@@ -40,6 +41,7 @@ class CatalogDB:
                 if "Could not set lock" not in str(exc):
                     raise
                 last_error = exc
+                delay_seconds = 0.05 if delay_seconds <= 0.0 else min(delay_seconds * 2.0, 2.0)
         assert last_error is not None
         raise last_error
 
