@@ -71,3 +71,17 @@ def test_cli_accepts_transcript_sequence_residual_memory_historical_benchmark_mo
     )
 
     assert args.model == "transcript_sequence_residual_memory_v2"
+
+
+def test_cli_accepts_transcript_sequence_factor_residual_historical_benchmark_model() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "transcript_sequence_factor_residual_v2",
+        ],
+    )
+
+    assert args.model == "transcript_sequence_factor_residual_v2"

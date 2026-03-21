@@ -3879,6 +3879,35 @@
      - `3 passed`
    - bug fixed during validation:
      - query-token patch histograms must collapse raw internal terrain codes to the scored 6-class space before frequency encoding
+437. New hypothesis branch started while transcript-memory, transcript-residual-memory, and transcript-sequence-residual-memory gates all build/cache:
+   - family:
+     - `transcript_sequence_factor_residual`
+   - hypothesis:
+     - nearest-neighbor memory may still be too brittle/noisy on sparse held-out rounds
+     - instead of retrieving a single local memory neighborhood, fit a global low-rank residual operator from ordered transcript features to terminal residual tensors
+     - factorizing residual tensors should let transcript features predict only a small number of shared residual modes, which may generalize better than raw kNN copying
+   - objective:
+     - test a proper parametric transcript-to-residual model, still anchored on strong `v59/v60`, using sequence-aware transcript features rather than bag summaries
+438. Implemented + validated `transcript_sequence_factor_residual`:
+   - new file:
+     - `src/astar/student/predictor/transcript_sequence_factor_residual.py`
+   - reproducible models:
+     - `transcript_sequence_factor_residual`
+     - `transcript_sequence_factor_residual_v1`
+     - `transcript_sequence_factor_residual_v2`
+     - `transcript_sequence_factor_residual_v3`
+     - `transcript_sequence_factor_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, last `4` queries, factor rank `8`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, last `8` queries, factor rank `16`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - ordered transcript sequence vector -> ridge regression -> low-rank residual coefficients -> reconstructed residual tensor -> add to base `v59/v60`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/transcript_sequence_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_transcript_sequence_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_transcript_sequence_factor_residual_ridge_weights_fit_targets tests/test_historical_benchmark.py::test_transcript_sequence_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

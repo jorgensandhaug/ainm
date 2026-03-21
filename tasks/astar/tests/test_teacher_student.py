@@ -1153,6 +1153,19 @@ def test_transcript_sequence_query_token_vector_is_order_sensitive() -> None:
     assert not np.allclose(token_a, token_b)
 
 
+def test_transcript_sequence_factor_residual_ridge_weights_fit_targets() -> None:
+    from astar.student.predictor.transcript_sequence_factor_residual import _ridge_weights
+
+    features = np.asarray([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], dtype=np.float64)
+    targets = np.asarray([[2.0], [3.0], [5.0]], dtype=np.float64)
+
+    weights = _ridge_weights(features, targets, ridge_lambda=1e-6)
+    preds = features @ weights
+
+    assert weights.shape == (2, 1)
+    assert np.allclose(preds, targets, atol=1e-3)
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

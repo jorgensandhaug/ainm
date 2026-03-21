@@ -41,6 +41,10 @@ from astar.student.predictor.transcript_sequence_residual_memory import (
     is_transcript_sequence_residual_memory_model_name,
     resolve_transcript_sequence_residual_memory_samples_per_round,
 )
+from astar.student.predictor.transcript_sequence_factor_residual import (
+    is_transcript_sequence_factor_residual_model_name,
+    resolve_transcript_sequence_factor_residual_samples_per_round,
+)
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -218,6 +222,10 @@ def run_historical_benchmark(
         raise ValueError(
             "transcript_sequence_residual_memory requires at least two replay-backed analyzed rounds for holdout eval",
         )
+    if mode == "online_interactive" and is_transcript_sequence_factor_residual_model_name(normalized_model_name) and len(selected_round_ids) < 2:
+        raise ValueError(
+            "transcript_sequence_factor_residual requires at least two replay-backed analyzed rounds for holdout eval",
+        )
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
@@ -259,7 +267,14 @@ def run_historical_benchmark(
                                 samples_per_round=samples_per_round,
                             )
                             if is_transcript_sequence_residual_memory_model_name(normalized_model_name)
-                            else None
+                            else (
+                                resolve_transcript_sequence_factor_residual_samples_per_round(
+                                    normalized_model_name,
+                                    samples_per_round=samples_per_round,
+                                )
+                                if is_transcript_sequence_factor_residual_model_name(normalized_model_name)
+                                else None
+                            )
                         )
                     )
                 )
@@ -274,6 +289,7 @@ def run_historical_benchmark(
         or is_transcript_memory_model_name(normalized_model_name)
         or is_transcript_residual_memory_model_name(normalized_model_name)
         or is_transcript_sequence_residual_memory_model_name(normalized_model_name)
+        or is_transcript_sequence_factor_residual_model_name(normalized_model_name)
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""
