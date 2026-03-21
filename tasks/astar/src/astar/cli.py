@@ -94,6 +94,9 @@ from astar.student.predictor.summary_rate_lawbank_specs import (
 from astar.student.predictor.summary_rate_residual_lawbank_specs import (
     supported_summary_rate_residual_lawbank_model_names,
 )
+from astar.student.predictor.summary_rate_rollout_specs import (
+    supported_summary_rate_rollout_model_names,
+)
 from astar.student.predictor.summary_roundlaw_specs import (
     supported_summary_roundlaw_model_names,
 )
@@ -165,6 +168,7 @@ def build_parser() -> argparse.ArgumentParser:
         *supported_summary_rate_decoder_model_names(),
         *supported_summary_rate_lawbank_model_names(),
         *supported_summary_rate_residual_lawbank_model_names(),
+        *supported_summary_rate_rollout_model_names(),
         *supported_summary_roundlaw_model_names(),
         *supported_summary_roundlaw_decoder_model_names(),
         *supported_summary_bank_model_names(),

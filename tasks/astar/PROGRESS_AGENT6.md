@@ -3858,3 +3858,60 @@
     - but they overfit / misgeneralize on the broader current slice
     - the main remaining family opportunity is probably not more generic law-bank retrieval
     - next best path is more explicit year-program / rollout-teacher structure, or a different residual target than generic terminal-logit law residuals
+
+## 2026-03-21 14:1x UTC - first annual rollout skeleton
+
+- Re-read handoff again around:
+  - Phase 6 per-round law fitting
+  - Phase 9 annual program assembly
+  - validation at one-step / rollout / year-50
+
+- Machine state before this branch:
+  - load was extreme because other agents/jobs were hammering the box
+  - RAM still had about `1.2 TiB` available
+  - decision:
+    - avoid wide parallel benchmarks
+    - land one new yearly-program branch first
+
+- Main structural read from code:
+  - `HazardTeacher.rollout(...)` exists
+  - but `posterior_predictive(...)` still ignores true rollout and falls back to the static terminal decoder
+  - so the right next family move is not another law-vector trick
+  - it is an explicit annual program skeleton
+
+- New branch:
+  - `summary_rate_rollout`
+  - infer round event rates from transcript summaries
+  - then run a 50-step probabilistic annual update on the map:
+    - birth
+    - portization
+    - collapse
+    - rebuild
+    - reclaim / ruin fade
+  - this is the first direct attempt at the handoff’s `E ∘ W ∘ T ∘ C ∘ G` style target in the serving path here
+
+- Code landed:
+  - `src/astar/student/predictor/summary_rate_rollout.py`
+  - `src/astar/student/predictor/summary_rate_rollout_specs.py`
+  - wiring:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+  - tests:
+    - `tests/test_summary_rate_rollout_predictor.py`
+
+- Initial immutable rollout models:
+  - `f1_summary_rate_rollout_birthcollapse_v01`
+    - pure annual rollout
+  - `f1_summary_rate_rollout_birthcollapse_blend_v01`
+    - annual rollout blended with historical bucket prior
+
+- Focused validation:
+  - `uv run python -m compileall src/astar/student/predictor/summary_rate_rollout.py src/astar/student/predictor/summary_rate_rollout_specs.py src/astar/student/predictor/interactive.py src/astar/cli.py src/astar/workflows/historical_benchmark.py`
+  - `uv run pytest tests/test_summary_rate_rollout_predictor.py tests/test_summary_rate_decoder_predictor.py tests/test_history_datasets.py -q`
+  - result:
+    - `15 passed in 28.16s`
+
+- Immediate next action:
+  - commit/push runnable rollout branch
+  - smoke the pure and blended rollout variants on current probe3

@@ -57,6 +57,11 @@ from astar.student.predictor.summary_rate_residual_lawbank_specs import (
     resolve_summary_rate_residual_lawbank_model_spec,
     supported_summary_rate_residual_lawbank_model_names,
 )
+from astar.student.predictor.summary_rate_rollout import SummaryRateRolloutPredictor
+from astar.student.predictor.summary_rate_rollout_specs import (
+    resolve_summary_rate_rollout_model_spec,
+    supported_summary_rate_rollout_model_names,
+)
 from astar.student.predictor.summary_roundlaw import SummaryRoundLawPredictor
 from astar.student.predictor.summary_roundlaw_specs import (
     resolve_summary_roundlaw_model_spec,
@@ -317,6 +322,33 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    summary_rate_rollout_spec = resolve_summary_rate_rollout_model_spec(normalized)
+    if summary_rate_rollout_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = SummaryRateRolloutPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=summary_rate_rollout_spec.budget,
+            samples_per_round=summary_rate_rollout_spec.samples_per_round,
+            k_neighbors=summary_rate_rollout_spec.k_neighbors,
+            model_name=summary_rate_rollout_spec.model_name,
+            probability_floor=summary_rate_rollout_spec.probability_floor,
+            target_family=summary_rate_rollout_spec.target_family,
+            summary_feature_variant=summary_rate_rollout_spec.summary_feature_variant,
+            rollout_years=summary_rate_rollout_spec.rollout_years,
+            birth_scale=summary_rate_rollout_spec.birth_scale,
+            port_scale=summary_rate_rollout_spec.port_scale,
+            collapse_scale=summary_rate_rollout_spec.collapse_scale,
+            rebuild_scale=summary_rate_rollout_spec.rebuild_scale,
+            reclaim_scale=summary_rate_rollout_spec.reclaim_scale,
+            ruin_fade_scale=summary_rate_rollout_spec.ruin_fade_scale,
+            prior_blend=summary_rate_rollout_spec.prior_blend,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     summary_roundlaw_spec = resolve_summary_roundlaw_model_spec(normalized)
     if summary_roundlaw_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -467,6 +499,7 @@ __all__ = [
     "supported_summary_rate_decoder_model_names",
     "supported_summary_rate_lawbank_model_names",
     "supported_summary_rate_residual_lawbank_model_names",
+    "supported_summary_rate_rollout_model_names",
     "supported_summary_roundlaw_model_names",
     "supported_summary_roundlaw_decoder_model_names",
     "supported_summary_bank_model_names",
