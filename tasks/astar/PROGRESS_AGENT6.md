@@ -1205,3 +1205,58 @@
     - no
   - next validation best path:
     - if staying on `query_residual`, the real missing speed win is a within-fit residual/regime diagnostic or fit-sharing path, not merely more cached transcript scoring
+- New perf branch started after surrogate calibration:
+  - hypothesis:
+    - a large chunk of `query_residual` iteration cost is avoidable repeated fitting of the same training-round `HistoricalBucketPrior` and `HazardTeacher` across different feature variants on the same held-out split
+  - planned change:
+    - add shared checkpoint caching keyed by training round set
+    - keep model semantics identical; this is a speed-only refactor
+  - validation target:
+    - exact prediction parity before/after cache reuse
+    - then measure wall-clock improvement on the same 3-round probe slice
+- Implemented shared training-round cache for `query_residual`:
+  - new shared cache objects:
+    - `HistoricalBucketPrior` checkpoint keyed by training round set
+    - `HazardTeacher` checkpoint keyed by training round set
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/teacher/dynamics/hazard_teacher.py`
+  - important constraint:
+    - cache is only for the shared submodels
+    - the query-residual linear fit itself is still recomputed per model variant
+    - this keeps semantics exact while removing repeated offline sub-fit work
+- New cache/regression coverage:
+  - `tests/test_query_residual_cache.py`
+  - includes:
+    - `HazardTeacher` checkpoint round-trip preserving `terminal_tensor`
+    - `QueryResidualPredictor.fit_from_workspace(...)` reusing shared base/teacher cache on second fit with exact coefficient parity
+- Validation rerun after cache work:
+  - `uv run pytest tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - result:
+    - `11 passed`
+- Real perf validation on one real 2-round training split:
+  - split:
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - variant:
+    - `v2_state`
+  - protocol:
+    - delete that split's shared base/teacher cache
+    - fit once cold
+    - fit again warm
+    - compare learned parameters exactly
+  - result:
+    - cold fit `57.99s`
+    - warm fit `9.37s`
+    - speedup `6.19x`
+    - max abs diff:
+      - coefficients `0.0`
+      - intercept `0.0`
+      - regime_weights `0.0`
+- Perf branch conclusion:
+  - this speed refactor is valid
+  - it materially improves variant-iteration speed on repeated held-out splits
+  - it does not by itself create a better model
+  - next best path remains:
+    - exploit the cheaper warm-fit loop for new `query_residual` branches, or
+    - add a within-fit residual/regime diagnostic now that the repeated sub-fit cost is lower

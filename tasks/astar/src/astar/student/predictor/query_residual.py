@@ -69,6 +69,58 @@ def _round_scope_token(round_ids: Sequence[str] | None) -> str:
     return f"n={len(normalized)}__sha1={digest}"
 
 
+def _shared_fit_cache_dir(paths: WorkspacePaths) -> Path:
+    cache_dir = paths.models_dir() / "query_residual_shared"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
+
+
+def _shared_base_checkpoint_path(
+    paths: WorkspacePaths,
+    round_ids: Sequence[str],
+) -> Path:
+    return _shared_fit_cache_dir(paths) / f"historical_bucket_prior__rounds={_round_scope_token(round_ids)}.json"
+
+
+def _shared_teacher_checkpoint_path(
+    paths: WorkspacePaths,
+    round_ids: Sequence[str],
+) -> Path:
+    return _shared_fit_cache_dir(paths) / f"hazard_teacher__rounds={_round_scope_token(round_ids)}.json"
+
+
+def _shared_base_predictor(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str],
+) -> HistoricalBucketPriorPredictor:
+    checkpoint_path = _shared_base_checkpoint_path(paths, round_ids)
+    if checkpoint_path.exists():
+        return HistoricalBucketPriorPredictor.load_checkpoint(checkpoint_path)
+    predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+        paths,
+        round_ids=list(round_ids),
+        model_name=f"query_residual_shared_prior__rounds={_round_scope_token(round_ids)}",
+    )
+    predictor.save_checkpoint(checkpoint_path)
+    return predictor
+
+
+def _shared_hazard_teacher(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str],
+) -> HazardTeacher:
+    checkpoint_path = _shared_teacher_checkpoint_path(paths, round_ids)
+    if checkpoint_path.exists():
+        return HazardTeacher.load_checkpoint(checkpoint_path)
+    teacher = HazardTeacher(
+        name=f"query_residual_shared_teacher__rounds={_round_scope_token(round_ids)}",
+    ).fit([build_round_episode(paths, round_id) for round_id in round_ids])
+    teacher.save_checkpoint(checkpoint_path)
+    return teacher
+
+
 def _cached_synthetic_dataset_name(
     policy_name: str,
     samples_per_round: int,
@@ -1229,13 +1281,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
             raise ValueError("query_residual requires at least one analyzed round with replay data")
         dataset_round_ids = _round_ids_with_analyses_and_replays(paths)
 
-        base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+        base_predictor = _shared_base_predictor(
             paths,
-            round_ids=list(selected_round_ids),
+            round_ids=selected_round_ids,
         )
-        teacher = HazardTeacher(name=f"{model_name}__hazard_teacher").fit(
-            [build_round_episode(paths, round_id) for round_id in selected_round_ids],
-        )
+        teacher = _shared_hazard_teacher(
+            paths,
+            round_ids=selected_round_ids,
+        ).model_copy(update={"name": f"{model_name}__hazard_teacher"})
         index_path = _ensure_synthetic_dataset(
             paths,
             policy_name=policy_name,
