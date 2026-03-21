@@ -3321,6 +3321,23 @@ The model has three conceptual components:
 3. **Not yet in live serving**: Standalone script, not formal benchmark infrastructure
 4. **Training cost**: ~50-70 seconds per fold
 
+#### Settlement statistics — closing the single-observation gap
+
+- Added global settlement features (mean population, food, wealth, defense, alive/dead counts, port fraction, owner diversity) from observed viewports
+- Results:
+  - ev1+settlements: **76.26** (+3.91 over mixed ev1 without settlements!)
+  - ev15+settlements: 81.84 (actually slightly worse than ev15 without — settlements add noise when evidence is already rich)
+- The single-observation gap narrowed from 7 points to 3.1 points vs champion
+- Settlement features provide the global round-law information the model was missing
+
+| Model | ev | Score | Delta vs champion |
+|-------|-----|-------|-------------------|
+| Evidence+settlements | 1 | **76.26** | -3.13 |
+| Evidence mixed (no sett) | 1 | 72.35 | -7.04 |
+| Evidence v2 (no sett) | 15 | **83.06** | +3.67 |
+| Evidence+settlements | 15 | 81.84 | +2.45 |
+| query_residual_v11 | online | 79.39 | 0 |
+
 #### Key Parameters and Their Rationale
 
 | Parameter | Value | Rationale |
