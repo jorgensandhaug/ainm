@@ -4549,8 +4549,32 @@
    - More aggressive hurts: v13 (0.2/0.15) loses 0.2, v15 (0.15/0.10) loses 0.44
    - Less aggressive also hurts: v1 (0.4/0.3) loses 0.08, v8 (0.5/0.4) loses 0.31
 
+496. Analysis of remaining bottleneck (round 36e581f1, score 66.58):
+   - This is an "active but unpredictable" round with moderate build rate (0.15)
+   - High spatial entropy: 574 cells with entropy > 0.5, 168 with entropy > 1.0
+   - Settlement placement is spatially hard to predict
+   - Different seeds show different quality (seed 4: 68.96, seeds 0-3: 65-67)
+   - This suggests spatial prediction variance, not regime miscalibration
+   - Adaptive_ensemble doesn't help here because build_rate is above barren threshold
+   - The spatial_correction approach actually HURT this round (-1.13)
+   - Improving this round requires better spatial prediction in the base model
+
+497. Summary of all new radical families implemented in this session:
+   - obs_likelihood_mixture: 4 variants, 3-17 score (FAILED - fundamentally broken)
+   - coefficient_inverse: 4 variants, 50-54 score (FAILED - ill-conditioned)
+   - spatial_correction: 12 variants, 59-67 score (MIXED - helps barren, hurts active)
+   - **adaptive_ensemble: 16 variants, 78-79.34 score (SUCCESS!)**
+
+498. Key architectural lessons:
+   - Round-retrieval/mixture approaches fail with only 8 historical rounds
+   - The inverse problem from sparse stochastic viewports is too ill-conditioned
+   - Spatial correction adds noise on well-predicted rounds
+   - BEST approach: surgical regime-specific calibration on top of a strong base
+   - The barren-round detection + scaling is simple, robust, and highly effective
+
 ## Open Questions
 
 - Can the remaining worst round (36e581f1 at 66.58) be improved?
 - Can we detect and calibrate other regime types (high-conflict, port-heavy)?
 - Is there a way to break above 80 on full LOO?
+- Can other agents' radical families (when results land) be combined with adaptive_ensemble?
