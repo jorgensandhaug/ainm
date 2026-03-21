@@ -30,7 +30,6 @@ from astar.history.summaries.round_coefficients import (
 )
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.infra.artifacts.store import read_analysis_records
 from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
 from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor
@@ -401,8 +400,13 @@ def load_or_fit_coeff_inverse_predictor(
 
     round_ids_list = list(historical_round_ids) if historical_round_ids else []
     if not round_ids_list:
-        all_records = read_analysis_records(workspace_paths)
-        round_ids_list = list({r.round_id for r in all_records if r.has_replay})
+        # Discover from replay summary directory
+        replay_base = workspace_paths.derived_dir / "replay_summaries"
+        if replay_base.exists():
+            for d in sorted(replay_base.iterdir()):
+                if d.is_dir() and d.name.startswith("round_id="):
+                    rid = d.name[len("round_id="):]
+                    round_ids_list.append(rid)
 
     # Build and fit hazard teacher from historical data
     episodes = []

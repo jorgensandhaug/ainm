@@ -23,7 +23,6 @@ from astar.core.trajectory import LiveQueryObs
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
 from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor
@@ -321,19 +320,19 @@ def load_or_fit_obs_likelihood_predictor(
 
     round_ids_list = list(historical_round_ids) if historical_round_ids else []
     if not round_ids_list:
-        # Discover all available rounds
-        all_records = read_analysis_records(workspace_paths)
-        round_ids_list = list({r.round_id for r in all_records if r.has_replay})
+        # Discover all available rounds from replay summary directory
+        replay_base = workspace_paths.derived_dir / "replay_summaries"
+        if replay_base.exists():
+            for d in sorted(replay_base.iterdir()):
+                if d.is_dir() and d.name.startswith("round_id="):
+                    rid = d.name[len("round_id="):]
+                    round_ids_list.append(rid)
 
     round_ground_truths: dict[str, dict[int, np.ndarray]] = {}
     for rid in round_ids_list:
         seed_gts: dict[int, np.ndarray] = {}
         for seed_index in range(5):
-            npz_path = (
-                workspace_paths.replay_summaries_root
-                / f"round_id={rid}"
-                / f"seed_index={seed_index}.npz"
-            )
+            npz_path = workspace_paths.replay_summary_path(rid, seed_index)
             if npz_path.exists():
                 data = np.load(str(npz_path))
                 if "mean_terminal_probs" in data:
