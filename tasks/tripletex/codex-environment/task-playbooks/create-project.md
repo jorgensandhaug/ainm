@@ -48,6 +48,7 @@ Production verification on 2026-03-20 additionally showed:
 - second German production run on 2026-03-21 for `Analyse Sonnental` / `Sonnental GmbH` / `980215350` / `emma.schneider@example.org` also succeeded with the same 3-call path; 14 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - fourth Bokmål production run on 2026-03-21 for `Implementering Nordhav` / `Nordhav AS` / `957080138` / `silje.degard@example.org` also succeeded with the same 3-call path; 15 consecutive optimal runs confirm the standard is stable
 - fourth Nynorsk production run on 2026-03-21 for `Implementering Strandvik` / `Strandvik AS` / `935092957` / `hakon.berge@example.org` also succeeded with the same 3-call path; 16 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
+- fifth Nynorsk production run on 2026-03-22 for `Analyse Sjøbris` / `Sjøbris AS` / `883693329` / `steinar.berge@example.org` also succeeded with the same 3-call path; 18 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Safe Flow
 
