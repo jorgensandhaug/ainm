@@ -2406,6 +2406,36 @@
    - launch policy:
      - `jobs=1`
      - outer model parallelism only
+259. Corrected-holdout results for item 258 landed quickly:
+   - `teacher_student_blend_v35`: mean score `61.3164`, mean weighted KL `0.163808`
+   - `teacher_student_blend_v36`: mean score `59.9978`, mean weighted KL `0.170902`
+   - `teacher_student_blend_v37`: mean score `61.2600`, mean weighted KL `0.164138`
+   - `teacher_student_blend_v38`: mean score `59.9185`, mean weighted KL `0.171371`
+   - interpretation:
+     - residual-distance shrink is nearly neutral
+     - `v35` / `v37` tie the current leaders closely but do not beat them
+     - `samples=8` remains weak even with the shrink
+260. New hypothesis after item 259:
+   - across every finished paired comparison so far, `samples=8` loses to `samples=4`
+   - that suggests the dominant problem may be synthetic within-round noise / duplication, not model capacity
+   - decisive next test:
+     - push `samples_per_round` lower on the strong backbones instead of adding more architecture
+261. Implemented lower-sample strong-backbone variants:
+   - new variants:
+     - `teacher_student_blend_v39`
+     - `teacher_student_blend_v40`
+     - `teacher_student_blend_v41`
+     - `teacher_student_blend_v42`
+   - mapping:
+     - `v39` = `v13` backbone with `samples_per_round=2`
+     - `v40` = `v15` backbone with `samples_per_round=2`
+     - `v41` = `v13` backbone with `samples_per_round=1`
+     - `v42` = `v15` backbone with `samples_per_round=1`
+262. Validation for item 261:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v40_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_teacher_student_blend_v42_online_historical_benchmark_defaults_to_samples_1 tests/test_teacher_student.py::test_summary_bank_residual_confidence_shrinks_far_neighbor_residual tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `4 passed`
 
 
 ## Open Questions

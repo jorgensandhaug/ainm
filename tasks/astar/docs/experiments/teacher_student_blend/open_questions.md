@@ -9,5 +9,6 @@
 - Is multiscale temporal summarization only useful on the simpler pre-local-evidence backbone?
 - If multiscale helps, is it stronger with global blend or spatial-dynamic blend?
 - Does shrinking KNN residual corrections by bank distance improve held-out-round generalization?
+- Is the main win here simply lower `samples_per_round`, rather than more model complexity?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

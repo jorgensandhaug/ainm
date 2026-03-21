@@ -15,6 +15,8 @@
 - `v33` / `v34`: multiscale temporal summaries may work better with spatial-dynamic blending than with global blending if phase information mostly matters on buildable/frontier cells
 - `v35` / `v36`: coefficient-residual KNN likely overcorrects on far-off held-out rounds; shrink the residual toward the ridge base as neighbor distance grows
 - `v37` / `v38`: test the same residual-distance shrink on the spatial-dynamic backbone
+- `v39` / `v40`: all finished `samples=8` branches are weaker than their `samples=4` siblings; test `samples=2` on the strongest temporal backbones
+- `v41` / `v42`: continue that direction to `samples=1` to test whether lower within-round synthetic variance helps held-out-round generalization
 
 ## Evaluation Rule
 
