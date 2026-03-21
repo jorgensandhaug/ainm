@@ -132,6 +132,27 @@ def test_hazard_teacher_mapprior_historical_benchmark_runs(sample_paths: RepoPat
     assert result.rounds[0].seed_results[0].model_name == "hazard_teacher_mapprior_v1"
 
 
+def test_gbx_terminal_regime_teacher_mapprior_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_terminal_regime_teacher_mapprior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        visualization_policy="none",
+        benchmark_name="test_gbx_terminal_regime_teacher_mapprior",
+    )
+
+    assert result.mode == "prior_only"
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    assert result.rounds[0].seed_results[0].model_name == "gbx_terminal_regime_teacher_mapprior_v1"
+
+
 def test_gbx_transition_teacher_mapprior_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)

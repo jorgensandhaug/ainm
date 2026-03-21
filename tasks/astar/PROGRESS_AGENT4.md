@@ -1637,3 +1637,82 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - `free -h` -> about `2.9 TiB` total, `1.1 TiB` used, `1.8 TiB` available
   - the targeted coefficient-cache precompute is still actively computing with 6 workers near 100% CPU each
   - still enough headroom to launch several 3-round probes in parallel
+
+### 2026-03-21T12:12Z
+
+- Pushed the phase/global branch:
+  - commit `1fe21c2`
+  - message: `Add phase/global transition teacher variants`
+- Launched parallel 3-round prior-only probes on the key replay rounds
+  - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Active probe batch:
+  - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_v2`
+  - `tmp_gbx_transition_teacher_graph_mapprior_probe3_jobs3_v2`
+  - `tmp_gbx_transition_teacher_phase_mapprior_probe3_jobs3_v1`
+  - `tmp_gbx_transition_teacher_graph_phase_mapprior_probe3_jobs3_v1`
+  - `tmp_gbx_transition_teacher_graph_phase_global_mapprior_probe3_jobs3_v1`
+- Also launched a broad coefficient-cache precompute for the new variants across all replay-backed historical rounds:
+  - `gbx_transition_teacher_phase_v1`
+  - `gbx_transition_teacher_graph_phase_v1`
+  - `gbx_transition_teacher_graph_phase_global_v1`
+- First durable filesystem signal after launch:
+  - base 3-round caches now exist for
+    - `gbx_transition_teacher_v1`
+    - `gbx_transition_teacher_graph_v1`
+  - on rounds
+    - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+    - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Machine state remained acceptable after the launch:
+  - `free -h` stayed around `1.7 TiB` available
+  - no need to throttle parallelism yet
+
+### 2026-03-21T12:48Z
+
+- Cached 3-round probe reruns made the transition-teacher verdict clear:
+  - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_cached_v3`
+    - mean score `4.4032`
+    - mean weighted KL `1.103593`
+  - `tmp_gbx_transition_teacher_graph_mapprior_probe3_jobs3_cached_v3`
+    - mean score `4.4060`
+    - mean weighted KL `1.103454`
+- Interpretation:
+  - the monolithic rollout decoder is fundamentally wrong, not just under-tuned
+  - graph features do almost nothing
+  - predicted class mass collapses toward a diffuse near-equilibrium over all 6 classes instead of preserving the strong empty/forest dominance seen in truth
+  - this transition-family line should not be treated as a candidate live prior in its current form
+- Action taken:
+  - killed the stale uncached 3-round probe batch once caches existed
+  - kept the broad phase/global coefficient-cache fanout running for science support / possible later reuse
+- Implemented a new direct terminal-law branch instead of unstable 50-step rollout:
+  - `src/astar/teacher/dynamics/terminal_teacher.py`
+  - model names:
+    - `gbx_terminal_regime_teacher_v1`
+    - `gbx_terminal_regime_teacher_mapprior_v1`
+  - structure:
+    - predict final tensor directly from static per-cell map features
+    - condition coefficients on replay-derived round-regime vector
+    - map-only prior over regime via round-map summary
+    - no iterative rollout
+- Wiring + tests added:
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/cli.py`
+  - `tests/test_terminal_teacher.py`
+  - `tests/test_historical_benchmark.py`
+  - verification:
+    - `uv run pytest tests/test_terminal_teacher.py tests/test_historical_benchmark.py -q`
+    - `22 passed in 47.14s`
+- First 3-round direct-terminal benchmark:
+  - `tmp_gbx_terminal_regime_teacher_mapprior_probe3_jobs3_v1`
+  - mean score `27.6683`
+  - mean weighted KL `0.751953`
+- Interpretation of direct-terminal result:
+  - massive improvement over the broken rollout teacher (`27.7` vs `4.4`)
+  - still far below the stronger map-only prior family (`~66`)
+  - failure is now much narrower:
+    - the direct objective helps a lot
+    - but the current regime prior / linear direct decoder is still not competitive enough
+  - next likely move:
+    - residualize the direct regime teacher against `gbx_prior_maponly_bucket` instead of predicting absolute terminal logits from scratch

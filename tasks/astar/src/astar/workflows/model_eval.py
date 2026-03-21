@@ -57,6 +57,15 @@ from astar.teacher.dynamics.transition_teacher import (
     load_round_transition_coefficients,
     save_round_transition_coefficients,
 )
+from astar.teacher.dynamics.terminal_teacher import (
+    GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+    GBX_TERMINAL_REGIME_TEACHER_MODEL,
+    GreyBoxTerminalTeacher,
+    gbx_terminal_round_coefficients_path,
+    gbx_terminal_scoped_checkpoint_path,
+    load_round_terminal_coefficients,
+    save_round_terminal_coefficients,
+)
 from astar.teacher.regime.base import RegimePosteriorState
 from astar.workflows.results import HistoricalBenchmarkCellIssue, HistoricalBenchmarkSeedResult
 from astar.workflows.online_episode import OnlineEpisodeRun, run_online_episode
@@ -297,6 +306,91 @@ def _build_prediction_bundle(
             seed.seed_index: teacher.posterior_predictive(seed, posterior)
             for seed in round_context.seeds
         }
+        return (
+            PredictionBundle(
+                round_id=round_id,
+                model_name=teacher.name,
+                predictions_by_seed=predictions_by_seed,
+            ),
+            {},
+            sum(seed.terminal_truth is not None for episode in replay_episodes for seed in episode.seeds),
+            sum(
+                int(np.prod(np.asarray(seed.initial_state.grid, dtype=np.int64).shape))
+                for episode in replay_episodes
+                for seed in episode.seeds
+                if seed.terminal_truth is not None
+            ),
+        )
+
+    if normalized in {
+        "gbx_terminal_regime_teacher",
+        GBX_TERMINAL_REGIME_TEACHER_MODEL,
+        "gbx_terminal_regime_teacher_mapprior",
+        GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+    }:
+        checkpoint_path = gbx_terminal_scoped_checkpoint_path(
+            paths,
+            round_ids=training_round_ids,
+            model_name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+        )
+        if checkpoint_path.exists():
+            teacher = GreyBoxTerminalTeacher.load_checkpoint(checkpoint_path)
+        else:
+            replay_episodes = [
+                build_round_episode(paths, training_round_id)
+                for training_round_id in training_round_ids
+            ]
+            replay_episodes = [
+                episode
+                for episode in replay_episodes
+                if any(seed.terminal_truth is not None for seed in episode.seeds)
+            ]
+            coefficient_rows = []
+            for episode in replay_episodes:
+                coefficient_path = gbx_terminal_round_coefficients_path(
+                    paths,
+                    round_id=episode.metadata.round_id,
+                    model_name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                )
+                if coefficient_path.exists():
+                    coefficient_rows.append(load_round_terminal_coefficients(coefficient_path))
+                else:
+                    row = GreyBoxTerminalTeacher(
+                        name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                    )._fit_round_coefficients(
+                        episode,
+                        ridge_alpha=1.0,
+                    )
+                    save_round_terminal_coefficients(coefficient_path, row)
+                    coefficient_rows.append(row)
+            teacher = GreyBoxTerminalTeacher(
+                name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+            ).fit(
+                replay_episodes,
+                coefficient_rows=coefficient_rows,
+            )
+            teacher.save_checkpoint(checkpoint_path)
+        round_context = build_round_context_from_detail(round_detail)
+        if normalized in {"gbx_terminal_regime_teacher_mapprior", GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL}:
+            teacher = teacher.model_copy(update={"name": GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL})
+            posterior = teacher.map_posterior(round_context.seeds)
+        elif teacher.regime_bank.size > 0:
+            regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)
+            posterior = RegimePosteriorState(
+                mean=np.asarray(np.mean(teacher.regime_bank, axis=0), dtype=np.float64),
+                particles=regime_particles,
+                weights=np.full(len(regime_particles), 1.0 / float(len(regime_particles)), dtype=np.float64),
+            )
+        else:
+            posterior = RegimePosteriorState(mean=np.zeros(12, dtype=np.float64))
+        predictions_by_seed = {
+            seed.seed_index: teacher.posterior_predictive(seed, posterior)
+            for seed in round_context.seeds
+        }
+        replay_episodes = [
+            build_round_episode(paths, training_round_id)
+            for training_round_id in training_round_ids
+        ]
         return (
             PredictionBundle(
                 round_id=round_id,
