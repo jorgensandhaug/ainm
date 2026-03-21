@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez le projet \"Implémentation Montagne\" lié au client Montagne SARL (nº org. 842138248). Le chef de projet est Jules Martin (jules.martin@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "SXHgDZKjUVuy_rnRsVK3MDDZ7ldKCF91FwtgC1MhB80"
+  }
+}

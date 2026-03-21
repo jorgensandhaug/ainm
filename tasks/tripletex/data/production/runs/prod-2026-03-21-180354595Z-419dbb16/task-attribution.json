@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-180354595Z-419dbb16",
+  "request_id": "4bdde532",
+  "prompt_raw": "Crie um pedido para o cliente Horizonte Lda (org. nº 904130338) com os produtos Serviço de rede (6247) a 15250 NOK e Desenvolvimento de sistemas (5919) a 13250 NOK. Converta o pedido em fatura e registe o pagamento total.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T18:05:16Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T18:03:54.927Z",
+  "after_captured_at": "2026-03-21T18:05:48.312Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "10",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T18:05:48.315Z"
+}

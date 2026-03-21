@@ -1,0 +1,8 @@
+{
+  "prompt": "Exécutez la paie de Jules Leroy (jules.leroy@example.org) pour ce mois. Le salaire de base est de 56950 NOK. Ajoutez une prime unique de 9350 NOK en plus du salaire de base.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "8UOaswTtubjEVJ-YMABzuLORlFpPHCjjhniAe2jTut8"
+  }
+}

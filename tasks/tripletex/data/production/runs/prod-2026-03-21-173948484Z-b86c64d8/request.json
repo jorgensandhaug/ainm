@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Prosjekttype\" mit den Werten \"Forskning\" und \"Internt\". Buchen Sie dann einen Beleg auf Konto 7000 über 32550 NOK, verknüpft mit dem Dimensionswert \"Internt\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "0r7-jXj3st9ZjpYAfOo7uUtmgW592AonUfBg8gTj8z8"
+  }
+}

@@ -1,0 +1,11 @@
+Dato;Forklaring;Inn;Ut;Saldo
+2026-01-17;Innbetaling fra Lewis Ltd / Faktura 1001;2312.50;;102312.50
+2026-01-19;Innbetaling fra Johnson Ltd / Faktura 1002;6312.50;;108625.00
+2026-01-22;Innbetaling fra Brown Ltd / Faktura 1003;8250.00;;116875.00
+2026-01-24;Innbetaling fra Wilson Ltd / Faktura 1004;5062.50;;121937.50
+2026-01-26;Innbetaling fra Lewis Ltd / Faktura 1005;23562.50;;145500.00
+2026-01-27;Betaling Supplier Smith Ltd;;-11600.00;133900.00
+2026-01-30;Betaling Supplier Lewis Ltd;;-7050.00;126850.00
+2026-02-01;Betaling Supplier Lewis Ltd;;-8100.00;118750.00
+2026-02-02;Bankgebyr;1762.74;;120512.74
+2026-02-04;Skattetrekk;982.45;;121495.19

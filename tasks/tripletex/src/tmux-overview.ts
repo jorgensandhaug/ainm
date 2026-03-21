@@ -7,9 +7,6 @@ type TmuxWindow = {
   active: boolean;
   index: number;
   name: string;
-  paneCommand: string;
-  paneDead: boolean;
-  panePid: number;
 };
 
 type RunSummary = {
@@ -18,12 +15,12 @@ type RunSummary = {
   bestScore: string;
   correctness: string;
   fileCount: number | null;
-  idlePane: boolean;
-  paneDead: boolean;
   phase: string;
   reflectionStatus: string;
+  runtimeStatus: string;
   runId: string;
   runScore: string;
+  scoreStatus: string;
   solveStatus: string;
   taskId: string;
   windowIndex: number;
@@ -46,11 +43,6 @@ function runCommand(args: string[]) {
     stderr: new TextDecoder().decode(proc.stderr).trim(),
     stdout: new TextDecoder().decode(proc.stdout),
   };
-}
-
-function paneHasChildren(panePid: number) {
-  const result = runCommand(["pgrep", "-P", String(panePid)]);
-  return result.code === 0 && result.stdout.trim().length > 0;
 }
 
 async function readJson(path: string) {
@@ -120,7 +112,7 @@ function compactStatus(status: string) {
   if (status === "skipped") return "skip";
   if (status === "missing") return "miss";
   if (status === "pending") return "pend";
-  if (status === "dead") return "dead";
+  if (status === "killed") return "kill";
   return status.slice(0, 4);
 }
 
@@ -131,13 +123,15 @@ function compactRunLabel(runId: string, phase: string) {
 }
 
 function isLiveRow(row: RunSummary) {
-  if (row.paneDead || row.idlePane) return false;
-  return true;
+  if (row.phase === "solve") return row.solveStatus === "running";
+  if (row.phase === "reflect") return row.runtimeStatus === "running";
+  if (row.phase === "score") return row.scoreStatus === "launched" && row.runtimeStatus === "running";
+  return false;
 }
 
 function statusColor(status: string) {
   if (status === "running" || status === "completed") return "green";
-  if (status === "timed_out" || status === "missing" || status === "dead") return "red";
+  if (status === "timed_out" || status === "missing" || status === "killed") return "red";
   if (status === "launched" || status === "pending") return "cyan";
   if (status === "skipped" || status === "exited") return "gray";
   return "yellow";
@@ -176,7 +170,7 @@ async function loadWindows() {
     "-t",
     sessionName,
     "-F",
-    "#{window_index}\t#{window_name}\t#{window_active}\t#{pane_current_command}\t#{pane_dead}\t#{pane_pid}",
+    "#{window_index}\t#{window_name}\t#{window_active}",
   ]);
   if (result.code !== 0) {
     throw new Error(result.stderr || "tmux list-windows failed");
@@ -186,14 +180,11 @@ async function loadWindows() {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [index, name, active, paneCommand, paneDead, panePid] = line.split("\t");
+      const [index, name, active] = line.split("\t");
       return {
         active: active === "1",
         index: Number(index),
         name: name ?? "",
-        paneCommand: paneCommand ?? "",
-        paneDead: paneDead === "1",
-        panePid: Number(panePid),
       } satisfies TmuxWindow;
     })
     .sort((a, b) => a.index - b.index);
@@ -210,28 +201,39 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
       bestScore: "-",
       correctness: "-",
       fileCount: null,
-      idlePane: !window.paneDead && !paneHasChildren(window.panePid),
-      paneDead: window.paneDead,
       phase: meta.phase,
       reflectionStatus: "-",
+      runtimeStatus: "-",
       runId: meta.runId,
       runScore: "-",
+      scoreStatus: "-",
       solveStatus: "missing",
       taskId: "-",
       windowIndex: window.index,
     };
   }
 
-  const [manifest, agentStatus, reflectionStatus, scoreStatus, taskAttribution, leaderboardAfter, leaderboardBefore] =
-    await Promise.all([
-      readJson(join(runDir, "manifest.json")),
-      readJson(join(runDir, "agent-run.status.json")),
-      readJson(join(runDir, "codex-reflection.status.json")),
-      readJson(join(runDir, "submission-score.json")),
-      readJson(join(runDir, "task-attribution.json")),
-      readJson(join(runDir, "leaderboard.after.json")),
-      readJson(join(runDir, "leaderboard.before.json")),
-    ]);
+  const [
+    manifest,
+    agentStatus,
+    reflectionStatus,
+    runtimeStatus,
+    scoreReflectionStatus,
+    submissionScore,
+    taskAttribution,
+    leaderboardAfter,
+    leaderboardBefore,
+  ] = await Promise.all([
+    readJson(join(runDir, "manifest.json")),
+    readJson(join(runDir, "agent-run.status.json")),
+    readJson(join(runDir, "codex-reflection.status.json")),
+    readJson(join(runDir, "codex-reflection.runtime-status.json")),
+    readJson(join(runDir, "codex-score-reflection.status.json")),
+    readJson(join(runDir, "submission-score.json")),
+    readJson(join(runDir, "task-attribution.json")),
+    readJson(join(runDir, "leaderboard.after.json")),
+    readJson(join(runDir, "leaderboard.before.json")),
+  ]);
 
   const taskId =
     typeof taskAttribution?.tx_task_id === "string" || typeof taskAttribution?.tx_task_id === "number"
@@ -250,21 +252,21 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
           : "-",
     bestScore: typeof best === "number" && typeof max === "number" ? `${formatScoreValue(best)}/${max}` : "-",
     correctness:
-      typeof scoreStatus?.correctness === "number"
-        ? `${Math.round(scoreStatus.correctness * 100)}%`
-        : typeof scoreStatus?.status === "string"
-          ? scoreStatus.status
+      typeof submissionScore?.correctness === "number"
+        ? `${Math.round(submissionScore.correctness * 100)}%`
+        : typeof submissionScore?.status === "string"
+          ? submissionScore.status
           : "-",
     fileCount: Array.isArray(manifest?.attachments) ? manifest.attachments.length : null,
-    idlePane: !window.paneDead && !paneHasChildren(window.panePid),
-    paneDead: window.paneDead,
     phase: meta.phase,
     reflectionStatus: typeof reflectionStatus?.status === "string" ? reflectionStatus.status : "-",
+    runtimeStatus: typeof runtimeStatus?.status === "string" ? runtimeStatus.status : "-",
     runId: meta.runId,
     runScore:
-      typeof scoreStatus?.score_raw === "number" && typeof scoreStatus?.score_max === "number"
-        ? `${scoreStatus.score_raw}/${scoreStatus.score_max}`
+      typeof submissionScore?.score_raw === "number" && typeof submissionScore?.score_max === "number"
+        ? `${submissionScore.score_raw}/${submissionScore.score_max}`
         : "-",
+    scoreStatus: typeof scoreReflectionStatus?.status === "string" ? scoreReflectionStatus.status : "-",
     solveStatus: typeof agentStatus?.status === "string" ? agentStatus.status : "pending",
     taskId,
     windowIndex: window.index,
@@ -286,19 +288,15 @@ function sortRows(rows: RunSummary[]) {
   });
 }
 
-function effectiveStatus(fileStatus: string, paneDead: boolean, idlePane: boolean) {
-  if (paneDead) {
-    if (fileStatus === "running" || fileStatus === "pending") return "dead";
-    return fileStatus;
-  }
-  if (idlePane && (fileStatus === "running" || fileStatus === "pending")) return "exited";
-  return fileStatus;
+function postStatusForRow(row: RunSummary) {
+  if (row.phase === "score") return row.scoreStatus;
+  return row.reflectionStatus;
 }
 
 function rowMarkup(row: RunSummary) {
   const attr = attrLabel(row.attributionStatus);
-  const mainStatus = effectiveStatus(row.solveStatus, row.paneDead, row.idlePane);
-  const postStatus = effectiveStatus(row.reflectionStatus, row.paneDead, row.idlePane);
+  const mainStatus = row.solveStatus;
+  const postStatus = postStatusForRow(row);
   const cells = [
     formatCell(String(row.windowIndex), 3),
     formatCell(row.phase === "solve" ? "S" : row.phase === "reflect" ? "R" : "$", 1),

@@ -1,0 +1,15 @@
+{
+  "run_id": "prod-2026-03-21-173428800Z-0d7df913",
+  "request_id": "9a70c438",
+  "prompt_raw": "Wir haben eine Rechnung über 13892 EUR an Nordlicht GmbH (Org.-Nr. 961232880) gesendet, als der Wechselkurs 10.38 NOK/EUR betrug. Der Kunde hat nun bezahlt, aber der Kurs liegt bei 11.28 NOK/EUR. Erfassen Sie die Zahlung und buchen Sie die Wechselkursdifferenz (agio) auf das korrekte Konto.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T17:34:28.943Z",
+  "after_captured_at": "2026-03-21T17:40:01.332Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T17:40:01.333Z"
+}

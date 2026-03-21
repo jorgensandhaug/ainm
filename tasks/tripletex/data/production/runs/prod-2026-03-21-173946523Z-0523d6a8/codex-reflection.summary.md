@@ -1,0 +1,1 @@
+Score-aware reflection written. Key finding: correctness 0.857 (12/14), check 5 failed — most likely the occupation code mapping Seniorutvikler → SYSTEMUTVIKLER (id 5935) is wrong. SENIORPROGRAMMERER should be investigated as the correct mapping in the next sandbox session.

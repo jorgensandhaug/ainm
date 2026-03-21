@@ -1605,6 +1605,12 @@ function buildReflectionPrompt(
     "- State whether you updated an existing trusted standard or playbook, or created a new one.",
     "- List the exact trusted-standard and playbook paths changed.",
     "- Include the git commit hash and commit message.",
+    "",
+    "Deep investigation mandate:",
+    "If you have tried one approach multiple times with no improvement, stop and think deeper and more creatively.",
+    "Reflect on what an alternate solution could be, look at online forums for Tripletex about this type of task, study the workflow,",
+    "then test REPEATEDLY in the local sandbox until you get something that produces the wanted output.",
+    "Always verify that the fields are correctly inserted in the database exactly as the task expects. Correctness is KEY.",
   ];
 
   if (sandboxCredentials) {
@@ -1762,6 +1768,7 @@ EOF
 }
 
 write_status "running" 0
+trap 'write_status "killed" 137' INT TERM HUP
 
 unset CLAUDE_CODE_USE_VERTEX
 unset ANTHROPIC_VERTEX_PROJECT_ID
@@ -1770,6 +1777,7 @@ export ANTHROPIC_BASE_URL=${shellQuote(claudeProxyBaseUrl)}
 export ANTHROPIC_API_KEY=${shellQuote(claudeProxyApiKey)}
 claude -r "$SESSION_ID" --model ${shellQuote(claudeModel)} --effort ${shellQuote(claudeEffort)} --add-dir ${shellQuote(preparedRun.runDir)} --dangerously-skip-permissions -p --output-format text "$(cat "$PROMPT_FILE")" > "$REFLECTION_OUTPUT_FILE"
 agent_exit_code=$?
+trap - INT TERM HUP
 write_status "exited" $agent_exit_code
 
 print
@@ -2287,6 +2295,7 @@ EOF
 }
 
 write_status "running" 0
+trap 'write_status "killed" 137' INT TERM HUP
 
 unset CLAUDE_CODE_USE_VERTEX
 unset ANTHROPIC_VERTEX_PROJECT_ID
@@ -2296,6 +2305,7 @@ export ANTHROPIC_API_KEY=${shellQuote(claudeProxyApiKey)}
 
 claude --model ${shellQuote(claudeModel)} --effort ${shellQuote(claudeEffort)} --add-dir ${shellQuote(preparedRun.runDir)} --dangerously-skip-permissions -p --output-format text "$(cat "$PROMPT_FILE")"
 agent_exit_code=$?
+trap - INT TERM HUP
 write_status "exited" $agent_exit_code
 
 print
