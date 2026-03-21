@@ -455,6 +455,98 @@ def test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip
     assert np.allclose(prediction.sum(axis=-1), 1.0)
 
 
+def test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_temporal_multiscale_test").fit([round_episode])
+    teacher_checkpoint_path = teacher.save_checkpoint(
+        sample_paths.model_dir("hazard_teacher_temporal_multiscale_test") / "checkpoint.json",
+    )
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_summary_temporal_multiscale_test",
+    )
+    from astar.student.posterior.deepset_student import (
+        SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+        SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        SummaryBankStudent,
+    )
+
+    student = SummaryBankStudent.fit_from_dataset(
+        dataset,
+        teacher,
+        k_neighbors=1,
+        summary_encoder=SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+        normalize_summary=True,
+        inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        ridge_alpha=2.0,
+    )
+    checkpoint_path = student.save_checkpoint(
+        sample_paths.model_dir("summary_bank_student_temporal_multiscale_test"),
+        teacher_checkpoint_path,
+    )
+    reloaded = SummaryBankStudent.load_checkpoint(checkpoint_path)
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    round_context = build_round_context_from_detail(round_record.round)
+    transcript_observations = (
+        round_episode.live_transcript.observations
+        if round_episode.live_transcript is not None
+        else ()
+    )
+    context = LiveInferenceContext(
+        online_episode=round_context_to_online_episode(
+            round_context,
+            transcript_observations,
+        ),
+        geometry_bundle=compute_round_features(round_record.round),
+        evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
+    )
+
+    prediction = reloaded.predict_seed(context, 0)
+
+    assert reloaded.summary_encoder == SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5
+    assert reloaded.inference_head == SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN
+    assert reloaded.normalize_summary is True
+    assert prediction.shape[-1] == 6
+    assert np.allclose(prediction.sum(axis=-1), 1.0)
+
+
+def test_summary_temporal_multiscale_encoder_zero_observation_shape(sample_paths: RepoPaths) -> None:
+    from astar.observe.evidence import build_round_evidence_from_observations
+    from astar.student.posterior.deepset_student import (
+        SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+        _summary_vector_from_evidence,
+        _summary_vector_semantic_v3,
+    )
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    geometry_bundle = compute_round_features(round_record.round)
+    evidence = build_round_evidence_from_observations(round_record.round, ())
+    semantic = _summary_vector_semantic_v3(
+        evidence,
+        geometry_bundle=geometry_bundle,
+    )
+    multiscale = _summary_vector_from_evidence(
+        evidence,
+        summary_encoder=SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+        geometry_bundle=geometry_bundle,
+        observations=(),
+        round_detail=round_record.round,
+    )
+
+    expected_prefix = np.concatenate([semantic, semantic, semantic, semantic, semantic], axis=0)
+    assert multiscale.shape == (semantic.shape[0] * 6,)
+    assert np.allclose(multiscale[: expected_prefix.shape[0]], expected_prefix)
+    assert np.allclose(multiscale[expected_prefix.shape[0] :], 0.0)
+
+
 def test_summary_bank_exact_local_evidence_posterior_uses_observed_counts() -> None:
     from astar.observe.evidence import SeedEvidenceBundle
     from astar.student.predictor.summary_bank import _apply_exact_local_evidence_posterior

@@ -11,7 +11,7 @@ Family scope:
 - replay-backed `HazardTeacher`
 - synthetic-live `SummaryBankStudent`
 - online-safe blend with `HistoricalBucketPriorPredictor`
-- current active branch: temporal summary encoder + coefficient residual head + dynamic teacher blending + local evidence updates
+- current active branch: temporal/multiscale summary encoders + coefficient residual head + dynamic teacher blending + local evidence updates
 
 Repro commands:
 

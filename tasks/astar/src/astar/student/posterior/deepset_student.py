@@ -22,6 +22,7 @@ SUMMARY_ENCODER_V1 = "summary_v1"
 SUMMARY_ENCODER_SPATIAL_V2 = "summary_spatial_v2"
 SUMMARY_ENCODER_SEMANTIC_V3 = "summary_semantic_v3"
 SUMMARY_ENCODER_TEMPORAL_V4 = "summary_temporal_v4"
+SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5 = "summary_temporal_multiscale_v5"
 SUMMARY_HEAD_KNN = "knn"
 SUMMARY_HEAD_RIDGE = "ridge"
 SUMMARY_HEAD_COEFFICIENT_RIDGE = "coefficient_ridge"
@@ -40,6 +41,7 @@ SUMMARY_ENCODERS = frozenset(
         SUMMARY_ENCODER_SPATIAL_V2,
         SUMMARY_ENCODER_SEMANTIC_V3,
         SUMMARY_ENCODER_TEMPORAL_V4,
+        SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
     },
 )
 
@@ -273,6 +275,64 @@ def _summary_vector_temporal_v4(
     ).astype(np.float64)
 
 
+def _summary_vector_temporal_multiscale_v5(
+    evidence: RoundEvidenceBundle,
+    *,
+    geometry_bundle: RoundFeatureBundle | None,
+    observations: tuple[object, ...] | list[object] | None,
+    round_detail: object | None,
+) -> np.ndarray:
+    if geometry_bundle is None or round_detail is None or observations is None:
+        raise ValueError(
+            "summary_temporal_multiscale_v5 requires geometry, round_detail, and observations",
+        )
+    ordered = tuple(observations)
+    if not ordered:
+        full_semantic = _summary_vector_semantic_v3(
+            evidence,
+            geometry_bundle=geometry_bundle,
+        )
+        return np.concatenate(
+            [
+                full_semantic,
+                full_semantic,
+                full_semantic,
+                full_semantic,
+                full_semantic,
+                np.zeros_like(full_semantic),
+            ],
+            axis=0,
+        ).astype(np.float64)
+    quarter_slices = np.array_split(np.arange(len(ordered), dtype=np.int64), 4)
+    quarter_vectors: list[np.ndarray] = []
+    for quarter in quarter_slices:
+        quarter_observations = tuple(ordered[int(index)] for index in quarter.tolist())
+        quarter_evidence = build_round_evidence_from_observations(round_detail, quarter_observations)
+        quarter_vectors.append(
+            _summary_vector_semantic_v3(
+                quarter_evidence,
+                geometry_bundle=geometry_bundle,
+            ),
+        )
+    full_semantic = _summary_vector_semantic_v3(
+        evidence,
+        geometry_bundle=geometry_bundle,
+    )
+    first_half = quarter_vectors[0] + quarter_vectors[1]
+    second_half = quarter_vectors[2] + quarter_vectors[3]
+    return np.concatenate(
+        [
+            full_semantic,
+            quarter_vectors[0],
+            quarter_vectors[1],
+            quarter_vectors[2],
+            quarter_vectors[3],
+            second_half - first_half,
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
 def _summary_vector_from_evidence(
     evidence: RoundEvidenceBundle,
     *,
@@ -292,6 +352,13 @@ def _summary_vector_from_evidence(
         )
     if summary_encoder == SUMMARY_ENCODER_TEMPORAL_V4:
         return _summary_vector_temporal_v4(
+            evidence,
+            geometry_bundle=geometry_bundle,
+            observations=observations,
+            round_detail=round_detail,
+        )
+    if summary_encoder == SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5:
+        return _summary_vector_temporal_multiscale_v5(
             evidence,
             geometry_bundle=geometry_bundle,
             observations=observations,

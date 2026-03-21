@@ -22,6 +22,7 @@ from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_fro
 from astar.student.posterior.deepset_student import (
     SUMMARY_ENCODER_SEMANTIC_V3,
     SUMMARY_ENCODER_SPATIAL_V2,
+    SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
     SUMMARY_ENCODER_TEMPORAL_V4,
     SUMMARY_ENCODER_V1,
     SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
@@ -65,6 +66,8 @@ SUMMARY_BANK_STUDENT_V25 = "teacher_student_blend_v25"
 SUMMARY_BANK_STUDENT_V26 = "teacher_student_blend_v26"
 SUMMARY_BANK_STUDENT_V27 = "teacher_student_blend_v27"
 SUMMARY_BANK_STUDENT_V28 = "teacher_student_blend_v28"
+SUMMARY_BANK_STUDENT_V29 = "teacher_student_blend_v29"
+SUMMARY_BANK_STUDENT_V30 = "teacher_student_blend_v30"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
@@ -100,6 +103,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V26,
         SUMMARY_BANK_STUDENT_V27,
         SUMMARY_BANK_STUDENT_V28,
+        SUMMARY_BANK_STUDENT_V29,
+        SUMMARY_BANK_STUDENT_V30,
     },
 )
 
@@ -178,6 +183,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V26: 8,
         SUMMARY_BANK_STUDENT_V27: 4,
         SUMMARY_BANK_STUDENT_V28: 8,
+        SUMMARY_BANK_STUDENT_V29: 4,
+        SUMMARY_BANK_STUDENT_V30: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -238,6 +245,56 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v27 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V28 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v28 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V29 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v29 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V30 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v30 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V30:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.85,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+            use_local_blur_evidence=True,
+            local_blur_sigma=2.0,
+            local_blur_strength=1.5,
+            local_blur_use_geometry_gate=True,
+            local_blur_class_scale=(0.25, 1.0, 1.25, 1.0, 0.5, 0.0),
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V29:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.78,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+            use_local_blur_evidence=True,
+            local_blur_sigma=2.0,
+            local_blur_strength=1.5,
+            local_blur_use_geometry_gate=True,
+            local_blur_class_scale=(0.25, 1.0, 1.25, 1.0, 0.5, 0.0),
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V28:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,

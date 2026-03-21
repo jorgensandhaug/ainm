@@ -2173,6 +2173,58 @@
    - launch policy:
      - `jobs=1` inside each model
      - outer model parallelism only
+237. Re-read iteration protocol + repo facts before continuing:
+   - confirmed again:
+     - grouped-by-round evaluation remains mandatory
+     - corrected targeted holdout stays the fast gate
+     - full leave-one-round-out stays the promotion benchmark
+     - machine-wide memory checks must include other agents, not only this branch
+   - `br list` is still unavailable in this environment:
+     - `/bin/bash: line 1: br: command not found`
+238. Shared-machine health check before new development:
+   - snapshot:
+     - memory used: about `1.1 TiB`
+     - memory available: about `1.8 TiB`
+   - biggest competing workers observed:
+     - agent5 hybrid sweeps at about `50-76 GiB` RSS
+     - agent1 hazard probes at about `34-39 GiB` RSS
+   - active corrected-holdout queue on this branch still includes:
+     - `teacher_student_blend_v17`
+     - `teacher_student_blend_v18`
+     - `teacher_student_blend_v19`
+     - `teacher_student_blend_v20`
+     - `teacher_student_blend_v21`
+     - `teacher_student_blend_v22`
+     - `teacher_student_blend_v23`
+     - `teacher_student_blend_v24`
+     - `teacher_student_blend_v26`
+   - decision:
+     - keep all new launches at `jobs=1`
+     - only add a small outer wave after source is validated and pushed
+239. New hypothesis after item 238:
+   - the current temporal summary encoder only retains full / first-half / second-half aggregates
+   - that may wash out query-phase information because coverage policies tend to shift from exploration to exploitation within the round
+   - test quarter-scale multiscale temporal summaries while keeping the current strongest local-evidence backbone fixed
+240. Implemented multiscale temporal variants:
+   - new summary encoder:
+     - `summary_temporal_multiscale_v5`
+   - new variants:
+     - `teacher_student_blend_v29`
+     - `teacher_student_blend_v30`
+   - both keep the current `v27` / `v28` backbone:
+     - coefficient-residual head
+     - spatial-dynamic teacher blending
+     - confidence gate
+     - seed-adaptive teacher weighting
+     - exact local evidence posterior
+     - geometry-gated class-weighted blurred diffusion
+   - fixed an encoder bug while wiring this:
+     - zero-observation multiscale summaries now preserve the correct `6 x semantic_dim` layout instead of dropping one block
+241. Validation for item 240:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_temporal_multiscale_encoder_zero_observation_shape tests/test_historical_benchmark.py::test_teacher_student_blend_v30_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `4 passed`
 
 
 ## Open Questions

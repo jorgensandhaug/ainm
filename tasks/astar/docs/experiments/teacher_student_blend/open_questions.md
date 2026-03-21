@@ -5,5 +5,6 @@
 - If blurred local evidence helps, what blur radius / strength is best?
 - Does geometry gating beat plain blurred diffusion on corrected held-out rounds?
 - Does class-weighted diffusion beat uniform geometry-gated diffusion?
+- Does quarter-scale multiscale temporal summarization beat the current first-half/second-half split?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?
