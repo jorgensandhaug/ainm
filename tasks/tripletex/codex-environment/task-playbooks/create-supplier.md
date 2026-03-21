@@ -24,7 +24,7 @@ with only the requested fields, typically:
 }
 ```
 
-Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr prompts:
+Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr/pt prompts:
 - direct `POST /supplier` always succeeds with `201`
 - no pre-read needed; write response contains all scored fields
 - response includes `ledgerAccount.id` plus sparse `postalAddress`/`physicalAddress` links (no follow-up read needed)
@@ -33,6 +33,7 @@ Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr p
 - production 2026-03-21: French prompt `Rivière SARL` scored 6/6 (perfect, normalized_score=2) with one POST and mirrored email — 5th consecutive perfect score
 - production 2026-03-21: English prompt `Silveroak Ltd` scored 6/6 (perfect, normalized_score=2) with one POST and mirrored email — 6th consecutive perfect score
 - production 2026-03-21: Spanish prompt `Dorada SL` / `958363060` — 1 POST with mirrored email, 0 errors; score attribution ambiguous but same path as 6 consecutive perfect runs
+- production 2026-03-21: Portuguese prompt `Floresta Lda` / `981154614` — 1 POST with mirrored email, 0 errors; confirms pt language coverage
 
 ## Minimal Flow
 
