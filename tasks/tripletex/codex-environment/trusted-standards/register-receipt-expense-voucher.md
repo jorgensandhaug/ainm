@@ -10,9 +10,10 @@
 - the prompt identifies one exact receipt line to book, one exact department name, and asks for the correct expense account and VAT treatment
 - the receipt already shows the purchase was paid by company card / business card
 - the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
-- two proven expense-type branches exist:
+- three proven expense-type branches exist:
   - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` → account `7360`, VAT code `0`
-  - **Branch B (deductible purchase)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
+  - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
+  - **Branch C (deductible accommodation, 12% VAT)**: receipt line is hotel / accommodation such as `Overnatting` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 12% VAT (vatType id from account response)
 - select the branch based on the receipt line text, not the receipt vendor or total
 
 ## Do Not Use This Standard If
@@ -24,8 +25,9 @@
 ## Account Selection Rule
 - `Forretningslunsj` / restaurant meals / business lunch → `7360` (non-deductible representation)
 - `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
+- `Overnatting` / hotel / accommodation → `7140` (Reisekostnad, ikke oppgavepliktig)
 - do not use `7350` for any representation receipt line; 2026-03-21 production scored `0/10` on that branch
-- if the receipt line text does not clearly map to a known account, check Norwegian standard chart of accounts (6500-series for office costs, 7300-series for representation)
+- if the receipt line text does not clearly map to a known account, check Norwegian standard chart of accounts (6500-series for office costs, 7100-series for travel/accommodation, 7300-series for representation)
 
 ## Standard Flow
 
@@ -50,6 +52,18 @@
 - **Total: 4 API calls** (fresh account with POST department)
 - **No separate `GET /ledger/vatType` needed** — the account's default vatType.id is extracted from step 3
 
+### Branch C — Deductible accommodation (`7140` with incoming 12% VAT)
+1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
+2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
+3. `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*)` — extract `vatType.id` from account `7140` response
+4. `POST /ledger/voucher` — with explicit `vatType: { id: <from step 3> }` on the expense posting
+5. `POST /ledger/voucher/{voucherId}/attachment`
+6. verify from the two write responses
+7. stop
+- **Total: 4 API calls** (fresh account with POST department)
+- **No separate `GET /ledger/vatType` needed** — the account's default vatType.id is extracted from step 3
+- Identical flow to Branch B but with different account and VAT rate
+
 ## Payload Rules
 
 ### Branch A — Non-deductible representation
@@ -70,7 +84,18 @@
   - auto-generated 3rd posting on account `2710` for the VAT recovery amount
 - balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated receipt line price
 
-### Common rules (both branches)
+### Branch C — Deductible accommodation
+- expense account: `7140 Reisekostnad, ikke oppgavepliktig`
+- account `7140` is `vatLocked=false` with default `vatType.id=12` (incoming 12%, lav sats)
+- **CRITICAL**: must send explicit `vatType: { id: <from account response> }` on the expense posting; omitting vatType defaults to code `0` (no VAT), which is WRONG
+- set `amountGross` = `amountGrossCurrency` = receipt line price (gross amount including VAT)
+- Tripletex auto-calculates:
+  - `amount` = receipt line price / 1.12 (net)
+  - auto-generated 3rd posting on account `2711` or `2710` for the VAT recovery amount
+- balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated receipt line price
+- identical payload shape to Branch B; only the account number and VAT rate differ
+
+### Common rules (all branches)
 - use the selected line amount from the receipt, not the whole receipt total
 - use the receipt date as voucher date
 - preserve the receipt line text exactly in voucher `description` and expense-posting `description`
@@ -85,7 +110,7 @@
   - `value.name`
 - from `GET /ledger/account?...`:
   - account ids for the expense account and `1920`
-  - for Branch B: `vatType.id` from the expense account response (use `fields=id,number,name,vatType(*)` to expand)
+  - for Branch B/C: `vatType.id` from the expense account response (use `fields=id,number,name,vatType(*)` to expand)
 - from `POST /ledger/voucher`:
   - `value.id`
   - `value.version`
@@ -93,7 +118,7 @@
   - expense-posting `department.id`
   - expense-posting `account.id`
   - expense-posting `vatType.id`
-  - for Branch B: auto-generated VAT posting on `2710` with `amount` = VAT recovery
+  - for Branch B/C: auto-generated VAT posting on `2710`/`2711` with `amount` = VAT recovery
 - from `POST /ledger/voucher/{voucherId}/attachment`:
   - `value.id`
   - `value.attachment.id`
@@ -106,7 +131,7 @@
   - department id on the expense posting
   - amount / amountGross values
   - vatType.id on expense posting
-  - for Branch B: auto-generated `2710` posting with correct VAT amount
+  - for Branch B/C: auto-generated VAT posting with correct VAT amount
 - `POST /ledger/voucher/{voucherId}/attachment` should then prove the same voucher now has `attachment.id`
 - no follow-up `GET /ledger/voucher/{id}` is needed unless one of those fields is unexpectedly missing
 
@@ -116,8 +141,8 @@
 - do not try `department: { "name": "Drift" }` on the voucher posting as a lower-call shortcut; persistent sandbox on 2026-03-21 returned `201` but silently stored `department=null`
 - do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}` for this receipt-backed voucher shape; persistent sandbox on 2026-03-21 returned `422` that `description` and `postings` are not editable for that imported voucher type
 - do not use `account: { "number": 7360 }` or `account: { "number": 6540 }` or `account: { "number": 1920 }` in `POST /ledger/voucher`; number-only account refs fail with `422 postings.account.name: Kan ikke være null.`
-- for Branch B: do not omit `vatType` on the expense posting; Tripletex defaults to vatType `0` (no VAT) when not specified, even if the account has a non-zero default
-- for Branch B: do not hardcode `vatType.id=1` without checking the account response; use the id from `GET /ledger/account?...&fields=id,number,name,vatType(*)`
+- for Branch B/C: do not omit `vatType` on the expense posting; Tripletex defaults to vatType `0` (no VAT) when not specified, even if the account has a non-zero default
+- for Branch B/C: do not hardcode `vatType.id` without checking the account response; use the id from `GET /ledger/account?...&fields=id,number,name,vatType(*)` (Branch B: vatType.id=`1` for 25%; Branch C: vatType.id=`12` for 12%)
 
 ## OpenAPI / Sandbox Status
 - `/department`, `/ledger/account`, `/ledger/voucher`, `/ledger/voucher/{voucherId}/attachment`, and `/ledger/voucher/importDocument` verified in `./openapi.json`
@@ -151,6 +176,22 @@
 - `POST /ledger/voucher/609014744/attachment` attached the PDF and returned attachment.id=`1024249955`
 - omitting explicit `vatType` on the posting defaulted to vatType.id=`0` (no VAT), which is wrong — voucher `609014755` had amount=`13500`, amountGross=`13500` with no VAT splitting
 - `account: { number: 6540 }` failed with `422 postings.account.name: Kan ikke være null.`, confirming number-only refs are still unsafe
+
+### Branch C sandbox proof (2026-03-21)
+- `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*),vatLocked` returned:
+  - account `7140` "Reisekostnad, ikke oppgavepliktig": id=`424191165`, vatLocked=`false`, vatType.id=`12` ("Fradrag inngående avgift, lav sats", 12%, deductionPercentage=100)
+  - account `1920` "Bankinnskudd": id=`424190862`, vatLocked=`true`, vatType.id=`0`
+- `POST /ledger/voucher` with amountGross=`4850`, vatType={id:`12`}, account 7140, department 927069 returned voucher with:
+  - expense posting: account=`7140`, amount=`4330.36`, amountGross=`4850`, vatType.id=`12`, department=`927069`
+  - bank posting: account=`1920`, amount=`-4850`, amountGross=`-4850`
+  - auto-generated VAT posting: account=`2711` (Inngående merverdiavgift, lav sats), amount=`519.64`, amountGross=`519.64`
+- net = 4850 / 1.12 = 4330.36, VAT = 4850 - 4330.36 = 519.64 — both match
+- identical payload shape to Branch B; only the account number (7140 vs 6540) and vatType.id (12 vs 1) differ
+
+### Branch C production proof (2026-03-21, run 67d4ddca)
+- receipt: Thon Hotels, 20.06.2026, line "Overnatting" 4850 kr, paid by Bedriftskort
+- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
+- voucher 609101338: expense on 7140 (amount=4330.36, amountGross=4850, vatType.id=12, dept=948839), bank on 1920 (-4850), auto-VAT on 2710 (519.64), attachment 1024278801
 
 ## Winning Payload Shapes
 
@@ -215,3 +256,34 @@
 }
 ```
 - Tripletex will auto-compute `amount` on the expense posting (net = line-price / 1.25) and auto-generate a 3rd posting on `2710`
+
+### Branch C — Deductible accommodation
+```json
+{
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
+  "postings": [
+    {
+      "row": 1,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<7140-id>" },
+      "department": { "id": "<dept-id>" },
+      "vatType": { "id": "<vatType-id-from-account>" },
+      "amountGross": "<line-price>",
+      "amountGrossCurrency": "<line-price>"
+    },
+    {
+      "row": 2,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<line-price>",
+      "amountCurrency": "-<line-price>",
+      "amountGross": "-<line-price>",
+      "amountGrossCurrency": "-<line-price>"
+    }
+  ]
+}
+```
+- Tripletex will auto-compute `amount` on the expense posting (net = line-price / 1.12) and auto-generate a 3rd posting on `2711`
