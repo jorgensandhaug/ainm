@@ -1,0 +1,26 @@
+{
+  "name": "round_transcript_residual_memory_v1",
+  "base_model_name": "teacher_student_blend_v59",
+  "policy_name": "coverage",
+  "round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "samples_per_round": 8,
+  "max_queries": 4,
+  "k_neighbors": 5,
+  "correction_scale": 0.75,
+  "distance_scale": 2.0,
+  "probability_floor": 0.01,
+  "residual_shape": [
+    5,
+    40,
+    40,
+    6
+  ],
+  "memory_relpath": "round_memory.npz"
+}

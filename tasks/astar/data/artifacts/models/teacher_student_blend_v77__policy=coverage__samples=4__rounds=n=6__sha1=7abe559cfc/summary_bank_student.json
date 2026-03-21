@@ -1,0 +1,17 @@
+{
+  "name": "teacher_student_blend_v77",
+  "dataset_name": "summary_bank_synthetic_live__policy=coverage__samples=4__rounds=n=6__sha1=7abe559cfc",
+  "checkpoint_npz_path": "/home/jorge/agent3/tasks/astar/data/artifacts/models/teacher_student_blend_v77__policy=coverage__samples=4__rounds=n=6__sha1=7abe559cfc/bank.npz",
+  "teacher_checkpoint_path": "/home/jorge/agent3/tasks/astar/data/artifacts/models/summary_bank_hazard_teacher__rounds=n=6__sha1=7abe559cfc/hazard_teacher.json",
+  "k_neighbors": 1,
+  "sample_count": 24,
+  "summary_dim": 1000,
+  "regime_dim": 12,
+  "summary_encoder": "summary_temporal_v4",
+  "normalize_summary": true,
+  "inference_head": "coefficient_residual_knn",
+  "ridge_alpha": 2.0,
+  "coefficient_dim": 51,
+  "neighbor_distance_scale": 13.975713109681719,
+  "residual_confidence_power": 0.0
+}
