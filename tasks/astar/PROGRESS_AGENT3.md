@@ -3359,6 +3359,35 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_observed tests/test_teacher_student.py::test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint tests/test_historical_benchmark.py::test_teacher_student_blend_v100_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v102_online_historical_benchmark_defaults_to_samples_4 -q`
    - result:
      - `4 passed`
+381. Machine-wide check before launching item 379:
+   - about `1.0 TiB` used
+   - about `1.9 TiB` available
+   - no lingering `agent3_` `tmux` gate sessions were active, so the new wave could reuse clean detached session names
+382. Dual-student corrected-gate wave launched from pushed commit `b6452a5c`:
+   - `tmux` sessions:
+     - `agent3_v99_gate`
+     - `agent3_v100_gate`
+     - `agent3_v101_gate`
+     - `agent3_v102_gate`
+   - commands:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v99 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v99_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v100 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v100_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v101 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v101_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v102 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v102_targeted_holdout_2rounds_corrected --jobs 1`
+383. Post-launch check for item 382:
+   - `tmux` sessions confirmed:
+     - `agent3_v99_gate`
+     - `agent3_v100_gate`
+     - `agent3_v101_gate`
+     - `agent3_v102_gate`
+   - live launcher / worker PIDs:
+     - `v99`: `978548`, `978554`
+     - `v100`: `978553`, `978558`
+     - `v101`: `978560`, `978564`
+     - `v102`: `978565`, `978569`
+   - machine remained healthy:
+     - about `1.0 TiB` used
+     - about `1.9 TiB` available
 
 
 ## Open Questions
