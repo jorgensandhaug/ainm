@@ -20,12 +20,16 @@ The task has a hard 300s budget. **Three production runs have scored 0 due to ti
 
 ## Production Run Results (2026-03-21)
 
+### Norwegian run (ac903481, 16 calls, 1 error) — score pending
+- 6 reads, 5 customer payments (all full: Moe ×2, Johansen, Nilsen ×2), 1 combined voucher (10 postings: 3 supplier Ødegård/Moe/Hansen + 2 Bankgebyr Ut), 1 failed recon (floating-point 3506.4300000000003 → 422), 1 redundant account re-read, 1 balance sheet read, 1 successful recon (3506.43)
+- **Wasted 3 calls** due to floating-point precision bug on computed closing balance
+- No bank statement import attempted. No partial payments (all customer payments matched exactly).
+- Optimal with bank import would have been 14 calls (6 + 5 + 1 import + 1 voucher + 1 recon)
+
 ### Spanish run 2 (57c8f4db, 14 calls, 0 errors) — SCORED 0.6/6 (bank reconciliation did NOT fix Check 1)
-- 6 reads in parallel (broad accountingPeriod query, not targeted), 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500), 3 supplier payments (González/Torres/López SL) + 3 non-invoice (1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) combined into 1 voucher (12 postings), 1 balance sheet read, 1 bank reconciliation (closingBalance=39130.06)
+- 6 reads + 5 customer payments (4 full + 1 partial) + 1 combined voucher (12 postings) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06)
 - **FIRST bank reconciliation attempt** — but Check 1 still failed. Reconciliation had `transactions: []` (empty). Bank reconciliation alone is NOT sufficient.
-- **Key finding 1**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not in Tripletex
-- **Key finding 2**: Check 1 likely requires bank statement transaction import (CSV → Tripletex BankStatementTransaction entries). All format conversion attempts failed (422). See trusted standard Step 7.
-- Used 14 calls; optimal is 13 (skip balance sheet read, compute instead)
+- **Key finding**: Check 1 likely requires bank statement transaction import. Format conversion now SOLVED: use SBANKEN_BEDRIFT_CSV with bankId=112.
 
 ### German run 2 (5fc92ebf, 11 calls, 0 errors) — likely SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
 - 5 reads fired in parallel (OLD path, no `/ledger/accountingPeriod`), 5 customer payments (4 full + 1 partial: Meyer GmbH 10750 of 21500), 3 supplier payments + 3 Bankgebyr (1 Ut expense + 2 Inn refunds) combined into 1 voucher (12 postings)
@@ -174,7 +178,7 @@ Key findings:
 - **total: 2 reads + N customer payments**
 
 ### Mixed incoming/outgoing runs
-1. parse CSV locally — compute closing balance as `sum(Inn) - sum(|Ut|)` from ALL CSV lines
+1. parse CSV locally — compute closing balance as `Math.round((sum(Inn) - sum(|Ut|)) * 100) / 100` from ALL CSV lines
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)`
@@ -182,14 +186,15 @@ Key findings:
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
    - `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` (speculative; needed if no supplier invoices)
    - `GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after>&count=1&fields=*` (needed for bank reconciliation)
-3. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
-4. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
-5. `PUT /invoice/{id}/:payment` once per matched incoming line
-6. **Bank reconciliation (CRITICAL for Check 1)**: `POST /bank/reconciliation` with `isClosed: true` using computed closing balance (see trusted standard Step 6)
-- **no-supplier-invoice floor: 6 reads + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 2**
-- **with balance sheet safety read: 6 reads + N customer payments + 1 combined voucher + 1 balance read + 1 bank recon = 6 + N + 3**
-- example: 5 customer + 3 supplier + 3 non-invoice, computed balance = 6 + 5 + 2 = **13 calls**
-- **DO NOT use CSV ending saldo** — it includes opening balance not in Tripletex (production-proved: 57c8f4db)
+3. **Bank statement import** (right after Step 1, in parallel with first customer payment): convert CSV to SBANKEN_BEDRIFT_CSV format, `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV`
+4. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
+5. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
+6. `PUT /invoice/{id}/:payment` once per matched incoming line
+7. **Bank reconciliation**: `POST /bank/reconciliation` with `isClosed: true` using rounded computed closing balance (see trusted standard Step 6)
+- **no-supplier-invoice floor with bank import: 6 reads + 1 bank import + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 3**
+- example: 5 customer + 3 supplier + 2 bankgebyr, computed balance = 6 + 5 + 3 = **14 calls**
+- **ROUND computed closing balance** — floating point caused 3 wasted calls in run ac903481
+- **DO NOT use CSV ending saldo** — it includes opening balance not in Tripletex
 
 ### Critical: do not split into multiple scripts or debug passes
 - write one comprehensive script that handles the complete flow
@@ -244,7 +249,7 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **BANK RECONCILIATION NECESSARY BUT NOT SUFFICIENT**: Run 57c8f4db created a bank reconciliation but still scored 0.6/6 (Check 1 failed). All 10 completed runs scored 0.6/6. The reconciliation had `transactions: []` (empty) — Check 1 likely requires bank statement transactions to be imported via `/bank/statement/import` (currently UNSOLVED — all format conversion attempts returned 422). Still include bank reconciliation (`POST /bank/reconciliation` with `isClosed: true`), but the actual fix for Check 1 is likely bank statement import. `bankAccountClosingBalanceCurrency` must match actual account 1920 balance — compute as `sum(Inn) - sum(|Ut|)` from all CSV lines. DO NOT use CSV ending saldo (includes opening balance not in Tripletex). If proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10).
+- **BANK STATEMENT IMPORT + RECONCILIATION BOTH REQUIRED**: Runs 57c8f4db and 02daaa35 created bank reconciliation but scored 0.6/6 (Check 1 failed). Reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transactions via `POST /bank/statement/import`. **Format now SOLVED**: use `SBANKEN_BEDRIFT_CSV` with `bankId=112` (sandbox-verified 2026-03-21). Include both import and reconciliation. Compute closing balance as `Math.round((sum(Inn) - sum(|Ut|)) * 100) / 100` — DO NOT use CSV ending saldo (includes opening balance) and ALWAYS round to 2 decimal places (production run ac903481 wasted 3 calls due to floating-point precision bug).
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)

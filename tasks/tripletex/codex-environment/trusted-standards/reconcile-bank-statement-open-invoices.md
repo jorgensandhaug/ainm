@@ -8,15 +8,15 @@ Task asks to reconcile a bank statement (CSV) against open invoices. Incoming pa
 
 ## MANDATORY CHECKLIST — your script MUST include ALL 7 steps
 
-Steps 1–5 give 0.6/6 (Check 2 only). Step 6 (bank reconciliation alone, without bank statement import) was proven INSUFFICIENT in run 57c8f4db — score remained 0.6/6. **Step 7 (bank statement import) is likely the missing piece for Check 1** but the correct CSV format conversion is UNSOLVED (all attempts returned 422). Include Steps 6+7 anyway — if they fail, fall back gracefully.
+Steps 1–5 give 0.6/6 (Check 2 only). Step 6 (bank reconciliation alone, without bank statement import) was proven INSUFFICIENT in runs 57c8f4db and 02daaa35 — both scored 0.6/6. **Step 7 (bank statement import) is the likely missing piece for Check 1.** The format conversion is now SOLVED: use `SBANKEN_BEDRIFT_CSV` with bank ID `112` (sandbox-verified 2026-03-21).
 
 1. **Step 1**: Fire 6 reads in parallel (including `accountingPeriod`)
 2. **Step 2**: Select payment type (debitAccount.number === 1920)
 3. **Step 3**: Match and pay customer invoices (`PUT /invoice/{id}/:payment`)
 4. **Step 4**: Handle supplier payments (combined voucher if no supplier invoices)
 5. **Step 5**: Book ALL non-invoice lines (Bankgebyr/Skattetrekk/Renteinntekter)
-6. **Step 6**: `POST /bank/reconciliation` with `isClosed: true` — necessary but NOT sufficient for Check 1
-7. **Step 7**: Import bank statement via `POST /bank/statement/import` — **LIKELY required for Check 1 but format conversion is UNSOLVED** (see "Bank Statement Import" section)
+6. **Step 6**: `POST /bank/reconciliation` with `isClosed: true` — necessary but NOT sufficient alone for Check 1
+7. **Step 7**: `POST /bank/statement/import` with `SBANKEN_BEDRIFT_CSV` format — **SOLVED, sandbox-verified** (see "Bank Statement Import" section)
 
 ## CSV parsing
 
@@ -127,9 +127,11 @@ const period = accountingPeriods[0]; // single result from targeted query
 // Fresh test accounts start 1920 at 0, so balance = net of all CSV movements
 // = sum(all Inn values) - sum(all absolute Ut values) from the CSV
 // If you stored Ut as positive: use (inn - ut). If as negative: use (inn + ut).
-const computedBalance = csvLines.reduce((sum, line) => {
+// CRITICAL: round to 2 decimal places to avoid floating-point mismatch (e.g. 3506.4300000000003 vs 3506.43)
+// Production run ac903481 hit exactly this bug: unrounded balance caused 422, wasting 3 recovery calls.
+const computedBalance = Math.round(csvLines.reduce((sum, line) => {
   return sum + (line.inn || 0) - Math.abs(line.ut || 0);
-}, 0);
+}, 0) * 100) / 100;
 
 // Create + close bank reconciliation in ONE call
 await post("bank/reconciliation", {
@@ -154,44 +156,82 @@ await post("bank/reconciliation", {
 **Fallback**: if `POST /bank/reconciliation` returns `403` (proxy blocks it), skip bank reconciliation entirely — the customer payments and voucher postings will still score Check 2 (2/10).
 **Fallback 2**: if computed balance causes `422`, read balance sheet as safety net: `GET /balanceSheet?dateFrom=${period.start}&dateTo=${period.end}&accountNumberFrom=1920&accountNumberTo=1920&count=1&fields=*` → use `values[0].balanceOut`. This costs 1 extra call.
 
-### Step 7: Import bank statement (UNSOLVED — likely required for Check 1)
+### Step 7: Import bank statement (SOLVED — sandbox-verified 2026-03-21)
 
-**STATUS: ALL FORMAT ATTEMPTS FAILED. This step is the highest-priority investigation target.**
+Convert the task CSV to `SBANKEN_BEDRIFT_CSV` format and import via `POST /bank/statement/import`. This creates `BankStatementTransaction` entries visible in the Tripletex bank statement view.
 
-The CSV format `Dato;Forklaring;Inn;Ut;Saldo` does not directly match any supported Tripletex import format. The `/bank/statement/import` endpoint requires `fileFormat` and `bankId` parameters. Available formats include: `DANSKE_BANK_CSV` (bankId 76), `DNB_CSV` (bankId 67), `NORDEA_CSV`, `SBANKEN_BEDRIFT_CSV` (bankId 112), `SBANKEN_PRIVAT_CSV` (bankId 112), `HAUGESUND_SPAREBANK_CSV`, `VISMA_ACCOUNT_STATEMENT`, `ZTL`.
+**Format: `SBANKEN_BEDRIFT_CSV`** with bank ID `112` (Sbanken — a constant reference data ID, same across all Tripletex instances).
 
-**Sandbox investigation results (2026-03-21, run 57c8f4db)**:
-- Tested reformatting CSV to match each bank format's expected column headers
-- ALL attempts returned `422` with "file must contain columns [expected columns]" even when providing exactly those columns
-- Tested: semicolons, commas, tabs as separators; BOM and ISO-8859-1 encoding; quoted and unquoted headers; `Blob` and `Bun.file()` for upload
-- **None succeeded** — the endpoint may require additional metadata, encoding, or exact column structure that hasn't been cracked
+Required columns and structure:
+```
+"Inngående saldo DD.MM.YYYY";"<opening_balance>"
+"Utgående saldo DD.MM.YYYY";"<closing_balance>"
+"Bokført";"Rentedato";"Beskrivelse";"Beløp"
+"DD.MM.YYYY";"DD.MM.YYYY";"<description>";"<amount>"
+...
+```
 
-**Hypothesis**: Check 1 likely validates that bank statement transactions exist in the system, linked to the reconciliation. Without bank statement import, the reconciliation object is empty (`transactions: []`). The full expected workflow:
-1. Import bank statement → creates `BankStatementTransaction` entries (one per CSV line)
-2. Match bank transactions to ledger postings via `POST /bank/reconciliation/match`
-3. Close the reconciliation with `isClosed: true`
+**Conversion rules from task CSV** (`Dato;Forklaring;Inn;Ut;Saldo`):
+- Dates: convert `YYYY-MM-DD` → `DD.MM.YYYY`
+- Amounts: convert period decimal to comma decimal; merge Inn/Ut into single Beløp (positive for Inn, negative for Ut)
+- Opening saldo: first CSV line's Saldo minus first transaction amount (e.g., `104200 - 4200 = 100000`)
+- Closing saldo: last CSV line's Saldo value
+- Metadata row dates: use first transaction date for Inngående, last for Utgående
 
-**Investigation priority for next sandbox session**:
-1. Try multi-period reconciliation (create reconciliation for BOTH January AND February periods when CSV spans 2 months). Hypothesis: scorer checks each period individually. Requires querying both periods and computing per-period closing balances.
-2. Try `POST /bank/reconciliation/match` with just postings (sandbox test showed it REQUIRES `transactions` field with bank transaction IDs — fails with "Listen må inneholde elementer med ID")
-3. Download a real DNB CSV export to study the exact file format, or find Tripletex documentation for the expected file structure
-4. Try `VISMA_ACCOUNT_STATEMENT_PLATFORM_AGNOSTIC` format with a proper CAMT.053 or ISO 20022 XML file instead of CSV
+```typescript
+function toSbankenBedriftCsv(csvLines: Array<{date: string, desc: string, inn: number, ut: number, saldo: number}>): string {
+  const firstDate = csvLines[0].date.split("-").reverse().join(".");
+  const lastDate = csvLines[csvLines.length - 1].date.split("-").reverse().join(".");
+  const openingSaldo = csvLines[0].saldo - csvLines[0].inn + csvLines[0].ut;
+  const closingSaldo = csvLines[csvLines.length - 1].saldo;
+
+  const fmt = (n: number) => n.toFixed(2).replace(".", ",");
+  let out = `"Inngående saldo ${firstDate}";"${fmt(openingSaldo)}"\n`;
+  out += `"Utgående saldo ${lastDate}";"${fmt(closingSaldo)}"\n`;
+  out += `"Bokført";"Rentedato";"Beskrivelse";"Beløp"\n`;
+  for (const l of csvLines) {
+    const d = l.date.split("-").reverse().join(".");
+    const amount = l.inn > 0 ? l.inn : -l.ut;
+    out += `"${d}";"${d}";"${l.desc}";"${fmt(amount)}"\n`;
+  }
+  return out;
+}
+
+// Upload via multipart/form-data
+const formData = new FormData();
+formData.append("file", new Blob([sbankenCsv], { type: "text/csv" }), "bankstatement.csv");
+const importUrl = `${BASE}/bank/statement/import?bankId=112&accountId=${acct1920Id}&fromDate=${firstCsvDate}&toDate=${dayAfterLastCsvDate}&fileFormat=SBANKEN_BEDRIFT_CSV`;
+await fetch(importUrl, { method: "POST", headers: { Authorization: AUTH }, body: formData });
+```
+
+**Key facts (sandbox-verified 2026-03-21)**:
+- `POST /bank/statement/import` returns `201` with `{ value: { id, openingBalanceCurrency, closingBalanceCurrency, transactions: [...] } }`
+- All 10 CSV lines became 10 `BankStatementTransaction` entries with correct dates, descriptions, and amounts
+- Transactions have `matchType: "NO_MATCH"` and `matched: false` initially
+- The `accountId` parameter is the ledger account ID for account 1920 (already fetched in Step 1)
+- The `fromDate`/`toDate` are the date range of the CSV (inclusive start, exclusive end — use day after last CSV date)
+- Bank ID 112 (Sbanken) is constant reference data; no need to `GET /bank` to find it
+- DNB_CSV, DANSKE_BANK_CSV, NORDEA_CSV, HAUGESUND_SPAREBANK_CSV all rejected the converted format with 422; only SBANKEN_BEDRIFT_CSV worked
+
+**Execution order**: import the bank statement AFTER Step 1 (needs `accountId`) but can run IN PARALLEL with Step 3 (customer payments). Place it right after Step 1 completes, in parallel with the first customer payment.
 
 ## Call count
 
-- **No supplier invoices (common, computed balance)**: 6 reads + N customer payments + 1 combined voucher + 1 bank reconciliation = **6 + N + 2**
-- **With balance sheet fallback**: 6 reads + N customer payments + 1 combined voucher + 1 balance sheet read + 1 bank reconciliation = **6 + N + 3**
-- **Has supplier invoices**: 7 reads + N customer payments + M supplier invoice payments + 1 non-invoice voucher + 1 bank reconciliation = **7 + N + M + 2**
-- Example: 5 customer + 3 supplier + 3 non-invoice, no supplier invoices, computed balance = 6 + 5 + 2 = **13 calls**
-- Example: same but with balance sheet safety read = 6 + 5 + 3 = **14 calls** (what run 57c8f4db used)
-- Old path without bank reconciliation: 11 calls but Check 1 always fails (0.6/6 score)
+- **No supplier invoices (common, computed balance, with bank statement import)**: 6 reads + 1 bank import + N customer payments + 1 combined voucher + 1 bank reconciliation = **6 + N + 3**
+- **Without bank statement import**: 6 reads + N customer payments + 1 combined voucher + 1 bank reconciliation = **6 + N + 2** (but likely scores only 0.6/6 — Check 1 fails)
+- **With balance sheet fallback**: add 1 more call = **6 + N + 4** (avoid by rounding computed balance)
+- **Has supplier invoices**: 7 reads + 1 bank import + N customer payments + M supplier invoice payments + 1 non-invoice voucher + 1 bank reconciliation = **7 + N + M + 3**
+- Example: 5 customer + 3 supplier + 2 bankgebyr, no supplier invoices, computed balance = 6 + 5 + 3 = **14 calls** (includes bank import)
+- Old path without bank reconciliation or import: 11 calls but Check 1 always fails (0.6/6 score)
+- Old path with bank reconciliation but no import: 13 calls but STILL scored 0.6/6 (proven by 57c8f4db and 02daaa35)
 
 ## Proven production results
 
-**ALL 12 completed runs scored 0.6/6.** Both runs with bank reconciliation (57c8f4db, 02daaa35) scored 0.6/6 — bank reconciliation alone does NOT fix Check 1. The reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transaction import (unsolved).
+**ALL completed runs scored 0.6/6.** Both runs with bank reconciliation (57c8f4db, 02daaa35) scored 0.6/6 — bank reconciliation alone does NOT fix Check 1. The reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transaction import. The format conversion is now SOLVED (SBANKEN_BEDRIFT_CSV, sandbox-verified 2026-03-21) but has not yet been tested in a scored production run.
 
-- **English run 11 (02daaa35): 13 calls, 0 errors, scored 0.6/6** — 2nd bank reconciliation attempt, optimal call count. 6 reads + 5 customer payments (4 full + 1 partial: Taylor Ltd 5156.25 of 10312.50) + 1 combined voucher (12 postings: 3 supplier payments Taylor+Taylor+Smith + 1 Renteinntekter Ut 1495.08 + 1 Skattetrekk Ut 1819.20 + 1 Skattetrekk Inn 1947.28) + 1 bank reconciliation (closingBalance=56951.75, Feb period). Used computed closing balance (no balance sheet fallback needed). **Confirms**: bank reconciliation does not affect the score at all.
-- **Spanish run 2 (57c8f4db): 14 calls, 0 errors, scored 0.6/6** — FIRST bank reconciliation attempt, but Check 1 still failed. 6 reads (broad accountingPeriod query) + 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500) + 1 combined voucher (12 postings: 3 supplier payments González/Torres/López + 1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06, NOT CSV saldo 139130.06). **Key finding 1**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not present in Tripletex. **Key finding 2**: bank reconciliation alone is NOT sufficient — the reconciliation object had `transactions: []`, likely needs bank statement import to populate transactions.
+- **Norwegian run (ac903481): 16 calls, 1 error (422), scored pending** — 3rd bank reconciliation attempt. 6 reads + 5 customer payments (all full: Moe AS ×2, Johansen AS, Nilsen AS ×2) + 1 combined voucher (10 postings: 3 supplier Ødegård/Moe/Hansen + 2 Bankgebyr Ut) + 1 failed recon (floating-point 3506.4300000000003 caused 422) + 1 redundant account re-read + 1 balance sheet read + 1 successful recon (closingBalance=3506.43). **Wasted 3 calls** due to floating-point precision bug. Optimal would have been 13 calls (or 14 with bank statement import). No bank statement import attempted.
+- **English run 11 (02daaa35): 13 calls, 0 errors, scored 0.6/6** — 2nd bank reconciliation attempt, optimal call count. 6 reads + 5 customer payments (4 full + 1 partial: Taylor Ltd 5156.25 of 10312.50) + 1 combined voucher (12 postings: 3 supplier payments Taylor+Taylor+Smith + 1 Renteinntekter Ut 1495.08 + 1 Skattetrekk Ut 1819.20 + 1 Skattetrekk Inn 1947.28) + 1 bank reconciliation (closingBalance=56951.75, Feb period). Used computed closing balance (no balance sheet fallback needed). **Confirms**: bank reconciliation alone does not affect the score.
+- **Spanish run 2 (57c8f4db): 14 calls, 0 errors, scored 0.6/6** — FIRST bank reconciliation attempt, but Check 1 still failed. 6 reads + 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500) + 1 combined voucher (12 postings: 3 supplier payments González/Torres/López + 1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06). **Key finding**: bank reconciliation alone is NOT sufficient — the reconciliation object had `transactions: []`.
 - German run 2 (5fc92ebf): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
 - German run 1 (655f6c99): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
 - Portuguese run 2 (5c02a044): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6 (included all non-invoice lines)
@@ -204,8 +244,9 @@ The CSV format `Dato;Forklaring;Inn;Ut;Saldo` does not directly match any suppor
 
 ## Critical pitfalls
 
-- **BANK RECONCILIATION IS NECESSARY BUT NOT SUFFICIENT**: Run 57c8f4db was the first to create a bank reconciliation and still scored 0.6/6. All 10 completed runs scored 0.6/6. The reconciliation had `transactions: []` — Check 1 likely requires bank statement transactions to be imported and linked. Still include Step 6 (it may be a prerequisite) but the actual fix for Check 1 is likely Step 7 (bank statement import, currently UNSOLVED).
-- **DO NOT use CSV ending saldo as closing balance**: The CSV saldo includes an opening balance (typically 100000) that does NOT exist in the fresh Tripletex account. Production run 57c8f4db: CSV saldo=139130.06, actual balance=39130.06. Using CSV saldo would cause `422`. Compute closing balance as `sum(Inn) - sum(|Ut|)` from all CSV lines instead.
+- **BANK RECONCILIATION IS NECESSARY BUT NOT SUFFICIENT**: Runs 57c8f4db and 02daaa35 both created bank reconciliation and still scored 0.6/6. The reconciliation had `transactions: []` — Check 1 likely requires bank statement transactions to be imported (Step 7). Still include Step 6 (prerequisite) AND Step 7 (bank statement import, now SOLVED with SBANKEN_BEDRIFT_CSV format).
+- **ROUND COMPUTED CLOSING BALANCE**: Always use `Math.round(balance * 100) / 100` before sending to the API. Production run ac903481 had computed balance `3506.4300000000003` (should be `3506.43`) — caused 422 and wasted 3 recovery calls.
+- **DO NOT use CSV ending saldo as closing balance**: The CSV saldo includes an opening balance (typically 100000) that does NOT exist in the fresh Tripletex account. Compute closing balance as `sum(Inn) - sum(|Ut|)` from all CSV lines, then round to 2 decimal places.
 - **TIMEOUT RISK**: This is the most timeout-prone task shape. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Three production runs scored 0 due to timeout: bc688ea1 (spent 300s reading docs, 0 API calls), 2f10e207 (LLM output took 4.5 min generating script, API executed in 4s but proxy expired), and one earlier run. The API execution takes ~4–15s; all remaining time is wasted on documentation or LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes `400`
