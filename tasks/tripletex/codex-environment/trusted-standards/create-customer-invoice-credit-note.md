@@ -41,6 +41,7 @@
 - for the exact prompt shape `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`, that two-call path was the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, that two-call path was re-confirmed as the successful production path on 2026-03-21 (second confirmation; first was 2026-03-20)
 - for the exact prompt shape `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`, that two-call path was the successful production path on 2026-03-21
+- for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`, that two-call path was the successful production path on 2026-03-21
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
@@ -144,3 +145,8 @@
   - `PUT /invoice/2147644431/:createCreditNote?date=2026-03-21&sendToCustomer=false`
   - the run succeeded with 2 API calls, 0 errors
   - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+- production run confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`:
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/2147644728/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+  - the run succeeded with 2 API calls, 0 errors
+  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read

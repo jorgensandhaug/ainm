@@ -141,6 +141,16 @@ Verified on 2026-03-21:
   - no `GET /invoice/{id}`
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
   - 2 API calls, 0 errors
+- an eleventh production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=962467210`
+  - `amountExcludingVatCurrency=41600`
+  - `description="Nettverkstjeneste"`
+- that eleventh production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - 2 API calls, 0 errors
+- persistent-sandbox re-verification on 2026-03-21 with a disposable fixture matching `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600` again proved the same two-call core after setup
 
 ## Minimal Flow
 
