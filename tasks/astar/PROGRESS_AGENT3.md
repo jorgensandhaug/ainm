@@ -4508,8 +4508,32 @@
    - 4th: query_residual_v21 = 76.68
    - 5th: query_residual_v17 = 76.15
 
+491. Full LOO results for all adaptive_ensemble variants tested:
+   - **v7: 79.34** (BEST EVER - binary threshold=0.03, scale=0.3/0.2)
+   - v1: 79.26 (binary threshold=0.03, scale=0.4/0.3)
+   - v9: 79.22 (graduated threshold=0.03, scale=0.3/0.2, power=1.0)
+   - v8: 79.03 (binary threshold=0.03, scale=0.5/0.4)
+   - v10: 79.02 (graduated threshold=0.04, scale=0.25/0.15, power=0.5)
+   - v2: 78.60 (binary threshold=0.02, scale=0.3/0.2)
+
+492. Key findings from adaptive_ensemble exploration:
+   - Binary threshold at 0.03 is optimal for detecting barren rounds
+   - More aggressive scaling (0.3/0.2) beats gentler (0.4/0.3)
+   - Graduated scaling doesn't help vs binary threshold
+   - All 6 tested full LOO variants beat previous best (76.89)
+   - The approach is SURGICALLY PRECISE: only modifies barren rounds, leaves others untouched
+
+493. Updated verified leaderboard:
+   - **1st: adaptive_ensemble_v7 = 79.34** (NEW ALL-TIME BEST!)
+   - 2nd: adaptive_ensemble_v1 = 79.26
+   - 3rd: adaptive_ensemble_v9 = 79.22
+   - 4th: adaptive_ensemble_v8 = 79.03
+   - 5th: adaptive_ensemble_v10 = 79.02
+   - 6th: query_residual_v19 = 76.89
+
 ## Open Questions
 
-- Will adaptive_ensemble_v2 beat v1 on full LOO?
-- Can the barren-round detection be improved with more features?
-- Can similar regime-specific calibration be applied to the active-but-unpredictable round?
+- Can we find even more aggressive scaling that helps the barren rounds without overshooting?
+- Can we build a continuous (non-binary) correction that smoothly adapts to activity level?
+- Should we try the adaptive_ensemble approach on top of other base models?
+- Can we detect other regime types beyond barren (e.g., high-conflict, port-heavy)?
