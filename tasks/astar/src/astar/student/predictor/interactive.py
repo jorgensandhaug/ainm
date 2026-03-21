@@ -10,6 +10,9 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
+from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
+from astar.student.predictor.greybox_roundmatch import GreyboxRoundMatchPredictor
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
@@ -297,6 +300,38 @@ def build_online_predictor(
     if normalized == "greybox_gated_hybrid":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxGatedHybridPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_cellknn":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxCellKnnPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_roundmatch":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxRoundMatchPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_obsval_ensemble":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxObsValEnsemblePredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=(policy_name or "coverage").strip().lower(),

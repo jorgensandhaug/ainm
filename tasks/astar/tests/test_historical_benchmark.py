@@ -279,6 +279,9 @@ def test_query_residual_online_historical_benchmark_rebuilds_incomplete_legacy_d
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",
         "greybox_gated_hybrid",
+        "greybox_cellknn",
+        "greybox_roundmatch",
+        "greybox_obsval_ensemble",
     ],
 )
 def test_greybox_regime_online_historical_benchmark_runs(
@@ -302,6 +305,9 @@ def test_greybox_regime_online_historical_benchmark_runs(
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",
         "greybox_gated_hybrid",
+        "greybox_cellknn",
+        "greybox_roundmatch",
+        "greybox_obsval_ensemble",
     ],
 ) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)

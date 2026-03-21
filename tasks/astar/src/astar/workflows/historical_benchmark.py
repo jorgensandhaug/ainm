@@ -189,6 +189,9 @@ def run_historical_benchmark(
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",
         "greybox_gated_hybrid",
+        "greybox_cellknn",
+        "greybox_roundmatch",
+        "greybox_obsval_ensemble",
     }
     resolved_samples_per_round = samples_per_round if normalized_model_name in transcript_models else None
     if normalized_model_name in transcript_models and len(selected_round_ids) < 2:

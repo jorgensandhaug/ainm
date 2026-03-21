@@ -2406,3 +2406,62 @@
 - Next pivot implication:
   - stop spending more cycles on minor H10 policy tweaks for now
   - if returning later, it should be with a more radical policy-learning setup, not another small heuristic retune
+
+### 2026-03-21T15:05:00Z
+
+- **RADICAL NEW DIRECTION: Cell-level kNN + Observation-Validated Ensemble**
+- Re-read full handoff and analyzed the fundamental limitations of current approach:
+  - Current hazard teacher compresses each round to only 51 logistic regression coefficients
+  - This loses enormous per-cell spatial information from the replays
+  - The low-rank manifold further compresses to ~3 dimensions
+  - Ground truth terminal probs are 40×40×6 = 9600 values per seed
+- Implemented three new fundamentally different predictors:
+
+#### 1. `greybox_cellknn_v01` — Cell-level kNN with full replay terminal probs
+- file: `src/astar/student/predictor/greybox_cellknn.py`
+- Uses per-cell terminal probability maps from replays directly (40×40×6 per seed)
+- Matches cells via feature-space similarity using 13 spatial features
+- Round identification via cell-level multinomial likelihood weighting
+- Spatial propagation from observed to unobserved cells via Gaussian smoothing
+- Uses batched numpy distance computation (no scipy needed)
+
+#### 2. `greybox_roundmatch_v01` — Round-weighted terminal probability transfer
+- file: `src/astar/student/predictor/greybox_roundmatch.py`
+- Bayesian posterior over training rounds from observed cell likelihoods
+- Map fingerprint similarity for cross-seed matching
+- Direct weighted average of full-resolution terminal prob maps
+
+#### 3. `greybox_obsval_ensemble_v01` — Observation-validated ensemble
+- file: `src/astar/student/predictor/greybox_obsval_ensemble.py`
+- Runs both cellknn and hybrid_lowrank_queryres
+- Per-cell weighting based on which model's predictions better match actual observations
+- Sigmoid gating with spatial smoothing of the observation match score
+- Designed to capture: cellknn's strength on unusual rounds + hybrid's strength on typical rounds
+
+- All three integrated into:
+  - predictor registry / online path
+  - historical benchmark transcript-model allowlist
+  - model_eval historical eval path
+  - CLI model choices
+  - test smoke matrix
+
+- Validation:
+  - `uv run python -m py_compile` — all passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q -k "greybox_cellknn or greybox_roundmatch or greybox_obsval_ensemble"` — 3 passed
+
+- Initial 3-round hard-slice results:
+
+| Model | 36e581 | c5cdf | f1dac | Mean |
+|-------|--------|-------|-------|------|
+| **existing best** | ~66 | ~78 | ~57 | ~67 |
+| `greybox_cellknn_v01` | 43.28 | 71.93 | **76.59** | 63.93 |
+| `greybox_roundmatch_v01` | 35.45 | ~46 | ~42 | 41.07 |
+
+- **KEY FINDING**: cellknn gets **76.59 on f1dac** (the hardest round), which is +19.6 points better than the existing best (~57)
+- cellknn is catastrophic on 36e581 (43.28 vs ~66), meaning it loses on typical rounds
+- roundmatch is rejected — map differences between rounds make direct position-level transfer broken
+
+- Launched parallel benchmarks:
+  - `agent5_obsval_ensemble_coverage_probe3_v01` — ensemble with coverage policy
+  - `agent5_obsval_ensemble_explr3_probe3_v01` — ensemble with exploration_r3 policy
+  - `agent5_cellknn_coverage_full8_v01` — full 8-round cellknn evaluation
