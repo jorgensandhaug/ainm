@@ -125,13 +125,8 @@ function compactRunLabel(runId: string, phase: string) {
 }
 
 function isLiveRow(row: RunSummary) {
-  if (row.paneDead) return false;
-  return (
-    row.solveStatus === "running" ||
-    row.reflectionStatus === "running" ||
-    row.reflectionStatus === "launched" ||
-    ((row.solveStatus === "pending" || row.solveStatus === "missing") && !row.idlePane)
-  );
+  if (row.paneDead || row.idlePane) return false;
+  return true;
 }
 
 function statusColor(status: string) {
@@ -284,16 +279,19 @@ function sortRows(rows: RunSummary[]) {
   });
 }
 
-function effectiveStatus(fileStatus: string, paneDead: boolean) {
-  if (!paneDead) return fileStatus;
-  if (fileStatus === "running" || fileStatus === "pending") return "dead";
+function effectiveStatus(fileStatus: string, paneDead: boolean, idlePane: boolean) {
+  if (paneDead) {
+    if (fileStatus === "running" || fileStatus === "pending") return "dead";
+    return fileStatus;
+  }
+  if (idlePane && (fileStatus === "running" || fileStatus === "pending")) return "exited";
   return fileStatus;
 }
 
 function rowMarkup(row: RunSummary) {
   const attr = attrLabel(row.attributionStatus);
-  const mainStatus = effectiveStatus(row.solveStatus, row.paneDead);
-  const postStatus = effectiveStatus(row.reflectionStatus, row.paneDead);
+  const mainStatus = effectiveStatus(row.solveStatus, row.paneDead, row.idlePane);
+  const postStatus = effectiveStatus(row.reflectionStatus, row.paneDead, row.idlePane);
   const cells = [
     formatCell(String(row.windowIndex), 3),
     formatCell(row.phase === "solve" ? "S" : row.phase === "reflect" ? "R" : "$", 1),
