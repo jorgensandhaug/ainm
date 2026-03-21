@@ -54,9 +54,9 @@ POST /ledger/voucher?sendToLedger=true
   ]
 }
 ```
-- **Missing VAT** — two branches depending on whether the original voucher already has a `2710` posting:
-  - **Exact branch (no `2710` exists)**: post full `net * 0.25` directly on 2710, counterpart for same amount. Do NOT use expense + vatType=1 for this branch — sandbox-proven wrong (creates auto-generated 2710 amounts that don't match).
-  - **Other branch (`2710` exists but too low)**: post `net * 0.25` on the expense account with `vatType: { id: 1 }`, counterpart for same amount. Tripletex auto-generates the correct 2710 VAT line. This approach is sandbox-proven and succeeded in production runs 0f4ba20a, 0607a659, and 05ab1461.
+- **Missing VAT: ALWAYS post directly on 2710** — NEVER use expense + `vatType: { id: 1 }`. The auto-generated 2710 amount from vatType=1 will not match what the scorer expects. Production runs confirmed this across multiple tasks.
+  - **Case A (no `2710` exists)**: post full `net * 0.25` directly on 2710, counterpart for same amount.
+  - **Case B (`2710` exists but too low)**: post 3 lines — `2710 +vat_shortfall`, expense `+expense_net_shortfall` with `vatType: { id: 0 }`, counterpart `-total_shortfall`. Where: `vat_shortfall = net*0.25 - existing_2710`, `expense_net_shortfall = net - existing_net`, `total_shortfall = vat_shortfall + expense_net_shortfall`. Production run 0607a659 used expense+vatType=1 for Case B and Check 3 failed.
 - Copy `vatType` from original postings on all other correction lines (wrong account, duplicate, incorrect amount). Do NOT hardcode vatType 1.
 - If any correction touches account `2400`, include `supplier: { id: ... }` from the original voucher.
 - Use the write response as default verification.
@@ -67,7 +67,7 @@ POST /ledger/voucher?sendToLedger=true
 3. **Row values required**: All postings MUST have explicit `row: 1`, `row: 2`, etc. Row 0 is system-reserved.
 4. **`dateTo` is exclusive**: `dateTo=2026-03-01` means up to and excluding March 1st (i.e., includes all of February).
 5. **Duplicate detection cascade**: Use description keyword "duplikat" as PRIMARY detector, then signature grouping, then single-entry fallback. Do NOT rely solely on signature grouping — production run 0607a659 proved that the duplicate can be the ONLY entry on that account+amount (no original to pair with), causing 2 script crashes and 4 wasted calls.
-6. **Missing VAT exact branch only: do not use expense + vatType=1**: For the exact branch (no `2710` exists), post directly on `2710`. The expense+vatType=1 approach creates wrong auto-generated amounts for this shape (sandbox-proven). For the other branch (`2710` exists but too low), expense + vatType=1 IS correct.
+6. **NEVER use expense + vatType=1 for ANY missing VAT correction**: Whether Case A (no 2710) or Case B (2710 exists but too low), always post directly on 2710. The expense+vatType=1 approach creates auto-generated 2710 amounts that don't match scorer expectations. Production run 0607a659 Check 3 failed because of this.
 7. **Account 2400 requires supplier**: Postings on account 2400 (Leverandørgjeld) require `supplier: { id: ... }`. If the original error voucher used 2400 as contra, the correction voucher on 2400 also needs the supplier reference from the original posting.
 8. **vatType-locked accounts cause 422**: Some accounts are locked to a specific vatType (e.g., 7100 Bilgodtgjørelse oppgavepliktig is locked to vatType 0). Always copy the `vatType.id` from the original posting instead of hardcoding vatType 1. Production run 2026-03-21 wasted a call on this exact 422.
 9. **Do NOT make a second `GET /ledger/account` for counterpart IDs**: The voucher response's nested `account(id,number)` expansion already provides all counterpart account IDs. Only the initial `GET /ledger/account` is needed — for correction-target accounts not present in any voucher posting (e.g., the correct account in a reclassification).
@@ -89,8 +89,10 @@ POST /ledger/voucher?sendToLedger=true
 - Fix: always read the original posting's `vatType.id` and check for existing 2710 postings before choosing the correction branch
 - Second run (0f4ba20a) achieved ideal 3 calls, 0 errors: correctly copied vatType from originals, correctly detected "other branch" for missing VAT, included supplier.id for 2400
 - **Latent bug in second run**: used `dateTo=2026-02-28` (exclusive → excludes Feb 28); succeeded only because all errors were dated before Feb 28. Always use first-of-next-month (e.g., `dateTo=2026-03-01` for Jan-Feb).
-- Third run (0607a659): script crashed twice due to duplicate detection failure, wasting 4 of 7 total calls
-  - Root cause: only 1 voucher had 7100/2000 (desc="Kontorrekvisita duplikat"); signature grouping needs 2+ entries to detect duplicates
-  - Fix: use description keyword "duplikat" as PRIMARY detector, signature grouping as SECONDARY, single-entry as TERTIARY
-  - After fix: 3rd execution succeeded with 3 calls, 0 errors; all 4 corrections correct
-  - Missing VAT "other branch" (4500/14500, had 2710) correctly used expense + vatType=1 with auto-generated 2710 line
+- Third run (0607a659): scored 2.25/6 (correctness 0.75) — 3/4 corrections correct, Check 3 (missing VAT) failed
+  - script crashed twice due to duplicate detection failure, wasting 4 of 7 total calls (2 GET pairs)
+  - duplicate root cause: only 1 voucher had 7100/2000 (desc="Kontorrekvisita duplikat"); signature grouping needs 2+ entries
+  - duplicate fix: use description keyword "duplikat" as PRIMARY detector, signature grouping SECONDARY, single-entry TERTIARY
+  - **Check 3 failure**: used expense 4500 +3625 with vatType=1, Tripletex auto-generated 2710 +725; scorer rejected this
+  - correct approach for Case B: 2710 +725 (vat_shortfall), 4500 +2900 (expense_net_shortfall, vatType=0), 2400 -3625 with supplier
+  - this confirms: NEVER use expense + vatType=1 for missing VAT, even in Case B
