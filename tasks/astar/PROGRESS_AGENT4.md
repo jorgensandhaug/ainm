@@ -3335,8 +3335,13 @@ The model has three conceptual components:
 | Evidence+settlements | 1 | **76.26** | -3.13 |
 | Evidence mixed (no sett) | 1 | 72.35 | -7.04 |
 | Evidence v2 (no sett) | 15 | **83.06** | +3.67 |
+| Evidence+settlements | 2 | **78.00** | -1.39 |
+| Evidence+settlements | 3 | **79.15** | -0.24 |
+| Evidence+settlements | 5 | **80.03** | +0.64 |
 | Evidence+settlements | 15 | 81.84 | +2.45 |
 | query_residual_v11 | online | 79.39 | 0 |
+
+**With just 3 replay observations + settlement features, the evidence model nearly matches the champion!**
 
 #### Key Parameters and Their Rationale
 
