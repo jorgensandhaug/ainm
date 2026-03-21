@@ -315,6 +315,23 @@ def _summary_vector_from_artifact_v2(path: Path) -> tuple[np.ndarray, np.ndarray
     )
 
 
+def _load_v2_training_pairs(
+    dataset: SyntheticEpisodeDatasetRef,
+) -> tuple[np.ndarray, np.ndarray]:
+    if dataset.index_path is None:
+        raise ValueError("synthetic dataset requires an index path")
+    index_table = pl.read_parquet(dataset.index_path)
+    summary_vectors: list[np.ndarray] = []
+    regime_vectors: list[np.ndarray] = []
+    for path_value in index_table["episode_path"].to_list():
+        summary_vector, regime_vector = _summary_vector_from_artifact_v2(Path(str(path_value)))
+        summary_vectors.append(summary_vector)
+        regime_vectors.append(regime_vector)
+    if not summary_vectors:
+        raise ValueError("synthetic dataset did not yield any summary vectors")
+    return np.stack(summary_vectors, axis=0), np.stack(regime_vectors, axis=0)
+
+
 class SummaryBankStudentCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -442,25 +459,14 @@ class ObservationSetBankStudent(BaseModel):
         *,
         k_neighbors: int = 5,
     ) -> ObservationSetBankStudent:
-        if dataset.index_path is None:
-            raise ValueError("synthetic dataset requires an index path")
-        index_table = pl.read_parquet(dataset.index_path)
-        summary_vectors: list[np.ndarray] = []
-        regime_vectors: list[np.ndarray] = []
-        for path_value in index_table["episode_path"].to_list():
-            summary_vector, regime_vector = _summary_vector_from_artifact_v2(Path(str(path_value)))
-            summary_vectors.append(summary_vector)
-            regime_vectors.append(regime_vector)
-        if not summary_vectors:
-            raise ValueError("synthetic dataset did not yield any summary vectors")
-        summary_matrix = np.stack(summary_vectors, axis=0)
+        summary_matrix, regime_matrix = _load_v2_training_pairs(dataset)
         summary_mean = np.mean(summary_matrix, axis=0)
         summary_scale = np.std(summary_matrix, axis=0)
         summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
         return cls(
             dataset_name=dataset.dataset_name,
             summary_vectors=summary_matrix,
-            regime_vectors=np.stack(regime_vectors, axis=0),
+            regime_vectors=regime_matrix,
             summary_mean=summary_mean,
             summary_scale=summary_scale.astype(np.float64),
             k_neighbors=k_neighbors,
@@ -483,6 +489,123 @@ class ObservationSetBankStudent(BaseModel):
         weights = weights / np.sum(weights)
         mean = np.tensordot(weights, self.regime_vectors[order], axes=(0, 0))
         particles = tuple(self.regime_vectors[index] for index in order)
+        return RegimePosteriorState(
+            mean=np.asarray(mean, dtype=np.float64),
+            particles=particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
+
+    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
+        posterior = self.infer_regime(context)
+        return self.teacher.posterior_predictive(
+            context.round_context.seeds[seed_index],
+            posterior,
+        )
+
+
+class ObservationSetDistilledStudent(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = "observation_set_distilled_student_v3"
+    dataset_name: str = "synthetic_live_v3"
+    summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    summary_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    summary_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    regime_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    regime_projection: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    regime_clip: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    k_neighbors: int = Field(default=5, ge=1)
+    ridge_alpha: float = Field(default=8.0, gt=0.0)
+    predicted_particle_weight: float = Field(default=0.35, ge=0.0, le=1.0)
+    teacher: object
+
+    @classmethod
+    def fit_from_dataset(
+        cls,
+        dataset: SyntheticEpisodeDatasetRef,
+        teacher: object,
+        *,
+        k_neighbors: int = 5,
+        ridge_alpha: float = 8.0,
+        predicted_particle_weight: float = 0.35,
+    ) -> ObservationSetDistilledStudent:
+        summary_matrix, regime_matrix = _load_v2_training_pairs(dataset)
+        summary_mean = np.mean(summary_matrix, axis=0)
+        summary_scale = np.std(summary_matrix, axis=0)
+        summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
+        normalized_summary = (summary_matrix - summary_mean[None, :]) / summary_scale[None, :]
+
+        regime_mean = np.mean(regime_matrix, axis=0)
+        centered_regime = regime_matrix - regime_mean[None, :]
+        gram = normalized_summary.T @ normalized_summary
+        rhs = normalized_summary.T @ centered_regime
+        projection = np.linalg.solve(
+            gram + ridge_alpha * np.eye(gram.shape[0], dtype=np.float64),
+            rhs,
+        )
+        regime_clip = np.percentile(np.abs(centered_regime), 95.0, axis=0)
+        regime_clip = np.maximum(regime_clip, np.max(np.abs(centered_regime), axis=0))
+        regime_clip = np.where(regime_clip > 1e-6, regime_clip, 1.0)
+        return cls(
+            dataset_name=dataset.dataset_name,
+            summary_vectors=summary_matrix,
+            regime_vectors=regime_matrix,
+            summary_mean=summary_mean.astype(np.float64),
+            summary_scale=summary_scale.astype(np.float64),
+            regime_mean=regime_mean.astype(np.float64),
+            regime_projection=np.asarray(projection, dtype=np.float64),
+            regime_clip=np.asarray(regime_clip, dtype=np.float64),
+            k_neighbors=k_neighbors,
+            ridge_alpha=ridge_alpha,
+            predicted_particle_weight=predicted_particle_weight,
+            teacher=teacher,
+        )
+
+    def _predict_regime_mean(self, context: LiveInferenceContext) -> np.ndarray:
+        query_vector = _summary_vector_from_observations(
+            context.observations,
+            map_width=context.round_context.map_width,
+            map_height=context.round_context.map_height,
+            seed_count=len(context.round_context.seeds),
+        )
+        normalized_query = (query_vector - self.summary_mean) / self.summary_scale
+        predicted = self.regime_mean + normalized_query @ self.regime_projection
+        clip = 1.5 * self.regime_clip
+        return np.clip(
+            np.asarray(predicted, dtype=np.float64),
+            self.regime_mean - clip,
+            self.regime_mean + clip,
+        )
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        predicted_mean = self._predict_regime_mean(context)
+        distances = np.linalg.norm(self.regime_vectors - predicted_mean[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
+        if len(order) == 0:
+            return RegimePosteriorState(mean=predicted_mean)
+
+        nearest_distances = distances[order]
+        neighbor_weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
+        if not np.all(np.isfinite(neighbor_weights)) or float(np.sum(neighbor_weights)) <= 0.0:
+            neighbor_weights = np.ones(len(order), dtype=np.float64)
+        neighbor_weights = neighbor_weights / np.sum(neighbor_weights)
+
+        if self.predicted_particle_weight > 0.0:
+            particles = (predicted_mean,) + tuple(self.regime_vectors[index] for index in order)
+            weights = np.concatenate(
+                [
+                    np.asarray([self.predicted_particle_weight], dtype=np.float64),
+                    (1.0 - self.predicted_particle_weight) * neighbor_weights,
+                ],
+                axis=0,
+            )
+        else:
+            particles = tuple(self.regime_vectors[index] for index in order)
+            weights = neighbor_weights
+
+        particle_matrix = np.stack(particles, axis=0)
+        mean = np.tensordot(weights, particle_matrix, axes=(0, 0))
         return RegimePosteriorState(
             mean=np.asarray(mean, dtype=np.float64),
             particles=particles,

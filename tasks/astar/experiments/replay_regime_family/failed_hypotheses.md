@@ -14,3 +14,13 @@
   - Raw best: `hazard_posterior_v2_k5_r3 + coverage` => mean score `74.2658`, mean weighted KL `0.103147`
   - Tested blends: `a20` => `71.0375` / `0.118206`, `a35` => `71.3270` / `0.116462`
   - Conclusion: for the current v2 family, blending back toward bucket is actively harmful.
+- The stronger replay-regime family should move toward `exploration_v2` once the student posterior is improved.
+  - Evidence: matched hard 3-round multi-seed probe for distilled v3 student
+  - `hazard_posterior_v3 + coverage`: `76.6419` / `0.091278`
+  - `hazard_posterior_v3 + exploration_v2`: `75.1636` / `0.098387`
+  - Conclusion: for the current v3 family, `coverage` is clearly better; do not spend immediate budget on exploration-first promotions.
+- Increasing v3 latent rank / neighbor count from `k5/r3` to `k9/r4` should improve the hard-slice benchmark.
+  - Evidence: matched hard 3-round multi-seed probe
+  - coverage: both variants `76.6419` / `0.091278`
+  - exploration: both variants `75.1636` / `0.098387`
+  - Conclusion: this axis is flat; spend budget on posterior shrinkage/data volume and full-round validation instead.

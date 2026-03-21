@@ -38,6 +38,40 @@
 - current status after validation:
   - old full raw-v2 promotions still running and still have no `report.md`
   - next model step chosen from handoff: move beyond summary-space kNN into a learned student posterior / small-teacher continuation
+- v3 implementation:
+  - added `ObservationSetDistilledStudent`
+    - ridge-regresses transcript summaries onto the low-rank regime manifold
+    - forms posterior particles around the predicted latent using nearby regime-bank neighbors
+  - added new predictor family `hazard_posterior_v3`
+  - wired v3 through online predictor selection, CLI aliases, historical benchmark gating, and tests
+  - discovered `spawn` pool breaks `run_historical_benchmark(..., jobs>1)` when called from `uv run python - <<'PY'`
+  - fixed by selecting `fork` only for `<stdin>`/REPL-style entrypoints while keeping `spawn` for normal CLI/script execution
+  - reran validation:
+    - `python3 -m compileall src/astar/student/posterior/deepset_student.py src/astar/student/predictor/hazard_posterior_v3.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+    - result: `12 passed`
+- v3 hard-slice results completed on matched 3-round, 2-episode-seed benchmark:
+  - `hazard_posterior_v3 + coverage`: `76.6419`, KL `0.091278`, runtime `101.79s`
+  - `hazard_posterior_v3 + exploration_v2`: `75.1636`, KL `0.098387`, runtime `102.77s`
+  - `hazard_posterior_v3_k9_r4 + coverage`: identical to default coverage
+  - `hazard_posterior_v3_k9_r4 + exploration_v2`: identical to default exploration
+  - delta vs prior raw-v2 best (`hazard_posterior_v2_k5_r3 + coverage`):
+    - `+2.3761` score
+    - `-0.011869` weighted KL
+    - about `9.6x` faster wall-clock on the same slice (`101.79s` vs `974.46s`)
+  - round deltas vs raw-v2 coverage:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+4.8438`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `-3.8355`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+6.1200`
+- machine management update:
+  - killed stale serial full-v2 promotions after v3 proved superior on the hard slice
+  - post-kill snapshot: load `87.12`, mem used `727 GiB`, mem free `2.2 TiB`
+- in-flight at time of this log update:
+  - `probe_hazard_v3_k5_r3_l8_m35_coverage_3rounds_seed0to1_s4`
+  - `probe_hazard_v3_k5_r3_l8_m35_exploration_3rounds_seed0to1_s4`
+  - `probe_hazard_v3_k5_r3_l16_m20_coverage_3rounds_seed0to1`
+  - `probe_hazard_v3_k5_r3_l16_m50_coverage_3rounds_seed0to1`
+  - `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
 
 ### Session Continuation
 

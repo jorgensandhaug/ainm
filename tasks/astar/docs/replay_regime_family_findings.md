@@ -48,6 +48,22 @@
   - `hazard_posterior_v2_blend_a20_k5_r3 + exploration_v2`: `71.0375`, weighted KL `0.118206`
   - `hazard_posterior_v2_blend_a35_k5_r3 + exploration_v2`: `71.3270`, weighted KL `0.116462`
   - implication: raw v2 is best; blending back toward bucket now hurts
+- Distilling transcript summaries directly onto the regime manifold is a major improvement over summary-space kNN:
+  - `hazard_posterior_v3_k5_r3_l8_m35 + coverage`: `76.6419`, weighted KL `0.091278`
+  - delta vs raw-v2 coverage on the same slice: `+2.3761` score, `-0.011869` weighted KL
+  - round deltas vs raw-v2 coverage:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+4.8438`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `-3.8355`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+6.1200`
+- The v3 distilled posterior also makes the hard-slice benchmark far faster:
+  - v3 coverage runtime: `101.79s`
+  - raw-v2 coverage runtime on the same slice: `974.46s`
+  - implication: roughly `9.6x` faster wall-clock while also improving accuracy
+- Additional v3 matched hard-slice results clarify the new sweep:
+  - `hazard_posterior_v3_k5_r3_l8_m35 + exploration_v2`: `75.1636`, weighted KL `0.098387`
+  - `hazard_posterior_v3_k9_r4_l8_m35 + coverage`: identical to default coverage
+  - `hazard_posterior_v3_k9_r4_l8_m35 + exploration_v2`: identical to default exploration
+  - implication: the gain comes from the distilled posterior itself; larger k/rank is not helping, and `coverage` is clearly better than `exploration_v2`
 
 ## Strongly Supported Hypotheses
 
@@ -58,6 +74,7 @@
 - Direct coefficient-manifold supervision plus a stronger multiclass terminal decoder can beat both bucket and `query_residual` on held-out local rounds.
 - The new v2 family is not helped by blending with the conservative bucket anchor on the matched hard slice.
 - For the new v2 family, broad `coverage` is at least slightly better than `exploration_v2` on the current hard slice.
+- The main remaining bottleneck after v2 was the posterior model, not the regime-manifold decoder; replacing kNN summary lookup with a distilled posterior produces a much larger gain than v2 decoder/rank tweaks.
 
 ## Rejected / Weak Hypotheses
 
@@ -71,10 +88,16 @@
 - Conservative bucket blending should remain the default safety move for the new v2 family.
   - Evidence: both tested v2 blends are materially below the raw v2 model on the same slice.
   - Conclusion: do not spend more immediate budget on v2 blend sweeps unless a later full-round result contradicts this.
+- For the stronger v3 family, a more exploratory query policy should beat coverage once the posterior is improved.
+  - Evidence: v3 coverage beats v3 exploration by `+1.4783` score and better KL on the matched hard slice.
+  - Conclusion: keep `coverage` as current v3 mainline policy.
+- Increasing k/rank from `k5/r3` to `k9/r4` is a useful v3 search axis.
+  - Evidence: both coverage and exploration results are exactly identical across those settings on the current hard slice.
+  - Conclusion: stop spending immediate budget here.
 
 ## Open Questions
 
-- Does the v2 hard-slice win survive full 8-round multi-seed evaluation?
-- Can the round-specific weakness on `ae78003a-4efe-425a-881a-d16a39bca0ad` be reduced further without giving back the strong wins on the other two hard rounds?
-- Are the largest remaining v2 errors mainly decoder calibration / forest recall, or mainly posterior/regime inference?
-- Does full 8-round validation keep `coverage` ahead of `exploration`, or is the hard-slice policy ordering unstable out of sample?
+- Does the v3 hard-slice win survive full 8-round multi-seed evaluation?
+- Do more synthetic transcript samples per training round (`s4`) help the distilled posterior enough to justify the extra cost?
+- Does stronger ridge / different mean-vs-neighbor posterior mixing beat the default `l8/m35` configuration?
+- Is the remaining v3 weakness now concentrated on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`, and if so is that a posterior issue or a decoder/calibration issue?

@@ -1,11 +1,15 @@
 # Next Steps
 
-1. Finish the in-flight full 8-round v2 raw promotions:
-   - `dev_hazard_v2_k5_r3_coverage_online50_v1`
-   - `dev_hazard_v2_k5_r3_exploration_online50_v1`
-2. Treat raw v2 as mainline and stop spending immediate budget on v2 blend sweeps unless full-round evidence unexpectedly reverses the hard-slice ordering.
-3. Analyze remaining v2 failure structure on `ae78003a-4efe-425a-881a-d16a39bca0ad` and top-KL forest/empty confusion cells.
-4. If full 8-round results hold up, push from v2 into targeted v3 work:
-   - better forest/empty discrimination
-   - sharper handling of the worst `ae780...` seeds
-   - explicit speedups for multi-job historical benchmark execution so the large machine is better utilized
+1. Finish the in-flight full 8-round v3 promotion:
+   - `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
+2. Finish the in-flight v3 posterior sweeps on the hard slice:
+   - `samples-per-round=4` coverage / exploration
+   - stronger-ridge `l16` coverage variants with different mean-vs-neighbor mix
+3. If none of the in-flight v3 sweeps beat the default `l8/m35` hard-slice result, lock that config as v3 mainline and promote only coverage-based full runs.
+4. Analyze the new v3 tradeoff structure:
+   - big gains on `8e839...` and `ae780...`
+   - regression on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+5. Use that analysis to target the next v4 work at posterior calibration/shrinkage rather than larger latent rank:
+   - better transcript-to-regime regularization
+   - possible probability-floor or uncertainty-aware decoding
+   - more synthetic episode volume only if `s4` materially helps
