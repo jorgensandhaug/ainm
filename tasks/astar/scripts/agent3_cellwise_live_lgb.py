@@ -252,7 +252,7 @@ def run_live_lgb_benchmark(
     import lightgbm as lgb
     from astar.core.score import score_prediction
     from astar.core.terrain import CLASS_COUNT
-    from astar.envs.base import build_interactive_policy
+    from astar.policy.interactive import build_interactive_policy
     from astar.envs.conversion import round_context_to_live_inference_context
     from astar.infra.artifacts.paths import WorkspacePaths
     from astar.infra.artifacts.store import read_analysis_records, read_round_record
