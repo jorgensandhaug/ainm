@@ -149,16 +149,16 @@ def _flatten_truth_logits(
 class GreyboxStudentJointPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "greybox_student_joint_v01"
+    name: str = "greybox_student_joint_v02"
     lowrank_predictor: GreyboxHazardLowRankPredictor
     policy_name: str = "coverage"
     round_ids: tuple[str, ...] = ()
     samples_per_round: int = Field(default=4, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
-    residual_rank: int = Field(default=6, ge=1)
+    residual_rank: int = Field(default=3, ge=1)
     ridge_lambda: float = Field(default=8.0, ge=0.0)
-    correction_blend: float = Field(default=0.85, ge=0.0, le=1.0)
-    correction_scale: float = Field(default=0.75, ge=0.0)
+    correction_blend: float = Field(default=0.25, ge=0.0, le=1.0)
+    correction_scale: float = Field(default=0.25, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     feature_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     feature_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
@@ -181,12 +181,12 @@ class GreyboxStudentJointPredictor(BaseRoundPredictor):
         policy_name: str = "coverage",
         samples_per_round: int = 4,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
-        residual_rank: int = 6,
+        residual_rank: int = 3,
         ridge_lambda: float = 8.0,
-        correction_blend: float = 0.85,
-        correction_scale: float = 0.75,
+        correction_blend: float = 0.25,
+        correction_scale: float = 0.25,
         probability_floor: float = 0.01,
-        model_name: str = "greybox_student_joint_v01",
+        model_name: str = "greybox_student_joint_v02",
     ) -> GreyboxStudentJointPredictor:
         lowrank_predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
             paths,

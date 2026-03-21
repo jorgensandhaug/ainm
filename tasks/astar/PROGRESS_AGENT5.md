@@ -467,6 +467,52 @@
   - 3-round `coverage_r5` probe for the current lead model
   - 3-round `adaptive_r5` probe for the current lead model
 
+### 2026-03-21T11:20:00Z
+
+- Conservative joint-student shrinkage probes finished on the hard 3-round slice:
+  - variant A:
+    - `residual_rank=2`
+    - `correction_scale=0.15`
+    - `correction_blend=0.15`
+    - scores:
+      - `36e581...`: `66.4656`
+      - `c5cdf...`: `77.8781`
+      - `f1dac...`: `56.2760`
+    - 3-round mean score `66.8733`
+    - mean weighted KL `0.137175`
+  - variant B:
+    - `residual_rank=3`
+    - `correction_scale=0.25`
+    - `correction_blend=0.25`
+    - scores:
+      - `36e581...`: `66.4064`
+      - `c5cdf...`: `77.9704`
+      - `f1dac...`: `56.8562`
+    - 3-round mean score `67.0777`
+    - mean weighted KL `0.135992`
+- Interpretation:
+  - both conservative variants are far better than the catastrophic default joint head
+  - variant B is the better rescue
+  - still not close to current overall lead family, but now a legitimate grey-box student branch rather than a broken one
+  - next code action: promote joint-student defaults to the conservative variant-B settings
+- New policy probes on same hard 3-round slice using current lead model `greybox_hybrid_lowrank_queryres`:
+  - `coverage_r5`
+    - `36e581...`: `41.7249`
+    - `c5cdf...`: `78.8648`
+    - `f1dac...`: `63.9311`
+    - 3-round mean score `61.5070`
+    - mean weighted KL `0.174096`
+  - `adaptive_r5`
+    - `36e581...`: `42.9482`
+    - `c5cdf...`: `78.9227`
+    - `f1dac...`: `63.7007`
+    - 3-round mean score `61.8572`
+    - mean weighted KL `0.171264`
+- Policy interpretation:
+  - both repeat-after-coverage policies are badly harmful on `36e581...`
+  - `adaptive_r5` is slightly better than static `coverage_r5`, but both are well below current `coverage` / `exploration_r3` baselines on this slice
+  - keep adaptive policy as exploratory infra, but do not promote it
+
 ### 2026-03-21T10:00:00Z
 
 - Added round-level parallelism to `run_historical_benchmark` behind an explicit `max_workers` argument.
