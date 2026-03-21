@@ -960,3 +960,46 @@
     - transcript sample diversity / training support,
     - residual feature library,
     - or a richer latent target closer to terminal tensor structure
+- New direct-query-residual branch after the cheap teacher-blend sweep:
+  - branch start:
+    - branch clean/synced at `9b0838b136c6fdf997420bc26aa289ac4c12da31`
+    - `br list` still unavailable (`/bin/bash: br: command not found`)
+  - next hypothesis:
+    - the strongest remaining cheap knob is more synthetic transcript diversity, not more decoder calibration
+  - rationale:
+    - current `query_residual` is trained on only `1` synthetic live episode per round
+    - that is probably under-covering legal transcript variability relative to the real online benchmark
+    - unlike the rejected teacher/posterior branches, this changes the support of the residual learner itself
+  - first planned test:
+    - `f1_student_query_residual_s2_v01`
+    - same as `query_residual_v7`, but `samples_per_round=2`
+- First transcript-support expansion result:
+  - model:
+    - `f1_student_query_residual_s2_v01`
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_s2_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_s2_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_s2_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_s2_v01.json`
+  - result:
+    - mean score `71.3184`
+    - mean weighted KL `0.113224`
+    - runtime `424.515s`
+  - paired compare vs baseline:
+    - mean score delta `-1.7843`
+    - mean weighted KL delta `+0.008441`
+    - win rate `0.000`
+    - loss rate `1.000`
+  - read:
+    - doubling synthetic transcript samples per round hurts materially on this smoke slice
+    - and the runtime nearly doubles as well
+    - so naive support expansion is not the right direct branch either
+- Updated direct-query-residual read after `s2`:
+  - cheap direct branches now rejected:
+    - final teacher output blend tweaks
+    - naive transcript sample-count increase
+  - next better branch is likely not a scalar calibration knob
+  - more promising remaining directions:
+    - change the residual feature library itself,
+    - add a better validation diagnostic around support mismatch before more dataset-size sweeps,
+    - or move to a richer latent target closer to final tensor structure

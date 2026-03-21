@@ -23,3 +23,4 @@ data/artifacts/datasets/*/riskset.parquet
 # Model-specific synthetic posterior caches are reproducible local artifacts.
 data/artifacts/datasets/f1_birth_posterior_synth__*/
 data/artifacts/datasets/f1_summary_bank_synth__*/
+data/artifacts/datasets/query_residual_synthetic_live__*/
