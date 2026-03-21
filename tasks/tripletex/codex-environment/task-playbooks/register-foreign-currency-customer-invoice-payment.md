@@ -32,30 +32,45 @@ Verified in persistent sandbox on 2026-03-21:
 
 ## Minimal Flow
 
-1. Confirm these operations in `./openapi.json`
-   - `GET /invoice`
-   - `GET /invoice/paymentType`
-   - `PUT /invoice/{id}/:payment`
-2. Locate the exact foreign-currency invoice with one decisive read
-   - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))`
+1. Locate the exact foreign-currency invoice with one decisive read
+   - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&customerOrgNumber=<org>&fields=*,currency(*)`
+   - `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
+   - `currency(*)` expansion is REQUIRED; plain `fields=*` returns currency as a sparse link stub without `code`
+2. **Validate the invoice is actually in a foreign currency**
+   - check `currency.code` — must NOT be `NOK` (company currency)
+   - quick-check: if `amount === amountCurrency`, the invoice is in the company currency → fall back to simple payment
+   - a real EUR invoice has `amount ≠ amountCurrency` (e.g., `amount=23178.37` NOK vs `amountCurrency=2052` EUR)
+   - the prompt ex-VAT amount matching `amountExcludingVatCurrency` on a NOK invoice is NOT proof of a foreign-currency invoice
 3. Filter locally to one exact invoice
    - exact customer organization number if provided
    - exact foreign invoice currency, for example `currency.code=EUR`
    - positive `amountCurrencyOutstanding`
    - exact prompt invoice-currency amount against `amountCurrencyOutstanding` and/or `amountCurrency`
+   - for the prompt amount: match against `amountCurrencyOutstanding` (total incl. VAT), NOT `amountExcludingVatCurrency` (ex-VAT); the prompt amount "2052 EUR" likely refers to the ex-VAT amount, so look for `amountCurrencyOutstanding` = `2052 * 1.25 = 2565` if 25% VAT applies
    - if needed, prompt original-rate tie-break against company-currency `amount` / `amountOutstanding`
 4. Reuse a previously resolved same-run incoming company-currency payment type if available
 5. Otherwise resolve one usable company-currency bank payment type
-   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-   - prefer a bank-style incoming payment type in the company/payment currency, typically debit account `19xx`
-   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+   - `GET /invoice/paymentType?fields=*,debitAccount(*)`
+   - `debitAccount(*)` expansion is REQUIRED; without it, debit account comes back as a link stub without `number` or `isBankAccount`
+   - select: `debitAccount.number >= 1900 && < 2000` with `debitAccount.isBankAccount === true`
+   - if `isBankAccount` is not present, match on `debitAccount.number` alone
    - do not choose a payment type in the same foreign currency when the prompt explicitly requires realized FX-loss booking on settlement
 6. Register the payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<company-currency-paid-amount>&paidAmountCurrency=<invoice-currency-outstanding>`
+   - `paidAmountCurrency` = full `amountCurrencyOutstanding` (foreign currency)
+   - `paidAmount` = `amountCurrencyOutstanding * settlementRate` (company currency at new rate)
 7. Verify from the write response
    - prefer `amountCurrencyOutstanding`
    - otherwise `amountOutstanding`
    - stop if it is `0`
+
+## Company-Currency Fallback
+
+If the invoice is in NOK (company currency), do NOT apply FX logic:
+- register a simple payment: `paidAmount = amountOutstanding`
+- omit `paidAmountCurrency` or set it equal to `paidAmount`
+- Tripletex ignores mismatched `paidAmount` on NOK invoices and uses `paidAmountCurrency` for the settlement amount, but the bank debit will be the company-currency outstanding, NOT the `paidAmount` value
+- no disagio or agio posting is created on a NOK invoice regardless of parameters sent
 
 ## Canonical Call Count
 
@@ -82,8 +97,14 @@ Verified in persistent sandbox on 2026-03-21:
 
 ## Pitfalls
 
+- `GET /invoice` REQUIRES `invoiceDateFrom` and `invoiceDateTo`; omitting them returns `422`; use wide bounds like `invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date+1>`
+- `fields=*` without `currency(*)` returns currency as a sparse link without `code`; ALWAYS use `fields=*,currency(*)`
+- `GET /invoice/paymentType?fields=*` without `debitAccount(*)` returns debit account as a sparse link; ALWAYS use `fields=*,debitAccount(*)`
 - Do not reinterpret a prompt foreign-currency amount as proof of a foreign-currency invoice if the decisive invoice read returns only company-currency invoices
 - Do not treat a company-currency invoice whose `amountExcludingVatCurrency` coincidentally matches the prompt amount as this exact task shape
+- Quick company-currency check: if `amount === amountCurrency`, the invoice is in company currency (NOK); a real EUR invoice has `amount != amountCurrency`
 - Do not spend repeated `GET /invoice` calls after one decisive locate read already disproves the foreign-currency assumption
 - Do not choose a EUR payment type and then expect Tripletex to book a NOK FX loss automatically; that defeats the prompt’s realized-FX branch
 - Do not add a separate manual voucher write once the correct `:payment` call succeeds
+- The `:payment` endpoint auto-books FX gain (account 8060) or loss (account 8160); no manual voucher needed
+- For company-currency invoices, Tripletex ignores a mismatched `paidAmount` and uses `paidAmountCurrency` for the settlement; the bank debit matches the outstanding, not the `paidAmount` parameter
