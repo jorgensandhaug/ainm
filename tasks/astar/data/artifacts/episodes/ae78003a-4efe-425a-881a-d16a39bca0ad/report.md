@@ -6,7 +6,7 @@ queries: 50
 repeated_window_groups: 5
 submissions: 5
 analyses: 5
-replay_runs: 285
+replay_runs: 290
 replay_seeds: 5
 replay_summaries: 5
 mean_ground_truth_entropy: 0.8082
@@ -19,9 +19,9 @@ seed 4: queries=10 coverage_min=1 coverage_max=4 repeats=1
 feature_names: buildable, coast, coast_distance, coastal_exposure, forest_density, frontier_score, land, land_distance_to_settlement, maritime_access, mountain_density, sea_distance_to_port, settlement_basin_gap, settlement_proximity
 
 replay_seed_count: 5
-replay_run_count: 285
+replay_run_count: 290
 replay_report: /home/jorge/agent3/tasks/astar/data/artifacts/replays/ae78003a-4efe-425a-881a-d16a39bca0ad/report.md
-replay_coefficients_mean: [0.9989719432378259, 0.991038199505135, 1.0, 0.13031584399511875, 0.9930137450916747, 0.24247973716776036, 0.21606359649122803, 0.014657894736842106, 0.026546052631578942, 185.4343997248022, 9.000412796697628, 18.746611627106983]
+replay_coefficients_mean: [0.9989719432378259, 0.991038199505135, 1.0, 0.13046311940012612, 0.9931610204966821, 0.24775733988193024, 0.21541594827586205, 0.01460991379310345, 0.026642241379310344, 185.1601081812035, 8.986883029073699, 18.738269100743747]
 
 backtest-round ae78003a-4efe-425a-881a-d16a39bca0ad
 mean_score: 18.5339
