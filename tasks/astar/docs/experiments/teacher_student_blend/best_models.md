@@ -4,6 +4,8 @@ No post-pivot full-family winner is promoted yet.
 
 Current finished corrected-holdout ranking:
 
+- `teacher_student_blend_v51`: mean score `65.0719`, mean weighted KL `0.143762`
+- `teacher_student_blend_v52`: mean score `65.0268`, mean weighted KL `0.144004`
 - `teacher_student_blend_v45`: mean score `61.3370`, mean weighted KL `0.163687`
 - `teacher_student_blend_v13`: mean score `61.3244`, mean weighted KL `0.163762`
 - `teacher_student_blend_v43`: mean score `61.3197`, mean weighted KL `0.163789`
@@ -23,10 +25,12 @@ Current finished corrected-holdout ranking:
 
 Current read:
 
-- strongest finished branch is now the simple temporal + coefficient-residual line with `k=1`
-- the gain is real but tiny: `v45` beats `v13` by only `+0.0126` score and `-0.000075` KL
+- strongest finished branch is now the `k=1` line plus exact observed-cell posterior correction
+- `v51` is the new corrected-gate leader and `v52` is essentially tied behind it
+- the jump is large, not marginal: `v51` beats `v45` by `+3.7349` score and `-0.019925` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
+- exact local evidence on the strong `k=1` line improved both held-out rounds sharply
 - multiscale temporal summaries lost on both global and spatial-dynamic backbones
 - geometry-gated / class-weighted local blur branch also lost badly (`v25/v27/v28`)
 
@@ -52,7 +56,9 @@ Active queue now includes:
 - full LOO live: `teacher_student_blend_v13`
 - full LOO live: `teacher_student_blend_v15`
 - full LOO live: `teacher_student_blend_v45`
-- next promotion target is `teacher_student_blend_v45`
+- full LOO live: `teacher_student_blend_v51`
+- full LOO live: `teacher_student_blend_v52`
+- next promotion target is `teacher_student_blend_v51`
 - newest corrected-gate branch is `teacher_student_blend_v51` through `teacher_student_blend_v54`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

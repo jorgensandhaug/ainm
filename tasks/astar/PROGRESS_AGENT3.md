@@ -2672,6 +2672,37 @@
      - `v52`
      - `v53`
      - `v54`
+289. The first exact-local-evidence results landed quickly:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v51`
+     - `teacher_student_blend_v52`
+   - aggregate results:
+     - `v51`: mean score `65.0719`, mean weighted KL `0.143762`
+     - `v52`: mean score `65.0268`, mean weighted KL `0.144004`
+290. Read from item 289:
+   - exact observed-cell posterior correction is a major win on the strong `k=1` backbone
+   - both rounds improved strongly versus the prior leader `v45`:
+     - round `36e581f1...`: `58.0931 -> 62.1941` for `v51`
+     - round `f1dac9a9...`: `64.5809 -> 67.9496` for `v51`
+   - current finished corrected-gate leader is now `teacher_student_blend_v51`
+   - margin over prior gate leader `v45`:
+     - score delta: `+3.7349`
+     - weighted-KL delta: `-0.019925`
+291. Promotion decision after item 289:
+   - `v51` and `v52` are both far enough ahead of the prior family line to justify immediate full corrected LOO
+292. Fourth and fifth promotion benchmarks launched from pushed commit `45ce0d4a`:
+   - commands:
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v51 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v51_full_corrected --jobs 4`
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v52 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v52_full_corrected --jobs 4`
+   - sessions:
+     - `v51` full: `31564`
+     - `v52` full: `57607`
+293. Machine-wide health check after item 292:
+   - snapshot:
+     - memory used: about `1.1 TiB`
+     - memory available: about `1.8 TiB`
+   - decision:
+     - enough headroom remained to keep branching off the exact-local-evidence family without stopping the live queue
 
 
 ## Open Questions
