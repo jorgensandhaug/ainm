@@ -971,8 +971,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
     ridge_lambda: float = Field(default=8.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
-    temperature: float = Field(default=1.15, gt=0.0)
-    prior_blend: float = Field(default=0.35, ge=0.0, le=1.0)
+    temperature: float = Field(default=1.0, gt=0.0)
+    prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     signal_scale: float = Field(default=0.12, gt=0.0)
     min_delta_scale: float = Field(default=0.4, ge=0.0, le=1.0)
     residual_class_scale: np.ndarray = Field(
@@ -985,7 +985,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     regime_weights: np.ndarray = Field(
         default_factory=lambda: np.zeros((len(_regime_input_names()), len(_regime_summary_names())), dtype=np.float64),
     )
-    beta_min: float = Field(default=8.0, ge=0.0)
+    beta_min: float = Field(default=6.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
     training_episode_count: int = Field(default=0, ge=0)
     sample_count: int = Field(default=0, ge=0)
@@ -1010,8 +1010,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
         ridge_lambda: float = 8.0,
         model_name: str = "query_residual_v7",
         probability_floor: float = 0.01,
-        temperature: float = 1.15,
-        prior_blend: float = 0.35,
+        temperature: float = 1.0,
+        prior_blend: float = 0.0,
         signal_scale: float = 0.12,
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
