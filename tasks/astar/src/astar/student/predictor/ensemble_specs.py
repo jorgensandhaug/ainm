@@ -52,6 +52,33 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.5, 0.5),
     ),
+    # Fine-grained blend sweep
+    "f1_ensemble_hv2_qr_40_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_qr_40_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "query_residual",
+        ),
+        component_weights=(0.4, 0.6),
+    ),
+    "f1_ensemble_hv2_qr_60_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_qr_60_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "query_residual",
+        ),
+        component_weights=(0.6, 0.4),
+    ),
+    # Triple ensemble: hazard + qr + cell_type_transfer
+    "f1_ensemble_triple_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_triple_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "query_residual",
+            "f1_cell_type_transfer_blend50_v01",
+        ),
+        component_weights=(0.4, 0.4, 0.2),
+    ),
 }
 
 
