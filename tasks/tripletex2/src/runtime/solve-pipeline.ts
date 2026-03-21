@@ -38,6 +38,10 @@ import {
   createTripletexCallLog,
   createTripletexClient,
 } from "./tripletex-client";
+import {
+  appendTaskUnderstandingToPromptCorpus,
+  inferPromptCorpusSource,
+} from "./prompt-corpus";
 
 const UNRESOLVED_TASK_ID = "unresolved-task-understanding";
 const UNRESOLVED_INPUT_SCHEMA_ID = "task-understanding.unresolved.v1";
@@ -97,6 +101,7 @@ export interface SolvePipelineOptions {
   selectionConfigPath?: string;
   selectionConfigOverride?: ActiveStrategySelectionConfig;
   outputRoot?: string;
+  promptCorpusPath?: string;
   includePromptText?: boolean;
   requestSummary?: string;
   requestId?: string;
@@ -187,6 +192,18 @@ export async function runDeterministicSolvePipeline(
     selection,
     selectionError: initialSelectionError,
   } = selectionResult;
+  await appendTaskUnderstandingToPromptCorpus({
+    corpusPath: options.promptCorpusPath,
+    request,
+    result: taskUnderstanding.result,
+    runId: runContext.runId,
+    source: inferPromptCorpusSource({
+      mode,
+      runId: runContext.runId,
+      stageDirectory: runContext.stageDirectory,
+    }),
+    timestamp: resolveNow(options.now).toISOString(),
+  });
 
   const callLog = createTripletexCallLog();
   const tripletex = createTripletexClient({

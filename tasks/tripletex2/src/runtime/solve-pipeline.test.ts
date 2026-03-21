@@ -17,6 +17,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-"),
   );
   const artifactRoot = path.join(tempRoot, "runs");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
   const stageDirectory = path.join(
     tempRoot,
     "data",
@@ -42,6 +43,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
     },
     {
       mode: "sandbox",
+      promptCorpusPath,
       selectionConfigOverride: await createSelectionConfigOverride({}),
       now,
       runContext: {
@@ -124,6 +126,29 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
   assert.equal(artifact.sidecars?.[0]?.path, "run-sandbox-fixed-run.trace.json");
 
   await stat(path.join(stageDirectory, "request.json"));
+  const promptCorpusEntry = JSON.parse(
+    await readFile(promptCorpusPath, "utf8"),
+  ) as {
+    files: string[];
+    prompt: string;
+    runId: string;
+    source: string;
+    status: string;
+    taskId: string;
+    timestamp: string;
+    txTaskId: string;
+  };
+  assert.deepEqual(promptCorpusEntry, {
+    taskId: "08",
+    txTaskId: "08",
+    status: "resolved",
+    prompt:
+      "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    files: [],
+    runId: "sandbox-fixed-run",
+    timestamp: "2026-03-20T21:10:15.000Z",
+    source: "sandbox",
+  });
   const stageResult = JSON.parse(
     await readFile(path.join(stageDirectory, "result.json"), "utf8"),
   ) as {
@@ -144,6 +169,7 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-explicit-send-"),
   );
   const artifactRoot = path.join(tempRoot, "runs");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
   const stageDirectory = path.join(
     tempRoot,
     "data",
@@ -168,6 +194,7 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
     },
     {
       mode: "sandbox",
+      promptCorpusPath,
       selectionConfigOverride: await createSelectionConfigOverride({
         "08":
           "08.order-then-invoice-then-send.v1",
@@ -241,6 +268,7 @@ test("runCompetitionSolvePipeline can execute the supplier-invoice import strate
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-supplier-invoice-"),
   );
   const artifactRoot = path.join(tempRoot, "runs");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
   const stageDirectory = path.join(
     tempRoot,
     "data",
@@ -266,6 +294,7 @@ test("runCompetitionSolvePipeline can execute the supplier-invoice import strate
     },
     {
       mode: "sandbox",
+      promptCorpusPath,
       now,
       selectionConfigOverride: await createSelectionConfigOverride({
         "16": "16.import-then-book-voucher.v1",
@@ -343,6 +372,7 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
   const outputRoot = await mkdtemp(
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-codex-"),
   );
+  const promptCorpusPath = path.join(outputRoot, "data", "prompt-corpus.jsonl");
   t.after(async () => {
     await rm(outputRoot, { recursive: true, force: true });
   });
@@ -361,6 +391,7 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
     },
     {
       mode: "sandbox",
+      promptCorpusPath,
       selectionConfigOverride: await createSelectionConfigOverride({}),
       now,
       runContext: {
@@ -419,6 +450,7 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-unresolved-"),
   );
   const artifactRoot = path.join(tempRoot, "runs");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
   const stageDirectory = path.join(
     tempRoot,
     "data",
@@ -441,6 +473,7 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
     },
     {
       mode: "sandbox",
+      promptCorpusPath,
       runContext: {
         runId: "sandbox-unresolved-run",
         stageDirectory,
@@ -499,6 +532,7 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
   };
   assert.equal(stageResult.requestId, "req-unresolved-1");
   assert.equal(stageResult.runtimeStatus, "not-run");
+  await assert.rejects(stat(promptCorpusPath));
 });
 
 function createFrozenNow(timestamp: string): () => Date {

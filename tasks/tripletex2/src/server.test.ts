@@ -24,6 +24,7 @@ test("POST /solve writes staging plus a canonical success artifact and respects 
     createRunId: () => "sandbox-http-success",
     dataRoot: path.join(tempRoot, "data"),
     artifactRoot: path.join(tempRoot, "runs"),
+    promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
     taskUnderstanding: {
       result: {
         status: "resolved",
@@ -124,6 +125,7 @@ test("POST /solve returns after writing a canonical not-run artifact for unresol
     createRunId: () => "sandbox-http-unresolved",
     dataRoot: path.join(tempRoot, "data"),
     artifactRoot: path.join(tempRoot, "runs"),
+    promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
     classifierExtractor: async () => ({
       status: "unresolved",
       code: "ambiguous-task",
@@ -229,7 +231,11 @@ test("POST /internal/classify-result resolves a pending classifier callback", as
   assert.equal(await registration.promise, payload);
 });
 
-test("POST /solve enforces the concurrency limit", async () => {
+test("POST /solve enforces the concurrency limit", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
   let signalFirstRequestStarted!: () => void;
   let releaseFirstRequest!: () => void;
   const firstRequestStarted = new Promise<void>((resolve) => {
@@ -281,6 +287,7 @@ test("POST /solve enforces the concurrency limit", async () => {
     bearerToken: "secret-token",
     solveBackend: "deterministic",
     maxConcurrentSolveRequests: 1,
+    promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
     selectionConfigOverride: await createSelectionConfigOverride(),
     taskUnderstanding: {
       result: {
@@ -350,6 +357,7 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
     createRunId: () => "sandbox-http-fallback",
     dataRoot: path.join(tempRoot, "data"),
     artifactRoot: path.join(tempRoot, "runs"),
+    promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
     taskUnderstanding: {
       result: {
         status: "resolved",
@@ -414,6 +422,135 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
 });
 
 test(
+  "POST /solve appends prompt corpus before tmux fallback when the classified task is placeholder-pinned",
+  { concurrency: false },
+  async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const dataRoot = path.join(tempRoot, "data");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
+  const codexHomeDir = path.join(tempRoot, ".codex");
+  const codexEnvironmentDir = "/repo/tasks/tripletex2/codex-environment";
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    solveBackend: "deterministic",
+    codexEnvironmentDir,
+    codexHomeDir,
+    createRunId: () => "sandbox-http-placeholder-fallback",
+    dataRoot,
+    promptCorpusPath,
+    env: {
+      CODEX_HOME: codexHomeDir,
+      HOME: tempRoot,
+      TRIPLETEX_LEADERBOARD_DELAY_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS: "1000",
+      TRIPLETEX_STORAGE_MODE: "testing",
+    },
+    selectionConfigOverride: await createSelectionConfigOverride(),
+    taskUnderstanding: {
+      result: {
+        status: "resolved",
+        taskId: "23",
+        input: {},
+      } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+      taskSource: "manual-label",
+      inputSource: "fixture",
+    },
+    tmuxRunCommand: async (cmd) => {
+      if (cmd[1] === "new-window") {
+        const launchScriptPath = cmd[cmd.length - 1]!;
+        const runDir = path.dirname(launchScriptPath);
+        const stagedPrompt = await readFile(
+          path.join(runDir, "codex-prompt.txt"),
+          "utf8",
+        );
+        const sessionsDir = path.join(
+          codexHomeDir,
+          "sessions",
+          "2026",
+          "03",
+          "21",
+        );
+        await mkdir(sessionsDir, { recursive: true });
+        await writeFile(
+          path.join(sessionsDir, "session.jsonl"),
+          [
+            JSON.stringify({
+              type: "session_meta",
+              payload: {
+                id: "session-placeholder-fallback-1",
+                timestamp: "2026-03-21T13:00:00.000Z",
+                cwd: codexEnvironmentDir,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-21T13:00:00.100Z",
+              payload: {
+                type: "user_message",
+                message: stagedPrompt,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-21T13:00:01.000Z",
+              payload: {
+                type: "task_complete",
+              },
+            }),
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      return "";
+    },
+    tmuxSessionExists: async () => false,
+    tmuxLeaderboardFetch: async () =>
+      new Response("[]\n", {
+        headers: {
+          "content-type": "application/json",
+        },
+        status: 200,
+      }),
+    now: () => new Date("2026-03-21T13:00:00.000Z"),
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-placeholder-fallback",
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "completed" });
+  assert.deepEqual(
+    JSON.parse(await readFile(promptCorpusPath, "utf8").then((value) => value.trim())),
+    {
+      taskId: "23",
+      txTaskId: "23",
+      status: "resolved",
+      prompt:
+        "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+      files: [],
+      runId: "sandbox-http-placeholder-fallback",
+      timestamp: "2026-03-21T13:00:00.000Z",
+      source: "testing",
+    },
+  );
+  await stat(path.join(dataRoot, "testing", "runs", "sandbox-http-placeholder-fallback", "result.json"));
+  },
+);
+
+test(
   "POST /solve in deterministic mode executes task 21 directly when the pinned strategy is implemented",
   { concurrency: false },
   async (t) => {
@@ -431,6 +568,7 @@ test(
     createRunId: () => "sandbox-http-tier3-fallback",
     dataRoot,
     artifactRoot: path.join(tempRoot, "runs"),
+    promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
     env: {
       CODEX_HOME: codexHomeDir,
       HOME: tempRoot,

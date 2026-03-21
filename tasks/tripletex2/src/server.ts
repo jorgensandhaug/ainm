@@ -16,6 +16,7 @@ import {
   type TmuxSolveRequest,
 } from "./runtime/tmux-solve";
 import { resolvePendingCodexTaskUnderstandingResult } from "./runtime/codex-task-understanding-callback";
+import { appendTaskUnderstandingToPromptCorpus } from "./runtime/prompt-corpus";
 import { loadSandboxCredentials } from "./sandbox-credentials";
 
 interface ParsedSolveRequestPayload {
@@ -267,6 +268,14 @@ export function createSolveRequestHandler(
         },
       );
       if (isNotImplementedStrategySelection(selectionResult.selection)) {
+        await appendTaskUnderstandingToPromptCorpus({
+          corpusPath: options.promptCorpusPath,
+          request: normalizedSolveRequest,
+          result: selectionResult.taskUnderstanding.result,
+          runId,
+          source: storageMode,
+          timestamp: now.toISOString(),
+        });
         const result = await runTmuxSolvePipeline(
           toTmuxSolveRequest(parsedRequest),
           requestId,
