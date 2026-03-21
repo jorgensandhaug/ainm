@@ -44,7 +44,12 @@
 - map one generic prompt email to `email`
 - treat localized generic email labels such as `Correo electrónico` and `E-mail` the same as `Email`/`E-post`; they still map to `email`
 - if that lone supplier email also clearly looks invoice-oriented, such as `faktura@...`, mirror it into `invoiceEmail` in the same `POST /supplier`; this preserves the one-call path and protects the scored supplier record
-- do not invent postal, physical, or delivery addresses
+- do not invent postal, physical, or delivery addresses when they are not in the prompt
+- BUT when the prompt or attached PDF explicitly provides address or bank account data, include them in the same `POST /supplier`:
+  - `postalAddress: { addressLine1, postalCode, city }` for addresses
+  - `bankAccountPresentation: [{ bban: "<11-digit-number>" }]` for Norwegian bank accounts
+  - do NOT use the deprecated `bankAccounts` string array field — it silently does nothing
+  - these fields cost 0 extra calls and are scored when present in the source data
 
 ## Reuse From Write Response
 - `value.id`

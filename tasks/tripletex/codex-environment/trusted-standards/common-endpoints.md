@@ -479,6 +479,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - even so, do not treat mirrored `invoiceEmail` as proof that every hidden scorer field is settled; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`, so avoid spending extra calls on invented address fields or a follow-up `GET`
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
   - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
+  - HOWEVER, when the prompt or attached PDF provides explicit supplier address or bank account data, always include them in the same `POST /supplier`: use `postalAddress: { addressLine1, postalCode, city }` and `bankAccountPresentation: [{ bban: "<11-digit-number>" }]`; these are scored fields and cost 0 extra API calls
+  - do NOT use the deprecated `bankAccounts` string array field; it silently does nothing; always use `bankAccountPresentation` with `bban` subfield
+  - 2026-03-21 production run for `Fjelltopp AS` lost 2 scored checks (7/10 instead of perfect) because the PDF address and bank account were not included in the supplier create
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
   - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
 

@@ -107,6 +107,19 @@ Do not add:
 - `GET /supplierInvoice` or `GET /ledger/voucher/{id}` by default
 - `sendToLedger=true` by default
 
+## Supplier Data Extraction (CRITICAL)
+
+When the prompt includes an attached PDF invoice, extract ALL supplier data from it:
+- `name` and `organizationNumber` (always present)
+- `postalAddress` with `addressLine1`, `postalCode`, `city` (if address appears on PDF)
+- `bankAccountPresentation: [{ bban: "<bank-account-number>" }]` (if bank account appears on PDF)
+
+Include all extracted fields in the same `POST /supplier` call — this costs zero extra API calls.
+
+The deprecated `bankAccounts` string array field silently does nothing. Always use `bankAccountPresentation` with `bban` instead.
+
+2026-03-21 production run for `Fjelltopp AS` scored 7/10 (not 10/10) because `postalAddress` and `bankAccountPresentation` from the PDF were omitted from the supplier create.
+
 ## Supplier Resolution Rules
 
 - for fresh-account-like prompts that give supplier business fields but do not say the supplier already exists, create the supplier directly and reuse the returned `id` plus `ledgerAccount.id`

@@ -64,6 +64,16 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - the system-generated VAT posting will appear on row `0` in the response
 - a failed 422 PUT does not bump the voucher version, so if you already have the version from the import response you can retry without re-reading
 
+## Supplier Creation Rules (CRITICAL for correctness)
+- when the prompt or attached PDF provides supplier address (street, postal code, city) or bank account number, include them in the `POST /supplier` payload
+- these fields cost zero extra API calls but are scored — omitting them loses correctness points
+- `postalAddress`: use `{ addressLine1, postalCode, city }` inside the same `POST /supplier`
+- `bankAccountPresentation`: use `[{ bban: "<11-digit-number>" }]` inside the same `POST /supplier`
+  - do NOT use the deprecated `bankAccounts` string array field — it silently does nothing
+  - `bankAccountPresentation` with `bban` is the correct modern field
+- 2026-03-21 production run for `Fjelltopp AS` / `804872205` scored 7/10 because the `POST /supplier` omitted `postalAddress` and `bankAccountPresentation` that were present in the attached PDF invoice
+- 2026-03-21 sandbox re-proof confirmed both fields work in a single `POST /supplier` with no extra calls
+
 ## Payload Rules
 - in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`
 - in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`
@@ -152,6 +162,8 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - do NOT omit `row` values on PUT postings; without explicit `row: 1` and `row: 2`, Tripletex defaults to row 0 which conflicts with the system-generated VAT row and returns `422`
 - if you must search for the voucher after a lost import response, `GET /ledger/voucher` requires both `dateFrom` and `dateTo`, and `dateTo` is exclusive (same date for both returns `422`); use `dateTo` = invoice date + 1 day
 - the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
+- do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
+- do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
 
 ## OpenAPI / Sandbox Status
 - `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`
@@ -233,3 +245,14 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - PUT with `row: 1` and `row: 2` succeeds on first try
   - failed 422 PUT does not bump voucher version
   - corrected 5-call path: POST supplier, GET account, GET vatType, POST importDocument (extract `values[0]`), PUT voucher with explicit `row: 1`/`row: 2`
+- 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
+  - used exactly 5 calls, 0 errors — the flow was mechanically correct
+  - but scored 7/10 (checks 5 and 6 failed) because `POST /supplier` omitted `postalAddress` and `bankAccountPresentation` from the attached PDF
+  - PDF contained: address `Solveien 92, 8006 Bodø` and bank account `53239317029`
+  - these are scored fields that cost 0 extra calls to include in the same `POST /supplier`
+- 2026-03-21 persistent-sandbox re-proof for supplier with address + bank:
+  - confirmed `postalAddress: { addressLine1: "Solveien 92", postalCode: "8006", city: "Bodø" }` accepted in `POST /supplier`
+  - confirmed `bankAccountPresentation: [{ bban: "53239317029" }]` accepted in `POST /supplier`
+  - both fields return correctly in the 201 response
+  - the deprecated `bankAccounts` string array field silently does nothing — do NOT use it
+  - full 5-call flow with address + bank: supplier `108338559`, voucher `608916670`, correct postings confirmed
