@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-205413966Z-25760653",
+  "request_id": "a7d6ba4d",
+  "prompt_raw": "Gjennomfør hele prosjektsyklusen for 'ERP-implementering Snøhetta' (Snøhetta AS, org.nr 954447499): 1) Prosjektet har budsjett 431600 kr. 2) Registrer timer: Sigurd Johansen (prosjektleder, sigurd.johansen@example.org) 47 timer og Erik Haugen (konsulent, erik.haugen@example.org) 46 timer. 3) Registrer leverandørkostnad 95050 kr fra Nordhav AS (org.nr 957929974). 4) Opprett kundefaktura for prosjektet.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:58:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:54:14.549Z",
+  "after_captured_at": "2026-03-21T20:58:39.780Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "29",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:58:39.781Z"
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-202524268Z-c1a2056e",
+  "request_id": "f3601a0f",
+  "prompt_raw": "Registrer 28 timar for Bjørn Kvamme (bjrn.kvamme@example.org) på aktiviteten \"Analyse\" i prosjektet \"Datamigrering\" for Fjelltopp AS (org.nr 986191127). Timesats: 1200 kr/t. Generer ein prosjektfaktura til kunden basert på dei registrerte timane.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:27:34Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:25:24.326Z",
+  "after_captured_at": "2026-03-21T20:28:05.692Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "16",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:28:05.693Z"
+}

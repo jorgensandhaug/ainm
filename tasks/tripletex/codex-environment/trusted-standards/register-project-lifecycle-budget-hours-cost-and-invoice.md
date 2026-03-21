@@ -25,8 +25,8 @@
 3. `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `POST /employee` for the second prompt-named employee (parallel)
 4. `POST /project`
 5. `POST /project/projectActivity` + `POST /project/participant` (employee 1) + `POST /project/participant` (employee 2) (parallel)
-6. `POST /timesheet/entry/list` with all split date chunks for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` (parallel)
-7. `POST /ledger/voucher` (Leverandørfaktura with supplier on 2400 posting, project on expense posting) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
+6. `POST /timesheet/entry/list` with all split date chunks for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` (parallel)
+7. `POST /ledger/voucher` (Leverandørfaktura with explicit `row: 1` / `row: 2` on postings, supplier on 2400 posting, project on expense posting) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
 8. if the chosen invoice bank account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
 9. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`
 
@@ -43,6 +43,8 @@
   - always include `userType: "NO_ACCESS"`
   - always include `dateOfBirth`
   - always include `employments[].startDate`
+  - do NOT include `employmentType` or `percentageOfFullTimeEquivalent` in the employment object — these fields do not exist on the employment schema and cause `422 employmentType: Feltet eksisterer ikke i objektet.`; only `startDate` and optionally `division` are valid
+  - the 2026-03-21 production run `ERP-implementering Snøhetta` hit this exact trap: `employmentType: "ORDINARY"` caused a 422 on the first `POST /employee`; sandbox re-proof confirmed the field does not exist
   - include `department.id`
   - include `employments[].division.id` only when `GET /division` returned a usable row; if the division read returned an empty array, omit `division` entirely from the employment object — sending `division: { id: undefined }` causes `422 employments.division.name: Feltet kan ikke være tomt.` because Tripletex interprets the presence of the `division` key as an attempt to create a new division
   - the 2026-03-21 production run `Cloud-Migration Eichenhof` hit this exact trap: `GET /division?count=1&fields=*` returned an empty array, the script unconditionally included `division: { id: undefined }`, and the first `POST /employee` failed with `422`
@@ -69,10 +71,14 @@
   - create one `POST /project/participant` per employee (can be parallel)
 - supplier cost via Leverandørfaktura voucher:
   - use `POST /ledger/voucher` (NOT `POST /supplierInvoice` which returns 500, NOT `POST /project/orderline` whose vendor field doesn't persist)
-  - include `voucherType: { id: 9744845 }` (Leverandørfaktura)
+  - the voucherType ID is **environment-specific** — do NOT hardcode `9744845` (sandbox) or any other ID; always resolve dynamically via `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` in step 6
+  - the 2026-03-21 production run `ERP-implementering Snøhetta` proved this: sandbox ID was `9744845`, production ID was `11289239`; hardcoding caused an extra lookup call in recovery
+  - include `voucherType: { id: <looked-up-id> }` from the step-6 voucherType read
   - `?sendToLedger=true` is optional for this voucher type — both with and without work (sandbox-verified)
-  - expense posting (row 1): `account: { id: acc6590Id }`, `amount/amountCurrency/amountGross/amountGrossCurrency: <cost>`, `project: { id: projectId }`
-  - credit posting (row 2): `account: { id: acc2400Id }`, all four amount fields: `-<cost>`, `supplier: { id: suppId }`
+  - CRITICAL: each posting MUST include an explicit `row` field starting from `1`; omitting `row` causes `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex.` because Tripletex treats row 0 as system-generated
+  - the 2026-03-21 production run `ERP-implementering Snøhetta` hit this exact trap twice: both voucher attempts without `row` fields got 422; adding `row: 1` and `row: 2` succeeded immediately; sandbox re-proof confirmed: without `row` → 422, with `row: 1/2` → 201
+  - expense posting (row 1): `row: 1`, `account: { id: acc6590Id }`, `amount/amountCurrency/amountGross/amountGrossCurrency: <cost>`, `project: { id: projectId }`
+  - credit posting (row 2): `row: 2`, `account: { id: acc2400Id }`, all four amount fields: `-<cost>`, `supplier: { id: suppId }`
   - **requires `GET /ledger/account?number=6590,2400&fields=id,number,name` before this step** to resolve account IDs
   - sandbox-verified: supplier persists on 2400 posting, project persists on 6590 posting
 - direct lifecycle invoice:
@@ -107,6 +113,8 @@
   - supplier id
 - from `GET /ledger/account?number=6590,2400`:
   - account ids for expense (6590) and supplier payable (2400)
+- from `GET /ledger/voucherType?name=Leverandørfaktura`:
+  - voucherType id (environment-specific, must not be hardcoded)
 - from `POST /ledger/voucher` (Leverandørfaktura):
   - voucher id (supplier cost with project linkage)
 - from `POST /invoice?sendToCustomer=false`:

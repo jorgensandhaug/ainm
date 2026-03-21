@@ -1,0 +1,8 @@
+{
+  "prompt": "El pago de Sierra SL (org. nº 910318144) por la factura \"Almacenamiento en la nube\" (19250 NOK sin IVA) fue devuelto por el banco. Revierta el pago para que la factura vuelva a mostrar el importe pendiente.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "qTw7wIxxkwD6zcdQJ6uQbsL8BJ517kiDE5KiD9-MwcY"
+  }
+}

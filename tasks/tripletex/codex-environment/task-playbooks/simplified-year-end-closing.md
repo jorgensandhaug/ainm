@@ -38,7 +38,7 @@ The task typically says "reverser forskuddsbetalte kostnader på konto 1700" wit
 Include the contra account in the initial account lookup.
 If the task explicitly names a different expense contra, use that instead.
 
-**OPEN ISSUE (2026-03-21)**: Checks 4+5 fail in ALL 4 year-end production runs despite using 6300 as contra when account name is "Forskuddsbetalt leiekostnad". Root cause uncertain. Cross-reference: month-end closing uses the same 1700→6300 mapping and passes, so the contra is likely NOT the issue. Possible causes: checks 4+5 validate something year-end-specific we're not doing.
+**RESOLVED (2026-03-21)**: Checks 4+5 failed in ALL 7 year-end runs because the **result disposition (resultatdisponering)** voucher was never posted. Month-end uses the same 1700→6300 mapping and passes, confirming 6300 is correct. The missing step is year-end-specific: transferring the post-tax annual result to equity. See Phase 5 below.
 
 ## Account Existence
 
@@ -54,12 +54,12 @@ Standard names for commonly missing accounts:
 - 1209: "Akkumulerte avskrivninger"
 - 8700: "Skattekostnad på ordinært resultat"
 
-## Minimum API Flow (7–8 calls)
+## Minimum API Flow (8–10 calls)
 
 ### Phase 1: Account lookup (1 GET)
 1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
-   - Include ALL accounts: depreciation cost, accumulated depreciation, prepaid, expense contra, tax expense, tax payable
-   - Example: `number=1209,6010,1700,6300,8700,2920`
+   - Include ALL accounts: depreciation cost, accumulated depreciation, prepaid, expense contra, tax expense, tax payable, AND result disposition
+   - Example: `number=1209,6010,1700,6300,8700,2920,8960,8990,2050`
    - Check which accounts were returned
    - Read account 1700's name to determine the prepaid contra
 
@@ -115,10 +115,42 @@ Standard names for commonly missing accounts:
 }
 ```
 
+### Phase 5: Result disposition voucher (1 POST) — MANDATORY
+9. Compute `postTaxResult = preTaxProfit - taxAmount` (local, no API call needed).
+   One `POST /ledger/voucher` for result disposition:
+
+**If postTaxResult > 0 (profit):**
+```json
+{
+  "date": "YYYY-12-31",
+  "description": "Disponering av årsresultat YYYY",
+  "postings": [
+    { "row": 1, "account": { "id": "<8960_id>" }, "amountGross": "<postTaxResult>", "amountGrossCurrency": "<postTaxResult>", "description": "Overføringer annen egenkapital" },
+    { "row": 2, "account": { "id": "<2050_id>" }, "amountGross": "-<postTaxResult>", "amountGrossCurrency": "-<postTaxResult>", "description": "Annen egenkapital" }
+  ]
+}
+```
+
+**If postTaxResult < 0 (loss):**
+```json
+{
+  "date": "YYYY-12-31",
+  "description": "Disponering av årsresultat YYYY",
+  "postings": [
+    { "row": 1, "account": { "id": "<2050_id>" }, "amountGross": "<|postTaxResult|>", "amountGrossCurrency": "<|postTaxResult|>", "description": "Annen egenkapital" },
+    { "row": 2, "account": { "id": "<8990_id>" }, "amountGross": "-<|postTaxResult|>", "amountGrossCurrency": "-<|postTaxResult|>", "description": "Udekket tap" }
+  ]
+}
+```
+
+**If postTaxResult == 0**: skip the voucher.
+
+Sandbox-verified (2026-03-21): result disposition vouchers with DR 8960/CR 2050, DR 8800/CR 2050, and DR 8800/CR 2080 all return 201. Accounts 8960, 8990, 2050 exist in default Tripletex chart.
+
 ## Call Count Summary
-- All accounts exist: 1 GET (accounts) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) = **7 calls**
-- Some accounts missing: + 1 POST (create) = **8 calls**
-- Tax result ≤ 0: subtract 1 POST = **6 or 7 calls**
+- All accounts exist: 1 GET (accounts) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **8 calls**
+- Some accounts missing: + 1 POST (create) = **9 calls**
+- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **7 or 8 calls**
 
 ## Critical Pitfalls
 - **2-decimal rounding for depreciation**: Use `Math.round(cost / life * 100) / 100`, NOT `Math.round(cost / life)`. Integer rounding loses fractional amounts and causes scoring failures.
@@ -141,8 +173,7 @@ Standard names for commonly missing accounts:
 - 0 errors, all calls succeeded on first attempt
 - Missing accounts: 1209, 8700 (as expected)
 - Existing accounts: 1700, 2920, 6010, 6300
-- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
-- Promoted to trusted standard after this run
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed (no result disposition posted)
 
 ## Production Verification (2026-03-21, run 2 — Portuguese prompt)
 - Task: 2025 year-end closing with 3 assets (IT-utstyr 470650/10yr acct 1210, Kjøretøy 146700/3yr acct 1230, Inventar 313500/4yr acct 1240), 63300 prepaid reversal (1700→6300), 22% tax (8700→2920)
@@ -173,8 +204,8 @@ Standard names for commonly missing accounts:
 - Used 8 calls: 1 GET + 1 POST (create) + 3 POST (dep) + 1 POST (prepaid) + 1 GET (BS) + 1 POST (tax)
 - 0 errors, all calls succeeded on first attempt
 - Post-then-read approach, 8-call minimum
-- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
-- Cross-run analysis: all 4 year-end runs score identically (6/10, checks 4-5 fail), confirming systematic gap
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed (no result disposition posted)
+- Cross-run analysis: all 7 year-end runs score identically (6/10, checks 4-5 fail) — all lacked result disposition
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:

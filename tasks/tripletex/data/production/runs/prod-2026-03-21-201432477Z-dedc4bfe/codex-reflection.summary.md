@@ -1,0 +1,1 @@
+Score reflection written. Key findings: 8/10 raw (Check 5 failed), 5 calls 0 errors (optimal efficiency), new best for task 20 (2.1→2.4). Most likely root cause: missing `country: "NO"` in supplier postal address — costs zero extra calls to fix.
