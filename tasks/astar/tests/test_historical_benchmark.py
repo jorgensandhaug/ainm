@@ -7,6 +7,7 @@ from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
+from astar.workflows.targeted_holdout_benchmark import run_targeted_holdout_benchmark
 from tests.conftest import ROUND_ID
 from tests.test_historical_bucket_baseline import (
     TRAIN_ROUND_ID,
@@ -14,6 +15,9 @@ from tests.test_historical_bucket_baseline import (
     _write_sample_analysis,
 )
 from tests.test_history_datasets import _write_replays_for_all_seeds
+
+EXTRA_TRAIN_ROUND_ID_1 = "00000000-0000-0000-0000-000000000003"
+EXTRA_TRAIN_ROUND_ID_2 = "00000000-0000-0000-0000-000000000004"
 
 
 def test_run_historical_benchmark_writes_summaries(sample_paths: RepoPaths) -> None:
@@ -132,6 +136,39 @@ def test_run_historical_benchmark_supports_parallel_round_eval(sample_paths: Rep
     assert result.artifact_path.exists()
     for round_result in result.rounds:
         assert round_result.executed_queries == 4
+
+
+def test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _copy_round(sample_paths, ROUND_ID, EXTRA_TRAIN_ROUND_ID_1)
+    _copy_round(sample_paths, ROUND_ID, EXTRA_TRAIN_ROUND_ID_2)
+    for round_id in [ROUND_ID, TRAIN_ROUND_ID, EXTRA_TRAIN_ROUND_ID_1, EXTRA_TRAIN_ROUND_ID_2]:
+        _write_sample_analysis(sample_paths, round_id=round_id, seed_index=0)
+        _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=round_id)
+
+    result = run_targeted_holdout_benchmark(
+        sample_paths,
+        model_name="teacher_student_blend_v16",
+        held_out_round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_targeted_holdout_teacher_student_v16",
+    )
+
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    assert result.summary_jsonl_path.exists()
+    assert result.round_ids == [ROUND_ID, TRAIN_ROUND_ID]
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 8
+        for seed_result in round_result.seed_results:
+            assert seed_result.training_round_count == 2
+            assert seed_result.samples_per_round == 8
 
 
 def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:

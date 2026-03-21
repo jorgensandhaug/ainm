@@ -1838,10 +1838,32 @@
      - budget: `50`
      - `jobs=12` per run
      - artifact roots:
-       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v13_full/`
-       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v14_full/`
-       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v15_full/`
-       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v16_full/`
+     - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v13_full/`
+     - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v14_full/`
+     - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v15_full/`
+     - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v16_full/`
+198. Post-OOM process correction:
+   - re-read the handoff and adopted an explicit machine-wide launch rule:
+     - check `free -h`
+     - check top RSS processes
+     - check all active `astar` / `pytest` / related python jobs
+     - choose concurrency from global headroom, not per-run intuition
+   - current clean-state check before resuming:
+     - available memory: about `2.9 TiB`
+     - active `astar` / `pytest` jobs: none
+199. Validation-process upgrade after item 198:
+   - added a proper corrected targeted-holdout workflow:
+     - `src/astar/workflows/targeted_holdout_benchmark.py`
+   - semantics:
+     - evaluate only the explicit held-out rounds
+     - train on all other discoverable rounds
+     - for `online_interactive`, training pool is restricted to replay-backed rounds so metadata stays correct
+   - this replaces ad hoc / invalid two-round CLI shortcuts for fast local gating
+200. Validation for the targeted-holdout workflow:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training tests/test_historical_benchmark.py::test_teacher_student_blend_v16_online_historical_benchmark_defaults_to_samples_8 tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
