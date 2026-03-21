@@ -73,7 +73,7 @@ export type ReverseCustomerInvoicePaymentTaskUnderstandingResult = TaskUnderstan
   typeof REVERSE_CUSTOMER_INVOICE_PAYMENT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<ReverseCustomerInvoicePaymentTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/reverse-payment");
   return {
     task,
     strategies: [strategy],
