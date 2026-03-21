@@ -639,3 +639,33 @@
   - next immediate policy variant should use posterior only as a conservative multiplier on proven regime-probe heuristics
 - implementing next:
   - `regime_probe_posterior_blend_v1`
+- implemented:
+  - `regime_probe_posterior_blend_v1`
+  - predictor-aware posterior blend integrated into `build_interactive_policy(...)`
+  - added fallback and historical-benchmark smoke coverage
+- focused validation:
+  - `uv run --with pytest python -m pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - result: `20 passed in 48.87s`
+- blend hard-slice results:
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_blend_v1`:
+    - `78.8435 / 0.082170`
+    - delta vs `regime_probe_v1`: `+0.3629`, weighted KL `-0.001505`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_blend_v1`:
+    - `78.9616 / 0.081747`
+    - delta vs `regime_probe_v1`: `+0.8331`, weighted KL `-0.003483`
+    - current overall hard-slice frontier
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_blend_v1`:
+    - `77.8513 / 0.086528`
+    - delta vs `regime_probe_v1`: `+0.2090`, weighted KL `-0.000859`
+- key interpretation:
+  - conservative posterior modulation works far better than additive posterior scoring
+  - gains are concentrated on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - on `8e839...` and `ae780...`, posterior blend is nearly identical to `regime_probe_v1`
+  - this strongly suggests the posterior signal is useful as a targeted correction, not a replacement for the heuristic policy
+- launched full promotions:
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_online50_v1`
+- push log:
+  - pushed `d4732d2f` to `origin/agent1`
+  - pushed `9db0b7aa` to `origin/agent1`
+  - pushed `10bba395` to `origin/agent1`

@@ -90,6 +90,24 @@
   - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
   - mean score `72.3675`, weighted KL `0.114380`
   - implication: hard-slice selection can be badly misleading; broader multi-round validation is mandatory
+- Exposing actual predictor posterior to the query policy is useful, but the naive additive version is model-sensitive:
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_v1`: `78.5039`, weighted KL `0.083587`
+  - delta vs `regime_probe_v1`: `+0.0233`, weighted KL `-0.000087`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.7966`, weighted KL `0.086753`
+  - delta vs `regime_probe_v1`: `+0.1543`, weighted KL `-0.000634`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.3567`, weighted KL `0.088722`
+  - delta vs `regime_probe_v1`: `-0.7718`, weighted KL `+0.003491`
+  - implication: direct additive posterior scoring is too aggressive / unstable across model families
+- A conservative posterior-aware blend policy is a clear new hard-slice frontier:
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_blend_v1`: `78.9616`, weighted KL `0.081747`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_blend_v1`: `78.8435`, weighted KL `0.082170`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_blend_v1`: `77.8513`, weighted KL `0.086528`
+  - deltas vs prior `regime_probe_v1` counterparts:
+    - v3 `l16/m50`: `+0.8331`, weighted KL `-0.003483`
+    - v4 `l32/m70`: `+0.3629`, weighted KL `-0.001505`
+    - v4 `l16/m50`: `+0.2090`, weighted KL `-0.000859`
+  - round-level effect is concentrated on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`; the other two hard rounds stay almost unchanged
+  - implication: posterior state helps most when it modulates the proven adaptive heuristic rather than replacing it
 
 ## Strongly Supported Hypotheses
 
@@ -104,6 +122,7 @@
 - Within the new distilled-posterior family, posterior shrinkage / mixing is now a real optimization axis, unlike larger k/rank which appears flat.
 - Adaptive, observation-driven query selection is now a larger lever than synthetic-bank widening for the current replay-regime family.
 - The modeling problem has likely shifted from “better static query template” to “better online regime identification”.
+- Predictor posterior state is a real policy lever, but it should be integrated conservatively on top of the adaptive heuristic rather than used as a dominating additive score.
 
 ## Rejected / Weak Hypotheses
 
@@ -129,10 +148,13 @@
 - Static coverage / static exploration should remain the best query policies once the posterior family is stronger.
   - Evidence: `regime_probe_v1` materially beats both on the matched hard slice for both v3 and v4.
   - Conclusion: this is false; adaptive querying is now mainline.
+- Direct additive posterior-disagreement scoring should transfer cleanly across the stronger v3/v4 model families.
+  - Evidence: additive `regime_probe_posterior_v1` slightly helps v4 but materially hurts v3 on the same hard slice.
+  - Conclusion: false in the current formulation; use a conservative posterior-aware blend instead.
 
 ## Open Questions
 
-- Do the in-flight full 8-round multi-seed `regime_probe` promotions (`v4 l32/m70`, `v3 l16/m50`) preserve their hard-slice gains?
-- Is `v4 l32/m70` genuinely better than `v3 l16/m50` on the broader 8-round set, or only on the current hard slice?
+- Do the in-flight full 8-round multi-seed `regime_probe_posterior_blend` promotions (`v3 l16/m50`, `v4 l32/m70`) preserve their hard-slice gains?
+- Is `v3 l16/m50 + regime_probe_posterior_blend_v1` genuinely better than `v4 l32/m70 + regime_probe_posterior_blend_v1` on the broader 8-round set, or only on the current hard slice?
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
-- Would exposing actual predictor/posterior state to the policy yield another step beyond the observation-only `regime_probe_v1` heuristic?
+- The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?

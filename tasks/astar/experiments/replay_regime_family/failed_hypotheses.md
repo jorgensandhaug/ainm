@@ -43,3 +43,9 @@
   - Evidence: `hazard_posterior_v3_k5_r3_l16_m50 + coverage` was the hard-slice leader at `76.8128` / `0.090407`
   - Full 8-round multi-seed promotion result: `72.3675` / `0.114380`
   - Conclusion: every future frontier candidate must clear broader multi-round validation before being considered a true promotion.
+- Direct additive posterior-disagreement policy should be a stable improvement over `regime_probe_v1` across the stronger replay-regime models.
+  - Evidence: matched hard 3-round multi-seed probes
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_v1`: `78.5039` / `0.083587`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.7966` / `0.086753`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.3567` / `0.088722`
+  - Conclusion: false; the additive posterior policy is model-sensitive and can degrade strong configs. Use the conservative blend mainline instead.
