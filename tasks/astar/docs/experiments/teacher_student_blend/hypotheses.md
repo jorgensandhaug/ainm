@@ -35,6 +35,8 @@
 - `v73` / `v74`: see whether the near-neutral count-adaptive local-evidence tweak becomes useful once paired with seed-adaptive mixing and no confidence gate
 - `v75` / `v76`: test whether the summary-bank student is now underweighted on unobserved cells once exact-local-evidence fixes queried cells
 - `v77` / `v78`: test the opposite direction too, in case the remaining error is still student overfit rather than underweighting
+- `v79` / `v80`: keep the winning cap fixed, but ramp into student trust more slowly as query count grows
+- `v81` / `v82`: keep the winning cap fixed, but ramp into student trust faster in case the student should dominate earlier once exact local evidence is active
 
 ## Evaluation Rule
 

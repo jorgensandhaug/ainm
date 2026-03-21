@@ -22,5 +22,7 @@
 - Is the earlier seed-adaptive failure mostly a confidence-gating artifact rather than a weighting artifact?
 - Is the exact-local-evidence line now underweighting the student on unobserved cells?
 - If mix-cap tuning matters, is the best direction stronger student blend or stronger retention of the bucket-prior base?
+- Is the remaining issue on the winning line really the query-count pacing of student trust rather than its max cap?
+- Should the student ramp in more slowly or more quickly once exact local evidence is correcting observed cells directly?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

@@ -3033,6 +3033,54 @@
    - machine stayed very healthy:
      - about `891 GiB` used
      - about `2.0 TiB` available
+338. Seed-adaptive/no-confidence results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v71`
+     - `teacher_student_blend_v72`
+     - `teacher_student_blend_v73`
+     - `teacher_student_blend_v74`
+   - aggregate results:
+     - `v71`: mean score `65.4319`, mean weighted KL `0.141890`
+     - `v72`: mean score `65.3842`, mean weighted KL `0.142140`
+     - `v73`: mean score `65.4119`, mean weighted KL `0.142007`
+     - `v74`: mean score `65.3647`, mean weighted KL `0.142256`
+339. Mix-cap results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v75`
+     - `teacher_student_blend_v76`
+     - `teacher_student_blend_v77`
+     - `teacher_student_blend_v78`
+   - aggregate results:
+     - `v75`: mean score `64.8669`, mean weighted KL `0.145147`
+     - `v76`: mean score `64.7782`, mean weighted KL `0.145682`
+     - `v77`: mean score `64.9334`, mean weighted KL `0.144266`
+     - `v78`: mean score `64.8554`, mean weighted KL `0.144655`
+340. Read from items 338-339:
+   - seed-adaptive mixing without confidence gate is nearly neutral, but still does not beat `v59`
+   - count-adaptive local evidence stays neutral even when paired with seed-adaptive mixing
+   - moving the total student cap up or down hurts more noticeably than changing teacher-weight mode
+   - the best remaining easy axis is likely not the asymptotic mix cap, but the rate at which the model ramps into student trust as query count grows
+341. New hypothesis after item 340:
+   - `v59/v60` may have the right max student influence but the wrong query-count pacing
+   - next probe:
+     - tune `query_count_scale` on the exact-local-evidence winning line while keeping the cap fixed
+     - test both faster and slower ramping into student trust
+342. Implemented query-count-pacing exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v79`
+     - `teacher_student_blend_v80`
+     - `teacher_student_blend_v81`
+     - `teacher_student_blend_v82`
+   - mapping:
+     - `v79` = `v59` backbone with slower student ramp (`query_count_scale=14`)
+     - `v80` = `v60` backbone with slower student ramp (`query_count_scale=14`)
+     - `v81` = `v59` backbone with faster student ramp (`query_count_scale=7`)
+     - `v82` = `v60` backbone with faster student ramp (`query_count_scale=7`)
+343. Validation for item 342:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v80_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v82_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

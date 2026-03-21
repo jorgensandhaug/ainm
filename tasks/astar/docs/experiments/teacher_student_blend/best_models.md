@@ -5,13 +5,21 @@ No post-pivot full-family winner is promoted yet.
 Current finished corrected-holdout ranking:
 
 - `teacher_student_blend_v59`: mean score `65.4649`, mean weighted KL `0.141802`
-- `teacher_student_blend_v60`: mean score `65.4188`, mean weighted KL `0.142051`
 - `teacher_student_blend_v69`: mean score `65.4438`, mean weighted KL `0.141927`
+- `teacher_student_blend_v71`: mean score `65.4319`, mean weighted KL `0.141890`
+- `teacher_student_blend_v60`: mean score `65.4188`, mean weighted KL `0.142051`
+- `teacher_student_blend_v73`: mean score `65.4119`, mean weighted KL `0.142007`
 - `teacher_student_blend_v67`: mean score `65.3996`, mean weighted KL `0.142170`
 - `teacher_student_blend_v70`: mean score `65.3980`, mean weighted KL `0.142176`
+- `teacher_student_blend_v72`: mean score `65.3842`, mean weighted KL `0.142140`
+- `teacher_student_blend_v74`: mean score `65.3647`, mean weighted KL `0.142256`
 - `teacher_student_blend_v68`: mean score `65.3540`, mean weighted KL `0.142420`
 - `teacher_student_blend_v51`: mean score `65.0719`, mean weighted KL `0.143762`
 - `teacher_student_blend_v52`: mean score `65.0268`, mean weighted KL `0.144004`
+- `teacher_student_blend_v77`: mean score `64.9334`, mean weighted KL `0.144266`
+- `teacher_student_blend_v75`: mean score `64.8669`, mean weighted KL `0.145147`
+- `teacher_student_blend_v78`: mean score `64.8554`, mean weighted KL `0.144655`
+- `teacher_student_blend_v76`: mean score `64.7782`, mean weighted KL `0.145682`
 - `teacher_student_blend_v61`: mean score `64.5530`, mean weighted KL `0.146440`
 - `teacher_student_blend_v62`: mean score `64.5082`, mean weighted KL `0.146682`
 - `teacher_student_blend_v63`: mean score `63.9776`, mean weighted KL `0.149871`
@@ -43,7 +51,9 @@ Current read:
 - pushing the same beta schedule further down (`v63/v64`) was still decent but clearly worse than `v59/v60`
 - making the posterior almost count-dominated (`v65/v66`) collapsed badly
 - count-adaptive exact local evidence (`v67-v70`) came back almost neutral; `v69` was close but still did not beat `v59`
-- next branch is seed-adaptive student mixing without the confidence gate, because the remaining error should mainly be unobserved-cell blending
+- seed-adaptive student mixing without the confidence gate (`v71-v74`) was also nearly neutral; `v71` got close but still did not beat `v59`
+- moving the total student cap up or down (`v75-v78`) hurt clearly, so the best remaining easy knob is likely query-count pacing rather than total cap
+- next branch is query-count-scale tuning on the exact-local-evidence winner
 - `v59` beats `v45` by `+4.1279` score and `-0.021885` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
@@ -73,17 +83,13 @@ Active queue now includes:
 - full LOO live: `teacher_student_blend_v59`
 - full LOO live: `teacher_student_blend_v60`
 - next promotion target is `teacher_student_blend_v59`
-- newest corrected-gate branches are `teacher_student_blend_v71` through `teacher_student_blend_v78`
+- newest corrected-gate branch will be `teacher_student_blend_v79` through `teacher_student_blend_v82`
 
 Pending corrected-gate results:
 
-- `teacher_student_blend_v71`
-- `teacher_student_blend_v72`
-- `teacher_student_blend_v73`
-- `teacher_student_blend_v74`
-- `teacher_student_blend_v75`
-- `teacher_student_blend_v76`
-- `teacher_student_blend_v77`
-- `teacher_student_blend_v78`
+- `teacher_student_blend_v79`
+- `teacher_student_blend_v80`
+- `teacher_student_blend_v81`
+- `teacher_student_blend_v82`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.
