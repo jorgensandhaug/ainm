@@ -20,5 +20,7 @@
 - What count-pivot best trades off single-window noise vs. heavily observed-cell calibration?
 - Does seed-adaptive student mixing help once the confidence gate is removed?
 - Is the earlier seed-adaptive failure mostly a confidence-gating artifact rather than a weighting artifact?
+- Is the exact-local-evidence line now underweighting the student on unobserved cells?
+- If mix-cap tuning matters, is the best direction stronger student blend or stronger retention of the bucket-prior base?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

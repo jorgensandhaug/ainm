@@ -2990,6 +2990,25 @@
    - machine snapshot improved further:
      - about `1.0 TiB` used
      - about `1.9 TiB` available
+332. Parallel hypothesis after item 325:
+   - exact-local-evidence now handles queried-cell calibration well enough that the next easy win may be the global student/base mixing cap on unobserved cells
+   - if the student is still underweighted, higher caps should help; if the student is still overfitting, lower caps should help
+333. Implemented student-mix-cap exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v75`
+     - `teacher_student_blend_v76`
+     - `teacher_student_blend_v77`
+     - `teacher_student_blend_v78`
+   - mapping:
+     - `v75` = `v59` backbone with higher student cap (`teacher_weight_max=0.84`)
+     - `v76` = `v60` backbone with higher student cap (`teacher_weight_max=0.88`)
+     - `v77` = `v59` backbone with lower student cap (`teacher_weight_max=0.58`)
+     - `v78` = `v60` backbone with lower student cap (`teacher_weight_max=0.60`)
+334. Validation for item 333:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v76_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v78_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

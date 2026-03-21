@@ -33,6 +33,8 @@
 - `v69` / `v70`: test a gentler version of the same count-adaptive exact-local-evidence idea
 - `v71` / `v72`: test seed-adaptive student mixing on the winning exact-local-evidence line, but without the confidence gate that likely caused `v55-v58` to fail
 - `v73` / `v74`: see whether the near-neutral count-adaptive local-evidence tweak becomes useful once paired with seed-adaptive mixing and no confidence gate
+- `v75` / `v76`: test whether the summary-bank student is now underweighted on unobserved cells once exact-local-evidence fixes queried cells
+- `v77` / `v78`: test the opposite direction too, in case the remaining error is still student overfit rather than underweighting
 
 ## Evaluation Rule
 
