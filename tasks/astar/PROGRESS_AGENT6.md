@@ -3423,3 +3423,58 @@
   - strongest next branch:
     - class-specific decoder parameterization / interactions / penalties
     - not more one-feature multiplicative gate variants
+
+## 2026-03-21 12:4x UTC - collapse-class head expansion
+
+- Re-read handoff again around:
+  - fast terminal decoder
+  - teacher→symbolic distillation
+  - full family roadmap steps
+- Machine state before next branch:
+  - load about `22.7 / 31.1 / 39.4`
+  - RAM about `2.0 TiB available`
+  - other agents still active, but current headroom supports 2 parallel smokes easily
+
+- Main diagnostic read from current artifacts:
+  - current family-best `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01` misses are not mainly port
+  - round-6 dev5 residual class mass is:
+    - empty `+0.0793`
+    - settlement `-0.1016`
+    - port `+0.0007`
+    - ruin `-0.0173`
+    - forest `+0.0304`
+  - so the real failure mode is collapse/rebuild redistribution across:
+    - empty
+    - settlement
+    - ruin
+    - forest
+  - not port
+
+- Consequence:
+  - current dyn head only directly corrects classes `(1,2,3)`
+  - empty and forest only move indirectly through softmax coupling
+  - that is probably too weak for collapse-heavy rounds
+
+- New decoder-side hypothesis:
+  - the next branch should not be another gate
+  - it should let the decoder directly correct the collapse/rebuild quartet
+  - two first immutable tests:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01`
+      - active classes `(0,1,3,4)`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01`
+      - active classes `(0,1,2,3,4)`
+
+- Code landed:
+  - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+  - `tests/test_summary_rate_decoder_predictor.py`
+
+- Validation:
+  - `uv run pytest tests/test_summary_rate_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py -q`
+  - result:
+    - `17 passed in 46.93s`
+
+- Next immediate action:
+  - commit/push runnable specs
+  - launch 2 smoke benchmarks in parallel:
+    - `collapsequad`
+    - `nonmountain`

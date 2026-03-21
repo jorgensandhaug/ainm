@@ -202,6 +202,28 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
     )
 
+    collapse_dyn_collapsequad_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_collapsequad_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01"
+    )
+
+    collapse_dyn_nonmountain_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_nonmountain_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01"
+    )
+
 
 def test_summary_rate_decoder_classwise_gate_tensor() -> None:
     spatial_names = ["buildable", "coast", "maritime_access"]
@@ -430,6 +452,34 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     assert (
         parsed_collapse_dyn_portmaritime.model
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
+    )
+
+    parsed_collapse_dyn_collapsequad = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_collapsequad.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01"
+    )
+
+    parsed_collapse_dyn_nonmountain = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_nonmountain.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01"
     )
 
     parsed_stress = parser.parse_args(

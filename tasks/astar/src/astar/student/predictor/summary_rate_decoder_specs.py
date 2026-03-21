@@ -18,6 +18,7 @@ class SummaryRateDecoderModelSpec(BaseModel):
     summary_feature_variant: str = "basic"
     active_class_indices: tuple[int, ...] = ()
     active_delta_gate: str = "none"
+    design_variant: str = "basic"
 
 
 SUMMARY_RATE_DECODER_MODEL_SPECS = (
@@ -238,6 +239,44 @@ SUMMARY_RATE_DECODER_MODEL_SPECS = (
         include_teacher_logits=True,
         active_class_indices=(1, 2, 3),
         active_delta_gate="port_maritime",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        design_variant="prior_dynx",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        design_variant="teacher_dynx",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        design_variant="prior_teacher_dynx",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(0, 1, 3, 4),
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(0, 1, 2, 3, 4),
     ),
 )
 
