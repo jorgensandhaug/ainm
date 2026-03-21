@@ -104,6 +104,12 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         probability_floor=0.0005,
     ),
     QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_supportx_f0001_v01",),
+        model_name="f1_student_query_residual_supportx_f0001_v01",
+        feature_variant="v8_supportxbase",
+        probability_floor=0.0001,
+    ),
+    QueryResidualModelSpec(
         request_names=("f1_student_query_residual_supportx_f001_v01",),
         model_name="f1_student_query_residual_supportx_f001_v01",
         feature_variant="v8_supportxbase",

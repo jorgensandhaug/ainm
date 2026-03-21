@@ -220,6 +220,26 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         component_weights=(0.5, 0.5),
         probability_floor=0.0005,
     ),
+    # m=0.30 + f=0.0003 (agent1 + agent7 combined insights)
+    "f1_ensemble_hv2f0003m30_sxf0003_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0003m30_sxf0003_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0003_m30_v01",
+            "f1_student_query_residual_supportx_f0003_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0003,
+    ),
+    # f=0.0001 (even lower)
+    "f1_ensemble_hv2f0001_sxf0001_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0001_sxf0001_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0001,
+    ),
     # LOW PROBABILITY FLOOR VARIANTS (ensemble-only floor, components keep 0.01)
     "f1_ensemble_hv2_sx_50_f005_v01": EnsembleModelSpec(
         model_name="f1_ensemble_hv2_sx_50_f005_v01",

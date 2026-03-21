@@ -203,6 +203,24 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         predicted_particle_weight=0.7,
         probability_floor=0.0003,
     ),
+    # Agent1 insight: m=0.30 (trust particles more) + low floor
+    "f1_hazard_posterior_v2_k5_r3_f0003_m30_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_f0003_m30_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.3,
+        probability_floor=0.0003,
+    ),
+    # Even lower floor
+    "f1_hazard_posterior_v2_k5_r3_f0001_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_f0001_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        probability_floor=0.0001,
+    ),
     "f1_hazard_posterior_v2_k5_r3_f0005_v01": HazardPosteriorV2PortModelSpec(
         model_name="f1_hazard_posterior_v2_k5_r3_f0005_v01",
         k_neighbors=5,
