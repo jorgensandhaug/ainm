@@ -344,6 +344,7 @@ class SummaryBankStudentCheckpoint(BaseModel):
     inference_head: str = SUMMARY_HEAD_KNN
     ridge_alpha: float = Field(default=1.0, gt=0.0)
     coefficient_dim: int = Field(default=0, ge=0)
+    neighbor_distance_scale: float = Field(default=1.0, gt=0.0)
 
 
 class SummaryBankStudent(BaseModel):
@@ -365,6 +366,7 @@ class SummaryBankStudent(BaseModel):
     coefficient_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.float64))
     coefficient_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 0), dtype=np.float64))
     coefficient_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
+    neighbor_distance_scale: float = Field(default=1.0, gt=0.0)
     teacher: HazardTeacher
 
     @classmethod
@@ -416,6 +418,17 @@ class SummaryBankStudent(BaseModel):
         coefficient_intercept = np.zeros(0, dtype=np.float64)
         coefficient_weights = np.zeros((summary_stack.shape[1], 0), dtype=np.float64)
         coefficient_vectors = np.zeros((0, 0), dtype=np.float64)
+        neighbor_distance_scale = 1.0
+        if summary_stack.shape[0] > 1:
+            distances = np.linalg.norm(
+                summary_stack[:, None, :] - summary_stack[None, :, :],
+                axis=-1,
+            )
+            np.fill_diagonal(distances, np.inf)
+            nearest_distances = np.min(distances, axis=1)
+            neighbor_distance_scale = float(
+                max(float(np.median(nearest_distances)), 1e-6),
+            )
         if inference_head == SUMMARY_HEAD_RIDGE:
             regime_intercept, regime_weights = _fit_linear_map(
                 summary_stack,
@@ -461,6 +474,7 @@ class SummaryBankStudent(BaseModel):
             coefficient_intercept=coefficient_intercept,
             coefficient_weights=coefficient_weights,
             coefficient_vectors=coefficient_vectors,
+            neighbor_distance_scale=neighbor_distance_scale,
             teacher=teacher,
         )
 
@@ -483,6 +497,7 @@ class SummaryBankStudent(BaseModel):
             inference_head=self.inference_head,
             ridge_alpha=self.ridge_alpha,
             coefficient_dim=int(self.coefficient_intercept.shape[0]),
+            neighbor_distance_scale=self.neighbor_distance_scale,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
@@ -572,6 +587,7 @@ class SummaryBankStudent(BaseModel):
             coefficient_intercept=coefficient_intercept,
             coefficient_weights=coefficient_weights,
             coefficient_vectors=coefficient_vectors,
+            neighbor_distance_scale=checkpoint.neighbor_distance_scale,
             teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
         )
 
@@ -614,6 +630,28 @@ class SummaryBankStudent(BaseModel):
             axes=(0, 0),
         )
         return np.asarray(base + residual, dtype=np.float64)
+
+    def _summary_distance(self, query_vector: np.ndarray) -> float:
+        if self.summary_vectors.shape[0] == 0:
+            return 0.0
+        return float(
+            np.min(
+                np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1),
+            ),
+        )
+
+    def summary_confidence(self, context: LiveInferenceContext) -> float:
+        query_vector = self._query_vector(context)
+        return float(
+            1.0
+            / (
+                1.0
+                + (
+                    self._summary_distance(query_vector)
+                    / max(float(self.neighbor_distance_scale), 1e-6)
+                )
+            ),
+        )
 
     def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
         query_vector = self._query_vector(context)

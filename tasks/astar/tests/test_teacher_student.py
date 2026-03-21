@@ -448,5 +448,7 @@ def test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip
     assert reloaded.summary_encoder == SUMMARY_ENCODER_TEMPORAL_V4
     assert reloaded.inference_head == SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN
     assert reloaded.normalize_summary is True
+    assert reloaded.neighbor_distance_scale > 0.0
+    assert 0.0 <= reloaded.summary_confidence(context) <= 1.0
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)

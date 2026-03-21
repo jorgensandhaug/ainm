@@ -1864,6 +1864,42 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training tests/test_historical_benchmark.py::test_teacher_student_blend_v16_online_historical_benchmark_defaults_to_samples_8 tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip -q`
    - result:
      - `3 passed`
+201. Corrected targeted-holdout sweep for the new residual branch:
+   - launched for:
+     - `teacher_student_blend_v13`
+     - `teacher_student_blend_v14`
+     - `teacher_student_blend_v15`
+     - `teacher_student_blend_v16`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - training pool:
+     - all other replay-backed analyzed rounds
+   - launch correction:
+     - `jobs=2` inside an inline `python - <<'PY'` entrypoint fails under multiprocessing spawn because `__main__` becomes `<stdin>`
+     - reran with `jobs=1` inside each model and kept only outer model parallelism
+202. Machine-wide health at item 201 relaunch:
+   - other agents had already started large jobs again
+   - snapshot after relaunch:
+     - memory used: about `410 GiB`
+     - memory available: about `2.5 TiB`
+   - my four corrected holdout runs were each about `7.7-8.2 GiB` RSS
+   - decision:
+     - do not add more concurrent benchmark processes until the current gate finishes
+203. Next hypothesis after item 201:
+   - even spatial dynamic blending can still overtrust the teacher when the live evidence summary is far from the training summary bank
+   - implemented confidence-gated teacher blending:
+     - student now stores a typical nearest-neighbor summary distance scale
+     - predictor can downweight teacher blend when the current summary is out-of-bank
+   - new variants:
+     - `teacher_student_blend_v17`
+     - `teacher_student_blend_v18`
+   - focused validation:
+     - initial run exposed one numpy bug:
+       - `np.median(..., dtype=...)` invalid
+     - fixed immediately
+     - rerun result:
+       - `3 passed`
 
 
 ## Open Questions

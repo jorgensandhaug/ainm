@@ -51,6 +51,8 @@ SUMMARY_BANK_STUDENT_V13 = "teacher_student_blend_v13"
 SUMMARY_BANK_STUDENT_V14 = "teacher_student_blend_v14"
 SUMMARY_BANK_STUDENT_V15 = "teacher_student_blend_v15"
 SUMMARY_BANK_STUDENT_V16 = "teacher_student_blend_v16"
+SUMMARY_BANK_STUDENT_V17 = "teacher_student_blend_v17"
+SUMMARY_BANK_STUDENT_V18 = "teacher_student_blend_v18"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
@@ -72,6 +74,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V14,
         SUMMARY_BANK_STUDENT_V15,
         SUMMARY_BANK_STUDENT_V16,
+        SUMMARY_BANK_STUDENT_V17,
+        SUMMARY_BANK_STUDENT_V18,
     },
 )
 
@@ -89,6 +93,7 @@ class SummaryBankVariantSpec(BaseModel):
     inference_head: str = SUMMARY_HEAD_KNN
     ridge_alpha: float = Field(default=1.0, gt=0.0)
     blend_mode: str = BLEND_MODE_GLOBAL
+    use_confidence_gate: bool = False
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -128,6 +133,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V14: 8,
         SUMMARY_BANK_STUDENT_V15: 4,
         SUMMARY_BANK_STUDENT_V16: 8,
+        SUMMARY_BANK_STUDENT_V17: 4,
+        SUMMARY_BANK_STUDENT_V18: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -164,6 +171,38 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v15 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V16 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v16 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V17 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v17 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V18 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v18 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V18:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.85,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V17:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.78,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V16:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -451,6 +490,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     teacher_weight_max: float = Field(default=0.4, ge=0.0, le=1.0)
     query_count_scale: float = Field(default=20.0, gt=0.0)
     blend_mode: str = BLEND_MODE_GLOBAL
+    use_confidence_gate: bool = False
 
     def _teacher_weight(self, evidence: RoundEvidenceBundle) -> float:
         if evidence.total_queries <= 0:
@@ -468,9 +508,15 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
         teacher_weight: float,
     ) -> float | np.ndarray:
         if self.blend_mode == BLEND_MODE_GLOBAL:
-            return teacher_weight
+            confidence = (
+                self.student.summary_confidence(context) if self.use_confidence_gate else 1.0
+            )
+            return teacher_weight * confidence
         if self.blend_mode != BLEND_MODE_SPATIAL_DYNAMIC:
             raise ValueError(f"unsupported summary-bank blend mode: {self.blend_mode}")
+        confidence = (
+            self.student.summary_confidence(context) if self.use_confidence_gate else 1.0
+        )
         seed_features = context.geometry_bundle.per_seed[seed_index]
         seed_evidence = context.evidence_bundle.per_seed[seed_index]
         buildable = (seed_features.feature("buildable") > 0.5).astype(np.float64)
@@ -490,7 +536,10 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
             0.0,
             1.0,
         )
-        return np.asarray(teacher_weight * dynamic_emphasis[:, :, None], dtype=np.float64)
+        return np.asarray(
+            teacher_weight * confidence * dynamic_emphasis[:, :, None],
+            dtype=np.float64,
+        )
 
     def build_prediction_bundle_from_context(
         self,
@@ -574,6 +623,7 @@ def load_or_fit_named_summary_bank_predictor(
             teacher_weight_max=spec.teacher_weight_max,
             query_count_scale=spec.query_count_scale,
             blend_mode=spec.blend_mode,
+            use_confidence_gate=spec.use_confidence_gate,
         )
 
     base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
@@ -618,6 +668,7 @@ def load_or_fit_named_summary_bank_predictor(
         teacher_weight_max=spec.teacher_weight_max,
         query_count_scale=spec.query_count_scale,
         blend_mode=spec.blend_mode,
+        use_confidence_gate=spec.use_confidence_gate,
     )
 
 
@@ -639,6 +690,8 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V14",
     "SUMMARY_BANK_STUDENT_V15",
     "SUMMARY_BANK_STUDENT_V16",
+    "SUMMARY_BANK_STUDENT_V17",
+    "SUMMARY_BANK_STUDENT_V18",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",
