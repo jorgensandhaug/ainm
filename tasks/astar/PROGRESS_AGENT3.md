@@ -969,6 +969,22 @@
      - both representative hard rounds improved again
    - promotion decision:
      - run full corrected LOO for `query_residual_v18`
+112. `query_residual_v18` full corrected LOO status at end of this turn:
+   - full run command launched:
+     - `uv run astar run-historical-benchmark --model query_residual_v18 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v18_full_corrected`
+   - run was intentionally interrupted to avoid leaving an orphan long-running process at turn end
+   - cached fold checkpoints already completed for `3/8` held-out folds:
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
+   - rerunning the exact same command should resume from those cached folds rather than restart from zero
+113. Current verified leaderboard after this turn:
+   - best fully verified model:
+     - `query_residual_v17`
+   - strongest unverified next branch:
+     - `query_residual_v18`
+     - targeted holdout score `66.6604` vs verified leader targeted `64.8429`
+     - full corrected LOO still pending completion
 
 ## Open Questions
 
