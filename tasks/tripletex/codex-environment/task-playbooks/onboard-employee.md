@@ -182,3 +182,10 @@ Run 2026-03-21 (STYRK 3323 contract, French prompt, 80% employment, no standard 
 - GET /division (0 rows, fresh account) → POST /department → POST /employee (with nested employmentDetails)
 - this is the minimum-call floor for this contract shape: 3 calls
 - sandbox readback confirmed all fields persisted: occupationCode.id=2503, percentageOfFullTimeEquivalent=80, annualSalary=860000
+
+Run 2026-03-21 (Seniorutvikler offer letter, French prompt, 100% employment, standard worktime 7.5h): 4 calls, 0 errors
+- first production use of hardcoded Seniorutvikler → id 5935 (SYSTEMUTVIKLER) mapping
+- GET /division (0 rows, fresh account) → POST /department → POST /employee → POST /employee/standardTime
+- improvement over third run: 4 calls instead of 6, correct occupation code instead of wrong one
+- sandbox readback confirmed: occupationCode.id=5935, annualSalary=880000, hoursPerDay=7.5
+- this is the minimum-call floor for the Seniorutvikler + standard-worktime shape: 4 calls

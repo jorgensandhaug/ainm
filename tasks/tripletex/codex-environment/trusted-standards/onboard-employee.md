@@ -225,3 +225,10 @@ Standard worktime (per-employee):
   - POST /employee included nested employmentDetails with occupationCode { id: 2503 }, percentageOfFullTimeEquivalent 80, annualSalary 860000
   - scoring attribution was ambiguous (2 candidate tasks); correctness confirmed via sandbox readback
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2503, nameNO=INNKJØPER, code=3416102, percentageOfFullTimeEquivalent=80, annualSalary=860000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-04-23, nationalIdentityNumber and bankAccountNumber preserved
+- production run on 2026-03-21 (fifth run, Seniorutvikler offer letter, French prompt, 100% employment, with standard worktime 7.5h) used 4 calls: GET /division, POST /department, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - first production use of the hardcoded Seniorutvikler → id 5935 (SYSTEMUTVIKLER) mapping, saving 2 calls vs the third run which used 6 calls and got the wrong occupation code
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 5935 }, percentageOfFullTimeEquivalent 100, annualSalary 880000
+  - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-11-03
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=5935, nameNO=SYSTEMUTVIKLER, code=2130109, percentageOfFullTimeEquivalent=100, annualSalary=880000, employmentForm=PERMANENT, hoursPerDay=7.5
+  - this is the minimum-call floor for the Seniorutvikler + standard-worktime shape: 4 calls
