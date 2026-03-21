@@ -3431,3 +3431,28 @@ Applied Agent7's discovery: lowered probability floor from 0.01 to 0.0003.
 **GT-evidence ev15 with floor 0.0003: 86.64 — competitive with Agent7's best (87.12)!**
 
 Cross-agent intelligence was decisive here — the floor insight alone is worth +3.89 points.
+
+### Floor sweep on evidence+settlements model
+- ev1 with floor 0.0003: 79.36 (up from 76.26)
+- ev15 with floor 0.0003: 85.99 (up from 81.84)
+- GT-evidence model still dominates because it trains directly on optimal probability targets
+
+### COMPREHENSIVE FINAL RESULTS TABLE
+
+| Model | ev | Floor | Score | vs qr_v11 |
+|-------|-----|-------|-------|-----------|
+| **GT-evidence** | **15** | **0.0003** | **86.64** | **+7.25** |
+| Evidence+sett | 15 | 0.0003 | 85.99 | +6.60 |
+| Evidence v2 (no sett) | 15 | 0.01 | 83.06 | +3.67 |
+| **GT-evidence** | **1** | **0.0003** | **82.05** | **+2.66** |
+| Evidence+sett | 1 | 0.0003 | 79.36 | -0.03 |
+| query_residual_v11 | online | 0.01 | 79.39 | 0 |
+| GT-evidence | 1 | 0.01 | 78.16 | -1.23 |
+| Evidence+sett | 1 | 0.01 | 76.26 | -3.13 |
+
+**Best agent scores for comparison:**
+- Agent7 ffam_mode: 87.12
+- **Agent4 GT-evidence ev15: 86.64** ← OUR BEST
+- Agent3 CatBoost: 85.29
+- Agent1 hazard_posterior_v15: 83.79
+- Agent6 ensemble: ~79.6
