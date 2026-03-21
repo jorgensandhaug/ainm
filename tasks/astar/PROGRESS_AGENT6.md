@@ -4207,10 +4207,18 @@
   - 40/60: 75.07
   - Triple with cell_type_transfer (40/40/20): 74.76 (dilutes signal)
 
+- Supportx ensemble sweep:
+  - hv2+sx 50/50: **75.38** (NEW BEST with supportx component)
+  - hv2+sx 40/60: 75.29
+  - hv2+sx 60/40: 75.26
+  - hv2k7+sx 50/50: 75.22
+- Dev5 for hv2+sx 50/50 running
+
 ### Current scoreboard on probe3:
-1. **ENSEMBLE hv2+qr 50/50: 75.19** (MASSIVE NEW BEST)
-2. ensemble hv2k9+sx 50/50: 75.16
-3. hazard_posterior_v2 k9_r3_m80: 73.293
+1. **ENSEMBLE hv2+sx 50/50: 75.38** (NEWEST BEST)
+2. ensemble hv2+qr 50/50: 75.19
+3. ensemble hv2k9+sx 50/50: 75.16
+4. hazard_posterior_v2 k9_r3_m80: 73.293
 2. hazard_posterior_v2 k7_r3_m80: 73.25
 3. hazard_posterior_v2 k7_r3: 73.25
 4. hazard_posterior_v2 k7_r3_m90: 73.21
