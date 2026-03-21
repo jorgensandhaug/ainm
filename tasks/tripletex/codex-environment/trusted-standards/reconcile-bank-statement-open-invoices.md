@@ -6,16 +6,17 @@
 
 Task asks to reconcile a bank statement (CSV) against open invoices. Incoming payments matched to customer invoices, outgoing payments matched to supplier invoices. May include partial payments.
 
-## MANDATORY CHECKLIST — your script MUST include ALL 6 steps
+## MANDATORY CHECKLIST — your script MUST include ALL 7 steps
 
-Without Step 6, the script scores 0.6/6. Nine consecutive runs omitting Step 6 ALL scored 0.6/6. Run 57c8f4db included Step 6 and successfully created a bank reconciliation (first success in 10 runs).
+Steps 1–5 give 0.6/6 (Check 2 only). Step 6 (bank reconciliation alone, without bank statement import) was proven INSUFFICIENT in run 57c8f4db — score remained 0.6/6. **Step 7 (bank statement import) is likely the missing piece for Check 1** but the correct CSV format conversion is UNSOLVED (all attempts returned 422). Include Steps 6+7 anyway — if they fail, fall back gracefully.
 
 1. **Step 1**: Fire 6 reads in parallel (including `accountingPeriod`)
 2. **Step 2**: Select payment type (debitAccount.number === 1920)
 3. **Step 3**: Match and pay customer invoices (`PUT /invoice/{id}/:payment`)
 4. **Step 4**: Handle supplier payments (combined voucher if no supplier invoices)
 5. **Step 5**: Book ALL non-invoice lines (Bankgebyr/Skattetrekk/Renteinntekter)
-6. **Step 6**: `POST /bank/reconciliation` with `isClosed: true` — **THIS IS THE STEP THAT FIXES CHECK 1**
+6. **Step 6**: `POST /bank/reconciliation` with `isClosed: true` — necessary but NOT sufficient for Check 1
+7. **Step 7**: Import bank statement via `POST /bank/statement/import` — **LIKELY required for Check 1 but format conversion is UNSOLVED** (see "Bank Statement Import" section)
 
 ## CSV parsing
 
@@ -23,7 +24,7 @@ Parse locally. Classify lines:
 - **Incoming customer**: description contains customer name + invoice reference, `Inn` column populated
 - **Outgoing supplier**: description contains supplier name, `Ut` column populated (negative)
 - **Non-invoice**: bank fees, tax, interest — **MUST be booked** (see Step 5)
-- **Compute closing balance for Step 6**: `sum(all Inn values) - sum(all |Ut| values)` from ALL CSV lines. DO NOT use the CSV ending saldo (it includes an opening balance not in Tripletex).
+- **Compute closing balance for Step 6**: `sum(all Inn) - sum(all |Ut|)` from ALL CSV lines = net cash flow. DO NOT use the CSV ending Saldo column (it includes a 100000 opening balance not in the fresh Tripletex account).
 
 ## Optimal call flow (mixed incoming/outgoing, no supplier invoices — common case)
 
@@ -78,7 +79,7 @@ Row numbering starts at 1 (row 0 is system-reserved). Voucher date = earliest pa
 
 ### Step 5: Book non-invoice lines
 
-**CRITICAL: ALL bank statement lines must be accounted for, not just invoice-related ones.** The scorer validates the full reconciliation. Previous runs scored 0.6 (2/10) because non-invoice lines were skipped — Check 1 (worth ~8 points) consistently failed.
+**CRITICAL: ALL bank statement lines must be accounted for, not just invoice-related ones.** Non-invoice lines must be booked to ensure the account 1920 balance is correct for the bank reconciliation in Step 6. If non-invoice lines are skipped, the computed closing balance will not match the actual account balance, causing Step 6 to fail with 422.
 
 Combine non-invoice postings into the same supplier voucher (if one exists) OR create a separate voucher. Each non-invoice line needs 2 postings (bank debit/credit + contra account):
 
@@ -122,10 +123,13 @@ After all invoice payments and voucher postings are complete, create a closed ba
 // The accounting period was already fetched in Step 1 (targeted query)
 const period = accountingPeriods[0]; // single result from targeted query
 
-// Compute closing balance from CSV movements (NO balance sheet read needed)
-// On fresh test accounts, account 1920 starts at 0, so balance = sum of all our postings
-// = sum(all Inn values) - sum(all |Ut| values) from the CSV
-const computedBalance = csvLines.reduce((sum, line) => sum + (line.inn || 0) - (line.ut || 0), 0);
+// Compute closing balance from CSV movements (NO extra API call needed)
+// Fresh test accounts start 1920 at 0, so balance = net of all CSV movements
+// = sum(all Inn values) - sum(all absolute Ut values) from the CSV
+// If you stored Ut as positive: use (inn - ut). If as negative: use (inn + ut).
+const computedBalance = csvLines.reduce((sum, line) => {
+  return sum + (line.inn || 0) - Math.abs(line.ut || 0);
+}, 0);
 
 // Create + close bank reconciliation in ONE call
 await post("bank/reconciliation", {
@@ -145,9 +149,33 @@ await post("bank/reconciliation", {
 - **DO NOT use CSV ending saldo** — the CSV saldo includes an opening balance (e.g. 100000) that does NOT exist in the fresh Tripletex account. Production run 57c8f4db proved: CSV saldo was 139130.06 but actual 1920 balance was 39130.06 (difference = 100000 opening balance). Using CSV saldo would cause a 422 error.
 - **Compute closing balance as `sum(Inn) - sum(|Ut|)`** from ALL CSV lines — this equals the sum of all 1920 postings on a fresh account. Sandbox-verified: computed 39130.06 matches balance sheet 39130.06.
 - Production run 57c8f4db successfully created bank reconciliation with computed balance (39130.06) — first successful bank reconciliation in 10 runs.
+- **HOWEVER**: bank reconciliation alone did NOT fix Check 1 (57c8f4db scored 0.6/6). The reconciliation had `transactions: []` (empty). A proper reconciliation likely needs bank statement transactions linked via import.
 
 **Fallback**: if `POST /bank/reconciliation` returns `403` (proxy blocks it), skip bank reconciliation entirely — the customer payments and voucher postings will still score Check 2 (2/10).
 **Fallback 2**: if computed balance causes `422`, read balance sheet as safety net: `GET /balanceSheet?dateFrom=${period.start}&dateTo=${period.end}&accountNumberFrom=1920&accountNumberTo=1920&count=1&fields=*` → use `values[0].balanceOut`. This costs 1 extra call.
+
+### Step 7: Import bank statement (UNSOLVED — likely required for Check 1)
+
+**STATUS: ALL FORMAT ATTEMPTS FAILED. This step is the highest-priority investigation target.**
+
+The CSV format `Dato;Forklaring;Inn;Ut;Saldo` does not directly match any supported Tripletex import format. The `/bank/statement/import` endpoint requires `fileFormat` and `bankId` parameters. Available formats include: `DANSKE_BANK_CSV` (bankId 76), `DNB_CSV` (bankId 67), `NORDEA_CSV`, `SBANKEN_BEDRIFT_CSV` (bankId 112), `SBANKEN_PRIVAT_CSV` (bankId 112), `HAUGESUND_SPAREBANK_CSV`, `VISMA_ACCOUNT_STATEMENT`, `ZTL`.
+
+**Sandbox investigation results (2026-03-21, run 57c8f4db)**:
+- Tested reformatting CSV to match each bank format's expected column headers
+- ALL attempts returned `422` with "file must contain columns [expected columns]" even when providing exactly those columns
+- Tested: semicolons, commas, tabs as separators; BOM and ISO-8859-1 encoding; quoted and unquoted headers; `Blob` and `Bun.file()` for upload
+- **None succeeded** — the endpoint may require additional metadata, encoding, or exact column structure that hasn't been cracked
+
+**Hypothesis**: Check 1 likely validates that bank statement transactions exist in the system, linked to the reconciliation. Without bank statement import, the reconciliation object is empty (`transactions: []`). The full expected workflow:
+1. Import bank statement → creates `BankStatementTransaction` entries (one per CSV line)
+2. Match bank transactions to ledger postings via `POST /bank/reconciliation/match`
+3. Close the reconciliation with `isClosed: true`
+
+**Investigation priority for next sandbox session**:
+1. Try `POST /bank/statement` (direct creation, not import) if the endpoint exists
+2. Try `POST /bank/statement/transaction` to create individual transactions on an existing statement
+3. Check if the openapi.json reveals required fields or encoding details not covered in testing
+4. Try creating BankReconciliationMatch entries directly without bank statement import
 
 ## Call count
 
@@ -160,9 +188,9 @@ await post("bank/reconciliation", {
 
 ## Proven production results
 
-**Spanish run 2 (57c8f4db) is the FIRST run with bank reconciliation — score pending.** All 9 previous completed runs scored 0.6/6 (Check 1 failed, Check 2 passed) because none created a bank reconciliation.
+**ALL 10 completed runs scored 0.6/6.** Run 57c8f4db was the first to add bank reconciliation — it did NOT fix Check 1. The bank reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transaction import (unsolved).
 
-- **Spanish run 2 (57c8f4db): 14 calls, 0 errors, FIRST bank reconciliation** — 6 reads (broad accountingPeriod query) + 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500) + 1 combined voucher (12 postings: 3 supplier payments González/Torres/López + 1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06, NOT CSV saldo 139130.06). **Key finding**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not present in Tripletex. Balance sheet read saved from a 422 error. Next run should compute closing balance from CSV movements to save 1 call.
+- **Spanish run 2 (57c8f4db): 14 calls, 0 errors, scored 0.6/6** — FIRST bank reconciliation attempt, but Check 1 still failed. 6 reads (broad accountingPeriod query) + 5 customer payments (4 full + 1 partial: Rodríguez SL 14700 of 24500) + 1 combined voucher (12 postings: 3 supplier payments González/Torres/López + 1 Bankgebyr Inn refund 440.96 + 2 Skattetrekk Inn refunds 1563.12+1163.48) + 1 balance sheet read + 1 bank reconciliation (closingBalance=39130.06, NOT CSV saldo 139130.06). **Key finding 1**: CSV saldo (139130.06) did NOT match actual 1920 balance (39130.06) — difference is 100000 opening balance not present in Tripletex. **Key finding 2**: bank reconciliation alone is NOT sufficient — the reconciliation object had `transactions: []`, likely needs bank statement import to populate transactions.
 - German run 2 (5fc92ebf): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
 - German run 1 (655f6c99): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6
 - Portuguese run 2 (5c02a044): 11 calls, 0 errors, no bank reconciliation — scored 0.6/6 (included all non-invoice lines)
@@ -175,7 +203,7 @@ await post("bank/reconciliation", {
 
 ## Critical pitfalls
 
-- **BANK RECONCILIATION REQUIRED**: Run 57c8f4db was the first to create a bank reconciliation (score pending). All 9 prior runs without one scored 0.6/6. Always create a closed bank reconciliation via Step 6.
+- **BANK RECONCILIATION IS NECESSARY BUT NOT SUFFICIENT**: Run 57c8f4db was the first to create a bank reconciliation and still scored 0.6/6. All 10 completed runs scored 0.6/6. The reconciliation had `transactions: []` — Check 1 likely requires bank statement transactions to be imported and linked. Still include Step 6 (it may be a prerequisite) but the actual fix for Check 1 is likely Step 7 (bank statement import, currently UNSOLVED).
 - **DO NOT use CSV ending saldo as closing balance**: The CSV saldo includes an opening balance (typically 100000) that does NOT exist in the fresh Tripletex account. Production run 57c8f4db: CSV saldo=139130.06, actual balance=39130.06. Using CSV saldo would cause `422`. Compute closing balance as `sum(Inn) - sum(|Ut|)` from all CSV lines instead.
 - **TIMEOUT RISK**: This is the most timeout-prone task shape. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Three production runs scored 0 due to timeout: bc688ea1 (spent 300s reading docs, 0 API calls), 2f10e207 (LLM output took 4.5 min generating script, API executed in 4s but proxy expired), and one earlier run. The API execution takes ~4–15s; all remaining time is wasted on documentation or LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
