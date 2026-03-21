@@ -996,8 +996,32 @@ class FFAMModePredictor(BaseRoundPredictor):
                 learning_rate=config.posterior_residual_learning_rate,
                 weight_decay=config.posterior_residual_weight_decay,
                 val_mask=val_mask,
-                seed=0,
+                seed=config.posterior_residual_seed,
             )
+            if config.posterior_residual_ensemble_seeds > 1:
+                ensemble_weights_in = [posterior_residual_weight_in]
+                ensemble_biases_in = [posterior_residual_bias_in]
+                ensemble_weights_out = [posterior_residual_weight_out]
+                ensemble_biases_out = [posterior_residual_bias_out]
+                for ensemble_seed in range(1, config.posterior_residual_ensemble_seeds):
+                    ew_in, eb_in, ew_out, eb_out = _train_residual_mlp(
+                        standardized_inputs,
+                        residual_targets,
+                        hidden_dim=config.posterior_residual_hidden_dim,
+                        steps=config.posterior_residual_steps,
+                        learning_rate=config.posterior_residual_learning_rate,
+                        weight_decay=config.posterior_residual_weight_decay,
+                        val_mask=val_mask,
+                        seed=config.posterior_residual_seed + ensemble_seed,
+                    )
+                    ensemble_weights_in.append(ew_in)
+                    ensemble_biases_in.append(eb_in)
+                    ensemble_weights_out.append(ew_out)
+                    ensemble_biases_out.append(eb_out)
+                posterior_residual_weight_in = np.mean(np.stack(ensemble_weights_in), axis=0)
+                posterior_residual_bias_in = np.mean(np.stack(ensemble_biases_in), axis=0)
+                posterior_residual_weight_out = np.mean(np.stack(ensemble_weights_out), axis=0)
+                posterior_residual_bias_out = np.mean(np.stack(ensemble_biases_out), axis=0)
 
         return cls(
             name=config.model_name,

@@ -2610,3 +2610,30 @@ Framework should accept unique query-residual family variant names directly so b
 8. **Posterior ridge sweep reveals dramatic overfitting**: default lambda=8.0 was massively over-regularized; optimum near 0.05 (160x reduction)
 9. **Operator ridge also over-regularized**: lambda 8.0 → 2.0 gives additional +0.05
 10. **Round 3 massive rescue**: The hardest round improved by +13.4 points - from 64.1 to 77.5
+11. **Multi-seed MLP ensemble is neutral**: Seed sensitivity is <0.01 points, ensembling 3-7 seeds gives <0.02 improvement. The MLP trains stably and there's no variance to reduce.
+12. **Architecture is near its ceiling**: All explored axes (MLP capacity, q, cluster count, bandwidth, neighbor count, ensemble) are now flat within ~0.05 of v104's 79.87
+
+## Exhaustive Full-Dev Score Table (all evaluated variants)
+
+| Rank | Model | Score | Key difference vs v104 |
+|------|-------|-------|----------------------|
+| 1 | v110 | 79.89 | 3-seed ensemble + q=5 (essentially tied) |
+| 2 | v104 | 79.87 | **CHAMPION** |
+| 3 | v108 | 79.88 | seed=42 |
+| 4 | v107 | 79.88 | seed=1 |
+| 5 | v105 | 79.88 | 3-seed ensemble |
+| 6 | v98 | 79.82 | posterior_ridge=0.05 only |
+| 7 | v97 | 79.81 | posterior_ridge=0.10 |
+| 8 | v99 | 79.73 | prior=0.015 |
+| 9 | v93 | 79.69 | posterior_ridge=0.25 |
+| 10 | v89 | 79.57 | posterior_ridge=0.50 |
+| 11 | v83 | 79.46 | posterior_ridge=1.0 |
+| 12 | v77 | 79.34 | posterior_ridge=2.0 |
+| 13 | v76 | 79.13 | posterior_ridge=4.0 |
+| 14 | v67 | 78.85 | q=4 + lambda=4 + less prior |
+| 15 | v59 | 78.46 | q=4 + lambda=4 combo |
+| 16 | v52 | 78.28 | prior=0.05 |
+| 17 | v44 | 77.76 | Starting champion |
+| 18 | v17 | 76.09 | Summary-input baseline |
+| 19 | v12 | 75.89 | Supervised metric baseline |
+| 20 | qr_v14 | 74.72 | Query residual family best |
