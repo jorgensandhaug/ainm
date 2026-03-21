@@ -2017,3 +2017,193 @@ Framework should accept unique query-residual family variant names directly so b
   - `samples_per_round=2`
   - mean score `76.0892`
   - mean weighted KL `0.093167`
+
+### 2026-03-21T12:45Z approx
+
+- Moved to handoff section `12.4 Mixed decoder ensemble` after:
+  - combined-input posterior branch failed
+  - sample-count / policy sweep around `v17` was exhausted enough
+- New hypothesis:
+  - current `v17` summary-input posterior is good enough
+  - remaining error may be decoder-side
+  - specifically:
+    - cluster-mode decoder may be too brittle on certain hard rounds
+    - particle operator decoder may be safer under OOD
+  - so test a confidence-gated hybrid:
+    - cluster-mode projection
+    - plus historical-round particle operator mixture
+- Implemented in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - new decoder method `cluster_operator_hybrid`
+  - new config knob `decoder_particle_ood_scale`
+  - particle decoder weight now can increase as cluster confidence falls
+- Added new mixed-decoder variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v25`
+  - `ffam_mode_v26`
+  - `ffam_mode_v27`
+  - `ffam_mode_v28`
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v25..v28`
+  - added checkpoint roundtrip for `v25`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `82`
+- Probe batch launched on hard gate `{7,3,6,8}`:
+  - `agent7_fast_probe_ffam_mode_v25_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v26_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v27_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v28_exploration_r3_r3r6r7r8_s2`
+
+### 2026-03-21T12:55Z approx
+
+- Mixed-decoder hard-gate results:
+  - [`ffam_mode_v25`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v25_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.2810`
+    - mean weighted KL `0.165566`
+  - [`ffam_mode_v26`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v26_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.2518`
+    - mean weighted KL `0.165896`
+  - [`ffam_mode_v27`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v27_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.2693`
+    - mean weighted KL `0.166015`
+  - [`ffam_mode_v28`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v28_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `60.3730`
+    - mean weighted KL `0.178234`
+- Interpretation:
+  - confidence-gated mixed decoder is directionally close, but still below summary-only champ hard-gate `62.3382`
+  - cluster_count `3` was worse
+  - no full-dev spend justified on this decoder-ensemble branch
+
+### 2026-03-21T13:00Z approx
+
+- Moved to handoff section `14.3 GP on transcript summary -> beta`.
+- Important nuance:
+  - kernel-ridge posterior was only tested earlier on the weaker regime-input branch
+  - it was not yet tested on the winning summary-input `v3` branch
+- Added new summary-input kernel/GP-style posterior variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v29`
+  - `ffam_mode_v30`
+  - `ffam_mode_v31`
+  - `ffam_mode_v32`
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v29..v32`
+  - added checkpoint roundtrip for `v29`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `87`
+- Probe batch launched on hard gate `{7,3,6,8}`:
+  - `agent7_fast_probe_ffam_mode_v29_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v30_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v31_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v32_exploration_r3_r3r6r7r8_s2`
+
+### 2026-03-21T13:01Z
+
+- Machine/load check before next parallel batch:
+  - CPUs: `384`
+  - RAM: `2.9 TiB total`, `1.4 TiB free`, `1.5 TiB available`
+  - load average: `63.41 / 67.73 / 51.58`
+  - other agents are active on this machine, so for now I am keeping FFAM sweeps to `4` parallel historical-benchmark jobs at a time
+- Repo/task hygiene:
+  - attempted `br list`, but `br` is not on `PATH` in this shell, so could not query beads from here
+  - re-read [`instructions/agent7.md`](/home/jorge/agent7/tasks/astar/instructions/agent7.md) before continuing
+
+### 2026-03-21T13:02Z approx
+
+- Summary-input kernel/GP-style posterior hard-gate results:
+  - [`ffam_mode_v29`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v29_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `50.9768`
+    - mean weighted KL `0.228098`
+  - [`ffam_mode_v30`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v30_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `50.4376`
+    - mean weighted KL `0.229617`
+  - [`ffam_mode_v31`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v31_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `49.8661`
+    - mean weighted KL `0.230551`
+  - [`ffam_mode_v32`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v32_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `51.5209`
+    - mean weighted KL `0.224826`
+- Interpretation:
+  - kernel-ridge on the winning summary-input branch is decisively bad
+  - this is not a near-miss; the whole summary-kernel posterior branch is materially below `v17`
+  - no full-dev spend justified
+
+### 2026-03-21T13:03Z approx
+
+- Moved to a stronger decoder branch motivated by handoff sections `9` and `12`:
+  - if the summary posterior is already decent, remaining error may be in the decoder map from low-rank regime coordinates to operator vector
+  - linear decoder may be too restrictive even with a low-dimensional manifold
+- New hypothesis:
+  - a still-small but nonlinear decoder over the regime coordinates can recover systematic cross-round curvature without exploding degrees of freedom
+  - use quadratic features of the learned mode coordinates, not a wide neural net
+- Implemented in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - helper `_quadratic_coord_features(...)`
+  - fitted quadratic decoder parameters:
+    - `quadratic_decoder_intercept`
+    - `quadratic_decoder_weights`
+  - checkpoint save/load support for the quadratic decoder
+  - new decoder method `quadratic_mode_projection`
+- Added variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v33`
+  - `ffam_mode_v34`
+  - `ffam_mode_v35`
+  - `ffam_mode_v36`
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v33..v36`
+  - added checkpoint roundtrip for `v33`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `92`
+- Next action:
+  - launch hard-gate probes for `v33..v36` on rounds `{7,3,6,8}`
+  - only spend full 8-round dev budget if one beats current `v17` hard-gate `62.3382`
+- Probe batch launched on hard gate `{7,3,6,8}`:
+  - `agent7_fast_probe_ffam_mode_v33_exploration_r3_r3r6r7r8_s2` (pid `1417154`)
+  - `agent7_fast_probe_ffam_mode_v34_exploration_r3_r3r6r7r8_s2` (pid `1417229`)
+  - `agent7_fast_probe_ffam_mode_v35_exploration_r3_r3r6r7r8_s2` (pid `1417246`)
+  - `agent7_fast_probe_ffam_mode_v36_exploration_r3_r3r6r7r8_s2` (pid `1417235`)
+
+### 2026-03-21T13:04Z approx
+
+- Important execution note:
+  - first attempted to launch the `v33..v36` probe batch via detached `nohup uv run ...`
+  - those jobs vanished immediately with empty logs and no result artifacts
+  - relaunching via PTY sessions using `.venv/bin/astar` worked reliably
+- Actual executed probe batch:
+  - `agent7_fast_probe_ffam_mode_v33_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v34_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v35_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v36_exploration_r3_r3r6r7r8_s2`
+
+### 2026-03-21T13:06Z approx
+
+- Quadratic-decoder hard-gate results:
+  - [`ffam_mode_v33`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v33_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `57.4583`
+    - mean weighted KL `0.195286`
+  - [`ffam_mode_v34`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v34_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `57.4583`
+    - mean weighted KL `0.195286`
+  - [`ffam_mode_v35`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v35_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `57.6771`
+    - mean weighted KL `0.194759`
+  - [`ffam_mode_v36`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v36_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `56.2987`
+    - mean weighted KL `0.202157`
+- Interpretation:
+  - nonlinear low-rank quadratic decoder is not rescuing the family
+  - all quadratic variants are far below current summary-posterior champ hard-gate `62.3382`
+  - `v33` and `v34` being numerically identical suggests the extra projected dimension is not buying anything in this branch
+  - no full-dev spend justified
+
+### 2026-03-21T13:07Z approx
+
+- Current overall FFAM champ still unchanged:
+  - [`ffam_mode_v17`, policy `exploration_r3`, `samples_per_round=2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s2/result.json)
+  - mean score `76.0892`
+  - mean weighted KL `0.093167`
+- Immediate next branch selection criterion:
+  - not another tiny posterior or decoder tweak
+  - next branch should be a genuinely different fifth-family component from the handoff, likely:
+    - semimechanistic hazard decoder
+    - stronger decoder ensemble / OOD-gated blend
+    - or a new query-policy family aimed more directly at regime identifiability

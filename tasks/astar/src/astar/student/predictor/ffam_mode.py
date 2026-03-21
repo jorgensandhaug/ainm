@@ -299,6 +299,27 @@ def _fit_kernel_ridge_map(
     return np.asarray(np.linalg.solve(system, targets), dtype=np.float64)
 
 
+def _quadratic_coord_features(coords: np.ndarray) -> np.ndarray:
+    coords_2d = np.asarray(coords, dtype=np.float64)
+    squeeze = False
+    if coords_2d.ndim == 1:
+        coords_2d = coords_2d[None, :]
+        squeeze = True
+    features: list[np.ndarray] = [coords_2d, np.square(coords_2d)]
+    interaction_terms: list[np.ndarray] = []
+    for left_index in range(coords_2d.shape[1]):
+        for right_index in range(left_index + 1, coords_2d.shape[1]):
+            interaction_terms.append(
+                (coords_2d[:, left_index] * coords_2d[:, right_index])[:, None],
+            )
+    if interaction_terms:
+        features.append(np.concatenate(interaction_terms, axis=1))
+    stacked = np.concatenate(features, axis=1).astype(np.float64)
+    if squeeze:
+        return np.asarray(stacked[0], dtype=np.float64)
+    return np.asarray(stacked, dtype=np.float64)
+
+
 class FFAMModePredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -325,6 +346,7 @@ class FFAMModePredictorCheckpoint(BaseModel):
     posterior_method: str = "particle_mixture"
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
+    decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -368,6 +390,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_method: str = "particle_mixture"
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
+    decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -393,6 +416,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_kernel_alpha: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_fallback_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     posterior_fallback_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    quadratic_decoder_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    quadratic_decoder_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     round_cluster_ids: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
     cluster_operator_mean_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     cluster_basis_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1, 1), dtype=np.float64))
@@ -490,6 +515,11 @@ class FFAMModePredictor(BaseRoundPredictor):
         effective_dim = max(1, min(config.projected_mode_dim, vt_matrix.shape[0]))
         mode_basis = np.asarray(vt_matrix[:effective_dim], dtype=np.float64)
         mode_coord_bank = np.asarray(centered_bank @ mode_basis.T, dtype=np.float64)
+        quadratic_decoder_intercept, quadratic_decoder_weights = _fit_linear_map(
+            _quadratic_coord_features(mode_coord_bank),
+            round_operator_bank,
+            ridge_alpha=config.operator_ridge_lambda,
+        )
         effective_cluster_count = max(1, min(config.cluster_count, mode_coord_bank.shape[0]))
         round_cluster_ids = _cluster_mode_vectors(
             mode_coord_bank,
@@ -658,6 +688,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_method=config.posterior_method,
             decoder_method=config.decoder_method,
             decoder_particle_blend=config.decoder_particle_blend,
+            decoder_particle_ood_scale=config.decoder_particle_ood_scale,
             posterior_metric_dim=config.posterior_metric_dim,
             posterior_neighbor_count=config.posterior_neighbor_count,
             posterior_bandwidth=config.posterior_bandwidth,
@@ -683,6 +714,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_kernel_alpha=np.asarray(posterior_kernel_alpha, dtype=np.float64),
             posterior_fallback_intercept=np.asarray(posterior_fallback_intercept, dtype=np.float64),
             posterior_fallback_weights=np.asarray(posterior_fallback_weights, dtype=np.float64),
+            quadratic_decoder_intercept=np.asarray(quadratic_decoder_intercept, dtype=np.float64),
+            quadratic_decoder_weights=np.asarray(quadratic_decoder_weights, dtype=np.float64),
             round_cluster_ids=np.asarray(round_cluster_ids, dtype=np.int64),
             cluster_operator_mean_bank=np.asarray(cluster_operator_mean_bank, dtype=np.float64),
             cluster_basis_bank=np.asarray(cluster_basis_bank, dtype=np.float64),
@@ -721,6 +754,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_method=self.posterior_method,
             decoder_method=self.decoder_method,
             decoder_particle_blend=self.decoder_particle_blend,
+            decoder_particle_ood_scale=self.decoder_particle_ood_scale,
             posterior_metric_dim=self.posterior_metric_dim,
             posterior_neighbor_count=self.posterior_neighbor_count,
             posterior_bandwidth=self.posterior_bandwidth,
@@ -755,6 +789,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_kernel_alpha=self.posterior_kernel_alpha,
             posterior_fallback_intercept=self.posterior_fallback_intercept,
             posterior_fallback_weights=self.posterior_fallback_weights,
+            quadratic_decoder_intercept=self.quadratic_decoder_intercept,
+            quadratic_decoder_weights=self.quadratic_decoder_weights,
             round_cluster_ids=self.round_cluster_ids,
             cluster_operator_mean_bank=self.cluster_operator_mean_bank,
             cluster_basis_bank=self.cluster_basis_bank,
@@ -808,6 +844,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_method=checkpoint.posterior_method,
             decoder_method=checkpoint.decoder_method,
             decoder_particle_blend=checkpoint.decoder_particle_blend,
+            decoder_particle_ood_scale=checkpoint.decoder_particle_ood_scale,
             posterior_metric_dim=checkpoint.posterior_metric_dim,
             posterior_neighbor_count=checkpoint.posterior_neighbor_count,
             posterior_bandwidth=checkpoint.posterior_bandwidth,
@@ -850,6 +887,18 @@ class FFAMModePredictor(BaseRoundPredictor):
                 arrays["posterior_fallback_weights"]
                 if "posterior_fallback_weights" in arrays
                 else arrays["posterior_weights"],
+                dtype=np.float64,
+            ),
+            quadratic_decoder_intercept=np.asarray(
+                arrays["quadratic_decoder_intercept"]
+                if "quadratic_decoder_intercept" in arrays
+                else arrays["base_operator_vector"],
+                dtype=np.float64,
+            ),
+            quadratic_decoder_weights=np.asarray(
+                arrays["quadratic_decoder_weights"]
+                if "quadratic_decoder_weights" in arrays
+                else np.zeros((1, arrays["base_operator_vector"].shape[0]), dtype=np.float64),
                 dtype=np.float64,
             ),
             round_cluster_ids=np.asarray(
@@ -1012,6 +1061,23 @@ class FFAMModePredictor(BaseRoundPredictor):
         operator_vector = np.asarray(self.base_operator_vector + (mode_coords @ self.mode_basis), dtype=np.float64)
         return operator_vector, posterior_confidence
 
+    def _quadratic_mode_projection_operator_vector(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        mode_coords, posterior_confidence = self._predict_mode_coords(
+            input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
+        coord_features = _quadratic_coord_features(mode_coords)
+        operator_vector = np.asarray(
+            self.quadratic_decoder_intercept + (coord_features @ self.quadratic_decoder_weights),
+            dtype=np.float64,
+        )
+        return operator_vector, posterior_confidence
+
     def _particle_operator_vector(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
         if self.round_operator_bank.shape[0] == 0 or self.posterior_round_index_bank.shape[0] == 0:
             return np.asarray(self.base_operator_vector, dtype=np.float64), 0.0
@@ -1050,10 +1116,20 @@ class FFAMModePredictor(BaseRoundPredictor):
                 input_vector,
                 fallback_input_vector=fallback_input_vector,
             )
+        if self.decoder_method == "quadratic_mode_projection":
+            return self._quadratic_mode_projection_operator_vector(
+                input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
         if self.decoder_method == "operator_particle_mixture":
             return self._particle_operator_vector(input_vector)
         if self.decoder_method == "cluster_mode_projection":
             return self._cluster_mode_projection_operator_vector(
+                input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
+        if self.decoder_method == "cluster_operator_hybrid":
+            return self._cluster_particle_hybrid_operator_vector(
                 input_vector,
                 fallback_input_vector=fallback_input_vector,
             )
@@ -1152,6 +1228,25 @@ class FFAMModePredictor(BaseRoundPredictor):
         blend = float(np.clip(confidence, 0.0, 1.0))
         operator_vector = (blend * cluster_operator) + ((1.0 - blend) * global_operator)
         return np.asarray(operator_vector, dtype=np.float64), max(global_confidence, confidence)
+
+    def _cluster_particle_hybrid_operator_vector(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        cluster_operator, cluster_confidence = self._cluster_mode_projection_operator_vector(
+            input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
+        if input_vector is None:
+            return cluster_operator, cluster_confidence
+        particle_operator, particle_confidence = self._particle_operator_vector(input_vector)
+        base_blend = float(np.clip(self.decoder_particle_blend, 0.0, 1.0))
+        ood_scale = float(np.clip(self.decoder_particle_ood_scale, 0.0, 1.0))
+        blend = float(np.clip(base_blend + (ood_scale * (1.0 - cluster_confidence)), 0.0, 1.0))
+        operator_vector = (blend * particle_operator) + ((1.0 - blend) * cluster_operator)
+        return np.asarray(operator_vector, dtype=np.float64), max(cluster_confidence, particle_confidence)
 
     def _exact_cell_blend(
         self,
