@@ -1,0 +1,450 @@
+{
+  "schemaVersion": "tripletex2.research-queue.v1",
+  "updatedAt": "2026-03-21T20:14:00.000Z",
+  "entries": [
+    {
+      "taskId": "06",
+      "txTaskId": "06",
+      "taskSlug": "create-employee",
+      "taskName": "Create employee",
+      "priority": 1,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "tier-1-gap",
+      "bestKnownScore": 1.2,
+      "maxScore": 2,
+      "baselineCallBudget": 2,
+      "proofInputPath": "research/proofs/task-06/task-06-proof-input.json",
+      "verificationPlanId": "task-06.create-employee.v1",
+      "notes": [
+        "Only remaining Tier 1 gap.",
+        "Fresh-account production evidence says the winning floor is still the 2-call employee create plus employment readback branch."
+      ],
+      "launchNotes": [
+        "Focus on closing the remaining 0.8 score gap without paying sandbox-only department or division reads in the hot path."
+      ]
+    },
+    {
+      "taskId": "24",
+      "txTaskId": "24",
+      "taskSlug": "correct-ledger-errors",
+      "taskName": "Correct ledger errors",
+      "priority": 2,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "classifier-bugfix",
+      "bestKnownScore": 2.25,
+      "maxScore": 6,
+      "notes": [
+        "Known classifier mismatch looks fixable and high leverage.",
+        "Good score-per-fix target in Tier 3."
+      ]
+    },
+    {
+      "taskId": "22",
+      "txTaskId": "22",
+      "taskSlug": "register-receipt-expense-voucher",
+      "taskName": "Register receipt expense voucher",
+      "priority": 3,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "zero-score-upside",
+      "bestKnownScore": 0,
+      "maxScore": 6,
+      "notes": [
+        "Zero-score task with suspected account or VAT heuristic problems."
+      ]
+    },
+    {
+      "taskId": "29",
+      "txTaskId": "29",
+      "taskSlug": "full-project-lifecycle",
+      "taskName": "Full project lifecycle",
+      "priority": 4,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "implemented-unproven",
+      "bestKnownScore": 0,
+      "maxScore": 6,
+      "notes": [
+        "Implemented and research-draftable, but not yet proven."
+      ]
+    },
+    {
+      "taskId": "17",
+      "txTaskId": "17",
+      "taskSlug": "register-customer-invoice-payment",
+      "taskName": "Register customer invoice payment",
+      "priority": 5,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "execution-lane",
+      "bestKnownScore": 3.5,
+      "maxScore": 4,
+      "notes": [
+        "Near-max Tier 2 cleanup target."
+      ]
+    },
+    {
+      "taskId": "15",
+      "txTaskId": "15",
+      "taskSlug": "register-project-hours-and-create-project-invoice",
+      "taskName": "Register project hours and create project invoice",
+      "priority": 6,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "execution-lane",
+      "bestKnownScore": 3.3333,
+      "maxScore": 4,
+      "notes": [
+        "Near-max Tier 2 cleanup target."
+      ]
+    },
+    {
+      "taskId": "10",
+      "txTaskId": "10",
+      "taskSlug": "issue-full-credit-note",
+      "taskName": "Issue full credit note",
+      "priority": 7,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "execution-lane",
+      "bestKnownScore": 3,
+      "maxScore": 4,
+      "notes": [
+        "Execution-lane Tier 2 target."
+      ]
+    },
+    {
+      "taskId": "16",
+      "txTaskId": "16",
+      "taskSlug": "register-supplier-invoice",
+      "taskName": "Register supplier invoice",
+      "priority": 8,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "execution-lane",
+      "bestKnownScore": 3,
+      "maxScore": 4,
+      "notes": [
+        "Execution-lane Tier 2 target."
+      ]
+    },
+    {
+      "taskId": "09",
+      "txTaskId": "09",
+      "taskSlug": "create-customer-invoice",
+      "taskName": "Create customer invoice",
+      "priority": 31,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "researchLane": "execution-lane",
+      "bestKnownScore": 4,
+      "maxScore": 4,
+      "notes": [
+        "Reached tier max score (4/4). Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "12",
+      "txTaskId": "12",
+      "taskSlug": "run-payroll-with-bonus",
+      "taskName": "Run payroll with bonus",
+      "priority": 10,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "hard-research",
+      "bestKnownScore": 0,
+      "maxScore": 4,
+      "notes": [
+        "Huge upside but likely heavier work."
+      ]
+    },
+    {
+      "taskId": "13",
+      "txTaskId": "13",
+      "taskSlug": "register-travel-expense",
+      "taskName": "Register travel expense",
+      "priority": 11,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "hard-research",
+      "bestKnownScore": 1.125,
+      "maxScore": 4,
+      "notes": [
+        "Hard research lane task involving file or expense-flow nuance."
+      ]
+    },
+    {
+      "taskId": "11",
+      "txTaskId": "11",
+      "taskSlug": "create-order-invoice-and-register-payment",
+      "taskName": "Create order, invoice, and register payment",
+      "priority": 12,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "researchLane": "hard-research",
+      "bestKnownScore": 1,
+      "maxScore": 4,
+      "baselineCallBudget": 5,
+      "proofInputPath": "research/proofs/task-11/task-11-proof-input.json",
+      "verificationPlanId": "task-11.order-invoice-payment.v1",
+      "notes": [
+        "Hard research lane task involving order-to-invoice flow.",
+        "Trusted Task 11 evidence points to the 5-call combined invoice-and-payment path as the current frontier."
+      ]
+    },
+    {
+      "taskId": "27",
+      "txTaskId": "27",
+      "taskSlug": "register-foreign-currency-payment-with-exchange-gain",
+      "taskName": "Register foreign-currency payment with exchange gain",
+      "priority": 32,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 6,
+      "maxScore": 6,
+      "notes": [
+        "Reached tier max score (6/6). Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "30",
+      "txTaskId": "30",
+      "taskSlug": "unknown-task-30",
+      "taskName": "Unknown task 30",
+      "priority": 14,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "bestKnownScore": 1.8,
+      "maxScore": 6,
+      "notes": [
+        "Secondary open Tier 3 frontier."
+      ]
+    },
+    {
+      "taskId": "23",
+      "txTaskId": "23",
+      "taskSlug": "unknown-task-23",
+      "taskName": "Unknown task 23",
+      "priority": 15,
+      "band": "focus",
+      "launchEligibility": "launch-ready",
+      "bestKnownScore": 0.6,
+      "maxScore": 6,
+      "notes": [
+        "Secondary open Tier 3 frontier."
+      ]
+    },
+    {
+      "taskId": "19",
+      "txTaskId": "19",
+      "taskSlug": "onboard-employee-from-contract",
+      "taskName": "Onboard employee from contract",
+      "priority": 16,
+      "band": "watch",
+      "launchEligibility": "hold",
+      "bestKnownScore": 2.7273,
+      "maxScore": 6,
+      "notes": [
+        "Park unless a specific strategy idea appears."
+      ]
+    },
+    {
+      "taskId": "21",
+      "txTaskId": "21",
+      "taskSlug": "correct-ledger-errors-audit",
+      "taskName": "Correct ledger errors audit",
+      "priority": 17,
+      "band": "watch",
+      "launchEligibility": "hold",
+      "bestKnownScore": 2.5714,
+      "maxScore": 6,
+      "notes": [
+        "Park unless a specific strategy idea appears."
+      ]
+    },
+    {
+      "taskId": "20",
+      "txTaskId": "20",
+      "taskSlug": "register-supplier-invoice-pdf",
+      "taskName": "Register supplier invoice with PDF attachment",
+      "priority": 18,
+      "band": "watch",
+      "launchEligibility": "hold",
+      "bestKnownScore": 2.1,
+      "maxScore": 6,
+      "notes": [
+        "Park unless a specific strategy idea appears."
+      ]
+    },
+    {
+      "taskId": "01",
+      "txTaskId": "01",
+      "taskSlug": "create-customer",
+      "taskName": "Create customer",
+      "priority": 19,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "02",
+      "txTaskId": "02",
+      "taskSlug": "create-supplier",
+      "taskName": "Create supplier",
+      "priority": 20,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "03",
+      "txTaskId": "03",
+      "taskSlug": "create-department",
+      "taskName": "Create department",
+      "priority": 21,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "04",
+      "txTaskId": "04",
+      "taskSlug": "create-product",
+      "taskName": "Create product",
+      "priority": 22,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "05",
+      "txTaskId": "05",
+      "taskSlug": "create-project",
+      "taskName": "Create project",
+      "priority": 23,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "07",
+      "txTaskId": "07",
+      "taskSlug": "create-accounting-dimension-and-post-voucher",
+      "taskName": "Create accounting dimension and post voucher",
+      "priority": 24,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "08",
+      "txTaskId": "08",
+      "taskSlug": "create-and-send-invoice",
+      "taskName": "Create and send invoice",
+      "priority": 25,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 2,
+      "maxScore": 2,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "14",
+      "txTaskId": "14",
+      "taskSlug": "set-project-fixed-price-and-invoice-milestone",
+      "taskName": "Set project fixed price and invoice milestone",
+      "priority": 26,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 4,
+      "maxScore": 4,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "18",
+      "txTaskId": "18",
+      "taskSlug": "reverse-customer-invoice-payment",
+      "taskName": "Reverse customer invoice payment",
+      "priority": 27,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 4,
+      "maxScore": 4,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "25",
+      "txTaskId": "25",
+      "taskSlug": "overdue-reminder-fee-and-partial-payment",
+      "taskName": "Overdue reminder fee and partial payment",
+      "priority": 28,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 6,
+      "maxScore": 6,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "26",
+      "txTaskId": "26",
+      "taskSlug": "unknown-task-26",
+      "taskName": "Unknown task 26",
+      "priority": 29,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 6,
+      "maxScore": 6,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    },
+    {
+      "taskId": "28",
+      "txTaskId": "28",
+      "taskSlug": "analyze-expense-increase-create-internal-projects",
+      "taskName": "Analyze expense increase and create internal projects",
+      "priority": 30,
+      "band": "kill",
+      "launchEligibility": "do-not-launch",
+      "bestKnownScore": 6,
+      "maxScore": 6,
+      "notes": [
+        "Endpoint-killed for score chasing."
+      ]
+    }
+  ]
+}

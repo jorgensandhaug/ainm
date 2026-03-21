@@ -348,5 +348,5 @@ Use this checklist when wiring these artifacts into the live runtime:
 - [ ] No `unresolved` return permitted while eligible tasks remain
 - [ ] First attempt's `classifierOutput` is preserved as canonical semantic truth in run artifact
 - [ ] Any corpus-building pipeline remaps old task IDs via the mapping in Section E
-- [ ] Perfect-score tasks (01,02,03,04,05,07,08,14,18,25,26,28) remain in classifier's worldview
+- [ ] Perfect-score tasks (01,02,03,04,05,07,08,09,14,18,25,26,27,28) remain in classifier's worldview
 - [ ] Exclusion set maintained separately at runtime, never baked into classifier prompt

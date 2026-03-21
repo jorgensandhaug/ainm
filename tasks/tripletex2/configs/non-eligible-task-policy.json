@@ -1,5 +1,62 @@
 {
   "schemaVersion": "tripletex2.non-eligible-task-policy.v1",
-  "policyId": "non-eligible-task-policy-2026-03-21-a",
-  "excludedCanonicalTasks": {}
+  "policyId": "non-eligible-task-policy-2026-03-21-b",
+  "excludedCanonicalTasks": {
+    "01": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 01 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "02": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 02 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "03": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 03 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "04": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 04 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "05": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 05 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "07": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 07 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "08": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 08 is already at the tier max score (2/2) and is non-eligible for live selection."
+    },
+    "09": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 09 is already at the tier max score (4/4) and is non-eligible for live selection."
+    },
+    "14": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 14 is already at the tier max score (4/4) and is non-eligible for live selection."
+    },
+    "18": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 18 is already at the tier max score (4/4) and is non-eligible for live selection."
+    },
+    "25": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 25 is already at the tier max score (6/6) and is non-eligible for live selection."
+    },
+    "26": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 26 is already at the tier max score (6/6) and is non-eligible for live selection."
+    },
+    "27": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 27 is already at the tier max score (6/6) and is non-eligible for live selection."
+    },
+    "28": {
+      "reasonCode": "already-perfect",
+      "reason": "Canonical task 28 is already at the tier max score (6/6) and is non-eligible for live selection."
+    }
+  }
 }

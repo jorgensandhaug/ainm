@@ -790,7 +790,7 @@
 - Not task 25: Task 25 involves overdue + reminder fee + partial payment.
 
 **Unresolved / abstention conditions:**
-- ⚠ **Task 27 is named but not implemented** (strategy is not-implemented.v1). Leaderboard score: 1.5/6.
+- ⚠ **Task 27 is named but not implemented** locally (strategy is not-implemented.v1), but the leaderboard now shows **6/6**. It remains semantically real and should stay in the classifier worldview even though the live runtime should exclude it as already-perfect.
 - Strong discriminator: EUR + two exchange rates. Near-zero false-positive risk.
 
 ---
@@ -1005,10 +1005,10 @@ This file uses the OLD tripletex v1 task ID numbering. The old IDs diverge syste
 **Layer 1 — Canonical semantic routing** (this document):
 The full 30-task universe is the ground truth for routing. Every task appears with its full semantic identity including those currently scoring 0/max and those with perfect scores. The routing classifier should always produce its **best true semantic match**, regardless of the live execution policy.
 
-Tasks currently at perfect score (kill-list as of 2026-03-21):
+Tasks currently at perfect score (kill-list as of 2026-03-21, updated leaderboard scenario):
 - Tier 1: 01, 02, 03, 04, 05, 07, 08 (all 2/2)
-- Tier 2: 14, 18 (4/4 each)
-- Tier 3: 25, 26, 28 (6/6 each)
+- Tier 2: 09, 14, 18 (4/4 each)
+- Tier 3: 25, 26, 27, 28 (6/6 each)
 
 These tasks are **not removed from this document**. They are essential:
 - As the semantically nearest correct answer for many prompts
