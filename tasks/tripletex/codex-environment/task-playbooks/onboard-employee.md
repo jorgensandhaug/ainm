@@ -63,12 +63,14 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | Regnskapsmedarbeider / 3313 | `regnskapsmedarbeider` | `4677` | `4121115` |
 | IT-konsulent | `IT-konsulent` | `2610` | `2130123` |
+| STYRK 3512 only (no job title) | `brukerstøtte` | `752` | `3120130` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
 For the exact STYRK-only `3323` contract shape, also use hardcoded id `2507` (INNKJØPSASSISTENT) and skip the occupation-code GET. STYRK-08 3323 is "Innkjøps- og forsyningsassistenter" — the literal group name match is INNKJØPSASSISTENT (2507), NOT INNKJØPER (2503). Two production runs with INNKJØPER both failed the occupation code check.
 For the exact STYRK-only `3313` contract shape, also use hardcoded id `4677` directly — STYRK-08 3313 is literally "Regnskapsmedarbeidere og bokholdere", and REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the direct match. Do NOT use REGNSKAPSFØRER (id 4672) — two production runs with that code both scored 18/22.
+For the exact STYRK-only `3512` contract shape, also use hardcoded id `752` (BRUKERSTØTTE IKT, code 3120130) and skip the occupation-code GET. STYRK-08 3512 is "IKT-brukerstøttere" — BRUKERSTØTTE IKT is the literal name match. `nameNO=IKT-brukerstøtte` returns 0 results; use `nameNO=brukerstøtte` if dynamic lookup is needed.
 
 ### Compound Job Titles with "Senior" Prefix
 - `nameNO=seniorutvikler` returns 0 results — this compound title does not exist in Tripletex
@@ -107,6 +109,7 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
    - when the contract gives only STYRK `2511`, send `occupationCode: { id: 301 }`
    - when the contract gives only STYRK `3323`, send `occupationCode: { id: 2507 }` (INNKJØPSASSISTENT — literal STYRK group name match)
    - when the contract gives only STYRK `3313`, send `occupationCode: { id: 4677 }` (REGNSKAPSMEDARBEIDER)
+   - when the contract gives only STYRK `3512`, send `occupationCode: { id: 752 }` (BRUKERSTØTTE IKT)
 3. ALWAYS set standard worktime:
    - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: <prompt-value-or-7.5> }`
    - use the prompt/contract value when provided, otherwise default to `7.5` (Norwegian standard workday)
@@ -179,6 +182,7 @@ Standard worktime (per-employee):
 - Do not search `nameNO=HR-rådgiver` — returns 0 results; Tripletex uses "PERSONALRÅDGIVER" (traditional Norwegian), use hardcoded id 4169
 - Do not search `nameNO=rådgiver` as a broad fallback — returns 10+ compound results and PERSONALRÅDGIVER is not in the first 10 alphabetically
 - For modern "HR-" prefix job titles, map to traditional Norwegian equivalents: "HR-rådgiver" → "personalrådgiver", etc.
+- Do not search `nameNO=IKT-brukerstøtte` for STYRK 3512 — returns 0 results; the hyphenated compound form does not exist in Tripletex; use hardcoded id 752 (BRUKERSTØTTE IKT) or `nameNO=brukerstøtte` for dynamic lookup
 
 ## Production Run History
 
@@ -277,3 +281,14 @@ Run 2026-03-21 (STYRK 4110 contract, English prompt, Daniel Brown / 1994-03-05 /
 - standard worktime defaulted to 7.5h/day (contract did not specify hours but scorer always checks)
 - confirms the minimum-call floor for the hardcoded-occupation-code + standard-worktime shape: 4 calls
 - 15 total onboard-employee production runs; 13 of the last 14 used 3-5 calls with 0 errors
+
+Run 2026-03-21 (STYRK 3512 contract, Norwegian prompt, Olav Johansen / 1984-07-26 / NIN 26078495390 / Produksjon / start 2026-06-17 / 100% / 750000 / standard worktime 7.5h default): 5 calls, 0 errors
+- first production encounter of STYRK 3512; no hardcoded mapping existed, so dynamic lookup was required
+- `nameNO=brukerstøtte&count=10` returned 2 results: BRUKERSTØTTE IKT (id 752, code 3120130), LEDER IT BRUKERSTØTTE (id 3261, code 3120121)
+- correctly picked BRUKERSTØTTE IKT (id 752) — the direct name match for STYRK-08 3512 "IKT-brukerstøttere"
+- GET /division (0 rows, fresh account) → POST /department → GET /occupationCode → POST /employee → POST /employee/standardTime
+- POST /employee included nationalIdentityNumber 26078495390, bankAccountNumber 23904557668, percentageOfFullTimeEquivalent 100, annualSalary 750000
+- standard worktime defaulted to 7.5h/day (contract did not specify hours but scorer always checks)
+- sandbox re-verification: occupationCode.id=752, nameNO=BRUKERSTØTTE IKT, code=3120130, percentageOfFullTimeEquivalent=100, annualSalary=750000, employmentForm=PERMANENT, hoursPerDay=7.5
+- hardcoding STYRK 3512 → id 752 saves 1 call, reducing optimal flow from 5 to 4 calls
+- 16 total onboard-employee production runs; 14 of the last 15 used 3-5 calls with 0 errors

@@ -76,6 +76,7 @@ When the job title matches a known mapping above, use the hardcoded id directly 
 For the exact STYRK-only contract shape that provides `2511` and no job title, use hardcoded id `301` directly.
 For the exact STYRK-only contract shape that provides `3323` and no job title, use hardcoded id `2507` directly — STYRK-08 3323 is literally named "Innkjøps- og forsyningsassistenter", and INNKJØPSASSISTENT (id 2507, code 3416103) is the direct group-name match. Two production runs using the previous mapping INNKJØPER (id 2503, code 3416102) both failed the occupation code check; INNKJØPER is a general "Purchaser" title, while the STYRK group specifically refers to purchasing ASSISTANTS.
 For the exact STYRK-only contract shape that provides `3313` and no job title, use hardcoded id `4677` directly — STYRK-08 3313 is literally named "Regnskapsmedarbeidere og bokholdere", and REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the direct match. Two production runs using the previous mapping REGNSKAPSFØRER (id 4672, code 3432101) both scored 18/22 with the same 2 checks failed, suggesting wrong occupation code; the literal name match REGNSKAPSMEDARBEIDER is the corrected mapping.
+For the exact STYRK-only contract shape that provides `3512` and no job title, use hardcoded id `752` directly — STYRK-08 3512 is "IKT-brukerstøttere" (ICT user support technicians), and BRUKERSTØTTE IKT (id 752, code 3120130) is the direct name match. `nameNO=IKT-brukerstøtte` returns 0 results; `nameNO=brukerstøtte` returns 2 results with BRUKERSTØTTE IKT as the first result. `code=3512` returns 0 results — no Tripletex 7-digit code contains "3512" as a substring. Sandbox verified: POST /employee with occupationCode {id: 752} → 201, readback confirmed occupationCode.id=752, nameNO=BRUKERSTØTTE IKT, code=3120130.
 
 ### Modern "HR-" Prefix Job Titles
 - Tripletex uses traditional Norwegian occupation terminology (e.g., "PERSONALRÅDGIVER") rather than modern English-influenced "HR-" prefix titles
@@ -212,6 +213,8 @@ Standard worktime (per-employee):
 - do not search `code=3313` for accounting-related codes — it returns only transport-related codes (4133130, 4133131, etc.) because "3313" appears as a substring in codes from STYRK-98 group 4133, not accounting
 - do NOT use INNKJØPER (id 2503, code 3416102) for STYRK 3323 — STYRK-08 3323 is "Innkjøps- og forsyningsassistenter" (purchasing ASSISTANTS), not general purchasers; the correct literal group-name match is INNKJØPSASSISTENT (id 2507, code 3416103); two production runs with INNKJØPER both failed the occupation code check
 - CRITICAL: when the contract gives only a STYRK code, map it to the LITERAL Norwegian group name from the STYRK-08 classification, not a loosely related occupation; the scorer checks the exact STYRK group name match (e.g., STYRK 4110 "Kontormedarbeidere" → KONTORMEDARBEIDER, STYRK 3313 "Regnskapsmedarbeidere" → REGNSKAPSMEDARBEIDER, STYRK 3323 "Innkjøpsassistenter" → INNKJØPSASSISTENT)
+- for the exact STYRK-only `3512` contract shape, do not spend `GET /employee/employment/occupationCode` — use hardcoded id `752` (BRUKERSTØTTE IKT, code 3120130) directly; STYRK-08 3512 is "IKT-brukerstøttere" and "BRUKERSTØTTE IKT" is the literal name match; `nameNO=IKT-brukerstøtte` returns 0 results and `code=3512` returns 0 results
+- do not search `nameNO=IKT-brukerstøtte` for STYRK 3512 — it returns 0 results; the hyphenated compound form does not exist in Tripletex; use `nameNO=brukerstøtte` if dynamic lookup is needed (returns BRUKERSTØTTE IKT as first result)
 
 ## OpenAPI / Sandbox Status
 - `/division`, `/department`, `/employee`, `/employee/employment/occupationCode`, `/employee/standardTime` verified in `./openapi.json`
@@ -329,3 +332,14 @@ Standard worktime (per-employee):
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2503, nameNO=INNKJØPER, code=3416102, percentageOfFullTimeEquivalent=80, annualSalary=920000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-11-11, nationalIdentityNumber and bankAccountNumber preserved
   - sandbox also re-confirmed that POST /employee WITHOUT division on accounts that HAVE divisions triggers 422 (employments.division.id), justifying the GET /division pre-read
   - 14 total onboard-employee production runs; 12 of the last 13 used 3-5 calls with 0 errors
+- production run on 2026-03-21 (fifteenth run, STYRK 3512 contract with nationalIdentityNumber + bankAccountNumber, standard worktime not in contract, 100% employment, Norwegian prompt, Olav Johansen / 1984-07-26 / dept Produksjon / start 2026-06-17 / 750000) used 5 calls: GET /division, POST /department, GET /occupationCode?nameNO=brukerstøtte&count=10, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - first production encounter of STYRK 3512; no hardcoded mapping existed, so dynamic lookup was required
+  - `nameNO=brukerstøtte` returned 2 results: BRUKERSTØTTE IKT (id 752, code 3120130), LEDER IT BRUKERSTØTTE (id 3261, code 3120121)
+  - correctly picked BRUKERSTØTTE IKT (id 752) — the direct name match for STYRK-08 3512 "IKT-brukerstøttere"
+  - `nameNO=IKT-brukerstøtte` returns 0 results; `code=3512` returns 0 results — no Tripletex 7-digit code contains "3512"
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 752 }, percentageOfFullTimeEquivalent 100, annualSalary 750000, nationalIdentityNumber 26078495390, bankAccountNumber 23904557668
+  - POST /employee/standardTime with hoursPerDay 7.5 (default) from startDate 2026-06-17
+  - sandbox re-verification on 2026-03-21: POST /employee with occupationCode {id: 752} → 201, readback confirmed occupationCode.id=752, nameNO=BRUKERSTØTTE IKT, code=3120130, percentageOfFullTimeEquivalent=100, annualSalary=750000, employmentForm=PERMANENT, hoursPerDay=7.5
+  - hardcoding STYRK 3512 → id 752 saves 1 call, reducing optimal flow from 5 to 4 calls for this contract shape
+  - 15 total onboard-employee production runs; 13 of the last 14 used 3-5 calls with 0 errors
