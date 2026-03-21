@@ -38,6 +38,15 @@ from astar.student.predictor.hazard_posterior_v6 import (
 from astar.student.predictor.hazard_posterior_v7 import (
     hazard_posterior_v7_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v10 import (
+    hazard_posterior_v10_spec_for_model_name,
+)
+from astar.student.predictor.hazard_posterior_v11 import (
+    hazard_posterior_v11_spec_for_model_name,
+)
+from astar.student.predictor.hazard_posterior_v12 import (
+    hazard_posterior_v12_spec_for_model_name,
+)
 from astar.student.predictor.hazard_posterior_v8 import (
     hazard_posterior_v8_spec_for_model_name,
 )
@@ -232,6 +241,10 @@ def run_historical_benchmark(
         or hazard_posterior_v7_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v8_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v9_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v10_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
+        or normalized_model_name == "hazard_posterior_v10_linear"
     )
     resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
     if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
@@ -249,6 +262,10 @@ def run_historical_benchmark(
         or hazard_posterior_v7_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v8_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v9_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v10_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
+        or normalized_model_name == "hazard_posterior_v10_linear"
     ):
         raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
