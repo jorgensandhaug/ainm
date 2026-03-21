@@ -5,7 +5,7 @@ from astar.policy.query_plan import QueryPlanPolicy
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
 
 DEFAULT_POLICY_NAME = "coverage"
-QUERY_RESIDUAL_DEFAULT_POLICY_NAME = "exploration"
+QUERY_RESIDUAL_DEFAULT_POLICY_NAME = "exploration_r3"
 
 
 def default_policy_name_for_model(model_name: str | None = None) -> str:
@@ -39,6 +39,30 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
         return CoverageThenReplicatePolicy(
             name="exploration_v2",
             replicate_budget=5,
+            probe_first=True,
+        )
+    if normalized in {"exploration_r1", "exploration_v2_r1"}:
+        return CoverageThenReplicatePolicy(
+            name="exploration_r1",
+            replicate_budget=1,
+            probe_first=True,
+        )
+    if normalized in {"exploration_r2", "exploration_v2_r2"}:
+        return CoverageThenReplicatePolicy(
+            name="exploration_r2",
+            replicate_budget=2,
+            probe_first=True,
+        )
+    if normalized in {"exploration_r3", "exploration_v2_r3"}:
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3",
+            replicate_budget=3,
+            probe_first=True,
+        )
+    if normalized in {"exploration_r4", "exploration_v2_r4"}:
+        return CoverageThenReplicatePolicy(
+            name="exploration_r4",
+            replicate_budget=4,
             probe_first=True,
         )
     msg = f"unsupported policy: {name}"

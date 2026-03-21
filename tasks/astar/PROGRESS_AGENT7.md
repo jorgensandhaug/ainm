@@ -258,6 +258,109 @@ Framework should accept unique query-residual family variant names directly so b
 - Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
   - historical benchmark parametrization now includes `query_residual_v10`
   - added explicit nested checkpoint roundtrip test for `v10`
+
+### 2026-03-21T04:05Z approx
+
+- Re-read current policy code and benchmark artifacts before new edits.
+- Reconfirmed repo state:
+  - branch `agent7`
+  - head `908499b4ed8652ad0ea83e8e65352dfa4d995225`
+  - `br` still unavailable in current shell env
+- Important policy finding:
+  - map is `40x40`, tiled into exactly `9` non-overlapping `15x15` viewports per seed
+  - base `coverage` policy already queries all `45` unique seed-viewports under budget `50`
+  - `exploration_v2` does not trade coverage for exploration; it spends the spare `5` queries on repeats
+  - therefore next policy search should target repeat allocation only
+- Evidence from current champ comparison:
+  - `exploration_v2` vs coverage improves round 3 massively, but loses on 6/7/8
+  - likely failure mode is over- or mis-targeted repeats, not missing map coverage
+- New hypothesis:
+  - smaller repeat budgets (`1..4`) may preserve enough round-3 gain while reducing regressions on 6/7/8
+  - current implementation already defines a clean family for this test because `replicate_budget < 5` selects the top subset of per-seed best repeat windows
+- Next:
+  - add named repeat-budget policy variants around `exploration_v2`
+  - add minimal test coverage
+  - probe on hard rounds first, then full 8-round only if positive
+
+### 2026-03-21T04:25Z approx
+
+- Added named repeat-budget policy variants in [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py)
+  - `exploration_r1`
+  - `exploration_r2`
+  - `exploration_r3`
+  - `exploration_r4`
+  - alias forms `exploration_v2_r{1..4}`
+- Added policy-name/repeat-budget coverage in [`tests/test_exploration_policy.py`](/home/jorge/agent7/tasks/astar/tests/test_exploration_policy.py)
+- Validation:
+  - `uv run --extra dev pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - passed: `16`
+
+### 2026-03-21T05:20Z approx
+
+- Ran matched 3-round policy probe on current sensitive rounds:
+  - round 3 `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - round 6 `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - round 8 `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Baseline probe remained:
+  - [`agent7_probe_query_residual_v7_exploration_r3r6r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3r6r8/result.json)
+  - mean score `64.7871`
+  - mean weighted KL `0.146535`
+- Candidate results:
+  - [`exploration_r1`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r1_r3r6r8/result.json)
+    - mean score `62.5730`
+    - mean weighted KL `0.158931`
+    - paired vs baseline: [`-2.2140`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_r1__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v7.json)
+    - reject
+  - [`exploration_r2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r2_r3r6r8/result.json)
+    - mean score `63.9304`
+    - mean weighted KL `0.151641`
+    - paired vs baseline: [`-0.8567`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_r2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v7.json)
+    - reject
+  - [`exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_r3r6r8/result.json)
+    - mean score `65.7129`
+    - mean weighted KL `0.141653`
+    - paired vs baseline: [`+0.9258`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v7.json)
+    - win rate `0.933`, loss rate `0.067`
+    - strongest probe candidate
+  - [`exploration_r4`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r4_r3r6r8/result.json)
+    - mean score `65.1078`
+    - mean weighted KL `0.144800`
+    - paired vs baseline: [`+0.3208`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_r4__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v7.json)
+    - better than baseline, worse than `r3`
+- Probe interpretation:
+  - repeat-budget optimum is not monotone at `5`; `r3` beat current `exploration_v2`
+  - `r1`/`r2` under-repeat and damage round 6 too much
+  - `r4` helps but gives back too much on round 8 vs `r3`
+  - current best next action is full 8-round dev benchmark for `query_residual_v7 + exploration_r3`
+- Infra note:
+  - parallel first-use runs for new policy names can collide on DuckDB catalog locking during synthetic dataset materialization
+  - observed once while launching `exploration_r3` and `exploration_r4` together
+  - rerunning sequentially avoided the issue
+
+### 2026-03-21T06:05Z approx
+
+- Promoted probe winner `exploration_r3` to full 8-round dev benchmark:
+  - [`agent7_dev_query_residual_v7_exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration_r3/result.json)
+  - mean score `74.6063`
+  - mean weighted KL `0.100831`
+- Previous full-dev champ:
+  - [`agent7_dev_query_residual_v7_exploration`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration/result.json)
+  - mean score `74.4011`
+  - mean weighted KL `0.101998`
+- Full-dev paired compare:
+  - [`exploration_v2` -> `exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_v2__candidate_policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v7.json)
+  - mean score delta `+0.2052`
+  - mean weighted KL delta `-0.001166`
+  - win rate `0.500`, loss rate `0.500`
+  - CI95 `[-0.0043, 0.4227]`
+- Round-level picture vs old champ:
+  - improved 7, 1, 6, 3
+  - small regressions on 2, 4, 8, 5
+  - net local objective still better, so current best policy is now `exploration_r3`
+- Next:
+  - promote query-residual default policy from `exploration_v2` to `exploration_r3`
+  - rerun touched tests
+  - commit only intended code/tests + benchmark/comparison artifacts + progress log
 - Validation:
   - `uv run --extra dev python -c "from astar.student.predictor.query_residual import QueryResidualPredictor; print(QueryResidualPredictor.__name__)"`
   - passed

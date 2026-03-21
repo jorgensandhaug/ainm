@@ -163,7 +163,7 @@ def test_query_residual_online_historical_benchmark_uses_model_default_policy(
         benchmark_name="test_query_residual_online_default_policy",
     )
 
-    assert result.policy_name == "exploration_v2"
+    assert result.policy_name == "exploration_r3"
 
 
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:
