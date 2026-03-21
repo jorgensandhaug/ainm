@@ -1277,3 +1277,146 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - combined delta vs prior calibrated coverage champion:
   - score `+2.506485`
   - weighted KL `-0.010789`
+
+### 2026-03-21T09:20Z
+
+- Post-push continuation start after `5a49186`.
+- Current state:
+  - strongest validated champion is now temperature-fixed `query_residual_v11_covtrain_p0_b624_t100` with policy `coverage`
+  - temperature was the dominant remaining calibration axis
+- Next frontier:
+  - fine local search around `temperature=1.00`
+  - keep:
+    - policy `coverage`
+    - `prior_blend=0.0`
+    - `beta=(6,24)`
+  - use the stricter split protocol:
+    - search `0,1`
+    - validate `2,3`
+    - holdout `4,5`
+
+### 2026-03-21T09:30Z
+
+- New session continuation.
+- Re-read required docs:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent4.md`
+  - `AGENTS.md`
+- Checked worktree:
+  - branch `agent4`
+  - only dirty file at resume was this progress log
+- Re-checked task tracking command:
+  - `br list` still unavailable in this shell: `br: command not found`
+- Re-checked current benchmark/artifact surface and serving code.
+- Current scientific read:
+  - the large `t100` win means prior calibration was still materially suboptimal
+  - therefore the next high-value search is not arbitrary architecture churn
+  - it is a controlled post-`t100` serving sweep around the remaining coupled calibration knobs
+- Immediate next experiments:
+  - inspect serving math around:
+    - `temperature`
+    - `prior_blend`
+    - `beta_min`
+    - `beta_scale`
+    - `teacher_blend`
+  - then run stricter split search without weakening validation:
+    - search `0,1`
+    - validate `2,3`
+    - holdout `4,5`
+
+### 2026-03-21T09:45Z
+
+- User redirected priority explicitly:
+  - stop treating `query_residual` as the main family
+  - move into the handoff's intended grey-box teacher/student development path
+- Re-read the rest of `instructions/agent4.md` with that change in mind.
+- Key correction:
+  - `query_residual` matches only the handoff's Phase C direct transcript baseline
+  - it is not the core grey-box world-model family
+- Therefore current highest-value new work is:
+  - canonical replay event extraction
+  - a real replay-derived local transition / hazard teacher
+  - held-out evaluation for that teacher as a map-only regime-marginal prior
+
+### 2026-03-21T10:05Z
+
+- Implemented new replay event/transition foundation:
+  - `src/astar/history/replay/events.py`
+  - canonical cell-transition extraction
+  - canonical settlement-event extraction
+  - per-frame settlement graph snapshot extraction
+  - transition feature stack helper for local replay-transition models
+- Implemented new dataset builder:
+  - `src/astar/history/datasets/teacher_events.py`
+  - writes:
+    - `cell_transitions.parquet`
+    - `settlement_events.parquet`
+    - `graph_snapshots.parquet`
+- Implemented first actual grey-box teacher decoder:
+  - `src/astar/teacher/dynamics/transition_teacher.py`
+  - model name:
+    - `gbx_transition_teacher_v1`
+  - architecture:
+    - replay-derived local transition model
+    - per-round ridge-fitted multiclass next-cell coefficients
+    - low-rank cross-round factorization + regime->coefficient map
+    - multi-step Markov rollout decoder from initial map to year 50
+    - regime-marginal prior via posterior predictive over training-round particles
+- Wired teacher into held-out prior-only historical eval:
+  - `src/astar/workflows/model_eval.py`
+  - benchmark CLI choice added for historical benchmarks
+- Added tests:
+  - `tests/test_transition_teacher.py`
+  - extended `tests/test_history_datasets.py`
+  - extended `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run python -m py_compile ...` on new/edited files passed
+  - `uv run pytest tests/test_history_datasets.py tests/test_transition_teacher.py tests/test_historical_benchmark.py -q`
+    - `18 passed in 18.76s`
+- Next:
+  - run first full historical held-out benchmark for `gbx_transition_teacher`
+  - inspect whether the initial local transition teacher is at least a viable family base
+  - then iterate on:
+    - dynamic local context features
+    - regime factorization rank
+    - live student / posterior path
+
+### 2026-03-21T10:20Z
+
+- Implemented benchmark parallelism for held-out rounds in `run_historical_benchmark(...)`:
+  - new `jobs` argument
+  - CLI support:
+    - `astar run-historical-benchmark --jobs <n>`
+  - current limitation by design:
+    - parallel mode requires `--with-png none`
+    - this keeps validation semantics unchanged while avoiding rework of visualization-side context passing
+- Used `spawn` process context to avoid `fork()` warnings / deadlock risk from a multi-threaded parent.
+- Added regression test:
+  - `test_run_historical_benchmark_prior_mode_parallel_jobs`
+- Verification:
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+    - `13 passed`
+  - parallel smoke after `spawn` change:
+    - `uv run pytest tests/test_historical_benchmark.py::test_run_historical_benchmark_prior_mode_parallel_jobs -q`
+    - `1 passed`
+
+### 2026-03-21T10:25Z
+
+- Started `gbx_transition_teacher` held-out benchmarks.
+- Observed:
+  - first serial runs were too slow and under-utilized hardware
+  - switched to parallel fold execution with `jobs`
+  - launched:
+    - `tmp_gbx_transition_teacher_probe3_jobs3`
+    - `dev_gbx_transition_teacher_prior1_jobs8`
+  - then killed the full `jobs=8` run to free workers for the 3-round probe first
+- Current benchmark status at log time:
+  - `tmp_gbx_transition_teacher_probe3_jobs3` still running
+  - no score artifact written yet
+- Interpretation:
+  - the new grey-box teacher path is now real and benchmarkable
+  - next bottlenecks are no longer “missing family implementation”
+  - they are:
+    - runtime cost of transition-teacher held-out fits
+    - model quality of the first local-transition decoder

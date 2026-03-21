@@ -11,6 +11,7 @@ from astar.history.datasets.synthetic_live import (
     load_synthetic_episode,
     resolve_synthetic_episode_path,
 )
+from astar.history.datasets.teacher_events import build_teacher_event_dataset
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
 from astar.infra.api.dto import (
@@ -96,6 +97,11 @@ def _write_replays_for_all_seeds(
 def test_teacher_datasets_build_from_replay_backed_round(sample_paths: RepoPaths) -> None:
     _write_replays_for_all_seeds(sample_paths, run_count=2)
 
+    event_dataset = build_teacher_event_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        dataset_name="teacher_events_test",
+    )
     transition_dataset = build_teacher_transition_dataset(
         sample_paths,
         round_ids=[ROUND_ID],
@@ -107,6 +113,9 @@ def test_teacher_datasets_build_from_replay_backed_round(sample_paths: RepoPaths
         dataset_name="teacher_terminal_test",
     )
 
+    assert event_dataset.row_count > 0
+    assert event_dataset.index_path is not None
+    assert event_dataset.index_path.exists()
     assert transition_dataset.row_count > 0
     assert transition_dataset.index_path is not None
     assert transition_dataset.index_path.exists()

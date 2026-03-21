@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import csv
 import json
+import multiprocessing as mp
 from pathlib import Path
 from time import perf_counter
 
@@ -95,6 +97,55 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
+def _evaluate_round_worker(
+    *,
+    root: str,
+    held_out_round_id: str,
+    selected_round_ids: list[str],
+    model_name: str,
+    mode: str,
+    policy_name: str,
+    samples_per_round: int,
+    budget: int,
+    resolved_episode_seeds: list[int] | None,
+) -> tuple[str, list[HistoricalBenchmarkSeedResult], float]:
+    paths = WorkspacePaths.from_root(root)
+    training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+    evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
+    round_seconds = 0.0
+    predictor_started_at = perf_counter()
+    online_predictor = (
+        None
+        if mode != "online_interactive"
+        else build_online_predictor(
+            model_name,
+            paths=paths,
+            historical_round_ids=training_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+        )
+    )
+    round_seconds += perf_counter() - predictor_started_at
+    seed_results: list[HistoricalBenchmarkSeedResult] = []
+    for current_episode_seed in evaluation_seeds:
+        evaluation_started_at = perf_counter()
+        contexts = evaluate_model_on_round(
+            paths,
+            round_id=held_out_round_id,
+            model_name=model_name,
+            training_round_ids=training_round_ids,
+            mode=mode,
+            policy_name=policy_name if mode == "online_interactive" else None,
+            samples_per_round=samples_per_round,
+            budget=budget,
+            episode_seed=0 if current_episode_seed is None else current_episode_seed,
+            online_predictor=online_predictor,
+        )
+        round_seconds += perf_counter() - evaluation_started_at
+        seed_results.extend(context.to_seed_result() for context in contexts)
+    return held_out_round_id, seed_results, round_seconds
+
+
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
@@ -108,10 +159,13 @@ def run_historical_benchmark(
     episode_seed_count: int = 1,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
+    jobs: int = 1,
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
     if episode_seed_count < 1:
         raise ValueError("episode_seed_count must be >= 1")
+    if jobs < 1:
+        raise ValueError("jobs must be >= 1")
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
     if mode == "online_interactive":
         missing_replays = [
@@ -175,6 +229,8 @@ def run_historical_benchmark(
         f"{interactive_suffix}"
         f"__rounds={len(selected_round_ids)}"
     )
+    if jobs > 1 and visualization_policy != "none":
+        raise ValueError("parallel historical benchmark currently requires visualization_policy='none'")
     benchmark_dir = paths.benchmark_dir() / run_name
     artifact_path = benchmark_dir / "result.json"
     report_path = benchmark_dir / "report.md"
@@ -189,54 +245,91 @@ def run_historical_benchmark(
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    for held_out_round_id in selected_round_ids:
-        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-        evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
-        round_seconds = 0.0
-        predictor_started_at = perf_counter()
-        online_predictor = (
-            None
-            if mode != "online_interactive"
-            else build_online_predictor(
-                model_name,
-                paths=paths,
-                historical_round_ids=training_round_ids,
-                policy_name=policy_name,
-                samples_per_round=samples_per_round,
+    if jobs == 1:
+        for held_out_round_id in selected_round_ids:
+            training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+            evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
+            round_seconds = 0.0
+            predictor_started_at = perf_counter()
+            online_predictor = (
+                None
+                if mode != "online_interactive"
+                else build_online_predictor(
+                    model_name,
+                    paths=paths,
+                    historical_round_ids=training_round_ids,
+                    policy_name=policy_name,
+                    samples_per_round=samples_per_round,
+                )
             )
-        )
-        round_seconds += perf_counter() - predictor_started_at
-        keys: list[tuple[str, int, int | None]] = []
-        for current_episode_seed in evaluation_seeds:
-            evaluation_started_at = perf_counter()
-            contexts = evaluate_model_on_round(
-                paths,
-                round_id=held_out_round_id,
-                model_name=model_name,
-                training_round_ids=training_round_ids,
-                mode=mode,
-                policy_name=policy_name if mode == "online_interactive" else None,
-                samples_per_round=samples_per_round,
-                budget=budget,
-                episode_seed=0 if current_episode_seed is None else current_episode_seed,
-                online_predictor=online_predictor,
+            round_seconds += perf_counter() - predictor_started_at
+            keys: list[tuple[str, int, int | None]] = []
+            for current_episode_seed in evaluation_seeds:
+                evaluation_started_at = perf_counter()
+                contexts = evaluate_model_on_round(
+                    paths,
+                    round_id=held_out_round_id,
+                    model_name=model_name,
+                    training_round_ids=training_round_ids,
+                    mode=mode,
+                    policy_name=policy_name if mode == "online_interactive" else None,
+                    samples_per_round=samples_per_round,
+                    budget=budget,
+                    episode_seed=0 if current_episode_seed is None else current_episode_seed,
+                    online_predictor=online_predictor,
+                )
+                round_seconds += perf_counter() - evaluation_started_at
+                for context in contexts:
+                    key = (context.round_id, context.seed_index, context.episode_seed)
+                    keys.append(key)
+                    contexts_by_key[key] = context
+                    seed_results_by_key[key] = context.to_seed_result()
+            round_evaluation_seconds[held_out_round_id] = round_seconds
+            if not keys:
+                continue
+            per_round_keys[held_out_round_id] = keys
+            round_mean_scores.append(
+                sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),
             )
-            round_seconds += perf_counter() - evaluation_started_at
-            for context in contexts:
-                key = (context.round_id, context.seed_index, context.episode_seed)
-                keys.append(key)
-                contexts_by_key[key] = context
-                seed_results_by_key[key] = context.to_seed_result()
-        round_evaluation_seconds[held_out_round_id] = round_seconds
-        if not keys:
-            continue
-        per_round_keys[held_out_round_id] = keys
-        round_mean_scores.append(
-            sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),
-        )
-        round_mean_weighted_kls.append(
-            sum(seed_results_by_key[key].weighted_kl for key in keys) / float(len(keys)),
-        )
+            round_mean_weighted_kls.append(
+                sum(seed_results_by_key[key].weighted_kl for key in keys) / float(len(keys)),
+            )
+    else:
+        with ProcessPoolExecutor(max_workers=jobs, mp_context=mp.get_context("spawn")) as executor:
+            future_by_round = {
+                executor.submit(
+                    _evaluate_round_worker,
+                    root=str(paths.root),
+                    held_out_round_id=held_out_round_id,
+                    selected_round_ids=list(selected_round_ids),
+                    model_name=model_name,
+                    mode=mode,
+                    policy_name=policy_name,
+                    samples_per_round=samples_per_round,
+                    budget=budget,
+                    resolved_episode_seeds=(
+                        None if resolved_episode_seeds is None else list(resolved_episode_seeds)
+                    ),
+                ): held_out_round_id
+                for held_out_round_id in selected_round_ids
+            }
+            for future in as_completed(future_by_round):
+                held_out_round_id, round_seed_results, round_seconds = future.result()
+                keys: list[tuple[str, int, int | None]] = []
+                for seed_result in round_seed_results:
+                    key = (seed_result.round_id, seed_result.seed_index, seed_result.episode_seed)
+                    keys.append(key)
+                    seed_results_by_key[key] = seed_result
+                round_evaluation_seconds[held_out_round_id] = round_seconds
+                if not keys:
+                    continue
+                per_round_keys[held_out_round_id] = keys
+                round_mean_scores.append(
+                    sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),
+                )
+                round_mean_weighted_kls.append(
+                    sum(seed_results_by_key[key].weighted_kl for key in keys) / float(len(keys)),
+                )
 
     if not seed_results_by_key:
         raise ValueError("historical benchmark produced no evaluated seeds")

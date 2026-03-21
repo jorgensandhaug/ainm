@@ -11,8 +11,9 @@ from astar.core.score import ScoreBreakdown, cellwise_kl_divergence, entropy_map
 from astar.core.terrain import CLASS_NAMES
 from astar.envs import CompetitionEvaluator
 from astar.envs.historical import HistoricalReplayOracle
-from astar.envs.types import GroundTruthBundle
+from astar.envs.types import GroundTruthBundle, build_round_context_from_detail
 from astar.features.geometry import compute_round_features
+from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
@@ -30,6 +31,11 @@ from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
 )
+from astar.teacher.dynamics.transition_teacher import (
+    GBX_TRANSITION_TEACHER_MODEL,
+    GreyBoxTransitionTeacher,
+)
+from astar.teacher.regime.base import RegimePosteriorState
 from astar.workflows.results import HistoricalBenchmarkCellIssue, HistoricalBenchmarkSeedResult
 from astar.workflows.online_episode import OnlineEpisodeRun, run_online_episode
 
@@ -222,6 +228,41 @@ def _build_prediction_bundle(
             diagnostics_by_seed,
             predictor.analyzed_seed_count,
             predictor.cell_count,
+        )
+
+    if normalized in {"gbx_transition_teacher", GBX_TRANSITION_TEACHER_MODEL}:
+        replay_episodes = [
+            build_round_episode(paths, training_round_id)
+            for training_round_id in training_round_ids
+        ]
+        teacher = GreyBoxTransitionTeacher(
+            name=GBX_TRANSITION_TEACHER_MODEL,
+        ).fit(
+            [episode for episode in replay_episodes if episode.replay_run_count > 0],
+        )
+        if teacher.regime_bank.size > 0:
+            regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)
+            posterior = RegimePosteriorState(
+                mean=np.asarray(np.mean(teacher.regime_bank, axis=0), dtype=np.float64),
+                particles=regime_particles,
+                weights=np.full(len(regime_particles), 1.0 / float(len(regime_particles)), dtype=np.float64),
+            )
+        else:
+            posterior = RegimePosteriorState(mean=np.zeros(12, dtype=np.float64))
+        round_context = build_round_context_from_detail(round_detail)
+        predictions_by_seed = {
+            seed.seed_index: teacher.posterior_predictive(seed, posterior)
+            for seed in round_context.seeds
+        }
+        return (
+            PredictionBundle(
+                round_id=round_id,
+                model_name=teacher.name,
+                predictions_by_seed=predictions_by_seed,
+            ),
+            {},
+            0,
+            0,
         )
 
     if is_query_residual_model_name(normalized):
