@@ -43,8 +43,14 @@ from astar.teacher.dynamics.hazard_teacher import (
 from astar.teacher.dynamics.transition_teacher import (
     GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL,
     GBX_TRANSITION_TEACHER_GRAPH_MODEL,
+    GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL,
+    GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+    GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL,
+    GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
     GBX_TRANSITION_TEACHER_MODEL,
     GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+    GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL,
+    GBX_TRANSITION_TEACHER_PHASE_MODEL,
     GreyBoxTransitionTeacher,
     gbx_transition_round_coefficients_path,
     gbx_transition_scoped_checkpoint_path,
@@ -312,22 +318,172 @@ def _build_prediction_bundle(
         GBX_TRANSITION_TEACHER_MODEL,
         "gbx_transition_teacher_mapprior",
         GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+        "gbx_transition_teacher_phase",
+        GBX_TRANSITION_TEACHER_PHASE_MODEL,
+        "gbx_transition_teacher_phase_mapprior",
+        GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL,
         "gbx_transition_teacher_graph",
         GBX_TRANSITION_TEACHER_GRAPH_MODEL,
         "gbx_transition_teacher_graph_mapprior",
         GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL,
+        "gbx_transition_teacher_graph_phase",
+        GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+        "gbx_transition_teacher_graph_phase_mapprior",
+        GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL,
+        "gbx_transition_teacher_graph_phase_global",
+        GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+        "gbx_transition_teacher_graph_phase_global_mapprior",
+        GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL,
     }:
-        checkpoint_model_name = (
-            GBX_TRANSITION_TEACHER_GRAPH_MODEL
-            if normalized
-            in {
-                "gbx_transition_teacher_graph",
+        transition_variant_specs = {
+            "gbx_transition_teacher": (
+                GBX_TRANSITION_TEACHER_MODEL,
+                GBX_TRANSITION_TEACHER_MODEL,
+                False,
+                False,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_MODEL: (
+                GBX_TRANSITION_TEACHER_MODEL,
+                GBX_TRANSITION_TEACHER_MODEL,
+                False,
+                False,
+                False,
+            ),
+            "gbx_transition_teacher_mapprior": (
+                GBX_TRANSITION_TEACHER_MODEL,
+                GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+                False,
+                False,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL: (
+                GBX_TRANSITION_TEACHER_MODEL,
+                GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+                False,
+                False,
+                False,
+            ),
+            "gbx_transition_teacher_phase": (
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                False,
+                True,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_PHASE_MODEL: (
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                False,
+                True,
+                False,
+            ),
+            "gbx_transition_teacher_phase_mapprior": (
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL,
+                False,
+                True,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL: (
+                GBX_TRANSITION_TEACHER_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL,
+                False,
+                True,
+                False,
+            ),
+            "gbx_transition_teacher_graph": (
                 GBX_TRANSITION_TEACHER_GRAPH_MODEL,
-                "gbx_transition_teacher_graph_mapprior",
+                GBX_TRANSITION_TEACHER_GRAPH_MODEL,
+                True,
+                False,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_MODEL,
+                True,
+                False,
+                False,
+            ),
+            "gbx_transition_teacher_graph_mapprior": (
+                GBX_TRANSITION_TEACHER_GRAPH_MODEL,
                 GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL,
-            }
-            else GBX_TRANSITION_TEACHER_MODEL
-        )
+                True,
+                False,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL,
+                True,
+                False,
+                False,
+            ),
+            "gbx_transition_teacher_graph_phase": (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                True,
+                True,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                True,
+                True,
+                False,
+            ),
+            "gbx_transition_teacher_graph_phase_mapprior": (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL,
+                True,
+                True,
+                False,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL,
+                True,
+                True,
+                False,
+            ),
+            "gbx_transition_teacher_graph_phase_global": (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                True,
+                True,
+                True,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                True,
+                True,
+                True,
+            ),
+            "gbx_transition_teacher_graph_phase_global_mapprior": (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL,
+                True,
+                True,
+                True,
+            ),
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL: (
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL,
+                GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL,
+                True,
+                True,
+                True,
+            ),
+        }
+        (
+            checkpoint_model_name,
+            serving_model_name,
+            include_graph_features,
+            include_phase_features,
+            include_global_features,
+        ) = transition_variant_specs[normalized]
         checkpoint_path = gbx_transition_scoped_checkpoint_path(
             paths,
             round_ids=training_round_ids,
@@ -353,7 +509,9 @@ def _build_prediction_bundle(
                 else:
                     row = GreyBoxTransitionTeacher(
                         name=checkpoint_model_name,
-                        include_graph_features=(checkpoint_model_name == GBX_TRANSITION_TEACHER_GRAPH_MODEL),
+                        include_graph_features=include_graph_features,
+                        include_phase_features=include_phase_features,
+                        include_global_features=include_global_features,
                     )._fit_round_coefficients(
                         episode,
                         ridge_alpha=1.0,
@@ -362,21 +520,23 @@ def _build_prediction_bundle(
                     coefficient_rows.append(row)
             teacher = GreyBoxTransitionTeacher(
                 name=checkpoint_model_name,
-                include_graph_features=(checkpoint_model_name == GBX_TRANSITION_TEACHER_GRAPH_MODEL),
+                include_graph_features=include_graph_features,
+                include_phase_features=include_phase_features,
+                include_global_features=include_global_features,
             ).fit(
                 replay_episodes,
                 coefficient_rows=coefficient_rows,
             )
             teacher.save_checkpoint(checkpoint_path)
         round_context = build_round_context_from_detail(round_detail)
-        if normalized in {"gbx_transition_teacher_mapprior", GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL}:
-            teacher = teacher.model_copy(update={"name": GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL})
-            posterior = teacher.map_posterior(round_context.seeds)
-        elif normalized in {
-            "gbx_transition_teacher_graph_mapprior",
+        teacher = teacher.model_copy(update={"name": serving_model_name})
+        if serving_model_name in {
+            GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+            GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL,
             GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL,
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL,
+            GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL,
         }:
-            teacher = teacher.model_copy(update={"name": GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL})
             posterior = teacher.map_posterior(round_context.seeds)
         elif teacher.regime_bank.size > 0:
             regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)

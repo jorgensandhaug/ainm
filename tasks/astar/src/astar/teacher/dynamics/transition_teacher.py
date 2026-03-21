@@ -15,7 +15,9 @@ from astar.history.episodes.models import RoundEpisode
 from astar.history.replay.events import (
     build_transition_feature_stack,
     dynamic_graph_feature_stack,
+    global_class_ratio_feature_stack,
     local_class_ratio_stack,
+    phase_feature_stack,
 )
 from astar.history.summaries.map_summary import round_map_summary_names, round_map_summary_vector
 from astar.history.summaries.round_coefficients import round_regime_summary_vector, seed_feature_dict, seed_feature_names
@@ -28,8 +30,14 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 GBX_TRANSITION_TEACHER_MODEL = "gbx_transition_teacher_v1"
 GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL = "gbx_transition_teacher_mapprior_v1"
+GBX_TRANSITION_TEACHER_PHASE_MODEL = "gbx_transition_teacher_phase_v1"
+GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL = "gbx_transition_teacher_phase_mapprior_v1"
 GBX_TRANSITION_TEACHER_GRAPH_MODEL = "gbx_transition_teacher_graph_v1"
 GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL = "gbx_transition_teacher_graph_mapprior_v1"
+GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL = "gbx_transition_teacher_graph_phase_v1"
+GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL = "gbx_transition_teacher_graph_phase_mapprior_v1"
+GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL = "gbx_transition_teacher_graph_phase_global_v1"
+GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL = "gbx_transition_teacher_graph_phase_global_mapprior_v1"
 
 
 def gbx_transition_scoped_checkpoint_path(
@@ -206,6 +214,8 @@ class GreyBoxTransitionTeacherCheckpoint(BaseModel):
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
     include_graph_features: bool = False
+    include_phase_features: bool = False
+    include_global_features: bool = False
     probability_floor: float = Field(gt=0.0, lt=1.0)
     horizon: int = Field(ge=1)
 
@@ -233,6 +243,8 @@ class GreyBoxTransitionTeacher(BaseModel):
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
     include_graph_features: bool = False
+    include_phase_features: bool = False
+    include_global_features: bool = False
     probability_floor: float = Field(default=1e-3, gt=0.0, lt=1.0)
     horizon: int = Field(default=50, ge=1)
     replay_bank_round_ids: tuple[str, ...] = ()
@@ -260,6 +272,10 @@ class GreyBoxTransitionTeacher(BaseModel):
                         seed.initial_state,
                         current_grid,
                         include_graph_features=self.include_graph_features,
+                        include_phase_features=self.include_phase_features,
+                        include_global_features=self.include_global_features,
+                        step=step,
+                        horizon=max(len(run.frames) - 1, 1),
                     )
                     if feature_names is None:
                         feature_names = names
@@ -379,6 +395,8 @@ class GreyBoxTransitionTeacher(BaseModel):
                 "map_intercept": map_intercept,
                 "map_weights": map_weights,
                 "include_graph_features": self.include_graph_features,
+                "include_phase_features": self.include_phase_features,
+                "include_global_features": self.include_global_features,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -405,6 +423,8 @@ class GreyBoxTransitionTeacher(BaseModel):
             map_neighbor_count=self.map_neighbor_count,
             map_distance_floor=self.map_distance_floor,
             include_graph_features=self.include_graph_features,
+            include_phase_features=self.include_phase_features,
+            include_global_features=self.include_global_features,
             probability_floor=self.probability_floor,
             horizon=self.horizon,
         )
@@ -436,6 +456,8 @@ class GreyBoxTransitionTeacher(BaseModel):
             map_neighbor_count=checkpoint.map_neighbor_count,
             map_distance_floor=checkpoint.map_distance_floor,
             include_graph_features=checkpoint.include_graph_features,
+            include_phase_features=checkpoint.include_phase_features,
+            include_global_features=checkpoint.include_global_features,
             probability_floor=checkpoint.probability_floor,
             horizon=checkpoint.horizon,
         )
@@ -493,25 +515,54 @@ class GreyBoxTransitionTeacher(BaseModel):
         current_probs: np.ndarray,
         intercept: np.ndarray,
         coefficients: np.ndarray,
+        *,
+        step: int,
+        horizon: int,
     ) -> np.ndarray:
         current_class_grid = np.argmax(current_probs, axis=-1)
         _, local_ratio_stack = local_class_ratio_stack(current_class_grid)
         graph_stack = np.zeros((0, *current_class_grid.shape), dtype=np.float64)
+        phase_stack = np.zeros((0, *current_class_grid.shape), dtype=np.float64)
+        global_stack = np.zeros((0, *current_class_grid.shape), dtype=np.float64)
         if self.include_graph_features:
             _, graph_stack = dynamic_graph_feature_stack(current_class_grid)
+        if self.include_phase_features:
+            _, phase_stack = phase_feature_stack(
+                step=step,
+                horizon=horizon,
+                shape=current_class_grid.shape,
+            )
+        if self.include_global_features:
+            _, global_stack = global_class_ratio_feature_stack(current_class_grid)
         static_feature_count = len(seed_feature_names())
-        current_class_coef = coefficients[static_feature_count : static_feature_count + CLASS_COUNT]
-        local_ratio_start = static_feature_count + CLASS_COUNT
-        local_ratio_end = local_ratio_start + CLASS_COUNT
-        local_ratio_coef = coefficients[local_ratio_start:local_ratio_end]
-        graph_coef = coefficients[local_ratio_end:]
+        offset = 0
+        static_coef = coefficients[offset : offset + static_feature_count]
+        offset += static_feature_count
+        current_class_coef = coefficients[offset : offset + CLASS_COUNT]
+        offset += CLASS_COUNT
+        local_ratio_coef = coefficients[offset : offset + CLASS_COUNT]
+        offset += CLASS_COUNT
+        graph_coef = coefficients[offset : offset + graph_stack.shape[0]]
+        offset += graph_stack.shape[0]
+        phase_coef = coefficients[offset : offset + phase_stack.shape[0]]
+        offset += phase_stack.shape[0]
+        global_coef = coefficients[offset : offset + global_stack.shape[0]]
+        offset += global_stack.shape[0]
+        if offset != coefficients.shape[0]:
+            raise ValueError(
+                f"feature coefficient mismatch: consumed {offset}, have {coefficients.shape[0]}",
+            )
         base_scores = (
             intercept[None, None, :]
-            + np.tensordot(static_stack, coefficients[:static_feature_count], axes=(0, 0))
+            + np.tensordot(static_stack, static_coef, axes=(0, 0))
             + np.tensordot(local_ratio_stack, local_ratio_coef, axes=(0, 0))
         )
         if graph_coef.size > 0:
             base_scores = base_scores + np.tensordot(graph_stack, graph_coef, axes=(0, 0))
+        if phase_coef.size > 0:
+            base_scores = base_scores + np.tensordot(phase_stack, phase_coef, axes=(0, 0))
+        if global_coef.size > 0:
+            base_scores = base_scores + np.tensordot(global_stack, global_coef, axes=(0, 0))
         height, width, _ = current_probs.shape
         transition = np.zeros((CLASS_COUNT, height, width, CLASS_COUNT), dtype=np.float64)
         for current_class in range(CLASS_COUNT):
@@ -582,8 +633,15 @@ class GreyBoxTransitionTeacher(BaseModel):
         static_stack = np.stack([static_features[name] for name in static_names], axis=0).astype(np.float64)
         ocean_mask = static_features["initial_ocean"] > 0.5
         mountain_mask = static_features["initial_mountain"] > 0.5
-        for _ in range(self.horizon):
-            transition = self._transition_tensor(static_stack, current_probs, intercept, coefficients)
+        for step in range(self.horizon):
+            transition = self._transition_tensor(
+                static_stack,
+                current_probs,
+                intercept,
+                coefficients,
+                step=step,
+                horizon=self.horizon,
+            )
             next_probs = np.sum(current_probs[:, :, :, None] * np.transpose(transition, (1, 2, 0, 3)), axis=2)
             next_probs[ocean_mask] = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
             next_probs[mountain_mask] = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
@@ -614,8 +672,14 @@ class GreyBoxTransitionTeacher(BaseModel):
 __all__ = [
     "GBX_TRANSITION_TEACHER_MODEL",
     "GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL",
+    "GBX_TRANSITION_TEACHER_PHASE_MODEL",
+    "GBX_TRANSITION_TEACHER_PHASE_MAPPRIOR_MODEL",
     "GBX_TRANSITION_TEACHER_GRAPH_MODEL",
     "GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_PHASE_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_PHASE_MAPPRIOR_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_PHASE_GLOBAL_MAPPRIOR_MODEL",
     "GreyBoxTransitionTeacher",
     "GreyBoxTransitionTeacherCheckpoint",
     "RoundTransitionCoefficients",

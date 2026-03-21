@@ -1601,3 +1601,39 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - graph transition teacher:
     - `tmp_gbx_transition_teacher_graph_mapprior_probe3_jobs3_v1`
     - `dev_gbx_transition_teacher_graph_mapprior_prior1_jobs8_v1`
+
+### 2026-03-21T11:59Z
+
+- Added the next explicit handoff hypotheses into the transition-teacher line:
+  - phase-conditioned dynamics
+  - global-state/common-shock proxy features
+- New transition-teacher variants added:
+  - `gbx_transition_teacher_phase_v1`
+  - `gbx_transition_teacher_phase_mapprior_v1`
+  - `gbx_transition_teacher_graph_phase_v1`
+  - `gbx_transition_teacher_graph_phase_mapprior_v1`
+  - `gbx_transition_teacher_graph_phase_global_v1`
+  - `gbx_transition_teacher_graph_phase_global_mapprior_v1`
+- Main code changes:
+  - `src/astar/history/replay/events.py`
+    - added smooth cubic phase basis features
+    - added global class-ratio features
+    - extended transition feature stack builder with phase/global switches
+  - `src/astar/teacher/dynamics/transition_teacher.py`
+    - checkpoint support for `include_phase_features` and `include_global_features`
+    - fit path now conditions transition coefficients on replay step / horizon
+    - rollout path now conditions yearly transitions on rollout phase and current global class mix
+  - `src/astar/workflows/model_eval.py`
+    - added benchmark wiring for all new transition-teacher variants
+  - `src/astar/cli.py`
+    - exposed the new variants in visualization + historical benchmark CLI choices
+  - tests:
+    - `tests/test_transition_teacher.py`
+    - `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run pytest tests/test_transition_teacher.py tests/test_historical_benchmark.py -q`
+  - result: `31 passed in 33.94s`
+- Current machine-health check before launching the next sweep:
+  - `free -h` -> about `2.9 TiB` total, `1.1 TiB` used, `1.8 TiB` available
+  - the targeted coefficient-cache precompute is still actively computing with 6 workers near 100% CPU each
+  - still enough headroom to launch several 3-round probes in parallel

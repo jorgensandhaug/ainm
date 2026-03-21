@@ -46,6 +46,19 @@ def dynamic_graph_feature_names() -> list[str]:
     ]
 
 
+def phase_feature_names() -> list[str]:
+    return [
+        "phase_basis_b0",
+        "phase_basis_b1",
+        "phase_basis_b2",
+        "phase_basis_b3",
+    ]
+
+
+def global_class_ratio_feature_names() -> list[str]:
+    return [f"global_ratio_{CLASS_NAMES[class_index]}" for class_index in range(CLASS_COUNT)]
+
+
 def _inverse_distance_influence(
     class_grid: np.ndarray,
     *,
@@ -78,7 +91,52 @@ def dynamic_graph_feature_stack(class_grid: np.ndarray) -> tuple[list[str], np.n
     return names, stack
 
 
-def transition_feature_names(*, include_graph_features: bool = False) -> list[str]:
+def phase_feature_stack(
+    *,
+    step: int,
+    horizon: int,
+    shape: tuple[int, int],
+) -> tuple[list[str], np.ndarray]:
+    names = phase_feature_names()
+    if horizon <= 1:
+        t_value = 0.0
+    else:
+        t_value = float(step) / float(max(horizon - 1, 1))
+    one_minus_t = 1.0 - t_value
+    basis = np.asarray(
+        [
+            one_minus_t**3,
+            3.0 * t_value * (one_minus_t**2),
+            3.0 * (t_value**2) * one_minus_t,
+            t_value**3,
+        ],
+        dtype=np.float64,
+    )
+    stack = np.repeat(basis[:, None, None], shape[0], axis=1)
+    stack = np.repeat(stack, shape[1], axis=2)
+    return names, stack
+
+
+def global_class_ratio_feature_stack(class_grid: np.ndarray) -> tuple[list[str], np.ndarray]:
+    names = global_class_ratio_feature_names()
+    ratios = np.asarray(
+        [
+            float(np.mean(class_grid == class_index))
+            for class_index in range(CLASS_COUNT)
+        ],
+        dtype=np.float64,
+    )
+    stack = np.repeat(ratios[:, None, None], class_grid.shape[0], axis=1)
+    stack = np.repeat(stack, class_grid.shape[1], axis=2)
+    return names, stack
+
+
+def transition_feature_names(
+    *,
+    include_graph_features: bool = False,
+    include_phase_features: bool = False,
+    include_global_features: bool = False,
+) -> list[str]:
     names = (
         seed_feature_names()
         + [f"current_class_{CLASS_NAMES[class_index]}" for class_index in range(CLASS_COUNT)]
@@ -86,6 +144,10 @@ def transition_feature_names(*, include_graph_features: bool = False) -> list[st
     )
     if include_graph_features:
         names += dynamic_graph_feature_names()
+    if include_phase_features:
+        names += phase_feature_names()
+    if include_global_features:
+        names += global_class_ratio_feature_names()
     return names
 
 
@@ -94,6 +156,10 @@ def build_transition_feature_stack(
     current_class_grid: np.ndarray,
     *,
     include_graph_features: bool = False,
+    include_phase_features: bool = False,
+    include_global_features: bool = False,
+    step: int | None = None,
+    horizon: int | None = None,
 ) -> tuple[list[str], np.ndarray]:
     static_features = seed_feature_dict(initial_state)
     static_names = seed_feature_names()
@@ -112,6 +178,20 @@ def build_transition_feature_stack(
         graph_names, graph_stack = dynamic_graph_feature_stack(current_class_grid)
         names += graph_names
         stacks.append(graph_stack)
+    if include_phase_features:
+        if step is None or horizon is None:
+            raise ValueError("phase features require step and horizon")
+        phase_names, phase_stack = phase_feature_stack(
+            step=step,
+            horizon=horizon,
+            shape=current_class_grid.shape,
+        )
+        names += phase_names
+        stacks.append(phase_stack)
+    if include_global_features:
+        global_names, global_stack = global_class_ratio_feature_stack(current_class_grid)
+        names += global_names
+        stacks.append(global_stack)
     return names, np.concatenate(stacks, axis=0)
 
 
