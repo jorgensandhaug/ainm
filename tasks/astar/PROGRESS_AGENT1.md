@@ -1,5 +1,101 @@
 ## Agent1 Progress
 
+---
+
+### Detailed Explanation: Current Best Model (hazard_posterior_v15)
+
+**Current best: v15 k5 r5 l32 m30 q2 → score 83.79 on 8-round broad validation**
+
+#### What the model predicts
+Given an initial map and 50 stochastic viewport observations of the year-50 state, predict the full 40×40×6 terminal probability tensor — the probability of each of 6 terrain classes at each cell after 50 years of simulation.
+
+#### Architecture overview: 5 components
+
+##### 1. Teacher: HazardTeacherV2 with OriginalCoefficientTeacher override
+**What**: Fits a per-round linear multinomial logistic regression from spatial features to terminal cell probabilities. Each round gets its own set of coefficients, capturing that round's specific dynamics.
+
+**How it works**:
+- For each training round, fits a weighted ridge regression: `log(P(class_c)/P(class_0)) = intercept_c + features @ coef_c` for c ∈ {Settlement, Port, Ruin, Forest}
+- Stacks all rounds' coefficient vectors into a bank (R rounds × D coefficient dimensions)
+- Runs SVD to extract a low-rank regime manifold: `coefficients ≈ mean + regime_coords @ basis`
+- The regime coordinates are R×rank matrix — each round's "identity" in the low-dimensional latent space
+
+**Key innovation (v15)**: When computing terminal tensors for training-round particles, uses the ORIGINAL coefficient vector instead of the SVD-reconstructed approximation. With 7 training rounds and rank=5, the SVD captures ~97% of variance but the remaining 3% causes meaningful prediction errors. Using original coefficients eliminates this.
+
+**Input features** (27 per cell): buildable, land, coast, coast_distance, settlement_proximity, maritime_access, frontier_score, settlement_density, port_density, forest_density, mountain_density, initial terrain indicators, quadratic/interaction terms. These capture the spatial context that determines what happens to each cell.
+
+**Parameters**:
+- `latent_rank=5`: How many SVD components to retain for the regime manifold. Higher = more information but harder for the student to predict. rank=5 captures ~97% of cross-round coefficient variance with 7 training rounds.
+
+##### 2. Student: ObservationSetParticleRefinedStudent
+**What**: Given viewport observations from the live round, infers which training round the test round most resembles, then produces a terminal tensor prediction.
+
+**How it works** (3 stages):
+
+Stage A — Transcript summary: Extracts per-seed summary statistics from observations:
+- Class frequencies, settlement stats (population, food, wealth, defense means/stds)
+- Coverage statistics (how much of the map was observed, repeat patterns)
+- Owner concentration, port/alive shares
+
+Stage B — Ridge regression: Maps the transcript summary vector to regime coordinates using a learned linear projection: `predicted_regime = summary_normalized @ projection + regime_mean`. Trained on synthetic transcripts from training rounds.
+
+Stage C — Particle posterior:
+- Gets K=5 nearest training transcripts by summary-space distance
+- Their regime vectors become "particles"
+- The ridge-predicted regime becomes the "predicted mean"
+- Final posterior = mixture of predicted mean (weight=m) and particles (weight=1-m)
+- Particles are reweighted by observation likelihood: for each particle, compute how likely the actual observations would be under that particle's terminal tensor
+
+**Parameters**:
+- `k_neighbors=5`: Number of nearest-neighbor particles. With 7 training rounds, K=5 covers most of them.
+- `ridge_alpha=32`: Regularization for the transcript→regime ridge regression. Higher = more regularization = trust particles more.
+- `predicted_particle_weight=0.30` (m=30): How much to trust the ridge-predicted regime mean vs the kNN particles. **Lower is better because particles use original coefficients and are very accurate.** The predicted mean is noisier. m=30 means 70% weight on particles.
+- `observation_weight=2.0` (q=2): How strongly observation likelihoods reweight particles. Lower is better because the teacher predictions are already accurate. q=2 provides gentle reweighting without over-concentrating on one particle.
+
+##### 3. Policy: RegimeProbePolicy (regime_probe_v1)
+**What**: Chooses which viewport to query at each of the 50 query budget steps.
+
+**How it works**:
+- Pre-computes "motif scores" for each viewport position based on initial map features (settlement density, coastal features, frontier zones)
+- Balances queries across seeds (each seed gets ~10 queries)
+- For unseen viewports: scores = motif_richness + neighbor_bonus (bonus for being near previously interesting observations)
+- For repeat viewports: scores based on how "interesting" previous observations were (settlement density, class entropy, owner diversity) with decay per repeat
+
+**Why regime probing**: The handoff argues that the main uncertainty is the round's hidden parameters (regime), not the spatial layout. Regime-informative queries (targeting motif-rich areas with settlement activity) are more valuable than pure spatial coverage.
+
+##### 4. Observation-frequency blending (from v11)
+**What**: After the student produces its model-based prediction, blends in direct empirical evidence from observed cells.
+
+**How it works**: For each cell observed N times across the 50 queries, computes:
+- Empirical frequency: how often each terrain class appeared in those N observations
+- Blend weight: N / (N + temperature), where temperature=20
+- Final = blend_weight × empirical + (1 - blend_weight) × model_prediction
+
+With temperature=20, a cell observed 1 time gets 5% weight from the empirical frequency. A cell observed 3 times gets 13%. This is very conservative — just a small nudge from direct evidence.
+
+**Why this helps** (+0.58 points): Each observation is an independent draw from the true year-50 distribution. Even noisy single-observation estimates contain information the model might miss, especially for cells where the model is slightly miscalibrated.
+
+##### 5. Entropy-conditioned class weighting (from v8)
+**What**: When computing observation likelihoods for particle reweighting, weights each terrain class by its contribution to the scoring metric.
+
+**How it works**: Computes per-class weights based on how much each class contributes to entropy-weighted cells across training data. Classes that appear more in high-entropy (uncertain) cells get higher weights, because those are the cells that matter most for scoring.
+
+**Why this helps**: The scoring formula `score = 100 * exp(-3 * weighted_kl)` weights cells by their entropy. A prediction error on a high-entropy cell costs much more than on a low-entropy cell. By matching the observation reweighting to the scoring weights, the model focuses on getting the right answer where it matters most.
+
+#### Why this model works well
+
+1. **No information loss from SVD**: Original coefficients preserve the full per-round information
+2. **Correct calibration**: The teacher's 0.98/0.02 prior blend provides appropriate class floors
+3. **Evidence-based regime identification**: Observation likelihoods discriminate between rounds based on actual data
+4. **Score-aware optimization**: Class weighting matches the entropy-weighted scoring metric
+5. **Multi-source prediction**: Combines model predictions with direct observation evidence
+6. **Appropriate confidence levels**: Low m (0.30) trusts the accurate particles over the noisier predicted mean; low q (2.0) avoids over-concentrating weight on one particle
+
+#### Remaining weakness
+Round 36e581f1 still scores ~62 — it has extreme dynamics that no other training round approximates well. This is a fundamental limitation of having only 8 training rounds.
+
+---
+
 ### Session Continuation — Radical New Directions
 
 - date: 2026-03-21 UTC (afternoon)
