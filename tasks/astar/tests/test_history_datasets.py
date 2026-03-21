@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 
 import polars as pl
+import pytest
 
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
@@ -115,15 +116,19 @@ def test_teacher_datasets_build_from_replay_backed_round(sample_paths: RepoPaths
     assert terminal_dataset.index_path.exists()
 
 
-def test_synthetic_live_dataset_builds_episode_artifacts(sample_paths: RepoPaths) -> None:
+@pytest.mark.parametrize("policy_name", ["coverage", "postinfo_r3"])
+def test_synthetic_live_dataset_builds_episode_artifacts(
+    sample_paths: RepoPaths,
+    policy_name: str,
+) -> None:
     _write_replays_for_all_seeds(sample_paths, run_count=2)
 
     dataset = build_synthetic_live_dataset(
         sample_paths,
         round_ids=[ROUND_ID],
-        policy_name="coverage",
+        policy_name=policy_name,
         samples_per_round=2,
-        dataset_name="synthetic_live_test",
+        dataset_name=f"synthetic_live_test_{policy_name}",
     )
 
     assert dataset.row_count == 2
@@ -134,7 +139,7 @@ def test_synthetic_live_dataset_builds_episode_artifacts(sample_paths: RepoPaths
     artifact_path = dataset.dataset_dir / "episodes" / f"{ROUND_ID}__sample_index=0.json"
     artifact = load_synthetic_episode(artifact_path)
     assert artifact.round_id == ROUND_ID
-    assert artifact.policy_name == "coverage"
+    assert artifact.policy_name == policy_name
     assert len(artifact.observations) > 0
     assert artifact.regime_vector.ndim == 1
     assert set(artifact.target_paths) == {0, 1, 2, 3, 4}

@@ -4,14 +4,16 @@ import re
 
 from pydantic import BaseModel, ConfigDict
 
-from astar.envs.base import InteractiveQueryPolicy, TranscriptBeliefState
+from astar.envs.base import InteractiveQueryPolicy, OnlinePredictor, TranscriptBeliefState
 from astar.envs.types import ViewportQuery
 from astar.observe.query_plan import QueryPlanItem
 from astar.policy.adaptive import CoverageAdaptiveRepeatPolicy
+from astar.policy.predictive_repeat import build_named_predictive_repeat_policy
 from astar.policy.query_plan import QueryPlanPolicy
 from astar.policy.registry import build_named_policy
 
 _ADAPTIVE_PATTERN = re.compile(r"^adaptive(?:_r(\d+))?$")
+_PREDICTIVE_REPEAT_PATTERN = re.compile(r"^(postinfo|scoregain)(?:_r(\d+))?$")
 
 
 def _expand_query_items(items: list[QueryPlanItem]) -> list[QueryPlanItem]:
@@ -46,7 +48,11 @@ class QueryPlanPolicyAdapter(BaseModel):
         )
 
 
-def build_interactive_policy(policy_name: str) -> InteractiveQueryPolicy:
+def build_interactive_policy(
+    policy_name: str,
+    *,
+    predictor: OnlinePredictor | None = None,
+) -> InteractiveQueryPolicy:
     normalized = policy_name.strip().lower()
     adaptive_match = _ADAPTIVE_PATTERN.fullmatch(normalized)
     if adaptive_match is not None:
@@ -54,6 +60,15 @@ def build_interactive_policy(policy_name: str) -> InteractiveQueryPolicy:
         replicate_budget = 5 if replicate_budget_text is None else int(replicate_budget_text)
         return CoverageAdaptiveRepeatPolicy(
             name=normalized,
+            replicate_budget=replicate_budget,
+        )
+    predictive_repeat_match = _PREDICTIVE_REPEAT_PATTERN.fullmatch(normalized)
+    if predictive_repeat_match is not None:
+        replicate_budget_text = predictive_repeat_match.group(2)
+        replicate_budget = 5 if replicate_budget_text is None else int(replicate_budget_text)
+        return build_named_predictive_repeat_policy(
+            normalized,
+            predictor=predictor,
             replicate_budget=replicate_budget,
         )
     policy = build_named_policy(policy_name)

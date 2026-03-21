@@ -502,7 +502,7 @@ def _build_online_prediction_bundle(
         policy_name=policy_name,
         samples_per_round=samples_per_round,
     )
-    policy = build_interactive_policy(policy_name)
+    policy = build_interactive_policy(policy_name, predictor=predictor)
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,

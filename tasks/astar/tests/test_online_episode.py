@@ -24,3 +24,21 @@ def test_run_online_episode_uses_generic_oracle_loop(sample_paths: RepoPaths) ->
     assert result.executed_queries == 4
     assert len(result.query_trace) == 4
     assert set(result.prediction_bundle.predictions_by_seed) == {0, 1, 2, 3, 4}
+
+
+def test_run_online_episode_supports_predictive_repeat_policy(sample_paths: RepoPaths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=3)
+
+    predictor = build_online_predictor("geometry_prior")
+    result = run_online_episode(
+        SyntheticActiveOracle(paths=sample_paths),
+        round_id=ROUND_ID,
+        predictor=predictor,
+        policy=build_interactive_policy("postinfo_r3", predictor=predictor),
+        budget=4,
+        episode_seed=1,
+    )
+
+    assert result.executed_queries == 4
+    assert len(result.query_trace) == 4
+    assert all(item.rationale is not None for item in result.query_trace)

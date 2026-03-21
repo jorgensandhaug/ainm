@@ -2011,3 +2011,160 @@
     - `greybox_hybrid_lowrank_queryres`
     - `policy=exploration_r3`
     - mean `75.1931`
+
+### 2026-03-21T13:58:00Z
+
+- Re-read handoff around Phases 8-10 and concrete hypotheses `H8-H10`.
+- Important correction to direction:
+  - the handoff does **not** say to keep spending most effort on `query_residual`
+  - it explicitly says:
+    - H9: direct/joint student head is useful only if it wins held-out rounds
+    - H10: repeated diagnostic queries vs simple coverage under a strong student is a first-class branch
+- Given current evidence:
+  - repeat-aware joint student improved but still landed only `73.0190`
+  - more local tuning there looks lower EV than a new H10 branch
+- Machine / cluster state checked before launching more work:
+  - load avg about `113 / 139 / 101`
+  - memory:
+    - `2.9 TiB` total
+    - `1.8 TiB` used
+    - `732 GiB` free
+    - `1.1 TiB` available
+  - major active workloads seen:
+    - huge `ainm` behavioral fingerprint / replay EDA jobs
+    - agent6 benchmark on `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01`
+    - agent2 full `smh_coeffbank...`
+    - agent7 `ffam_mode_v17` exploration-hybrid policies
+    - agent3 targeted holdout sweeps
+- Parallelism read:
+  - plenty of RAM headroom remains
+  - CPU is busy, so I should avoid wasteful giant fan-out until the next branch compiles and passes tests
+- New branch selected:
+  - predictor-aware H10 policy learning
+  - goal:
+    - build a policy that uses current model predictions plus observed transcript disagreement to decide whether to keep covering or repeat a diagnostic window
+  - key compatibility constraint:
+    - `policy_name` is also used inside synthetic dataset generation / student checkpoint fitting
+    - so the policy implementation must still work when no predictor object is available
+    - therefore the design must support:
+      - predictor-aware mode during online benchmark
+      - deterministic heuristic fallback during synthetic episode generation / CLI paths
+
+### 2026-03-21T14:10:00Z
+
+- Implemented new predictor-aware H10 policy family:
+  - file:
+    - `src/astar/policy/predictive_repeat.py`
+  - new policy names:
+    - `postinfo_rN`
+    - `scoregain_rN`
+- Design:
+  - unseen-window ranking:
+    - motif score
+    - current predicted window entropy
+    - predicted dynamic-class mass
+  - repeat-window ranking:
+    - same predictive uncertainty
+    - empirical-vs-predicted local discrepancy on repeated windows
+    - empirical local entropy from repeated observations
+    - light settlement-density term
+    - explicit repeat penalty
+  - `postinfo_*`:
+    - more conservative / uncertainty-led
+  - `scoregain_*`:
+    - more aggressive / discrepancy-led
+- Critical compatibility rule satisfied:
+  - policy works in two modes:
+    - predictor-aware runtime mode
+    - no-predictor heuristic fallback mode
+- Runtime plumbing added:
+  - `src/astar/policy/interactive.py`
+    - `build_interactive_policy(..., predictor=None)`
+  - `src/astar/workflows/model_eval.py`
+    - online historical benchmark now passes the built predictor into the policy
+  - `src/astar/cli.py`
+    - `run-synthetic-tournament`
+    - `run-synthetic-benchmark`
+    - `run-live-online`
+    - all now reuse one built predictor and pass it into the policy
+- Important validation improvement:
+  - existing historical benchmark couples:
+    - predictor training policy
+    - evaluation policy
+  - for H10 that is the wrong scientific comparison because policy changes should be tested under an identical student stack
+  - added dedicated fixed-stack sweep harness:
+    - `scripts/agent5_policy_eval_sweep.py`
+  - it:
+    - trains / loads predictor using one fixed `fit_policy`
+    - sweeps only `eval_policy`
+    - reports score / KL / executed query counts by held-out round
+  - this is a stricter and more correct H10 validation protocol
+- Validation after implementation:
+  - `uv run python -m py_compile src/astar/policy/predictive_repeat.py src/astar/policy/interactive.py src/astar/workflows/model_eval.py scripts/agent5_policy_eval_sweep.py tests/test_online_episode.py tests/test_history_datasets.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_online_episode.py tests/test_history_datasets.py tests/test_historical_benchmark.py -q`
+    - `33 passed`
+  - `uv run python -m py_compile src/astar/cli.py src/astar/workflows/synthetic_benchmark.py src/astar/workflows/synthetic_tournament.py src/astar/workflows/live_online.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+    - `3 passed`
+- Next immediate work:
+  - run fixed-stack hard-slice policy sweeps on strong nontrivial predictors
+  - start with:
+    - `greybox_student_joint_repeataware`
+    - `greybox_hazard_lowrank`
+  - compare:
+    - `coverage`
+    - `exploration_r3`
+    - `adaptive_r5`
+    - `postinfo_r3`
+    - `postinfo_r5`
+    - `scoregain_r3`
+    - `scoregain_r5`
+
+### 2026-03-21T14:13:00Z
+
+- Launched first fixed-stack H10 sweep batch on hard slice `{36e581..., c5cdf..., f1dac...}`.
+- Common protocol:
+  - budget `50`
+  - episode seed `0`
+  - eval policies:
+    - `coverage`
+    - `exploration_r3`
+    - `adaptive_r5`
+    - `postinfo_r3`
+    - `postinfo_r5`
+    - `scoregain_r3`
+    - `scoregain_r5`
+  - script:
+    - `scripts/agent5_policy_eval_sweep.py`
+- Jobs:
+  - model `greybox_student_joint_repeataware`, fit-policy `exploration_r3`
+    - log `data/artifacts/benchmarks/agent5_policyeval_studentjoint_repeataware_fitexplr3_probe3_v01.log`
+    - session `52278`
+  - model `greybox_student_joint_repeataware`, fit-policy `coverage`
+    - log `data/artifacts/benchmarks/agent5_policyeval_studentjoint_repeataware_fitcoverage_probe3_v01.log`
+    - session `30149`
+  - model `greybox_hazard_lowrank`, fit-policy `exploration_r3`
+    - log `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitexplr3_probe3_v01.log`
+    - session `43360`
+- Added one more because shared load stayed low after launch:
+  - model `greybox_hazard_lowrank`, fit-policy `coverage`
+    - log `data/artifacts/benchmarks/agent5_policyeval_hazardlowrank_fitcoverage_probe3_v01.log`
+    - session `35124`
+- Parallelism choice:
+  - each sweep uses `--max-workers 3`
+  - total extra concurrency kept moderate because the shared box already has heavy global CPU load
+
+### 2026-03-21T14:17:00Z
+
+- Verified the new fixed-stack sweep harness itself with a fast foreground smoke:
+  - command:
+    - `uv run python scripts/agent5_policy_eval_sweep.py --model historical_bucket_prior --fit-policy coverage --eval-policy coverage --eval-policy postinfo_r3 --eval-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --samples-per-round 1 --budget 4 --episode-seed 0 --max-workers 1`
+  - result:
+    - `coverage`: score `53.868069`, KL `0.206495`
+    - `postinfo_r3`: score `53.868069`, KL `0.206495`
+  - interpretation:
+    - expected and good
+    - for a predictor that ignores transcript evidence, changing eval policy should not move the score
+    - this confirms the harness is measuring policy effects rather than accidentally changing predictor training/config
