@@ -32,6 +32,11 @@ class FFAMModeConfig(BaseModel):
     posterior_input_source: str = "regime_input"
     posterior_summary_variant: SummaryVariant = "v3"
     posterior_method: str = "particle_mixture"
+    posterior_residual_hidden_dim: int = Field(default=0, ge=0)
+    posterior_residual_steps: int = Field(default=0, ge=0)
+    posterior_residual_learning_rate: float = Field(default=0.0, ge=0.0)
+    posterior_residual_weight_decay: float = Field(default=0.0, ge=0.0)
+    posterior_residual_scale: float = Field(default=1.0, ge=0.0)
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -46,7 +51,7 @@ class FFAMModeConfig(BaseModel):
     cluster_count: int = Field(default=1, ge=1)
 
 
-FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v17"
+FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v44"
 
 
 FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
@@ -610,6 +615,86 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         posterior_ood_prior_blend=0.28,
         hazard_decoder_blend=0.08,
         hazard_decoder_ood_scale=0.45,
+    ),
+    "ffam_mode_v41": FFAMModeConfig(
+        model_name="ffam_mode_v41",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=12,
+        posterior_residual_steps=350,
+        posterior_residual_learning_rate=0.025,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=0.5,
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+    ),
+    "ffam_mode_v42": FFAMModeConfig(
+        model_name="ffam_mode_v42",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=24,
+        posterior_residual_steps=400,
+        posterior_residual_learning_rate=0.025,
+        posterior_residual_weight_decay=0.015,
+        posterior_residual_scale=0.75,
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+    ),
+    "ffam_mode_v43": FFAMModeConfig(
+        model_name="ffam_mode_v43",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=450,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.01,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+    ),
+    "ffam_mode_v44": FFAMModeConfig(
+        model_name="ffam_mode_v44",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=24,
+        posterior_residual_steps=400,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
     ),
 }
 

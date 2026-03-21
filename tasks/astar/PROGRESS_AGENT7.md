@@ -2374,3 +2374,126 @@ Framework should accept unique query-residual family variant names directly so b
   - but those gains did not generalize to the full 8-round dev panel
   - the global hybrid is the least-bad variant, but still not promotable
   - policy default stays `exploration_r3`
+
+### 2026-03-21T14:06Z approx
+
+- Machine/load check before next branch:
+  - RAM: `2.9 TiB total`, `986 GiB free`, `1.3 TiB available`
+  - load average: `53.96 / 75.90 / 86.12`
+  - other agents are actively using the machine, so I will keep the next experiment batch to `4` parallel runs again
+- Re-read handoff targets:
+  - `14.6 Deep Sets / Set Transformer transcript encoder + local regressor`
+  - `H4 transcript-to-beta vs direct transcript-to-tensor`
+- Important finding from code audit:
+  - the existing `SummaryBankStudent` is not actually a learned transcript encoder; it is a summary-vector bank plus kNN / ridge
+  - so a genuine learned compact posterior family is still mostly unexplored in this fifth-family line
+- New hypothesis:
+  - current summary-input local linear posterior is a strong stable baseline
+  - a tiny strongly-regularized residual MLP on top of that linear posterior can capture nonlinear transcript-to-beta structure without giving up the good inductive bias
+  - neighbor-distance gating should stop the MLP from hurting badly off-manifold
+- Planned branch:
+  - add `posterior_method=\"residual_mlp\"`
+  - train on synthetic transcript summaries with round-level internal validation
+  - evaluate only if it survives the same hard gate `{7,3,6,8}`
+
+### 2026-03-21T14:15Z approx
+
+- Re-read canon + handoff before implementation:
+  - [`README.md`](/home/jorge/agent7/tasks/astar/README.md)
+  - [`docs/game_facts.md`](/home/jorge/agent7/tasks/astar/docs/game_facts.md)
+  - [`instructions/agent7.md`](/home/jorge/agent7/tasks/astar/instructions/agent7.md)
+- Re-checked machine state before deciding probe fanout:
+  - RAM: `2.9 TiB total`, `826 GiB free`, `1.2 TiB available`
+  - load average: `109.75 / 101.39 / 91.23`
+  - other active work visible from agent1/2/5/6
+  - decision: keep this branch to `4` parallel hard-gate probes after validation
+- Implemented residual-MLP posterior branch in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - added persistence for residual-MLP hyperparameters and weights in checkpoint/NPZ save-load path
+  - added posterior inference method `posterior_method=\"residual_mlp\"`
+  - residual correction is confidence-gated by historical-neighbor distance so nonlinear correction fades off-manifold
+- Added config surface in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - residual-MLP hyperparameters on `FFAMModeConfig`
+  - new variants `ffam_mode_v41..v44`
+- Added coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark param list includes `v41..v44`
+  - added checkpoint roundtrip test for `ffam_mode_v41`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `102`
+- Load check before probe fanout:
+  - RAM: `2.9 TiB total`, `1.2 TiB free`, `1.4 TiB available`
+  - load average: `426.61 / 423.57 / 240.67`
+  - because other agents are saturating the box, probe commands were launched with:
+    - `OMP_NUM_THREADS=1`
+    - `MKL_NUM_THREADS=1`
+    - `OPENBLAS_NUM_THREADS=1`
+    - `NUMEXPR_NUM_THREADS=1`
+- Hard-gate probe batch launched on `{7,3,6,8}` with `exploration_r3` and `samples_per_round=2`:
+  - `ffam_mode_v41` session `6632`
+  - `ffam_mode_v42` session `29245`
+  - `ffam_mode_v43` session `81368`
+  - `ffam_mode_v44` session `78133`
+
+### 2026-03-21T14:22Z approx
+
+- Hard-gate `{7,3,6,8}` probe results for residual-MLP branch:
+  - [`ffam_mode_v41`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v41_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `67.2985`
+    - mean weighted KL `0.136379`
+  - [`ffam_mode_v42`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v42_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `67.3180`
+    - mean weighted KL `0.136280`
+  - [`ffam_mode_v43`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v43_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `67.3305`
+    - mean weighted KL `0.136216`
+  - [`ffam_mode_v44`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v44_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `67.4909`
+    - mean weighted KL `0.135405`
+- Current hard-gate reference before this branch:
+  - [`ffam_mode_v17 + exploration_r3 + s2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.3382`
+- Interpretation:
+  - residual-MLP posterior branch is clearly alive
+  - all four variants beat the current gate by about `+5`
+  - spread among `v41..v44` is small, so hard-gate noise is plausible
+- Promotion decision:
+  - spend full 8-round dev budget on the top two gate winners `v44` and `v43`
+  - keep thread caps at `1` because shared-machine CPU load remains high
+- Full 8-round dev promotions launched:
+  - `ffam_mode_v43` session `42281`
+  - `ffam_mode_v44` session `12954`
+
+### 2026-03-21T14:30Z approx
+
+- Full 8-round dev results:
+  - [`ffam_mode_v43 + exploration_r3 + s2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v43_exploration_r3_s2/result.json)
+    - mean score `77.7176`
+    - mean weighted KL `0.086009`
+  - [`ffam_mode_v44 + exploration_r3 + s2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v44_exploration_r3_s2/result.json)
+    - mean score `77.7598`
+    - mean weighted KL `0.085765`
+- Previous champ:
+  - [`ffam_mode_v17 + exploration_r3 + s2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s2/result.json)
+    - mean score `76.0892`
+    - mean weighted KL `0.093167`
+- Paired compare vs previous champ:
+  - [`v17 -> v44`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=ffam_mode_v17__candidate=ffam_mode_v44.json)
+    - mean score delta `+1.6706`
+    - mean weighted KL delta `-0.007401`
+    - win rate `0.875`
+    - CI95 score delta `[1.0032, 2.4324]`
+- Tie-break compare between new top two:
+  - [`v43 -> v44`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=ffam_mode_v43__candidate=ffam_mode_v44.json)
+    - mean score delta `+0.0422`
+    - mean weighted KL delta `-0.000244`
+    - CI95 score delta `[-0.0074, 0.1040]`
+- Interpretation:
+  - residual-MLP posterior is a real family improvement, not a gate-only mirage
+  - `v44` is the new best full-panel mean
+  - `v44` vs `v43` is close, but `v44` wins on mean score and weighted KL
+- Promotion:
+  - switched `ffam_mode` default alias to `ffam_mode_v44`
+  - reran benchmark tests after alias promotion
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `102`
+  - next step: commit + push the new champ branch state

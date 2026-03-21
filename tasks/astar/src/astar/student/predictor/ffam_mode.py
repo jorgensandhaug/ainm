@@ -328,6 +328,158 @@ def _quadratic_coord_features(coords: np.ndarray) -> np.ndarray:
     return np.asarray(stacked, dtype=np.float64)
 
 
+def _mlp_forward(
+    inputs: np.ndarray,
+    weight_in: np.ndarray,
+    bias_in: np.ndarray,
+    weight_out: np.ndarray,
+    bias_out: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    hidden_pre = np.asarray(inputs @ weight_in + bias_in[None, :], dtype=np.float64)
+    hidden = np.tanh(hidden_pre)
+    output = np.asarray(hidden @ weight_out + bias_out[None, :], dtype=np.float64)
+    return hidden, output
+
+
+def _train_residual_mlp(
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    *,
+    hidden_dim: int,
+    steps: int,
+    learning_rate: float,
+    weight_decay: float,
+    val_mask: np.ndarray | None = None,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    input_dim = int(inputs.shape[1])
+    output_dim = int(targets.shape[1])
+    if inputs.shape[0] == 0 or hidden_dim <= 0 or steps <= 0:
+        return (
+            np.zeros((input_dim, 1), dtype=np.float64),
+            np.zeros(1, dtype=np.float64),
+            np.zeros((1, output_dim), dtype=np.float64),
+            np.zeros(output_dim, dtype=np.float64),
+        )
+
+    resolved_val_mask = (
+        np.asarray(val_mask, dtype=bool)
+        if val_mask is not None and np.any(val_mask) and np.any(~np.asarray(val_mask, dtype=bool))
+        else np.zeros(inputs.shape[0], dtype=bool)
+    )
+    train_mask = ~resolved_val_mask
+    train_inputs = np.asarray(inputs[train_mask], dtype=np.float64)
+    train_targets = np.asarray(targets[train_mask], dtype=np.float64)
+    if train_inputs.shape[0] == 0:
+        train_inputs = np.asarray(inputs, dtype=np.float64)
+        train_targets = np.asarray(targets, dtype=np.float64)
+        resolved_val_mask = np.zeros(inputs.shape[0], dtype=bool)
+    val_inputs = np.asarray(inputs[resolved_val_mask], dtype=np.float64)
+    val_targets = np.asarray(targets[resolved_val_mask], dtype=np.float64)
+
+    rng = np.random.default_rng(seed)
+    weight_in = rng.normal(
+        loc=0.0,
+        scale=1.0 / max(np.sqrt(float(max(input_dim, 1))), 1.0),
+        size=(input_dim, hidden_dim),
+    ).astype(np.float64)
+    bias_in = np.zeros(hidden_dim, dtype=np.float64)
+    weight_out = np.zeros((hidden_dim, output_dim), dtype=np.float64)
+    bias_out = np.zeros(output_dim, dtype=np.float64)
+
+    momentum: dict[str, np.ndarray] = {
+        "weight_in": np.zeros_like(weight_in),
+        "bias_in": np.zeros_like(bias_in),
+        "weight_out": np.zeros_like(weight_out),
+        "bias_out": np.zeros_like(bias_out),
+    }
+    velocity: dict[str, np.ndarray] = {
+        "weight_in": np.zeros_like(weight_in),
+        "bias_in": np.zeros_like(bias_in),
+        "weight_out": np.zeros_like(weight_out),
+        "bias_out": np.zeros_like(bias_out),
+    }
+
+    best_params = (
+        np.asarray(weight_in, dtype=np.float64),
+        np.asarray(bias_in, dtype=np.float64),
+        np.asarray(weight_out, dtype=np.float64),
+        np.asarray(bias_out, dtype=np.float64),
+    )
+    best_loss = np.inf
+    best_step = 0
+    beta1 = 0.9
+    beta2 = 0.999
+    epsilon = 1e-8
+    patience = 60
+
+    for step_index in range(1, steps + 1):
+        hidden, predictions = _mlp_forward(
+            train_inputs,
+            weight_in,
+            bias_in,
+            weight_out,
+            bias_out,
+        )
+        residual = predictions - train_targets
+        grad_output = (2.0 / max(train_inputs.shape[0], 1)) * residual
+        grad_weight_out = hidden.T @ grad_output + (2.0 * weight_decay * weight_out)
+        grad_bias_out = np.sum(grad_output, axis=0)
+        grad_hidden = grad_output @ weight_out.T
+        grad_hidden_pre = grad_hidden * (1.0 - np.square(hidden))
+        grad_weight_in = train_inputs.T @ grad_hidden_pre + (2.0 * weight_decay * weight_in)
+        grad_bias_in = np.sum(grad_hidden_pre, axis=0)
+
+        gradients = {
+            "weight_in": grad_weight_in,
+            "bias_in": grad_bias_in,
+            "weight_out": grad_weight_out,
+            "bias_out": grad_bias_out,
+        }
+        for key, gradient in gradients.items():
+            momentum[key] = beta1 * momentum[key] + ((1.0 - beta1) * gradient)
+            velocity[key] = beta2 * velocity[key] + ((1.0 - beta2) * np.square(gradient))
+            bias_corrected_m = momentum[key] / (1.0 - beta1**step_index)
+            bias_corrected_v = velocity[key] / (1.0 - beta2**step_index)
+            update = learning_rate * bias_corrected_m / (np.sqrt(bias_corrected_v) + epsilon)
+            if key == "weight_in":
+                weight_in = np.asarray(weight_in - update, dtype=np.float64)
+            elif key == "bias_in":
+                bias_in = np.asarray(bias_in - update, dtype=np.float64)
+            elif key == "weight_out":
+                weight_out = np.asarray(weight_out - update, dtype=np.float64)
+            else:
+                bias_out = np.asarray(bias_out - update, dtype=np.float64)
+
+        if step_index % 10 != 0 and step_index != steps:
+            continue
+        eval_inputs = val_inputs if val_inputs.shape[0] > 0 else train_inputs
+        eval_targets = val_targets if val_targets.shape[0] > 0 else train_targets
+        _, eval_predictions = _mlp_forward(
+            eval_inputs,
+            weight_in,
+            bias_in,
+            weight_out,
+            bias_out,
+        )
+        eval_loss = float(
+            np.mean(np.square(eval_predictions - eval_targets))
+            + weight_decay * (np.sum(np.square(weight_in)) + np.sum(np.square(weight_out)))
+        )
+        if eval_loss + 1e-8 < best_loss:
+            best_loss = eval_loss
+            best_step = step_index
+            best_params = (
+                np.asarray(weight_in, dtype=np.float64),
+                np.asarray(bias_in, dtype=np.float64),
+                np.asarray(weight_out, dtype=np.float64),
+                np.asarray(bias_out, dtype=np.float64),
+            )
+        elif step_index - best_step >= patience:
+            break
+    return best_params
+
+
 _HAZARD_FEATURE_COUNT = len(seed_feature_names())
 
 
@@ -457,6 +609,11 @@ class FFAMModePredictorCheckpoint(BaseModel):
     posterior_input_source: str = "regime_input"
     posterior_summary_variant: SummaryVariant = "v3"
     posterior_method: str = "particle_mixture"
+    posterior_residual_hidden_dim: int = Field(default=0, ge=0)
+    posterior_residual_steps: int = Field(default=0, ge=0)
+    posterior_residual_learning_rate: float = Field(default=0.0, ge=0.0)
+    posterior_residual_weight_decay: float = Field(default=0.0, ge=0.0)
+    posterior_residual_scale: float = Field(default=1.0, ge=0.0)
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -503,6 +660,11 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_input_source: str = "regime_input"
     posterior_summary_variant: SummaryVariant = "v3"
     posterior_method: str = "particle_mixture"
+    posterior_residual_hidden_dim: int = Field(default=0, ge=0)
+    posterior_residual_steps: int = Field(default=0, ge=0)
+    posterior_residual_learning_rate: float = Field(default=0.0, ge=0.0)
+    posterior_residual_weight_decay: float = Field(default=0.0, ge=0.0)
+    posterior_residual_scale: float = Field(default=1.0, ge=0.0)
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -533,6 +695,10 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_kernel_alpha: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_fallback_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     posterior_fallback_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    posterior_residual_weight_in: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    posterior_residual_bias_in: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    posterior_residual_weight_out: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    posterior_residual_bias_out: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     quadratic_decoder_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     quadratic_decoder_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     hazard_decoder_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
@@ -798,6 +964,40 @@ class FFAMModePredictor(BaseRoundPredictor):
             bandwidth=config.posterior_bandwidth,
             ridge_lambda=config.posterior_ridge_lambda,
         )
+        posterior_residual_weight_in = np.zeros((1, 1), dtype=np.float64)
+        posterior_residual_bias_in = np.zeros(1, dtype=np.float64)
+        posterior_residual_weight_out = np.zeros((1, posterior_target_matrix.shape[1]), dtype=np.float64)
+        posterior_residual_bias_out = np.zeros(posterior_target_matrix.shape[1], dtype=np.float64)
+        if config.posterior_method == "residual_mlp" and config.posterior_residual_hidden_dim > 0:
+            linear_predictions = np.asarray(
+                posterior_intercept[None, :] + (posterior_input_matrix @ posterior_weights),
+                dtype=np.float64,
+            )
+            residual_targets = np.asarray(posterior_target_matrix - linear_predictions, dtype=np.float64)
+            unique_round_indexes = np.unique(np.asarray(posterior_round_indexes, dtype=np.int64))
+            val_mask = np.zeros(len(posterior_round_indexes), dtype=bool)
+            if unique_round_indexes.shape[0] >= 4:
+                val_round_count = max(1, unique_round_indexes.shape[0] // 4)
+                val_rounds = set(int(item) for item in unique_round_indexes[-val_round_count:])
+                val_mask = np.asarray(
+                    [int(item) in val_rounds for item in posterior_round_indexes],
+                    dtype=bool,
+                )
+            (
+                posterior_residual_weight_in,
+                posterior_residual_bias_in,
+                posterior_residual_weight_out,
+                posterior_residual_bias_out,
+            ) = _train_residual_mlp(
+                standardized_inputs,
+                residual_targets,
+                hidden_dim=config.posterior_residual_hidden_dim,
+                steps=config.posterior_residual_steps,
+                learning_rate=config.posterior_residual_learning_rate,
+                weight_decay=config.posterior_residual_weight_decay,
+                val_mask=val_mask,
+                seed=0,
+            )
 
         return cls(
             name=config.model_name,
@@ -822,6 +1022,11 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_source=config.posterior_input_source,
             posterior_summary_variant=config.posterior_summary_variant,
             posterior_method=config.posterior_method,
+            posterior_residual_hidden_dim=config.posterior_residual_hidden_dim,
+            posterior_residual_steps=config.posterior_residual_steps,
+            posterior_residual_learning_rate=config.posterior_residual_learning_rate,
+            posterior_residual_weight_decay=config.posterior_residual_weight_decay,
+            posterior_residual_scale=config.posterior_residual_scale,
             decoder_method=config.decoder_method,
             decoder_particle_blend=config.decoder_particle_blend,
             decoder_particle_ood_scale=config.decoder_particle_ood_scale,
@@ -852,6 +1057,10 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_kernel_alpha=np.asarray(posterior_kernel_alpha, dtype=np.float64),
             posterior_fallback_intercept=np.asarray(posterior_fallback_intercept, dtype=np.float64),
             posterior_fallback_weights=np.asarray(posterior_fallback_weights, dtype=np.float64),
+            posterior_residual_weight_in=np.asarray(posterior_residual_weight_in, dtype=np.float64),
+            posterior_residual_bias_in=np.asarray(posterior_residual_bias_in, dtype=np.float64),
+            posterior_residual_weight_out=np.asarray(posterior_residual_weight_out, dtype=np.float64),
+            posterior_residual_bias_out=np.asarray(posterior_residual_bias_out, dtype=np.float64),
             quadratic_decoder_intercept=np.asarray(quadratic_decoder_intercept, dtype=np.float64),
             quadratic_decoder_weights=np.asarray(quadratic_decoder_weights, dtype=np.float64),
             hazard_decoder_intercept=np.asarray(hazard_decoder_intercept, dtype=np.float64),
@@ -892,6 +1101,11 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_source=self.posterior_input_source,
             posterior_summary_variant=self.posterior_summary_variant,
             posterior_method=self.posterior_method,
+            posterior_residual_hidden_dim=self.posterior_residual_hidden_dim,
+            posterior_residual_steps=self.posterior_residual_steps,
+            posterior_residual_learning_rate=self.posterior_residual_learning_rate,
+            posterior_residual_weight_decay=self.posterior_residual_weight_decay,
+            posterior_residual_scale=self.posterior_residual_scale,
             decoder_method=self.decoder_method,
             decoder_particle_blend=self.decoder_particle_blend,
             decoder_particle_ood_scale=self.decoder_particle_ood_scale,
@@ -931,6 +1145,10 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_kernel_alpha=self.posterior_kernel_alpha,
             posterior_fallback_intercept=self.posterior_fallback_intercept,
             posterior_fallback_weights=self.posterior_fallback_weights,
+            posterior_residual_weight_in=self.posterior_residual_weight_in,
+            posterior_residual_bias_in=self.posterior_residual_bias_in,
+            posterior_residual_weight_out=self.posterior_residual_weight_out,
+            posterior_residual_bias_out=self.posterior_residual_bias_out,
             quadratic_decoder_intercept=self.quadratic_decoder_intercept,
             quadratic_decoder_weights=self.quadratic_decoder_weights,
             hazard_decoder_intercept=self.hazard_decoder_intercept,
@@ -986,6 +1204,11 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_source=checkpoint.posterior_input_source,
             posterior_summary_variant=checkpoint.posterior_summary_variant,
             posterior_method=checkpoint.posterior_method,
+            posterior_residual_hidden_dim=checkpoint.posterior_residual_hidden_dim,
+            posterior_residual_steps=checkpoint.posterior_residual_steps,
+            posterior_residual_learning_rate=checkpoint.posterior_residual_learning_rate,
+            posterior_residual_weight_decay=checkpoint.posterior_residual_weight_decay,
+            posterior_residual_scale=checkpoint.posterior_residual_scale,
             decoder_method=checkpoint.decoder_method,
             decoder_particle_blend=checkpoint.decoder_particle_blend,
             decoder_particle_ood_scale=checkpoint.decoder_particle_ood_scale,
@@ -1033,6 +1256,28 @@ class FFAMModePredictor(BaseRoundPredictor):
                 arrays["posterior_fallback_weights"]
                 if "posterior_fallback_weights" in arrays
                 else arrays["posterior_weights"],
+                dtype=np.float64,
+            ),
+            posterior_residual_weight_in=np.asarray(
+                arrays["posterior_residual_weight_in"]
+                if "posterior_residual_weight_in" in arrays
+                else np.zeros((1, 1)),
+                dtype=np.float64,
+            ),
+            posterior_residual_bias_in=np.asarray(
+                arrays["posterior_residual_bias_in"] if "posterior_residual_bias_in" in arrays else np.zeros(1),
+                dtype=np.float64,
+            ),
+            posterior_residual_weight_out=np.asarray(
+                arrays["posterior_residual_weight_out"]
+                if "posterior_residual_weight_out" in arrays
+                else np.zeros((1, arrays["posterior_intercept"].shape[0]), dtype=np.float64),
+                dtype=np.float64,
+            ),
+            posterior_residual_bias_out=np.asarray(
+                arrays["posterior_residual_bias_out"]
+                if "posterior_residual_bias_out" in arrays
+                else np.zeros(arrays["posterior_intercept"].shape[0], dtype=np.float64),
                 dtype=np.float64,
             ),
             quadratic_decoder_intercept=np.asarray(
@@ -1169,6 +1414,39 @@ class FFAMModePredictor(BaseRoundPredictor):
         confidence = float(np.clip(np.max(kernel), 0.0, 1.0))
         return coords, confidence
 
+    def _residual_mlp_coords(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
+        linear_coords = np.asarray(
+            self.posterior_intercept + (input_vector @ self.posterior_weights),
+            dtype=np.float64,
+        )
+        if self.posterior_metric_bank.shape[0] == 0:
+            confidence = 1.0
+        else:
+            _, _, _, confidence = self._posterior_neighbors(input_vector)
+        if (
+            self.posterior_residual_hidden_dim <= 0
+            or self.posterior_residual_weight_in.ndim != 2
+            or self.posterior_residual_weight_out.ndim != 2
+            or self.posterior_residual_weight_in.shape[0] != input_vector.shape[0]
+            or self.posterior_residual_weight_out.shape[1] != linear_coords.shape[0]
+            or self.posterior_residual_weight_in.shape[1] != self.posterior_residual_weight_out.shape[0]
+        ):
+            return linear_coords, confidence
+        standardized_input = np.asarray(
+            (input_vector - self.posterior_input_mean) / np.maximum(self.posterior_input_scale, 1e-6),
+            dtype=np.float64,
+        )
+        _, residual = _mlp_forward(
+            standardized_input[None, :],
+            self.posterior_residual_weight_in,
+            self.posterior_residual_bias_in,
+            self.posterior_residual_weight_out,
+            self.posterior_residual_bias_out,
+        )
+        gated_scale = float(self.posterior_residual_scale) * float(np.clip(confidence, 0.0, 1.0))
+        coords = np.asarray(linear_coords + (gated_scale * residual[0]), dtype=np.float64)
+        return coords, confidence
+
     def _fallback_mode_coords(
         self,
         fallback_input_vector: np.ndarray | None,
@@ -1195,6 +1473,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             return self._local_linear_coords(input_vector)
         if self.posterior_method == "kernel_ridge":
             return self._kernel_ridge_coords(input_vector)
+        if self.posterior_method == "residual_mlp":
+            return self._residual_mlp_coords(input_vector)
         particle_coords, particle_confidence = self._particle_coords(input_vector)
         local_coords, local_confidence = self._local_linear_coords(input_vector)
         blend = float(np.clip(self.posterior_particle_blend, 0.0, 1.0))
