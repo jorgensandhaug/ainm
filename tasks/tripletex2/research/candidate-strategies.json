@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T20:29:41.082Z",
+  "updatedAt": "2026-03-21T21:38:12.930Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -10,20 +10,22 @@
       "strategyName": "Create employee",
       "status": "needs-review",
       "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-21T20-29-38-015Z.json",
-      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
       "latestSandboxVerdict": {
-        "correctnessPassed": false,
+        "correctnessPassed": true,
         "withinBudget": false,
-        "apiCallCount": 0,
+        "apiCallCount": 6,
         "baselineCallBudget": 2,
-        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z.json"
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json"
       },
       "notes": [
         "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 1975ms\nreset summary: {\"total\":1747,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":836,\"resource.vouchers\":836,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1747 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)",
-        "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 2753ms\nreset summary: {\"total\":1753,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":842,\"resource.vouchers\":842,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1753 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)"
+        "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 2753ms\nreset summary: {\"total\":1753,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":842,\"resource.vouchers\":842,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1753 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)",
+        "Challenger produced the expected sandbox state but used 6 calls against a 2-call baseline budget.",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/scripts/reset_research_sandbox.ts apply --task 06 --strategy 06.create-employee.v1\nExit code: 1\nDuration: 333ms\nValidering feilet."
       ],
       "createdAt": "2026-03-21T20:26:42.285Z",
-      "updatedAt": "2026-03-21T20:29:41.082Z"
+      "updatedAt": "2026-03-21T20:53:36.324Z"
     },
     {
       "candidateId": "11.order-invoice-prepaid.v1",
@@ -39,6 +41,30 @@
       ],
       "createdAt": "2026-03-21T20:20:44Z",
       "updatedAt": "2026-03-21T20:21:01Z"
+    },
+    {
+      "candidateId": "23.reconcile-bank-statement.v1",
+      "taskId": "23",
+      "strategyId": "23.reconcile-bank-statement.v1",
+      "strategyPath": "src/tasks/task-23/strategies/reconcile-bank-statement.ts",
+      "strategyName": "CSV-driven bank statement reconciliation",
+      "status": "needs-review",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-23/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": false,
+        "apiCallCount": 6,
+        "baselineCallBudget": 3,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-23/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z.json"
+      },
+      "notes": [
+        "Manual disposable-fixture sandbox verification on 2026-03-21 proved the customer-payment branch end-to-end: a one-row CSV payment settled a real sandbox invoice from outstanding 1000 to 0.",
+        "The first manual sandbox attempt exposed a correctness bug: GET /supplierInvoice without invoiceDateFrom/invoiceDateTo returned 422. The current strategy now includes those required date bounds.",
+        "For the exact one-row incoming customer-payment shape, the challenger used 6 calls while the checked-in payment playbooks prove a 3-call lower bound: GET /invoice -> GET /invoice/paymentType -> PUT /invoice/{id}/:payment.",
+        "Supplier-payment and manual-voucher branches are not yet sandbox-verified."
+      ],
+      "createdAt": "2026-03-21T21:38:12.930Z",
+      "updatedAt": "2026-03-21T21:38:12.930Z"
     }
   ]
 }

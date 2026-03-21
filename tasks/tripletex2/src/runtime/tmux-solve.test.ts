@@ -657,86 +657,96 @@ test("pollAndMatchSubmission skips when submissions auth is missing", async () =
     };
 
     assert.equal(score.status, "skipped");
-    assert.equal(score.reason, "solve_not_completed");
+    assert.equal(score.reason, "missing_submissions_access_token");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("runTmuxSolvePipeline kills the tmux window and writes timeout status when the deadline expires", async () => {
-  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-tmux-timeout-"));
-  const tmuxCommands: string[][] = [];
-  try {
-    const result = await runTmuxSolvePipeline(
-      {
-        prompt: "Opprett kunde Nordhav AS.",
-        files: [],
-        tripletex_credentials: {
-          base_url: "https://api.example.invalid/v2",
-          session_token: "session-token",
-          credential_source: "fixture",
+test(
+  "runTmuxSolvePipeline leaves the tmux window in place and writes timeout status when the deadline expires",
+  { timeout: 15_000 },
+  async () => {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-tmux-timeout-"));
+    const tmuxCommands: string[][] = [];
+    try {
+      const result = await runTmuxSolvePipeline(
+        {
+          prompt: "Opprett kunde Nordhav AS.",
+          files: [],
+          tripletex_credentials: {
+            base_url: "https://api.example.invalid/v2",
+            session_token: "session-token",
+            credential_source: "fixture",
+          },
         },
-      },
-      "req-timeout-1",
-      {
-        codexEnvironmentDir: "/repo/tasks/tripletex2/codex-environment",
-        createRunId: () => "test-timeout-run",
-        dataRoot: path.join(tempRoot, "data"),
-        env: {
-          TRIPLETEX_STORAGE_MODE: "production",
+        "req-timeout-1",
+        {
+          codexEnvironmentDir: "/repo/tasks/tripletex2/codex-environment",
+          createRunId: () => "test-timeout-run",
+          dataRoot: path.join(tempRoot, "data"),
+          env: {
+            TRIPLETEX_STORAGE_MODE: "production",
+          },
+          now: () => new Date("2026-03-20T23:50:00.000Z"),
+          runCommand: async (cmd) => {
+            tmuxCommands.push([...cmd]);
+            return "";
+          },
+          solveTimeoutMs: 0,
+          tmuxSessionExists: async () => false,
         },
-        now: () => new Date("2026-03-20T23:50:00.000Z"),
-        runCommand: async (cmd) => {
-          tmuxCommands.push([...cmd]);
-          return "";
-        },
-        solveTimeoutMs: 0,
-        tmuxSessionExists: async () => false,
-      },
-    );
+      );
 
-    assert.equal(result.runtimeStatus, "timeout");
+      assert.equal(result.runtimeStatus, "timeout");
 
-    const runDir = path.join(tempRoot, "data", "production", "runs", "test-timeout-run");
-    const timeoutStatus = JSON.parse(
-      await readFile(path.join(runDir, "timeout.status.json"), "utf8"),
-    ) as {
-      kill_window_succeeded: boolean;
-      request_id: string;
-      run_id: string;
-      solve_timeout_ms: number;
-      status: string;
-      tmux_target: string;
-    };
-    const resultJson = JSON.parse(
-      await readFile(path.join(runDir, "result.json"), "utf8"),
-    ) as {
-      runtimeStatus: string;
-      waitReason: string;
-    };
+      const runDir = path.join(
+        tempRoot,
+        "data",
+        "production",
+        "runs",
+        "test-timeout-run",
+      );
+      const timeoutStatus = JSON.parse(
+        await readFile(path.join(runDir, "timeout.status.json"), "utf8"),
+      ) as {
+        request_id: string;
+        run_id: string;
+        solve_timeout_ms: number;
+        status: string;
+        tmux_target: string;
+        tmux_window_cleanup: string;
+      };
+      const resultJson = JSON.parse(
+        await readFile(path.join(runDir, "result.json"), "utf8"),
+      ) as {
+        runtimeStatus: string;
+        waitReason: string;
+      };
 
-    assert.equal(timeoutStatus.status, "timeout");
-    assert.equal(timeoutStatus.request_id, "req-timeout-1");
-    assert.equal(timeoutStatus.run_id, "test-timeout-run");
-    assert.equal(timeoutStatus.solve_timeout_ms, 0);
-    assert.equal(timeoutStatus.tmux_target, "ainm-tripletex-sessions:test-timeout-run");
-    assert.equal(timeoutStatus.kill_window_succeeded, true);
-    assert.equal(resultJson.runtimeStatus, "timeout");
-    assert.equal(resultJson.waitReason, "timeout");
+      assert.equal(timeoutStatus.status, "timeout");
+      assert.equal(timeoutStatus.request_id, "req-timeout-1");
+      assert.equal(timeoutStatus.run_id, "test-timeout-run");
+      assert.equal(timeoutStatus.solve_timeout_ms, 0);
+      assert.equal(timeoutStatus.tmux_target, "ainm-tripletex-sessions:test-timeout-run");
+      assert.equal(timeoutStatus.tmux_window_cleanup, "manual");
+      assert.equal(resultJson.runtimeStatus, "timeout");
+      assert.equal(resultJson.waitReason, "timeout");
 
-    assert.equal(
-      tmuxCommands.some(
-        (cmd) =>
-          cmd[0] === "tmux" &&
-          cmd[1] === "kill-window" &&
-          cmd[3] === "ainm-tripletex-sessions:test-timeout-run",
-      ),
-      true,
-    );
-  } finally {
-    await rm(tempRoot, { recursive: true, force: true });
-  }
-});
+      assert.equal(
+        tmuxCommands.some(
+          (cmd) =>
+            cmd[0] === "tmux" &&
+            cmd[1] === "kill-window" &&
+            cmd[3] === "ainm-tripletex-sessions:test-timeout-run",
+        ),
+        false,
+      );
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
+  },
+);
 
 test("diffLeaderboardSnapshots and inferTaskAttribution detect a unique attempt delta", () => {
   const beforeSnapshot: LeaderboardSnapshot = {

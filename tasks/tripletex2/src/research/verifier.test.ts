@@ -141,6 +141,38 @@ test("updateCandidateStoreFromVerification records reset-stage failures for acti
         strategyName: "Create employee",
       },
       availableStrategies: [],
+      optimizationObjective: {
+        frontierSummary: "Task 06 still needs a better verified branch.",
+        improvementRequirement:
+          "Improve score or match correctness with fewer API calls.",
+        successRubric: [],
+      },
+      contextLocator: {
+        researchInstructionsPath: "/tmp/research/AGENTS.md",
+        taskSurface: {
+          taskDirectoryPath: "/tmp/src/tasks/task-06",
+          taskImplementationPath: "/tmp/src/tasks/task-06/task.ts",
+        },
+        strategies: {
+          strategiesDirectoryPath: "/tmp/src/tasks/task-06/strategies",
+          availableStrategyPaths: [],
+        },
+        proof: {
+          verificationCommand:
+            "bun scripts/research_os.ts verify --packet /tmp/task-06-packet.json --strategy <strategy-id>",
+        },
+        runtimeEvidence: {
+          openapiPath: "/tmp/openapi.json",
+          candidateStorePath,
+          researchQueuePath: "/tmp/research/task-queue.json",
+          recentArtifactPaths: [],
+        },
+        offlineEvidence: {
+          leaderboardHistoryPath: "/tmp/tripletex/data/leaderboard-history.jsonl",
+          promptLabelHistoryPath: "/tmp/tripletex/data/prompt-task-labels.jsonl",
+          additionalEvidencePaths: [],
+        },
+      },
       candidateSummary: {
         totalCandidates: 0,
         statuses: {

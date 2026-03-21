@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "tripletex2.sandbox-plan.v1",
+  "planId": "example-three-employees",
+  "description": "Create one fixture department and three employee records for sandbox verification experiments.",
+  "initialValues": {
+    "startDate": "2026-03-21"
+  },
+  "steps": [
+    {
+      "stepId": "create-department",
+      "method": "POST",
+      "path": "/department",
+      "body": {
+        "name": "Sandbox Fixture Department"
+      },
+      "capture": {
+        "departmentId": "value.id"
+      }
+    },
+    {
+      "stepId": "create-employee-1",
+      "method": "POST",
+      "path": "/employee",
+      "body": {
+        "firstName": "Fixture",
+        "lastName": "One",
+        "dateOfBirth": "1990-01-01",
+        "email": "fixture.employee.1@example.org",
+        "userType": "NO_ACCESS",
+        "employments": [
+          {
+            "startDate": "{{startDate}}",
+            "department": {
+              "id": "{{departmentId}}"
+            }
+          }
+        ]
+      },
+      "capture": {
+        "employee1Id": "value.id",
+        "employment1Id": "value.employments.0.id"
+      }
+    },
+    {
+      "stepId": "create-employee-2",
+      "method": "POST",
+      "path": "/employee",
+      "body": {
+        "firstName": "Fixture",
+        "lastName": "Two",
+        "dateOfBirth": "1991-02-02",
+        "email": "fixture.employee.2@example.org",
+        "userType": "NO_ACCESS",
+        "employments": [
+          {
+            "startDate": "{{startDate}}",
+            "department": {
+              "id": "{{departmentId}}"
+            }
+          }
+        ]
+      },
+      "capture": {
+        "employee2Id": "value.id",
+        "employment2Id": "value.employments.0.id"
+      }
+    },
+    {
+      "stepId": "create-employee-3",
+      "method": "POST",
+      "path": "/employee",
+      "body": {
+        "firstName": "Fixture",
+        "lastName": "Three",
+        "dateOfBirth": "1992-03-03",
+        "email": "fixture.employee.3@example.org",
+        "userType": "NO_ACCESS",
+        "employments": [
+          {
+            "startDate": "{{startDate}}",
+            "department": {
+              "id": "{{departmentId}}"
+            }
+          }
+        ]
+      },
+      "capture": {
+        "employee3Id": "value.id",
+        "employment3Id": "value.employments.0.id"
+      }
+    }
+  ]
+}

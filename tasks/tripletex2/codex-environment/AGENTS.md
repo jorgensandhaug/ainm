@@ -95,7 +95,7 @@ Apply these gates in order before drilling into the detailed task table.
 | `20` | Register supplier invoice with PDF attachment | Register an incoming supplier invoice from prompt-plus-PDF data and attach the source PDF to the created voucher. | req: `supplierName`, `organizationNumber`, `invoiceNumber`, `lineDescription`, `grossAmountNok`, `expenseAccountNumber`, `vatRatePercent`, `attachmentFileName`; opt: `invoiceDate`, `dueDate`, `supplierAlreadyExists` |
 | `21` | Correct ledger errors — implicit scan | Audit Jan-Feb 2026 vouchers for the known ledger-error pattern when the prompt describes the error types generically rather than enumerating all four exact error specs. | req: none |
 | `22` | Register receipt expense voucher | Book one receipt-backed expense voucher to the requested department, balance it against bank account 1920, and upload the source receipt. | req: `departmentName`, `lineDescription`, `grossAmountNok`, `voucherDate`, `attachmentFileName`; opt: `expenseAccountNumber`, `vatRatePercent`, `departmentAlreadyExists` |
-| `23` | Reconcile bank statement | Reconcile an attached bank-statement CSV against open invoices. | unresolved |
+| `23` | Reconcile bank statement | Reconcile an attached bank-statement CSV against open customer and supplier invoices, handling partial payments and booking non-invoice bank lines. | req: `attachmentFileName` |
 | `24` | Correct ledger errors — explicit listing | Review the Jan-Feb 2026 ledger for the four known anomalies when the prompt explicitly lists each error with concrete account/amount details, then post one corrective voucher that repairs them. | req: none |
 | `25` | Overdue reminder fee and partial payment | Find the one overdue customer invoice, post a 50 NOK reminder fee, create and send the fee invoice, and register a 5000 NOK partial payment. | req: none |
 | `26` | Month-end closing | Perform month-end closing steps such as accruals, monthly depreciation, and salary provision. | unresolved |
@@ -153,4 +153,4 @@ Apply these gates in order before drilling into the detailed task table.
   - `29.employees[] = { employeeName, email, hours, birthDate? }`
 - For `19`, resolve the STYRK-only 2511 contract shape to `occupationCodeId: 301`.
 - For zero-field tasks `21`, `24`, `25`, and `28`, resolve with `inputJson: "{}"` when the prompt clearly matches.
-- For recognized but unsupported tasks `23`, `26`, `27`, and `30`, return `status: "unresolved"`, `code: "unsupported-request"`, and include the recognized `taskId` when clear.
+- For recognized but unsupported tasks `26`, `27`, and `30`, return `status: "unresolved"`, `code: "unsupported-request"`, and include the recognized `taskId` when clear.

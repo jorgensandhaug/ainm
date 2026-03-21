@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-06-06.create-employee.v1-2026-03-21T20-53-01-611Z",
+  "createdAt": "2026-03-21T20:53:01.611Z",
+  "taskId": "06",
+  "strategyId": "06.create-employee.v1",
+  "candidateId": "06.create-employee.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-21T20-29-38-015Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-01-611Z/stage",
+  "artifactPath": "",
+  "sandboxReset": {
+    "command": "bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/scripts/reset_research_sandbox.ts apply --task 06 --strategy 06.create-employee.v1",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "Validering feilet.\n",
+    "durationMs": 333,
+    "highlights": []
+  },
+  "failureStage": "reset",
+  "challengeRun": {
+    "runtimeStatus": "not-run",
+    "apiCallCount": 0,
+    "baselineCallBudget": 2,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "failed",
+    "apiCallCount": 0,
+    "checks": []
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": false,
+    "withinBudget": false,
+    "message": "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/scripts/reset_research_sandbox.ts apply --task 06 --strategy 06.create-employee.v1\nExit code: 1\nDuration: 333ms\nValidering feilet."
+  }
+}

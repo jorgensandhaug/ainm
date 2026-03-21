@@ -5,6 +5,8 @@ import { taskSpecs } from "../registry/tasks";
 import {
   adaptCodexTaskUnderstandingResult,
   buildCodexTaskUnderstandingPrompt,
+  type CodexTaskUnderstandingExecutorInput,
+  runCodexTaskUnderstanding,
 } from "./codex-task-understanding";
 
 test("buildCodexTaskUnderstandingPrompt includes the request, files, and registered task surfaces", () => {
@@ -15,7 +17,13 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
         {
           fileName: "note.txt",
           mediaType: "text/plain",
+          path: "/tmp/run/attachments/01-note.txt",
           textContent: "hello tripletex",
+        },
+        {
+          fileName: "invoice.pdf",
+          mediaType: "application/pdf",
+          path: "/tmp/run/attachments/02-invoice.pdf",
         },
       ],
     },
@@ -24,7 +32,12 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
 
   assert.match(prompt, /Follow \.\/AGENTS\.md exactly\./);
   assert.match(prompt, /Registered task surfaces:/);
-  assert.match(prompt, /Attachment text:/);
+  assert.match(prompt, /Attachments:/);
+  assert.match(prompt, /path: \/tmp\/run\/attachments\/01-note\.txt/);
+  assert.match(prompt, /path: \/tmp\/run\/attachments\/02-invoice\.pdf/);
+  assert.match(prompt, /hasTextContent: yes/);
+  assert.match(prompt, /hasTextContent: no/);
+  assert.match(prompt, /textContent:\nhello tripletex/);
   assert.match(prompt, /hello tripletex/);
   assert.match(prompt, /"taskId": "08"/);
   assert.match(prompt, /"taskName": "Create and send invoice"/);
@@ -126,4 +139,39 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
       surpriseField: "nope",
     },
   });
+});
+
+test("runCodexTaskUnderstanding keeps the tmux window by default for audit history", async () => {
+  let observedExecutorInput: CodexTaskUnderstandingExecutorInput | undefined;
+
+  await runCodexTaskUnderstanding(
+    {
+      request: {
+        prompt: "No matching task here.",
+        files: [],
+      },
+      taskSpecs,
+    },
+    {
+      executor: async (input) => {
+        observedExecutorInput = input;
+        return JSON.stringify({
+          status: "unresolved",
+          taskId: null,
+          inputJson: null,
+          code: "no-task-match",
+          message: "No task matched.",
+          partialInputJson: null,
+          notes: [],
+        });
+      },
+    },
+  );
+
+  assert.equal(
+    observedExecutorInput
+      ? "cleanupTmuxWindowOnExit" in observedExecutorInput
+      : false,
+    false,
+  );
 });

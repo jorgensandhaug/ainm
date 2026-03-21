@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z",
+  "createdAt": "2026-03-21T21:38:12.930Z",
+  "taskId": "23",
+  "strategyId": "23.reconcile-bank-statement.v1",
+  "candidateId": "23.reconcile-bank-statement.v1",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-23/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-23/verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z/artifacts/2026-03-21/run-verify-23-23.reconcile-bank-statement.v1-2026-03-21T21-38-12-930Z.json",
+  "sandboxReset": {
+    "command": "manual disposable-fixture sandbox verification for task 23 (reset-based verifier skipped because persistent sandbox drift blocks the normal reset path)",
+    "exitCode": 0,
+    "stdout": "Created a disposable sandbox customer and open invoice, reconciled a one-row CSV bank statement against that invoice, and confirmed the invoice outstanding amount dropped from 1000 to 0.",
+    "stderr": "",
+    "highlights": [
+      "Manual disposable-fixture verification used instead of the reset-based verifier.",
+      "First manual attempt exposed a real strategy blocker: GET /supplierInvoice without invoiceDateFrom/invoiceDateTo returned 422.",
+      "After adding supplier-invoice date bounds, the rerun completed successfully and settled the invoice in the sandbox."
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 6,
+    "baselineCallBudget": 3,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 1,
+    "checks": [
+      {
+        "checkId": "invoice-readback",
+        "description": "Read back the disposable invoice after task-23 reconciliation and confirm the outstanding amount is zero.",
+        "status": "passed",
+        "requestPath": "/invoice/2147639820",
+        "requestQuery": {
+          "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*)),postings(*,voucher(*))"
+        },
+        "assertions": [
+          {
+            "actualPath": "amountCurrencyOutstanding",
+            "expectedPath": "manual expected value",
+            "actualValue": 0,
+            "expectedValue": 0,
+            "passed": true
+          },
+          {
+            "actualPath": "invoiceNumber",
+            "expectedPath": "fixture.invoiceNumber",
+            "actualValue": 373,
+            "expectedValue": 373,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2147639820,
+          "invoiceNumber": 373,
+          "amountCurrencyOutstanding": 0
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": true,
+    "withinBudget": false,
+    "message": "Manual sandbox verification proved the customer-payment branch on a disposable fixture, but the challenger used 6 calls against a 3-call lower bound for the exact one-row customer-payment shape."
+  }
+}

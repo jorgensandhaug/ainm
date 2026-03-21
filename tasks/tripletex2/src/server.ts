@@ -15,6 +15,7 @@ import {
   runTmuxSolvePipeline,
   type TmuxSolveRequest,
 } from "./runtime/tmux-solve";
+import { normalizeAttachmentTextContent } from "./runtime/attachment-files";
 import { resolvePendingCodexTaskUnderstandingResult } from "./runtime/codex-task-understanding-callback";
 import { appendTaskUnderstandingToPromptCorpus } from "./runtime/prompt-corpus";
 import { loadSandboxCredentials } from "./sandbox-credentials";
@@ -34,7 +35,7 @@ interface ParsedSolveRequestFile {
   content_base64: string;
   filename: string;
   mime_type?: string;
-  textContent: string;
+  textContent?: string;
 }
 
 export interface SolveServerOptions
@@ -653,27 +654,32 @@ function parseSolveFiles(rawValue: unknown): ParsedSolveRequestFile[] {
       `solve request file[${index}]`,
     );
 
+    const filename = requireNonEmptyString(
+      file.filename,
+      `solve request file[${index}].filename`,
+    );
+    const contentBase64 = requireString(
+      file.content_base64,
+      `solve request file[${index}].content_base64`,
+    );
+    const mimeType =
+      file.mime_type !== undefined
+        ? requireNonEmptyString(
+            file.mime_type,
+            `solve request file[${index}].mime_type`,
+          )
+        : undefined;
+    const textContent = normalizeAttachmentTextContent({
+      fileName: filename,
+      mediaType: mimeType,
+      contentBase64,
+    });
+
     return {
-      filename: requireNonEmptyString(
-        file.filename,
-        `solve request file[${index}].filename`,
-      ),
-      content_base64: requireString(
-        file.content_base64,
-        `solve request file[${index}].content_base64`,
-      ),
-      textContent: Buffer.from(
-        requireString(file.content_base64, `solve request file[${index}].content_base64`),
-        "base64",
-      ).toString("utf8"),
-      ...(file.mime_type !== undefined
-        ? {
-            mime_type: requireNonEmptyString(
-              file.mime_type,
-              `solve request file[${index}].mime_type`,
-            ),
-          }
-        : {}),
+      filename,
+      content_base64: contentBase64,
+      ...(textContent !== undefined ? { textContent } : {}),
+      ...(mimeType !== undefined ? { mime_type: mimeType } : {}),
     };
   });
 }

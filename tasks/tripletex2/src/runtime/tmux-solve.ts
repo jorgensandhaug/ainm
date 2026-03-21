@@ -16,6 +16,7 @@ import {
   loadSubmissionsAccessToken,
 } from "../sandbox-credentials";
 import type { RuntimeStatus, TripletexCredentialCompanyId } from "./contracts";
+import { stageAttachmentFiles } from "./attachment-files";
 
 export type StorageMode = "testing" | "sandbox" | "production";
 
@@ -23,7 +24,7 @@ export interface TmuxSolveRequestFile {
   fileName: string;
   contentBase64: string;
   mediaType?: string;
-  textContent: string;
+  textContent?: string;
 }
 
 export interface TmuxSolveRequest {
@@ -318,23 +319,12 @@ export async function prepareRun(
   const runId =
     options.createRunId?.({ now, storageMode }) ?? buildRunId(storageMode, now);
   const runDir = path.join(options.dataRoot, storageMode, "runs", runId);
-  const attachmentsDir = path.join(runDir, "attachments");
   const scriptsDir = path.join(runDir, "scripts");
   const effectiveCredentials = await resolveEffectiveCredentials(input, storageMode, options);
 
-  await mkdir(attachmentsDir, { recursive: true });
   await mkdir(scriptsDir, { recursive: true });
 
-  const storedFiles: StoredSolveFile[] = [];
-  for (const [index, file] of input.files.entries()) {
-    const storedFileName = `${String(index + 1).padStart(2, "0")}-${sanitizeFilename(file.fileName)}`;
-    const filePath = path.join(attachmentsDir, storedFileName);
-    await writeFile(filePath, Buffer.from(file.contentBase64, "base64"));
-    storedFiles.push({
-      ...file,
-      path: filePath,
-    });
-  }
+  const storedFiles = await stageAttachmentFiles(runDir, input.files);
 
   const createdAt = now.toISOString();
   const requestFilePath = path.join(runDir, "request.json");
@@ -1459,18 +1449,8 @@ async function handleSolveTimeout(
   >,
 ): Promise<void> {
   const log = options.logger;
-  const runCommand = options.runCommand ?? defaultRunCommand;
   const tmuxTarget = `${preparedRun.tmuxSessionName}:${preparedRun.tmuxWindow}`;
   const timedOutAt = resolveNow(options.now).toISOString();
-  let killWindowSucceeded = false;
-  let killWindowError: string | undefined;
-
-  try {
-    await killTmuxWindow(tmuxTarget, { runCommand });
-    killWindowSucceeded = true;
-  } catch (error) {
-    killWindowError = error instanceof Error ? error.message : String(error);
-  }
 
   await writeFile(
     path.join(preparedRun.runDir, TIMEOUT_STATUS_FILENAME),
@@ -1487,9 +1467,7 @@ async function handleSolveTimeout(
         solve_timeout_ms: options.solveTimeoutMs ?? DEFAULT_SOLVE_TIMEOUT_MS,
         matched_session_id: matchedSession?.sessionMeta.id,
         matched_session_path: matchedSession?.path,
-        kill_window_attempted: true,
-        kill_window_succeeded: killWindowSucceeded,
-        ...(killWindowError ? { kill_window_error: killWindowError } : {}),
+        tmux_window_cleanup: "manual",
       },
       null,
       2,
@@ -1503,17 +1481,8 @@ async function handleSolveTimeout(
     tmuxTarget,
     solveTimeoutMs: options.solveTimeoutMs ?? DEFAULT_SOLVE_TIMEOUT_MS,
     matchedSessionId: matchedSession?.sessionMeta.id,
-    killWindowSucceeded,
-    ...(killWindowError ? { killWindowError } : {}),
+    tmuxWindowCleanup: "manual",
   });
-}
-
-export async function killTmuxWindow(
-  tmuxTarget: string,
-  options: Pick<TmuxSolveOptions, "runCommand"> = {},
-): Promise<void> {
-  const runCommand = options.runCommand ?? defaultRunCommand;
-  await runCommand(["tmux", "kill-window", "-t", tmuxTarget]);
 }
 
 async function defaultTmuxSessionExists(sessionName: string): Promise<boolean> {
@@ -1605,11 +1574,6 @@ function isPlaceholderCredentialValue(value: string | undefined): boolean {
 
 function resolveNow(now?: () => Date): Date {
   return now ? now() : new Date();
-}
-
-function sanitizeFilename(filename: string): string {
-  const cleaned = path.basename(filename).replace(/[^A-Za-z0-9._-]/g, "_");
-  return cleaned.length > 0 ? cleaned : "attachment";
 }
 
 function shellQuote(value: string): string {

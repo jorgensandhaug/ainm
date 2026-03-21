@@ -95,6 +95,30 @@ export interface ResearchPacketStrategySummary {
   stepOutline?: readonly string[];
 }
 
+export interface ResearchLatestCandidateStatusSummary {
+  candidateId: string;
+  strategyId: string;
+  status: CandidateStatus;
+  updatedAt: string;
+  strategyPath?: string;
+  strategyName?: string;
+  latestVerificationReportPath?: string;
+  latestSandboxVerdict?: CandidateSandboxVerdict;
+}
+
+export interface ResearchOptimizationObjective {
+  frontierSummary: string;
+  currentBestKnownScore?: number;
+  maxScore?: number;
+  scoreGap?: number;
+  bestKnownCallBudget?: number;
+  baselineCallBudget?: number;
+  activeStrategyToBeat?: ResearchPacketStrategySummary;
+  latestCandidateStatus?: ResearchLatestCandidateStatusSummary;
+  improvementRequirement: string;
+  successRubric: string[];
+}
+
 export interface ResearchHistoricalRunScore {
   status: string;
   normalizedScore?: number;
@@ -198,6 +222,40 @@ export interface ResearchVerificationPlan {
   checks: ResearchVerificationCheck[];
 }
 
+export interface ResearchContextLocator {
+  researchInstructionsPath: string;
+  taskSurface: {
+    taskDirectoryPath: string;
+    taskReadmePath?: string;
+    taskResearchMemoryPath?: string;
+    taskImplementationPath: string;
+  };
+  strategies: {
+    strategiesDirectoryPath: string;
+    activeStrategyPath?: string;
+    availableStrategyPaths: string[];
+  };
+  proof: {
+    inputPath?: string;
+    verificationPlanId?: string;
+    verificationPlanSourcePath?: string;
+    verificationCommand: string;
+  };
+  runtimeEvidence: {
+    openapiPath: string;
+    candidateStorePath: string;
+    researchQueuePath: string;
+    recentArtifactPaths: string[];
+  };
+  offlineEvidence: {
+    trustedStandardPath?: string;
+    taskPlaybookPath?: string;
+    leaderboardHistoryPath: string;
+    promptLabelHistoryPath: string;
+    additionalEvidencePaths: string[];
+  };
+}
+
 export interface ResearchTaskPacket {
   schemaVersion: typeof RESEARCH_PACKET_SCHEMA_VERSION;
   packetId: string;
@@ -210,6 +268,8 @@ export interface ResearchTaskPacket {
   activeStrategy?: ResearchPacketStrategySummary;
   availableStrategies: ResearchPacketStrategySummary[];
   baselineCallBudget?: number;
+  optimizationObjective: ResearchOptimizationObjective;
+  contextLocator: ResearchContextLocator;
   candidateSummary: {
     totalCandidates: number;
     statuses: Record<CandidateStatus, number>;

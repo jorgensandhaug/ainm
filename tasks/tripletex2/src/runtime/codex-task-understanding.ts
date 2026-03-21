@@ -17,7 +17,6 @@ import {
   buildTmuxCodexCommand,
   DEFAULT_CODEX_ENVIRONMENT_DIR,
   DEFAULT_TMUX_SESSION_NAME,
-  killTmuxWindow,
   launchTmuxCommand,
 } from "./tmux-solve";
 
@@ -188,12 +187,14 @@ export function buildCodexTaskUnderstandingPrompt(
   return [
     ...lines,
     "",
-    "Attachment text:",
+    "Attachments:",
     ...input.request.files.flatMap((file, index) => [
       `--- FILE ${index + 1} ---`,
       `fileName: ${file.fileName}`,
       `mediaType: ${file.mediaType ?? "unknown"}`,
-      file.textContent,
+      `path: ${file.path ?? "not-staged"}`,
+      `hasTextContent: ${file.textContent !== undefined ? "yes" : "no"}`,
+      ...(file.textContent !== undefined ? ["textContent:", file.textContent] : []),
     ]),
   ].join("\n");
 }
@@ -377,9 +378,6 @@ async function executeCodexTaskUnderstanding(
     return rawResponseText;
   } finally {
     registration.cleanup();
-    await killTmuxWindow(tmuxTarget).catch(() => {
-      // The window may already be gone if tmux or Codex failed early.
-    });
     await rm(tempDir, { recursive: true, force: true });
   }
 }

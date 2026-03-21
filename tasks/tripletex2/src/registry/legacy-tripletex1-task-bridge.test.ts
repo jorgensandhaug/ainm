@@ -31,7 +31,7 @@ const EXPECTED_CANONICAL_MAPPING = [
   ["20", "register-supplier-invoice-pdf"],
   ["21", "correct-ledger-errors-audit"],
   ["22", "register-receipt-expense-voucher"],
-  ["23", "unknown-task-23"],
+  ["23", "reconcile-bank-statement"],
   ["24", "correct-ledger-errors"],
   ["25", "overdue-reminder-fee-and-partial-payment"],
   ["26", "unknown-task-26"],

@@ -62,7 +62,7 @@ export type RunSidecarMediaType =
   | "text/markdown"
   | "text/plain";
 export type HypothesisCheck = "supported" | "mixed" | "unsupported";
-export type HttpMethod = "GET" | "POST" | "PUT";
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export type QueryValue = string | number | boolean | null | undefined;
 export type SerializedQueryValue = Exclude<QueryValue, undefined>;
@@ -130,6 +130,10 @@ export interface TripletexClient {
     path: string,
     options?: TripletexRequestOptions,
   ): Promise<TResponse>;
+  delete<TResponse>(
+    path: string,
+    options?: TripletexRequestOptions,
+  ): Promise<TResponse>;
 }
 
 export interface RuntimeClock {
@@ -148,7 +152,8 @@ export interface StrategyContext {
 export interface StrategyRequestFile {
   fileName: string;
   mediaType?: string;
-  textContent: string;
+  path?: string;
+  textContent?: string;
   contentBase64?: string;
 }
 
@@ -216,7 +221,8 @@ export type ClassifierConfidence = "high" | "medium" | "low";
 export interface ClassifierExtractorFile {
   fileName: string;
   mediaType?: string;
-  textContent: string;
+  path?: string;
+  textContent?: string;
 }
 
 export interface ClassifierExtractorInput {

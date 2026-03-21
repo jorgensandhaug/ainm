@@ -115,7 +115,7 @@ The classifier intentionally uses the same tmux-based invocation style as the fu
 
 The important difference from the solver path is the prompt contract:
 
-- **classifier**: read `./AGENTS.md`, classify one task, extract typed input, submit JSON.
+- **classifier**: read `./AGENTS.md`, classify one task, extract typed input, submit JSON. The classifier prompt also receives staged attachment metadata and on-disk attachment paths under the run directory, so Codex can inspect the original PDF or other file directly when needed.
 - **solver fallback**: solve the full Tripletex task.
 
 ### Classification contract
@@ -285,12 +285,13 @@ The current research loop is:
 
 1. maintain a prioritized queue of tasks worth improving,
 2. build one task packet per target task from historical runs, scores, failure modes, and sandbox evidence,
-3. run exactly one challenger in a freshly reset sandbox,
+3. run exactly one challenger after a best-effort sandbox cleanup,
 4. judge it by resulting Tripletex state plus `apiCallCount` against a known baseline budget,
 5. store promising challengers in the candidate queue instead of promoting them immediately.
 
 See:
 - [`docs/research-os.md`](./docs/research-os.md)
+- [`docs/sandbox.md`](./docs/sandbox.md)
 - [`docs/research-workflow.md`](./docs/research-workflow.md)
 - [`docs/strategy-contract.md`](./docs/strategy-contract.md)
 
@@ -299,6 +300,38 @@ Important constraints:
 - per-strategy unit tests are useful but not the main correctness mechanism,
 - the research OS itself does not launch or manage external agents,
 - candidate strategies should stay out of live pins until deliberately promoted.
+
+For manual coding-agent launches, the durable interface is:
+
+- packet = context surface
+- [`research/AGENTS.md`](./research/AGENTS.md) = instruction surface
+- `src/tasks/task-XX/RESEARCH.md` = task-local memory surface
+
+Do not reuse [`codex-environment/AGENTS.md`](./codex-environment/AGENTS.md) for research strategy work. That file remains classifier-only.
+
+## Sandbox CLI
+
+[`scripts/sandbox.ts`](./scripts/sandbox.ts) is now the canonical sandbox interface.
+
+Use it to:
+
+- clean the sandbox with best-effort evidence-driven cleanup,
+- apply deterministic fixture/setup plans,
+- run one strategy in sandbox mode,
+- verify one strategy against live sandbox state,
+- inspect or mutate the sandbox directly with explicit requests.
+
+Core commands:
+
+```bash
+bun scripts/sandbox.ts reset
+bun scripts/sandbox.ts apply --plan research/sandbox/plans/example-three-employees.json
+bun scripts/sandbox.ts run --task 06 --strategy 06.create-employee.v1 --input-file research/proofs/task-06/task-06-proof-input.json
+bun scripts/sandbox.ts verify --task 06 --strategy 06.create-employee.v1 --input-file research/proofs/task-06/task-06-proof-input.json
+bun scripts/sandbox.ts inspect get /employee/123 --query fields=*
+```
+
+The old `scripts/reset_research_sandbox.ts` and `scripts/research_os.ts verify` entrypoints still work, but they are compatibility paths. New operator flows and agent instructions should start from [`docs/sandbox.md`](./docs/sandbox.md).
 
 ## How To Update the Classifier Safely
 
@@ -376,6 +409,8 @@ Important artifact categories:
 - semantic routing research under `research/semantic-routing/`.
 
 These matter because they keep classifier decisions, retries, deterministic execution, fallback runs, and strategy-research decisions inspectable after the fact.
+
+Deterministic runs now stage attachments under the same `attachments/NN-filename` convention as tmux runs. The staged `request.json` may include a per-file `path`, and `textContent` is only preserved for genuinely textual attachments. Binary inputs such as PDFs keep their raw bytes and staged path, but do not get synthetic UTF-8 `textContent`.
 
 ## Local Development
 
