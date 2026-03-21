@@ -123,6 +123,8 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_operator_v5",
         "ffam_operator_v6",
         "ffam_operator_v7",
+        "ffam_operator_v8",
+        "ffam_operator_v9",
         "query_residual",
         "query_residual_v8",
         "query_residual_v10",

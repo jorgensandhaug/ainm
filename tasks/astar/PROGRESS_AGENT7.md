@@ -410,6 +410,29 @@ Framework should accept unique query-residual family variant names directly so b
   - `v4` and `v5` still match the earlier operator line on completed rounds 6 and 8
   - round 8 remains the main failure mode to watch
 
+### 2026-03-21T10:20Z approx
+
+- Added stricter operator safety variants:
+  - `ffam_operator_v8`
+  - `ffam_operator_v9`
+  - both keep retrieval-heavy posterior but damp the decoder harder via:
+    - higher baseline blend
+    - larger OOD-triggered prior fallback
+    - lower residual class scales
+    - slightly hotter temperature
+- Validation after `v8/v9` expansion:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `44`
+- Pruned `v4` and `v5` after they continued to mirror the earlier operator line on completed rounds and showed no sign of fixing round 8 fast enough.
+- Current active wave now:
+  - `v6`, `v7`, `v8`, `v9`
+- Tried to accelerate with single-round round-8-only benchmark probes for `v8/v9`.
+  - rejected by benchmark code
+  - constraint observed: online historical benchmark path requires at least two replay-backed analyzed rounds for holdout evaluation
+- Operational note:
+  - keep using isolated `--root /tmp/...` workspaces symlinked to shared `data/raw` + `data/derived`
+  - this allows many concurrent probes without contaminating benchmark artifact namespaces
+
 ### 2026-03-21T04:05Z approx
 
 - Re-read current policy code and benchmark artifacts before new edits.
