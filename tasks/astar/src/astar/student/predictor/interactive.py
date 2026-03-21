@@ -60,6 +60,10 @@ SMH_GLMM_QR_ENSEMBLE_V005 = "smh_glmm_qr_ensemble_v005"
 DIRECT_TERMINAL_Z2_V001 = "direct_terminal_z2_v001"
 DIRECT_TERMINAL_Z2_V002 = "direct_terminal_z2_v002"
 DIRECT_TERMINAL_Z2_V003 = "direct_terminal_z2_v003"
+GLMM_DT_ENSEMBLE_V001 = "glmm_dt_ensemble_v001"
+GLMM_DT_ENSEMBLE_V002 = "glmm_dt_ensemble_v002"
+GLMM_DT_ENSEMBLE_V003 = "glmm_dt_ensemble_v003"
+GLMM_DT_ENSEMBLE_V004 = "glmm_dt_ensemble_v004"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1918,6 +1922,39 @@ def build_online_predictor(
                     "nbr_ruin_frac",
                 ),
             },
+        )
+    if normalized in (GLMM_DT_ENSEMBLE_V001, GLMM_DT_ENSEMBLE_V002, GLMM_DT_ENSEMBLE_V003, GLMM_DT_ENSEMBLE_V004):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V002,
+            model_name=DIRECT_TERMINAL_Z2_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
+        )
+        # Different fixed blend ratios: GLMM-heavy to DT-heavy
+        dt_weight_map = {
+            GLMM_DT_ENSEMBLE_V001: 0.15,  # 85% GLMM, 15% DT
+            GLMM_DT_ENSEMBLE_V002: 0.25,  # 75% GLMM, 25% DT
+            GLMM_DT_ENSEMBLE_V003: 0.35,  # 65% GLMM, 35% DT
+            GLMM_DT_ENSEMBLE_V004: 0.10,  # 90% GLMM, 10% DT
+        }
+        dt_weight = dt_weight_map[normalized]
+        return RoundPredictorAdapter(
+            predictor=FixedPredictionBlendPredictor(
+                left_predictor=glmm_adapter.predictor,
+                right_predictor=dt_adapter.predictor,
+                right_weight=dt_weight,
+                name=normalized,
+            ),
+            name=normalized,
         )
     if normalized == DIRECT_TERMINAL_Z2_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
