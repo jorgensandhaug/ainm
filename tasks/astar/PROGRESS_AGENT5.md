@@ -258,6 +258,40 @@
   - `f1dac...`: `57.3516`
   - `c5cdf...`: `78.5253`
   - `36e581...`: `64.6992`
+
+### 2026-03-21T10:00:00Z
+
+- Added round-level parallelism to `run_historical_benchmark` behind an explicit `max_workers` argument.
+- CLI now accepts `--jobs` / `--max-workers` and forwards to historical benchmark.
+- Validation behavior is unchanged by default:
+  - `max_workers=None` keeps the old serial path
+  - `max_workers>1` parallelizes held-out rounds with `ProcessPoolExecutor`
+- Added regression test proving parallel and serial outputs match on sample data.
+- Verified:
+  - `uv run python -m py_compile src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `14 passed in 29.55s`
+
+### 2026-03-21T10:00:00Z
+
+- Added new coefficient-fingerprint posterior branch:
+  - `greybox_coefficient_knn_v01`
+  - trains a kNN posterior over replay/live transcript feature vectors
+  - targets actual per-round coefficient fingerprints from the semimechanistic teacher manifold
+  - decodes through `HazardTeacher`, then applies prior blend + exact-cell evidence blend
+- Wiring added:
+  - online predictor registry
+  - historical benchmark eval path
+  - CLI model choices
+  - benchmark smoke test matrix
+- Validation:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_coefficient_knn.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q -k coefficient_knn` -> `1 passed`
+- Notes:
+  - first attempt used synthetic dataset materialization and hit DuckDB/catalog contention under parallel benchmark workers
+  - refactored branch to use replay-run transcript proxies directly, removing the catalog write path
+  - real 3-round probe is running now:
+    - `agent5_coefficient_knn_probe3`
+    - `coverage`, `samples_per_round=4`, `budget=50`, `jobs=1`
 - Interpretation:
   - first genuinely strong cross-round grey-box model
   - much better balance than ridge/knn
@@ -699,3 +733,92 @@
     - `origin/agent5` -> `a27b90c`
   - pushed commit:
     - `a27b90c [astar] add teacher/student checkpoint loading`
+
+### 2026-03-21T09:55:00Z
+
+- Re-read canon + handoff again in current workspace:
+  - `README.md`
+  - `docs/game_facts.md`
+  - full `instructions/agent5.md`
+- Re-confirmed handoff gap vs current implementation:
+  - current grey-box family already has:
+    - semimechanistic round fingerprints
+    - low-rank manifold
+    - simple fixed/gated/mixture hybrids
+  - still missing stronger handoff-aligned branches:
+    - richer transcript-conditioned posterior over round-law fingerprints
+    - stronger student-side direct online adaptation
+    - faster official held-out benchmark throughput
+
+- Current machine-health / concurrency snapshot:
+  - host: `c4d-monster-01.c.ai-nm26osl-1706.internal`
+  - time: `2026-03-21T09:55:07Z`
+  - memory:
+    - total `2.9 TiB`
+    - used `704 GiB`
+    - available `2.2 TiB`
+  - cpu:
+    - `384` cores
+    - load average about `65.6 / 94.6 / 92.5`
+  - competing jobs visible:
+    - many `agent3` teacher-student blend probes
+    - `agent7` ffam operator probes
+    - others likely active but not saturating the box
+  - implication:
+    - still huge headroom
+    - safe to run moderate-high parallelism
+    - but avoid wasting memory on stale solved sweeps
+
+- Found stale long-running agent5 sweeps still alive from earlier session state:
+  - `scripts/agent5_hybrid_sweep.py --policy coverage ...`
+  - `scripts/agent5_hybrid_sweep.py --policy exploration ...`
+  - older exploration-only sweep
+  - one inline `python3 -` helper process
+- Action:
+  - terminated those stale agent5 sweep processes to recover memory / cpu for new experiments
+
+- Full 8-round corrected hybrid sweep result to trust over the earlier 3-round probe:
+  - policy `coverage`
+  - low-rank expert:
+    - `greybox_hazard_lowrank_v01`
+    - `prior_blend=0.55`
+    - `samples_per_round=4`
+  - residual expert:
+    - `query_residual_v7`
+    - `samples_per_round=1`
+  - sweep weights:
+    - `0.00`: mean score `74.255312`, mean weighted KL `0.102772`
+    - `0.15`: mean score `74.993794`, mean weighted KL `0.098964`
+    - `0.25`: mean score `75.278994`, mean weighted KL `0.097415`
+    - `0.35`: mean score `75.396483`, mean weighted KL `0.096656`
+    - `0.45`: mean score `75.339954`, mean weighted KL `0.096711`
+    - `0.55`: mean score `75.099362`, mean weighted KL `0.097628`
+    - `0.65`: mean score `74.660350`, mean weighted KL `0.099481`
+  - conclusion:
+    - full-8 held-out leader is **not** current `v02` weight `0.65`
+    - best fixed hybrid from the full benchmark is `coverage + lowrank_weight=0.35`
+
+- Full 8-round corrected hybrid sweep, policy `exploration`:
+  - `0.00`: mean score `74.401100`, mean weighted KL `0.101998`
+  - `0.15`: mean score `74.999452`, mean weighted KL `0.098962`
+  - `0.25`: mean score `75.172187`, mean weighted KL `0.097995`
+  - `0.35`: mean score `75.166993`, mean weighted KL `0.097856`
+  - `0.45`: mean score `74.981435`, mean weighted KL `0.098559`
+  - `0.55`: mean score `74.609260`, mean weighted KL `0.100143`
+  - `0.65`: mean score `74.040016`, mean weighted KL `0.102672`
+  - conclusion:
+    - `exploration` is competitive but still below `coverage`
+    - best exploration fixed hybrid is `lowrank_weight=0.25`
+    - current fixed-weight lead remains coverage at `0.35`
+
+- Immediate next branches chosen:
+  - validation/process:
+    - parallelize official historical benchmark over held-out rounds
+    - objective: same results, much faster iteration on this machine
+  - new model family work:
+    - implement transcript-conditioned posterior over semimechanistic round-law fingerprints / coefficient vectors
+    - rationale:
+      - closer to handoff’s “tiny discrete regime + low-rank residual” than current crude cluster mixture
+      - should exploit the small-round / many-transcript asymmetry directly
+  - housekeeping:
+    - once code is in, revisit `greybox_hybrid_lowrank_queryres` versioning/defaults so the registered lead reflects full-8 evidence rather than the narrower 3-round probe

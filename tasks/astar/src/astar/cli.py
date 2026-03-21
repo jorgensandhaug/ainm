@@ -206,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
             "historical_bucket_prior",
             "latent_regime",
             "query_residual",
+            "greybox_coefficient_knn",
         ],
         required=True,
     )
@@ -250,6 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
             "greybox_regime_ridge",
             "greybox_regime_knn",
             "greybox_hazard_lowrank",
+            "greybox_coefficient_knn",
             "greybox_hazard_mixture",
             "greybox_hybrid_lowrank_queryres",
             "greybox_hybrid_lowrank_queryres_w45",
@@ -275,6 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
             "greybox_regime_ridge",
             "greybox_regime_knn",
             "greybox_hazard_lowrank",
+            "greybox_coefficient_knn",
             "greybox_hazard_mixture",
             "greybox_hybrid_lowrank_queryres",
             "greybox_hybrid_lowrank_queryres_w45",
@@ -304,6 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
             "greybox_regime_ridge",
             "greybox_regime_knn",
             "greybox_hazard_lowrank",
+            "greybox_coefficient_knn",
             "greybox_hazard_mixture",
             "greybox_hybrid_lowrank_queryres",
             "greybox_hybrid_lowrank_queryres_w45",
@@ -322,6 +326,14 @@ def build_parser() -> argparse.ArgumentParser:
     historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     historical_benchmark_parser.add_argument("--budget", type=int, default=50)
     historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
+    historical_benchmark_parser.add_argument(
+        "--jobs",
+        "--max-workers",
+        dest="max_workers",
+        type=int,
+        default=None,
+        help="parallel held-out rounds to evaluate",
+    )
     historical_benchmark_parser.add_argument(
         "--with-png",
         choices=["none", "top", "all"],
@@ -345,6 +357,7 @@ def build_parser() -> argparse.ArgumentParser:
             "greybox_regime_ridge",
             "greybox_regime_knn",
             "greybox_hazard_lowrank",
+            "greybox_coefficient_knn",
             "greybox_hazard_mixture",
             "greybox_hybrid_lowrank_queryres",
             "greybox_hybrid_lowrank_queryres_w45",
@@ -670,6 +683,7 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             budget=args.budget,
             episode_seed=args.episode_seed,
+            max_workers=args.max_workers,
             visualization_policy=args.with_png,
             benchmark_name=args.name,
         )

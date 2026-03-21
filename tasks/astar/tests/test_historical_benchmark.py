@@ -9,6 +9,7 @@ import pytest
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
+from astar.workflows import historical_benchmark as historical_benchmark_module
 from astar.workflows.historical_benchmark import run_historical_benchmark
 from tests.conftest import ROUND_ID
 from tests.test_historical_bucket_baseline import (
@@ -104,6 +105,65 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         assert online_by_key[key].weighted_kl == prior_by_key[key].weighted_kl
 
 
+def test_run_historical_benchmark_parallel_jobs_preserves_results(
+    sample_paths: RepoPaths,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+
+    serial_result = run_historical_benchmark(
+        sample_paths,
+        model_name="historical_bucket_prior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        visualization_policy="none",
+        benchmark_name="test_historical_benchmark_serial",
+        max_workers=1,
+    )
+
+    recorded_workers: dict[str, int | None] = {}
+
+    class FakeProcessPoolExecutor:
+        def __init__(self, max_workers: int | None = None) -> None:
+            recorded_workers["max_workers"] = max_workers
+
+        def __enter__(self) -> FakeProcessPoolExecutor:
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def map(self, fn, tasks):
+            return [fn(task) for task in tasks]
+
+    monkeypatch.setattr(
+        historical_benchmark_module,
+        "ProcessPoolExecutor",
+        FakeProcessPoolExecutor,
+    )
+
+    parallel_result = run_historical_benchmark(
+        sample_paths,
+        model_name="historical_bucket_prior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        visualization_policy="none",
+        benchmark_name="test_historical_benchmark_parallel",
+        max_workers=2,
+    )
+
+    assert recorded_workers["max_workers"] == 2
+    assert parallel_result.evaluated_seed_count == serial_result.evaluated_seed_count
+    assert parallel_result.aggregate.mean_score == serial_result.aggregate.mean_score
+    assert parallel_result.aggregate.mean_weighted_kl == serial_result.aggregate.mean_weighted_kl
+    assert [item.round_id for item in parallel_result.rounds] == [
+        item.round_id for item in serial_result.rounds
+    ]
+    assert [item.mean_score for item in parallel_result.rounds] == [
+        item.mean_score for item in serial_result.rounds
+    ]
+
+
 def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
@@ -175,6 +235,7 @@ def test_query_residual_online_historical_benchmark_rebuilds_incomplete_legacy_d
         "greybox_regime_ridge",
         "greybox_regime_knn",
         "greybox_hazard_lowrank",
+        "greybox_coefficient_knn",
         "greybox_hazard_mixture",
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",
@@ -187,6 +248,7 @@ def test_greybox_regime_online_historical_benchmark_runs(
         "greybox_regime_ridge",
         "greybox_regime_knn",
         "greybox_hazard_lowrank",
+        "greybox_coefficient_knn",
         "greybox_hazard_mixture",
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",

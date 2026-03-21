@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
 from time import perf_counter
 
 from astar.eval.competition import CompetitionAggregate, aggregate_episode_metrics
@@ -90,6 +91,51 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
+def _evaluate_historical_round(
+    task: tuple[
+        str,
+        str,
+        tuple[str, ...],
+        str,
+        str,
+        int,
+        int,
+        int,
+    ],
+) -> tuple[str, int | None, list[ModelSeedEvaluationContext], float]:
+    (
+        root,
+        held_out_round_id,
+        selected_round_ids,
+        model_name,
+        mode,
+        policy_name,
+        samples_per_round,
+        budget,
+        episode_seed,
+    ) = task
+    paths = WorkspacePaths.from_root(root)
+    started_at = perf_counter()
+    training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+    contexts = evaluate_model_on_round(
+        paths,
+        round_id=held_out_round_id,
+        model_name=model_name,
+        training_round_ids=training_round_ids,
+        mode=mode,
+        policy_name=policy_name if mode == "online_interactive" else None,
+        samples_per_round=samples_per_round,
+        budget=budget,
+        episode_seed=episode_seed,
+    )
+    return (
+        held_out_round_id,
+        contexts[0].round_number if contexts else None,
+        contexts,
+        perf_counter() - started_at,
+    )
+
+
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
@@ -100,6 +146,7 @@ def run_historical_benchmark(
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
+    max_workers: int | None = None,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
 ) -> HistoricalBenchmarkResult:
@@ -126,6 +173,7 @@ def run_historical_benchmark(
         "greybox_regime_ridge",
         "greybox_regime_knn",
         "greybox_hazard_lowrank",
+        "greybox_coefficient_knn",
         "greybox_hazard_mixture",
         "greybox_hybrid_lowrank_queryres",
         "greybox_hybrid_lowrank_queryres_w45",
@@ -174,21 +222,36 @@ def run_historical_benchmark(
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    for held_out_round_id in selected_round_ids:
-        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-        evaluation_started_at = perf_counter()
-        contexts = evaluate_model_on_round(
-            paths,
-            round_id=held_out_round_id,
-            model_name=model_name,
-            training_round_ids=training_round_ids,
-            mode=mode,
-            policy_name=policy_name if mode == "online_interactive" else None,
-            samples_per_round=samples_per_round,
-            budget=budget,
-            episode_seed=episode_seed,
+    if max_workers is not None and max_workers < 1:
+        raise ValueError("max_workers must be >= 1")
+
+    requested_workers = 1 if max_workers is None else max_workers
+    use_parallel = requested_workers > 1 and len(selected_round_ids) > 1
+
+    round_tasks = [
+        (
+            str(paths.root),
+            held_out_round_id,
+            tuple(selected_round_ids),
+            model_name,
+            mode,
+            policy_name,
+            samples_per_round,
+            budget,
+            episode_seed,
         )
-        round_evaluation_seconds[held_out_round_id] = perf_counter() - evaluation_started_at
+        for held_out_round_id in selected_round_ids
+    ]
+
+    round_outputs: list[tuple[str, int | None, list[ModelSeedEvaluationContext], float]]
+    if use_parallel:
+        with ProcessPoolExecutor(max_workers=requested_workers) as executor:
+            round_outputs = list(executor.map(_evaluate_historical_round, round_tasks))
+    else:
+        round_outputs = [_evaluate_historical_round(task) for task in round_tasks]
+
+    for held_out_round_id, round_number, contexts, evaluation_seconds in round_outputs:
+        round_evaluation_seconds[held_out_round_id] = evaluation_seconds
         if not contexts:
             continue
         keys: list[tuple[str, int]] = []
