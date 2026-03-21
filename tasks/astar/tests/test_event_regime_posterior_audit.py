@@ -98,3 +98,40 @@ def test_event_regime_posterior_audit_supports_collapse_portsplit_family(
         "collapse_pos_port_share_logit",
     ]
     assert result.standardized_mae_gain == result.standardized_baseline_mae - result.standardized_knn_mae
+
+
+def test_event_regime_posterior_audit_supports_collapse_timing_stress_family(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_collapse_stress_test",
+        audit_name="event_regime_posterior_collapse_stress_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        collapse_dataset_name="collapse_riskset_regime_posterior_collapse_stress_test",
+        target_family="collapse_timing_stress",
+    )
+
+    assert result.target_family == "collapse_timing_stress"
+    assert result.target_names == [
+        "collapse_logit_rate",
+        "collapse_mean_year",
+        "collapse_std_year",
+        "collapse_early_share_logit",
+        "collapse_late_share_logit",
+        "collapse_food_before_mean",
+        "collapse_defense_before_mean",
+        "collapse_population_before_mean",
+    ]

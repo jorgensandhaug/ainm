@@ -1,0 +1,629 @@
+{
+  "audit_name": "f1_event_regime_posterior_knn_collapse_timing_stress_b50s4_v01",
+  "dataset_name": "f1_synthetic_live_coverage_b50_s4_v2",
+  "policy_name": "coverage",
+  "budget": 50,
+  "samples_per_round": 4,
+  "k_neighbors": 7,
+  "target_family": "collapse_timing_stress",
+  "target_names": [
+    "collapse_logit_rate",
+    "collapse_mean_year",
+    "collapse_std_year",
+    "collapse_early_share_logit",
+    "collapse_late_share_logit",
+    "collapse_food_before_mean",
+    "collapse_defense_before_mean",
+    "collapse_population_before_mean"
+  ],
+  "round_count": 9,
+  "episode_count": 36,
+  "aggregation_mode": "equal_round_mean_primary",
+  "baseline_mae": 0.8718127196807037,
+  "knn_mae": 0.5168871138692123,
+  "mae_gain": 0.3549256058114914,
+  "baseline_mse": 4.870875438060564,
+  "knn_mse": 2.442040958940698,
+  "mse_gain": 2.4288344791198666,
+  "standardized_baseline_mae": 1.0534472184160397,
+  "standardized_knn_mae": 0.8881678580507155,
+  "standardized_mae_gain": 0.1652793603653242,
+  "standardized_baseline_mse": 2.4686718381179897,
+  "standardized_knn_mse": 1.851961136287902,
+  "standardized_mse_gain": 0.6167107018300876,
+  "per_target_baseline_mae": {
+    "collapse_logit_rate": 0.2765109332776483,
+    "collapse_mean_year": 4.49688993962284,
+    "collapse_std_year": 0.7150780195358117,
+    "collapse_early_share_logit": 0.6767827956816901,
+    "collapse_late_share_logit": 0.584745428375679,
+    "collapse_food_before_mean": 0.047181151463869773,
+    "collapse_defense_before_mean": 0.06323198087637766,
+    "collapse_population_before_mean": 0.1140815086117129
+  },
+  "per_target_knn_mae": {
+    "collapse_logit_rate": 0.2835252054126176,
+    "collapse_mean_year": 2.4229431217370294,
+    "collapse_std_year": 0.507291151070199,
+    "collapse_early_share_logit": 0.3360663135506567,
+    "collapse_late_share_logit": 0.3381331559593572,
+    "collapse_food_before_mean": 0.06413956349359334,
+    "collapse_defense_before_mean": 0.06048178605762941,
+    "collapse_population_before_mean": 0.12251661367261549
+  },
+  "per_target_baseline_mse": {
+    "collapse_logit_rate": 0.11747111207989683,
+    "collapse_mean_year": 36.585242938034725,
+    "collapse_std_year": 0.8378884152745859,
+    "collapse_early_share_logit": 0.7532316333518608,
+    "collapse_late_share_logit": 0.6469485842831603,
+    "collapse_food_before_mean": 0.0031201519318199596,
+    "collapse_defense_before_mean": 0.005966044293535543,
+    "collapse_population_before_mean": 0.017134625234935565
+  },
+  "per_target_knn_mse": {
+    "collapse_logit_rate": 0.09456496314698673,
+    "collapse_mean_year": 18.256137684451158,
+    "collapse_std_year": 0.49927738129816074,
+    "collapse_early_share_logit": 0.2899884313537401,
+    "collapse_late_share_logit": 0.36406335277179663,
+    "collapse_food_before_mean": 0.00522034097856816,
+    "collapse_defense_before_mean": 0.005795015348524736,
+    "collapse_population_before_mean": 0.021280502176649174
+  },
+  "round_targets": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "collapse_logit_rate": -2.4497444293047064,
+      "collapse_mean_year": 32.34151439552289,
+      "collapse_std_year": 12.587343474735096,
+      "collapse_early_share_logit": -2.014139078564699,
+      "collapse_late_share_logit": 0.06920703116708894,
+      "collapse_food_before_mean": 0.5325154069179422,
+      "collapse_defense_before_mean": 0.3728975793945115,
+      "collapse_population_before_mean": 0.949120086305711
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "collapse_logit_rate": -2.7794235861435785,
+      "collapse_mean_year": 31.595270437144976,
+      "collapse_std_year": 12.547547583753945,
+      "collapse_early_share_logit": -2.0454988180921587,
+      "collapse_late_share_logit": -0.09469724277283283,
+      "collapse_food_before_mean": 0.47293229368803585,
+      "collapse_defense_before_mean": 0.47065352997212717,
+      "collapse_population_before_mean": 0.9870795787319621
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "collapse_logit_rate": -2.768895724590083,
+      "collapse_mean_year": 33.725842718039594,
+      "collapse_std_year": 12.06708689800414,
+      "collapse_early_share_logit": -2.3537515538197282,
+      "collapse_late_share_logit": 0.2391717017236263,
+      "collapse_food_before_mean": 0.5975106137693172,
+      "collapse_defense_before_mean": 0.2554270851197622,
+      "collapse_population_before_mean": 0.7128588101907429
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "collapse_logit_rate": -2.531727001851373,
+      "collapse_mean_year": 33.36222978447577,
+      "collapse_std_year": 12.22933507303521,
+      "collapse_early_share_logit": -2.2486510181493906,
+      "collapse_late_share_logit": 0.16983175693772226,
+      "collapse_food_before_mean": 0.5934468060281963,
+      "collapse_defense_before_mean": 0.2694279241614001,
+      "collapse_population_before_mean": 0.6613122152001296
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "collapse_logit_rate": -2.5218127866926254,
+      "collapse_mean_year": 30.142109019048142,
+      "collapse_std_year": 13.582474938466083,
+      "collapse_early_share_logit": -1.6128275897038378,
+      "collapse_late_share_logit": -0.18051826046010566,
+      "collapse_food_before_mean": 0.6089675907119724,
+      "collapse_defense_before_mean": 0.3351067684031399,
+      "collapse_population_before_mean": 0.8103937201515068
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "collapse_logit_rate": -2.2496709503094023,
+      "collapse_mean_year": 34.49509389718814,
+      "collapse_std_year": 11.397664079107164,
+      "collapse_early_share_logit": -2.604093133463662,
+      "collapse_late_share_logit": 0.30060393608249625,
+      "collapse_food_before_mean": 0.47740160100264817,
+      "collapse_defense_before_mean": 0.2845613212314783,
+      "collapse_population_before_mean": 0.86003984717702
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "collapse_logit_rate": -2.081949877062153,
+      "collapse_mean_year": 25.291432743793607,
+      "collapse_std_year": 14.304896709785597,
+      "collapse_early_share_logit": -0.9604865572878897,
+      "collapse_late_share_logit": -0.771396066557721,
+      "collapse_food_before_mean": 0.5374099302287847,
+      "collapse_defense_before_mean": 0.3865037644004543,
+      "collapse_population_before_mean": 1.0090584780139542
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "collapse_logit_rate": -1.7749409374142362,
+      "collapse_mean_year": 16.49985036212366,
+      "collapse_std_year": 12.239963360126852,
+      "collapse_early_share_logit": 0.03328253568834732,
+      "collapse_late_share_logit": -2.1047386882936565,
+      "collapse_food_before_mean": 0.4884498114562758,
+      "collapse_defense_before_mean": 0.3274168611959059,
+      "collapse_population_before_mean": 0.9504828814269468
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "collapse_logit_rate": -2.4796512003209963,
+      "collapse_mean_year": 31.551449532502044,
+      "collapse_std_year": 12.937566703344395,
+      "collapse_early_share_logit": -1.9353231686974035,
+      "collapse_late_share_logit": -0.044652853895595146,
+      "collapse_food_before_mean": 0.5257391996831082,
+      "collapse_defense_before_mean": 0.2505310331168456,
+      "collapse_population_before_mean": 0.7986730897777631
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "episode_count": 4,
+      "baseline_mae": 0.4650104982466112,
+      "knn_mae": 0.09241582869077761,
+      "mae_gain": 0.37259466955583365,
+      "baseline_mse": 0.9830356437599341,
+      "knn_mse": 0.013542327833351924,
+      "mse_gain": 0.9694933159265822,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.05123542125665015,
+        "collapse_mean_year": 2.7586045837334012,
+        "collapse_std_year": 0.0759734434678272,
+        "collapse_early_share_logit": 0.2982204156239836,
+        "collapse_late_share_logit": 0.38000649582159723,
+        "collapse_food_before_mean": 0.005216823903100076,
+        "collapse_defense_before_mean": 0.050444043444372255,
+        "collapse_population_before_mean": 0.1003827587219579
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.2320808372456281,
+        "collapse_mean_year": 0.050020134452996245,
+        "collapse_std_year": 0.16517915538280414,
+        "collapse_early_share_logit": 0.11140651693423365,
+        "collapse_late_share_logit": 0.05967358408521179,
+        "collapse_food_before_mean": 0.01209754161974888,
+        "collapse_defense_before_mean": 0.018468296925148717,
+        "collapse_population_before_mean": 0.09040056288044931
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.002625068391346398,
+        "collapse_mean_year": 7.609899249394932,
+        "collapse_std_year": 0.005771964112359135,
+        "collapse_early_share_logit": 0.08893541629494152,
+        "collapse_late_share_logit": 0.1444049368666096,
+        "collapse_food_before_mean": 2.7215251635956314e-05,
+        "collapse_defense_before_mean": 0.0025446015190177156,
+        "collapse_population_before_mean": 0.010076698248630814
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.05386253094922244,
+        "collapse_mean_year": 0.002553712354272382,
+        "collapse_std_year": 0.02728583008839295,
+        "collapse_early_share_logit": 0.012412095404312064,
+        "collapse_late_share_logit": 0.0035620953387206387,
+        "collapse_food_before_mean": 0.00014659100685765136,
+        "collapse_defense_before_mean": 0.00034174847983208445,
+        "collapse_population_before_mean": 0.008174019045205188
+      }
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "episode_count": 4,
+      "baseline_mae": 0.42085215451802893,
+      "knn_mae": 0.32263573964940384,
+      "mae_gain": 0.09821641486862509,
+      "baseline_mse": 0.5095690042706452,
+      "knn_mse": 0.2559135178083794,
+      "mse_gain": 0.2536554864622658,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.42212447270038167,
+        "collapse_mean_year": 1.9190801305582426,
+        "collapse_std_year": 0.12074382082162138,
+        "collapse_early_share_logit": 0.33350012259237594,
+        "collapse_late_share_logit": 0.19561418763918526,
+        "collapse_food_before_mean": 0.0722478262867447,
+        "collapse_defense_before_mean": 0.1604194878441899,
+        "collapse_population_before_mean": 0.1430871877014902
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.2818009841362178,
+        "collapse_mean_year": 1.342346107340429,
+        "collapse_std_year": 0.16928254548571386,
+        "collapse_early_share_logit": 0.10559623532779461,
+        "collapse_late_share_logit": 0.22266954378872106,
+        "collapse_food_before_mean": 0.09516731068790288,
+        "collapse_defense_before_mean": 0.158182671389714,
+        "collapse_population_before_mean": 0.20604051903873713
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.17818907045257526,
+        "collapse_mean_year": 3.6828685475034413,
+        "collapse_std_year": 0.01457907026660381,
+        "collapse_early_share_logit": 0.11122233176912978,
+        "collapse_late_share_logit": 0.03826491040573838,
+        "collapse_food_before_mean": 0.005219748403159638,
+        "collapse_defense_before_mean": 0.025734412080192195,
+        "collapse_population_before_mean": 0.020473943284321488
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.0794122119196563,
+        "collapse_mean_year": 1.801957752261231,
+        "collapse_std_year": 0.028664537210607702,
+        "collapse_early_share_logit": 0.011153979147828747,
+        "collapse_late_share_logit": 0.049582354328483874,
+        "collapse_food_before_mean": 0.0090570475100537,
+        "collapse_defense_before_mean": 0.02502242217210991,
+        "collapse_population_before_mean": 0.04245783791706414
+      }
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "episode_count": 4,
+      "baseline_mae": 0.8692552613897417,
+      "knn_mae": 0.266939931899438,
+      "mae_gain": 0.6023153294903038,
+      "baseline_mse": 2.507619072215844,
+      "knn_mse": 0.1757345739827382,
+      "mse_gain": 2.331884498233106,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.41028062845269897,
+        "collapse_mean_year": 4.315973946564689,
+        "collapse_std_year": 0.6612620922901531,
+        "collapse_early_share_logit": 0.6802844502858914,
+        "collapse_late_share_logit": 0.5712167501977018,
+        "collapse_food_before_mean": 0.06790278380469683,
+        "collapse_defense_before_mean": 0.0817102626147207,
+        "collapse_population_before_mean": 0.16541117690738116
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.24779837445827768,
+        "collapse_mean_year": 1.0466607121506613,
+        "collapse_std_year": 0.41814195444723845,
+        "collapse_early_share_logit": 0.22019358427296098,
+        "collapse_late_share_logit": 0.1519139721583493,
+        "collapse_food_before_mean": 0.03124796930774948,
+        "collapse_defense_before_mean": 0.013505780459517558,
+        "collapse_population_before_mean": 0.0060571079407492345
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.1683301940835416,
+        "collapse_mean_year": 18.62763110742518,
+        "collapse_std_year": 0.43726755469995093,
+        "collapse_early_share_logit": 0.46278693330077736,
+        "collapse_late_share_logit": 0.32628857570642367,
+        "collapse_food_before_mean": 0.004610788048427399,
+        "collapse_defense_before_mean": 0.006676567016566623,
+        "collapse_population_before_mean": 0.027360857445884946
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.06165989488601125,
+        "collapse_mean_year": 1.0957147866951908,
+        "collapse_std_year": 0.1754587179576314,
+        "collapse_early_share_logit": 0.04854514167476761,
+        "collapse_late_share_logit": 0.023080143084820745,
+        "collapse_food_before_mean": 0.0009820180302730686,
+        "collapse_defense_before_mean": 0.00031760753962179736,
+        "collapse_population_before_mean": 0.00011828199358886993
+      }
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "episode_count": 4,
+      "baseline_mae": 0.7421318977610242,
+      "knn_mae": 0.23459261345178162,
+      "mae_gain": 0.5075392843092426,
+      "baseline_mse": 2.0163912095021046,
+      "knn_mse": 0.12223354991048624,
+      "mse_gain": 1.8941576595916183,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.14346581537165015,
+        "collapse_mean_year": 3.9069093963053874,
+        "collapse_std_year": 0.47873289538019925,
+        "collapse_early_share_logit": 0.5620463476567616,
+        "collapse_late_share_logit": 0.4932093123135597,
+        "collapse_food_before_mean": 0.06333100009593584,
+        "collapse_defense_before_mean": 0.06595931869287808,
+        "collapse_population_before_mean": 0.22340109627182114
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.24343050768149954,
+        "collapse_mean_year": 0.9036135929476377,
+        "collapse_std_year": 0.1235213017371084,
+        "collapse_early_share_logit": 0.07824271303638086,
+        "collapse_late_share_logit": 0.12923936962564114,
+        "collapse_food_before_mean": 0.07003316294177306,
+        "collapse_defense_before_mean": 0.1140120251870989,
+        "collapse_population_before_mean": 0.21464823445711323
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.020582440180252407,
+        "collapse_mean_year": 15.263941030939327,
+        "collapse_std_year": 0.2291851851191088,
+        "collapse_early_share_logit": 0.31589609691430537,
+        "collapse_late_share_logit": 0.24325542575281447,
+        "collapse_food_before_mean": 0.004010815573151426,
+        "collapse_defense_before_mean": 0.004350631722428656,
+        "collapse_population_before_mean": 0.0499080498154515
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.0592584127844997,
+        "collapse_mean_year": 0.8165467850775701,
+        "collapse_std_year": 0.015258999949839187,
+        "collapse_early_share_logit": 0.00612253462266754,
+        "collapse_late_share_logit": 0.016703533165972177,
+        "collapse_food_before_mean": 0.0049047439490596395,
+        "collapse_defense_before_mean": 0.012999040472859321,
+        "collapse_population_before_mean": 0.04607434926142227
+      }
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "episode_count": 4,
+      "baseline_mae": 0.2321076913722712,
+      "knn_mae": 0.4986695921852504,
+      "mae_gain": -0.26656190081297926,
+      "baseline_mse": 0.1537881863601307,
+      "knn_mse": 1.100647954168137,
+      "mse_gain": -0.9468597678080064,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.1323123233180592,
+        "collapse_mean_year": 0.2842735351993042,
+        "collapse_std_year": 1.0435494532295326,
+        "collapse_early_share_logit": 0.15325500934448533,
+        "collapse_late_share_logit": 0.09906554274100332,
+        "collapse_food_before_mean": 0.0807918828651839,
+        "collapse_defense_before_mean": 0.0079293810790792,
+        "collapse_population_before_mean": 0.05568440320152179
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.210025963697966,
+        "collapse_mean_year": 2.7526703647451294,
+        "collapse_std_year": 0.025241123996828208,
+        "collapse_early_share_logit": 0.28328652539720134,
+        "collapse_late_share_logit": 0.3735820647633342,
+        "collapse_food_before_mean": 0.09347665656141582,
+        "collapse_defense_before_mean": 0.07021166838258096,
+        "collapse_population_before_mean": 0.18086236993754798
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.017506550901822633,
+        "collapse_mean_year": 0.08081144281471005,
+        "collapse_std_year": 1.0889954613356565,
+        "collapse_early_share_logit": 0.023487097889178285,
+        "collapse_late_share_logit": 0.009813981758569556,
+        "collapse_food_before_mean": 0.006527328336901597,
+        "collapse_defense_before_mean": 6.287508429725923e-05,
+        "collapse_population_before_mean": 0.0031007527599096504
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.047404308331461996,
+        "collapse_mean_year": 8.4584124240342,
+        "collapse_std_year": 0.0008985065254345123,
+        "collapse_early_share_logit": 0.09660100079166159,
+        "collapse_late_share_logit": 0.1552474701530018,
+        "collapse_food_before_mean": 0.008750829775510116,
+        "collapse_defense_before_mean": 0.005059010256918119,
+        "collapse_population_before_mean": 0.03281008347690849
+      }
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "episode_count": 4,
+      "baseline_mae": 1.0610199828443625,
+      "knn_mae": 0.3578256726387555,
+      "mae_gain": 0.7031943102056071,
+      "baseline_mse": 3.7774475099564206,
+      "knn_mse": 0.2321563367975661,
+      "mse_gain": 3.5452911731588546,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.17384724261306683,
+        "collapse_mean_year": 5.181381523106808,
+        "collapse_std_year": 1.414362763549251,
+        "collapse_early_share_logit": 0.9619187273853171,
+        "collapse_late_share_logit": 0.6403280138514305,
+        "collapse_food_before_mean": 0.06721985555780585,
+        "collapse_defense_before_mean": 0.04893424698904009,
+        "collapse_population_before_mean": 0.00016748970218050108
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.37762097535094785,
+        "collapse_mean_year": 0.9863496740008681,
+        "collapse_std_year": 0.7662946057351059,
+        "collapse_early_share_logit": 0.31309283515778163,
+        "collapse_late_share_logit": 0.10283229540351008,
+        "collapse_food_before_mean": 0.11768267843549018,
+        "collapse_defense_before_mean": 0.02077490452024039,
+        "collapse_population_before_mean": 0.17795741250609948
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.03022286376416652,
+        "collapse_mean_year": 26.84671448799262,
+        "collapse_std_year": 2.000422026914675,
+        "collapse_early_share_logit": 0.925287638094588,
+        "collapse_late_share_logit": 0.41001996532291773,
+        "collapse_food_before_mean": 0.0045185089812122825,
+        "collapse_defense_before_mean": 0.002394560528384379,
+        "collapse_population_before_mean": 2.8052800336512947e-08
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.14259970553494303,
+        "collapse_mean_year": 0.9728906260927865,
+        "collapse_std_year": 0.5872084076870124,
+        "collapse_early_share_logit": 0.09802753670868182,
+        "collapse_late_share_logit": 0.010574660866344931,
+        "collapse_food_before_mean": 0.013849213421628597,
+        "collapse_defense_before_mean": 0.00043160399188205405,
+        "collapse_population_before_mean": 0.03166894007724937
+      }
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "episode_count": 4,
+      "baseline_mae": 1.13477616202061,
+      "knn_mae": 0.5138057454311359,
+      "mae_gain": 0.6209704165894742,
+      "baseline_mse": 3.934234853475421,
+      "knn_mse": 0.747366723021848,
+      "mse_gain": 3.186868130453573,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.3625334500162225,
+        "collapse_mean_year": 5.172737274462044,
+        "collapse_std_year": 1.856273945963986,
+        "collapse_early_share_logit": 0.8871386708124268,
+        "collapse_late_share_logit": 0.565671989118814,
+        "collapse_food_before_mean": 0.0002895148215976695,
+        "collapse_defense_before_mean": 0.0657510015760579,
+        "collapse_population_before_mean": 0.16781344939373155
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.25594036150546307,
+        "collapse_mean_year": 1.9415250892291462,
+        "collapse_std_year": 1.1675635009069096,
+        "collapse_early_share_logit": 0.3263992327832364,
+        "collapse_late_share_logit": 0.16993661967480106,
+        "collapse_food_before_mean": 0.029497479652929842,
+        "collapse_defense_before_mean": 0.06051179871242357,
+        "collapse_population_before_mean": 0.15907188098417702
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.1314305023806649,
+        "collapse_mean_year": 26.757210910609015,
+        "collapse_std_year": 3.4457529624647076,
+        "collapse_early_share_logit": 0.7870150212508393,
+        "collapse_late_share_logit": 0.3199847992736356,
+        "collapse_food_before_mean": 8.38188319247304e-08,
+        "collapse_defense_before_mean": 0.004323194208254768,
+        "collapse_population_before_mean": 0.0281613537974225
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.06708348789255307,
+        "collapse_mean_year": 4.3583495963134755,
+        "collapse_std_year": 1.3665121894519645,
+        "collapse_early_share_logit": 0.11689828499749119,
+        "collapse_late_share_logit": 0.03983832897135968,
+        "collapse_food_before_mean": 0.0008729839177636577,
+        "collapse_defense_before_mean": 0.0037898298083202065,
+        "collapse_population_before_mean": 0.02558908282185611
+      }
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "episode_count": 4,
+      "baseline_mae": 2.55827520736316,
+      "knn_mae": 2.160556335077442,
+      "mae_gain": 0.3977188722857181,
+      "baseline_mse": 29.490253766112243,
+      "knn_mse": 19.2239243285307,
+      "mse_gain": 10.266329437581543,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.7079185071201286,
+        "collapse_mean_year": 15.063267453840737,
+        "collapse_std_year": 0.46677607240209973,
+        "collapse_early_share_logit": 2.0051289004106936,
+        "collapse_late_share_logit": 2.0656824385717414,
+        "collapse_food_before_mean": 0.054790618797474766,
+        "collapse_defense_before_mean": 0.0007217645290590324,
+        "collapse_population_before_mean": 0.1019159032333482
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.5480882091675712,
+        "collapse_mean_year": 11.98201238670775,
+        "collapse_std_year": 1.4290000402950587,
+        "collapse_early_share_logit": 1.461297134938927,
+        "collapse_late_share_logit": 1.7117202391770174,
+        "collapse_food_before_mean": 0.06419143264029445,
+        "collapse_defense_before_mean": 0.03788450998220888,
+        "collapse_population_before_mean": 0.05025672771070841
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.5011486127231916,
+        "collapse_mean_year": 226.9020263859376,
+        "collapse_std_year": 0.21787990176713024,
+        "collapse_early_share_logit": 4.0205419072621975,
+        "collapse_late_share_logit": 4.267043937023696,
+        "collapse_food_before_mean": 0.003002011908210195,
+        "collapse_defense_before_mean": 5.209440354078069e-07,
+        "collapse_population_before_mean": 0.010386851331869194
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.31535235755062174,
+        "collapse_mean_year": 146.1082549985912,
+        "collapse_std_year": 2.1927346299170463,
+        "collapse_early_share_logit": 2.202385792550118,
+        "collapse_late_share_logit": 2.962520550141253,
+        "collapse_food_before_mean": 0.004323330455178143,
+        "collapse_defense_before_mean": 0.0015593383755837585,
+        "collapse_population_before_mean": 0.004263630664611873
+      }
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "episode_count": 4,
+      "baseline_mae": 0.362885621610523,
+      "knn_mae": 0.20454256579892563,
+      "mae_gain": 0.15834305581159738,
+      "baseline_mse": 0.46553969689233615,
+      "knn_mse": 0.1068493184130719,
+      "mse_gain": 0.35869037847926427,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.08488053864997669,
+        "collapse_mean_year": 1.8697816128349452,
+        "collapse_std_year": 0.31802768871763476,
+        "collapse_early_share_logit": 0.20955251702327615,
+        "collapse_late_share_logit": 0.25191412512607764,
+        "collapse_food_before_mean": 0.0128400570422883,
+        "collapse_defense_before_mean": 0.08721832111800187,
+        "collapse_population_before_mean": 0.06887011237198348
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.15494063546998738,
+        "collapse_mean_year": 0.8012900340586473,
+        "collapse_std_year": 0.3013961316450229,
+        "collapse_early_share_logit": 0.12508204410739387,
+        "collapse_late_share_logit": 0.12163071495762892,
+        "collapse_food_before_mean": 0.06386183959503552,
+        "collapse_defense_before_mean": 0.05078441895973175,
+        "collapse_population_before_mean": 0.017354707597957486
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.007204705841510187,
+        "collapse_mean_year": 3.496083279695649,
+        "collapse_std_year": 0.10114161079108079,
+        "collapse_early_share_logit": 0.043912257390790445,
+        "collapse_late_share_logit": 0.0634607264380371,
+        "collapse_food_before_mean": 0.00016486706484921735,
+        "collapse_defense_before_mean": 0.007607035538642891,
+        "collapse_population_before_mean": 0.004743092378129633
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.024451758473911053,
+        "collapse_mean_year": 0.6905584786404811,
+        "collapse_std_year": 0.09947461289551801,
+        "collapse_early_share_logit": 0.017749516286132,
+        "collapse_late_share_logit": 0.015461038896212493,
+        "collapse_food_before_mean": 0.004096310740788865,
+        "collapse_defense_before_mean": 0.0026345370395953736,
+        "collapse_population_before_mean": 0.0003682943319362735
+      }
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_timing_stress_b50s4_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_timing_stress_b50s4_v01/report.md"
+}

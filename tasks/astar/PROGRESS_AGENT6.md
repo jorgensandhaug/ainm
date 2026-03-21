@@ -2337,3 +2337,168 @@
   - build a smaller latent that explicitly separates collapse stress or winter-like common shock from birth/collapse rates
   - do not spend more time on direct coarse coefficient banks
   - do not pay dev5 for the current rate-target branch yet; the smoke deficit is still too large
+
+## 2026-03-21 collapse-stress target expansion
+
+- Re-read required docs again at turn start:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br list` still unavailable:
+  - `/bin/bash: br: command not found`
+- Current machine-health snapshot before choosing parallelism:
+  - memory:
+    - about `1.1 TiB` used
+    - about `1.7-1.8 TiB` free/available
+  - load:
+    - about `101 / 99 / 76`
+  - notable concurrent jobs:
+    - agent5 running many `40-66 GB` hybrid sweep workers
+    - agent3 running many `23-38 GB` targeted holdout jobs
+    - agent1 and agent7 also running large benchmarks
+  - read:
+    - still huge RAM headroom
+    - but the box is now genuinely busy, so use moderate rather than maximal parallelism
+- New hypothesis:
+  - the rate-target decoder was the best new family line last turn
+  - the missing structure is likely not “more coefficient detail” but a better collapse-stress latent
+  - the most direct next step is to benchmark the already-audited richer target families:
+    - `collapse_portsplit`
+    - `birth_collapse_portsplit`
+- Pending implementation:
+  - generalize `summary_rate_decoder` to support multiple target families
+  - add immutable model specs for the richer collapse-stress targets
+  - benchmark plain + teacher variants on current smoke
+
+- Landed this turn:
+  - generalized `summary_rate_decoder` target-family support
+  - added immutable model specs for:
+    - `f1_summary_rate_decoder_collapse_portsplit_v01`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`
+    - `f1_summary_rate_decoder_birth_collapse_portsplit_v01`
+    - `f1_summary_rate_decoder_birth_collapse_portsplit_teacher_v01`
+    - `f1_summary_rate_decoder_collapse_timing_stress_v01`
+    - `f1_summary_rate_decoder_collapse_timing_stress_teacher_v01`
+    - `f1_summary_rate_decoder_birth_collapse_timing_stress_v01`
+    - `f1_summary_rate_decoder_birth_collapse_timing_stress_teacher_v01`
+    - `f1_summary_rate_decoder_event_pca_r2_v01`
+    - `f1_summary_rate_decoder_event_pca_r2_teacher_v01`
+    - `f1_summary_rate_decoder_event_pca_r3_v01`
+    - `f1_summary_rate_decoder_event_pca_r3_teacher_v01`
+  - added collapse-timing-stress target family to `event_regime_posterior_audit`
+  - added test coverage for the new target families / parser support
+
+- Validation:
+  - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_summary_rate_decoder_predictor.py -q`
+  - result:
+    - `6 passed`
+
+- Updated machine-health snapshot before the heavier sweep:
+  - memory:
+    - about `837 GiB` used
+    - about `2.1 TiB` available
+  - read:
+    - safe to run a 4-way smoke sweep without stressing the box
+
+- Posterior-audit gate on richer collapse-stress targets:
+  - baseline reference remains:
+    - `f1_event_regime_posterior_knn_rates_b50s4_v02`
+    - standardized MAE gain `+0.224329`
+  - `collapse_timing_stress`:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_timing_stress_b50s4_v01/result.json`
+    - result:
+      - standardized MAE gain `+0.165279`
+      - standardized MSE gain `+0.616711`
+  - `birth_collapse_timing_stress`:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_birth_collapse_timing_stress_b50s4_v01/result.json`
+    - result:
+      - standardized MAE gain `+0.195008`
+      - standardized MSE gain `+0.706867`
+  - read:
+    - both richer raw stress families are worse posterior targets than the old `rates` target
+    - timing/stress signal is real, but the raw coordinates are not summary-inferable enough
+
+- Current-smoke benchmark sweep on richer rate-target families:
+  - `f1_summary_rate_decoder_collapse_portsplit_v01`
+    - `69.6439`
+    - KL `0.128441`
+    - runtime `81.245s`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`
+    - `69.9016`
+    - KL `0.127658`
+    - runtime `426.995s`
+  - `f1_summary_rate_decoder_birth_collapse_portsplit_v01`
+    - `69.5617`
+    - KL `0.128932`
+    - runtime `84.586s`
+  - `f1_summary_rate_decoder_birth_collapse_portsplit_teacher_v01`
+    - `69.8278`
+    - KL `0.128086`
+    - runtime `409.259s`
+
+- Key compares for the best richer-target branch:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_v01` vs `f1_summary_rate_decoder_teacher_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_teacher_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_v01.json`
+    - score delta `+0.0176`
+    - KL delta `-0.000109`
+    - win rate `0.667`
+    - CI95 `[-0.0618, 0.1025]`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_v01` vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_v01.json`
+    - score delta `-3.0159`
+    - KL delta `+0.021962`
+    - win rate `0.533`
+    - CI95 `[-11.5713, 4.8008]`
+  - read:
+    - tiny family-internal win over the older rate-teacher target
+    - still nowhere near promotable against the current strong baseline
+
+- Event-PCA low-rank latent branch:
+  - rationale:
+    - raw timing/stress coordinates were weak posterior targets
+    - compress the richer birth+collapse timing/stress block to a tiny training-only PCA latent
+  - results:
+    - `f1_summary_rate_decoder_event_pca_r2_v01`:
+      - `69.4071`
+      - KL `0.129827`
+      - runtime `80.974s`
+    - `f1_summary_rate_decoder_event_pca_r2_teacher_v01`:
+      - `69.6535`
+      - KL `0.129024`
+      - runtime `416.751s`
+    - `f1_summary_rate_decoder_event_pca_r3_v01`:
+      - `69.4071`
+      - KL `0.129827`
+      - runtime `82.317s`
+    - `f1_summary_rate_decoder_event_pca_r3_teacher_v01`:
+      - `69.6535`
+      - KL `0.129024`
+      - runtime `383.608s`
+  - paired compare vs `f1_summary_rate_decoder_teacher_v01` for the best PCA variant:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_teacher_v01__candidate=f1_summary_rate_decoder_event_pca_r3_teacher_v01.json`
+    - score delta `-0.2305`
+    - KL delta `+0.001257`
+    - win rate `0.067`
+    - CI95 `[-0.2987, -0.1570]`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_event_pca_r3_teacher_v01.json`
+    - score delta `-3.2639`
+    - KL delta `+0.023328`
+    - win rate `0.467`
+    - CI95 `[-11.8541, 4.6088]`
+  - read:
+    - PCA compression did not rescue the richer event-law target
+    - rank-2 and rank-3 plain runs were identical
+    - teacher helps plain PCA a bit, but the whole branch is still worse than the old rate-target teacher
+
+- Main read after this block:
+  - richer collapse targets did not become meaningful progress
+  - `collapse_portsplit_teacher_v01` is the new best rate-target family member, but only by a hair
+  - event-PCA compression of the richer stress block is dead on smoke
+  - current family bottleneck still looks like round-6 hidden collapse/winter structure, not lack of yet another coarse round summary target
+- Best next family branch from here:
+  - stop sweeping minor target variants around the same rate-decoder scaffold
+  - move to a more structural hidden-state / winter-shock family object
+  - or return to the decoder family only if the latent target itself changes qualitatively, not cosmetically

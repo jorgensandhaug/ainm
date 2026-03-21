@@ -255,6 +255,7 @@ def build_online_predictor(
             probability_floor=summary_rate_decoder_spec.probability_floor,
             ridge_lambda=summary_rate_decoder_spec.ridge_lambda,
             include_teacher_logits=summary_rate_decoder_spec.include_teacher_logits,
+            target_family=summary_rate_decoder_spec.target_family,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

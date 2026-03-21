@@ -39,13 +39,68 @@ from astar.student.predictor.summary_bank_decoder import (
     _spatial_basis,
 )
 from astar.teacher.regime.base import RegimePosteriorState
-from astar.workflows.event_regime_posterior_audit import _round_target_frame
+from astar.workflows.event_regime_posterior_audit import _round_target_frame as _audit_round_target_frame
 
 
 def _standardize(features: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     means = np.mean(features, axis=0)
     scales = np.sqrt(np.maximum(np.var(features, axis=0), 1.0e-6))
     return means, scales
+
+
+def _compress_target_frame(
+    target_frame: pl.DataFrame,
+    *,
+    rank: int,
+    prefix: str,
+) -> pl.DataFrame:
+    ordered = target_frame.sort("round_id")
+    target_names = [name for name in ordered.columns if name != "round_id"]
+    target_matrix = ordered.select(target_names).to_numpy().astype(np.float64)
+    centered = target_matrix - np.mean(target_matrix, axis=0, keepdims=True)
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    effective_rank = max(1, min(rank, vt.shape[0], target_matrix.shape[0] - 1))
+    basis = np.asarray(vt[:effective_rank], dtype=np.float64)
+    coordinates = centered @ basis.T
+    payload: dict[str, list[str] | list[float]] = {
+        "round_id": ordered["round_id"].to_list(),
+    }
+    for index in range(effective_rank):
+        payload[f"{prefix}_{index + 1}"] = coordinates[:, index].tolist()
+    return pl.DataFrame(payload)
+
+
+def _target_frame(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str],
+    birth_dataset_name: str,
+    collapse_dataset_name: str,
+    target_family: str,
+) -> pl.DataFrame:
+    if target_family in {"event_pca_r2", "event_pca_r3"}:
+        raw_target_frame = _audit_round_target_frame(
+            paths,
+            birth_dataset_name=birth_dataset_name,
+            collapse_dataset_name=collapse_dataset_name,
+            target_family="birth_collapse_timing_stress",
+        ).filter(
+            pl.col("round_id").is_in(list(round_ids)),
+        )
+        rank = int(target_family.rsplit("r", 1)[1])
+        return _compress_target_frame(
+            raw_target_frame,
+            rank=rank,
+            prefix="event_pca",
+        )
+    return _audit_round_target_frame(
+        paths,
+        birth_dataset_name=birth_dataset_name,
+        collapse_dataset_name=collapse_dataset_name,
+        target_family=target_family,
+    ).filter(
+        pl.col("round_id").is_in(list(round_ids)),
+    )
 
 
 class SummaryRateDecoderPredictor(BaseRoundPredictor):
@@ -59,6 +114,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
     decoder_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 6), dtype=np.float64))
     feature_means: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     feature_scales: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    target_family: str = "rates"
     target_names: list[str] = Field(default_factory=list)
     summary_teacher: SummaryBankTeacherPredictor | None = None
     include_teacher_logits: bool = False
@@ -79,6 +135,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         probability_floor: float = 0.01,
         ridge_lambda: float = 12.0,
         include_teacher_logits: bool = False,
+        target_family: str = "rates",
         synthetic_dataset_name: str | None = None,
         birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
         collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
@@ -87,12 +144,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         if len(selected_round_ids) < 2:
             raise ValueError("summary rate decoder requires at least two replay-backed analyzed rounds")
 
-        target_frame = _round_target_frame(
+        target_frame = _target_frame(
             paths,
+            round_ids=selected_round_ids,
             birth_dataset_name=birth_dataset_name,
             collapse_dataset_name=collapse_dataset_name,
-            target_family="rates",
-        ).filter(pl.col("round_id").is_in(selected_round_ids))
+            target_family=target_family,
+        )
         target_names = [name for name in target_frame.columns if name != "round_id"]
         target_by_round = {
             str(row["round_id"]): np.asarray(
@@ -227,6 +285,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             decoder_weights=decoder_weights,
             feature_means=means,
             feature_scales=scales,
+            target_family=target_family,
             target_names=target_names,
             summary_teacher=summary_teacher,
             include_teacher_logits=include_teacher_logits,

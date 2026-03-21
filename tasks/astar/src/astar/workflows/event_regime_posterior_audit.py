@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.history.datasets.event_ledger import build_replay_event_ledger_dataset
 from astar.history.datasets.hazard_riskset import build_hazard_riskset_dataset
 from astar.history.datasets.synthetic_live import (
     build_synthetic_live_dataset,
@@ -20,6 +21,8 @@ SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
     "rates",
     "collapse_portsplit",
     "birth_collapse_portsplit",
+    "collapse_timing_stress",
+    "birth_collapse_timing_stress",
 )
 
 def _weighted_positive_rate(frame: pl.DataFrame) -> pl.DataFrame:
@@ -205,12 +208,23 @@ def _round_target_frame(
     birth_dataset_name: str,
     collapse_dataset_name: str,
     target_family: str,
+    event_ledger_dataset_name: str = "f1_replay_event_ledger_v1",
 ) -> pl.DataFrame:
     if target_family not in SUPPORTED_EVENT_REGIME_TARGET_FAMILIES:
         raise ValueError(f"unsupported target family: {target_family}")
 
     birth_dir = paths.dataset_dir(birth_dataset_name)
     collapse_dir = paths.dataset_dir(collapse_dataset_name)
+    event_ledger_dir = paths.dataset_dir(event_ledger_dataset_name)
+    event_ledger_path = event_ledger_dir / "events.parquet"
+    if (
+        target_family in {"collapse_timing_stress", "birth_collapse_timing_stress"}
+        and not event_ledger_path.exists()
+    ):
+        build_replay_event_ledger_dataset(
+            paths,
+            dataset_name=event_ledger_dataset_name,
+        )
     if not collapse_dir.joinpath("riskset.parquet").exists():
         build_hazard_riskset_dataset(
             paths,
@@ -260,6 +274,35 @@ def _round_target_frame(
             "collapse_logit_nonport",
             "collapse_pos_port_share_logit",
         )
+    if target_family in {"collapse_timing_stress", "birth_collapse_timing_stress"}:
+        collapse_timing = pl.scan_parquet(event_ledger_path).filter(
+            pl.col("event_type") == "collapse",
+        ).group_by("round_id").agg(
+            pl.col("year_t").mean().alias("collapse_mean_year"),
+            pl.col("year_t").std().fill_null(0.0).alias("collapse_std_year"),
+            _logit_expr(
+                pl.col("year_t").lt(15).cast(pl.Float64).mean(),
+            ).alias("collapse_early_share_logit"),
+            _logit_expr(
+                pl.col("year_t").ge(35).cast(pl.Float64).mean(),
+            ).alias("collapse_late_share_logit"),
+            pl.col("food_before").mean().alias("collapse_food_before_mean"),
+            pl.col("defense_before").mean().alias("collapse_defense_before_mean"),
+            pl.col("population_before").mean().alias("collapse_population_before_mean"),
+        ).sort("round_id").collect()
+        collapse_stress = collapse.join(collapse_timing, on="round_id", how="inner")
+        if target_family == "collapse_timing_stress":
+            return collapse_stress.select(
+                "round_id",
+                "collapse_logit_rate",
+                "collapse_mean_year",
+                "collapse_std_year",
+                "collapse_early_share_logit",
+                "collapse_late_share_logit",
+                "collapse_food_before_mean",
+                "collapse_defense_before_mean",
+                "collapse_population_before_mean",
+            )
 
     if not birth_dir.joinpath("riskset.parquet").exists():
         build_hazard_riskset_dataset(
@@ -281,6 +324,19 @@ def _round_target_frame(
     if target_family == "rates":
         return birth.join(collapse.select("round_id", "collapse_logit_rate"), on="round_id", how="inner").sort(
             "round_id",
+        )
+    if target_family == "birth_collapse_timing_stress":
+        return birth.join(collapse_stress, on="round_id", how="inner").sort("round_id").select(
+            "round_id",
+            "birth_logit_rate",
+            "collapse_logit_rate",
+            "collapse_mean_year",
+            "collapse_std_year",
+            "collapse_early_share_logit",
+            "collapse_late_share_logit",
+            "collapse_food_before_mean",
+            "collapse_defense_before_mean",
+            "collapse_population_before_mean",
         )
     return birth.join(collapse, on="round_id", how="inner").sort("round_id").select(
         "round_id",

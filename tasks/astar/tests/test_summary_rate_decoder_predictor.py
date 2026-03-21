@@ -69,6 +69,30 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
 
     assert adapter.name == "f1_summary_rate_decoder_v01"
 
+    collapse_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert collapse_adapter.name == "f1_summary_rate_decoder_collapse_portsplit_v01"
+
+    collapse_stress_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_timing_stress_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert collapse_stress_adapter.name == "f1_summary_rate_decoder_collapse_timing_stress_v01"
+
+    event_pca_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_event_pca_r2_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert event_pca_adapter.name == "f1_summary_rate_decoder_event_pca_r2_v01"
+
 
 def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     parser = build_parser()
@@ -94,3 +118,47 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
         ],
     )
     assert parsed_teacher.model == "f1_summary_rate_decoder_teacher_v01"
+
+    parsed_collapse = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_collapse.model == "f1_summary_rate_decoder_collapse_portsplit_v01"
+
+    parsed_birth_collapse_teacher = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_birth_collapse_portsplit_teacher_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_birth_collapse_teacher.model == "f1_summary_rate_decoder_birth_collapse_portsplit_teacher_v01"
+
+    parsed_collapse_stress = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_birth_collapse_timing_stress_teacher_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_collapse_stress.model == "f1_summary_rate_decoder_birth_collapse_timing_stress_teacher_v01"
+
+    parsed_event_pca = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_event_pca_r3_teacher_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_event_pca.model == "f1_summary_rate_decoder_event_pca_r3_teacher_v01"
