@@ -7,8 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.trajectory import ReplayRun
 from astar.history.replay.inspect import ReplayInspection, inspect_replay_source
 from astar.history.replay.normalize import normalize_replay_record
+from astar.infra.api.dto import StoredReplayRecord
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.infra.artifacts.store import read_replay_records
+from astar.infra.artifacts.store import ReplayFileRecord, read_replay_records
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 
@@ -40,6 +41,24 @@ def load_seed_replay_runs(
         normalize_replay_record(file_record)
         for file_record in read_replay_records(paths, round_id, seed_index)
     ]
+
+
+def load_replay_run(
+    paths: WorkspacePaths,
+    round_id: str,
+    seed_index: int,
+    replay_run_index: int,
+) -> ReplayRun:
+    replay_paths = sorted(paths.raw_replay_dir(round_id, seed_index).glob("*.json"))
+    if replay_run_index < 0 or replay_run_index >= len(replay_paths):
+        msg = (
+            f"replay_run_index {replay_run_index} out of range for "
+            f"round {round_id} seed {seed_index}; total runs={len(replay_paths)}"
+        )
+        raise IndexError(msg)
+    path = replay_paths[replay_run_index]
+    record = StoredReplayRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    return normalize_replay_record(ReplayFileRecord(path=path, record=record))
 
 
 def ingest_replays(

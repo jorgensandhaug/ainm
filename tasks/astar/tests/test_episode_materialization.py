@@ -28,6 +28,25 @@ def test_load_round_learning_episode_reads_materialized_arrays(sample_paths: Rep
     assert episode.query_count == 3
     assert episode.per_seed[0].feature("buildable").shape == episode.per_seed[0].initial_grid.shape
     assert np.any(episode.per_seed[0].coverage_counts > 0)
+    assert episode.per_seed[0].replay_event_summary_names is None or (
+        len(episode.per_seed[0].replay_event_summary_names) > 0
+    )
+
+
+def test_load_round_learning_episode_reads_replay_event_summaries_when_present(
+    sample_paths: RepoPaths,
+) -> None:
+    from tests.test_history_datasets import _write_replays_for_all_seeds
+
+    _write_replays_for_all_seeds(sample_paths, run_count=1)
+    materialize_round_episode(sample_paths, ROUND_ID)
+    episode = load_round_learning_episode(sample_paths, ROUND_ID)
+
+    assert episode.per_seed[0].replay_event_summary_names is not None
+    assert episode.per_seed[0].replay_event_summary_vector is not None
+    assert len(episode.per_seed[0].replay_event_summary_names) == int(
+        episode.per_seed[0].replay_event_summary_vector.shape[0],
+    )
 
 
 def test_round_learning_episode_can_hide_evidence_for_seed(sample_paths: RepoPaths) -> None:

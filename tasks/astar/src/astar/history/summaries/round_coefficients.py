@@ -3,29 +3,10 @@ from __future__ import annotations
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.core.terrain import buildable_mask, mountain_mask, sea_mask
 from astar.core.world_state import InitialWorldState
-from astar.features.coasts import coast_mask, normalized_coast_distance
-from astar.features.influence import (
-    normalized_land_distance_to_settlements,
-    normalized_sea_distance_to_initial_ports,
-    settlement_basin_gap,
-)
+from astar.features.geometry import compute_static_feature_dict
 from astar.history.episodes.models import RoundEpisode, SeedEpisode
 from astar.infra.api.dto import InitialSettlement
-
-
-def _local_ratio(mask: np.ndarray) -> np.ndarray:
-    height, width = mask.shape
-    ratio = np.zeros((height, width), dtype=np.float64)
-    for y in range(height):
-        for x in range(width):
-            y0 = max(0, y - 1)
-            y1 = min(height, y + 2)
-            x0 = max(0, x - 1)
-            x1 = min(width, x + 2)
-            ratio[y, x] = float(np.mean(mask[y0:y1, x0:x1]))
-    return ratio
 
 
 def _collect_first_steps(seed: SeedEpisode, codes: tuple[int, ...]) -> np.ndarray:
@@ -98,16 +79,24 @@ def seed_feature_names() -> list[str]:
         "buildable",
         "land",
         "coast",
-        "coast_distance",
-        "land_distance_to_settlement",
-        "sea_distance_to_port",
+        "coast_distance_steps_log1p",
+        "coast_distance_unreachable",
+        "land_distance_to_settlement_steps_log1p",
+        "land_distance_to_settlement_unreachable",
+        "sea_distance_to_port_steps_log1p",
+        "sea_distance_to_port_unreachable",
+        "settlement_basin_gap_steps_log1p",
+        "settlement_basin_gap_unreachable",
+        "coast_distance_decay_4",
+        "land_distance_to_settlement_decay_4",
+        "sea_distance_to_port_decay_4",
+        "settlement_basin_gap_decay_4",
         "forest_density",
         "mountain_density",
-        "settlement_basin_gap",
-        "frontier_score",
-        "settlement_proximity",
         "coastal_exposure",
         "maritime_access",
+        "frontier_score",
+        "settlement_proximity",
         "initial_forest",
         "initial_mountain",
         "initial_ocean",
@@ -126,34 +115,15 @@ def seed_feature_dict(initial_state: InitialWorldState) -> dict[str, np.ndarray]
         for item in initial_state.settlements
     ]
 
-    buildable = buildable_mask(grid).astype(np.float64)
-    land = (~sea_mask(grid)).astype(np.float64)
-    coast = coast_mask(grid).astype(np.float64)
-    coast_distance = normalized_coast_distance(grid)
-    land_distance = normalized_land_distance_to_settlements(grid, settlements)
-    sea_distance = normalized_sea_distance_to_initial_ports(grid, settlements)
-    basin_gap = settlement_basin_gap(grid, settlements)
-    forest_density = _local_ratio(grid == 4)
-    mountain_density = _local_ratio(mountain_mask(grid))
-
-    return {
-        "buildable": buildable,
-        "land": land,
-        "coast": coast,
-        "coast_distance": coast_distance,
-        "land_distance_to_settlement": land_distance,
-        "sea_distance_to_port": sea_distance,
-        "forest_density": forest_density,
-        "mountain_density": mountain_density,
-        "settlement_basin_gap": basin_gap,
-        "frontier_score": 1.0 - basin_gap,
-        "settlement_proximity": 1.0 - land_distance,
-        "coastal_exposure": 1.0 - coast_distance,
-        "maritime_access": 1.0 - sea_distance,
-        "initial_forest": (grid == 4).astype(np.float64),
-        "initial_mountain": (grid == 5).astype(np.float64),
-        "initial_ocean": (grid == 10).astype(np.float64),
-    }
+    features = compute_static_feature_dict(grid, settlements)
+    features.update(
+        {
+            "initial_forest": (grid == 4).astype(np.float64),
+            "initial_mountain": (grid == 5).astype(np.float64),
+            "initial_ocean": (grid == 10).astype(np.float64),
+        }
+    )
+    return features
 
 
 def seed_feature_matrix(initial_state: InitialWorldState) -> tuple[list[str], np.ndarray]:

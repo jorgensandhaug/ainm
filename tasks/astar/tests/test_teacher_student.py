@@ -5,7 +5,10 @@ import numpy as np
 from astar.envs.conversion import round_context_to_online_episode
 from astar.envs.types import build_round_context_from_detail
 from astar.features.geometry import compute_round_features
-from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+from astar.history.datasets.synthetic_live import (
+    build_synthetic_live_dataset,
+    load_synthetic_episode,
+)
 from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record
@@ -53,10 +56,15 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
         policy_name="coverage",
         samples_per_round=1,
         dataset_name="synthetic_live_summary_test",
+        regime_encoder=teacher,
     )
     from astar.student.posterior.deepset_student import SummaryBankStudent
 
     student = SummaryBankStudent.fit_from_dataset(dataset, teacher, k_neighbors=1)
+    artifact = load_synthetic_episode(
+        dataset.dataset_dir / "episodes" / f"{ROUND_ID}__sample_index=0.json"
+    )
+    encoded_round = teacher.encode_round(round_episode)
 
     round_record = read_round_record(sample_paths, ROUND_ID)
     round_context = build_round_context_from_detail(round_record.round)
@@ -77,6 +85,8 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
     posterior = student.infer_regime(context)
     prediction = student.predict_seed(context, 0)
 
+    assert artifact.regime_vector.shape == encoded_round.shape
+    assert np.allclose(artifact.regime_vector, encoded_round)
     assert posterior.mean.ndim == 1
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)

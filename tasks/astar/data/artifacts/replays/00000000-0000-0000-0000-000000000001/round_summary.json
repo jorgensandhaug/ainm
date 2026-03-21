@@ -1,0 +1,767 @@
+{
+  "hazard_summary": {
+    "round_id": "00000000-0000-0000-0000-000000000001",
+    "round_number": 1,
+    "replay_seed_count": 1,
+    "replay_run_count": 1,
+    "seed_summaries": [
+      {
+        "round_id": "00000000-0000-0000-0000-000000000001",
+        "seed_index": 0,
+        "replay_run_count": 1,
+        "build_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "port_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "ruin_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "build_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "port_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "ruin_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "built_hit_rate_mean": 0.06060606060606061,
+        "coastal_built_hit_rate_mean": 0.0,
+        "inland_built_hit_rate_mean": 0.15384615384615385,
+        "port_hit_rate_mean": 0.030303030303030304,
+        "ruin_hit_rate_mean": 0.0,
+        "owner_flip_mean": 0.0,
+        "coefficient_vector": [
+          0.06060606060606061,
+          0.0,
+          0.15384615384615385,
+          0.030303030303030304,
+          0.0,
+          0.0,
+          0.015625,
+          0.015625,
+          0.0,
+          1.0,
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "mean_alive_curve": [
+      1.0
+    ],
+    "mean_port_curve": [
+      1.0
+    ],
+    "mean_ruin_curve": [
+      0.0
+    ],
+    "coefficient_matrix": [
+      [
+        0.06060606060606061,
+        0.0,
+        0.15384615384615385,
+        0.030303030303030304,
+        0.0,
+        0.0,
+        0.015625,
+        0.015625,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    ],
+    "coefficient_mean": [
+      0.06060606060606061,
+      0.0,
+      0.15384615384615385,
+      0.030303030303030304,
+      0.0,
+      0.0,
+      0.015625,
+      0.015625,
+      0.0,
+      1.0,
+      1.0,
+      0.0
+    ]
+  },
+  "event_summary": {
+    "round_id": "00000000-0000-0000-0000-000000000001",
+    "round_number": 1,
+    "replay_seed_count": 1,
+    "replay_run_count": 1,
+    "summary_names": [
+      "cell_events_per_frame",
+      "build_events_per_frame",
+      "port_created_events_per_frame",
+      "ruin_created_events_per_frame",
+      "rebuild_events_per_frame",
+      "ruin_to_forest_events_per_frame",
+      "cleared_events_per_frame",
+      "births_per_frame",
+      "settlement_rebuilds_per_frame",
+      "collapses_per_frame",
+      "collapse_to_ruin_per_frame",
+      "port_gains_per_frame",
+      "port_losses_per_frame",
+      "owner_flips_per_frame",
+      "stat_changes_per_frame",
+      "changed_settlement_share",
+      "mean_population_delta",
+      "mean_food_delta",
+      "mean_wealth_delta",
+      "mean_defense_delta",
+      "mean_abs_population_delta",
+      "mean_abs_food_delta",
+      "mean_abs_wealth_delta",
+      "mean_abs_defense_delta"
+    ],
+    "summary_matrix": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "summary_mean": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "seed_summaries": [
+      {
+        "round_id": "00000000-0000-0000-0000-000000000001",
+        "seed_index": 0,
+        "replay_run_count": 1,
+        "frame_transition_count": 0,
+        "cell_event_count": 0,
+        "settlement_transition_count": 0,
+        "build_event_count": 0,
+        "port_created_event_count": 0,
+        "ruin_event_count": 0,
+        "rebuild_event_count": 0,
+        "ruin_to_forest_event_count": 0,
+        "cleared_event_count": 0,
+        "birth_event_count": 0,
+        "settlement_rebuild_event_count": 0,
+        "collapse_event_count": 0,
+        "collapse_to_ruin_event_count": 0,
+        "port_gain_event_count": 0,
+        "port_loss_event_count": 0,
+        "owner_flip_event_count": 0,
+        "stat_change_event_count": 0,
+        "summary_names": [
+          "cell_events_per_frame",
+          "build_events_per_frame",
+          "port_created_events_per_frame",
+          "ruin_created_events_per_frame",
+          "rebuild_events_per_frame",
+          "ruin_to_forest_events_per_frame",
+          "cleared_events_per_frame",
+          "births_per_frame",
+          "settlement_rebuilds_per_frame",
+          "collapses_per_frame",
+          "collapse_to_ruin_per_frame",
+          "port_gains_per_frame",
+          "port_losses_per_frame",
+          "owner_flips_per_frame",
+          "stat_changes_per_frame",
+          "changed_settlement_share",
+          "mean_population_delta",
+          "mean_food_delta",
+          "mean_wealth_delta",
+          "mean_defense_delta",
+          "mean_abs_population_delta",
+          "mean_abs_food_delta",
+          "mean_abs_wealth_delta",
+          "mean_abs_defense_delta"
+        ],
+        "summary_vector": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ]
+  },
+  "measurement_summary": {
+    "round_id": "00000000-0000-0000-0000-000000000001",
+    "round_number": 1,
+    "replay_seed_count": 1,
+    "replay_run_count": 1,
+    "frame_transition_count": 0,
+    "site_transition_count": 0,
+    "site_opportunity_count": 0,
+    "settlement_measurement_count": 0,
+    "live_settlement_transition_count": 0,
+    "ruin_transition_count": 0,
+    "pairwise_candidate_count": 0,
+    "owner_year_count": 0,
+    "year_shock_count": 0,
+    "macro_trajectory_count": 0,
+    "seed_summaries": [
+      {
+        "round_id": "00000000-0000-0000-0000-000000000001",
+        "seed_index": 0,
+        "replay_run_count": 1,
+        "frame_transition_count": 0,
+        "site_transition_count": 0,
+        "site_opportunity_count": 0,
+        "settlement_measurement_count": 0,
+        "live_settlement_transition_count": 0,
+        "ruin_transition_count": 0,
+        "pairwise_candidate_count": 0,
+        "owner_year_count": 0,
+        "year_shock_count": 0,
+        "macro_trajectory_count": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "report_key": "replay_events",
+  "title": "Replay Event Audit Round ae78003a-4efe-425a-881a-d16a39bca0ad Seed 0",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/replay_events__run_index=0/report.md",
+  "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+  "seed_index": 0,
+  "metadata": {
+    "replay_run_id": "0fb8492818fb419ba9a5e5ee824d27d4",
+    "replay_run_index": 0,
+    "frame_count": 51,
+    "cell_event_count": 2317,
+    "settlement_transition_count": 9474,
+    "selected_steps": [
+      47,
+      48
+    ],
+    "source_path": "/home/jorge/ainm/tasks/astar/data/raw/replays/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/20260320T120558.864791Z__sim_seed=1715428029__capture_id=0fb8492818fb419ba9a5e5ee824d27d4.json",
+    "rerun_command": "uv run astar visualize-replay-events --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --seed-index 0 --replay-run-index 0 --max-steps 2"
+  },
+  "figures": [
+    {
+      "key": "change_timeline",
+      "title": "Replay change timeline",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/replay_events__run_index=0/change_timeline.png",
+      "description": "Changed-cell and changed-settlement counts by yearly transition step."
+    },
+    {
+      "key": "transition_step_47",
+      "title": "Replay step 47 -> 48",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/replay_events__run_index=0/transition_step_47.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    },
+    {
+      "key": "transition_step_48",
+      "title": "Replay step 48 -> 49",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/replay_events__run_index=0/transition_step_48.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    }
+  ]
+}

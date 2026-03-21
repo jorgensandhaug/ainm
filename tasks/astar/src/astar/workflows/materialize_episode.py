@@ -92,10 +92,12 @@ def materialize_round_episode(
     analyses = read_analysis_records(paths, round_id)
     round_episode = build_round_episode(paths, round_id)
     replay_round_summary = None
+    replay_measurement_summary = None
     replay_report_path = None
     if round_episode.replay_run_count > 0:
         replay_result = summarize_round_replays(paths, round_id)
         replay_round_summary = replay_result.hazard_summary
+        replay_measurement_summary = replay_result.measurement_summary
         replay_report_path = replay_result.report_path
 
     feature_names: list[str] | None = None
@@ -156,6 +158,61 @@ def materialize_round_episode(
                     if paths.replay_summary_path(round_id, seed_index).exists()
                     else None
                 ),
+                replay_cell_events_path=(
+                    paths.replay_cell_event_path(round_id, seed_index)
+                    if paths.replay_cell_event_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_settlement_events_path=(
+                    paths.replay_settlement_event_path(round_id, seed_index)
+                    if paths.replay_settlement_event_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_site_transition_path=(
+                    paths.replay_site_transition_path(round_id, seed_index)
+                    if paths.replay_site_transition_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_site_opportunities_path=(
+                    paths.replay_site_opportunity_path(round_id, seed_index)
+                    if paths.replay_site_opportunity_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_settlement_measurements_path=(
+                    paths.replay_settlement_measurement_path(round_id, seed_index)
+                    if paths.replay_settlement_measurement_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_live_settlement_transitions_path=(
+                    paths.replay_live_settlement_transition_path(round_id, seed_index)
+                    if paths.replay_live_settlement_transition_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_ruin_transitions_path=(
+                    paths.replay_ruin_transition_path(round_id, seed_index)
+                    if paths.replay_ruin_transition_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_pairwise_candidates_path=(
+                    paths.replay_pairwise_candidate_path(round_id, seed_index)
+                    if paths.replay_pairwise_candidate_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_owner_years_path=(
+                    paths.replay_owner_year_path(round_id, seed_index)
+                    if paths.replay_owner_year_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_year_shocks_path=(
+                    paths.replay_year_shock_path(round_id, seed_index)
+                    if paths.replay_year_shock_path(round_id, seed_index).exists()
+                    else None
+                ),
+                replay_macro_trajectories_path=(
+                    paths.replay_macro_trajectory_path(round_id, seed_index)
+                    if paths.replay_macro_trajectory_path(round_id, seed_index).exists()
+                    else None
+                ),
                 replay_run_count=len(round_episode.seeds[seed_index].replay_runs),
                 has_prediction=paths.prediction_tensor_path(round_id, seed_index).exists(),
                 has_analysis=seed_index in analyses,
@@ -178,6 +235,7 @@ def materialize_round_episode(
         per_seed=per_seed,
         diagnostics=diagnostics,
         replay_round_summary=replay_round_summary,
+        replay_measurement_summary=replay_measurement_summary,
         backtest_result=backtest_result,
     )
     result.summary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,6 +261,83 @@ def materialize_round_episode(
                 f"replay_coefficients_mean: {replay_round_summary.coefficient_mean.tolist()}",
             ],
         )
+    if replay_measurement_summary is not None:
+        report_lines.extend(
+            [
+                (
+                    "replay_measurements: "
+                    f"frames={replay_measurement_summary.frame_transition_count} "
+                    f"sites={replay_measurement_summary.site_transition_count} "
+                    f"opportunities={replay_measurement_summary.site_opportunity_count} "
+                    f"settlements={replay_measurement_summary.settlement_measurement_count} "
+                    f"live={replay_measurement_summary.live_settlement_transition_count} "
+                    f"ruins={replay_measurement_summary.ruin_transition_count} "
+                    f"pairs={replay_measurement_summary.pairwise_candidate_count} "
+                    f"owners={replay_measurement_summary.owner_year_count} "
+                    f"years={replay_measurement_summary.year_shock_count}"
+                    f" macro={replay_measurement_summary.macro_trajectory_count}"
+                ),
+            ],
+        )
+    if replay_round_summary is not None:
+        for item in per_seed:
+            if item.replay_cell_events_path is None and item.replay_settlement_events_path is None:
+                continue
+            report_lines.extend(
+                [
+                    f"seed {item.seed_index} replay_cell_events: {item.replay_cell_events_path}",
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_settlement_events: "
+                        f"{item.replay_settlement_events_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_site_transitions: "
+                        f"{item.replay_site_transition_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_site_opportunities: "
+                        f"{item.replay_site_opportunities_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_settlement_measurements: "
+                        f"{item.replay_settlement_measurements_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_live_settlement_transitions: "
+                        f"{item.replay_live_settlement_transitions_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_ruin_transitions: "
+                        f"{item.replay_ruin_transitions_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_pairwise_candidates: "
+                        f"{item.replay_pairwise_candidates_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_owner_years: "
+                        f"{item.replay_owner_years_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_year_shocks: "
+                        f"{item.replay_year_shocks_path}"
+                    ),
+                    (
+                        "seed "
+                        f"{item.seed_index} replay_macro_trajectories: "
+                        f"{item.replay_macro_trajectories_path}"
+                    ),
+                ],
+            )
     if backtest_result is not None:
         report_lines.extend(["", render_backtest_round_report(backtest_result)])
     result.report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")

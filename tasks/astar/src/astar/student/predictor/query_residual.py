@@ -17,6 +17,8 @@ from astar.core.trajectory import LiveQueryObs
 from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
 from astar.history.episodes.build import build_round_episode
+from astar.history.episodes.models import RoundEpisode
+from astar.history.summaries.round_coefficients import round_regime_summary_vector
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
@@ -31,6 +33,7 @@ from astar.student.predictor.calibrate import apply_probability_floor, softmax_l
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
+from astar.teacher.regime.base import RegimeEncoder
 
 LOG_FLOOR_DENOM = math.log(100.0)
 MAX_QUERY_BUDGET = 50.0
@@ -73,12 +76,14 @@ def _cached_synthetic_dataset_name(
     policy_name: str,
     samples_per_round: int,
     round_ids: Sequence[str] | None = None,
+    *,
+    regime_dim: int,
 ) -> str:
     normalized_policy = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
     return (
-        f"query_residual_synthetic_live__policy={normalized_policy}"
-        f"__samples={samples_per_round}__rounds={scope_token}"
+        f"query_residual_synthetic_live_v2__policy={normalized_policy}"
+        f"__samples={samples_per_round}__rounds={scope_token}__regime_dim={regime_dim}"
     )
 
 
@@ -99,19 +104,18 @@ def _ensure_synthetic_dataset(
     *,
     policy_name: str,
     samples_per_round: int,
+    regime_dim: int,
+    regime_encoder: RegimeEncoder | None = None,
     round_ids: Sequence[str] | None = None,
 ) -> Path:
     from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 
-    legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
-    if samples_per_round == 1:
-        try:
-            _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
-            return index_path
-        except FileNotFoundError:
-            pass
-
-    dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
+    dataset_name = _cached_synthetic_dataset_name(
+        policy_name,
+        samples_per_round,
+        round_ids,
+        regime_dim=regime_dim,
+    )
     try:
         _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
         return index_path
@@ -122,6 +126,7 @@ def _ensure_synthetic_dataset(
             round_ids=None if round_ids is None else list(round_ids),
             samples_per_round=samples_per_round,
             dataset_name=dataset_name,
+            regime_encoder=regime_encoder,
         )
         if dataset.index_path is None:
             raise ValueError("synthetic live dataset did not produce an index path")
@@ -328,6 +333,29 @@ def _fit_linear_map(
     return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
 
 
+def _legacy_projected_teacher(
+    teacher: HazardTeacher,
+    episodes: Sequence[RoundEpisode],
+) -> HazardTeacher:
+    legacy_inputs = np.stack(
+        [round_regime_summary_vector(episode) for episode in episodes],
+        axis=0,
+    )
+    legacy_intercept, legacy_weights = _fit_linear_map(
+        legacy_inputs,
+        np.asarray(teacher.coefficient_bank, dtype=np.float64),
+        ridge_alpha=1e-2,
+    )
+    return teacher.model_copy(
+        update={
+            "regime_summary_names": tuple(_legacy_query_residual_regime_names()),
+            "regime_bank": legacy_inputs,
+            "regime_intercept": legacy_intercept,
+            "regime_weights": legacy_weights,
+        },
+    )
+
+
 class QueryResidualPredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -347,6 +375,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     residual_class_scale: list[float]
     teacher_name: str
     teacher_feature_names: list[str]
+    teacher_regime_summary_names: list[str] = Field(default_factory=list)
     teacher_regime_intercept: list[float]
     teacher_regime_weights: list[list[float]]
     teacher_blend: float = Field(ge=0.0, le=1.0)
@@ -618,10 +647,18 @@ def _static_feature_names() -> list[str]:
             "land",
             "coast",
             "coast_distance",
+            "coast_distance_steps_log1p",
+            "coast_distance_unreachable",
             "land_distance_to_settlement",
+            "land_distance_to_settlement_steps_log1p",
+            "land_distance_to_settlement_unreachable",
             "sea_distance_to_port",
+            "sea_distance_to_port_steps_log1p",
+            "sea_distance_to_port_unreachable",
             "forest_density",
             "mountain_density",
+            "settlement_basin_gap_steps_log1p",
+            "settlement_basin_gap_unreachable",
             "frontier_score",
             "settlement_proximity",
             "maritime_access",
@@ -685,20 +722,33 @@ def _local_evidence_names() -> list[str]:
     return names
 
 
-def _regime_summary_names() -> list[str]:
+def _resolved_regime_summary_names(
+    regime_names: Sequence[str] | None = None,
+    *,
+    regime_dim: int | None = None,
+) -> list[str]:
+    if regime_names is not None:
+        resolved = [str(name) for name in regime_names]
+        if resolved:
+            return resolved
+    resolved_dim = 1 if regime_dim is None else max(1, int(regime_dim))
+    return [f"regime_{index:03d}" for index in range(resolved_dim)]
+
+
+def _legacy_query_residual_regime_names() -> list[str]:
     return [
-        "regime_build_hit_buildable",
-        "regime_build_hit_coast",
-        "regime_build_hit_inland",
-        "regime_port_hit_buildable",
-        "regime_ruin_hit_buildable",
-        "regime_owner_flip_buildable",
-        "regime_terminal_settlement_mass",
-        "regime_terminal_port_mass",
-        "regime_terminal_ruin_mass",
-        "regime_terminal_built_mass",
-        "regime_terminal_port_mass_dup",
-        "regime_terminal_ruin_mass_dup",
+        "build_hit_buildable",
+        "build_hit_coast",
+        "build_hit_inland",
+        "port_hit_buildable",
+        "ruin_hit_buildable",
+        "owner_flip_buildable",
+        "terminal_settlement_mass",
+        "terminal_port_mass",
+        "terminal_ruin_mass",
+        "terminal_built_mass",
+        "terminal_port_mass_dup",
+        "terminal_ruin_mass_dup",
     ]
 
 
@@ -709,18 +759,21 @@ def _regime_input_names() -> list[str]:
     return names
 
 
-def _regime_interaction_names() -> list[str]:
+def _regime_interaction_bases() -> tuple[tuple[str, str], ...]:
+    return (
+        ("buildable", "buildable"),
+        ("frontier_score", "frontier_score"),
+        ("settlement_proximity", "settlement_proximity"),
+        ("maritime_access", "maritime_access"),
+    )
+
+
+def _regime_interaction_names(regime_names: Sequence[str] | None = None) -> list[str]:
+    resolved = _resolved_regime_summary_names(regime_names)
     return [
-        "regime_build_hit_buildable_x_buildable",
-        "regime_build_hit_coast_x_maritime_access",
-        "regime_build_hit_inland_x_settlement_proximity",
-        "regime_port_hit_buildable_x_maritime_access",
-        "regime_ruin_hit_buildable_x_frontier_score",
-        "regime_owner_flip_buildable_x_frontier_score",
-        "regime_terminal_settlement_mass_x_settlement_proximity",
-        "regime_terminal_port_mass_x_maritime_access",
-        "regime_terminal_ruin_mass_x_frontier_score",
-        "regime_terminal_built_mass_x_buildable",
+        f"{name}_x_{suffix}"
+        for name in resolved
+        for _, suffix in _regime_interaction_bases()
     ]
 
 
@@ -755,18 +808,18 @@ def _interaction_names() -> list[str]:
 
 GLOBAL_SUMMARY_INDEX = {name: index for index, name in enumerate(_global_summary_names())}
 SEED_SUMMARY_INDEX = {name: index for index, name in enumerate(_seed_summary_names())}
-REGIME_SUMMARY_INDEX = {name: index for index, name in enumerate(_regime_summary_names())}
+STATIC_FEATURE_INDEX = {name: index for index, name in enumerate(_static_feature_names())}
 
 
-def _full_feature_names() -> list[str]:
+def _full_feature_names(regime_names: Sequence[str] | None = None) -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend(_global_summary_names())
     names.extend(_seed_summary_names())
-    names.extend(_regime_summary_names())
+    names.extend(_resolved_regime_summary_names(regime_names))
     names.extend(_local_evidence_names())
-    names.extend(_regime_interaction_names())
+    names.extend(_regime_interaction_names(regime_names))
     names.extend(_interaction_names())
     return names
 
@@ -797,10 +850,18 @@ def _build_static_feature_stack(
             seed_features.feature("land")[..., None],
             seed_features.feature("coast")[..., None],
             seed_features.feature("coast_distance")[..., None],
+            seed_features.feature("coast_distance_steps_log1p")[..., None],
+            seed_features.feature("coast_distance_unreachable")[..., None],
             seed_features.feature("land_distance_to_settlement")[..., None],
+            seed_features.feature("land_distance_to_settlement_steps_log1p")[..., None],
+            seed_features.feature("land_distance_to_settlement_unreachable")[..., None],
             seed_features.feature("sea_distance_to_port")[..., None],
+            seed_features.feature("sea_distance_to_port_steps_log1p")[..., None],
+            seed_features.feature("sea_distance_to_port_unreachable")[..., None],
             seed_features.feature("forest_density")[..., None],
             seed_features.feature("mountain_density")[..., None],
+            seed_features.feature("settlement_basin_gap_steps_log1p")[..., None],
+            seed_features.feature("settlement_basin_gap_unreachable")[..., None],
             seed_features.feature("frontier_score")[..., None],
             seed_features.feature("settlement_proximity")[..., None],
             seed_features.feature("maritime_access")[..., None],
@@ -815,12 +876,12 @@ def _interaction_tensor(
     global_summary: np.ndarray,
     seed_summary: np.ndarray,
 ) -> np.ndarray:
-    buildable = static_stack[..., len(CLASS_NAMES) + 2]
-    forest_density = static_stack[..., len(CLASS_NAMES) + 8]
-    mountain_density = static_stack[..., len(CLASS_NAMES) + 9]
-    frontier_score = static_stack[..., len(CLASS_NAMES) + 10]
-    settlement_proximity = static_stack[..., len(CLASS_NAMES) + 11]
-    maritime_access = static_stack[..., len(CLASS_NAMES) + 12]
+    buildable = static_stack[..., STATIC_FEATURE_INDEX["buildable"]]
+    forest_density = static_stack[..., STATIC_FEATURE_INDEX["forest_density"]]
+    mountain_density = static_stack[..., STATIC_FEATURE_INDEX["mountain_density"]]
+    frontier_score = static_stack[..., STATIC_FEATURE_INDEX["frontier_score"]]
+    settlement_proximity = static_stack[..., STATIC_FEATURE_INDEX["settlement_proximity"]]
+    maritime_access = static_stack[..., STATIC_FEATURE_INDEX["maritime_access"]]
     return np.stack(
         [
             global_summary[GLOBAL_SUMMARY_INDEX["global_resid_empty"]] * buildable,
@@ -869,23 +930,13 @@ def _regime_interaction_tensor(
     static_stack: np.ndarray,
     regime_vector: np.ndarray,
 ) -> np.ndarray:
-    buildable = static_stack[..., len(CLASS_NAMES) + 2]
-    frontier_score = static_stack[..., len(CLASS_NAMES) + 10]
-    settlement_proximity = static_stack[..., len(CLASS_NAMES) + 11]
-    maritime_access = static_stack[..., len(CLASS_NAMES) + 12]
-    return np.stack(
-        [
-            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_buildable"]] * buildable,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_coast"]] * maritime_access,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_build_hit_inland"]] * settlement_proximity,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_port_hit_buildable"]] * maritime_access,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_ruin_hit_buildable"]] * frontier_score,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_owner_flip_buildable"]] * frontier_score,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_settlement_mass"]] * settlement_proximity,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_port_mass"]] * maritime_access,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_ruin_mass"]] * frontier_score,
-            regime_vector[REGIME_SUMMARY_INDEX["regime_terminal_built_mass"]] * buildable,
-        ],
+    regime_array = np.asarray(regime_vector, dtype=np.float64)
+    interaction_fields = [
+        static_stack[..., STATIC_FEATURE_INDEX[name]]
+        for name, _ in _regime_interaction_bases()
+    ]
+    return np.concatenate(
+        [field[..., None] * regime_array[None, None, :] for field in interaction_fields],
         axis=-1,
     )
 
@@ -964,18 +1015,18 @@ class QueryResidualPredictor(BaseRoundPredictor):
     )
     teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
     regime_intercept: np.ndarray = Field(
-        default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
+        default_factory=lambda: np.zeros(1, dtype=np.float64),
     )
     regime_weights: np.ndarray = Field(
-        default_factory=lambda: np.zeros((len(_regime_input_names()), len(_regime_summary_names())), dtype=np.float64),
+        default_factory=lambda: np.zeros((len(_regime_input_names()), 1), dtype=np.float64),
     )
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
     training_episode_count: int = Field(default=0, ge=0)
     sample_count: int = Field(default=0, ge=0)
-    feature_names: tuple[str, ...] = tuple(_full_feature_names())
+    feature_names: tuple[str, ...] = ()
     coefficients: np.ndarray = Field(
-        default_factory=lambda: np.zeros((len(_full_feature_names()), CLASS_COUNT), dtype=np.float64),
+        default_factory=lambda: np.zeros((0, CLASS_COUNT), dtype=np.float64),
     )
     intercept: np.ndarray = Field(
         default_factory=lambda: np.zeros(CLASS_COUNT, dtype=np.float64),
@@ -1012,13 +1063,20 @@ class QueryResidualPredictor(BaseRoundPredictor):
             paths,
             round_ids=list(selected_round_ids),
         )
-        teacher = HazardTeacher(name=f"{model_name}__hazard_teacher").fit(
-            [build_round_episode(paths, round_id) for round_id in selected_round_ids],
+        round_episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
+        teacher = _legacy_projected_teacher(
+            HazardTeacher(name=f"{model_name}__hazard_teacher").fit(round_episodes),
+            round_episodes,
+        )
+        regime_summary_names = _resolved_regime_summary_names(
+            teacher.regime_summary_names,
+            regime_dim=int(teacher.regime_bank.shape[1]),
         )
         index_path = _ensure_synthetic_dataset(
             paths,
             policy_name=policy_name,
             samples_per_round=samples_per_round,
+            regime_dim=int(teacher.regime_bank.shape[1]),
             round_ids=dataset_round_ids,
         )
         index_table = pl.read_parquet(index_path).filter(
@@ -1028,7 +1086,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
         if not rows:
             raise ValueError("query_residual synthetic transcript dataset is empty for selected rounds")
 
-        feature_dim = len(_full_feature_names())
+        full_feature_names = _full_feature_names(regime_summary_names)
+        feature_dim = len(full_feature_names)
         xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
         xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
         training_episode_count = 0
@@ -1175,7 +1234,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=beta_scale,
             training_episode_count=training_episode_count,
             sample_count=sample_count,
-            feature_names=tuple(_full_feature_names()),
+            feature_names=tuple(full_feature_names),
             intercept=np.asarray(solved[0], dtype=np.float64),
             coefficients=np.asarray(solved[1:], dtype=np.float64),
         )
@@ -1190,6 +1249,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             teacher=HazardTeacher(
                 name=checkpoint.teacher_name,
                 feature_names=list(checkpoint.teacher_feature_names),
+                regime_summary_names=tuple(checkpoint.teacher_regime_summary_names),
                 regime_intercept=np.asarray(checkpoint.teacher_regime_intercept, dtype=np.float64),
                 regime_weights=np.asarray(checkpoint.teacher_regime_weights, dtype=np.float64),
             ),
@@ -1239,6 +1299,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             residual_class_scale=np.asarray(self.residual_class_scale, dtype=np.float64).tolist(),
             teacher_name=self.teacher.name,
             teacher_feature_names=list(self.teacher.feature_names),
+            teacher_regime_summary_names=list(self.teacher.regime_summary_names),
             teacher_regime_intercept=np.asarray(self.teacher.regime_intercept, dtype=np.float64).tolist(),
             teacher_regime_weights=np.asarray(self.teacher.regime_weights, dtype=np.float64).tolist(),
             teacher_blend=self.teacher_blend,
