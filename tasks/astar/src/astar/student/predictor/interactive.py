@@ -97,6 +97,11 @@ from astar.student.predictor.hazard_posterior_v2_port_specs import (
     resolve_hazard_posterior_v2_port_model_spec,
     supported_hazard_posterior_v2_port_model_names,
 )
+from astar.student.predictor.ensemble import EnsemblePredictor
+from astar.student.predictor.ensemble_specs import (
+    resolve_ensemble_model_spec,
+    supported_ensemble_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -411,6 +416,22 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    ensemble_spec = resolve_ensemble_model_spec(normalized)
+    if ensemble_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = EnsemblePredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=historical_round_ids,
+            model_names=list(ensemble_spec.component_model_names),
+            weights=list(ensemble_spec.component_weights),
+            model_name=ensemble_spec.model_name,
+            probability_floor=ensemble_spec.probability_floor,
+            policy_name=policy_name or ensemble_spec.policy_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     hazard_v2_port_spec = resolve_hazard_posterior_v2_port_model_spec(normalized)
     if hazard_v2_port_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -610,4 +631,5 @@ __all__ = [
     "supported_mlp_decoder_model_names",
     "supported_cell_type_transfer_model_names",
     "supported_hazard_posterior_v2_port_model_names",
+    "supported_ensemble_model_names",
 ]
