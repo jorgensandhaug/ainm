@@ -269,7 +269,7 @@ def _build_online_prediction_bundle(
         policy_name=policy_name,
         samples_per_round=samples_per_round,
     )
-    policy = build_interactive_policy(policy_name)
+    policy = build_interactive_policy(policy_name, predictor=resolved_predictor)
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,
@@ -388,7 +388,10 @@ def evaluate_model_on_round(
             episode_seed=episode_seed,
             predictor=online_predictor,
         )
-        resolved_policy_name = build_interactive_policy(policy_name).name
+        resolved_policy_name = build_interactive_policy(
+            policy_name,
+            predictor=online_predictor,
+        ).name
         resolved_samples_per_round = samples_per_round
         resolved_budget = budget
         resolved_episode_seed = episode_seed

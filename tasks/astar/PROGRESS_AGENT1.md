@@ -557,3 +557,55 @@
 5. wire new predictor family + benchmark/CLI registration
 6. run focused tests
 7. launch parallel historical probes on the hard 3-round multi-seed slice
+
+### 2026-03-21 11:08:58 UTC: Posterior-Aware Query Policy Push
+
+- re-read:
+  - `instructions/agent1.md`
+  - local `README.md`
+  - local `docs/game_facts.md`
+- checked machine health before widening more work:
+  - load: about `22 / 30 / 41`
+  - memory used: about `762 GiB`
+  - memory free: about `2.1 TiB`
+  - other agents active: agent2 / agent3 / agent7 visible
+  - own full promotions still running in background:
+    - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`
+    - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`
+- handoff alignment:
+  - current bottleneck is no longer teacher-only; query policy is still heuristic and mostly posterior-blind
+  - next axis to explore is active querying from regime-posterior disagreement, not just motif/repeat heuristics
+- implementation target:
+  - add `regime_probe_posterior_v1`
+  - use hazard `student.infer_regime(...)` online
+  - convert posterior particles into per-seed terminal disagreement maps via teacher decoding
+  - score windows with mutual-information-like disagreement + predictive entropy + motif/repeat structure
+  - pass predictor into interactive-policy construction in historical/synthetic/live paths
+  - add tests and benchmark this directly against `regime_probe_v1`
+- completed implementation:
+  - added `PosteriorDisagreementPolicy` in `src/astar/policy/regime_probe.py`
+  - wired predictor-aware `build_interactive_policy(...)`
+  - passed predictor into live/synthetic/historical interactive call sites
+  - added fallback-policy test and historical-benchmark smoke for `regime_probe_posterior`
+- focused validation:
+  - `uv run --with pytest python -m pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - result: `18 passed in 60.43s`
+- post-test machine check:
+  - load: about `64.7 / 41.6 / 41.7`
+  - memory used: about `923 GiB`
+  - memory free: about `1.9 TiB`
+  - decision: keep new probes parallel, but cap at `jobs=3` each because multiple other agents are saturating workers too
+- next launches queued:
+  - `probe_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_3rounds_seed0to1`
+  - `probe_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_3rounds_seed0to1`
+  - `probe_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_3rounds_seed0to1`
+- launched:
+  - hard-slice matched multi-seed probes:
+    - `probe_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_3rounds_seed0to1`
+    - `probe_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_3rounds_seed0to1`
+    - `probe_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_3rounds_seed0to1`
+  - full promotion:
+    - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_online50_v1`
+- note:
+  - CLI model-choice table still lags behind richer direct-Python model aliases
+  - custom `v3/v4` configs beyond the baked CLI list must be launched through `run_historical_benchmark(...)` directly for now

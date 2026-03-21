@@ -692,16 +692,17 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-tournament":
+        predictor = build_online_predictor(
+            args.model,
+            paths=paths,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+        )
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=build_online_predictor(
-                args.model,
-                paths=paths,
-                policy_name=args.policy,
-                samples_per_round=args.samples_per_round,
-            ),
-            policy=build_interactive_policy(args.policy),
+            predictor=predictor,
+            policy=build_interactive_policy(args.policy, predictor=predictor),
             budget=args.budget,
             episode_seed=args.episode_seed,
         )
@@ -713,15 +714,16 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-benchmark":
+        predictor = build_online_predictor(
+            args.model,
+            paths=paths,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+        )
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=build_online_predictor(
-                args.model,
-                paths=paths,
-                policy_name=args.policy,
-                samples_per_round=args.samples_per_round,
-            ),
-            policy=build_interactive_policy(args.policy),
+            predictor=predictor,
+            policy=build_interactive_policy(args.policy, predictor=predictor),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
             episode_seeds=args.episode_seed,
@@ -819,17 +821,18 @@ def _main() -> int:
         round_id = args.round_id
         if round_id is None:
             round_id = client.get_active_round().id
+        predictor = build_online_predictor(
+            args.model,
+            paths=paths,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+        )
         live_online_result = run_live_online_round(
             paths,
             client,
             round_id=round_id,
-            predictor=build_online_predictor(
-                args.model,
-                paths=paths,
-                policy_name=args.policy,
-                samples_per_round=args.samples_per_round,
-            ),
-            policy=build_interactive_policy(args.policy),
+            predictor=predictor,
+            policy=build_interactive_policy(args.policy, predictor=predictor),
             budget=args.budget,
             allow_empty_queries=args.allow_empty_queries,
             submit_predictions=args.submit_predictions,

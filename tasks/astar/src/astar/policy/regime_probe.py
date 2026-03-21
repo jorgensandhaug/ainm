@@ -7,9 +7,11 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.grid import MapShape, TileSpec, Viewport, tile_viewports
+from astar.core.score import entropy_map
 from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
 from astar.envs.base import TranscriptBeliefState
+from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import ViewportQuery
 from astar.features.motifs import ViewportMotifScorer, rank_seed_viewports
 
@@ -95,6 +97,28 @@ def _viewport_center(viewport: Viewport) -> tuple[float, float]:
     return (viewport.x + 0.5 * viewport.w, viewport.y + 0.5 * viewport.h)
 
 
+def _viewport_mean(viewport: Viewport, value_map: np.ndarray) -> float:
+    window = np.asarray(
+        value_map[
+            viewport.y : viewport.y + viewport.h,
+            viewport.x : viewport.x + viewport.w,
+        ],
+        dtype=np.float64,
+    )
+    return float(np.mean(window)) if window.size else 0.0
+
+
+def _viewport_peak(viewport: Viewport, value_map: np.ndarray) -> float:
+    window = np.asarray(
+        value_map[
+            viewport.y : viewport.y + viewport.h,
+            viewport.x : viewport.x + viewport.w,
+        ],
+        dtype=np.float64,
+    )
+    return float(np.max(window)) if window.size else 0.0
+
+
 def _neighbor_bonus(
     viewport: Viewport,
     observations: list[LiveQueryObs],
@@ -114,6 +138,21 @@ def _neighbor_bonus(
         normalized = _observation_interest(observation) / 6.0
         best = max(best, normalized * proximity)
     return best
+
+
+def _resolve_posterior_stack(predictor: object | None) -> tuple[object, object] | None:
+    if predictor is None:
+        return None
+    base_predictor = getattr(predictor, "predictor", predictor)
+    student = getattr(base_predictor, "student", None)
+    teacher = getattr(student, "teacher", None)
+    if student is None or teacher is None:
+        return None
+    if not callable(getattr(student, "infer_regime", None)):
+        return None
+    if not callable(getattr(teacher, "posterior_predictive", None)):
+        return None
+    return (student, teacher)
 
 
 class RegimeProbePolicy(BaseModel):
@@ -234,4 +273,202 @@ class RegimeProbePolicy(BaseModel):
         )
 
 
-__all__ = ["RegimeProbePolicy"]
+class PosteriorDisagreementPolicy(RegimeProbePolicy):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = "regime_probe_posterior_v1"
+    predictor: object | None = None
+    posterior_weight: float = Field(default=5.0, gt=0.0)
+    entropy_weight: float = Field(default=1.4, ge=0.0)
+    peak_weight: float = Field(default=2.4, ge=0.0)
+    repeat_posterior_weight: float = Field(default=3.2, gt=0.0)
+
+    def _posterior_maps(
+        self,
+        belief: TranscriptBeliefState,
+        candidate_seeds: set[int],
+    ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+        resolved = _resolve_posterior_stack(self.predictor)
+        if resolved is None or not candidate_seeds:
+            return {}
+        student, teacher = resolved
+        context = round_context_to_live_inference_context(
+            belief.round_context,
+            belief.observations,
+        )
+        posterior = student.infer_regime(context)
+        particles = posterior.particles
+        weights = posterior.weights
+        if particles is not None and weights is not None and callable(getattr(teacher, "terminal_tensor", None)):
+            raw_weights = np.asarray(weights, dtype=np.float64)
+            total_weight = float(np.sum(raw_weights))
+            if not np.all(np.isfinite(raw_weights)) or total_weight <= 0.0:
+                normalized_weights = np.full(len(particles), 1.0 / float(len(particles)), dtype=np.float64)
+            else:
+                normalized_weights = raw_weights / total_weight
+            maps: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+            for seed_index in candidate_seeds:
+                seed = context.round_context.seeds[seed_index]
+                component_stack = np.stack(
+                    [
+                        np.asarray(teacher.terminal_tensor(seed, particle), dtype=np.float64)
+                        for particle in particles
+                    ],
+                    axis=0,
+                )
+                predictive = np.tensordot(normalized_weights, component_stack, axes=(0, 0))
+                predictive_entropy = np.asarray(entropy_map(predictive), dtype=np.float64)
+                component_entropy = np.stack(
+                    [np.asarray(entropy_map(component), dtype=np.float64) for component in component_stack],
+                    axis=0,
+                )
+                disagreement = predictive_entropy - np.tensordot(
+                    normalized_weights,
+                    component_entropy,
+                    axes=(0, 0),
+                )
+                maps[seed_index] = (
+                    np.maximum(np.asarray(disagreement, dtype=np.float64), 0.0),
+                    predictive_entropy,
+                )
+            return maps
+
+        maps = {}
+        for seed_index in candidate_seeds:
+            predictive = np.asarray(
+                teacher.posterior_predictive(
+                    context.round_context.seeds[seed_index],
+                    posterior,
+                ),
+                dtype=np.float64,
+            )
+            predictive_entropy = np.asarray(entropy_map(predictive), dtype=np.float64)
+            maps[seed_index] = (
+                np.zeros_like(predictive_entropy, dtype=np.float64),
+                predictive_entropy,
+            )
+        return maps
+
+    def select(
+        self,
+        belief: TranscriptBeliefState,
+        budget_left: int,
+    ) -> ViewportQuery | None:
+        if budget_left <= 0:
+            return None
+
+        round_detail = belief.round_context.to_round_detail()
+        map_shape = MapShape(width=round_detail.map_width, height=round_detail.map_height)
+        viewports = tile_viewports(
+            map_shape,
+            TileSpec(width=self.viewport_w, height=self.viewport_h),
+        )
+        motif_rankings = {
+            seed_index: rank_seed_viewports(
+                round_detail,
+                seed_index,
+                viewports,
+                scorer=self.motif_scorer,
+            )
+            for seed_index in range(round_detail.seeds_count)
+        }
+        motif_scores: dict[tuple[int, int, int, int, int], float] = {}
+        for seed_index, ranked in motif_rankings.items():
+            denom = max(ranked[0].diagnostic_score, 1e-6) if ranked else 1.0
+            for item in ranked:
+                motif_scores[_viewport_key(seed_index, item.viewport)] = (
+                    float(item.diagnostic_score) / denom
+                )
+
+        observations_by_key: dict[tuple[int, int, int, int, int], list[LiveQueryObs]] = defaultdict(list)
+        observations_by_seed: dict[int, list[LiveQueryObs]] = defaultdict(list)
+        seed_query_counts = {seed_index: 0 for seed_index in range(round_detail.seeds_count)}
+        for observation in belief.observations:
+            observations_by_key[_viewport_key(observation.seed_index, observation.viewport)].append(observation)
+            observations_by_seed[observation.seed_index].append(observation)
+            seed_query_counts[observation.seed_index] += 1
+
+        min_seed_queries = min(seed_query_counts.values(), default=0)
+        candidate_seeds = {
+            seed_index
+            for seed_index, count in seed_query_counts.items()
+            if count == min_seed_queries
+        }
+        posterior_maps = self._posterior_maps(belief, candidate_seeds)
+        if not posterior_maps:
+            return super().select(belief, budget_left)
+
+        scored: list[tuple[float, int, int, int, int, int, str]] = []
+        for seed_index in range(round_detail.seeds_count):
+            if seed_index not in candidate_seeds:
+                continue
+            disagreement_map, predictive_entropy_map = posterior_maps[seed_index]
+            for viewport in viewports:
+                key = _viewport_key(seed_index, viewport)
+                repeat_count = len(observations_by_key.get(key, ()))
+                if repeat_count >= self.max_repeats_per_window:
+                    continue
+                base_score = motif_scores.get(key, 0.0)
+                disagreement_score = _viewport_mean(viewport, disagreement_map)
+                entropy_score = _viewport_mean(viewport, predictive_entropy_map)
+                peak_score = _viewport_peak(viewport, disagreement_map)
+                posterior_score = (
+                    self.posterior_weight * disagreement_score
+                    + self.entropy_weight * entropy_score
+                    + self.peak_weight * peak_score
+                )
+                if repeat_count == 0:
+                    score = (
+                        posterior_score
+                        + self.unseen_weight * (1.0 + 0.5 * base_score)
+                        + self.neighbor_weight
+                        * _neighbor_bonus(
+                            viewport,
+                            observations_by_seed.get(seed_index, []),
+                            map_width=round_detail.map_width,
+                            map_height=round_detail.map_height,
+                        )
+                    )
+                    tag = "regime_probe_posterior_expand"
+                else:
+                    repeat_signal = _window_repeat_signal(observations_by_key[key])
+                    score = (
+                        self.repeat_weight
+                        * (
+                            0.2 * base_score
+                            + repeat_signal
+                            + self.repeat_posterior_weight * posterior_score
+                        )
+                        * (self.repeat_decay ** (repeat_count - 1))
+                    )
+                    tag = "regime_probe_posterior_repeat"
+                scored.append(
+                    (
+                        -score,
+                        repeat_count,
+                        seed_index,
+                        viewport.y,
+                        viewport.x,
+                        viewport.w * viewport.h,
+                        tag,
+                    ),
+                )
+
+        if not scored:
+            return None
+
+        best = min(scored)
+        _, _, seed_index, y, x, area, tag = best
+        viewport = next(
+            item
+            for item in viewports
+            if item.x == x and item.y == y and item.w * item.h == area
+        )
+        return ViewportQuery(
+            seed_index=seed_index,
+            viewport=viewport,
+            rationale=tag,
+        )
+
+
+__all__ = ["PosteriorDisagreementPolicy", "RegimeProbePolicy"]
