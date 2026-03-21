@@ -27,6 +27,10 @@ class QueryResidualConfig(BaseModel):
     manifold_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     manifold_novelty_power: float = Field(default=0.0, ge=0.0)
     novelty_prior_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_partner_model_name: str | None = None
+    ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
+    ensemble_signal_power: float = Field(default=1.0, ge=0.0)
 
 
 QUERY_RESIDUAL_DEFAULT_ALIAS = "query_residual_v7"
@@ -56,6 +60,23 @@ QUERY_RESIDUAL_CONFIGS: dict[str, QueryResidualConfig] = {
         manifold_blend=0.4,
         manifold_novelty_power=1.0,
         novelty_prior_weight=0.15,
+    ),
+    "query_residual_v10": QueryResidualConfig(
+        model_name="query_residual_v10",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        ensemble_partner_model_name="query_residual_v9",
+        ensemble_max_weight=0.45,
+        ensemble_novelty_power=1.0,
+    ),
+    "query_residual_v11": QueryResidualConfig(
+        model_name="query_residual_v11",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        ensemble_partner_model_name="query_residual_v9",
+        ensemble_max_weight=0.45,
+        ensemble_novelty_power=2.0,
+        ensemble_signal_power=0.0,
     ),
 }
 

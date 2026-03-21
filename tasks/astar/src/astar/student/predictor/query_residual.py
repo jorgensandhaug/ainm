@@ -372,6 +372,10 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     manifold_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     manifold_novelty_power: float = Field(default=0.0, ge=0.0)
     novelty_prior_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_partner_model_name: str | None = None
+    ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
+    ensemble_signal_power: float = Field(default=1.0, ge=0.0)
     manifold_round_ids: list[str] = Field(default_factory=list)
     manifold_regime_bank: list[list[float]] = Field(default_factory=list)
     manifold_regime_scale: list[float] = Field(default_factory=list)
@@ -381,6 +385,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     coefficients: list[list[float]]
     intercept: list[float]
     base_checkpoint_relpath: str
+    ensemble_partner_checkpoint_relpath: str | None = None
 
 
 def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscriptStats:
@@ -998,6 +1003,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
     manifold_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     manifold_novelty_power: float = Field(default=0.0, ge=0.0)
     novelty_prior_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_partner_model_name: str | None = None
+    ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
+    ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    ensemble_partner: QueryResidualPredictor | None = None
     manifold_round_ids: tuple[str, ...] = ()
     manifold_regime_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, len(_regime_summary_names())), dtype=np.float64),
@@ -1042,7 +1052,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         config: QueryResidualConfig,
         round_ids: Sequence[str] | None = None,
     ) -> QueryResidualPredictor:
-        return cls.fit_from_workspace(
+        predictor = cls.fit_from_workspace(
             paths,
             round_ids=round_ids,
             policy_name=config.policy_name,
@@ -1066,6 +1076,35 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_blend=config.manifold_blend,
             manifold_novelty_power=config.manifold_novelty_power,
             novelty_prior_weight=config.novelty_prior_weight,
+        )
+        if (
+            config.ensemble_partner_model_name is None
+            or config.ensemble_max_weight <= 0.0
+        ):
+            return predictor
+        normalized_model_name = config.model_name.strip().lower()
+        normalized_partner_name = config.ensemble_partner_model_name.strip().lower()
+        if normalized_partner_name == normalized_model_name:
+            raise ValueError("query_residual ensemble partner cannot reference itself")
+        partner_config = resolve_query_residual_config(
+            config.ensemble_partner_model_name,
+            policy_name=config.policy_name,
+        ).model_copy(
+            update={"samples_per_round": config.samples_per_round},
+        )
+        partner = cls.fit_from_config(
+            paths,
+            config=partner_config,
+            round_ids=round_ids,
+        )
+        return predictor.model_copy(
+            update={
+                "ensemble_partner_model_name": partner.name,
+                "ensemble_max_weight": config.ensemble_max_weight,
+                "ensemble_novelty_power": config.ensemble_novelty_power,
+                "ensemble_signal_power": config.ensemble_signal_power,
+                "ensemble_partner": partner,
+            },
         )
 
     @classmethod
@@ -1293,6 +1332,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
     def load_checkpoint(cls, path: Path) -> QueryResidualPredictor:
         checkpoint = QueryResidualPredictorCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
         base_path = path.parent / checkpoint.base_checkpoint_relpath
+        ensemble_partner = None
+        if checkpoint.ensemble_partner_checkpoint_relpath is not None:
+            ensemble_partner = cls.load_checkpoint(
+                path.parent / checkpoint.ensemble_partner_checkpoint_relpath,
+            )
         return cls(
             name=checkpoint.name,
             base_predictor=HistoricalBucketPriorPredictor.load_checkpoint(base_path),
@@ -1326,6 +1370,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_blend=checkpoint.manifold_blend,
             manifold_novelty_power=checkpoint.manifold_novelty_power,
             novelty_prior_weight=checkpoint.novelty_prior_weight,
+            ensemble_partner_model_name=checkpoint.ensemble_partner_model_name,
+            ensemble_max_weight=checkpoint.ensemble_max_weight,
+            ensemble_novelty_power=checkpoint.ensemble_novelty_power,
+            ensemble_signal_power=checkpoint.ensemble_signal_power,
+            ensemble_partner=ensemble_partner,
             manifold_round_ids=tuple(checkpoint.manifold_round_ids),
             manifold_regime_bank=np.asarray(checkpoint.manifold_regime_bank, dtype=np.float64),
             manifold_regime_scale=np.asarray(checkpoint.manifold_regime_scale or [1.0] * len(_regime_summary_names()), dtype=np.float64),
@@ -1340,6 +1389,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
         path.parent.mkdir(parents=True, exist_ok=True)
         base_path = path.parent / "base_prior.json"
         self.base_predictor.save_checkpoint(base_path)
+        ensemble_partner_checkpoint_relpath = None
+        if self.ensemble_partner is not None:
+            ensemble_partner_path = path.parent / "ensemble_partner" / "checkpoint.json"
+            self.ensemble_partner.save_checkpoint(ensemble_partner_path)
+            ensemble_partner_checkpoint_relpath = str(
+                ensemble_partner_path.relative_to(path.parent),
+            )
         checkpoint = QueryResidualPredictorCheckpoint(
             name=self.name,
             policy_name=self.policy_name,
@@ -1370,6 +1426,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_blend=self.manifold_blend,
             manifold_novelty_power=self.manifold_novelty_power,
             novelty_prior_weight=self.novelty_prior_weight,
+            ensemble_partner_model_name=self.ensemble_partner_model_name,
+            ensemble_max_weight=self.ensemble_max_weight,
+            ensemble_novelty_power=self.ensemble_novelty_power,
+            ensemble_signal_power=self.ensemble_signal_power,
             manifold_round_ids=list(self.manifold_round_ids),
             manifold_regime_bank=np.asarray(self.manifold_regime_bank, dtype=np.float64).tolist(),
             manifold_regime_scale=np.asarray(self.manifold_regime_scale, dtype=np.float64).tolist(),
@@ -1379,6 +1439,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             coefficients=np.asarray(self.coefficients, dtype=np.float64).tolist(),
             intercept=np.asarray(self.intercept, dtype=np.float64).tolist(),
             base_checkpoint_relpath=base_path.name,
+            ensemble_partner_checkpoint_relpath=ensemble_partner_checkpoint_relpath,
         )
         path.write_text(json.dumps(to_jsonable(checkpoint), indent=2), encoding="utf-8")
         return path
@@ -1399,6 +1460,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
             novelty_score,
             effective_manifold_blend,
         ) = self._infer_regime_from_derived(derived)
+        ensemble_weight = self._ensemble_weight_from_derived(
+            derived,
+            delta_scale=delta_scale,
+        )
         effective_prior_blend = 1.0 - (delta_scale * (1.0 - self.prior_blend))
         if self.novelty_prior_weight > 0.0:
             effective_prior_blend = float(
@@ -1457,6 +1522,22 @@ class QueryResidualPredictor(BaseRoundPredictor):
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
+        if ensemble_weight > 0.0 and self.ensemble_partner is not None:
+            partner_bundle = self.ensemble_partner._predict_from_derived(
+                round_detail,
+                features,
+                derived,
+            )
+            for seed_index, primary_prediction in predictions_by_seed.items():
+                partner_prediction = np.asarray(
+                    partner_bundle.predictions_by_seed[seed_index],
+                    dtype=np.float64,
+                )
+                predictions_by_seed[seed_index] = apply_probability_floor(
+                    ((1.0 - ensemble_weight) * np.asarray(primary_prediction, dtype=np.float64))
+                    + (ensemble_weight * partner_prediction),
+                    self.probability_floor,
+                )
         return PredictionBundle(
             round_id=round_detail.id,
             model_name=self.name,
@@ -1502,6 +1583,44 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_weights,
             novelty_score,
             effective_manifold_blend,
+        )
+
+    def _ensemble_weight_from_derived(
+        self,
+        derived: TranscriptDerivedFeatures,
+        *,
+        delta_scale: float | None = None,
+    ) -> float:
+        partner = self.ensemble_partner
+        if partner is None or self.ensemble_max_weight <= 0.0:
+            return 0.0
+        used_delta_scale = (
+            self._transcript_delta_scale(derived) if delta_scale is None else delta_scale
+        )
+        low_signal = float(
+            np.clip(
+                (1.0 - used_delta_scale) / max(1.0 - self.min_delta_scale, 1e-6),
+                0.0,
+                1.0,
+            ),
+        )
+        signal_factor = 1.0
+        if self.ensemble_signal_power > 0.0:
+            signal_factor = float(low_signal**self.ensemble_signal_power)
+            if signal_factor <= 0.0:
+                return 0.0
+        novelty_factor = 1.0
+        if self.ensemble_novelty_power > 0.0:
+            novelty_score = partner._infer_regime_from_derived(derived)[4]
+            if novelty_score <= 0.0:
+                return 0.0
+            novelty_factor = float(novelty_score**self.ensemble_novelty_power)
+        return float(
+            np.clip(
+                self.ensemble_max_weight * signal_factor * novelty_factor,
+                0.0,
+                1.0,
+            ),
         )
 
     def _manifold_weights(self, regime: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
@@ -1657,6 +1776,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
             blur_sigmas=self.blur_sigmas,
         )
         return self._predict_from_derived(round_detail, features, derived)
+
+
+QueryResidualPredictor.model_rebuild()
 
 
 __all__ = ["QueryResidualPredictor", "QueryResidualPredictorCheckpoint"]

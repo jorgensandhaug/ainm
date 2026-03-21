@@ -213,3 +213,93 @@ Framework should accept unique query-residual family variant names directly so b
 
 - Do not switch default alias to new variant unless subset evidence positive and full dev benchmark non-regressive.
 - If only infra/correctness lands, keep alias conservative, commit infra separately, push.
+
+### 2026-03-21T01:10Z approx
+
+- Re-opened live worktree state before continuing.
+  - confirmed branch still `agent7`
+  - confirmed pushed baseline commit still current
+  - confirmed `br` still unavailable in current shell env
+- Found one incomplete live diff:
+  - [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `query_residual_v10` existed only as config stub; no predictor/checkpoint implementation yet
+- Re-read relevant predictor/benchmark plumbing to avoid invalid shortcut implementation:
+  - [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py)
+  - [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py)
+  - [`src/astar/workflows/model_eval.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/model_eval.py)
+  - [`src/astar/workflows/historical_benchmark.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/historical_benchmark.py)
+- Re-checked `v7` vs `v9` round behavior:
+  - `v9` helps hardest/OOD-ish round 3 a lot
+  - `v9` loses too much on rounds 6/7/8 and slightly on easy rounds
+- Current hypothesis sharpened:
+  - manifold/retrieval family signal is useful only in a restricted regime
+  - better variant is not `always use manifold` or `always use blended manifold`
+  - better variant should preserve `v7` on high-signal transcripts and borrow `v9` only when both:
+    - transcript looks novel relative to historical manifold
+    - transcript residual signal is weak
+- Next implementation:
+  - finish `query_residual_v10` as reproducible nested ensemble
+  - primary path = `v7`-like predictor
+  - partner path = `query_residual_v9`
+  - blend weight = capped function of novelty score and low-signal score
+  - save/load partner checkpoint inside main checkpoint dir so benchmark/interactive paths stay reproducible
+
+### 2026-03-21T01:35Z approx
+
+- Implemented `query_residual_v10` predictor path in [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py)
+  - nested optional ensemble partner predictor
+  - `fit_from_config` now supports ensemble variants reproducibly
+  - checkpoint save/load persists nested partner under subdir
+  - inference adds gated post-prediction mixture:
+    - primary = `v7`-like path
+    - partner = `v9`
+    - weight = `ensemble_max_weight * low_signal * novelty^power`
+  - low-signal term is derived from clipped transcript residual scale, so ensemble weight goes to zero on high-signal transcripts
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+  - historical benchmark parametrization now includes `query_residual_v10`
+  - added explicit nested checkpoint roundtrip test for `v10`
+- Validation:
+  - `uv run --extra dev python -c "from astar.student.predictor.query_residual import QueryResidualPredictor; print(QueryResidualPredictor.__name__)"`
+  - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `7`
+- Benchmarking status:
+  - completed 3-round probe for `query_residual_v10`
+    - [`data/artifacts/benchmarks/agent7_probe_query_residual_v10_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v10_r3r6r8/result.json)
+    - mean score `62.7280`
+    - note: not directly comparable to full 8-round champion because each holdout trains on only 2 rounds here
+  - running matched 3-round `v7` baseline probe for honest comparison before deciding on full-dev promotion
+
+### 2026-03-21T02:05Z approx
+
+- Matched 3-round baseline probe finished:
+  - [`data/artifacts/benchmarks/agent7_probe_query_residual_v7_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_r3r6r8/result.json)
+  - mean score `62.7280`
+- Direct paired compare `v7` vs `v10`:
+  - [`historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v10.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v10.json)
+  - exact tie on all `15` evaluated seeds
+  - conclusion: current `low_signal` gate is too strict; `v10` is effectively inert on this subset
+- Follow-up improvement:
+  - generalized ensemble gate with `ensemble_signal_power`
+  - added candidate `query_residual_v11`
+  - `v11` disables signal gate and uses stronger novelty concentration (`novelty_power=2`)
+- Validation after gate generalization:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `8`
+- `v11` 3-round probe result:
+  - [`data/artifacts/benchmarks/agent7_probe_query_residual_v11_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v11_r3r6r8/result.json)
+  - mean score `61.5919`
+- Direct paired compare `v7` vs `v11`:
+  - [`historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v11.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v11.json)
+  - mean score delta `-1.1360`
+  - loss rate `1.000`
+  - biggest damage concentrated on round `6`
+  - almost no rescue on round `3`
+
+## Updated Conclusion
+
+- Ensemble-over-`v9` line is not ready for promotion.
+- `v10` as currently gated is harmless but useless on matched probe.
+- `v11` novelty-only mixture is actively worse on matched probe.
+- No honest evidence yet that these ensemble variants beat `v7`; do not spend full 8-round dev budget on current `v10`/`v11`.
+- Keep `query_residual` alias on `v7`.

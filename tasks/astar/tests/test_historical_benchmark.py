@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
 from tests.conftest import ROUND_ID
@@ -102,7 +103,10 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         assert online_by_key[key].weighted_kl == prior_by_key[key].weighted_kl
 
 
-@pytest.mark.parametrize("model_name", ["query_residual", "query_residual_v8"])
+@pytest.mark.parametrize(
+    "model_name",
+    ["query_residual", "query_residual_v8", "query_residual_v10", "query_residual_v11"],
+)
 def test_query_residual_online_historical_benchmark_runs(
     sample_paths: RepoPaths,
     model_name: str,
@@ -168,3 +172,28 @@ def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPath
     assert comparison.seed_count == 2
     assert comparison.artifact_path is not None and comparison.artifact_path.exists()
     assert comparison.report_path is not None and comparison.report_path.exists()
+
+
+def test_query_residual_v10_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = QueryResidualPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="query_residual_v10",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "query_residual_v10" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "query_residual_v10"
+    assert loaded.ensemble_partner is not None
+    assert loaded.ensemble_partner.name == "query_residual_v9"
+    assert loaded.ensemble_partner_model_name == "query_residual_v9"
+    assert loaded.ensemble_max_weight > 0.0
