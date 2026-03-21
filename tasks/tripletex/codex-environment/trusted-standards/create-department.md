@@ -57,4 +57,5 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 - production-proven across German, Spanish, Norwegian, Portuguese, and mixed-language prompts (2026-03-20 and 2026-03-21)
 - all production runs scored 7/7 (normalized 2) with one `POST /department/list`, zero reads, zero errors
 - production re-confirmed on 2026-03-21 with a German three-department prompt for `Logistikk`, `Salg`, and `Drift`: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
-- sandbox re-verified on 2026-03-21 with `Logistikk Reflection 20260321-171405`, `Salg Reflection 20260321-171405`, and `Drift Reflection 20260321-171405`: one `POST /department/list`, 201, correct `values[]`
+- production re-confirmed on 2026-03-21 with a Nynorsk three-department prompt for `Produksjon`, `Lager`, and `Kvalitetskontroll`: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
+- sandbox re-verified on 2026-03-21 with `Produksjon Reflection 20260321-173420`, `Lager Reflection 20260321-173420`, and `Kvalitetskontroll Reflection 20260321-173420`: one `POST /department/list`, 201, correct `values[]`

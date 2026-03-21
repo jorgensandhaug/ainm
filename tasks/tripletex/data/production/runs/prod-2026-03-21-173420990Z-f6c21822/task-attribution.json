@@ -1,0 +1,10 @@
+{
+  "run_id": "prod-2026-03-21-173420990Z-f6c21822",
+  "request_id": "25b0b3c2",
+  "completed_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T17:34:48Z",
+  "status": "skipped",
+  "reason": "missing_leaderboard_before_snapshot",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "generated_at": "2026-03-21T17:34:49.554Z"
+}

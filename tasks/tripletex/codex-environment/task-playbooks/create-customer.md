@@ -46,6 +46,8 @@ This was verified in sandbox:
 - re-verified on 2026-03-20 in persistent sandbox with production-like French prompt semantics and unique payload `Colline Reflection c833b15d SARL`, `post-reflection-c833b15d@colline.no`, `999833115`, and `postalAddress` `Kirkegata 77`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108285083`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in production for the Spanish-language prompt `Río Verde SL`, `919234830`, `post@rio.no`, and `Solveien 5, 4006 Stavanger`; the single `POST /customer` returned customer `id=108285940`, preserved the exact accented Unicode name plus email and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-20 in persistent sandbox with production-like Spanish prompt semantics and unique payload `Río Verde Reflection 017503 AS`, `post-reflection-017503@rio.no`, `999017503`, and `postalAddress` `Solveien 5`, `4006`, `Stavanger`; the same single `POST /customer` returned customer `id=108286045`, preserved the exact accented Unicode name and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-21 in production for the Portuguese-language prompt `Porto Alegre Lda`, `964528136`, `post@porto.no`, and `Sjøgata 128, 4611 Kristiansand`; the single `POST /customer` returned customer `id=108384576`, preserved the exact name, email, and postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-21 in persistent sandbox with production-like Portuguese prompt semantics and unique payload `Porto Alegre Reflection 6ed2ed87 Lda`, `post-reflection-6ed2ed87@porto.no`, `999238926`, and `postalAddress` `Sjøgata 128`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108384756`, preserved the exact postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 
 ## Minimal Flow
 
@@ -70,7 +72,7 @@ This was verified in sandbox:
 - If the prompt also gives one ordinary mailing address, add only `postalAddress`
 - Do not open extra schemas just to confirm the standard `postalAddress` shape unless the prompt introduces a foreign address, separate physical address, or the first write fails
 - Do not transliterate prompt text; preserve Unicode in customer and city names exactly as given
-- Do not switch away from the standard one-call path just because the prompt prose is French, German, or another non-Norwegian language when the actual customer fields still describe an ordinary Norwegian customer
+- Do not switch away from the standard one-call path just because the prompt prose is French, German, Portuguese, or another non-Norwegian language when the actual customer fields still describe an ordinary Norwegian customer
 - The winning shape is typically:
 
 ```json

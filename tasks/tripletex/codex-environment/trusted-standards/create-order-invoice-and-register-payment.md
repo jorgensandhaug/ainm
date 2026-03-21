@@ -20,14 +20,12 @@
 
 ## Standard Flow
 1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
-2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-3. only if that first product read does not resolve every product, do one fallback `GET /product?count=1000&fields=*` and filter locally by both the `number` field and exact product name from the prompt
-4. do NOT use `GET /product?ids=<ref>,<ref>&fields=*` as a fallback — prompt refs are never Tripletex internal IDs (which are in the 84M+ range)
-5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-6. `POST /order` with embedded `orderLines`
-7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
-8. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
-9. stop
+2. `GET /product?count=1000&fields=*` and filter locally by the `number` response field matching the prompt refs, and by exact product name from the prompt as a secondary check
+3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+4. `POST /order` with embedded `orderLines`
+5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+6. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
+7. stop
 
 ## Payload Rules
 - on `POST /order`, send:
@@ -40,7 +38,7 @@
     - `count`
     - `unitPriceExcludingVatCurrency`
 - preserve prompt product names/descriptions exactly when they are part of the scored state
-- when resolving `GET /product?productNumber=...&fields=*`, normalize both `number` and `productNumber` from the response; some accounts return the matched key under `number`
+- when resolving products from `GET /product?count=1000&fields=*`, match by the `number` response field against the prompt refs; do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
 - do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
 - if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
@@ -64,11 +62,6 @@
 - do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits
 
 ## Known Recovery Branches
-- if the first product-number lookup only partially resolves:
-  - skip the `ids` fallback entirely — prompt refs (e.g. 5271) are never Tripletex internal IDs (84M+ range), so `ids=<ref>` always returns empty
-  - go directly to one `GET /product?count=1000&fields=*` and filter locally by both the `number` response field and exact product name from the prompt
-  - do not let a name-only match from the first product-number read count as resolution for a missing numeric ref
-  - do NOT combine `productNumber` and `number` query params in a single call — Tripletex treats them as AND (intersection), not OR, so combining returns fewer results when they match different products
 - if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` using the minimal payload `{ "bankAccountNumber": "12345678903" }`
