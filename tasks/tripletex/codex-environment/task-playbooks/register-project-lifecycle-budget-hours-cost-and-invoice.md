@@ -35,12 +35,16 @@ Persistent-sandbox follow-up on 2026-03-21 showed:
 - timesheet entries must have dates on or after the project `startDate`; entries before the project start fail with `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
 - employee creation requires `department.id` in accounts with department functionality enabled; the 2026-03-21 production run for `System Upgrade Greenfield` hit `422 department.id: Feltet må fylles ut.` on the first `POST /employee` and timed out after failing to recover
 - `POST /employee` may also require `employments[].division.id`; persistent sandbox on 2026-03-21 required both `department.id` and `division.id`
-- for this lifecycle task family where multiple employees are created, the proactive `GET /department + GET /division` parallel read is justified: it costs 2 calls but avoids 2+ errors and retries across 2 employee creates
+- however, subsequent sandbox re-proof on 2026-03-21 confirmed that employees created WITHOUT `employments[]` can still register timesheet entries, be added as project participants, and perform all scored lifecycle actions — this eliminates the `GET /division` call entirely and avoids the division/startDate/employmentType traps
+- for this lifecycle task family, only `GET /department` is needed proactively (not `GET /division`)
 
-Production run reconstruction for `Dataplattform Elvdal` additionally showed:
-- the original run used `POST /activity` even though the direct project-activity write would have covered that side effect
-- the original run used the supplier-invoice voucher machinery for the supplier cost, which cost extra calls and likely missed the intended project-linked cost shape
-- the original run then hit the known invoice bank-account validation branch and had to repair it after the first `PUT /order/{id}/:invoice`
+Production run for `Dataplattform Elvdal` (a81782be) on 2026-03-21 completed with 0 errors but 2 wasted calls:
+- the script used `GET /division` (+1 unnecessary call) and included `employments[]` on employee payloads — employees without employment records can still register timesheet entries and all scored actions; sandbox re-proof confirmed this
+- the script used two separate `GET /ledger/account` reads: `number=6590,2400` for voucher accounts and `isBankAccount=true` for bank accounts (+1 unnecessary call) — a single combined `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` provides all three accounts in 1 call
+- the script also had suboptimal sequencing: emp1 sequential (step 2), then emp2+PM parallel (step 3), then project sequential (step 4) — the PM read should be in step 1 (parallel with dept+customer), enabling both employees + project to be created in parallel in step 2
+- the bank-account repair branch was triggered (acc 1920 had no bankAccountNumber), adding 1 conditional call
+- total calls: 19 (17 optimal with bank fix + 1 wasted GET /division + 1 wasted separate bank-account GET); 0 errors
+- sandbox re-proof confirmed the optimized 16-call path (without bank fix) with 0 errors: employees without `employments[]`, combined account read `number=1920,6590,2400`, and maximal step-2 parallelization (emp1+emp2+project)
 
 Production run for `System Upgrade Greenfield` on 2026-03-21 scored `0/1` (timeout) because:
 - the script did not include proactive `GET /department` before `POST /employee`

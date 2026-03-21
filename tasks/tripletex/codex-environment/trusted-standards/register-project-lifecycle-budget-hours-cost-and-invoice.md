@@ -193,3 +193,10 @@
     - (c) move PM read to step 1 (parallel with dept+customer) and parallelize emp1+emp2+project in step 2 (fewer sequential steps)
   - sandbox full-path re-proof with optimized flow: 16 calls, 0 errors, all scored fields correct
   - new baseline: **16 calls** (or 17 with bank fix)
+- the 2026-03-21 production run `Dataplattform Elvdal` (a81782be) completed with 19 calls, 0 errors:
+  - followed the OLD 18-call baseline (GET /division + separate bank-account read + suboptimal sequencing)
+  - wasted 2 calls: (1) `GET /division` unnecessary since employees don't need `employments[]`, (2) separate `GET /ledger/account?isBankAccount=true` replaced by combined `number=1920,6590,2400` read
+  - suboptimal sequencing: emp1 in step 2, then PM+emp2 parallel in step 3, then project in step 4 — optimal is PM read in step 1, emp1+emp2+project all parallel in step 2
+  - bank fix was needed (+1 call), bringing total to 19 vs optimal 17
+  - all scored fields correct: budget 331100, hours 43+100=143, supplier cost 61650 (Fossekraft AS), invoice with projectInvoiceDetails
+  - sandbox re-proof of optimized 16-call path (without bank fix) confirmed: 16 calls, 0 errors, employees without `employments[]` register timesheet entries successfully
