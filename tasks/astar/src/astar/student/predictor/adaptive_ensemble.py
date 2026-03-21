@@ -34,6 +34,10 @@ ADAPTIVE_ENSEMBLE_V1 = "adaptive_ensemble_v1"
 ADAPTIVE_ENSEMBLE_V2 = "adaptive_ensemble_v2"
 ADAPTIVE_ENSEMBLE_V3 = "adaptive_ensemble_v3"
 ADAPTIVE_ENSEMBLE_V4 = "adaptive_ensemble_v4"
+ADAPTIVE_ENSEMBLE_V5 = "adaptive_ensemble_v5"
+ADAPTIVE_ENSEMBLE_V6 = "adaptive_ensemble_v6"
+ADAPTIVE_ENSEMBLE_V7 = "adaptive_ensemble_v7"
+ADAPTIVE_ENSEMBLE_V8 = "adaptive_ensemble_v8"
 
 ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_ALIAS,
@@ -41,6 +45,10 @@ ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_V2,
     ADAPTIVE_ENSEMBLE_V3,
     ADAPTIVE_ENSEMBLE_V4,
+    ADAPTIVE_ENSEMBLE_V5,
+    ADAPTIVE_ENSEMBLE_V6,
+    ADAPTIVE_ENSEMBLE_V7,
+    ADAPTIVE_ENSEMBLE_V8,
 })
 
 ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
@@ -49,6 +57,10 @@ ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
     ADAPTIVE_ENSEMBLE_V2,
     ADAPTIVE_ENSEMBLE_V3,
     ADAPTIVE_ENSEMBLE_V4,
+    ADAPTIVE_ENSEMBLE_V5,
+    ADAPTIVE_ENSEMBLE_V6,
+    ADAPTIVE_ENSEMBLE_V7,
+    ADAPTIVE_ENSEMBLE_V8,
 ]
 
 
@@ -128,6 +140,51 @@ def resolve_adaptive_ensemble_variant_spec(
             active_threshold=0.12,
             active_settlement_boost=1.0,
             obs_correction_strength=0.05,
+        ),
+        # v5-v8: optimize around v1's winning threshold (0.03) and scaling (0.4/0.3)
+        ADAPTIVE_ENSEMBLE_V5: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V5,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.035,
+            barren_settlement_scale=0.35,
+            barren_ruin_scale=0.25,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+        ),
+        ADAPTIVE_ENSEMBLE_V6: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V6,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.025,
+            barren_settlement_scale=0.45,
+            barren_ruin_scale=0.35,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+        ),
+        ADAPTIVE_ENSEMBLE_V7: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V7,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+        ),
+        ADAPTIVE_ENSEMBLE_V8: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V8,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.5,
+            barren_ruin_scale=0.4,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
         ),
     }
     resolved_name = normalized if normalized != ADAPTIVE_ENSEMBLE_ALIAS else ADAPTIVE_ENSEMBLE_V1
