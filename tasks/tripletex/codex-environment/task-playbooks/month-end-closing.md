@@ -50,12 +50,17 @@ monthly_depreciation = acquisition_cost / (useful_life_years * 12)
 - If amount is not specified, use 45000 as a safe default (confirmed working in production scoring 2026-03-21)
 
 ## Account Existence
-- Only **1029** and **1109** (accumulated depreciation) are confirmed missing in fresh Tripletex
-- All other month-end accounts typically exist in default chart: 1700, 1710, 1720, 1740, 1249, 5000, 2900, 6000, 6010, 6020, 6300, 6390, 8150
-- Account 1209 exists in sandbox but is unconfirmed in fresh production
-- After the initial GET, check which accounts are missing
+- Confirmed **existing** in fresh Tripletex default chart: 1700, 1710, 1720, 1740, 1249, 5000, 2900, 6000, 6010, 6020, 6300, 6390, 8150
+- Confirmed **missing** in fresh Tripletex default chart: **1029**, **1109**, **1209**, **6030**
+- Note: **6030** (depreciation expense) is NOT in the default chart despite 6000/6010/6020 being present
+- **Do NOT hardcode a "known missing" list** — after the GET, dynamically detect ALL accounts not returned and batch-create them
 - Create missing accounts with `POST /ledger/account` (just `number` and `name` suffice)
 - If 2+ accounts are missing, use batch create `POST /ledger/account/list` to save a call
+- Standard names for missing accounts:
+  - 1029: "Akk. avskr. immaterielle eiendeler"
+  - 1109: "Akk. avskr. bygninger"
+  - 1209: "Akk. avskr. maskiner og anlegg"
+  - 6030: "Avskr. maskiner og anlegg"
 
 ## Minimum API Flow (2-3 calls — combined voucher, NO trial balance GET)
 
@@ -115,7 +120,7 @@ Total: 1 GET (accounts) + 0-1 POST (create accounts) + 3 POST (vouchers) = 4-5 c
 - **Do NOT GET trial balance**: `GET /balanceSheet` does not change state. Scoring only checks ledger postings. The trial balance GET wastes 1 call and lowers efficiency score. Confirmed: production run 2026-03-21 scored 4.5 with the extra GET; skipping it would score higher.
 - **row=0 is reserved**: Postings MUST use `row: 1`, `row: 2`, etc. Row 0 is system-generated and triggers `422`.
 - **Account IDs required**: Number-only or number+name account refs on voucher postings fail with `422 Internt felt (account): Feltet må fylles ut.`. Always resolve account IDs first via GET. Confirmed in sandbox 2026-03-21: `account: { number: 5000, name: "Lønn til ansatte" }` without `id` → 422.
-- **Missing accounts**: Accumulated depreciation accounts (1029, 1209, 1249, 1109) are the most likely to be missing. Always check after the initial GET and create before posting vouchers.
+- **Missing accounts**: Accounts 1029, 1109, 1209, and 6030 are confirmed missing in fresh Tripletex. Do NOT assume only accumulated depreciation accounts can be missing — 6030 (depreciation expense) is also missing. Dynamically detect ALL missing accounts from GET response and batch-create them.
 - **Batch create**: `POST /ledger/account/list` accepts an array and creates multiple accounts in one call. Use when 2+ accounts are missing.
 - **No batch voucher POST**: `/ledger/voucher/list` is PUT-only (batch update). Each voucher must be created individually with `POST /ledger/voucher`.
 - **Rounding**: For depreciation, use `Math.round(value * 100) / 100` to round to 2 decimal places.
@@ -179,14 +184,22 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Exact repeat of Run 6 parameters, 4th production confirmation of 6020→1029 variant
 - Confirms 3-call path is stable across 4 independent production runs (Runs 2, 5, 6, 7)
 
+### Run 8 (1720→6300 + 6030→1209 variant, English prompt, 4 calls — suboptimal)
+- Task: March 2026, prepaid 9200 (1720→6300), depreciation 275800/3yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 4 calls: 1 GET + 1 POST (create 1209) + 1 POST (create 6030) + 1 POST (voucher)
+- 0 errors but 1 wasted call. Depreciation: 275800/36 = 7661.11
+- **Both 6030 AND 1209 were missing** — first production confirmation of 6030→1209 variant
+- Optimal: 3 calls (1 GET + 1 batch POST for 6030+1209 + 1 POST voucher)
+- Root cause: script hardcoded only 1209 as "known missing"; did not dynamically detect 6030 missing from GET response
+- Existing: 1720, 5000, 2900, 6300. Missing: 6030, 1209
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
 - 1710→6390 mapping confirmed working: sandbox voucher created successfully
-- Comprehensive account survey: all prepaid source (1700, 1710, 1720, 1740), periodization targets (6300, 6390, 8150), depreciation expense (6000, 6010, 6020, 6030), and accum. dep. (1249, 1209) exist in sandbox
-- 1720→6300 mapping confirmed working in sandbox (voucher with 6 postings created successfully)
-- 1700→6300 mapping confirmed working: sandbox voucher with 6 postings (prepaid 12000, dep 5802.08, salary 45000) created successfully
-- Only 1029 confirmed missing in fresh production (Runs 2, 5, 6, 7); only 1109 missing in sandbox
-- Depreciation contra mappings confirmed: 6020→1029, 6010→1249, 1710→6390 all work
-- "kostkonto"/"kostnadskonto" maps to 6390 (Annen kostnad lokaler) for 1710 source, 6300 (Leie lokale) for 1700 source
+- Comprehensive account survey: prepaid source (1700, 1710, 1720, 1740), periodization targets (6300, 6390, 8150), depreciation expense (6000, 6010, 6020), and accum. dep. (1249) exist in default chart
+- Accounts 6030, 1029, 1209 exist in sandbox but were CREATED during prior testing (not default chart)
+- 1720→6300, 1700→6300, 1710→6390, 6020→1029, 6010→1249, 6030→1209 mappings all confirmed working in sandbox
+- Confirmed missing in fresh production: 1029 (Runs 2, 5, 6, 7), 6030 + 1209 (Run 8); 1109 missing in sandbox default
+- "kostkonto"/"kostnadskonto" maps to 6390 for 1710 source, 6300 for 1700 source
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target

@@ -51,9 +51,12 @@ GET /ledger/account?number=<all-needed>&fields=id,number,name&count=100
 ```
 Include ALL accounts needed. Example: `number=1700,6300,6020,1029,5000,2900`
 
-Check which accounts were returned. Typically missing in fresh Tripletex: **1029**, **1109**.
-Accounts typically existing in default chart: **1700**, **1710**, **1720**, **1740**, **1249**, **5000**, **2900**, **6000**, **6010**, **6020**, **6300**, **6390**, **8150**.
-The only accumulated depreciation accounts confirmed missing are **1029** and **1109**. Account **1209** exists in sandbox but is unconfirmed in fresh production.
+Check which accounts were returned vs. which were queried. **Do NOT hardcode a "known missing" list** — instead, dynamically detect ALL accounts not returned by the GET and batch-create them. This prevents wasted calls when an unexpected account is missing.
+
+Accounts confirmed **existing** in fresh Tripletex default chart: **1700**, **1710**, **1720**, **1740**, **1249**, **5000**, **2900**, **6000**, **6010**, **6020**, **6300**, **6390**, **8150**.
+Accounts confirmed **missing** in fresh Tripletex default chart: **1029**, **1109**, **1209**, **6030**.
+Note: **6030** (depreciation expense for maskiner og anlegg) is NOT in the default chart despite 6000/6010/6020 being present. Confirmed missing in production Run 7.
+Note: **1209** (accumulated depreciation for maskiner og anlegg) confirmed missing in production Run 7.
 
 ### Call 2 (conditional): Create missing accounts (0–1 POST)
 - If 1 missing: `POST /ledger/account` with `{ number, name }`
@@ -64,6 +67,10 @@ The only accumulated depreciation accounts confirmed missing are **1029** and **
 Standard names for commonly missing accounts:
 - 1029: "Akk. avskr. immaterielle eiendeler"
 - 1109: "Akk. avskr. bygninger"
+- 1209: "Akk. avskr. maskiner og anlegg"
+- 6030: "Avskr. maskiner og anlegg"
+
+**Critical pattern**: After the GET, compare the set of returned account numbers against ALL queried numbers. Create ALL missing accounts in one batch call. Do NOT assume only certain accounts can be missing.
 
 ### Call 3 (or 2): Combined voucher (1 POST)
 ```json
@@ -142,6 +149,16 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - Exact repeat of Run 5 parameters, 4th production confirmation of 6020→1029 variant
 - Confirms 3-call path is stable and optimal for this variant across 4 independent production runs
 
+### Run 7 (2026-03-21, 6030→1209 variant, 4 calls — suboptimal)
+- Task: March 2026, prepaid 9200 (1720→6300), depreciation 275800/3yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 4 calls: 1 GET (accounts) + 1 POST (create 1209) + 1 POST (create 6030) + 1 POST (voucher)
+- 0 errors. Depreciation: 275800/36 = 7661.11
+- **Both 6030 AND 1209 were missing** in fresh Tripletex — first production confirmation
+- Script only anticipated 1209 as potentially missing; 6030 was assumed to exist
+- Optimal would have been 3 calls: 1 GET + 1 POST (batch create 6030+1209) + 1 POST (voucher)
+- **Root cause of extra call**: hardcoded "known missing" list instead of dynamically detecting all missing accounts from GET response
+- Existing: 1720, 5000, 2900, 6300. Missing: 6030, 1209
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -152,7 +169,10 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - 6010→1249 mapping confirmed working: sandbox voucher with 6 postings created successfully
   - 1710→6390 mapping confirmed working: sandbox voucher with 6 postings (prepaid 2450, dep 1851.67, salary 45000) created successfully
   - Account 1109 (Akk. avskr. bygninger) is only month-end account missing in sandbox
-  - Comprehensive account survey: all prepaid source accounts (1700, 1710, 1720, 1740), all periodization targets (6300, 6390, 8150), all depreciation expense accounts (6000, 6010, 6020, 6030), and accumulated depreciation accounts 1249, 1209 exist in sandbox
+  - Comprehensive account survey: all prepaid source accounts (1700, 1710, 1720, 1740), all periodization targets (6300, 6390, 8150), all depreciation expense accounts (6000, 6010, 6020), and accumulated depreciation account 1249 exist in sandbox default chart
+  - Sandbox accounts 6030, 1029, 1209 exist but were CREATED during prior testing (id range ~462xxxxxx vs default ~424190xxx) — they are NOT part of default chart
   - 1720→6300 mapping confirmed working: sandbox voucher with 6 postings (prepaid 8050, dep 3746.88, salary 45000) created successfully
   - 1700→6300 mapping confirmed working: sandbox voucher with 6 postings (prepaid 12000, dep 5802.08, salary 45000) created successfully
-  - Only 1029 confirmed missing in fresh production (Runs 1, 4, 5, 6); only 1109 confirmed missing in sandbox
+  - 6030→1209 mapping confirmed working: sandbox voucher with 6 postings (prepaid 9200, dep 7661.11, salary 45000) created successfully
+  - Confirmed missing in fresh production: 1029 (Runs 1, 4, 5, 6), 6030 + 1209 (Run 7); confirmed missing in sandbox default: 1109
+  - **ID range analysis**: default chart accounts have ids ~424190xxx; accounts with ids ~462xxxxxx were created during testing and do NOT exist in fresh instances
