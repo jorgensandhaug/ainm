@@ -20,6 +20,7 @@ type SolveRequest = {
 };
 
 type StorageMode = "testing" | "production";
+type AgentProvider = "claude" | "codex";
 
 type SolveResponse = {
   status: "completed";
@@ -40,6 +41,7 @@ type EffectiveCredentials = {
 };
 
 type PreparedRun = {
+  agentRunStatusPath: string;
   createdAt: string;
   codexPrompt: string;
   effectiveCredentials: EffectiveCredentials;
@@ -60,6 +62,7 @@ type CodexSessionMeta = {
   cli_version?: string;
   cwd?: string;
   id: string;
+  provider?: AgentProvider;
   timestamp?: string;
 };
 
@@ -195,14 +198,32 @@ type ReflectionRunResult = {
   status: "completed" | "skipped" | "timed_out";
 };
 
+type RuntimeStatus = {
+  exit_code?: number;
+  provider?: string;
+  recorded_at?: string;
+  run_id?: string;
+  status?: string;
+};
+
 const port = Number(Bun.env.PORT ?? 3000);
 const requiredBearerToken = Bun.env.API_KEY ?? "HALLAGUTTA123";
 const tmuxSessionName = "ainm-tripletex-sessions";
 const tripletexRootDir = resolve(import.meta.dir, "..");
 const codexEnvironmentDir = resolve(tripletexRootDir, "codex-environment");
 const codexHomeDir = resolve(Bun.env.CODEX_HOME ?? `${Bun.env.HOME ?? "~"}/.codex`);
+const claudeProjectsDir = resolve(Bun.env.CLAUDE_PROJECTS_DIR ?? `${Bun.env.HOME ?? "~"}/.claude/projects`);
 const dataRootDir = resolve(tripletexRootDir, "data");
 const sandboxEnvPath = resolve(tripletexRootDir, ".sandbox.env");
+const agentProvider: AgentProvider = Bun.env.TRIPLETEX_AGENT_PROVIDER?.toLowerCase() === "codex" ? "codex" : "claude";
+const claudeModel = Bun.env.TRIPLETEX_CLAUDE_MODEL ?? "claude-opus-4-6";
+const claudeEffort = Bun.env.TRIPLETEX_CLAUDE_EFFORT ?? "high";
+const claudeProxyBaseUrl =
+  Bun.env.TRIPLETEX_CLAUDE_PROXY_BASE_URL ??
+  Bun.env.ANTHROPIC_BASE_URL ??
+  "https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy";
+const claudeProxyApiKey =
+  Bun.env.TRIPLETEX_CLAUDE_PROXY_API_KEY ?? Bun.env.ANTHROPIC_API_KEY ?? requiredBearerToken;
 const leaderboardApiUrl =
   Bun.env.TRIPLETEX_LEADERBOARD_URL ??
   "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516";
@@ -377,6 +398,50 @@ function sanitizeFilename(filename: string): string {
 
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+function claudeProjectDirName(cwd: string): string {
+  return cwd.replaceAll("/", "-");
+}
+
+function stringifyUnknown(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function extractClaudeTextContent(content: unknown): string {
+  if (!Array.isArray(content)) {
+    return "";
+  }
+
+  return content
+    .flatMap((item) => {
+      if (!isRecord(item) || item.type !== "text" || typeof item.text !== "string") {
+        return [];
+      }
+
+      const text = item.text.trim();
+      return text ? [text] : [];
+    })
+    .join("\n\n")
+    .trim();
+}
+
+async function readRuntimeStatus(path: string): Promise<RuntimeStatus | undefined> {
+  const raw = await readFile(path, "utf8").catch(() => "");
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = safeJsonParse(raw);
+  return isRecord(parsed) ? (parsed as RuntimeStatus) : undefined;
 }
 
 async function appendJsonl(path: string, value: unknown): Promise<void> {
@@ -857,7 +922,22 @@ function buildCodexPrompt(
     "",
     "Run scripts directory:",
     scriptsDir,
+    "",
+    "Runner configuration:",
+    `- provider: ${agentProvider}`,
   ];
+
+  if (agentProvider === "claude") {
+    lines.push(`- model: ${claudeModel}`);
+    lines.push(`- effort: ${claudeEffort}`);
+    lines.push("- backend: proxy");
+    lines.push(`- proxy_base_url: ${claudeProxyBaseUrl}`);
+    lines.push("- disable_experimental_betas: false");
+  } else {
+    lines.push("- model: gpt-5.4");
+    lines.push('- reasoning_effort: high');
+    lines.push("- service_tier: fast");
+  }
 
   if (files.length === 0) {
     return lines.join("\n");
@@ -897,6 +977,14 @@ function extractAssistantText(content: unknown): string {
 }
 
 async function collectCodexSessionFiles(): Promise<string[]> {
+  if (agentProvider === "claude") {
+    const projectDir = join(claudeProjectsDir, claudeProjectDirName(codexEnvironmentDir));
+    const entries = await readdir(projectDir, { withFileTypes: true }).catch(() => []);
+    return entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl"))
+      .map((entry) => join(projectDir, entry.name));
+  }
+
   const sessionsRoot = join(codexHomeDir, "sessions");
   const years = await readdir(sessionsRoot, { withFileTypes: true }).catch(() => []);
   const files: string[] = [];
@@ -960,6 +1048,60 @@ async function findMatchingCodexSession(prompt: string, createdAt: string): Prom
       continue;
     }
 
+    if (agentProvider === "claude") {
+      let sessionId: string | undefined;
+      let timestamp: string | undefined;
+      let cwd: string | undefined;
+      let userPrompt: string | undefined;
+
+      for (const line of lines) {
+        const item = safeJsonParse(line);
+        if (!isRecord(item)) {
+          continue;
+        }
+
+        if (!sessionId && typeof item.sessionId === "string") {
+          sessionId = item.sessionId;
+        }
+
+        if (!timestamp && typeof item.timestamp === "string") {
+          timestamp = item.timestamp;
+        }
+
+        if (!cwd && typeof item.cwd === "string") {
+          cwd = item.cwd;
+        }
+
+        if (
+          item.type === "user" &&
+          isRecord(item.message) &&
+          item.message.role === "user" &&
+          typeof item.message.content === "string"
+        ) {
+          userPrompt = item.message.content;
+          break;
+        }
+      }
+
+      if (!sessionId || cwd !== codexEnvironmentDir || userPrompt !== prompt) {
+        continue;
+      }
+
+      if (timestamp && Math.abs(Date.parse(timestamp) - createdAtMs) > 15 * 60 * 1000) {
+        continue;
+      }
+
+      return {
+        path: candidate.path,
+        sessionMeta: {
+          id: sessionId,
+          timestamp,
+          cwd,
+          provider: "claude",
+        },
+      };
+    }
+
     const first = safeJsonParse(lines[0]);
     if (
       !isRecord(first) ||
@@ -975,6 +1117,7 @@ async function findMatchingCodexSession(prompt: string, createdAt: string): Prom
       timestamp: typeof first.payload.timestamp === "string" ? first.payload.timestamp : undefined,
       cwd: typeof first.payload.cwd === "string" ? first.payload.cwd : undefined,
       cli_version: typeof first.payload.cli_version === "string" ? first.payload.cli_version : undefined,
+      provider: "codex",
     };
 
     if (sessionMeta.cwd !== codexEnvironmentDir) {
@@ -1021,6 +1164,103 @@ async function buildCodexTraceSnapshot(session: MatchedCodexSession): Promise<Co
   let completed = false;
   let lastAssistantMessage: string | undefined;
   let taskCompleteTimestamp: string | undefined;
+
+  if (session.sessionMeta.provider === "claude") {
+    for (const line of lines) {
+      const item = safeJsonParse(line);
+      if (!isRecord(item) || typeof item.timestamp !== "string") {
+        continue;
+      }
+
+      if (
+        item.type === "user" &&
+        isRecord(item.message) &&
+        item.message.role === "user"
+      ) {
+        if (typeof item.message.content === "string") {
+          entries.push({
+            kind: "user_message",
+            text: item.message.content,
+            timestamp: item.timestamp,
+          });
+          continue;
+        }
+
+        if (Array.isArray(item.message.content)) {
+          for (const part of item.message.content) {
+            if (!isRecord(part) || part.type !== "tool_result" || typeof part.tool_use_id !== "string") {
+              continue;
+            }
+
+            entries.push({
+              kind: "tool_result",
+              call_id: part.tool_use_id,
+              tool_name: toolNamesByCallId.get(part.tool_use_id),
+              output: stringifyUnknown(part.content),
+              timestamp: item.timestamp,
+            });
+          }
+        }
+
+        continue;
+      }
+
+      if (
+        item.type === "assistant" &&
+        isRecord(item.message) &&
+        Array.isArray(item.message.content)
+      ) {
+        const text = extractClaudeTextContent(item.message.content);
+        if (text) {
+          entries.push({
+            kind: "assistant_message",
+            text,
+            timestamp: item.timestamp,
+          });
+          lastAssistantMessage = text;
+        }
+
+        for (const part of item.message.content) {
+          if (
+            !isRecord(part) ||
+            part.type !== "tool_use" ||
+            typeof part.id !== "string" ||
+            typeof part.name !== "string"
+          ) {
+            continue;
+          }
+
+          toolNamesByCallId.set(part.id, part.name);
+          entries.push({
+            kind: "tool_call",
+            tool_name: part.name,
+            call_id: part.id,
+            arguments_raw: stringifyUnknown(part.input ?? {}),
+            arguments: part.input ?? {},
+            timestamp: item.timestamp,
+          });
+        }
+      }
+    }
+
+    return {
+      session: {
+        session_id: session.sessionMeta.id,
+        session_file: session.path,
+        session_meta: session.sessionMeta,
+        completed,
+        last_assistant_message: lastAssistantMessage,
+        task_complete_timestamp: taskCompleteTimestamp,
+      },
+      summary: {
+        assistant_message_count: entries.filter((entry) => entry.kind === "assistant_message").length,
+        tool_call_count: entries.filter((entry) => entry.kind === "tool_call").length,
+        tool_result_count: entries.filter((entry) => entry.kind === "tool_result").length,
+        user_message_count: entries.filter((entry) => entry.kind === "user_message").length,
+      },
+      entries,
+    };
+  }
 
   for (const line of lines) {
     const item = safeJsonParse(line);
@@ -1144,8 +1384,9 @@ async function readInteractiveTaskCompletion(
 
 function renderCodexTraceMarkdown(snapshot: CodexTraceSnapshot): string {
   const lines = [
-    "# Codex Trace Snapshot",
+    `# ${snapshot.session.session_meta.provider === "claude" ? "Claude" : "Codex"} Trace Snapshot`,
     "",
+    `- provider: ${snapshot.session.session_meta.provider ?? "codex"}`,
     `- session_id: ${snapshot.session.session_id}`,
     `- session_file: ${snapshot.session.session_file}`,
     `- completed: ${snapshot.session.completed}`,
@@ -1244,24 +1485,39 @@ async function persistCodexTraceArtifacts(
   }
 
   const snapshot = await buildCodexTraceSnapshot(matchedSession);
+  const runtimeStatus = await readRuntimeStatus(preparedRun.agentRunStatusPath);
+  if (runtimeStatus?.status === "exited") {
+    snapshot.session.completed = true;
+    if (typeof runtimeStatus.recorded_at === "string") {
+      snapshot.session.task_complete_timestamp = runtimeStatus.recorded_at;
+    }
+  }
+
   const filteredJsonl = snapshot.entries.map((entry) => JSON.stringify(entry)).join("\n");
-  await writeFile(join(preparedRun.runDir, "codex-trace.filtered.jsonl"), filteredJsonl ? `${filteredJsonl}\n` : "");
-  await writeFile(join(preparedRun.runDir, "codex-trace.snapshot.json"), JSON.stringify(snapshot, null, 2));
-  await writeFile(join(preparedRun.runDir, "codex-trace.readable.md"), renderCodexTraceMarkdown(snapshot));
-  await writeFile(
-    captureStatusPath,
-    JSON.stringify(
-      {
-        status: "captured",
-        captured_at: nowIso(),
-        session_id: matchedSession.sessionMeta.id,
-        session_file: matchedSession.path,
-        summary: snapshot.summary,
-      },
-      null,
-      2,
-    ),
+  const filteredJsonlContent = filteredJsonl ? `${filteredJsonl}\n` : "";
+  const snapshotJson = JSON.stringify(snapshot, null, 2);
+  const readableMarkdown = renderCodexTraceMarkdown(snapshot);
+  const statusJson = JSON.stringify(
+    {
+      status: "captured",
+      captured_at: nowIso(),
+      provider: matchedSession.sessionMeta.provider ?? agentProvider,
+      session_id: matchedSession.sessionMeta.id,
+      session_file: matchedSession.path,
+      summary: snapshot.summary,
+    },
+    null,
+    2,
   );
+
+  await writeFile(join(preparedRun.runDir, "codex-trace.filtered.jsonl"), filteredJsonlContent);
+  await writeFile(join(preparedRun.runDir, "codex-trace.snapshot.json"), snapshotJson);
+  await writeFile(join(preparedRun.runDir, "codex-trace.readable.md"), readableMarkdown);
+  await writeFile(captureStatusPath, statusJson);
+  await writeFile(join(preparedRun.runDir, "agent-trace.filtered.jsonl"), filteredJsonlContent);
+  await writeFile(join(preparedRun.runDir, "agent-trace.snapshot.json"), snapshotJson);
+  await writeFile(join(preparedRun.runDir, "agent-trace.readable.md"), readableMarkdown);
+  await writeFile(join(preparedRun.runDir, "agent-trace.status.json"), statusJson);
 
   return matchedSession;
 }
@@ -1286,7 +1542,7 @@ function buildReflectionPrompt(
   sandboxCredentials: TripletexCredentials | undefined,
 ): string {
   const lines = [
-    "You are doing a post-run learning pass for this exact Codex session.",
+    "You are doing a post-run learning pass for this exact agent session.",
     "Work fully autonomously until everything below is complete.",
     "Do not ask questions.",
     "Do not talk to the user.",
@@ -1397,10 +1653,11 @@ function buildScoreReflectionPrompt(
     "Required analysis:",
     "1. Identify the attributed task id from task attribution if available.",
     "2. Read submission-score.json and determine whether correctness was perfect.",
+    "2.5. Task tier max scores are: T1 tasks 1-8 => max 2, T2 tasks 9-18 => max 4, T3 tasks 19-30 => max 6.",
     "3. If correctness was not perfect, explain what the run likely did wrong in the final Tripletex state or payload mapping.",
     "4. If correctness was perfect, use normalized_score together with the attributed leaderboard entry to judge whether the run was likely inefficient.",
     "5. If correctness was perfect but score lagged the leaderboard best for that task, treat that as an efficiency/error signal rather than a correctness signal.",
-    "6. Use the existing Codex trace and prior reflection to identify likely wasted API calls, avoidable reads, retries, or 4xx-causing mistakes.",
+    "6. Use the existing agent trace and prior reflection to identify likely wasted API calls, avoidable reads, retries, or 4xx-causing mistakes.",
     "7. State clearly what the run did right, what it did wrong, and what the next agent should change.",
     "",
     "Output requirements:",
@@ -1475,6 +1732,55 @@ function buildReflectionLaunchScript(
   matchedSession: MatchedCodexSession,
   reflectionPromptPath: string,
 ): string {
+  if (agentProvider === "claude") {
+    const runtimeStatusPath = join(preparedRun.runDir, "codex-reflection.runtime-status.json");
+    const reflectionOutputPath = join(preparedRun.runDir, "codex-reflection.summary.md");
+    return `#!/usr/bin/env zsh
+set -u
+
+cd ${shellQuote(codexEnvironmentDir)}
+
+PROMPT_FILE=${shellQuote(reflectionPromptPath)}
+SESSION_ID=${shellQuote(matchedSession.sessionMeta.id)}
+STATUS_FILE=${shellQuote(runtimeStatusPath)}
+REFLECTION_OUTPUT_FILE=${shellQuote(reflectionOutputPath)}
+write_status() {
+  local run_status="$1"
+  local run_exit_code="$2"
+  local recorded_at
+  recorded_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  cat > "$STATUS_FILE" <<EOF
+{
+  "status": "$run_status",
+  "provider": "claude",
+  "run_id": "${preparedRun.runId}",
+  "request_id": "${preparedRun.requestId}",
+  "recorded_at": "$recorded_at",
+  "exit_code": $run_exit_code
+}
+EOF
+}
+
+write_status "running" 0
+
+unset CLAUDE_CODE_USE_VERTEX
+unset ANTHROPIC_VERTEX_PROJECT_ID
+unset CLOUD_ML_REGION
+export ANTHROPIC_BASE_URL=${shellQuote(claudeProxyBaseUrl)}
+export ANTHROPIC_API_KEY=${shellQuote(claudeProxyApiKey)}
+claude -r "$SESSION_ID" --model ${shellQuote(claudeModel)} --effort ${shellQuote(claudeEffort)} --add-dir ${shellQuote(preparedRun.runDir)} --dangerously-skip-permissions -p --output-format text "$(cat "$PROMPT_FILE")" > "$REFLECTION_OUTPUT_FILE"
+agent_exit_code=$?
+write_status "exited" $agent_exit_code
+
+print
+print "claude reflection resume exited with status $agent_exit_code"
+print "run id: ${preparedRun.runId}"
+print "run dir: ${preparedRun.runDir}"
+print "session id: ${matchedSession.sessionMeta.id}"
+exec zsh -i
+`;
+  }
+
   return `#!/usr/bin/env zsh
 set -u
 
@@ -1580,6 +1886,67 @@ async function finalizeReflectionRun(
   reflectionEventsPath: string,
 ): Promise<ReflectionRunResult> {
   const deadline = Date.now() + solveTimeoutMs;
+  const runtimeStatusPath = join(preparedRun.runDir, "codex-reflection.runtime-status.json");
+
+  if (agentProvider === "claude") {
+    while (Date.now() < deadline) {
+      const lines = await readSessionLines(matchedSession.path);
+      if (lines.length > baselineLineCount) {
+        const appendedLines = lines.slice(baselineLineCount).join("\n");
+        await writeFile(reflectionEventsPath, appendedLines ? `${appendedLines}\n` : "");
+      }
+
+      const runtimeStatus = await readRuntimeStatus(runtimeStatusPath);
+      if (runtimeStatus?.status === "exited") {
+        await writeFile(
+          join(preparedRun.runDir, "codex-reflection.status.json"),
+          JSON.stringify(
+            {
+              status: "completed",
+              completed_at: typeof runtimeStatus.recorded_at === "string" ? runtimeStatus.recorded_at : nowIso(),
+              session_id: matchedSession.sessionMeta.id,
+              tmux_window: preparedRun.tmuxWindow,
+              reflection_summary_path: reflectionSummaryPath,
+              reflection_events_path: reflectionEventsPath,
+              provider: "claude",
+              runtime_status_path: runtimeStatusPath,
+              exit_code: runtimeStatus.exit_code,
+            },
+            null,
+            2,
+          ),
+        );
+        return {
+          status: "completed",
+          completedAt: typeof runtimeStatus.recorded_at === "string" ? runtimeStatus.recorded_at : undefined,
+        };
+      }
+
+      await sleep(1000);
+    }
+
+    await writeFile(
+      join(preparedRun.runDir, "codex-reflection.status.json"),
+      JSON.stringify(
+        {
+          status: "timed_out",
+          timed_out_at: nowIso(),
+          session_id: matchedSession.sessionMeta.id,
+          tmux_window: preparedRun.tmuxWindow,
+          reflection_summary_path: reflectionSummaryPath,
+          reflection_events_path: reflectionEventsPath,
+          provider: "claude",
+          runtime_status_path: runtimeStatusPath,
+        },
+        null,
+        2,
+      ),
+    );
+
+    return {
+      status: "timed_out",
+    };
+  }
 
   while (Date.now() < deadline) {
     const lines = await readSessionLines(matchedSession.path);
@@ -1698,6 +2065,9 @@ async function maybeLaunchReflectionRun(
         reflection_summary_path: reflectionSummaryPath,
         reflection_events_path: reflectionEventsPath,
         baseline_task_complete_count: baselineTaskCompleteCount,
+        provider: agentProvider,
+        runtime_status_path:
+          agentProvider === "claude" ? join(preparedRun.runDir, "codex-reflection.runtime-status.json") : undefined,
         sandbox_credentials_available: Boolean(sandboxCredentials),
       },
       null,
@@ -1891,6 +2261,52 @@ async function maybeLaunchScoreReflectionRun(
 }
 
 function buildLaunchScript(preparedRun: PreparedRun): string {
+  if (agentProvider === "claude") {
+    return `#!/usr/bin/env zsh
+set -u
+
+cd ${shellQuote(codexEnvironmentDir)}
+
+PROMPT_FILE=${shellQuote(preparedRun.promptFilePath)}
+STATUS_FILE=${shellQuote(preparedRun.agentRunStatusPath)}
+write_status() {
+  local run_status="$1"
+  local run_exit_code="$2"
+  local recorded_at
+  recorded_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  cat > "$STATUS_FILE" <<EOF
+{
+  "status": "$run_status",
+  "provider": "claude",
+  "run_id": "${preparedRun.runId}",
+  "request_id": "${preparedRun.requestId}",
+  "recorded_at": "$recorded_at",
+  "exit_code": $run_exit_code
+}
+EOF
+}
+
+write_status "running" 0
+
+unset CLAUDE_CODE_USE_VERTEX
+unset ANTHROPIC_VERTEX_PROJECT_ID
+unset CLOUD_ML_REGION
+export ANTHROPIC_BASE_URL=${shellQuote(claudeProxyBaseUrl)}
+export ANTHROPIC_API_KEY=${shellQuote(claudeProxyApiKey)}
+
+claude --model ${shellQuote(claudeModel)} --effort ${shellQuote(claudeEffort)} --add-dir ${shellQuote(preparedRun.runDir)} --dangerously-skip-permissions -p --output-format text "$(cat "$PROMPT_FILE")"
+agent_exit_code=$?
+write_status "exited" $agent_exit_code
+
+print
+print "claude exited with status $agent_exit_code"
+print "run id: ${preparedRun.runId}"
+print "run dir: ${preparedRun.runDir}"
+print "request file: ${preparedRun.requestFilePath}"
+exec zsh -i
+`;
+  }
+
   return `#!/usr/bin/env zsh
 set -u
 
@@ -1951,11 +2367,13 @@ async function prepareRun(input: SolveRequest, requestId: string): Promise<Prepa
   const requestFilePath = join(runDir, "request.json");
   const promptFilePath = join(runDir, "codex-prompt.txt");
   const launchScriptPath = join(runDir, "launch-codex.zsh");
+  const agentRunStatusPath = join(runDir, "agent-run.status.json");
   const tmuxWindow = runId.slice(0, 48);
   const createdAt = new Date().toISOString();
   const codexPrompt = buildCodexPrompt(input, storedFiles, effectiveCredentials, scriptsDir);
 
   const preparedRun: PreparedRun = {
+    agentRunStatusPath,
     createdAt,
     codexPrompt,
     effectiveCredentials,
@@ -1988,10 +2406,12 @@ async function prepareRun(input: SolveRequest, requestId: string): Promise<Prepa
         tmux_session: tmuxSessionName,
         tmux_window: tmuxWindow,
         scripts_dir: scriptsDir,
+        runner_provider: agentProvider,
         credentials_source: effectiveCredentials.source,
         effective_base_url: effectiveCredentials.baseUrl,
         leaderboard_before_captured: Boolean(leaderboardBeforeSnapshot),
         submissions_before_captured: Boolean(submissionsBeforeSnapshot),
+        agent_run_status_path: agentRunStatusPath,
         attachments: storedFiles.map(({ content_base64: _contentBase64, ...file }) => file),
       },
       null,
@@ -2007,6 +2427,7 @@ async function prepareRun(input: SolveRequest, requestId: string): Promise<Prepa
     requestFilePath,
     promptFilePath,
     launchScriptPath,
+    agentRunStatusPath,
     scriptsDir,
   });
 
@@ -2077,7 +2498,29 @@ async function waitForSolveCompletion(preparedRun: PreparedRun): Promise<WaitFor
       matchedSession = await findMatchingCodexSession(preparedRun.codexPrompt, preparedRun.createdAt);
     }
 
-    if (matchedSession) {
+    const runtimeStatus = await readRuntimeStatus(preparedRun.agentRunStatusPath);
+    if (runtimeStatus?.status === "exited") {
+      if (!matchedSession) {
+        matchedSession = await findMatchingCodexSession(preparedRun.codexPrompt, preparedRun.createdAt);
+      }
+
+      log("INFO", "Detected solve completion from runtime status", {
+        requestId: preparedRun.requestId,
+        runId: preparedRun.runId,
+        provider: runtimeStatus.provider ?? agentProvider,
+        recordedAt: runtimeStatus.recorded_at,
+        exitCode: runtimeStatus.exit_code,
+        sessionId: matchedSession?.sessionMeta.id,
+      });
+      return {
+        matchedSession,
+        reason: "completed",
+        taskCompleteTimestamp:
+          typeof runtimeStatus.recorded_at === "string" ? runtimeStatus.recorded_at : undefined,
+      };
+    }
+
+    if (matchedSession && agentProvider === "codex") {
       const completion = await readInteractiveTaskCompletion(matchedSession);
       if (completion) {
         log("INFO", "Detected solve completion from session trace", {
@@ -2129,8 +2572,7 @@ async function continuePostRunProcessing(
         error: message,
       });
     });
-    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
-    await attributeRunToSubmissionScore(preparedRun, reflectionResult).catch((error) => {
+    const submissionScorePromise = attributeRunToSubmissionScore(preparedRun, waitResult.taskCompleteTimestamp).catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
       log("ERROR", "Submission score attribution failed", {
         requestId: preparedRun.requestId,
@@ -2138,26 +2580,28 @@ async function continuePostRunProcessing(
         error: message,
       });
     });
-    await leaderboardPromise;
-    const scoreReflectionResult = await maybeLaunchScoreReflectionRun(preparedRun, tracedSession ?? matchedSession).catch(
-      (error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        log("ERROR", "Score-aware reflection failed", {
-          requestId: preparedRun.requestId,
-          runId: preparedRun.runId,
-          error: message,
-        });
-        return {
+    await Promise.allSettled([leaderboardPromise, submissionScorePromise]);
+    const scoreArtifacts = await resolveScoreAwareReflectionArtifacts(preparedRun);
+    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession, scoreArtifacts);
+    await writeFile(
+      join(preparedRun.runDir, "codex-score-reflection.status.json"),
+      JSON.stringify(
+        {
           status: "skipped",
-        } satisfies ReflectionRunResult;
-      },
+          reason: "unified_into_primary_reflection",
+          reflection_summary_path: join(preparedRun.runDir, "codex-reflection.summary.md"),
+          created_at: nowIso(),
+        },
+        null,
+        2,
+      ),
     );
     log("INFO", "Post-run processing completed", {
       requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tracedSessionId: (tracedSession ?? matchedSession)?.sessionMeta.id,
       reflectionStatus: reflectionResult.status,
-      scoreReflectionStatus: scoreReflectionResult.status,
+      scoreArtifactsReady: Boolean(scoreArtifacts),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -2293,7 +2737,7 @@ async function attributeRunToLeaderboardTask(
 
 async function attributeRunToSubmissionScore(
   preparedRun: PreparedRun,
-  reflectionResult: ReflectionRunResult,
+  taskCompleteTimestamp: string | undefined,
 ): Promise<void> {
   const submissionsAccessToken = await loadSubmissionsAccessToken();
   if (!submissionsAccessToken) {
@@ -2305,26 +2749,6 @@ async function attributeRunToSubmissionScore(
           request_id: preparedRun.requestId,
           status: "skipped",
           reason: "missing_submissions_access_token",
-          submissions_url: submissionsApiUrl,
-          generated_at: nowIso(),
-        },
-        null,
-        2,
-      ),
-    );
-    return;
-  }
-
-  if (reflectionResult.status !== "completed") {
-    await writeFile(
-      join(preparedRun.runDir, "submission-score.json"),
-      JSON.stringify(
-        {
-          run_id: preparedRun.runId,
-          request_id: preparedRun.requestId,
-          status: "skipped",
-          reason: "reflection_not_completed",
-          reflection_status: reflectionResult.status,
           submissions_url: submissionsApiUrl,
           generated_at: nowIso(),
         },
@@ -2381,13 +2805,14 @@ async function attributeRunToSubmissionScore(
   }
 
   const beforeSnapshot = parsedBefore as SubmissionSnapshot;
+  await sleep(leaderboardAttributionDelayMs);
   const deadline = Date.now() + submissionsPollWindowMs;
   let afterSnapshot: SubmissionSnapshot | undefined;
   let match = inferSubmissionMatch(
     beforeSnapshot.entries,
     [],
     preparedRun.createdAt,
-    reflectionResult.completedAt,
+    taskCompleteTimestamp,
   );
 
   while (Date.now() <= deadline) {
@@ -2397,7 +2822,7 @@ async function attributeRunToSubmissionScore(
         beforeSnapshot.entries,
         afterSnapshot.entries,
         preparedRun.createdAt,
-        reflectionResult.completedAt,
+        taskCompleteTimestamp,
       );
 
       if (match.inference_status === "ambiguous") {
@@ -2433,8 +2858,9 @@ async function attributeRunToSubmissionScore(
             : match.submission && isSubmissionScored(match.submission)
               ? "completed"
               : "timed_out",
-        reflection_completed_at: reflectionResult.completedAt,
+        task_completed_at: taskCompleteTimestamp,
         submissions_url: submissionsApiUrl,
+        submissions_delay_ms: leaderboardAttributionDelayMs,
         submissions_poll_window_ms: submissionsPollWindowMs,
         submissions_poll_interval_ms: submissionsPollIntervalMs,
         before_captured_at: beforeSnapshot.captured_at,
@@ -2616,6 +3042,7 @@ Bun.serve({
       ...requestLogContext,
       activeSolveRequests: nextActiveSolveRequests,
       storageMode: resolveStorageMode(Bun.env.TRIPLETEX_STORAGE_MODE),
+      agentProvider,
       prompt: summarizePrompt(input.prompt),
       files: input.files?.length ?? 0,
       requestBaseUrl: input.tripletex_credentials.base_url,
@@ -2653,6 +3080,9 @@ log("INFO", "Tripletex orchestrator listening", {
   port,
   url: `http://localhost:${port}`,
   storageMode: resolveStorageMode(Bun.env.TRIPLETEX_STORAGE_MODE),
+  agentProvider,
+  claudeModel: agentProvider === "claude" ? claudeModel : undefined,
+  claudeProxyBaseUrl: agentProvider === "claude" ? claudeProxyBaseUrl : undefined,
   hasApiKey: Boolean(requiredBearerToken),
   maxConcurrentSolveRequests,
 });

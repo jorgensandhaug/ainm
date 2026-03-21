@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-03-21T13:59:21.805Z",
+  "request_id": "aabf572a",
+  "run_id": "prod-2026-03-21-135921797Z-1519c2a7",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-135921797Z-1519c2a7",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-21-135921797Z-1519c2a7",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-135921797Z-1519c2a7/scripts",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "attachments": [
+    {
+      "filename": "files/kvittering_nb_05.pdf",
+      "mime_type": "application/pdf",
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-135921797Z-1519c2a7/attachments/01-kvittering_nb_05.pdf"
+    }
+  ]
+}

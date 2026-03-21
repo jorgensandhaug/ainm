@@ -1,0 +1,17 @@
+{
+  "run_id": "prod-2026-03-21-141324059Z-1a6321a1",
+  "request_id": "6171abca",
+  "prompt_raw": "Enviámos uma fatura de 13986 EUR ao Porto Alegre Lda (org. nº 906918129) quando a taxa de câmbio era 10.37 NOK/EUR. O cliente pagou agora, mas a taxa é 11.31 NOK/EUR. Registe o pagamento e lance a diferença cambial (agio) na conta correta.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T14:13:31.304Z",
+  "after_captured_at": "2026-03-21T14:19:15.521Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "27",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T14:19:15.522Z"
+}

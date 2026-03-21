@@ -1,0 +1,8 @@
+{
+  "prompt": "Oppgaven er blokkert fordi legitimasjonen er falsk. Ikke gjett vertsadresse. Ikke gjør noen Tripletex-kall. Avslutt etter lokal vurdering.",
+  "tripletex_credentials": {
+    "base_url": "https://example.invalid/v2",
+    "session_token": "dummy"
+  },
+  "files": []
+}

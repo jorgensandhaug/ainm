@@ -1,0 +1,235 @@
+{
+  "session": {
+    "session_id": "019d10a8-f029-7970-8603-5c485c60a8d7",
+    "session_file": "/home/jorge/.codex/sessions/2026/03/21/rollout-2026-03-21T14-50-00-019d10a8-f029-7970-8603-5c485c60a8d7.jsonl",
+    "session_meta": {
+      "id": "019d10a8-f029-7970-8603-5c485c60a8d7",
+      "timestamp": "2026-03-21T13:50:00.236Z",
+      "cwd": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+      "cli_version": "0.116.0"
+    },
+    "completed": true,
+    "last_assistant_message": "Estado final aplicado con `6` llamadas. Se registró cargo manual de recordatorio `50 NOK` en `1500` / `3400` para cliente `108352269` vía voucher `#1` (`id 608962870`), se creó y envió la factura de tarifa `#4` (`id 2147594063`, importe `50 NOK`), y se registró pago parcial de `5000 NOK` sobre la factura vencida `#2` (`id 2147593896`), bajando saldo de `24812.5` a `19812.5`.\n\nScript usado: [overdue-reminder-fee.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts)",
+    "task_complete_timestamp": "2026-03-21T13:51:17.156Z"
+  },
+  "summary": {
+    "assistant_message_count": 6,
+    "tool_call_count": 8,
+    "tool_result_count": 8,
+    "user_message_count": 1
+  },
+  "entries": [
+    {
+      "kind": "task_event",
+      "task_type": "task_started",
+      "timestamp": "2026-03-21T13:50:00.699Z"
+    },
+    {
+      "kind": "user_message",
+      "text": "Scored Tripletex run.\nFollow ./AGENTS.md exactly.\n\nHighest priorities:\n- Get the final Tripletex state exactly correct.\n- Use the fewest API calls possible.\n- Avoid all avoidable 4xx errors.\n\nKnowledge order:\n- 1. ./trusted-standards/\n- 2. ./task-playbooks/\n- 3. ./openapi.json\n- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.\n\nRun-specific rules:\n- Only interact with the Tripletex API by writing TypeScript and running it with bun.\n- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts\n- Do not place API-interaction scripts anywhere else.\n- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.\n- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.\n- Use only the provided base URL and session token.\n- Authenticate with Basic Auth username 0 and password = session token.\n- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.\n- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.\n- Do not ask questions. Do not talk to the user. Do only the task.\n\nTask:\nUno de sus clientes tiene una factura vencida. Encuentre la factura vencida y registre un cargo por recordatorio de 50 NOK. Debito cuentas por cobrar (1500), credito ingresos por recordatorio (3400). También cree una factura por la tarifa de recordatorio al cliente y envíela. Además, registre un pago parcial de 5000 NOK en la factura vencida.\n\nTripletex API base URL:\nhttps://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\n\nTripletex session token:\nOpZCDbacxDoOBWrPV7AeZTJoJ1oA1vP6QGwhGbtg45Y\n\nRun scripts directory:\n/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts",
+      "timestamp": "2026-03-21T13:50:00.701Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Reviso estándar confiable exacto para factura vencida con cargo por recordatorio, pago parcial e invoice envío; luego ejecuto flujo mínimo con script `bun` en el directorio indicado.",
+      "timestamp": "2026-03-21T13:50:07.390Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_ID5cJqUntmGJFcVr7IdvqlDA",
+      "arguments_raw": "{\"cmd\":\"rg --files trusted-standards task-playbooks | rg 'overdue-invoice-reminder-fee-and-partial-payment|common-endpoints'\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":4000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "rg --files trusted-standards task-playbooks | rg 'overdue-invoice-reminder-fee-and-partial-payment|common-endpoints'",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 4000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:07.392Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_7RkXF6cw5Tx54xJutPB7Rvv8",
+      "arguments_raw": "{\"cmd\":\"pwd\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":200,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "pwd",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 200,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:07.406Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_ID5cJqUntmGJFcVr7IdvqlDA",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"rg --files trusted-standards task-playbooks | rg 'overdue-invoice-reminder-fee-and-partial-payment|common-endpoints'\"\nChunk ID: 79aa8f\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 44\nOutput:\ntask-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md\ntrusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md\ntrusted-standards/common-endpoints.md\n",
+      "timestamp": "2026-03-21T13:50:07.467Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_7RkXF6cw5Tx54xJutPB7Rvv8",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc pwd\nChunk ID: 565319\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 15\nOutput:\n/home/jorge/repos/ainm/tasks/tripletex/codex-environment\n",
+      "timestamp": "2026-03-21T13:50:07.468Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Tengo match exacto con el estándar confiable de recordatorio sobre factura vencida. Leo ese flujo y preparo un único script que siga esa secuencia sin exploración extra.",
+      "timestamp": "2026-03-21T13:50:14.931Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_KDimcXqdVw1K5kWptum1Rb7X",
+      "arguments_raw": "{\"cmd\":\"sed -n '1,240p' trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":12000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "sed -n '1,240p' trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 12000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:14.932Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_fI33iApBPySOidr6pvVXK578",
+      "arguments_raw": "{\"cmd\":\"sed -n '1,260p' task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":12000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "sed -n '1,260p' task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 12000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:14.943Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_KDimcXqdVw1K5kWptum1Rb7X",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"sed -n '1,240p' trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md\"\nChunk ID: f20716\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 2388\nOutput:\n# Book Reminder Fee, Invoice It, And Register Partial Payment On Overdue Invoice\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- exactly one existing overdue outgoing customer invoice is implied by the prompt\n- prompt requires an exact manual reminder fee booking of the prompt-fixed amount to ledger accounts `1500` and `3400`\n- prompt also requires a separate outgoing fee invoice for the same customer and wants it sent\n- prompt also requires a partial payment of exactly `5000` on the overdue invoice\n- prompt does not give the overdue invoice id directly\n\n## Do Not Use This Standard If\n- several overdue invoices remain after one decisive invoice read\n- the prompt explicitly says to use Tripletex reminder/remittance/debt-collection functionality instead of a manual fee booking\n- the prompt requires different ledger accounts or a different payment amount\n- the located overdue invoice has outstanding amount below `5000`\n- the prompt requires a specific send-channel override for the fee invoice\n\n## Standard Flow\n1. `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*)`\n2. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n3. `GET /ledger/account?number=1500,3400&fields=*`\n4. `POST /ledger/voucher`\n5. `POST /invoice`\n6. `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=5000`\n7. stop\n\n## Payload Rules\n- on the locate read, treat the winning invoice as:\n  - `invoiceDueDate < run-date`\n  - positive `amountCurrencyOutstanding` or `amountOutstanding`\n  - the only overdue row left after local filtering\n- reuse the located `customer.id` for both the manual voucher and the fee invoice\n- on `GET /invoice/paymentType`, prefer an incoming bank-style payment type whose debit account is `19xx`, `isBankAccount=true`, or `isInvoiceAccount=true`\n- do not reject a usable payment type just because `name=null` or `creditAccount=null`\n- on `GET /ledger/account?number=1500,3400&fields=*`, choose by exact numeric `account.number`, not by account name\n- do not reject prompt-required account `3400` only because the returned row is marked `isInactive=true`; the id-based voucher write is the decisive test\n- on `POST /ledger/voucher`, send:\n  - `voucherType: null`\n  - one positive posting on account `1500`\n  - `customer: { \"id\": ... }` on that `1500` posting\n  - one negative posting on account `3400`\n  - `currency: { \"id\": 1 }`\n  - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount\n- on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount\n- omit `vatType` on the order line; the API defaults to vatType id=0 (\"Ingen avgiftsbehandling\", 0%) which is correct for a no-VAT reminder fee and produces the correct invoice amount\n- do not use `/invoice/{id}/:createReminder` for this exact task shape:\n  - the fee amount there is account-configured, not prompt-controlled\n  - sandbox on `2026-03-21` required an explicit send type\n  - sandbox rejected `type=REMINDER`\n  - sandbox accepted `type=SOFT_REMINDER&dispatchTypes=EMAIL` but charged `38`, not the prompt-required fee amount\n- on the partial-payment write, use the prompt-fixed `paidAmount=5000`, not the full outstanding amount\n- because the task already proves an existing charged outgoing invoice, do not add a proactive company-bank-account hedge before the fee-invoice write\n\n## Response Parsing\n- Tripletex list endpoints return `{ values: [...] }`, single-object endpoints return `{ value: {...} }`\n- always handle both shapes from the very first script write; the `GET /invoice` response uses `values` (list), not `value`\n- a response-parsing bug in the `prod-2026-03-21` run crashed the script after the first GET, wasting 1 API call; the fix-up added handling for both shapes before the successful re-run\n- the correct generic parser: `if (json.values !== undefined) return json.values; if (json.value !== undefined) return json.value; return json;`\n\n## Reuse From Write Response\n- from the locate read:\n  - overdue invoice id\n  - overdue invoice number\n  - overdue invoice outstanding amount before payment\n  - customer id\n- from `POST /ledger/voucher`:\n  - voucher id and number\n  - returned postings proving `1500` / `3400` and the prompt fee amount / negative prompt fee amount\n- from `POST /invoice`:\n  - fee invoice id\n  - fee invoice number\n  - `amountCurrency=<prompt-fee>`\n- from `PUT /invoice/{id}/:payment`:\n  - remaining outstanding amount after the partial payment\n\n## Verification\n- default verification is zero extra calls after the payment write\n- trust the voucher write response when it already proves:\n  - voucher id and number\n  - one `1500` posting with `customer.id`\n  - one `3400` posting\n  - prompt fee amount / negative prompt fee amount\n- trust the fee-invoice write response when it already proves `amountCurrency=<prompt-fee>` and a new fee invoice number\n- trust the payment write response when it reduces outstanding by exactly `5000` from the locate-read amount\n\n## Known Recovery Branches\n- if the first invoice read returns zero overdue invoices or more than one overdue invoice, stop treating the task as an exact-match standard\n- if the same run already holds a proven incoming `paymentTypeId` for the same company and currency, reuse it instead of reading `/invoice/paymentType` again\n- if the fee-invoice write fails only on the missing-company-bank-account validation, use the normal repair branch:\n  - `GET /ledger/account?isBankAccount=true&fields=*`\n  - `PUT /ledger/account/{id}` on the existing invoice account with minimal payload `{ \"bankAccountNumber\": \"12345678903\" }`\n  - retry the same fee-invoice write once\n- if that repair branch was already forced, do not restart from the voucher write or payment-type read\n\n## Canonical Call Count\n- exact standalone task with no cached same-run ids: `6` calls\n- same task shape with cached same-run incoming `paymentTypeId`: `5` calls\n- no public lower-call standalone shortcut was proven for the exact task shape\n\n## OpenAPI / Sandbox Status\n- `/invoice`, `/invoice/{id}/:payment`, `/invoice/paymentType`, `/ledger/account`, and `/ledger/voucher` verified in `./openapi.json`\n- persistent sandbox proof on `2026-03-21` first disproved the tempting reminder shortcut:\n  - `PUT /invoice/{id}/:createReminder` without a send type failed `422 Minst én sendetype må oppgis.`\n  - `PUT /invoice/{id}/:createReminder?type=REMINDER...` failed `422 type: Ugyldig verdi.`\n  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but created reminder charge `38`, not the prompt-controlled fee amount\n  - that reminder branch therefore is not a correct exact-match replacement for prompt-controlled reminder-fee tasks on `1500` / `3400`\n- persistent sandbox proof on `2026-03-21` confirmed the manual exact-fee branch on disposable fixture customer `995205756` / invoice `180`:\n  - one decisive overdue-invoice locate read found the fixture invoice with `amountCurrencyOutstanding=10000` and `invoiceDueDate=2026-03-01`\n  - `GET /invoice/paymentType` returned usable incoming bank payment type `32813748`\n  - `GET /ledger/account?number=1500,3400&fields=*` returned both required account rows; account `3400` came back `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded\n  - `POST /ledger/voucher` succeeded with voucher `608897119`\n  - `POST /invoice` created fee invoice `181` with `amountCurrency=65`\n  - `PUT /invoice/2147580713/:payment?paymentDate=2026-03-21&paymentTypeId=32813748&paidAmount=5000` reduced the overdue invoice outstanding from `10000` to `5000`\n- production proof on `2026-03-21` confirmed the `7`-call branch (with vatType GET) for German prompt amount `50`:\n  - `POST /invoice` created and sent fee invoice `5` with `amountCurrency=50`\n  - `PUT /invoice/2147546735/:payment?paymentDate=2026-03-21&paymentTypeId=27178699&paidAmount=5000` reduced outstanding to `28562.5`\n- production proof on `2026-03-21` (`prod-2026-03-21-124240715Z-4117f590`) confirmed `7`-call branch for Portuguese prompt amount `35` on fresh account, scoring 6/6 (normalized_score=6, best possible):\n  - overdue invoice #2 (id=2147587824), customer=108342547, outstanding=18687.5\n  - voucher #1, fee invoice #4 (amount=35), payment reduced outstanding to 13687.5\n  - 1 wasted GET /invoice call due to response-parsing bug (`value` vs `values`) in the initial script\n- persistent sandbox proof on `2026-03-21` confirmed the `6`-call path (omitting vatType GET):\n  - `POST /invoice` without `orderLines[].vatType` succeeded for fee amount `35`; API defaulted to vatType id=0 (\"Ingen avgiftsbehandling\", 0%); invoice amount was correct at `35`\n  - full end-to-end 6-call run: locate → paymentType → accounts → voucher → invoice → payment all succeeded\n  - `POST /invoice` with the omitted vatType showed `amountCurrency=35`, `amountExcludingVatCurrency=35`, `amountIncludingVatCurrency=35` — all identical, confirming 0% VAT was applied\n  - voucher posting with `account: { number: 1500 }` (instead of `account: { id: ... }`) failed `422 postings.account.name: Kan ikke være null` — the account GET is still required\n- the `6`-call path is now the default for this task shape; the previous `7`-call path included a now-unnecessary `GET /ledger/vatType` call\n",
+      "timestamp": "2026-03-21T13:50:14.973Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_fI33iApBPySOidr6pvVXK578",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc \"sed -n '1,260p' task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md\"\nChunk ID: 744a78\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 2370\nOutput:\n# Overdue Invoice Reminder Fee And Partial Payment\n\n## Scope\n\nUse for tasks like:\n- find the one overdue outgoing customer invoice in the account\n- book an exact manual reminder fee to specific ledger accounts\n- create and send a separate fee invoice to that same customer\n- register a fixed partial payment on the overdue invoice\n\nDo not use for:\n- tasks that explicitly say to use Tripletex reminder/debt-collection functionality\n- tasks that only need a reminder document without a separate manual fee booking\n- tasks with several overdue invoices that stay ambiguous after one decisive invoice read\n- full-payment, payment-reversal, credit-note, or delete flows\n\n## Key Findings\n\n- The downstream exact-match path is `6` calls when no same-run ids are cached:\n  1. locate the overdue invoice\n  2. resolve incoming payment type\n  3. resolve ledger accounts `1500` and `3400`\n  4. post the manual voucher\n  5. create/send the fee invoice (omit vatType on order line)\n  6. register the fixed `5000` partial payment\n- The prompt wording `purregebyr` is a trap if you jump straight to `/invoice/{id}/:createReminder`\n- Persistent sandbox on `2026-03-21` showed:\n  - `PUT /invoice/{id}/:createReminder` without send type failed `422 Minst én sendetype må oppgis.`\n  - `PUT /invoice/{id}/:createReminder?type=REMINDER...` failed `422 type: Ugyldig verdi.`\n  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but charged `38`, not the prompt-required exact fee amount\n- Therefore `/invoice/{id}/:createReminder` is not the exact-fee solution path for this task family unless the prompt explicitly wants the company-configured reminder charge rather than an exact manual amount\n- The successful voucher payload needed:\n  - `voucherType=null`\n  - `account: { id }` refs, not `account.number` (number-based postings fail with `422 postings.account.name: Kan ikke være null`)\n  - `customer: { id }` on the `1500` posting\n  - balanced prompt-fee and negative prompt-fee values across `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency`\n- The fee invoice itself is an ordinary direct-line no-VAT customer invoice:\n  - same customer id as the overdue invoice\n  - one prompt-fee line\n  - omit `vatType` on the order line; the API defaults to vatType id=0 (\"Ingen avgiftsbehandling\", 0%) which is correct for a no-VAT reminder fee\n  - the previous `7`-call path explicitly resolved outgoing `0%` vatType via `GET /ledger/vatType`; this is unnecessary because omitting vatType produces the correct 0% result\n  - default `sendToCustomer=true`\n- The payment write for this task family is not the ordinary full-payment rule from the standalone payment playbook\n- Here the prompt fixes the partial-payment amount, so `PUT /invoice/{id}/:payment` must use `paidAmount=5000`, not the invoice's full outstanding balance\n- The payment-type heuristic from the ordinary payment playbook still applies:\n  - prefer a `19xx` debit account\n  - accept `name=null`\n  - accept `creditAccount=null`\n- Production and sandbox payment-type ids differed (`27178699` vs `32813748` vs `36380804`), so never hardcode or cargo-cult a prior id across environments\n\n## Minimal Safe Flow\n\n1. Locate the overdue invoice in one decisive read\n   - `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*)`\n   - local filter:\n     - `invoiceDueDate < run-date`\n     - positive outstanding amount\n     - exactly one surviving overdue row\n2. Resolve one usable incoming payment type\n   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n3. Resolve the explicit ledger accounts\n   - `GET /ledger/account?number=1500,3400&fields=*`\n   - choose the exact numeric account rows\n4. Post the manual exact-fee voucher\n   - debit `1500` with `customer.id`\n   - credit `3400`\n   - prompt fee amount / negative prompt fee amount\n5. Create and send the separate fee invoice\n   - one prompt-fee direct order line\n   - omit `vatType` on the order line (API defaults to 0%)\n   - default `sendToCustomer=true`\n6. Register the fixed partial payment\n   - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=5000`\n7. Verify from the write responses and stop\n\n## Canonical Call Count\n\n- exact standalone task with no cached same-run ids: `6` calls\n- same task shape with cached same-run incoming `paymentTypeId`: `5` calls\n- no public lower-call standalone shortcut was proven for the exact task shape\n\n## Response Parsing\n\n- Tripletex list endpoints return `{ values: [...] }`, single-object endpoints return `{ value: {...} }`\n- always handle both shapes from the very first script write\n- the `prod-2026-03-21-124240715Z-4117f590` run crashed on the first GET /invoice call because `(await r.json()).value` returned undefined for a list endpoint; the correct pattern:\n  ```typescript\n  const json = JSON.parse(txt);\n  if (json.values !== undefined) return json.values;\n  if (json.value !== undefined) return json.value;\n  return json;\n  ```\n\n## Winning Payload Shapes\n\nVoucher:\n\n```json\n{\n  \"date\": \"2026-03-21\",\n  \"description\": \"Manual reminder fee 180\",\n  \"voucherType\": null,\n  \"postings\": [\n    {\n      \"row\": 1,\n      \"date\": \"2026-03-21\",\n      \"description\": \"Manual reminder fee 180\",\n      \"account\": { \"id\": 424190806 },\n      \"customer\": { \"id\": 108334046 },\n      \"currency\": { \"id\": 1 },\n      \"amount\": 35,\n      \"amountCurrency\": 35,\n      \"amountGross\": 35,\n      \"amountGrossCurrency\": 35\n    },\n    {\n      \"row\": 2,\n      \"date\": \"2026-03-21\",\n      \"description\": \"Manual reminder fee 180\",\n      \"account\": { \"id\": 424191002 },\n      \"currency\": { \"id\": 1 },\n      \"amount\": -35,\n      \"amountCurrency\": -35,\n      \"amountGross\": -35,\n      \"amountGrossCurrency\": -35\n    }\n  ]\n}\n```\n\nFee invoice:\n\n```json\n{\n  \"invoiceDate\": \"2026-03-21\",\n  \"invoiceDueDate\": \"2026-03-21\",\n  \"customer\": { \"id\": 108334046 },\n  \"orders\": [\n    {\n      \"customer\": { \"id\": 108334046 },\n      \"orderDate\": \"2026-03-21\",\n      \"deliveryDate\": \"2026-03-21\",\n      \"orderLines\": [\n        {\n          \"description\": \"Purregebyr\",\n          \"count\": 1,\n          \"unitPriceExcludingVatCurrency\": 35\n        }\n      ]\n    }\n  ]\n}\n```\n\nReplace ids with the current account's resolved ids. The structure is the key: exact account ids on the voucher, exact customer id on the `1500` posting, and no `vatType` on the fee invoice order line (API defaults to 0%).\nReplace the literal `35` values with the prompt's exact reminder-fee amount.\n\n## Pitfalls\n\n- Do not use `/invoice/{id}/:createReminder` for exact prompt-fee reminder-fee tasks on `1500` / `3400`\n- Do not assume the reminder endpoint's configured charge equals the prompt amount; the sandbox charged `38`\n- Do not omit the reminder fee's separate manual voucher just because the prompt also asks for a fee invoice\n- Do not try to infer the explicit prompt account from the account name; in sandbox the required account `3400` had an unrelated name and `isInactive=true`, yet still worked when referenced by id\n- Do not use `account.number` directly on voucher postings; the id-based path is the only one that works (number-based fails `422`)\n- Do not omit `customer` on the `1500` voucher posting\n- Do not add a `GET /ledger/vatType` call; omitting `vatType` on the fee invoice order line defaults to 0% and saves 1 API call\n- Do not overpay the overdue invoice; for this task shape the payment amount comes from the prompt (`5000`), not from the live outstanding balance\n- Do not add a proactive `/ledger/account?isBankAccount=true` hedge before the fee invoice; the presence of an existing overdue outgoing invoice already weakens that branch enough that it is not the default winning path\n- Do not add a `GET /customer`; the overdue-invoice locate read already gives the needed `customer.id`\n- Do not add a follow-up invoice read after the payment if the payment write response already proves the new remaining outstanding amount\n- Do not use `(await r.json()).value` for list endpoints; always handle both `values` (list) and `value` (single object) response shapes to avoid crashing and wasting a retry API call\n\n## Verification Shape\n\n- locate read proves:\n  - overdue invoice id\n  - overdue invoice number\n  - customer id\n  - outstanding amount before payment\n- voucher write proves:\n  - exact `1500` / `3400` postings\n  - exact prompt fee amount / negative prompt fee amount\n  - `customer.id` on the debit posting\n- fee-invoice write proves:\n  - new invoice id and invoice number\n  - `amountCurrency=<prompt-fee>`\n- payment write proves:\n  - remaining outstanding decreased by exactly `5000`\n\n## Reflection Delta\n\n- `prod-2026-03-21-124240715Z-4117f590` scored 6/6 (normalized_score=6, matching best) using the `7`-call path with explicit vatType GET\n- sandbox verification on `2026-03-21` proved the `6`-call path (omitting vatType GET) works end-to-end:\n  - `POST /invoice` without `orderLines[].vatType` created invoice with correct `amountCurrency=35`\n  - API defaulted to vatType id=0 (\"Ingen avgiftsbehandling\", 0%) — correct for no-VAT reminder fees\n  - full 6-call sandbox proof: all writes succeeded, all amounts correct\n- the production run also wasted 1 API call due to a response-parsing bug (`value` vs `values`), making the actual production call count 8 instead of 7\n- the `6`-call path is now the standard; next runs should achieve the same correctness with 1 fewer call\n",
+      "timestamp": "2026-03-21T13:50:14.979Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "Voy a escribir el script TypeScript del flujo exacto de 6 llamadas en el directorio de run, con parser `values/value`, selección determinista de la única factura vencida y rama de reparación solo si falta cuenta bancaria de empresa.",
+      "timestamp": "2026-03-21T13:50:23.039Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_UbZ6ot86FF52vd7Kw7Wz614V",
+      "arguments_raw": "{\"cmd\":\"ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":4000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 4000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:23.043Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_8GSaP9orvaGidChngIR9Q7Bi",
+      "arguments_raw": "{\"cmd\":\"command -v bun\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":1000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "command -v bun",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 1000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:50:23.054Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_UbZ6ot86FF52vd7Kw7Wz614V",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'ls -la /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts'\nChunk ID: b9e68f\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 25\nOutput:\ntotal 8\ndrwxr-xr-x 2 jorge users 4096 Mar 21 14:49 .\ndrwxr-xr-x 4 jorge users 4096 Mar 21 14:49 ..\n",
+      "timestamp": "2026-03-21T13:50:23.082Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_8GSaP9orvaGidChngIR9Q7Bi",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'command -v bun'\nChunk ID: ee381d\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 7\nOutput:\n/home/jorge/.bun/bin/bun\n",
+      "timestamp": "2026-03-21T13:50:23.082Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "El script ya está escrito. Ahora ejecuto el flujo real con `bun`; si la creación de la factura de tarifa falla solo por falta de cuenta bancaria, activará la rama de reparación validada y reintentará una vez.",
+      "timestamp": "2026-03-21T13:51:07.705Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "exec_command",
+      "call_id": "call_ycIWfuuDrucxq3LFwXk7gU5O",
+      "arguments_raw": "{\"cmd\":\"bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts\",\"workdir\":\"/home/jorge/repos/ainm/tasks/tripletex/codex-environment\",\"max_output_tokens\":12000,\"yield_time_ms\":1000}",
+      "arguments": {
+        "cmd": "bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts",
+        "workdir": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment",
+        "max_output_tokens": 12000,
+        "yield_time_ms": 1000
+      },
+      "timestamp": "2026-03-21T13:51:08.734Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_ycIWfuuDrucxq3LFwXk7gU5O",
+      "tool_name": "exec_command",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts'\nChunk ID: 761471\nWall time: 1.0010 seconds\nProcess running with session ID 50744\nOriginal token count: 0\nOutput:\n",
+      "timestamp": "2026-03-21T13:51:09.894Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "commentary",
+      "text": "La ejecución sigue corriendo. Estoy esperando el resultado final del flujo antes de cerrar.",
+      "timestamp": "2026-03-21T13:51:11.003Z"
+    },
+    {
+      "kind": "tool_call",
+      "tool_name": "write_stdin",
+      "call_id": "call_LB8WIa7EsQ1PioN1sTYv2ZpR",
+      "arguments_raw": "{\"session_id\":50744,\"chars\":\"\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}",
+      "arguments": {
+        "session_id": 50744,
+        "chars": "",
+        "yield_time_ms": 1000,
+        "max_output_tokens": 12000
+      },
+      "timestamp": "2026-03-21T13:51:11.326Z"
+    },
+    {
+      "kind": "tool_result",
+      "call_id": "call_LB8WIa7EsQ1PioN1sTYv2ZpR",
+      "tool_name": "write_stdin",
+      "output": "Command: /run/current-system/sw/bin/zsh -lc 'bun run /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts'\nChunk ID: c39193\nWall time: 0.6969 seconds\nProcess exited with code 0\nOriginal token count: 86\nOutput:\n{\n  \"callCount\": 6,\n  \"overdueInvoiceId\": 2147593896,\n  \"overdueInvoiceNumber\": 2,\n  \"overdueOutstandingBefore\": 24812.5,\n  \"customerId\": 108352269,\n  \"voucherId\": 608962870,\n  \"voucherNumber\": 1,\n  \"feeInvoiceId\": 2147594063,\n  \"feeInvoiceNumber\": 4,\n  \"feeInvoiceAmount\": 50,\n  \"paymentTypeId\": 36469300,\n  \"remainingOutstanding\": 19812.5\n}\n",
+      "timestamp": "2026-03-21T13:51:12.024Z"
+    },
+    {
+      "kind": "assistant_message",
+      "phase": "final_answer",
+      "text": "Estado final aplicado con `6` llamadas. Se registró cargo manual de recordatorio `50 NOK` en `1500` / `3400` para cliente `108352269` vía voucher `#1` (`id 608962870`), se creó y envió la factura de tarifa `#4` (`id 2147594063`, importe `50 NOK`), y se registró pago parcial de `5000 NOK` sobre la factura vencida `#2` (`id 2147593896`), bajando saldo de `24812.5` a `19812.5`.\n\nScript usado: [overdue-reminder-fee.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts)",
+      "timestamp": "2026-03-21T13:51:17.130Z"
+    },
+    {
+      "kind": "task_event",
+      "task_type": "task_complete",
+      "text": "Estado final aplicado con `6` llamadas. Se registró cargo manual de recordatorio `50 NOK` en `1500` / `3400` para cliente `108352269` vía voucher `#1` (`id 608962870`), se creó y envió la factura de tarifa `#4` (`id 2147594063`, importe `50 NOK`), y se registró pago parcial de `5000 NOK` sobre la factura vencida `#2` (`id 2147593896`), bajando saldo de `24812.5` a `19812.5`.\n\nScript usado: [overdue-reminder-fee.ts](/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-134955068Z-b244cce3/scripts/overdue-reminder-fee.ts)",
+      "timestamp": "2026-03-21T13:51:17.156Z"
+    }
+  ]
+}

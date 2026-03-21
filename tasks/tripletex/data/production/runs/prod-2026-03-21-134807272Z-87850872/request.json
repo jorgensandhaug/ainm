@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie três departamentos no Tripletex: \"IT\", \"Kvalitetskontroll\" e \"Regnskap\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "JPABFZGlrjz_CPu-wq4MBX6hW_UrJIWFrIi9FiPzcP0"
+  }
+}

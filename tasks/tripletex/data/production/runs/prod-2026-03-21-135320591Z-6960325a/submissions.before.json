@@ -1,0 +1,944 @@
+{
+  "captured_at": "2026-03-21T13:53:21.291Z",
+  "run_id": "prod-2026-03-21-135320591Z-6960325a",
+  "source": "before",
+  "url": "https://api.ainm.no/tripletex/my/submissions",
+  "entries": [
+    {
+      "id": "23f89b40-7c5d-464b-9112-3e1fcf6efaf7",
+      "status": "processing",
+      "queued_at": "2026-03-21T13:53:06.674192+00:00",
+      "completed_at": null,
+      "score_raw": null,
+      "score_max": null,
+      "normalized_score": null,
+      "duration_ms": null
+    },
+    {
+      "id": "263ee848-769c-4d91-9249-d706fd572279",
+      "status": "completed",
+      "queued_at": "2026-03-21T13:49:45.766109+00:00",
+      "completed_at": "2026-03-21T13:51:18.389791+00:00",
+      "score_raw": 10,
+      "score_max": 10,
+      "normalized_score": 6,
+      "duration_ms": 92446,
+      "feedback": {
+        "comment": "6/6 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: passed"
+        ]
+      }
+    },
+    {
+      "id": "e33895ec-fc50-4709-9c41-9d701866cb36",
+      "status": "completed",
+      "queued_at": "2026-03-21T13:48:07.055491+00:00",
+      "completed_at": "2026-03-21T13:48:54.391528+00:00",
+      "score_raw": 7,
+      "score_max": 7,
+      "normalized_score": 2,
+      "duration_ms": 47263,
+      "feedback": {
+        "comment": "3/3 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed"
+        ]
+      }
+    },
+    {
+      "id": "f0764cd9-a175-49ec-9044-dac1c4f5f2e9",
+      "status": "completed",
+      "queued_at": "2026-03-21T13:42:33.027680+00:00",
+      "completed_at": "2026-03-21T13:45:56.788842+00:00",
+      "score_raw": 8,
+      "score_max": 8,
+      "normalized_score": 3,
+      "duration_ms": 203590,
+      "feedback": {
+        "comment": "4/4 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed"
+        ]
+      }
+    },
+    {
+      "id": "49fd72d2-6cc8-4c55-bbb0-850525e14026",
+      "status": "failed",
+      "queued_at": "2026-03-21T13:37:00.623589+00:00",
+      "completed_at": "2026-03-21T13:42:28.315069+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 327443,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "2750fc0b-c7bb-4e8e-88db-9c6526c047a1",
+      "status": "completed",
+      "queued_at": "2026-03-21T13:31:34.617684+00:00",
+      "completed_at": "2026-03-21T13:35:56.099476+00:00",
+      "score_raw": 20,
+      "score_max": 22,
+      "normalized_score": 2.7273,
+      "duration_ms": 261037,
+      "feedback": {
+        "comment": "1/15 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: passed",
+          "Check 7: passed",
+          "Check 8: passed",
+          "Check 9: passed",
+          "Check 10: failed",
+          "Check 11: passed",
+          "Check 12: passed",
+          "Check 13: passed",
+          "Check 14: passed",
+          "Check 15: passed"
+        ]
+      }
+    },
+    {
+      "id": "f64a6851-0699-48ad-885d-6afecaa01d03",
+      "status": "failed",
+      "queued_at": "2026-03-21T13:25:03.555772+00:00",
+      "completed_at": "2026-03-21T13:30:11.505896+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 307404,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "edbe7800-c9bd-4d55-8d9c-debf678cb357",
+      "status": "failed",
+      "queued_at": "2026-03-21T13:03:19.527469+00:00",
+      "completed_at": "2026-03-21T13:08:46.741983+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 327126,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "81d689e8-8797-4a7d-8f64-70752b68309a",
+      "status": "failed",
+      "queued_at": "2026-03-21T12:55:39.691607+00:00",
+      "completed_at": "2026-03-21T13:01:01.304731+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 321408,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "0ea18e6f-0783-4d79-babc-c5391d435011",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:54:02.143120+00:00",
+      "completed_at": "2026-03-21T12:54:54.593975+00:00",
+      "score_raw": 7,
+      "score_max": 7,
+      "normalized_score": 2,
+      "duration_ms": 52067,
+      "feedback": {
+        "comment": "5/5 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed"
+        ]
+      }
+    },
+    {
+      "id": "71a8ab06-3bcc-4716-b3f8-4d26a39129f2",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:50:29.374325+00:00",
+      "completed_at": "2026-03-21T12:51:45.198817+00:00",
+      "score_raw": 11,
+      "score_max": 14,
+      "normalized_score": 2.3571,
+      "duration_ms": 75726,
+      "feedback": {
+        "comment": "2/10 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: failed",
+          "Check 6: passed",
+          "Check 7: passed",
+          "Check 8: passed",
+          "Check 9: passed",
+          "Check 10: failed"
+        ]
+      }
+    },
+    {
+      "id": "ebce8ad2-5a10-4daa-9067-02011aeb7fc5",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:48:43.303594+00:00",
+      "completed_at": "2026-03-21T12:49:39.565948+00:00",
+      "score_raw": 8,
+      "score_max": 8,
+      "normalized_score": 4,
+      "duration_ms": 55958,
+      "feedback": {
+        "comment": "5/5 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed"
+        ]
+      }
+    },
+    {
+      "id": "dc81cd99-d423-4515-96e7-c9151c906136",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:44:42.269435+00:00",
+      "completed_at": "2026-03-21T12:48:29.200677+00:00",
+      "score_raw": 6,
+      "score_max": 10,
+      "normalized_score": 1.8,
+      "duration_ms": 226878,
+      "feedback": {
+        "comment": "2/6 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: failed",
+          "Check 5: failed",
+          "Check 6: passed"
+        ]
+      }
+    },
+    {
+      "id": "4d8e9a7c-b378-4191-b6a3-c92e733d2d91",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:42:31.644218+00:00",
+      "completed_at": "2026-03-21T12:43:55.623590+00:00",
+      "score_raw": 10,
+      "score_max": 10,
+      "normalized_score": 6,
+      "duration_ms": 83965,
+      "feedback": {
+        "comment": "6/6 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: passed"
+        ]
+      }
+    },
+    {
+      "id": "96034f2e-fb0e-41ae-b1d2-6b95f78d641c",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:10:51.644915+00:00",
+      "completed_at": "2026-03-21T12:23:12.069478+00:00",
+      "score_raw": 0,
+      "score_max": 10,
+      "normalized_score": 0,
+      "duration_ms": 140115,
+      "feedback": {
+        "comment": "6/6 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "5cdb5b62-c464-4ad2-8854-e80363c26317",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:03:35.805395+00:00",
+      "completed_at": "2026-03-21T12:03:42.181217+00:00",
+      "score_raw": 0,
+      "score_max": 10,
+      "normalized_score": 0,
+      "duration_ms": 6355,
+      "feedback": {
+        "comment": "5/5 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed"
+        ]
+      }
+    },
+    {
+      "id": "e33de478-0639-48be-9744-92abffe35444",
+      "status": "completed",
+      "queued_at": "2026-03-21T12:01:40.778215+00:00",
+      "completed_at": "2026-03-21T12:01:59.860032+00:00",
+      "score_raw": 0,
+      "score_max": 8,
+      "normalized_score": 0,
+      "duration_ms": 18787,
+      "feedback": {
+        "comment": "4/4 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed"
+        ]
+      }
+    },
+    {
+      "id": "b6704615-1b30-48f4-8e41-48636334b6f7",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:57:47.102925+00:00",
+      "completed_at": "2026-03-21T12:00:36.878831+00:00",
+      "score_raw": 10,
+      "score_max": 10,
+      "normalized_score": 4.5,
+      "duration_ms": 169612,
+      "feedback": {
+        "comment": "6/6 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: passed"
+        ]
+      }
+    },
+    {
+      "id": "d6129d33-acc4-4e84-831e-2bac8975e9bd",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:55:16.150111+00:00",
+      "completed_at": "2026-03-21T11:57:10.366748+00:00",
+      "score_raw": 7,
+      "score_max": 10,
+      "normalized_score": 2.1,
+      "duration_ms": 114048,
+      "feedback": {
+        "comment": "2/6 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: failed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "b9e24b7b-6d14-4964-bec3-ec139485f5ba",
+      "status": "failed",
+      "queued_at": "2026-03-21T11:47:13.349866+00:00",
+      "completed_at": "2026-03-21T11:52:13.702579+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300133,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "2c2dded2-a664-44f1-9afe-e60876dca660",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:45:49.574605+00:00",
+      "completed_at": "2026-03-21T11:46:51.412042+00:00",
+      "score_raw": 8,
+      "score_max": 8,
+      "normalized_score": 4,
+      "duration_ms": 61642,
+      "feedback": {
+        "comment": "5/5 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed"
+        ]
+      }
+    },
+    {
+      "id": "73c814b0-6174-4d5c-b15c-171e523cfdde",
+      "status": "failed",
+      "queued_at": "2026-03-21T11:39:51.108642+00:00",
+      "completed_at": "2026-03-21T11:44:51.413824+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300130,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "c9bc0f72-e0ff-4835-b568-c70eced14a98",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:38:36.059458+00:00",
+      "completed_at": "2026-03-21T11:39:16.539071+00:00",
+      "score_raw": 7,
+      "score_max": 7,
+      "normalized_score": 2,
+      "duration_ms": 40338,
+      "feedback": {
+        "comment": "3/3 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed"
+        ]
+      }
+    },
+    {
+      "id": "37cd5d68-96df-4517-9c81-98bc548ddbaf",
+      "status": "failed",
+      "queued_at": "2026-03-21T11:19:53.907576+00:00",
+      "completed_at": "2026-03-21T11:24:54.466445+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300237,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "a47b2a35-49d1-4556-80f0-67874fb1cf02",
+      "status": "failed",
+      "queued_at": "2026-03-21T11:13:53.915123+00:00",
+      "completed_at": "2026-03-21T11:18:54.110215+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300156,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "f08ef7ed-c7ed-4b7c-8894-cf476e1c9e40",
+      "status": "failed",
+      "queued_at": "2026-03-21T11:08:41.910051+00:00",
+      "completed_at": "2026-03-21T11:13:42.362092+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300122,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "71632085-4e9c-4206-bd26-22f7671d08c3",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:05:49.685117+00:00",
+      "completed_at": "2026-03-21T11:07:45.516868+00:00",
+      "score_raw": 8,
+      "score_max": 8,
+      "normalized_score": 2.64,
+      "duration_ms": 115775,
+      "feedback": {
+        "comment": "4/4 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed"
+        ]
+      }
+    },
+    {
+      "id": "39e58fa1-c0cb-4174-a94e-7a0cd4043091",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:04:30.563975+00:00",
+      "completed_at": "2026-03-21T11:05:01.328832+00:00",
+      "score_raw": 6,
+      "score_max": 6,
+      "normalized_score": 2,
+      "duration_ms": 30348,
+      "feedback": {
+        "comment": "4/4 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed"
+        ]
+      }
+    },
+    {
+      "id": "10adbf11-caed-4683-bd48-18ae0070bbbe",
+      "status": "completed",
+      "queued_at": "2026-03-21T11:02:36.300608+00:00",
+      "completed_at": "2026-03-21T11:04:04.398112+00:00",
+      "score_raw": 4.5,
+      "score_max": 8,
+      "normalized_score": 1.125,
+      "duration_ms": 87756,
+      "feedback": {
+        "comment": "3/6 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "d11aca49-a093-46de-9f6b-7a7d36590be8",
+      "status": "failed",
+      "queued_at": "2026-03-21T10:53:59.919864+00:00",
+      "completed_at": "2026-03-21T10:59:00.136675+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300131,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "26de3371-9b9a-472d-abd0-6e98a97a2b98",
+      "status": "completed",
+      "queued_at": "2026-03-21T10:48:16.492096+00:00",
+      "completed_at": "2026-03-21T10:53:01.183014+00:00",
+      "score_raw": 7,
+      "score_max": 10,
+      "normalized_score": 2.1,
+      "duration_ms": 284359,
+      "feedback": {
+        "comment": "2/6 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: failed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "2bce5aa0-fcd7-4ff3-bb4a-065752603bfa",
+      "status": "completed",
+      "queued_at": "2026-03-21T10:44:28.798596+00:00",
+      "completed_at": "2026-03-21T10:45:40.751557+00:00",
+      "score_raw": 8,
+      "score_max": 8,
+      "normalized_score": 4,
+      "duration_ms": 71921,
+      "feedback": {
+        "comment": "3/3 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed"
+        ]
+      }
+    },
+    {
+      "id": "eb2fb4dd-f84f-49b9-ab14-bfb1a79d9dd1",
+      "status": "completed",
+      "queued_at": "2026-03-21T10:12:40.666009+00:00",
+      "completed_at": "2026-03-21T10:17:33.142610+00:00",
+      "score_raw": 5,
+      "score_max": 10,
+      "normalized_score": 1.5,
+      "duration_ms": 292426,
+      "feedback": {
+        "comment": "3/5 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: passed",
+          "Check 4: failed",
+          "Check 5: passed"
+        ]
+      }
+    },
+    {
+      "id": "384318e0-f1c3-4424-8114-53b0543b580f",
+      "status": "failed",
+      "queued_at": "2026-03-21T10:07:01.470463+00:00",
+      "completed_at": "2026-03-21T10:12:02.072297+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300127,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "ba2ee0bb-6431-4e04-bb25-77d6b02521bd",
+      "status": "completed",
+      "queued_at": "2026-03-21T10:02:28.575690+00:00",
+      "completed_at": "2026-03-21T10:05:38.095034+00:00",
+      "score_raw": 11,
+      "score_max": 14,
+      "normalized_score": 2.3571,
+      "duration_ms": 188941,
+      "feedback": {
+        "comment": "2/10 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: failed",
+          "Check 6: passed",
+          "Check 7: passed",
+          "Check 8: passed",
+          "Check 9: passed",
+          "Check 10: failed"
+        ]
+      }
+    },
+    {
+      "id": "1a7b598e-a3f8-47a8-bf0e-08fb2bea9b65",
+      "status": "completed",
+      "queued_at": "2026-03-21T09:56:06.952099+00:00",
+      "completed_at": "2026-03-21T10:00:14.051314+00:00",
+      "score_raw": 0,
+      "score_max": 10,
+      "normalized_score": 0,
+      "duration_ms": 246828,
+      "feedback": {
+        "comment": "5/5 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed"
+        ]
+      }
+    },
+    {
+      "id": "499d746c-a85d-46b7-8a14-d74f4ef557a1",
+      "status": "failed",
+      "queued_at": "2026-03-21T09:50:39.939907+00:00",
+      "completed_at": "2026-03-21T09:55:40.633566+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300227,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "877634b8-40c5-418a-8503-3019048ec3fa",
+      "status": "completed",
+      "queued_at": "2026-03-21T09:47:36.277960+00:00",
+      "completed_at": "2026-03-21T09:50:04.429817+00:00",
+      "score_raw": 10,
+      "score_max": 10,
+      "normalized_score": 6,
+      "duration_ms": 148113,
+      "feedback": {
+        "comment": "6/6 checks passed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: passed",
+          "Check 3: passed",
+          "Check 4: passed",
+          "Check 5: passed",
+          "Check 6: passed"
+        ]
+      }
+    },
+    {
+      "id": "765e5910-3003-438b-8353-5aa4b1a37bb9",
+      "status": "failed",
+      "queued_at": "2026-03-21T09:39:47.501147+00:00",
+      "completed_at": "2026-03-21T09:44:47.874277+00:00",
+      "score_raw": 0,
+      "score_max": 1,
+      "normalized_score": 0,
+      "duration_ms": 300160,
+      "feedback": {
+        "comment": "0/0 checks passed.",
+        "checks": []
+      },
+      "fail_reason": "endpoint_unreachable"
+    },
+    {
+      "id": "694c7a48-1fc6-4236-896c-641e3580f7eb",
+      "status": "completed",
+      "queued_at": "2026-03-21T09:07:41.567716+00:00",
+      "completed_at": "2026-03-21T09:21:43.014129+00:00",
+      "score_raw": 0,
+      "score_max": 10,
+      "normalized_score": 0,
+      "duration_ms": 241023,
+      "feedback": {
+        "comment": "6/6 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "30d4edb3-e3ae-4e32-b2c0-470b4574d0c9",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:57:36.834225+00:00",
+      "completed_at": "2026-03-20T22:57:43.682450+00:00",
+      "score_raw": 0,
+      "score_max": 7,
+      "normalized_score": 0,
+      "duration_ms": 6637,
+      "feedback": {
+        "comment": "3/3 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed"
+        ]
+      }
+    },
+    {
+      "id": "90f7a766-d711-4519-ab89-f1b9ec2b9e70",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:57:23.705100+00:00",
+      "completed_at": "2026-03-20T22:57:31.539872+00:00",
+      "score_raw": 0,
+      "score_max": 7,
+      "normalized_score": 0,
+      "duration_ms": 7727,
+      "feedback": {
+        "comment": "3/3 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed"
+        ]
+      }
+    },
+    {
+      "id": "14992e87-51f1-461d-9a9e-2f418edef5c7",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:57:06.473080+00:00",
+      "completed_at": "2026-03-20T22:57:14.245963+00:00",
+      "score_raw": 0,
+      "score_max": 7,
+      "normalized_score": 0,
+      "duration_ms": 7736,
+      "feedback": {
+        "comment": "5/5 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed"
+        ]
+      }
+    },
+    {
+      "id": "d931a1bd-0548-4402-8575-09162bd61113",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:56:44.232482+00:00",
+      "completed_at": "2026-03-20T22:56:55.960105+00:00",
+      "score_raw": 2,
+      "score_max": 7,
+      "normalized_score": 0.2857,
+      "duration_ms": 11682,
+      "feedback": {
+        "comment": "1/2 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: failed"
+        ]
+      }
+    },
+    {
+      "id": "ec0393a4-753a-4570-ae31-a4bebe2b05eb",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:56:34.342894+00:00",
+      "completed_at": "2026-03-20T22:56:41.015300+00:00",
+      "score_raw": 0,
+      "score_max": 8,
+      "normalized_score": 0,
+      "duration_ms": 6595,
+      "feedback": {
+        "comment": "7/7 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed",
+          "Check 6: failed",
+          "Check 7: failed"
+        ]
+      }
+    },
+    {
+      "id": "7e63536b-b44c-48d7-bfb2-f569d5a921ff",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:56:19.841733+00:00",
+      "completed_at": "2026-03-20T22:56:26.829680+00:00",
+      "score_raw": 2,
+      "score_max": 7,
+      "normalized_score": 0.2857,
+      "duration_ms": 6807,
+      "feedback": {
+        "comment": "1/2 checks failed.",
+        "checks": [
+          "Check 1: passed",
+          "Check 2: failed"
+        ]
+      }
+    },
+    {
+      "id": "e7120348-0828-40ab-bf3e-0f14dd7a79be",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:56:03.736576+00:00",
+      "completed_at": "2026-03-20T22:56:10.482232+00:00",
+      "score_raw": 0,
+      "score_max": 7,
+      "normalized_score": 0,
+      "duration_ms": 6506,
+      "feedback": {
+        "comment": "4/4 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed"
+        ]
+      }
+    },
+    {
+      "id": "f8eb9302-5487-4340-bdba-e664c8cbdc16",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:55:39.348139+00:00",
+      "completed_at": "2026-03-20T22:55:55.575609+00:00",
+      "score_raw": 0,
+      "score_max": 8,
+      "normalized_score": 0,
+      "duration_ms": 16031,
+      "feedback": {
+        "comment": "4/4 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed"
+        ]
+      }
+    },
+    {
+      "id": "543b02d3-b77b-44d2-a1a6-f9016f057c15",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:55:26.197614+00:00",
+      "completed_at": "2026-03-20T22:55:33.806866+00:00",
+      "score_raw": 0,
+      "score_max": 8,
+      "normalized_score": 0,
+      "duration_ms": 7575,
+      "feedback": {
+        "comment": "6/6 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed",
+          "Check 6: failed"
+        ]
+      }
+    },
+    {
+      "id": "2e739666-f7b4-4105-89ab-8dbaa88f6455",
+      "status": "completed",
+      "queued_at": "2026-03-20T22:55:09.600121+00:00",
+      "completed_at": "2026-03-20T22:55:15.552001+00:00",
+      "score_raw": 0,
+      "score_max": 7,
+      "normalized_score": 0,
+      "duration_ms": 5703,
+      "feedback": {
+        "comment": "5/5 checks failed.",
+        "checks": [
+          "Check 1: failed",
+          "Check 2: failed",
+          "Check 3: failed",
+          "Check 4: failed",
+          "Check 5: failed"
+        ]
+      }
+    }
+  ]
+}

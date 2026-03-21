@@ -1,0 +1,8 @@
+{
+  "name": "tripletex-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "neo-blessed": "^0.2.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-134955068Z-b244cce3",
+  "request_id": "6a2bc7b3",
+  "prompt_raw": "Uno de sus clientes tiene una factura vencida. Encuentre la factura vencida y registre un cargo por recordatorio de 50 NOK. Debito cuentas por cobrar (1500), credito ingresos por recordatorio (3400). También cree una factura por la tarifa de recordatorio al cliente y envíela. Además, registre un pago parcial de 5000 NOK en la factura vencida.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T13:51:17.156Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T13:49:55.165Z",
+  "after_captured_at": "2026-03-21T13:51:47.913Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "25",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T13:51:47.916Z"
+}

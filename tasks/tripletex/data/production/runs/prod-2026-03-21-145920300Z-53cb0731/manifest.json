@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-03-21T14:59:20.302Z",
+  "request_id": "4cb3e285",
+  "run_id": "prod-2026-03-21-145920300Z-53cb0731",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-145920300Z-53cb0731",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-21-145920300Z-53cb0731",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-145920300Z-53cb0731/scripts",
+  "runner_provider": "claude",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "agent_run_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-145920300Z-53cb0731/agent-run.status.json",
+  "attachments": [
+    {
+      "filename": "files/leverandorfaktura_en_01.pdf",
+      "mime_type": "application/pdf",
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-145920300Z-53cb0731/attachments/01-leverandorfaktura_en_01.pdf"
+    }
+  ]
+}
