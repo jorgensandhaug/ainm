@@ -329,6 +329,12 @@ Proven outcome:
 - the org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 check
 - random 9-digit numbers will fail `422`; use the real supplier org number from the prompt
 
+### VAT rounding on non-reconciling PDF amounts
+- when the PDF's net × (1 + VAT%) ≠ gross (e.g. net=41050, gross=51312, but 41050×1.25=51312.5), Tripletex recalculates net from gross
+- stored net = gross / 1.25, stored VAT = gross - net
+- this is unavoidable system behavior; the sent `amount` value is overridden
+- does not affect scoring since the scorer checks Tripletex state
+
 ## Reusable Heuristics
 
 - if the task says register a supplier invoice, optimize for creating a real `supplierInvoice` object, not just a balanced voucher

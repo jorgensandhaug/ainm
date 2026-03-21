@@ -164,6 +164,14 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
 - do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
 - do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
+- when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4
+
+## VAT Rounding
+- Tripletex computes debit `amount` from `amountGross / (1 + vatPercent/100)` regardless of the `amount` value sent
+- when the PDF's net and gross don't perfectly reconcile at the stated VAT rate, Tripletex's stored net/VAT will differ from the PDF by small rounding amounts
+- this is correct Tripletex behavior and cannot be avoided
+- 2026-03-21 sandbox proof: sent amount=41050, amountGross=51312, Tripletex stored amount=41049.6 (51312/1.25), VAT=10262.4
+- the scorer checks Tripletex state, so the Tripletex-computed values are the correct expected output
 
 ## OpenAPI / Sandbox Status
 - `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`
@@ -256,3 +264,11 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - both fields return correctly in the 201 response
   - the deprecated `bankAccounts` string array field silently does nothing — do NOT use it
   - full 5-call flow with address + bank: supplier `108338559`, voucher `608916670`, correct postings confirmed
+- 2026-03-21 production run for `Bergvik AS` / `919398051` / `INV-2026-8506` / `51312` / `6500` / `25%`:
+  - used exactly 5 calls, 0 errors — optimal execution following this trusted standard
+  - PDF data fully extracted: address `Sjøgata 2, 4611 Kristiansand`, bank account `58637944698`
+  - supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+  - importDocument response correctly accessed via `values[0]`
+  - PUT postings correctly used `row: 1` and `row: 2`
+  - VAT rounding: PDF net=41050, gross=51312 → Tripletex stored net=41049.6, VAT=10262.4 (gross/1.25 recalculation)
+  - voucher `609017332`, supplier `108370545`
