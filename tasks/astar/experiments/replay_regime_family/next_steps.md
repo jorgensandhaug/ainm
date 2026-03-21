@@ -20,3 +20,14 @@
    - does the student fail to infer the mixture weights?
    - does the decoder wash out prototype differences at year 50?
    - are prototype gains concentrated in coefficient directions that the KL scorer barely weights?
+6. Finish the active `v7` sweep before committing to the next family pivot:
+   - finished so far:
+     - `hazard_posterior_v7_k5_r3_l32_m70_q8 + regime_probe_v1` => `76.9238` / `0.089809`
+   - still running:
+     - `q4/q8/q12 + regime_probe_posterior_blend`
+     - `q8 + regime_probe_information`
+     - `v4 l32/m70 + regime_probe_information`
+     - full promotion `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+7. If `v7` broad promotion holds up, next scale-up should focus on:
+   - settlement-mark-aware observation refinement, not more raw teacher sweeps
+   - more principled posterior-information query policies if the new information policy beats `regime_probe_v1`

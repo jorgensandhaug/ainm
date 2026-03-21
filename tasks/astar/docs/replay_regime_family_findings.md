@@ -128,6 +128,13 @@
   - this proxy preserves broad model ranking across completed `query_residual_v7`, `v4 regime_probe`, `v3 regime_probe`, and `v3 coverage` results
   - score RMSE vs full means is about `0.55`; KL RMSE is about `0.00256`
   - implication: use this as the new fast prefilter, not the old misleading 3-round slice alone
+- The first finished particle-refined posterior result is competitive immediately on the proxy-5 set:
+  - `hazard_posterior_v7_k5_r3_l32_m70_q8 + regime_probe_v1`: `76.9238`, weighted KL `0.089809`
+  - current proxy leader remains `hazard_posterior_v3_k5_r3_l32_m70 + regime_probe_posterior_blend_v1`: `77.1302`, weighted KL `0.089726`
+  - delta vs proxy leader: `-0.2064` score, `+0.000083` weighted KL
+  - implication:
+    - the new particle-refined posterior is not a collapse; it lands near the existing proxy frontier on its first finished run
+    - this is strong enough to justify immediate broad promotion while the remaining `v7` policy/observation-weight sweeps continue
 
 ## Strongly Supported Hypotheses
 
@@ -195,3 +202,4 @@
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
 - The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?
 - If mixture-structured round variation is real but v5 fails, is the missing ingredient block-structured mechanism decomposition rather than a single global prototype mixture?
+- Do the still-running `v7` posterior-blend and information-policy proxy jobs convert the near-frontier `v7 q8 + regime_probe_v1` result into a true new proxy best?

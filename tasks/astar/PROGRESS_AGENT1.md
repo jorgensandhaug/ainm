@@ -1128,3 +1128,16 @@
     - session `37158`
   - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_information_seed0to1`
     - session `47026`
+- first finished `v7` result:
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_seed0to1`
+  - result: `76.9238 / 0.089809`
+  - runtime: `591.999s`
+  - comparison:
+    - current proxy leader `v3 l32/m70 + regime_probe_posterior_blend`: `77.1302 / 0.089726`
+    - delta: `-0.2064` score, `+0.000083` KL
+  - interpretation:
+    - first particle-refined posterior result is immediately near the proxy frontier
+    - not enough to declare a new best, but strong enough to justify immediate broad promotion
+- launched broad promotion:
+  - `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+    - session `60357`
