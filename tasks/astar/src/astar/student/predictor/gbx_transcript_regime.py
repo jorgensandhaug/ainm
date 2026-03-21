@@ -6,6 +6,7 @@ import os
 import time
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import polars as pl
@@ -60,6 +61,8 @@ GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA = "gbx_transcript_manifold_termina
 GBX_ROUNDBANK_TERMINAL_MAPKNN = "gbx_roundbank_terminal_mapknn_v1"
 GBX_RIDGE_TERMINAL_MAPKNN = "gbx_ridge_terminal_mapknn_v1"
 GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN = "gbx_querylaw_roundbank_terminal_mapknn_v1"
+GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN = "gbx_queryknn_roundbank_terminal_mapknn_v1"
+GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN = "gbx_querymix_roundbank_terminal_mapknn_v1"
 
 _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
     "gbx_transcript_regime_knn_terminal_mapknn": (
@@ -216,6 +219,34 @@ _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
         5,
         5,
     ),
+    "gbx_queryknn_roundbank_terminal_mapknn": (
+        GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN: (
+        GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    "gbx_querymix_roundbank_terminal_mapknn": (
+        GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN: (
+        GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
 }
 
 _ROUNDBANK_MODEL_NAMES = {
@@ -231,6 +262,16 @@ _RIDGE_MODEL_NAMES = {
 _QUERYLAW_MODEL_NAMES = {
     "gbx_querylaw_roundbank_terminal_mapknn",
     GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN,
+}
+
+_QUERYKNN_MODEL_NAMES = {
+    "gbx_queryknn_roundbank_terminal_mapknn",
+    GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN,
+}
+
+_QUERYMIX_MODEL_NAMES = {
+    "gbx_querymix_roundbank_terminal_mapknn",
+    GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN,
 }
 
 _MANIFOLD_MODEL_NAMES = {
@@ -274,6 +315,14 @@ def is_gbx_transcript_regime_ridge_model_name(model_name: str) -> bool:
 
 def is_gbx_transcript_regime_querylaw_model_name(model_name: str) -> bool:
     return model_name.strip().lower() in _QUERYLAW_MODEL_NAMES
+
+
+def is_gbx_transcript_regime_queryknn_model_name(model_name: str) -> bool:
+    return model_name.strip().lower() in _QUERYKNN_MODEL_NAMES
+
+
+def is_gbx_transcript_regime_querymix_model_name(model_name: str) -> bool:
+    return model_name.strip().lower() in _QUERYMIX_MODEL_NAMES
 
 
 def is_gbx_transcript_regime_manifold_model_name(model_name: str) -> bool:
@@ -2218,6 +2267,302 @@ class GreyBoxQueryLawRoundBankPredictor(GreyBoxTranscriptRegimeKNNPredictor):
         )
 
 
+class GreyBoxQueryKNNRoundBankCheckpoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    dataset_name: str
+    policy_name: str
+    samples_per_round: int = Field(ge=1)
+    checkpoint_npz_path: str
+    terminal_checkpoint_path: str
+    terminal_model_name: str
+    training_round_ids: list[str]
+    round_ids_by_bank: list[str]
+    feature_names: list[str]
+    sample_count: int = Field(ge=0)
+    round_count: int = Field(ge=1)
+    query_slot_count: int = Field(ge=0)
+    feature_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)
+    posterior_temperature: float = Field(gt=0.0)
+    feature_scale_floor: float = Field(gt=0.0)
+    sample_aggregation_mode: Literal["min", "logmeanexp"] = "min"
+
+
+class GreyBoxQueryKNNRoundBankPredictor(GreyBoxTranscriptRegimeKNNPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN
+    round_ids_by_bank: tuple[str, ...] = ()
+    query_slot_count: int = Field(default=0, ge=0)
+    round_query_sample_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0, 0, 1), dtype=np.float64))
+    round_query_feature_scale_bank: np.ndarray = Field(default_factory=lambda: np.ones((0, 0, 1), dtype=np.float64))
+    round_residual_regime_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    posterior_temperature: float = Field(default=1.0, gt=0.0)
+    feature_scale_floor: float = Field(default=0.05, gt=0.0)
+    sample_aggregation_mode: Literal["min", "logmeanexp"] = "min"
+
+    @classmethod
+    def fit_from_workspace(
+        cls,
+        paths: WorkspacePaths,
+        *,
+        round_ids: Sequence[str] | None = None,
+        policy_name: str = "coverage",
+        samples_per_round: int = 4,
+        model_name: str = GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN,
+    ) -> GreyBoxQueryKNNRoundBankPredictor:
+        (
+            checkpoint_model_name,
+            terminal_checkpoint_model_name,
+            map_posterior_mode,
+            map_neighbor_count,
+            resolved_samples_per_round,
+        ) = resolve_gbx_transcript_regime_training_spec(
+            model_name,
+            samples_per_round=samples_per_round,
+        )
+        sample_aggregation_mode: Literal["min", "logmeanexp"] = (
+            "logmeanexp"
+            if checkpoint_model_name == GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN
+            else "min"
+        )
+        dataset_policy_name, resolved_policy_name = resolve_gbx_transcript_regime_policy_names(policy_name)
+        selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
+        index_path = _ensure_synthetic_dataset(
+            paths,
+            policy_name=dataset_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            round_ids=selected_round_ids,
+        )
+        terminal_checkpoint_path = gbx_terminal_scoped_checkpoint_path(
+            paths,
+            round_ids=selected_round_ids,
+            model_name=terminal_checkpoint_model_name,
+        )
+        terminal_teacher = _load_or_fit_terminal_teacher(
+            paths,
+            round_ids=selected_round_ids,
+            terminal_checkpoint_model_name=terminal_checkpoint_model_name,
+            serving_model_name=terminal_checkpoint_model_name,
+            map_posterior_mode=map_posterior_mode,
+            map_neighbor_count=map_neighbor_count,
+        )
+
+        index_table = pl.read_parquet(index_path, columns=["round_id", "sample_index", "episode_path"])
+        round_detail_cache: dict[str, RoundDetail] = {}
+        map_prior_cache: dict[str, np.ndarray] = {}
+        sample_bank_by_round: dict[str, dict[int, np.ndarray]] = {round_id: {} for round_id in selected_round_ids}
+        residual_bank_by_round: dict[str, list[np.ndarray]] = {round_id: [] for round_id in selected_round_ids}
+        feature_names = _query_slot_feature_names()
+        query_slot_count: int | None = None
+        regime_dim: int | None = None
+        for row in index_table.iter_rows(named=True):
+            round_id = str(row["round_id"])
+            sample_index = int(row["sample_index"])
+            if round_id not in round_detail_cache:
+                round_detail = read_round_record(paths, round_id).round
+                round_detail_cache[round_id] = round_detail
+                round_context = build_round_context_from_detail(round_detail)
+                map_prior_cache[round_id] = terminal_teacher.map_regime_prior(round_context.seeds)
+            round_detail = round_detail_cache[round_id]
+            artifact_path = resolve_synthetic_episode_path(index_path, str(row["episode_path"]))
+            artifact = load_synthetic_episode(artifact_path)
+            feature_matrix = _build_query_slot_feature_matrix(round_detail, artifact.observations)
+            if query_slot_count is None:
+                query_slot_count = int(feature_matrix.shape[0])
+            elif int(feature_matrix.shape[0]) != query_slot_count:
+                raise ValueError(
+                    f"queryknn requires fixed query counts; got {feature_matrix.shape[0]} vs {query_slot_count}",
+                )
+            round_prior = np.asarray(map_prior_cache[round_id], dtype=np.float64)
+            residual = np.asarray(artifact.regime_vector, dtype=np.float64) - round_prior
+            sample_bank_by_round[round_id][sample_index] = feature_matrix
+            residual_bank_by_round[round_id].append(np.asarray(residual, dtype=np.float64))
+            regime_dim = int(residual.shape[0])
+        if query_slot_count is None or regime_dim is None:
+            raise ValueError("queryknn model did not yield any synthetic episodes")
+
+        round_ids_by_bank = tuple(selected_round_ids)
+        round_query_sample_bank: list[np.ndarray] = []
+        round_query_variance_bank: list[np.ndarray] = []
+        round_residual_regime_bank: list[np.ndarray] = []
+        sample_count = 0
+        for round_id in round_ids_by_bank:
+            round_samples = sample_bank_by_round.get(round_id, {})
+            if not round_samples:
+                raise ValueError(f"queryknn training bank missing round_id={round_id}")
+            ordered_indices = sorted(round_samples)
+            round_feature_tensor = np.stack([round_samples[index] for index in ordered_indices], axis=0)
+            round_query_sample_bank.append(round_feature_tensor)
+            round_query_variance_bank.append(np.var(round_feature_tensor, axis=0))
+            round_residual_regime_bank.append(
+                np.mean(np.stack(residual_bank_by_round[round_id], axis=0), axis=0),
+            )
+            sample_count += int(round_feature_tensor.shape[0])
+        variance_bank = np.stack(round_query_variance_bank, axis=0)
+        pooled_variance = np.mean(variance_bank, axis=0)
+        scale_floor = 0.05
+        shrunk_variance = 0.5 * variance_bank + 0.5 * pooled_variance[None, :, :]
+        round_query_feature_scale_bank = np.sqrt(np.maximum(shrunk_variance, scale_floor**2))
+        return cls(
+            name=checkpoint_model_name,
+            dataset_name=index_path.parent.name,
+            policy_name=resolved_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            training_round_ids=tuple(selected_round_ids),
+            terminal_checkpoint_path=str(terminal_checkpoint_path),
+            feature_names=tuple(feature_names),
+            standardized_feature_bank=np.zeros((0, len(feature_names)), dtype=np.float64),
+            residual_regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            feature_mean=np.zeros(len(feature_names), dtype=np.float64),
+            feature_scale=np.ones(len(feature_names), dtype=np.float64),
+            k_neighbors=5,
+            terminal_teacher=terminal_teacher,
+            round_ids_by_bank=round_ids_by_bank,
+            query_slot_count=query_slot_count,
+            round_query_sample_bank=np.stack(round_query_sample_bank, axis=0),
+            round_query_feature_scale_bank=np.asarray(round_query_feature_scale_bank, dtype=np.float64),
+            round_residual_regime_bank=np.stack(round_residual_regime_bank, axis=0),
+            posterior_temperature=1.0,
+            feature_scale_floor=scale_floor,
+            sample_aggregation_mode=sample_aggregation_mode,
+        )
+
+    def checkpoint(
+        self,
+        checkpoint_npz_path: Path,
+        terminal_checkpoint_path: Path,
+    ) -> GreyBoxQueryKNNRoundBankCheckpoint:
+        return GreyBoxQueryKNNRoundBankCheckpoint(
+            name=self.name,
+            dataset_name=self.dataset_name,
+            policy_name=self.policy_name,
+            samples_per_round=self.samples_per_round,
+            checkpoint_npz_path=str(checkpoint_npz_path),
+            terminal_checkpoint_path=str(terminal_checkpoint_path),
+            terminal_model_name=self.terminal_teacher.name,
+            training_round_ids=list(self.training_round_ids),
+            round_ids_by_bank=list(self.round_ids_by_bank),
+            feature_names=list(self.feature_names),
+            sample_count=int(self.round_query_sample_bank.shape[0] * self.round_query_sample_bank.shape[1]),
+            round_count=int(self.round_query_sample_bank.shape[0]),
+            query_slot_count=self.query_slot_count,
+            feature_dim=int(self.round_query_sample_bank.shape[-1]),
+            regime_dim=int(self.round_residual_regime_bank.shape[-1]),
+            posterior_temperature=self.posterior_temperature,
+            feature_scale_floor=self.feature_scale_floor,
+            sample_aggregation_mode=self.sample_aggregation_mode,
+        )
+
+    def save_checkpoint(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        npz_path = path.parent / "bank.npz"
+        np.savez_compressed(
+            npz_path,
+            round_query_sample_bank=self.round_query_sample_bank,
+            round_query_feature_scale_bank=self.round_query_feature_scale_bank,
+            round_residual_regime_bank=self.round_residual_regime_bank,
+        )
+        checkpoint = self.checkpoint(npz_path, Path(self.terminal_checkpoint_path))
+        path.write_text(json.dumps(to_jsonable(checkpoint), indent=2), encoding="utf-8")
+        return path
+
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> GreyBoxQueryKNNRoundBankPredictor:
+        checkpoint = GreyBoxQueryKNNRoundBankCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        arrays = np.load(checkpoint.checkpoint_npz_path)
+        terminal_teacher = GreyBoxTerminalTeacher.load_checkpoint(Path(checkpoint.terminal_checkpoint_path))
+        regime_dim = int(np.asarray(arrays["round_residual_regime_bank"], dtype=np.float64).shape[-1])
+        feature_dim = int(np.asarray(arrays["round_query_sample_bank"], dtype=np.float64).shape[-1])
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            policy_name=checkpoint.policy_name,
+            samples_per_round=checkpoint.samples_per_round,
+            training_round_ids=tuple(checkpoint.training_round_ids),
+            terminal_checkpoint_path=checkpoint.terminal_checkpoint_path,
+            feature_names=tuple(checkpoint.feature_names),
+            standardized_feature_bank=np.zeros((0, feature_dim), dtype=np.float64),
+            residual_regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            feature_mean=np.zeros(feature_dim, dtype=np.float64),
+            feature_scale=np.ones(feature_dim, dtype=np.float64),
+            k_neighbors=5,
+            terminal_teacher=terminal_teacher,
+            round_ids_by_bank=tuple(checkpoint.round_ids_by_bank),
+            query_slot_count=checkpoint.query_slot_count,
+            round_query_sample_bank=np.asarray(arrays["round_query_sample_bank"], dtype=np.float64),
+            round_query_feature_scale_bank=np.asarray(arrays["round_query_feature_scale_bank"], dtype=np.float64),
+            round_residual_regime_bank=np.asarray(arrays["round_residual_regime_bank"], dtype=np.float64),
+            posterior_temperature=checkpoint.posterior_temperature,
+            feature_scale_floor=checkpoint.feature_scale_floor,
+            sample_aggregation_mode=checkpoint.sample_aggregation_mode,
+        )
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        current_map_prior = self.terminal_teacher.map_regime_prior(context.round_context.seeds)
+        round_count = int(self.round_residual_regime_bank.shape[0])
+        if round_count == 0:
+            return RegimePosteriorState(mean=np.asarray(current_map_prior, dtype=np.float64))
+        query_features = _build_query_slot_feature_matrix(
+            context.round_context.to_round_detail(),
+            context.observations,
+        )
+        observed_count = min(int(query_features.shape[0]), self.query_slot_count)
+        if observed_count <= 0:
+            weights = np.full(round_count, 1.0 / float(round_count), dtype=np.float64)
+            residual_mean = np.tensordot(weights, self.round_residual_regime_bank, axes=(0, 0))
+            posterior_mean = _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual_mean)
+            particles = tuple(
+                _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual)
+                for residual in self.round_residual_regime_bank
+            )
+            return RegimePosteriorState(
+                mean=posterior_mean,
+                particles=particles,
+                weights=weights,
+            )
+        delta = (
+            query_features[None, None, :observed_count, :]
+            - self.round_query_sample_bank[:, :, :observed_count, :]
+        )
+        scale = np.clip(
+            self.round_query_feature_scale_bank[:, None, :observed_count, :],
+            self.feature_scale_floor,
+            None,
+        )
+        sample_distances = 0.5 * (
+            np.square(delta / scale) + (2.0 * np.log(scale))
+        )
+        sample_distances = np.mean(sample_distances, axis=(2, 3))
+        if self.sample_aggregation_mode == "min":
+            round_distances = np.min(sample_distances, axis=1)
+        elif self.sample_aggregation_mode == "logmeanexp":
+            round_min = np.min(sample_distances, axis=1, keepdims=True)
+            stabilized = np.exp(-(sample_distances - round_min))
+            round_distances = np.squeeze(round_min, axis=1) - np.log(np.mean(stabilized, axis=1))
+        else:
+            raise ValueError(f"unsupported query sample aggregation mode: {self.sample_aggregation_mode}")
+        shifted = round_distances - float(np.min(round_distances))
+        weights = np.exp(-shifted / self.posterior_temperature)
+        weights = weights / np.sum(weights)
+        order = np.argsort(round_distances)
+        ordered_weights = np.asarray(weights[order], dtype=np.float64)
+        ordered_residuals = np.asarray(self.round_residual_regime_bank[order], dtype=np.float64)
+        residual_mean = np.tensordot(ordered_weights, ordered_residuals, axes=(0, 0))
+        posterior_mean = _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual_mean)
+        particles = tuple(
+            _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual)
+            for residual in ordered_residuals
+        )
+        return RegimePosteriorState(
+            mean=posterior_mean,
+            particles=particles,
+            weights=ordered_weights,
+        )
+
+
 __all__ = [
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA",
@@ -2230,6 +2575,10 @@ __all__ = [
     "GBX_ROUNDBANK_TERMINAL_MAPKNN",
     "GBX_RIDGE_TERMINAL_MAPKNN",
     "GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN",
+    "GBX_QUERYKNN_ROUNDBANK_TERMINAL_MAPKNN",
+    "GBX_QUERYMIX_ROUNDBANK_TERMINAL_MAPKNN",
+    "GreyBoxQueryKNNRoundBankCheckpoint",
+    "GreyBoxQueryKNNRoundBankPredictor",
     "GreyBoxQueryLawRoundBankCheckpoint",
     "GreyBoxQueryLawRoundBankPredictor",
     "GreyBoxTranscriptRegimeCheckpoint",
@@ -2243,6 +2592,8 @@ __all__ = [
     "gbx_transcript_regime_scoped_checkpoint_path",
     "is_gbx_transcript_regime_manifold_model_name",
     "is_gbx_transcript_regime_model_name",
+    "is_gbx_transcript_regime_querymix_model_name",
+    "is_gbx_transcript_regime_queryknn_model_name",
     "is_gbx_transcript_regime_querylaw_model_name",
     "is_gbx_transcript_regime_roundbank_model_name",
     "is_gbx_transcript_regime_ridge_model_name",

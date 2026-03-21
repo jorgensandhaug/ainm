@@ -2811,3 +2811,163 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - Verification after adding the branch:
   - `uv run pytest tests/test_historical_benchmark.py -q`
   - result: `46 passed in 39.81s`
+
+### 2026-03-21T14:12Z
+
+- Re-read `instructions/agent4.md`, `README.md`, and `docs/game_facts.md` before continuing the next branch.
+- Checked task tracker + machine health:
+  - `br list` still unavailable on this host: `/bin/bash: br: command not found`
+  - machine snapshot at `2026-03-21 14:11:42 UTC`:
+    - load `142.41 / 106.53 / 92.62`
+    - memory `1.7 TiB used`, `845 GiB free`, `1.2 TiB available`
+    - several other agents were already saturating many cores, so I kept local benchmark concurrency moderate
+- Built a reusable cached sweep harness for the new per-query synthetic-likelihood line:
+  - script:
+    - `scripts/agent4_querylaw_setting_sweep.py`
+  - purpose:
+    - fit held-out-fold predictors once
+    - cheaply compare multiple `querylaw` blend / ensemble settings on identical replay-backed folds
+  - verification:
+    - `python3 -m py_compile scripts/agent4_querylaw_setting_sweep.py`
+    - result: passed
+- Ran the cached coverage sweep:
+  - command:
+    - `uv run python scripts/agent4_querylaw_setting_sweep.py --policy coverage --samples-per-round 4 --budget 50 --episode-seed 0 --episode-seed-count 3 --jobs 4 --name agent4_querylaw_setting_sweep_cov_seed02_jobs4_v1`
+  - artifact:
+    - `data/artifacts/runs/agent4_querylaw_setting_sweep_cov_seed02_jobs4_v1/results.json`
+  - ranking:
+    - `baseline_transcriptregime_w20`: `68.0423 / 0.133045`
+    - `trq_18_02`: `67.9669 / 0.133424`
+    - `trq_15_05`: `67.8514 / 0.134006`
+    - `trq_10_10`: `67.6524 / 0.135014`
+    - `baseline_querylaw_w20`: `67.2305 / 0.137172`
+    - `querylaw_w10`: `67.0536 / 0.137804`
+    - `querylaw_confentropy_w20`: `66.9567 / 0.138403`
+    - `querylaw_w05`: `66.7625 / 0.139253`
+    - `querylaw_w20_temp2_floor010`: `66.6322 / 0.140605`
+- Scientific read from the cached sweep:
+  - the Gaussian query-law branch is real but only a weak sidecar
+  - best transcript+querylaw ensemble still misses the current champion by about:
+    - `-0.0754` score
+    - `+0.000379` weighted KL
+  - so the right next step is not more `querylaw` weight tuning
+  - instead: replace the Gaussian slot surrogate with a stricter nearest-sample replay bank likelihood
+- Began that replacement branch:
+  - new pure model:
+    - `gbx_queryknn_roundbank_terminal_mapknn_v1`
+  - new blend:
+    - `gbx_maponly_queryknn_roundbank_mapknn_blend20_v1`
+  - implementation idea:
+    - keep the full per-round per-sample ordered query feature bank
+    - score live transcripts against each historical round by nearest synthetic replay sample, not by per-slot Gaussian mean
+    - preserve the existing terminal-teacher / map-prior decoder once round weights are inferred
+
+### 2026-03-21T14:31Z
+
+- Finished and validated the new nearest-sample branch:
+  - pure:
+    - `gbx_queryknn_roundbank_terminal_mapknn_v1`
+  - blend:
+    - `gbx_maponly_queryknn_roundbank_mapknn_blend20_v1`
+  - code touched:
+    - `src/astar/student/predictor/gbx_transcript_regime.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `tests/test_historical_benchmark.py`
+- Added a broader cached sweep harness update:
+  - script:
+    - `scripts/agent4_querylaw_setting_sweep.py`
+  - new families added there:
+    - pure `queryknn` blends
+    - transcript-regime + `queryknn` ensembles
+- Verification after finishing the `queryknn` branch:
+  - `python3 -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/cli.py tests/test_historical_benchmark.py scripts/agent4_querylaw_setting_sweep.py`
+  - result: passed
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_queryknn_roundbank_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_queryknn_roundbank_mapknn_blend20_builds -q`
+  - result: `2 passed in 1.88s`
+- Full cached `queryknn` sweep completed:
+  - command:
+    - `uv run python scripts/agent4_querylaw_setting_sweep.py --policy coverage --samples-per-round 4 --budget 50 --episode-seed 0 --episode-seed-count 3 --jobs 4 --name agent4_queryknn_setting_sweep_cov_seed02_jobs4_v1`
+  - artifact:
+    - `data/artifacts/runs/agent4_queryknn_setting_sweep_cov_seed02_jobs4_v1/results.json`
+  - elapsed:
+    - `880.432s`
+  - ranking head:
+    - `baseline_transcriptregime_w20`: `68.0423 / 0.133045`
+    - `trk_18_02`: `67.9745 / 0.133432`
+    - `trq_18_02`: `67.9669 / 0.133424`
+    - `trq_15_05`: `67.8514 / 0.134006`
+    - `trk_15_05`: `67.8140 / 0.134327`
+  - pure `queryknn` settings were bad:
+    - `queryknn_w05`: `66.3323 / 0.141892`
+    - `queryknn_w10`: `66.2565 / 0.142678`
+    - `baseline_queryknn_w20`: `65.8326 / 0.145818`
+    - `queryknn_w20_temp05_floor010`: `65.8264 / 0.145805`
+    - `queryknn_w20_temp2_floor010`: `65.6109 / 0.147077`
+- Scientific read from that sweep:
+  - hard nearest-sample matching is too brittle
+  - even the best transcript-regime + `queryknn` ensemble stays below the champion by about:
+    - `-0.0678` score
+    - `+0.000387` weighted KL
+  - so `queryknn` does not justify promotion beyond an analyzed negative branch
+
+### 2026-03-21T14:38Z
+
+- Implemented the softer sample-bank follow-up branch:
+  - pure:
+    - `gbx_querymix_roundbank_terminal_mapknn_v1`
+  - blend:
+    - `gbx_maponly_querymix_roundbank_mapknn_blend20_v1`
+  - design:
+    - keep the same per-round synthetic sample bank as `queryknn`
+    - replace hard `min` aggregation over replay samples with per-round log-mean-exp mixture likelihood
+    - this tests whether `querylaw` was too smooth and `queryknn` too sharp
+- Code touched:
+  - `src/astar/student/predictor/gbx_transcript_regime.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Bug hit and fixed immediately:
+  - Pydantic class resolution failed because `Literal` was not imported after adding `sample_aggregation_mode`
+  - fixed by importing `Literal` in `gbx_transcript_regime.py`
+- Targeted verification after the fix:
+  - `python3 -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - result: passed
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_querymix_roundbank_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_querymix_roundbank_mapknn_blend20_builds tests/test_historical_benchmark.py::test_gbx_queryknn_roundbank_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_queryknn_roundbank_mapknn_blend20_builds -q`
+  - result: `4 passed in 1.62s`
+- Canonical replay-backed coverage benchmarks for `querymix`:
+  - setup:
+    - `mode=online_interactive`
+    - `policy=coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seeds=0,1,2`
+    - `rounds=8`
+    - `evaluated_seeds=120`
+  - pure `querymix`:
+    - `gbx_querymix_roundbank_terminal_mapknn`
+    - `43.5177 / 0.313379`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_querymix_roundbank_terminal_mapknn_cov_seed02_jobs3_v1/report.md`
+  - blended `querymix`:
+    - `gbx_maponly_querymix_roundbank_mapknn_blend20`
+    - `67.2234 / 0.137213`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_querymix_roundbank_mapknn_blend20_cov_seed02_jobs3_v1/report.md`
+- Comparative read:
+  - pure `querymix` is effectively tied with pure `querylaw`:
+    - `43.5177 / 0.313379` vs `43.5021 / 0.313525`
+  - blended `querymix` is also effectively tied with blended `querylaw`:
+    - `67.2234 / 0.137213` vs `67.2305 / 0.137172`
+  - both still remain clearly below the current family champion:
+    - `gbx_maponly_transcriptregime_mapknn_blend20`
+    - `68.0423 / 0.133045`
+- Scientific read:
+  - sample-bank likelihood mattered enough to test both extremes
+  - but neither hard nearest-sample nor soft replay-mixture aggregation improved on the simpler transcript-regime residual student
+  - current verdict:
+    - the whole ordered query-slot sample-bank branch is informative, but not competitive enough in its present form
+    - it should not displace the transcript-regime champion without a more structural model change
+- Final verification on the finished code state:
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+  - result: `50 passed in 33.16s`
