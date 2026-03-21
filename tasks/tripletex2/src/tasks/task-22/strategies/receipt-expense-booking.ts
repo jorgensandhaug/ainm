@@ -557,7 +557,7 @@ function requirePdfAttachment(
 ): {
   bytes: Uint8Array;
   mediaType: string;
-  textContent: string;
+  textContent?: string;
   uploadFileName: string;
 } {
   const requestFiles = ctx.request?.files ?? [];
@@ -596,7 +596,7 @@ function requirePdfAttachment(
 function buildEvidenceText(
   ctx: StrategyContext,
   input: RegisterReceiptExpenseVoucherInput,
-  attachmentText: string,
+  attachmentText?: string,
 ): string {
   return [
     input.lineDescription,

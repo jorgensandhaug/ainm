@@ -15,6 +15,7 @@ import {
   type SolvePipelineOptions,
   type SolvePipelineResult,
 } from "./solve-pipeline";
+import { normalizeAttachmentTextContent } from "./attachment-files";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -181,12 +182,20 @@ export async function loadStoredCompetitionRequestFixture(
 
   return {
     prompt: raw.prompt,
-    files: (raw.files ?? []).map((file) => ({
-      fileName: file.filename,
-      textContent: Buffer.from(file.content_base64, "base64").toString("utf8"),
-      contentBase64: file.content_base64,
-      mediaType: file.mime_type,
-    })),
+    files: (raw.files ?? []).map((file) => {
+      const textContent = normalizeAttachmentTextContent({
+        fileName: file.filename,
+        mediaType: file.mime_type,
+        contentBase64: file.content_base64,
+      });
+
+      return {
+        fileName: file.filename,
+        ...(textContent !== undefined ? { textContent } : {}),
+        contentBase64: file.content_base64,
+        mediaType: file.mime_type,
+      };
+    }),
     tripletex_credentials: {
       base_url: baseUrl,
       session_token: sessionToken,

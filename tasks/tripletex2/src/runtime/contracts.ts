@@ -148,7 +148,8 @@ export interface StrategyContext {
 export interface StrategyRequestFile {
   fileName: string;
   mediaType?: string;
-  textContent: string;
+  path?: string;
+  textContent?: string;
   contentBase64?: string;
 }
 
@@ -216,7 +217,8 @@ export type ClassifierConfidence = "high" | "medium" | "low";
 export interface ClassifierExtractorFile {
   fileName: string;
   mediaType?: string;
-  textContent: string;
+  path?: string;
+  textContent?: string;
 }
 
 export interface ClassifierExtractorInput {

@@ -445,6 +445,103 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
   ]);
 });
 
+test("runCompetitionSolvePipeline stages deterministic attachments for Codex and omits synthetic PDF text", async (t) => {
+  const outputRoot = await mkdtemp(
+    path.join(os.tmpdir(), "tripletex2-solve-pipeline-staged-files-"),
+  );
+  const stageDirectory = path.join(
+    outputRoot,
+    "data",
+    "sandbox",
+    "runs",
+    "sandbox-staged-files-run",
+  );
+  const pdfBytes = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0x10, 0xff, 0x0a]);
+  const pdfBase64 = pdfBytes.toString("base64");
+  t.after(async () => {
+    await rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const result = await runCompetitionSolvePipeline(
+    {
+      prompt: "Read the attached PDF and determine the Tripletex task.",
+      files: [
+        {
+          fileName: "invoice.pdf",
+          mediaType: "application/pdf",
+          textContent: "synthetic pdf text that must not survive",
+          contentBase64: pdfBase64,
+        },
+      ],
+      tripletex_credentials: {
+        base_url: "https://example.invalid",
+        session_token: "redacted-for-test",
+      },
+    },
+    {
+      mode: "sandbox",
+      now: createFrozenNow("2026-03-20T22:20:00.000Z"),
+      runContext: {
+        runId: "sandbox-staged-files-run",
+        stageDirectory,
+        artifactRoot: outputRoot,
+      },
+      codexTaskUnderstanding: {
+        executor: async ({ prompt }) => {
+          const stagedPath = path.join(
+            stageDirectory,
+            "attachments",
+            "01-invoice.pdf",
+          );
+          assert.match(prompt, /Attachments:/);
+          assert.match(
+            prompt,
+            new RegExp(`path: ${escapeRegExp(stagedPath)}`),
+          );
+          assert.match(prompt, /hasTextContent: no/);
+          assert.doesNotMatch(prompt, /synthetic pdf text that must not survive/);
+
+          return JSON.stringify({
+            status: "unresolved",
+            taskId: null,
+            inputJson: null,
+            code: "no-task-match",
+            message: "No registered task matched the request.",
+            partialInputJson: null,
+            notes: ["Verified staged attachment access in the classifier prompt."],
+          });
+        },
+      },
+      requestId: "req-staged-files-1",
+    },
+  );
+
+  const stagedAttachmentPath = path.join(
+    stageDirectory,
+    "attachments",
+    "01-invoice.pdf",
+  );
+  const stageRequest = JSON.parse(
+    await readFile(path.join(stageDirectory, "request.json"), "utf8"),
+  ) as {
+    request: {
+      files: Array<{
+        fileName: string;
+        mediaType?: string;
+        path?: string;
+        textContent?: string;
+      }>;
+    };
+  };
+
+  assert.equal(result.stageDirectory, stageDirectory);
+  assert.equal(stageRequest.request.files[0]?.fileName, "invoice.pdf");
+  assert.equal(stageRequest.request.files[0]?.mediaType, "application/pdf");
+  assert.equal(stageRequest.request.files[0]?.path, stagedAttachmentPath);
+  assert.equal("textContent" in (stageRequest.request.files[0] ?? {}), false);
+  assert.deepEqual(await readFile(stagedAttachmentPath), pdfBytes);
+});
+
 test("runCompetitionSolvePipeline writes a canonical not-run artifact when task understanding stays unresolved", async (t) => {
   const tempRoot = await mkdtemp(
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-unresolved-"),
@@ -537,6 +634,10 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
 
 function createFrozenNow(timestamp: string): () => Date {
   return () => new Date(timestamp);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function createSelectionConfigOverride(

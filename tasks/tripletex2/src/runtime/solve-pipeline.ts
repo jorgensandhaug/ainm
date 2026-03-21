@@ -42,6 +42,11 @@ import {
   appendTaskUnderstandingToPromptCorpus,
   inferPromptCorpusSource,
 } from "./prompt-corpus";
+import {
+  getAttachmentFileBytes,
+  normalizeAttachmentTextContent,
+  stageAttachmentFiles,
+} from "./attachment-files";
 
 const UNRESOLVED_TASK_ID = "unresolved-task-understanding";
 const UNRESOLVED_INPUT_SCHEMA_ID = "task-understanding.unresolved.v1";
@@ -53,7 +58,8 @@ const STAGE_RESULT_SCHEMA_VERSION = "tripletex2.solve-stage-result.v1";
 
 export interface SolveRequestFile {
   fileName: string;
-  textContent: string;
+  path?: string;
+  textContent?: string;
   mediaType?: string;
   contentBase64?: string;
 }
@@ -148,7 +154,7 @@ export function normalizeCompetitionSolveRequest(
 ): SolveRequest {
   return {
     prompt: request.prompt,
-    files: request.files ?? [],
+    files: (request.files ?? []).map(normalizeSolveRequestFile),
     tripletexCredentials: {
       baseUrl: request.tripletex_credentials.base_url,
       sessionToken: request.tripletex_credentials.session_token,
@@ -171,17 +177,18 @@ export async function runDeterministicSolvePipeline(
     outputRoot: options.outputRoot,
     runContext: options.runContext,
   });
+  const stagedRequest = await stageSolveRequest(request, runContext.stageDirectory);
 
   await writeStageRequestFile({
     createdAt,
     mode,
-    request,
+    request: stagedRequest,
     requestId: options.requestId,
     runContext,
   });
 
   const selectionResult = await resolveDeterministicSolveSelection(
-    request,
+    stagedRequest,
     options,
   );
   const {
@@ -194,7 +201,7 @@ export async function runDeterministicSolvePipeline(
   } = selectionResult;
   await appendTaskUnderstandingToPromptCorpus({
     corpusPath: options.promptCorpusPath,
-    request,
+    request: stagedRequest,
     result: taskUnderstanding.result,
     runId: runContext.runId,
     source: inferPromptCorpusSource({
@@ -207,11 +214,11 @@ export async function runDeterministicSolvePipeline(
 
   const callLog = createTripletexCallLog();
   const tripletex = createTripletexClient({
-    baseUrl: request.tripletexCredentials.baseUrl,
+    baseUrl: stagedRequest.tripletexCredentials.baseUrl,
     credentials: {
-      sessionToken: request.tripletexCredentials.sessionToken,
-      companyId: request.tripletexCredentials.companyId,
-      credentialSource: request.tripletexCredentials.credentialSource,
+      sessionToken: stagedRequest.tripletexCredentials.sessionToken,
+      companyId: stagedRequest.tripletexCredentials.companyId,
+      credentialSource: stagedRequest.tripletexCredentials.credentialSource,
     },
     fetch: options.fetch,
     capture: callLog,
@@ -240,8 +247,8 @@ export async function runDeterministicSolvePipeline(
           tripletex,
           clock,
           request: {
-            prompt: request.prompt,
-            files: request.files,
+            prompt: stagedRequest.prompt,
+            files: stagedRequest.files,
           },
         },
         taskUnderstanding.result.input,
@@ -664,8 +671,9 @@ async function writeStageRequestFile(input: {
         prompt: input.request.prompt,
         files: input.request.files.map((file) => ({
           fileName: file.fileName,
-          mediaType: file.mediaType,
-          textContent: file.textContent,
+          ...(file.mediaType !== undefined ? { mediaType: file.mediaType } : {}),
+          ...(file.path !== undefined ? { path: file.path } : {}),
+          ...(file.textContent !== undefined ? { textContent: file.textContent } : {}),
         })),
         tripletexCredentials: {
           baseUrl: input.request.tripletexCredentials.baseUrl,
@@ -757,11 +765,32 @@ function toRunRequestFile(
 }
 
 function getSolveRequestFileBytes(file: SolveRequestFile): Uint8Array {
-  if (file.contentBase64) {
-    return Buffer.from(file.contentBase64, "base64");
-  }
+  return getAttachmentFileBytes(file);
+}
 
-  return Buffer.from(file.textContent, "utf8");
+async function stageSolveRequest(
+  request: SolveRequest,
+  stageDirectory: string,
+): Promise<SolveRequest> {
+  const normalizedFiles = request.files.map(normalizeSolveRequestFile);
+  const stagedFiles = await stageAttachmentFiles(stageDirectory, normalizedFiles);
+
+  return {
+    ...request,
+    files: stagedFiles.map(normalizeSolveRequestFile),
+  };
+}
+
+function normalizeSolveRequestFile(file: SolveRequestFile): SolveRequestFile {
+  const textContent = normalizeAttachmentTextContent(file);
+
+  return {
+    fileName: file.fileName,
+    ...(file.mediaType !== undefined ? { mediaType: file.mediaType } : {}),
+    ...(file.contentBase64 !== undefined ? { contentBase64: file.contentBase64 } : {}),
+    ...(file.path !== undefined ? { path: file.path } : {}),
+    ...(textContent !== undefined ? { textContent } : {}),
+  };
 }
 
 function summarizePrompt(prompt: string): string {

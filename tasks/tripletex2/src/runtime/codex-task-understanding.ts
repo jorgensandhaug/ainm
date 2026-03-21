@@ -168,12 +168,14 @@ export function buildCodexTaskUnderstandingPrompt(
   return [
     ...lines,
     "",
-    "Attachment text:",
+    "Attachments:",
     ...input.request.files.flatMap((file, index) => [
       `--- FILE ${index + 1} ---`,
       `fileName: ${file.fileName}`,
       `mediaType: ${file.mediaType ?? "unknown"}`,
-      file.textContent,
+      `path: ${file.path ?? "not-staged"}`,
+      `hasTextContent: ${file.textContent !== undefined ? "yes" : "no"}`,
+      ...(file.textContent !== undefined ? ["textContent:", file.textContent] : []),
     ]),
   ].join("\n");
 }

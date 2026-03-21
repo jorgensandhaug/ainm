@@ -165,6 +165,83 @@ test("POST /solve returns after writing a canonical not-run artifact for unresol
   assert.equal(artifact.execution.runtimeStatus, "not-run");
 });
 
+test("POST /solve does not synthesize PDF textContent in deterministic stage requests", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    solveBackend: "deterministic",
+    now: () => new Date("2026-03-20T23:12:00.000Z"),
+    createRunId: () => "sandbox-http-pdf",
+    dataRoot: path.join(tempRoot, "data"),
+    artifactRoot: path.join(tempRoot, "runs"),
+    env: { TRIPLETEX_STORAGE_MODE: "sandbox" },
+    classifierExtractor: async () => ({
+      status: "unresolved",
+      code: "no-task-match",
+      message: "No registered task matched the request.",
+    }),
+    logger() {
+      // Silence test logs.
+    },
+  });
+  const pdfBytes = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff, 0x0a]);
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-pdf",
+      files: [
+        {
+          filename: "invoice.pdf",
+          content_base64: pdfBytes.toString("base64"),
+          mime_type: "application/pdf",
+        },
+      ],
+      tripletexCredentials: {
+        base_url: "https://example.invalid",
+        session_token: "test-session-token",
+      },
+    }),
+  );
+
+  assert.equal(response.status, 200);
+
+  const stageDirectory = path.join(
+    tempRoot,
+    "data",
+    "sandbox",
+    "runs",
+    "sandbox-http-pdf",
+  );
+  const stagedAttachmentPath = path.join(
+    stageDirectory,
+    "attachments",
+    "01-invoice.pdf",
+  );
+  const stageRequest = JSON.parse(
+    await readFile(path.join(stageDirectory, "request.json"), "utf8"),
+  ) as {
+    request: {
+      files: Array<{
+        fileName: string;
+        mediaType?: string;
+        path?: string;
+        textContent?: string;
+      }>;
+    };
+  };
+
+  assert.equal(stageRequest.request.files[0]?.fileName, "invoice.pdf");
+  assert.equal(stageRequest.request.files[0]?.mediaType, "application/pdf");
+  assert.equal(stageRequest.request.files[0]?.path, stagedAttachmentPath);
+  assert.equal("textContent" in (stageRequest.request.files[0] ?? {}), false);
+  assert.deepEqual(await readFile(stagedAttachmentPath), pdfBytes);
+});
+
 test("POST /solve enforces bearer auth", async () => {
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
