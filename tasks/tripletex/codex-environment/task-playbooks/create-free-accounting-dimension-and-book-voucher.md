@@ -59,6 +59,8 @@ Verified in persistent sandbox on 2026-03-20:
 - the persistent sandbox later returned `422 Maximum of 3 accounting dimensions allowed` on `POST /ledger/accountingDimensionName` once all three free-dimension slots were occupied; that is a real account-state blocker, not a cue to add search/update/delete calls in a production create-only run
 - persistent sandbox re-verified on 2026-03-21: `POST /ledger/voucher` without `row` on postings → `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; adding only `row: 1` and `row: 2` → `201`; `date`, `description`, and `currency` on individual postings are optional (Tripletex auto-fills them from the voucher-level values)
 - the 2026-03-21 production run for exact prompt `Prosjekttype` / `Forskning` / `Internt` / `7000` / `32550` hit this exact `row` trap: first voucher attempt without `row` → 422, retry with `row: 1`/`row: 2` → 201, final score 2.96/4 (6 calls instead of 5, 1 avoidable 422)
+- the later 2026-03-21 production run for exact prompt `Region` / `Sør-Norge` / `Midt-Norge` / `6540` / `5150` succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Sør-Norge` value with voucher `609087109` — first perfect-efficiency run for this task shape
+- same-day sandbox re-verification: `POST /ledger/voucher` with `account: { number: 6540, name: "Inventar" }` (no id) → `422 Internt felt (account)`; with `account: { id: 0, number: 6540, name: "Inventar" }` → same `422`; account id resolution via GET is mandatory
 
 ## Minimal Safe Flow
 
