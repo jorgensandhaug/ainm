@@ -95,6 +95,10 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 - the same sandbox follow-up still re-confirmed the success side of the exact `33550` + `14400` branch when a real division already exists:
   - disposable employee `18591125` plus existing division `108244566` reached `salaryTransaction.id=6956966`
   - `GET /salary/payslip/32627984?fields=*,specifications(*,salaryType(*))` proved `grossAmount=47950`, `Fastlønn amount=33550`, and `Bonus amount=14400`
+- production run on 2026-03-21 for `Ana Ferreira` / `ana.ferreira@example.org` / `41750` + `6750` used the division-create + repair + payroll branch in 8 calls (0 errors):
+  - the `GET /municipality` call was unnecessary — sandbox proof later confirmed `POST /division` with hardcoded `municipality: { id: 1 }` succeeds; optimal count for this branch is 7 calls
+- sandbox proof on 2026-03-21 confirmed `POST /division` with hardcoded `municipality: { id: 1 }` creates a valid division without a prior `GET /municipality` read; municipality id `1` exists in every tested account
+- sandbox proof on 2026-03-21 re-confirmed the underconfigured-employee repair-first branch with existing division succeeds in 6 calls with verified payslip `grossAmount=48500` = `41750` + `6750`
 
 ## Minimal Safe Flow
 
@@ -125,8 +129,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - if that division read returns one usable row, continue to step 6 then step 7 to repair the employee
    - if that division read returns zero rows and the prompt explicitly allows manual vouchers, branch straight into the voucher fallback without spending `GET /salary/type`
    - if that division read returns zero rows and the prompt does not explicitly allow manual vouchers, create a division:
-     - `GET /municipality?count=1&fields=*`
-     - `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (leading `9`, weights `[3,2,7,6,5,4,3,2]`, check digit), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id }` — do NOT use the company's own org number
+     - `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (leading `9`, weights `[3,2,7,6,5,4,3,2]`, check digit), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call, do NOT use the company's own org number
      - then continue to step 7 with the newly created division id
 6. Resolve salary types with one read once the employee is payroll-ready already or the repair branch is still feasible
    - `GET /salary/type?count=1000&fields=*`
@@ -218,22 +221,21 @@ Replace the ids and amounts with the task-specific values.
   2. if that employee read keeps the employments too sparse to judge the payroll period, `GET /employee/employment?employeeId=...&count=20&fields=*`
   3. `GET /salary/type?count=1000&fields=*`
   4. `POST /salary/transaction`
-- for the exact task-12-like branch where the first employee read shows `dateOfBirth=null` and `employments=[]`, the lower-zero-risk path is:
+- for the exact task-12-like branch where the first employee read shows `dateOfBirth=null` and `employments=[]`, the repair-first path is:
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*`
-  3. if that division read returns one usable row, `GET /salary/type?count=1000&fields=*`
-  4. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
-  5. `POST /employee/employment`
+  3. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
+  4. `POST /employee/employment`
+  5. `GET /salary/type?count=1000&fields=*`
   6. `POST /salary/transaction`
-- for the exact no-division branch without manual-voucher fallback (8 calls, production-confirmed 2026-03-21):
+- for the exact no-division branch without manual-voucher fallback (7 calls, sandbox-confirmed 2026-03-21):
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*` → zero rows
-  3. `GET /municipality?count=1&fields=*`
-  4. `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (weights `[3,2,7,6,5,4,3,2]`, leading `9`), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id }` — do NOT use the company's own org number
-  5. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
-  6. `POST /employee/employment` with new `division.id`, first day of payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-  7. `GET /salary/type?count=1000&fields=*`
-  8. `POST /salary/transaction`
+  3. `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (weights `[3,2,7,6,5,4,3,2]`, leading `9`), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call, do NOT use the company's own org number
+  4. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
+  5. `POST /employee/employment` with new `division.id`, first day of payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`
+  6. `GET /salary/type?count=1000&fields=*`
+  7. `POST /salary/transaction`
   - do NOT add verification GETs — POST 201 proves the state
 - for the exact fallback-permitted no-division branch, the lower-call path is:
   1. `GET /employee?email=...&count=10&fields=*`
@@ -287,7 +289,7 @@ Replace the ids and amounts with the task-specific values.
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
 - When the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed
-- When `GET /division?count=1&fields=*` returns zero rows and the prompt does not allow manual vouchers, create a division with the full required payload (`name`, `organizationNumber`, `startDate`, `municipalityDate`, `municipality`) — do NOT stop blocked; this path was production-confirmed on 2026-03-21 for `jules.leroy@example.org` / `56950` + `9350`
+- When `GET /division?count=1&fields=*` returns zero rows and the prompt does not allow manual vouchers, create a division with `POST /division` using `name: "Hovudavdeling"`, generated org number, `startDate`, `municipalityDate`, and `municipality: { id: 1 }` (hardcoded — do NOT spend a `GET /municipality` call) — do NOT stop blocked; this path was production-confirmed on 2026-03-21; sandbox on 2026-03-21 confirmed `municipality: { id: 1 }` works without a prior municipality read
 - When `GET /division?count=1&fields=*` returns zero rows and the prompt explicitly allows manual vouchers, switch straight into the manual-voucher fallback branch
 - Do not add verification GETs (`GET /salary/payslip`, `GET /salary/transaction`) after a successful `POST /salary/transaction` — each verification call is wasted since POST 201 already proves the state was created with the exact amounts sent
 - Do not rely on `GET /salary/payslip/{id}?fields=*` alone when the task scores the exact manual salary-line contents
