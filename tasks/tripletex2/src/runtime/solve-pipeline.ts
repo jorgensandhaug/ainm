@@ -51,6 +51,7 @@ export interface SolveRequestFile {
   fileName: string;
   textContent: string;
   mediaType?: string;
+  contentBase64?: string;
 }
 
 export interface CompetitionSolveRequest {
@@ -221,6 +222,10 @@ export async function runDeterministicSolvePipeline(
         {
           tripletex,
           clock,
+          request: {
+            prompt: request.prompt,
+            files: request.files,
+          },
         },
         taskUnderstanding.result.input,
       );
@@ -715,7 +720,7 @@ function createRequestFingerprint(request: SolveRequest): string {
     hash.update("\n");
     hash.update(file.mediaType ?? "");
     hash.update("\n");
-    hash.update(file.textContent);
+    hash.update(getSolveRequestFileBytes(file));
   }
 
   return `req:${hash.digest("hex")}`;
@@ -724,14 +729,22 @@ function createRequestFingerprint(request: SolveRequest): string {
 function toRunRequestFile(
   file: SolveRequestFile,
 ): RunArtifactV1["request"]["files"][number] {
-  const byteSize = Buffer.byteLength(file.textContent, "utf8");
+  const fileBytes = getSolveRequestFileBytes(file);
 
   return {
     fileName: file.fileName,
     mediaType: file.mediaType,
-    byteSize,
-    sha256: `sha256:${createHash("sha256").update(file.textContent).digest("hex")}`,
+    byteSize: fileBytes.byteLength,
+    sha256: `sha256:${createHash("sha256").update(fileBytes).digest("hex")}`,
   };
+}
+
+function getSolveRequestFileBytes(file: SolveRequestFile): Uint8Array {
+  if (file.contentBase64) {
+    return Buffer.from(file.contentBase64, "base64");
+  }
+
+  return Buffer.from(file.textContent, "utf8");
 }
 
 function summarizePrompt(prompt: string): string {

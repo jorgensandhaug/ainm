@@ -38,6 +38,7 @@ test("loadStoredCompetitionRequestFixture decodes stored request files", async (
   assert.deepEqual(request.files[0], {
     fileName: "note.txt",
     textContent: "hello tripletex\n",
+    contentBase64: Buffer.from("hello tripletex\n").toString("base64"),
     mediaType: "text/plain",
   });
   assert.equal(request.tripletex_credentials.base_url, "https://example.invalid");

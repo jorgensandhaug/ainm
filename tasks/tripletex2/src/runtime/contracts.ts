@@ -139,6 +139,17 @@ export interface RuntimeClock {
 export interface StrategyContext {
   tripletex: TripletexClient;
   clock: RuntimeClock;
+  request?: {
+    prompt: string;
+    files: readonly StrategyRequestFile[];
+  };
+}
+
+export interface StrategyRequestFile {
+  fileName: string;
+  mediaType?: string;
+  textContent: string;
+  contentBase64?: string;
 }
 
 export type StrategyEntityIds = Record<string, number>;

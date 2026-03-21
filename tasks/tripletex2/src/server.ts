@@ -411,6 +411,7 @@ async function resolveDeterministicSolveRequestPayload(
     files: parsed.files.map((file) => ({
       fileName: file.filename,
       textContent: file.textContent,
+      contentBase64: file.content_base64,
       ...(file.mime_type ? { mediaType: file.mime_type } : {}),
     })),
     tripletex_credentials: {

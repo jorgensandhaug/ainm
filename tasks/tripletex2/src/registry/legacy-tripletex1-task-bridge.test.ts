@@ -28,7 +28,7 @@ const EXPECTED_CANONICAL_MAPPING = [
   ["17", "register-customer-invoice-payment"],
   ["18", "reverse-customer-invoice-payment"],
   ["19", "unknown-task-19"],
-  ["20", "unknown-task-20"],
+  ["20", "register-supplier-invoice-pdf"],
   ["21", "unknown-task-21"],
   ["22", "unknown-task-22"],
   ["23", "unknown-task-23"],
