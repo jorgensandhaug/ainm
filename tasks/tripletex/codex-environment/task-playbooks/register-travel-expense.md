@@ -263,3 +263,12 @@ For the travel-expense create, the sandbox-proven shape was:
   - 0 errors, `state=DELIVERED`, expense `11149476`, 2 costs, 1 per-diem
   - used rateType 25886 (day-trip) for overnight trip — same wrong-rate mistake as Pablo Rodríguez
   - optimal was 6 calls with hardcoded rateType 25888/740 and parallel company+costCat+payType
+- 2026-03-21 `Miguel Pérez` / `miguel.perez@example.org` / `Visita cliente Tromsø` / 5-day per-diem 800/day + flight 2600 + taxi 800 (run 1ca00562):
+  - **FIRST production confirmation of 6-call path with hardcoded rateType 25888/740**
+  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - deterministic dates `2026-03-17..2026-03-21`, `overnightAccommodation=HOTEL`
+  - 6-call run: employee → company+costCat+payType (parallel) → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, expense `11150209`, 2 costs, 1 per-diem
+  - hardcoded `rateType: { id: 25888, rateCategory: { id: 740 } }` delivered without `GET /travelExpense/rate`
+  - saves 1 call vs prior 7-call runs AND uses correct overnight rateType (prior runs used wrong day-trip 25886)
+  - previous Miguel Pérez run (2026-03-20) wasted 2 extra employee reads; this run is exactly optimal

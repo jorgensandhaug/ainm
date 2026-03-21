@@ -147,3 +147,12 @@
   - 0 errors, `state=DELIVERED`, expense `11149476`, 2 costs, 1 per-diem
   - used rateType id=25886 (day-trip rate=397) for a 3-day overnight trip — WRONG rate selection (should be 25888/740 for overnight); delivery succeeded but scorer may check rateType correctness
   - rate lookup was unnecessary: sandbox proof shows hardcoded rateType 25888/740 delivers without rate lookup; optimal was 6 calls (employee → company+costCat+payType parallel → POST → deliver)
+- 2026-03-21 `Miguel Pérez` / `miguel.perez@example.org` / `Visita cliente Tromsø` / 5-day per-diem (800/day) + flight 2600 + taxi 800 (run 1ca00562):
+  - duration-only prompt, employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - **first production confirmation of the 6-call path with hardcoded rateType 25888/740 (overnight)**
+  - 6-call run: employee → company+costCat+payType (parallel) → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, expense `11150209`, 2 costs, 1 per-diem
+  - hardcoded `rateType: { id: 25888, rateCategory: { id: 740 } }` delivered correctly without any `GET /travelExpense/rate` call
+  - compared to previous Miguel Pérez run (2026-03-20) which wasted 2 extra employee reads: this run used exactly the optimal 6-call path
+  - compared to Pablo Rodríguez / Lars Johansen runs which used 7 calls + wrong day-trip rateType 25886: this run saves 1 call AND uses correct overnight rateType
+  - sandbox follow-up also proved `costCategory` is optional for `POST /travelExpense` (201 without it) but required for `PUT /travelExpense/:deliver` (422 without it), so the costCategory lookup is NOT skippable
