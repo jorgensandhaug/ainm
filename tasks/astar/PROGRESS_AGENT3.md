@@ -2024,6 +2024,41 @@
    - purpose:
      - satisfy the reusable handoff protocol
      - keep family-level notes separate from the timestamped execution ledger
+218. Repo/task startup hygiene repeated this turn:
+   - re-read `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - re-ran required `br list`
+   - result:
+     - `br: command not found`
+219. Machine-wide health before the next branch this turn:
+   - snapshot:
+     - memory used: about `1.3 TiB`
+     - memory available: about `1.6 TiB`
+   - other agents are now much heavier than earlier:
+     - several `agent5` workers at roughly `24-65 GiB`
+     - multiple `agent1` and other-agent benchmark jobs still live
+   - my active corrected holdouts:
+     - `teacher_student_blend_v13` through `v22`
+   - decision:
+     - still enough headroom for a narrow next branch only
+     - keep `jobs=1`
+220. New hypothesis after item 219:
+   - exact observed-cell posterior updates fix only the cells directly seen by queries
+   - the transcript should also contain local spatial signal for nearby unobserved cells
+   - test a blurred local residual update:
+     - diffuse empirical residuals from observed cells into nearby unobserved cells
+     - preserve exact observed-cell correction separately
+221. Implemented blurred local evidence variants:
+   - added local Gaussian-blur residual update on top of the existing blended prediction
+   - update acts only on unobserved cells
+   - exact observed-cell posterior correction remains as the final step
+   - new variants:
+     - `teacher_student_blend_v23`
+     - `teacher_student_blend_v24`
+222. Validation for item 221:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_teacher_student.py::test_summary_bank_exact_local_evidence_posterior_uses_observed_counts tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip tests/test_historical_benchmark.py::test_teacher_student_blend_v24_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions

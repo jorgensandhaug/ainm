@@ -7,6 +7,7 @@
 - `v17` / `v18`: confidence gating should reduce off-bank overtrust when live summaries are far from training summaries
 - `v19` / `v20`: seed-adaptive teacher weighting should beat round-total weighting by rewarding informative seed coverage and penalizing repetitive windows
 - `v21` / `v22`: exact local evidence posterior updates should improve observed-cell calibration because queried terminal samples directly estimate local marginals
+- `v23` / `v24`: blurred local residual diffusion should improve nearby unobserved cells because query windows contain local spatial signal beyond the exact queried pixels
 
 ## Evaluation Rule
 
