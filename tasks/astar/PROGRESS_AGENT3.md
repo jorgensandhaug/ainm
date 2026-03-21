@@ -2784,6 +2784,36 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v60_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v62_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+305. Machine-wide health check before launching the beta-tuning wave:
+   - snapshot before launch:
+     - memory used: about `1.7 TiB`
+     - memory available: about `1.2 TiB`
+   - live family queue count from machine-wide process scan:
+     - about `49` agent3 teacher-student benchmark processes / wrappers
+   - decision:
+     - one more 4-model `jobs=1` corrected-holdout wave still fit inside the shared-memory budget
+306. Fourteenth corrected-holdout outer wave launched from pushed commit `f2b482ae`:
+   - models:
+     - `teacher_student_blend_v59`
+     - `teacher_student_blend_v60`
+     - `teacher_student_blend_v61`
+     - `teacher_student_blend_v62`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - sessions:
+     - `v59`: `50680`
+     - `v60`: `21539`
+     - `v61`: `79641`
+     - `v62`: `4233`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
+307. Read after item 306:
+   - exact-local-evidence shrinkage tuning is now the newest active branch
+   - next launch beyond this should wait for either:
+     - a finished `v53/v54/v57/v58/v59-v62` gate result, or
+     - a finished full corrected LOO result from `v51` or `v52`
 
 
 ## Open Questions
