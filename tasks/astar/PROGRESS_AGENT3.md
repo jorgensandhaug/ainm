@@ -1821,6 +1821,27 @@
    - added historical benchmark smoke for `teacher_student_blend_v16`
    - focused validation command launched:
      - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+196. Validation result for item 195:
+   - result:
+     - `36 passed`
+   - latest pushed source commit after the residual / spatial branch:
+     - `d4b4e01`
+197. New benchmark expansion after item 196:
+   - full corrected LOO launched for:
+     - `teacher_student_blend_v13`
+     - `teacher_student_blend_v14`
+     - `teacher_student_blend_v15`
+     - `teacher_student_blend_v16`
+   - launch shape:
+     - mode: `online_interactive`
+     - policy: `coverage`
+     - budget: `50`
+     - `jobs=12` per run
+     - artifact roots:
+       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v13_full/`
+       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v14_full/`
+       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v15_full/`
+       - `data/artifacts/benchmarks/agent3_dev_teacher_student_blend_v16_full/`
 
 
 ## Open Questions
