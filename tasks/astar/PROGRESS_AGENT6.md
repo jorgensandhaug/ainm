@@ -4214,8 +4214,15 @@
   - hv2k7+sx 50/50: 75.22
 - Dev5 hv2+sx 50/50: **79.57** (+3.60 vs baseline, +0.07 vs hv2+qr ensemble)
 
+- Arithmetic mean ensemble results:
+  - hv2+sx 50/50 arith: **75.42** (beats geometric mean 75.38!)
+  - hv2+sx 45/55 geo: 75.36
+  - hv2+sx 55/45 geo: 75.34
+  - hv2+qr 50/50 arith: 75.22
+  - 3-component hv2+sx+bp: 75.12 (bucket prior dilutes)
+
 ### Current scoreboard on probe3:
-1. **ENSEMBLE hv2+sx 50/50: 75.38** (NEWEST BEST)
+1. **ENSEMBLE hv2+sx 50/50 arith: 75.42** (NEWEST BEST)
 2. ensemble hv2+qr 50/50: 75.19
 3. ensemble hv2k9+sx 50/50: 75.16
 4. hazard_posterior_v2 k9_r3_m80: 73.293
