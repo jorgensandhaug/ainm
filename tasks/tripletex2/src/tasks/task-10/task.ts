@@ -73,7 +73,7 @@ export type IssueFullCreditNoteTaskUnderstandingResult = TaskUnderstandingResult
   typeof ISSUE_FULL_CREDIT_NOTE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<IssueFullCreditNoteTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/issue-full-credit-note");
   return {
     task,
     strategies: [strategy],

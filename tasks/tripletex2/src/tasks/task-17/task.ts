@@ -73,7 +73,7 @@ export type RegisterCustomerInvoicePaymentTaskUnderstandingResult = TaskUndersta
   typeof REGISTER_CUSTOMER_INVOICE_PAYMENT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RegisterCustomerInvoicePaymentTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/register-payment");
   return {
     task,
     strategies: [strategy],
