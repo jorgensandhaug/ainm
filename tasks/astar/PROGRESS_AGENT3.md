@@ -292,6 +292,25 @@
 37. Next hypothesis:
    - current model naming still hides important training-regime choices behind CLI flags (`samples_per_round`, training transcript policy)
    - next improvement should make those choices explicit in named variants and test whether more synthetic transcript diversity helps the two remaining weak rounds without harming the rest
+38. Immediate next experiment:
+   - hold architecture fixed at `query_residual_v8`
+   - change only training transcript diversity: `samples_per_round=2`
+   - first test on the representative 2-round/7-train holdout before deciding whether to formalize it as a new named variant
+   - rationale:
+     - weakest rounds likely need better transcript-conditioned calibration, not necessarily another feature block
+     - doubling synthetic episodes per round is the smallest high-signal data-regime change still untested in this workspace
+39. `query_residual_v8` samples-2 targeted holdout status at end of this turn:
+   - probe command was started for the same 2-round/7-train holdout with:
+     - model `query_residual_v8`
+     - `samples_per_round=2`
+     - `policy=coverage`
+   - expensive first-pass groundwork completed:
+     - full synthetic dataset built at:
+       - `data/artifacts/datasets/query_residual_synthetic_live__policy=coverage__samples=2__rounds=n=8__sha1=ea07400de1/`
+     - first held-out fold checkpoint built at:
+       - `data/artifacts/models/query_residual_v8__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+   - run was intentionally stopped after caching that groundwork to avoid leaving another orphan long-running process at turn end
+   - rerunning the same samples-2 holdout probe should now skip dataset build and reuse the completed first fold
 
 ## Open Questions
 
