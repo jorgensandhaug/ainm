@@ -48,6 +48,7 @@ The classifier intentionally uses the same tmux-based Codex invocation style as 
 The difference from the fallback solver is only the prompt content:
 
 - classifier prompt: read `./AGENTS.md`, classify, extract typed fields, then submit JSON with `bun submit-classification.ts`.
+- classifier prompt also receives staged attachment metadata and on-disk attachment paths under the run directory, so Codex can inspect the original PDF or other file directly when needed.
 - fallback solver prompt: read `./AGENTS.md`, then solve the full Tripletex task.
 
 ### Classification contract
@@ -214,6 +215,8 @@ Common staged files include:
 - leaderboard/submission enrichment sidecars for tmux runs.
 
 These artifacts matter because they make deterministic runs, tmux fallback runs, and classifier decisions inspectable after the fact.
+
+Deterministic runs now stage attachments under the same `attachments/NN-filename` convention as tmux runs. The staged `request.json` may include a per-file `path`, and `textContent` is only preserved for genuinely textual attachments. Binary inputs such as PDFs keep their raw bytes and staged path, but do not get synthetic UTF-8 `textContent`.
 
 ## Local Development
 
