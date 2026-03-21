@@ -4194,8 +4194,18 @@
   - Key finding: with only ~8 synthetic episodes per fold, particles are too similar for observation-likelihood to differentiate
   - Agent1 likely has more synthetic episodes or uses samples_per_round=1 (giving 1 episode per round per fold, but with their own summary-vector-from-observations function, not our evidence-based one)
 
+### ENSEMBLE BREAKTHROUGH:
+- ensemble hv2+qr 50/50: **75.19** (+2 points over best single model!)
+- ensemble hv2k9+sx 50/50: **75.16**
+- ensemble hv2+qr 70/30: 74.85
+- ensemble hv2+qr 30/70: 74.75
+- Geometric mean blending in log-probability space works extraordinarily well
+- The two model families capture complementary information
+
 ### Current scoreboard on probe3:
-1. **hazard_posterior_v2 k9_r3_m80: 73.293** (NEW BEST)
+1. **ENSEMBLE hv2+qr 50/50: 75.19** (MASSIVE NEW BEST)
+2. ensemble hv2k9+sx 50/50: 75.16
+3. hazard_posterior_v2 k9_r3_m80: 73.293
 2. hazard_posterior_v2 k7_r3_m80: 73.25
 3. hazard_posterior_v2 k7_r3: 73.25
 4. hazard_posterior_v2 k7_r3_m90: 73.21
