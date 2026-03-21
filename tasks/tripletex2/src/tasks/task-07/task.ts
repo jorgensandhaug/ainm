@@ -73,7 +73,7 @@ export type CreateAccountingDimensionAndPostVoucherTaskUnderstandingResult = Tas
   typeof CREATE_ACCOUNTING_DIMENSION_AND_POST_VOUCHER_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateAccountingDimensionAndPostVoucherTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-dimension-and-post-voucher");
   return {
     task,
     strategies: [strategy],

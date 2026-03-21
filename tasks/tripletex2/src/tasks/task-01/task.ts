@@ -67,7 +67,7 @@ export type CreateCustomerTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_CUSTOMER_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateCustomerTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-customer-post");
   return {
     task,
     strategies: [strategy],

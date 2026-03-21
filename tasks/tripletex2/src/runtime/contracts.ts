@@ -87,7 +87,7 @@ export type TripletexFetch = (
   init: {
     method: HttpMethod;
     headers: Record<string, string>;
-    body?: string;
+    body?: BodyInit;
   },
 ) => Promise<TripletexFetchResponse>;
 
@@ -113,6 +113,8 @@ export interface TripletexClientConfig {
 export interface TripletexRequestOptions {
   query?: Record<string, QueryValue>;
   body?: unknown;
+  rawBody?: BodyInit;
+  contentType?: string;
 }
 
 export interface TripletexClient {

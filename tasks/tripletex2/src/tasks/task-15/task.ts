@@ -85,7 +85,9 @@ export type RegisterProjectHoursAndCreateProjectInvoiceTaskUnderstandingResult =
   typeof REGISTER_PROJECT_HOURS_AND_CREATE_PROJECT_INVOICE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RegisterProjectHoursAndCreateProjectInvoiceTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import(
+    "./strategies/register-hours-then-project-order-invoice"
+  );
   return {
     task,
     strategies: [strategy],

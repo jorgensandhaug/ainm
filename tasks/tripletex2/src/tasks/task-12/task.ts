@@ -69,7 +69,7 @@ export type RunPayrollWithBonusTaskUnderstandingResult = TaskUnderstandingResult
   typeof RUN_PAYROLL_WITH_BONUS_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RunPayrollWithBonusTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/repair-aware-payroll");
   return {
     task,
     strategies: [strategy],

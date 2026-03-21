@@ -74,7 +74,7 @@ export type CreateCustomerInvoiceTaskUnderstandingResult = TaskUnderstandingResu
   typeof CREATE_CUSTOMER_INVOICE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateCustomerInvoiceTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-customer-invoice");
   return {
     task,
     strategies: [strategy],

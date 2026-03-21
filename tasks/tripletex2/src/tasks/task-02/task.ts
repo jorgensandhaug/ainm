@@ -61,7 +61,7 @@ export type CreateSupplierTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_SUPPLIER_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateSupplierTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-supplier-post");
   return {
     task,
     strategies: [strategy],

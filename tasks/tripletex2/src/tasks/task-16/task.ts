@@ -85,7 +85,7 @@ export type RegisterSupplierInvoiceTaskUnderstandingResult = TaskUnderstandingRe
   typeof REGISTER_SUPPLIER_INVOICE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RegisterSupplierInvoiceTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/import-then-book-voucher");
   return {
     task,
     strategies: [strategy],

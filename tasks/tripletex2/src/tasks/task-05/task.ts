@@ -69,7 +69,7 @@ export type CreateProjectTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_PROJECT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateProjectTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-project");
   return {
     task,
     strategies: [strategy],

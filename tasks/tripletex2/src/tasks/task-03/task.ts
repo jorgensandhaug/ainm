@@ -47,7 +47,7 @@ export type CreateDepartmentTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_DEPARTMENT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateDepartmentTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/direct-create-departments");
   return {
     task,
     strategies: [strategy],

@@ -9,6 +9,7 @@ import type {
   TripletexFetch,
   TripletexFetchResponse,
 } from "./runtime/contracts";
+import { taskRegistrations } from "./registry/tasks";
 import { createSolveRequestHandler } from "./server";
 
 test("POST /solve writes staging plus a canonical success artifact and respects caller run identity", async (t) => {
@@ -17,6 +18,7 @@ test("POST /solve writes staging plus a canonical success artifact and respects 
     bearerToken: "secret-token",
     mode: "sandbox",
     solveBackend: "deterministic",
+    selectionConfigOverride: await createSelectionConfigOverride(),
     now: () => new Date("2026-03-20T23:00:00.000Z"),
     createRunId: () => "sandbox-http-success",
     dataRoot: path.join(tempRoot, "data"),
@@ -231,6 +233,7 @@ test("POST /solve enforces the concurrency limit", async () => {
     bearerToken: "secret-token",
     solveBackend: "deterministic",
     maxConcurrentSolveRequests: 1,
+    selectionConfigOverride: await createSelectionConfigOverride(),
     taskUnderstanding: {
       result: {
         status: "resolved",
@@ -293,6 +296,7 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
     bearerToken: "secret-token",
     mode: "sandbox",
     solveBackend: "deterministic",
+    selectionConfigOverride: await createSelectionConfigOverride(),
     sandboxEnvPath,
     now: () => new Date("2026-03-20T23:20:00.000Z"),
     createRunId: () => "sandbox-http-fallback",
@@ -674,6 +678,29 @@ function createSolveRequest(input: {
         },
     }),
   });
+}
+
+async function createSelectionConfigOverride(): Promise<{
+  schemaVersion: "tripletex2.active-strategy-selection.v1";
+  selectionConfigId: string;
+  taskStrategies: Record<string, string>;
+}> {
+  return {
+    schemaVersion: "tripletex2.active-strategy-selection.v1",
+    selectionConfigId: "active-strategies-test-selection",
+    taskStrategies: Object.fromEntries(
+      await Promise.all(
+        taskRegistrations.map(async (registration) => {
+          const taskModule = await registration.loadTaskModule();
+          return [
+            registration.task.taskId,
+            taskModule.strategies[0]?.strategyId ??
+              `${registration.task.taskId}.missing-strategy`,
+          ];
+        }),
+      ),
+    ),
+  };
 }
 
 function createFixtureTripletexFetch(): TripletexFetch {

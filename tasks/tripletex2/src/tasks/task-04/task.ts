@@ -59,7 +59,7 @@ export type CreateProductTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_PRODUCT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateProductTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/direct-create-product");
   return {
     task,
     strategies: [strategy],

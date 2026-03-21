@@ -48,7 +48,7 @@ test("task registrations seed every canonical task id exactly once", () => {
   );
 });
 
-test("newly surfaced canonical tasks load real modules and draft strategies", async () => {
+test("newly surfaced canonical tasks load real modules and strategies", async () => {
   const taskSpec = getTaskSpec("03");
   assert.ok(taskSpec);
   assert.equal(taskSpec.implementationStatus, "implemented");
@@ -60,7 +60,7 @@ test("newly surfaced canonical tasks load real modules and draft strategies", as
   assert.ok(taskModule);
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["03.not-implemented.v1"],
+    ["03.direct-create-departments.v1"],
   );
 });
 
