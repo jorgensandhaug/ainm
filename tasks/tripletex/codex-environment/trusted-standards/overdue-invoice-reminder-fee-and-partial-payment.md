@@ -136,4 +136,14 @@
   - voucher `#1` (`id=608962870`), fee invoice `#4` (`id=2147594063`, amount `50`)
   - payment type `36469300`
   - payment reduced outstanding to `19812.5`
+- persistent sandbox re-proof on `2026-03-21` tested whether `account: { number: 1500, name: "Kundefordringer" }` (number+name, no id) could skip the account GET:
+  - `POST /ledger/voucher` with `account: { number: 1500, name: "Kundefordringer" }` failed `422 Internt felt (account): Feltet må fylles ut.`
+  - this confirms `account.id` is strictly mandatory; neither `number` alone nor `number+name` is accepted
+  - the `GET /ledger/account` call cannot be eliminated
+- production proof on `2026-03-21` (`prod-2026-03-21-171051701Z-de935656`) confirmed the `6`-call path for Norwegian prompt with fee `50`, 0 errors, 0 wasted calls:
+  - overdue invoice `#1` (`id=2147613724`), customer `108381232`, outstanding `16250`
+  - voucher `#1` (`id=609051585`)
+  - fee invoice `#4` (`id=2147613830`, amount `50`)
+  - payment type `36723119`
+  - payment reduced outstanding to `11250`
 - the `6`-call path is now the default for this task shape; the previous `7`-call path included a now-unnecessary `GET /ledger/vatType` call

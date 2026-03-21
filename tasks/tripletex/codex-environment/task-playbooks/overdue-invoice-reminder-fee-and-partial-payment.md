@@ -205,4 +205,13 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `36469300`
   - remaining outstanding `19812.5`
 - the older production run `prod-2026-03-21-124240715Z-4117f590` still matters as a parser warning because it wasted 1 API call due to a response-shape bug (`value` vs `values`), but that failure mode is now avoidable
-- the `6`-call path is the current standard and the latest production run already matched it with no wasted calls
+- sandbox re-proof on `2026-03-21` tested `account: { number: 1500, name: "Kundefordringer" }` (number+name, no id) to see if GET /ledger/account could be skipped:
+  - failed `422 Internt felt (account): Feltet må fylles ut.` — `account.id` is strictly mandatory
+  - neither `number` alone nor `number+name` can replace the account id lookup
+- production run `prod-2026-03-21-171051701Z-de935656` matched the trusted `6`-call path exactly for a Norwegian prompt with fee `50`, 0 errors:
+  - overdue invoice `#1` (`id=2147613724`), customer `108381232`, outstanding `16250`
+  - voucher `#1` (`id=609051585`)
+  - fee invoice `#4` (`id=2147613830`, amount `50`)
+  - payment type `36723119`
+  - remaining outstanding `11250`
+- the `6`-call path is confirmed optimal across 3 production runs and multiple sandbox proofs; no lower-call path exists
