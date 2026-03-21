@@ -72,6 +72,15 @@
   - `probe_hazard_v3_k5_r3_l16_m20_coverage_3rounds_seed0to1`
   - `probe_hazard_v3_k5_r3_l16_m50_coverage_3rounds_seed0to1`
   - `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
+- later hard-slice posterior-shrinkage results:
+  - `hazard_posterior_v3_k5_r3_l16_m20 + coverage`: `76.4455`, KL `0.092286`, runtime `94.01s`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + coverage`: `76.8128`, KL `0.090407`, runtime `96.84s`
+  - conclusion:
+    - stronger ridge + higher predicted-latent weight helps
+    - `l16/m50` is the new hard-slice best so far
+- promotion update:
+  - killed stale full run `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
+  - relaunched full 8-round promotion as `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
 
 ### Session Continuation
 

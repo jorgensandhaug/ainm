@@ -1,11 +1,11 @@
 # Next Steps
 
 1. Finish the in-flight full 8-round v3 promotion:
-   - `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
+   - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
 2. Finish the in-flight v3 posterior sweeps on the hard slice:
    - `samples-per-round=4` coverage / exploration
    - stronger-ridge `l16` coverage variants with different mean-vs-neighbor mix
-3. If none of the in-flight v3 sweeps beat the default `l8/m35` hard-slice result, lock that config as v3 mainline and promote only coverage-based full runs.
+3. Current v3 mainline is `l16/m50`; only supersede it if the in-flight `s4` probes beat it on both score and KL.
 4. Analyze the new v3 tradeoff structure:
    - big gains on `8e839...` and `ae780...`
    - regression on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`

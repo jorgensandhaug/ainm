@@ -64,6 +64,10 @@
   - `hazard_posterior_v3_k9_r4_l8_m35 + coverage`: identical to default coverage
   - `hazard_posterior_v3_k9_r4_l8_m35 + exploration_v2`: identical to default exploration
   - implication: the gain comes from the distilled posterior itself; larger k/rank is not helping, and `coverage` is clearly better than `exploration_v2`
+- Posterior shrinkage/mix tuning still matters within v3:
+  - `hazard_posterior_v3_k5_r3_l16_m20 + coverage`: `76.4455`, weighted KL `0.092286`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + coverage`: `76.8128`, weighted KL `0.090407`
+  - implication: stronger ridge plus higher predicted-latent weight is currently the best tested v3 setting on the hard slice
 
 ## Strongly Supported Hypotheses
 
@@ -75,6 +79,7 @@
 - The new v2 family is not helped by blending with the conservative bucket anchor on the matched hard slice.
 - For the new v2 family, broad `coverage` is at least slightly better than `exploration_v2` on the current hard slice.
 - The main remaining bottleneck after v2 was the posterior model, not the regime-manifold decoder; replacing kNN summary lookup with a distilled posterior produces a much larger gain than v2 decoder/rank tweaks.
+- Within the new distilled-posterior family, posterior shrinkage / mixing is now a real optimization axis, unlike larger k/rank which appears flat.
 
 ## Rejected / Weak Hypotheses
 
