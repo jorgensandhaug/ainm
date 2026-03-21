@@ -287,6 +287,16 @@ The ensemble works because GLMM excels on normal rounds (93 score) while the dir
 
 Optimum at 50% DT weight with low floor. Low floor adds only +0.03 - our floor was already near optimal.
 
+### Per-Cell LightGBM (Phase 5) - FAILED
+
+| Model | Score | Notes |
+|-------|-------|-------|
+| cellwise_gbt_v001 | 68.92 | 800 trees, depth 8 |
+| cellwise_gbt_v002 | 67.88 | 1200 trees, depth 8 |
+| cellwise_gbt_v003 | 68.50 | 800 trees, depth 6 |
+
+**Why GBT failed**: Training uses zero-valued evidence features (because training data comes from replays, not online queries). Agent 3's approach trains with synthetic evidence from simulated episodes. Without evidence-augmented training, the GBT model is just a nonlinear version of the static-feature model and can't beat the GLMM rollout.
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
