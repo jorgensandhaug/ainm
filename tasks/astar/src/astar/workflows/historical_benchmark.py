@@ -128,6 +128,8 @@ def run_historical_benchmark(
         "smh_glmmlatent_z2_h0_covnbr_calnone_v001",
         "smh_glmmlatent_z4_h0_covnbr_calnone_v001",
         "smh_glmmlatent_z2_h0_covnbr3_calnone_v001",
+        "smh_glmmlatent_z2_h0_covbase_calobs_v001",
+        "smh_glmmlatent_z2_h0_covnbr_calobs_v001",
         "smh_resid_z12_h0_covbase_locgate_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
         "smh_coeffbank_z0_h0_covmarkpostw06_v001",
