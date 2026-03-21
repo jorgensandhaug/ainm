@@ -15,5 +15,6 @@
 - Does exact observed-cell posterior correction become useful again once it is ported onto the stronger `k=1` backbone?
 - After exact-local-evidence fixes observed cells, does seed-adaptive/confidence-gated teacher weighting still improve the unobserved-cell blend?
 - Is the winning exact-local-evidence branch under-shrunk or over-shrunk relative to the current `beta_min=4`, `beta_scale=12` setting?
+- Does the `v59/v60` improvement continue if exact-local-evidence shrinkage is pushed even lower than `beta_min=2`, `beta_scale=8`?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

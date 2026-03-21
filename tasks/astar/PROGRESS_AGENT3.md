@@ -2814,6 +2814,56 @@
    - next launch beyond this should wait for either:
      - a finished `v53/v54/v57/v58/v59-v62` gate result, or
      - a finished full corrected LOO result from `v51` or `v52`
+308. Machine-wide cleanup after item 307:
+   - killed stale low-value runs for:
+     - old weak corrected gates: `v21`, `v22`, `v23`, `v24`, `v26`, `v39`, `v40`, `v41`, `v42`, `v47`, `v48`, `v49`, `v50`, `v55`, `v56`
+     - obsolete full baselines: `v13`, `v15`, `v45`
+   - effect:
+     - machine memory dropped to about `867 GiB` used and about `2.1 TiB` available
+309. The beta-tuning results landed immediately after the cleanup:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v59`
+     - `teacher_student_blend_v60`
+     - `teacher_student_blend_v61`
+     - `teacher_student_blend_v62`
+   - aggregate results:
+     - `v59`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v60`: mean score `65.4188`, mean weighted KL `0.142051`
+     - `v61`: mean score `64.5530`, mean weighted KL `0.146440`
+     - `v62`: mean score `64.5082`, mean weighted KL `0.146682`
+310. Read from item 309:
+   - more aggressive exact-local-evidence shrinkage improved again
+   - current finished corrected-gate leader is now `teacher_student_blend_v59`
+   - conservative shrinkage (`v61/v62`) moved backward, so the tuning direction is clear
+311. Promotion decision after item 309:
+   - `v59` and `v60` are promoted immediately to full corrected LOO
+312. Sixth and seventh promotion benchmarks launched:
+   - commands:
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v59 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v59_full_corrected --jobs 4`
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v60 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v60_full_corrected --jobs 4`
+   - sessions:
+     - `v59` full: `8217`
+     - `v60` full: `76974`
+313. New hypothesis after item 310:
+   - the exact-local-evidence win is still moving toward lower beta
+   - next decisive test:
+     - push shrinkage lower than `v59/v60` rather than changing the overall architecture
+314. Implemented more-aggressive exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v63`
+     - `teacher_student_blend_v64`
+     - `teacher_student_blend_v65`
+     - `teacher_student_blend_v66`
+   - mapping:
+     - `v63` = global backbone with `beta_min=1`, `beta_scale=4`
+     - `v64` = spatial backbone with `beta_min=1`, `beta_scale=4`
+     - `v65` = global backbone with `beta_min=0`, `beta_scale=2`
+     - `v66` = spatial backbone with `beta_min=0`, `beta_scale=2`
+315. Validation for item 314:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v64_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v66_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

@@ -27,6 +27,8 @@
 - `v57` / `v58`: test that same gated teacher-blend idea on the lower-sample exact-local-evidence line instead of assuming the `samples=4` optimum transfers
 - `v59` / `v60`: exact-local-evidence is now the clear winning mechanism, so tune its empirical-Bayes shrinkage more aggressively toward observed counts
 - `v61` / `v62`: test the opposite direction too, in case the current posterior update is already slightly overreacting and needs stronger prior retention
+- `v63` / `v64`: `v59/v60` say the win keeps moving toward more aggressive local evidence, so test a stronger step in that same direction
+- `v65` / `v66`: also test an extreme near-count-dominated posterior in case the best regime is to trust observed-cell evidence almost completely
 
 ## Evaluation Rule
 

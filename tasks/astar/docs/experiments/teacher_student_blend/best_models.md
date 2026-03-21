@@ -4,8 +4,12 @@ No post-pivot full-family winner is promoted yet.
 
 Current finished corrected-holdout ranking:
 
+- `teacher_student_blend_v59`: mean score `65.4649`, mean weighted KL `0.141802`
+- `teacher_student_blend_v60`: mean score `65.4188`, mean weighted KL `0.142051`
 - `teacher_student_blend_v51`: mean score `65.0719`, mean weighted KL `0.143762`
 - `teacher_student_blend_v52`: mean score `65.0268`, mean weighted KL `0.144004`
+- `teacher_student_blend_v61`: mean score `64.5530`, mean weighted KL `0.146440`
+- `teacher_student_blend_v62`: mean score `64.5082`, mean weighted KL `0.146682`
 - `teacher_student_blend_v45`: mean score `61.3370`, mean weighted KL `0.163687`
 - `teacher_student_blend_v13`: mean score `61.3244`, mean weighted KL `0.163762`
 - `teacher_student_blend_v43`: mean score `61.3197`, mean weighted KL `0.163789`
@@ -26,8 +30,9 @@ Current finished corrected-holdout ranking:
 Current read:
 
 - strongest finished branch is now the `k=1` line plus exact observed-cell posterior correction
-- `v51` is the new corrected-gate leader and `v52` is essentially tied behind it
-- the jump is large, not marginal: `v51` beats `v45` by `+3.7349` score and `-0.019925` KL
+- `v59` is the new corrected-gate leader and `v60` is essentially tied behind it
+- the exact-local-evidence win kept moving in the same direction: lower shrinkage beat `v51/v52` again
+- `v59` beats `v45` by `+4.1279` score and `-0.021885` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
 - exact local evidence on the strong `k=1` line improved both held-out rounds sharply
@@ -37,37 +42,21 @@ Current read:
 
 Active queue now includes:
 
-- `teacher_student_blend_v21`
-- `teacher_student_blend_v22`
-- `teacher_student_blend_v23`
-- `teacher_student_blend_v24`
-- `teacher_student_blend_v26`
-- `teacher_student_blend_v39`
-- `teacher_student_blend_v40`
-- `teacher_student_blend_v41`
-- `teacher_student_blend_v42`
-- `teacher_student_blend_v47`
-- `teacher_student_blend_v48`
-- `teacher_student_blend_v49`
-- `teacher_student_blend_v50`
 - `teacher_student_blend_v51`
 - `teacher_student_blend_v52`
 - `teacher_student_blend_v53`
 - `teacher_student_blend_v54`
-- `teacher_student_blend_v55`
-- `teacher_student_blend_v56`
 - `teacher_student_blend_v57`
 - `teacher_student_blend_v58`
 - `teacher_student_blend_v59`
 - `teacher_student_blend_v60`
 - `teacher_student_blend_v61`
 - `teacher_student_blend_v62`
-- full LOO live: `teacher_student_blend_v13`
-- full LOO live: `teacher_student_blend_v15`
-- full LOO live: `teacher_student_blend_v45`
 - full LOO live: `teacher_student_blend_v51`
 - full LOO live: `teacher_student_blend_v52`
-- next promotion target is `teacher_student_blend_v51`
-- newest corrected-gate branch is `teacher_student_blend_v59` through `teacher_student_blend_v62`
+- full LOO live: `teacher_student_blend_v59`
+- full LOO live: `teacher_student_blend_v60`
+- next promotion target is `teacher_student_blend_v59`
+- newest corrected-gate branch is `teacher_student_blend_v63` through `teacher_student_blend_v66`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.
