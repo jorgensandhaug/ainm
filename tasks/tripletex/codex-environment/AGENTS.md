@@ -84,7 +84,8 @@ Authentication:
 
 ## Trusted Standards
 - Before acting, check whether the task matches a trusted standard in `./trusted-standards/`
-- If it matches exactly, execute the trusted standard directly
+- If it matches exactly, read (cat) the matching `.md` file, then execute it directly
+- NEVER skip reading the file — trusted standards document API traps (silently ignored params, required field expansions, nonexistent fields) that caused 0% production scores when agents wrote from memory instead
 - For exact trusted-standard matches, do not double-check or triple-check `./openapi.json`; doing so wastes time and hurts score
 - Trusted standards are intended to be safer than ad hoc spec-reading for their exact task shape
 - If a trusted standard is incomplete, wrong, or no longer optimal, fix it during post-run reflection
