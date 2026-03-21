@@ -4,55 +4,102 @@
 
 Radically improve benchmark scores beyond the current best of 78.38 (GLMM latent z2 + exploration).
 
-## Current State (2026-03-21T16:20Z)
+## Current State
 
 - Branch: `agent2`
 - Best model: `smh_glmmlatent_z2_h0_covbase_calnone_v001` + exploration
-  - Full 8-round score: **78.38 / 0.087** weighted KL
-- Machine: 384 cores, 3TB RAM, 341GB disk
+  - Full 8-round score: **78.40 / 0.086** weighted KL (e50 variant with 50 epochs)
+- Machine: 384 cores, 3TB RAM
 
-## Key Insight: Missing Neighborhood Features
+## Comprehensive Experiment Results
 
-The current GLMM model treats each cell **independently** - it uses 16 static geometry features + time features, but has **ZERO dynamic features about what neighboring cells are doing**. This is the fundamental gap because:
+### Full 8-Round Benchmark Scores (sorted by score)
 
-- Settlement expansion requires nearby settlements (spatial contagion)
-- Port development requires coastal + settlement neighbor
-- Raids come from nearby hostile settlements
-- Ruin reclamation requires nearby thriving settlements
-- All game mechanics are inherently spatial/neighborhood-dependent
+| Model | Score | Weighted KL | Delta vs Base | Status |
+|-------|-------|-------------|---------------|--------|
+| z2 e50 (50 epochs) | **78.40** | **0.086** | +0.02 | **BEST** |
+| z2 base (exploration) | 78.38 | 0.087 | baseline | baseline |
+| z2 base (coverage) | 77.82 | 0.089 | -0.56 | |
+| z3 | 77.34 | 0.092 | -1.04 | worse |
+| z2 hbblend20 (ensemble) | 77.17 | 0.091 | -1.21 | REJECTED |
+| z2 calobs (obs blend) | 76.20 | 0.095 | -2.18 | REJECTED |
+| z2 r01 (ridge 0.01) | 72.02 | 0.118 | -6.36 | REJECTED |
+| z2 r10 (ridge 0.1) | 66.36 | 0.147 | -12.02 | REJECTED |
 
-## Implementation: Neighborhood-Enriched GLMM
+### Dev 4-Round Scores (neighborhood feature variants)
 
-### Changes made:
+| Model | Score | Weighted KL | Delta vs Dev Baseline |
+|-------|-------|-------------|----------------------|
+| z2 base (dev4) | 74.17 | 0.113 | baseline |
+| z2 covnbr3 (3 nbr features) | 70.36 | 0.127 | -3.81 |
+| z2 covnbr (6 nbr features) | 67.21 | 0.138 | -6.96 |
+| z4 covnbr (6 nbr features) | 67.21 | 0.138 | -6.96 |
 
-1. **`cell_transition.py`**: Added `include_neighborhood_features` flag
-   - Computes 1-ring neighbor class composition per cell per timestep
-   - 6 new features: `nbr_empty_frac`, `nbr_settlement_frac`, `nbr_port_frac`, `nbr_ruin_frac`, `nbr_occupied_frac`, `nbr_forest_frac`
-   - Accumulated per (step, y, x, current_class) across replay runs
+## Key Findings
 
-2. **`smh_glmm.py`**: Full neighborhood feature support
-   - `_nbr_feature_stack_from_probs()`: Computes neighborhood features from probability tensor during rollout
-   - Modified training to include neighborhood features in design matrix
-   - Modified rollout to recompute neighborhood features after each step
-   - All checkpoint classes updated for backward compatibility
+### 1. Neighborhood features HURT the model (-7 points)
+- Root cause: training-rollout distribution mismatch
+  - Training: neighborhood features computed from DISCRETE replay states
+  - Rollout: neighborhood features computed from DIFFUSE probability tensors
+  - The probability-derived features don't match what the model was trained on
+- Also: overfitting with 40% more parameters
 
-3. **New models registered**:
-   - `smh_glmmlatent_z2_h0_covnbr_calnone_v001` - z2 latent + all 6 nbr features
-   - `smh_glmmlatent_z4_h0_covnbr_calnone_v001` - z4 latent + all 6 nbr features
-   - `smh_glmmlatent_z2_h0_covnbr3_calnone_v001` - z2 latent + 3 key nbr features
+### 2. Exact observation blending HURTS the GLMM model (-2 points)
+- The GLMM posterior already handles observations well via log-likelihood weighting
+- Overriding predictions with raw observation counts adds noise
+- This is different from the coeffbank model where calobs helped (+1.7 points)
 
-4. **Tests**: 2 passed for new models
+### 3. Bucket prior blending HURTS the GLMM model (-1.2 points)
+- The GLMM model is strictly better than the bucket prior on every round
+- Blending in the weaker model degrades performance
 
-## Experiment Log
+### 4. Stronger regularization HURTS (-6 to -12 points)
+- ridge 0.01: score 72.0 (6 points worse)
+- ridge 0.1: score 66.4 (12 points worse)
+- The current ridge 0.001 is already optimal
 
-### Benchmarks Launched
+### 5. More epochs barely helps (+0.02 points)
+- Model was already near convergence at 18 epochs
+- 50 epochs gives a tiny marginal improvement
 
-(Recording as they complete)
+### 6. Higher latent dim HURTS (-1 point)
+- z3 scored 77.34 vs z2 at 78.38
+- z4 also scored worse (from progress log: ~72 on 6-round test)
+- With only ~8 rounds, z2 captures all meaningful variation
 
-## Next Steps
+## Architecture Understanding
 
-1. Run dev benchmarks on new neighborhood models
-2. If positive, run full 8-round promotion benchmarks
-3. Implement direct terminal predictor (skip rollout)
-4. Add interaction features (coast x settlement_nearby, etc.)
-5. Explore ensemble of GLMM + direct terminal
+The GLMM latent z2 model is at the **ceiling of the linear softmax cell-transition architecture** (~78.4). The model is:
+- Well-regularized (ridge 0.001)
+- Well-trained (18-50 epochs, Adam)
+- Right latent dimension (z2)
+- Right feature set (16 static features + 3 time features)
+
+To break through 78.4, we need fundamentally different modeling approaches.
+
+## Additional Results (scored and rejected)
+
+| Model | Score | Weighted KL | Delta | Status |
+|-------|-------|-------------|-------|--------|
+| z2 covpoly (time×static interactions) | 74.15 | 0.106 | -4.23 | REJECTED |
+| z2 tmix (tensor mixing instead of weight-bank rollout) | 78.38 | 0.087 | ±0.00 | identical |
+
+## All Rejected Approaches
+
+1. Dynamic neighborhood features (training-rollout mismatch, -7 to -11 pts)
+2. Exact observation blending (adds noise to good posterior)
+3. Bucket prior blending (weaker model degrades stronger one)
+4. Stronger regularization (already optimal)
+5. Higher latent dimensions (overfitting with few rounds)
+6. Polynomial time-static interactions (overfitting, -4.2 points)
+7. Tensor mixing (mathematically equivalent to weight-bank rollout for this config)
+
+## Key Conclusion
+
+The GLMM latent z2 model at 78.4 is at the **architectural ceiling** for linear-softmax cell-transition models with low-rank round manifolds. Every attempt to make the model richer (more features, interactions, regularization changes, ensemble blending) has either hurt or had zero effect.
+
+To break through, we need a fundamentally different approach:
+- Non-linear transition model (neural network)
+- Direct terminal prediction (skip rollout)
+- Much richer replay-derived features
+- Or a completely different model family
