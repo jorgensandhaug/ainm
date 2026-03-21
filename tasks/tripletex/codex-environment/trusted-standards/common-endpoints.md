@@ -719,6 +719,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `dateTo` on `/ledger/posting` is also exclusive (same as `/ledger/voucher` and `/balanceSheet`); for full-month coverage always use first-of-next-month
   - production 2026-03-21 task 23 wasted 2 calls with `422` because `dateFrom`/`dateTo` were sent instead of `date` on the `openPost` variant
 
+## Ledger Voucher Type
+- `/ledger/voucherType`
+  - `GET` search — supports `?name=<exact name>&count=1&fields=*` filter for targeted lookup (e.g. `?name=Lønnsbilag`)
+  - voucherType ids are **account-specific** — do NOT hardcode them; always resolve by name
+  - production proof 2026-03-21: hardcoded Lønnsbilag id `9744848` (from sandbox) failed with `422 Ugyldig bilagstype` in production where the id was `8145240`
+
 ## Ledger Voucher
 - `/ledger/voucher`
   - `GET` search
