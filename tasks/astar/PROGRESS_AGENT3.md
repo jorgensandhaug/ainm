@@ -1683,6 +1683,30 @@
    - added coverage:
      - temporal-ridge checkpoint roundtrip smoke
      - `teacher_student_blend_v10` default-sample historical benchmark smoke
+182. Benchmark wave launched after items 165-181:
+   - full corrected LOO in flight for:
+     - `teacher_student_blend_v1`
+     - `teacher_student_blend_v3`
+     - `teacher_student_blend_v4`
+     - `teacher_student_blend_v5`
+     - `teacher_student_blend_v6`
+     - `teacher_student_blend_v7`
+     - `teacher_student_blend_v8`
+     - `teacher_student_blend_v9`
+     - `teacher_student_blend_v10`
+   - corrected 2-round explicit holdout gates in flight for:
+     - `teacher_student_blend_v4`
+     - `teacher_student_blend_v5`
+     - `teacher_student_blend_v6`
+     - `teacher_student_blend_v7`
+     - `teacher_student_blend_v8`
+     - `teacher_student_blend_v9`
+     - `teacher_student_blend_v10`
+   - held-out rounds for the corrected targeted gate:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - training set for that gate:
+     - all other currently analyzed historical rounds
 
 
 ## Open Questions
