@@ -204,16 +204,16 @@ The XML is not a dummy transport wrapper. It has to be structurally valid enough
   ```xml
   <cac:AccountingCustomerParty>
     <cac:Party>
-      <cbc:EndpointID schemeID="0192">999999999</cbc:EndpointID>
+      <cbc:EndpointID schemeID="0192">123456785</cbc:EndpointID>
       <cac:PostalAddress>
-        <cbc:StreetName>Testveien 1</cbc:StreetName>
+        <cbc:StreetName>Kundeveien 1</cbc:StreetName>
         <cbc:CityName>Oslo</cbc:CityName>
         <cbc:PostalZone>0001</cbc:PostalZone>
         <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>
       </cac:PostalAddress>
       <cac:PartyLegalEntity>
-        <cbc:RegistrationName>Ditt firma</cbc:RegistrationName>
-        <cbc:CompanyID schemeID="0192">999999999</cbc:CompanyID>
+        <cbc:RegistrationName>Buyer AS</cbc:RegistrationName>
+        <cbc:CompanyID schemeID="0192">123456785</cbc:CompanyID>
       </cac:PartyLegalEntity>
     </cac:Party>
   </cac:AccountingCustomerParty>
@@ -427,6 +427,16 @@ Proven outcome:
 - 7th consecutive optimal 5-call production run with 0 errors
 - sandbox finding: `importDocument` auto-creates supplier from XML data but with empty address and no bank — explicit `POST /supplier` remains required for PDF tasks with scored address/bank fields
 
+2026-03-21 production run for `Luz do Sol Lda` / `945810149` / `INV-2026-5787` / `35950` / `6590` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Portuguese-language text-only prompt (no PDF), description "serviços de escritório"
+- first production use of expense account 6590 (Andre kontorkostnader)
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 35950/1.25=28760 net, 7190 VAT (no rounding)
+- voucher `609189277`, supplier `108443659`
+- 8th consecutive optimal 5-call run; languages confirmed: en, es, pt, de, fr, nb, nn
+
 2026-03-21 production run for `Tindra AS` / `983514650` / `INV-2026-3624` / `42100` / `6540` / `25%`:
 - used exactly 5 calls, 0 errors — optimal execution
 - Norwegian-language text-only prompt (no PDF), description "kontortjenester" (lowercase preserved exactly)
@@ -446,7 +456,7 @@ Proven outcome:
 - two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
 - exact VAT: 75500/1.25=60400 net, 15100 VAT (no rounding)
 - voucher `609189717`, supplier `108444029`
-- accounts confirmed across production runs: 6300, 6340, 6500, 6540, 7000, 7140
+- accounts confirmed across production runs: 6300, 6340, 6500, 6540, 6590, 7000, 7140
 
 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
 - used 6 calls, 1 error — suboptimal due to XML buyer block missing PostalAddress
@@ -514,7 +524,7 @@ Proven outcome:
 ### XML org number validation
 - ALL org numbers in the XML must pass PEPPOL mod11 check — this includes BOTH the supplier and buyer `EndpointID`/`CompanyID`
 - do NOT use `000000000` as the buyer EndpointID — it fails PEPPOL-COMMON-R041 despite technically passing mod11 arithmetic
-- use `123456785` or `999999999` as the hardcoded buyer EndpointID constant (both sandbox-proven valid)
+- use `123456785` as the hardcoded buyer EndpointID constant (sandbox-proven valid; `999999999` also works but prefer `123456785` for consistency with trusted standard)
 - random 9-digit numbers will fail `422`; use the real supplier org number from the prompt for supplier fields
 - 2026-03-21 production run for `Forêt SARL` / `823356366` wasted 1 API call (422) because buyer EndpointID was `000000000`
 
@@ -541,7 +551,7 @@ Proven outcome:
 - always access the importDocument response via `values[0]`, never via `value`
 - always set explicit `row` values on PUT postings (1 for debit, 2 for supplier)
 - for 25% incoming VAT, hard-code `vatType: { id: 1 }` — do not waste a call on `GET /ledger/vatType`
-- `account: { number: ... }` and `account: { number: ..., name: ... }` do NOT work in PUT postings — only `account: { id }` is accepted; the GET /ledger/account lookup is still required
+- `account: { number: ... }` and `account: { number: ..., name: ... }` do NOT work in PUT postings — only `account: { id }` is accepted; the GET /ledger/account lookup is still required; 2026-03-21 sandbox re-proof: `account: { number: 6590 }` returns `422 "postings.account.name — Kan ikke være null."`
 - ALWAYS book the voucher after setting postings: `PUT sendToLedger=true` with only `{ version }` — without this the voucher is unbooked and scores 0%
 - NEVER send postings in the booking PUT — only send `{ version }`
 - preserve the prompt description's exact casing — do NOT capitalize or normalize; if the prompt says "kontortjenester" use exactly that, not "Kontortjenester"
