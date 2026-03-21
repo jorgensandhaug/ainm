@@ -8,18 +8,28 @@
 ## Exact Match
 - register one new manual voucher from one attached receipt
 - the prompt identifies one exact receipt line to book, one exact department name, and asks for the correct expense account and VAT treatment
-- the receipt line is a business-lunch / external-representation meal such as `Forretningslunsj`
 - the receipt already shows the purchase was paid by company card / business card
 - the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
+- two proven expense-type branches exist:
+  - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` → account `7360`, VAT code `0`
+  - **Branch B (deductible purchase)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
+- select the branch based on the receipt line text, not the receipt vendor or total
 
 ## Do Not Use This Standard If
 - the task scores a real supplier invoice or supplier object linkage
 - the task needs travel-expense, salary, employee-expense, project, or customer linkage
 - the task needs several receipt lines booked separately or split across several accounts
-- the expense text does not clearly belong to the proven non-deductible representation branch
 - the prompt explicitly gives another expense account or another VAT treatment
 
+## Account Selection Rule
+- `Forretningslunsj` / restaurant meals / business lunch → `7360` (non-deductible representation)
+- `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
+- do not use `7350` for any representation receipt line; 2026-03-21 production scored `0/10` on that branch
+- if the receipt line text does not clearly map to a known account, check Norwegian standard chart of accounts (6500-series for office costs, 7300-series for representation)
+
 ## Standard Flow
+
+### Branch A — Non-deductible representation (`7360`)
 1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
 2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
 3. `GET /ledger/account?number=7360,1920&fields=*`
@@ -27,26 +37,46 @@
 5. `POST /ledger/voucher/{voucherId}/attachment`
 6. verify from the two write responses
 7. stop
+- **Total: 4 API calls** (fresh account with POST department)
+
+### Branch B — Deductible purchase (`6540` with incoming 25% VAT)
+1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
+2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
+3. `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)` — extract `vatType.id` from account `6540` response
+4. `POST /ledger/voucher` — with explicit `vatType: { id: <from step 3> }` on the expense posting
+5. `POST /ledger/voucher/{voucherId}/attachment`
+6. verify from the two write responses
+7. stop
+- **Total: 4 API calls** (fresh account with POST department)
+- **No separate `GET /ledger/vatType` needed** — the account's default vatType.id is extracted from step 3
 
 ## Payload Rules
-- for receipt line text `Forretningslunsj`, use expense account `7360 Representasjon, ikke fradragsberettiget`
-- do not use `7350` for this exact restaurant-style business-lunch receipt shape; 2026-03-21 production feedback on the no-attachment `7350` branch was `0/10`
+
+### Branch A — Non-deductible representation
+- expense account: `7360 Representasjon, ikke fradragsberettiget`
 - account `7360` is `vatLocked=true` with only VAT code `0`, so do not resolve `/ledger/vatType` and do not send an explicit `vatType`
-- book the selected receipt line at gross amount only, repeated in:
-  - `amount`
-  - `amountCurrency`
-  - `amountGross`
-  - `amountGrossCurrency`
-- use the selected line amount from the receipt, not the whole receipt total; for the verified `Forretningslunsj` receipt:
-  - line amount = `13650`
-  - whole receipt total = `14020`
-  - whole receipt VAT = `3505`
-  - the scored voucher line still uses only `13650` because the other receipt rows are not part of the task
-- use the receipt date as voucher date; for the verified receipt, `2026-01-30`
+- book the selected receipt line amount repeated in all four fields:
+  - `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = receipt line price
+- balancing line on `1920` with negated amount in all four fields
+- no auto-generated VAT posting (code `0`)
+
+### Branch B — Deductible purchase
+- expense account: `6540 Inventar` (or other deductible expense account based on receipt line text)
+- account `6540` is `vatLocked=false` with default `vatType.id=1` (incoming 25%)
+- **CRITICAL**: must send explicit `vatType: { id: <from account response> }` on the expense posting; omitting vatType defaults to code `0` (no VAT), which is WRONG for deductible purchases
+- set `amountGross` = `amountGrossCurrency` = receipt line price (the receipt line price is the gross amount including VAT)
+- Tripletex auto-calculates:
+  - `amount` = receipt line price / 1.25 (net)
+  - auto-generated 3rd posting on account `2710` for the VAT recovery amount
+- balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated receipt line price
+
+### Common rules (both branches)
+- use the selected line amount from the receipt, not the whole receipt total
+- use the receipt date as voucher date
 - preserve the receipt line text exactly in voucher `description` and expense-posting `description`
 - attach the department only on the expense posting, using exact `department.id`
 - use existing bank account `1920` as the balancing line for this card-paid exact shape
-- preserve the receipt itself with `POST /ledger/voucher/{voucherId}/attachment`; do not treat the attachment as optional on this exact receipt-backed task
+- preserve the receipt itself with `POST /ledger/voucher/{voucherId}/attachment`; do not treat the attachment as optional
 - do not use `POST /ledger/voucher/importDocument` as the default attachment path for this shape
 
 ## Reuse From Write Response
@@ -54,7 +84,8 @@
   - `value.id`
   - `value.name`
 - from `GET /ledger/account?...`:
-  - account ids for `7360` and `1920`
+  - account ids for the expense account and `1920`
+  - for Branch B: `vatType.id` from the expense account response (use `fields=id,number,name,vatType(*)` to expand)
 - from `POST /ledger/voucher`:
   - `value.id`
   - `value.version`
@@ -62,6 +93,7 @@
   - expense-posting `department.id`
   - expense-posting `account.id`
   - expense-posting `vatType.id`
+  - for Branch B: auto-generated VAT posting on `2710` with `amount` = VAT recovery
 - from `POST /ledger/voucher/{voucherId}/attachment`:
   - `value.id`
   - `value.attachment.id`
@@ -70,10 +102,11 @@
 - `POST /ledger/voucher` should already prove:
   - voucher date
   - voucher description
-  - expense account id `7360`
+  - expense account id
   - department id on the expense posting
-  - gross amount `13650`
-  - VAT code `0`
+  - amount / amountGross values
+  - vatType.id on expense posting
+  - for Branch B: auto-generated `2710` posting with correct VAT amount
 - `POST /ledger/voucher/{voucherId}/attachment` should then prove the same voucher now has `attachment.id`
 - no follow-up `GET /ledger/voucher/{id}` is needed unless one of those fields is unexpectedly missing
 
@@ -82,24 +115,103 @@
 - if that containing search returns rows such as `Drift sandbox ...` but not exact `Drift`, and the prompt does not say the department already exists, create exact `Drift` once with `POST /department`
 - do not try `department: { "name": "Drift" }` on the voucher posting as a lower-call shortcut; persistent sandbox on 2026-03-21 returned `201` but silently stored `department=null`
 - do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}` for this receipt-backed voucher shape; persistent sandbox on 2026-03-21 returned `422` that `description` and `postings` are not editable for that imported voucher type
-- do not use `account: { "number": 7360 }` or `account: { "number": 1920 }` in `POST /ledger/voucher`; ordinary number-only account refs are still not a trusted voucher shortcut
+- do not use `account: { "number": 7360 }` or `account: { "number": 6540 }` or `account: { "number": 1920 }` in `POST /ledger/voucher`; number-only account refs fail with `422 postings.account.name: Kan ikke være null.`
+- for Branch B: do not omit `vatType` on the expense posting; Tripletex defaults to vatType `0` (no VAT) when not specified, even if the account has a non-zero default
+- for Branch B: do not hardcode `vatType.id=1` without checking the account response; use the id from `GET /ledger/account?...&fields=id,number,name,vatType(*)`
 
 ## OpenAPI / Sandbox Status
 - `/department`, `/ledger/account`, `/ledger/voucher`, `/ledger/voucher/{voucherId}/attachment`, and `/ledger/voucher/importDocument` verified in `./openapi.json`
-- persistent sandbox re-verified on 2026-03-21:
-  - `GET /ledger/account?number=1920,7350,7360&fields=*` returned `7350` and `7360` as zero-VAT representation accounts and showed `7360` as the non-deductible representation branch
-  - `POST /ledger/voucher` with `department: { "name": "Drift" }` succeeded as voucher `608898503` but persisted `department=null`, so name-only department refs are not a safe lower-call shortcut
-  - `GET /department?name=Drift&isInactive=false&fields=*` first returned only containing-match row `Drift sandbox 20260320-223143`, proving exact local filtering is required
-  - one exact `POST /department` then created `Drift` with id `927069`
-  - `POST /ledger/voucher/importDocument` created non-posted attachment-backed voucher `608898541`, but the next `PUT /ledger/voucher/608898541` failed `422` because `description` and `postings` are not editable for that imported voucher type
-  - the successful exact-shape proof was:
-    1. exact `Drift` department available as id `927069`
-    2. `GET /ledger/account?number=1920,7360&fields=*`
-    3. `POST /ledger/voucher` with expense posting on `7360`, balancing line on `1920`, amount `13650`, date `2026-01-30`, and department `927069`
-    4. `POST /ledger/voucher/608898560/attachment`
-  - that final proof returned voucher `608898560` with:
-    - expense posting `account.id=424191174` (`7360`)
-    - expense posting `department.id=927069`
-    - expense posting `vatType.id=0`
-    - gross amount `13650`
-    - attachment id `1024214336`
+
+### Branch A sandbox proof (2026-03-21)
+- `GET /ledger/account?number=1920,7350,7360&fields=*` returned `7350` and `7360` as zero-VAT representation accounts and showed `7360` as the non-deductible representation branch
+- `POST /ledger/voucher` with `department: { "name": "Drift" }` succeeded as voucher `608898503` but persisted `department=null`, so name-only department refs are not a safe lower-call shortcut
+- `GET /department?name=Drift&isInactive=false&fields=*` first returned only containing-match row `Drift sandbox 20260320-223143`, proving exact local filtering is required
+- one exact `POST /department` then created `Drift` with id `927069`
+- the successful exact-shape proof was:
+  1. exact `Drift` department available as id `927069`
+  2. `GET /ledger/account?number=1920,7360&fields=*`
+  3. `POST /ledger/voucher` with expense posting on `7360`, balancing line on `1920`, amount `13650`, date `2026-01-30`, and department `927069`
+  4. `POST /ledger/voucher/608898560/attachment`
+- that final proof returned voucher `608898560` with:
+  - expense posting `account.id=424191174` (`7360`)
+  - expense posting `department.id=927069`
+  - expense posting `vatType.id=0`
+  - gross amount `13650`
+  - attachment id `1024214336`
+
+### Branch B sandbox proof (2026-03-21)
+- `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)` returned:
+  - account `6540` "Inventar": id=`424191132`, vatLocked=`false`, vatType.id=`1` ("Fradrag inngående avgift, høy sats", 25%, deductionPercentage=100)
+  - account `1920` "Bankinnskudd": id=`424190862`, vatLocked=`true`, vatType.id=`0`
+- `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-02-22&fields=*` confirmed id=`1` is incoming 25% — but this call is unnecessary if extracted from account response
+- `POST /ledger/voucher` with amountGross=`13500`, vatType={id:`1`}, account 6540, department 927069 returned voucher `609014744` with:
+  - expense posting: account=`6540`, amount=`10800`, amountGross=`13500`, vatType.id=`1`, department=`927069`
+  - bank posting: account=`1920`, amount=`-13500`, amountGross=`-13500`
+  - auto-generated VAT posting: account=`2710` (Inngående merverdiavgift, høy sats), amount=`2700`, amountGross=`2700`
+- `POST /ledger/voucher/609014744/attachment` attached the PDF and returned attachment.id=`1024249955`
+- omitting explicit `vatType` on the posting defaulted to vatType.id=`0` (no VAT), which is wrong — voucher `609014755` had amount=`13500`, amountGross=`13500` with no VAT splitting
+- `account: { number: 6540 }` failed with `422 postings.account.name: Kan ikke være null.`, confirming number-only refs are still unsafe
+
+## Winning Payload Shapes
+
+### Branch A — Non-deductible representation
+```json
+{
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
+  "postings": [
+    {
+      "row": 1,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<7360-id>" },
+      "department": { "id": "<dept-id>" },
+      "amount": "<line-price>",
+      "amountCurrency": "<line-price>",
+      "amountGross": "<line-price>",
+      "amountGrossCurrency": "<line-price>"
+    },
+    {
+      "row": 2,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<line-price>",
+      "amountCurrency": "-<line-price>",
+      "amountGross": "-<line-price>",
+      "amountGrossCurrency": "-<line-price>"
+    }
+  ]
+}
+```
+
+### Branch B — Deductible purchase
+```json
+{
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
+  "postings": [
+    {
+      "row": 1,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<6540-id>" },
+      "department": { "id": "<dept-id>" },
+      "vatType": { "id": "<vatType-id-from-account>" },
+      "amountGross": "<line-price>",
+      "amountGrossCurrency": "<line-price>"
+    },
+    {
+      "row": 2,
+      "date": "<receipt-date>",
+      "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<line-price>",
+      "amountCurrency": "-<line-price>",
+      "amountGross": "-<line-price>",
+      "amountGrossCurrency": "-<line-price>"
+    }
+  ]
+}
+```
+- Tripletex will auto-compute `amount` on the expense posting (net = line-price / 1.25) and auto-generate a 3rd posting on `2710`

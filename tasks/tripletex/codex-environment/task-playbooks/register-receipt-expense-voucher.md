@@ -7,7 +7,11 @@ Use for tasks like:
 - book only one specific receipt line, not the whole receipt
 - put the expense in one named department
 - preserve the receipt as a voucher attachment
-- use the correct expense account and VAT treatment for a business-lunch / representation line such as `Forretningslunsj`
+- use the correct expense account and VAT treatment based on the receipt line text
+
+Two proven branches:
+- **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`) → account `7360`, no VAT deduction
+- **Branch B**: office furniture / equipment / supplies line (e.g., `Kontorstoler`) → account `6540`, incoming 25% VAT deductible
 
 Do not use for:
 - supplier-invoice tasks
@@ -16,147 +20,115 @@ Do not use for:
 - prompts that already provide an exact different expense account or VAT code
 - prompts that score supplier, employee, project, or customer linkage
 
+## Account Selection
+
+| Receipt line text | Account | VAT treatment |
+|---|---|---|
+| `Forretningslunsj` / business lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction |
+| `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT, fully deductible |
+| Office supplies / `Kontorrekvisita` | `6500` (if applicable) | Incoming 25% VAT, fully deductible |
+
+- Do NOT use `7350` for representation; 2026-03-21 production scored `0/10` on that branch
+
 ## Verified Findings
 
 Verified in persistent sandbox on 2026-03-21:
-- `GET /department?name=Drift&isInactive=false&fields=*` is a containing search, not an exact-match search
-- that same read returned only `Drift sandbox 20260320-223143` until an exact `Drift` department was created, so local exact filtering by `department.name` is mandatory
-- `POST /department` with `{ "name": "Drift" }` succeeded directly and returned exact department id `927069`
-- `GET /ledger/account?number=1920,7350,7360&fields=*` showed:
-  - `7350 Representasjon, fradragsberettiget`
-  - `7360 Representasjon, ikke fradragsberettiget`
-  - both were `vatLocked=true` with VAT code `0`
-- 2026-03-21 production scoring feedback on the no-attachment `7350` branch was `0/10`, so the deductible-representation assumption was wrong for this exact restaurant-style `Forretningslunsj` receipt task
-- `POST /ledger/voucher` with expense account `7360`, balancing account `1920`, gross amount `13650`, and exact department id succeeded directly and returned:
-  - voucher `608898560`
-  - expense posting `vatType.id=0`
-  - expense posting `department.id=927069`
-- `POST /ledger/voucher/608898560/attachment` then attached the PDF receipt and returned `attachment.id=1024214336`
-- `POST /ledger/voucher` with `department: { "name": "Drift" }` looked tempting as a 2-call shortcut after the account read, but the response for voucher `608898503` showed `department=null`; the name-only shortcut is not safe
-- `POST /ledger/voucher/importDocument` created non-posted voucher `608898541` with the receipt attached in one call, but the next `PUT /ledger/voucher/608898541` failed `422` on immutable `description` and `postings`
-- therefore the attachment-preserving winning branch is not import-first; it is manual voucher first, then attachment upload
-- the receipt facts for the verified prompt were:
-  - vendor `Olivia`
-  - date `2026-01-30`
-  - line `Forretningslunsj` at `13650.00 kr`
-  - whole receipt total `14020.00 kr`
-  - whole receipt VAT `3505.00 kr`
-  - paid with `Bedriftskort`
-- the scored voucher line still uses only `13650`, because the other receipt rows are outside the prompt
+
+### Branch A (Forretningslunsj / representation)
+- `GET /ledger/account?number=1920,7360&fields=*` returned `7360` as `vatLocked=true` with VAT code `0`
+- `POST /ledger/voucher` with expense account `7360`, balancing `1920`, gross amount `13650`, department id, succeeded
+- All four amount fields set to the same value (amount = amountGross = 13650) because no VAT split
+- Voucher `608898560` with attachment `1024214336`
+
+### Branch B (Kontorstoler / deductible purchase)
+- `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)`:
+  - account `6540` "Inventar": `vatLocked=false`, default `vatType.id=1` (incoming 25%)
+  - The `vatType(*)` expansion on the account response gives full VAT type details
+- No separate `GET /ledger/vatType` call needed — vatType.id extracted from account response
+- `POST /ledger/voucher` with expense account `6540`, `vatType: { id: 1 }`, `amountGross=13500`:
+  - Tripletex auto-computed `amount=10800` (net = 13500/1.25)
+  - Tripletex auto-generated 3rd posting on account `2710` (Inngående merverdiavgift) with amount `2700`
+  - Bank posting `1920` with amount `-13500`
+- **CRITICAL**: omitting `vatType` on the posting defaulted to code `0` — no VAT splitting at all (WRONG)
+- Account number refs (`account: { number: 6540 }`) failed `422` — must use account IDs
+
+### Common findings
+- `GET /department?name=Drift&isInactive=false&fields=*` is a containing search; local exact filtering mandatory
+- `department: { "name": "Drift" }` on voucher postings silently persists `department=null`
+- `POST /ledger/voucher/importDocument` creates uneditable voucher shell; not usable for this flow
 
 ## Minimal Safe Flow
 
-1. Confirm these operations in `./openapi.json`
-   - `POST /department` or `GET /department`
-   - `GET /ledger/account`
-   - `POST /ledger/voucher`
-   - `POST /ledger/voucher/{voucherId}/attachment`
-2. Resolve the department
-   - fresh-account-like prompt that only gives the target department name and does not say it already exists:
-     - `POST /department`
-   - persistent / retry / explicit-existing-department branch:
-     - `GET /department?name=...&isInactive=false&fields=*`
-     - exact-filter locally by `department.name`
-3. Resolve the voucher accounts
-   - `GET /ledger/account?number=7360,1920&fields=*`
-4. Create the manual voucher
-   - `POST /ledger/voucher`
-5. Attach the receipt PDF to that voucher
-   - `POST /ledger/voucher/{voucherId}/attachment`
-6. Verify from the two write responses
-7. Stop
+**4 API calls** for both branches on a fresh production account:
 
-## Exact-Match Fast Path
-
-- For the exact prompt family:
-  - one attached receipt
-  - one selected business-lunch line like `Forretningslunsj`
-  - one department name
-  - paid by company card
-  - correct expense account and VAT treatment requested
-- the best path is:
-  1. `POST /department` if the department is not explicitly stated as existing in a fresh-account-like run, otherwise one exact-name `GET /department?...`
-  2. `GET /ledger/account?number=7360,1920&fields=*`
-  3. `POST /ledger/voucher`
-  4. `POST /ledger/voucher/{voucherId}/attachment`
-- there is no trusted 3-call shortcut for the exact attachment-backed shape:
-  - `department.name` on voucher postings is not reliable
-  - `importDocument` creates an attachment-backed shell but not an editable voucher for this flow
-  - number-only voucher account refs are still unsafe
+1. `POST /department` — create the target department
+2. `GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*)` — resolve account IDs (and for Branch B, extract vatType.id)
+3. `POST /ledger/voucher` — create the voucher with correct postings
+4. `POST /ledger/voucher/{voucherId}/attachment` — upload the receipt PDF
 
 ## Winning Payload Shape
 
-Voucher create:
-
+### Branch A — Non-deductible representation
 ```json
 {
-  "date": "2026-01-30",
-  "description": "Forretningslunsj",
-  "voucherType": null,
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
   "postings": [
     {
-      "row": 1,
-      "date": "2026-01-30",
-      "description": "Forretningslunsj",
-      "account": { "id": 424191174 },
-      "department": { "id": 927069 },
-      "amount": 13650,
-      "amountCurrency": 13650,
-      "amountGross": 13650,
-      "amountGrossCurrency": 13650
+      "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<7360-id>" },
+      "department": { "id": "<dept-id>" },
+      "amount": "<line-price>", "amountCurrency": "<line-price>",
+      "amountGross": "<line-price>", "amountGrossCurrency": "<line-price>"
     },
     {
-      "row": 2,
-      "date": "2026-01-30",
-      "description": "Forretningslunsj",
-      "account": { "id": 424190862 },
-      "amount": -13650,
-      "amountCurrency": -13650,
-      "amountGross": -13650,
-      "amountGrossCurrency": -13650
+      "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<line-price>", "amountCurrency": "-<line-price>",
+      "amountGross": "-<line-price>", "amountGrossCurrency": "-<line-price>"
     }
   ]
 }
 ```
 
-Then upload the original receipt PDF to `/ledger/voucher/{voucherId}/attachment`.
-
-Replace the ids with the current account ids. The important shape is:
-- account `7360` for the expense line
-- exact `department.id`
-- gross-only amounts repeated in both amount fields
-- balancing line on `1920`
-- separate attachment upload on the created voucher
+### Branch B — Deductible purchase
+```json
+{
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
+  "postings": [
+    {
+      "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<6540-id>" },
+      "department": { "id": "<dept-id>" },
+      "vatType": { "id": "<vatType-id-from-account>" },
+      "amountGross": "<line-price>", "amountGrossCurrency": "<line-price>"
+    },
+    {
+      "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<line-price>", "amountCurrency": "-<line-price>",
+      "amountGross": "-<line-price>", "amountGrossCurrency": "-<line-price>"
+    }
+  ]
+}
+```
+- Tripletex auto-calculates `amount` on expense posting (net) and creates a 3rd posting on `2710`
 
 ## Validation Traps
 
-- do not use `7350` for this exact receipt line; the 2026-03-21 production run scored `0/10` on that deductible-representation branch
-- do not use the whole receipt total `14020`; the selected expense line is only `13650`
-- do not add `/ledger/vatType`; account `7360` is already locked to VAT code `0`
-- do not rely on `department: { "name": "Drift" }`; the voucher can be created while silently dropping the department
-- do not trust `GET /department?name=Drift...` by itself; it can return containing matches such as `Drift sandbox ...`
-- do not use `POST /ledger/voucher/importDocument` as the default create step when you still need to control postings or description
-- do not assume the receipt attachment is optional on this task family
-- do not use `account.number` instead of resolved account ids on `POST /ledger/voucher`
+- do not use `7350` for representation receipts
+- do not use the whole receipt total; use only the selected receipt line amount
+- do not omit `vatType` on Branch B postings; it defaults to code `0` (no VAT), not the account default
+- do not rely on `department: { "name": "..." }`; always use exact `department.id`
+- do not use `account.number` on voucher postings; always resolve to `account.id`
+- do not use `POST /ledger/voucher/importDocument` for this flow
+- do not skip the receipt attachment; it is scored
+- do not add a separate `GET /ledger/vatType` for Branch B; extract from the account response instead
 
 ## Verification Shape
 
-- `POST /ledger/voucher` should prove:
-  - voucher date
-  - description
-  - expense account id
-  - department id on the expense posting
-  - gross amount
-  - VAT code `0`
-- `POST /ledger/voucher/{voucherId}/attachment` should prove:
-  - same voucher id
-  - `attachment.id`
-- no follow-up `GET /ledger/voucher/{id}` is needed unless either write response is unexpectedly sparse
-
-## Attachment Rule
-
-- for receipt-backed manual-voucher tasks, preserve the source document on the final voucher
-- the trusted branch is:
-  - create the final voucher first
-  - then upload the receipt with `POST /ledger/voucher/{voucherId}/attachment`
-- do not swap that order to `importDocument -> PUT voucher`; that imported voucher type was not editable enough for this flow in persistent sandbox on 2026-03-21
+- `POST /ledger/voucher` proves: date, description, expense account, department, amounts, vatType
+- For Branch B also proves: auto-generated `2710` VAT posting
+- `POST /ledger/voucher/{voucherId}/attachment` proves: attachment.id
+- No follow-up `GET /ledger/voucher/{id}` needed unless a write response is unexpectedly sparse
