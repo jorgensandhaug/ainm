@@ -473,11 +473,11 @@
 ## Current Best Known Local Line
 
 - Current best full local historical-online result in this checkout:
-  - experiment: `agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321`
-  - model: `query_residual_v9_locgate_v001`
+  - experiment: `agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321`
+  - model: `query_residual_v9_v10_blend025_v001`
   - policy: `exploration_v2`
-  - mean score: `74.4815`
-  - mean weighted KL: `0.101584`
+  - mean score: `74.5110`
+  - mean weighted KL: `0.101290`
 
 ### 2026-03-21T12:16:00Z
 
@@ -528,3 +528,80 @@
     - localized gating stacked on the exact-local-residual winner
     - one final regularized `v10` probe, which failed badly
   - no new high-signal residual-family variant remains obvious right now without moving to a qualitatively different model or blend family
+
+### 2026-03-21T13:02:00Z
+
+- Switched from single-model residual sweeps to a qualitatively different follow-up family:
+  - fixed prediction blending between the promoted `query_residual_v9_locgate_v001` line and the complementary `query_residual_v10` line
+- Motivation:
+  - full-round deltas show a strong complementarity pattern:
+    - `v10` materially wins on `c5cdf100...`, `f1dac9...`, and still slightly on `8e839...`
+    - `v9_locgate` remains much better on `ae78003a...`, `76909e29...`, `36e581...`, `71451...`
+  - this is the first post-sweep idea that is not just another near-duplicate residual knob
+  - KL convexity makes convex prediction blends a plausible way to improve over both constituent models even when one constituent has lower score in aggregate
+- First blend candidate exposed:
+  - `query_residual_v9_v10_blend025_v001`
+  - definition:
+    - `75%` `query_residual_v9_locgate_v001`
+    - `25%` `query_residual_v10`
+- Validation plan:
+  - rerun smoke tests
+  - if green, run one full 8-round historical benchmark before deciding whether the blend family is worth deeper follow-up
+
+### 2026-03-21T13:54:00Z
+
+- Completed first full fixed-blend benchmark:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_blend025_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.5110`
+    - mean weighted KL: `0.101290`
+    - runtime: `2968.885s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321/result.json`
+- Comparison vs current promoted single-model line `query_residual_v9_locgate_v001`:
+  - score delta: `+0.029414`
+  - weighted KL delta: `-0.000294587`
+  - dominant round moves:
+    - gains:
+      - `c5cdf100...`: `+0.686885` score, `-0.003278396` KL
+      - `f1dac9a9...`: `+0.702416` score, `-0.004166179` KL
+      - `8e839974...`: `+0.042858` score, `-0.000167146` KL
+    - givebacks:
+      - `ae78003a...`: `-0.829574` score, `+0.003576424` KL
+      - `36e581f1...`: `-0.152744` score, `+0.000815458` KL
+      - `76909e29...`: `-0.151299` score, `+0.000600729` KL
+- Decision:
+  - fixed blends are a live positive result, not a dead-end probe
+  - the `25%` weight is probably not obviously optimal because the remaining giveback is concentrated in `ae78003a...`
+  - expose exactly one lighter follow-up candidate:
+    - `query_residual_v9_v10_blend020_v001`
+    - rationale:
+      - preserve most of the `c5cdf100...` / `f1dac9a9...` recovery while reducing the biggest easy-round penalty
+  - validation plan:
+    - rerun smoke tests
+    - run one full 8-round benchmark for the `20%` blend
+
+### 2026-03-21T14:48:00Z
+
+- Completed the one lighter follow-up benchmark:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_blend020_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_blend020_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.5077`
+    - mean weighted KL: `0.101335`
+    - runtime: `2916.893s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_blend020_8rounds_exploration_20260321/result.json`
+- Comparison vs current blend winner `query_residual_v9_v10_blend025_v001`:
+  - score delta: `-0.003219`
+  - weighted KL delta: `+0.000045829`
+  - runtime delta: `-51.992s`
+  - pattern:
+    - `20%` does reduce the biggest `ae78003a...` giveback (`+0.172664` score vs `25%`)
+    - but it gives back slightly too much on the recovered hard rounds:
+      - `c5cdf100...`: `-0.134643`
+      - `f1dac9a9...`: `-0.138437`
+- Outcome:
+  - `25%` remains the best tested fixed blend
+  - the immediate lighter-weight follow-up did not beat it, so the fixed-blend family now has at least a minimal local bracketing check rather than a single ad hoc win
+  - keep the reusable fixed-blend machinery
+  - remove the losing `query_residual_v9_v10_blend020_v001` registration after recording the result, mirroring the cleanup used for the failed `v10_pb040` probe
