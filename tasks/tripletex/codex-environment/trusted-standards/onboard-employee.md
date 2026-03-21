@@ -67,12 +67,22 @@ These occupation code ids are reference data and are the same across all Triplet
 | Salgssjef / STYRK 1233 | `salgssjef` | `4930` | `1233105` |
 | Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | Innkjøper / STYRK 3323 | `innkjøper` | `2503` | `3416102` |
+| HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
 For the exact STYRK-only contract shape that provides `2511` and no job title, use hardcoded id `301` directly.
 For the exact STYRK-only contract shape that provides `3323` and no job title, use hardcoded id `2503` directly.
+
+### Modern "HR-" Prefix Job Titles
+- Tripletex uses traditional Norwegian occupation terminology (e.g., "PERSONALRÅDGIVER") rather than modern English-influenced "HR-" prefix titles
+- `nameNO=HR-rådgiver` returns 0 results — this term does not exist in Tripletex
+- map "HR-" prefix titles to their traditional Norwegian equivalents before searching:
+  - "HR-rådgiver" → "personalrådgiver" (PERSONALRÅDGIVER, id 4169)
+  - "HR-sjef" / "HR-leder" → try "personalsjef" or "personalleder"
+- `nameNO=rådgiver` is too broad — returns 10+ compound results (ARBEIDSTILSYNSRÅDGIVER, BEDRIFTSRÅDGIVER, etc.) sorted alphabetically, and PERSONALRÅDGIVER is not in the first 10
+- always check the hardcoded mappings table first — "HR-rådgiver" is already mapped there
 
 ### Compound Job Titles with "Senior" Prefix
 - Tripletex does NOT have occupation codes for every "Senior"-prefixed compound title (e.g., `nameNO=seniorutvikler` returns 0 results)
@@ -191,6 +201,8 @@ Standard worktime (per-employee):
 - do not hardcode sandbox-only default state such as current `7.5` standard time into the production playbook
 - do not fall back to `nameNO=utvikler` for "Seniorutvikler" — the first result is DRIFTSUTVIKLER (IT operations, id 1173, code 3120129), which is wrong for a software developer; the correct match is SYSTEMUTVIKLER (id 5935, code 2130109), now hardcoded
 - do not search `nameNO=seniorutvikler` — it returns 0 results; this compound title does not exist in the Tripletex occupation database
+- do not search `nameNO=HR-rådgiver` — it returns 0 results; Tripletex uses the traditional Norwegian term PERSONALRÅDGIVER instead of the modern "HR-" prefix
+- do not search `nameNO=rådgiver` as a broad fallback for "HR-rådgiver" — it returns 10+ compound results and PERSONALRÅDGIVER is not in the first 10 alphabetically sorted results
 
 ## OpenAPI / Sandbox Status
 - `/division`, `/department`, `/employee`, `/employee/employment/occupationCode`, `/employee/standardTime` verified in `./openapi.json`
@@ -244,3 +256,13 @@ Standard worktime (per-employee):
   - sandbox confirmed: POST /employee with occupationCode {id: 4679} → 201, readback confirmed occupationCode.id=4679, nameNO=REGNSKAPSSJEF, code=1231115
   - hardcoding Regnskapssjef → id 4679 saves 1 call and avoids the wrong-code trap, reducing optimal flow from 5 to 4 calls
   - this is the minimum-call floor for the Regnskapssjef + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
+- production run on 2026-03-21 (seventh run, HR-rådgiver offer letter, Nynorsk prompt, 100% employment, HR department, with standard worktime 7.5h) used 5 calls: GET /division, POST /department, GET /occupationCode?nameNO=personalrådgiver, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - correctly mapped "HR-rådgiver" to the traditional Norwegian term "personalrådgiver" for the occupation code search
+  - `nameNO=personalrådgiver` returned exactly 1 result: PERSONALRÅDGIVER (id 4169, code 2512149) — exact match
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 4169 }, percentageOfFullTimeEquivalent 100, annualSalary 650000
+  - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-10-21
+  - sandbox re-verification on 2026-03-21: `nameNO=HR-rådgiver` returns 0 results, `nameNO=rådgiver` returns 10+ results without PERSONALRÅDGIVER in first 10; `nameNO=personalrådgiver` returns exactly 1 correct result
+  - sandbox confirmed: POST /employee with occupationCode {id: 4169} → 201, readback confirmed occupationCode.id=4169, nameNO=PERSONALRÅDGIVER, code=2512149, percentageOfFullTimeEquivalent=100, annualSalary=650000, employmentForm=PERMANENT, hoursPerDay=7.5
+  - hardcoding HR-rådgiver → id 4169 saves 1 call, reducing optimal flow from 5 to 4 calls
+  - this is the minimum-call floor for the HR-rådgiver + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)

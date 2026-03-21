@@ -85,46 +85,100 @@ The `:payment` endpoint AUTO-BOOKS the FX gain/loss:
 - Account 8060 (Valutagevinst/agio) for gain
 - Account 8160 (Valutatap/disagio) for loss
 
-NEVER create a manual `POST /ledger/voucher` for the FX difference. The payment endpoint handles it automatically.
+NEVER create a manual `POST /ledger/voucher` for the FX difference on a EUR invoice. The payment endpoint handles it automatically.
 
-## Company-Currency Fallback
+## Company-Currency Fallback (NOK invoice with manual agio — 5 calls)
 
 If the located invoice is in company currency (NOK) despite the prompt saying EUR/foreign:
-- The invoice was set up without the foreign currency — you cannot manufacture FX entries
-- Register a simple payment: `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<amountOutstanding>`
-- Omit `paidAmountCurrency` or set it equal to `paidAmount`
-- Do NOT try to manually book agio/disagio via `POST /ledger/voucher` — it will corrupt the accounting state and score 0%
+- The invoice was set up without the foreign currency — the `:payment` endpoint will NOT auto-book FX entries
 - Do NOT send FX-adjusted `paidAmount` on a NOK invoice — Tripletex ignores the mismatch and debits bank by only the actual outstanding; no FX posting is created regardless of parameters sent
+- Instead, register a simple payment AND manually create an agio/disagio voucher
 
-Sandbox proof (2026-03-21): paying NOK invoice `2147609133` with mismatched `paidAmount=25675.65` + `paidAmountCurrency=2565` still closed the invoice, but bank was debited only 2565 NOK with zero FX posting.
+### NOK Fallback Flow (5 calls)
+
+#### Call 3: Register simple payment
+```
+PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<amountOutstanding>
+```
+Omit `paidAmountCurrency`. Verify `amountOutstanding === 0`.
+
+#### Call 4: Resolve agio account ID
+```
+GET /ledger/account?number=1920,8060&fields=id,number
+```
+- Returns the internal IDs for bank (1920) and agio (8060) accounts
+- `account: { number: ... }` does NOT work in POST /ledger/voucher — IDs are required
+- If the prompt describes a loss (disagio), use `number=1920,8160` instead
+
+#### Call 5: Book the FX difference manually
+```
+POST /ledger/voucher?sendToLedger=true
+```
+Body (for agio — settlement rate > original rate):
+```json
+{
+  "date": "<payment-date>",
+  "description": "Valutagevinst (agio) - kursforskjell",
+  "postings": [
+    { "row": 1, "date": "<payment-date>", "account": { "id": <bankAcctId> }, "amountGross": <agioAmount>, "amountGrossCurrency": <agioAmount>, "vatType": { "id": 0 }, "description": "Kursgevinst innbetaling" },
+    { "row": 2, "date": "<payment-date>", "account": { "id": <agioAcctId> }, "amountGross": <-agioAmount>, "amountGrossCurrency": <-agioAmount>, "vatType": { "id": 0 }, "description": "Valutagevinst (agio)" }
+  ]
+}
+```
+
+**CRITICAL: `row` must start from 1, NOT 0.** Row 0 is reserved as "system-generated" by Tripletex. Using `row: 0` → 422 (`Posteringene på rad 0 (guiRow 0) er systemgenererte`). This was the root cause of the earlier 0% run that tried manual vouchers.
+
+Agio amount calculation:
+- `agioAmount = promptEurAmount * (settlementRate - originalRate)`
+- Example: 18687 EUR × (10.87 − 10.33) = 18687 × 0.54 = **10090.98** NOK
+- Use the prompt's stated EUR amount (typically ex-VAT, matching how a real EUR export invoice would have 0% VAT)
+- For disagio (settlement rate < original rate): swap accounts (debit 8160, credit 1920)
+
+Sandbox proof (2026-03-21): NOK invoice `2147609133` (`amount=amountCurrency=2565`): sending `paidAmount=25675.65` + `paidAmountCurrency=2565` still closed the invoice; zero FX posting was created — confirming manual voucher is necessary for agio on NOK invoices.
+
+Sandbox proof (2026-03-21): manual agio voucher with `row: 1` on accounts 1920/8060 created successfully (voucher `609118154`), invoice remained closed (`amountOutstanding=0`), 8060 posting verified with correct amount. Using `row: 0` → 422 for ALL accounts (1920, 8060, 7100, 7140, etc.) — this is NOT account-specific but a universal Tripletex restriction on row 0.
 
 ## Canonical Call Count
-- standalone exact-match foreign-currency payment task with no cached same-run payment type: `3` calls
-- same task shape with a cached same-run incoming company-currency `paymentTypeId`: `2` calls
+- standalone EUR invoice payment with no cached payment type: `3` calls
+- standalone NOK fallback with manual agio: `5` calls (invoice + paymentType + payment + accountLookup + agioVoucher)
+- EUR with cached same-run `paymentTypeId`: `2` calls
+- NOK fallback with cached same-run `paymentTypeId`: `4` calls (skip paymentType lookup)
 - do not treat cross-run or cross-account cached ids as reusable
 
 ## Known Recovery Branches
 - if the same run already resolved one valid incoming company-currency `paymentTypeId`, reuse it instead of reading `/invoice/paymentType` again
 - if the decisive invoice read shows that the prompt amount only matches `amountExcludingVatCurrency` or `amountExcludingVat` on a company-currency invoice, stop treating the prompt as an exact foreign-currency-payment match
-- if the decisive invoice read returns an invoice where `amount === amountCurrency` and `currency.code === "NOK"`, this is a company-currency invoice; fall back to simple payment with no FX logic, even if the prompt explicitly says EUR or agio/disagio
+- if the decisive invoice read returns an invoice where `amount === amountCurrency` and `currency.code === "NOK"`, this is a company-currency invoice; use the NOK Fallback Flow with manual agio voucher
+- if `POST /ledger/voucher` fails with row 0 error, re-submit with `row: 1` and `row: 2` — row 0 is always system-reserved
 
 ## CRITICAL: Script Must Handle Both EUR and NOK Cases
 
-The script MUST contain fallback logic for NOK invoices. Do NOT write a script that only handles EUR invoices and exits with an error when it finds NOK. This caused a 0% timeout in production run 67c52406.
+The script MUST contain inline fallback logic for NOK invoices. Do NOT write a script that only handles EUR invoices and exits with an error when it finds NOK. This caused a 0% timeout in production run 67c52406.
 
 The script pattern:
 1. Fetch invoices, filter for foreign currency with outstanding > 0
-2. If a matching EUR/foreign invoice is found → use FX payment logic (paidAmount + paidAmountCurrency)
-3. If NO foreign invoice found → find the NOK invoice matching `amountExcludingVat` → use simple payment (paidAmount = amountOutstanding only)
-4. In BOTH cases, register the payment. NEVER stop without registering a payment.
+2. If a matching EUR/foreign invoice is found → use FX payment logic (paidAmount + paidAmountCurrency) — 3 calls total
+3. If NO foreign invoice found → find the NOK invoice matching `amountExcludingVat`:
+   a. Register simple payment (paidAmount = amountOutstanding)
+   b. Look up account IDs for 1920 and 8060 (or 8160 for disagio)
+   c. POST /ledger/voucher?sendToLedger=true with row=1+ to book agio manually
+   d. 5 calls total
+4. In BOTH cases, register a payment AND book the FX difference. NEVER stop without paying. NEVER stop without booking agio if the prompt requests it.
 
 ## Production Failure History
 
-### prod-2026-03-21-180635197Z-67c52406 (0% score — task 27, Solmar SL / 877276260 / 18687 EUR):
+### prod-2026-03-21-193537525Z-840df81a (50% score — task 27, Solmar SL / 877276260 / 18687 EUR):
+- Correctly used `fields=*,currency(*)` and detected invoice was NOK
+- Script had NOK fallback: registered simple payment (amountOutstanding=0) ✓
+- Did NOT create manual agio voucher — trusted standard at the time said not to
+- Checks 1-2 passed (payment registered), checks 3-4 failed (no agio booked)
+- Root cause: the NOK fallback was "simple payment only" without manual agio — now fixed with 5-call NOK fallback flow
+- 3 API calls, 0 errors — call-optimal for the approach used, but agio was missing
+### prod-2026-03-21-180635197Z-67c52406 (0% score — task 27, same prompt):
 - Correctly used `fields=*,currency(*)` and detected invoice was NOK
 - Script only handled EUR case; when 0 foreign candidates found, it exited with error
 - Agent wrote a second inspection script but then timed out without ever registering any payment
-- Root cause: script had no NOK fallback — should have immediately fallen back to simple payment
+- Root cause: script had no NOK fallback — should have immediately fallen back to payment + manual agio
 ### Earlier run (50% score — 2/4 checks failed):
 - Used `customerOrganizationNumber` and `currency` as query params — both silently ignored
 - Used `fields=*` without `currency(*)` — could not verify invoice was actually EUR
@@ -132,8 +186,8 @@ The script pattern:
 - Ended up paying a NOK invoice as if it were EUR — checks 1-2 passed (payment registered) but checks 3-4 failed (no agio booked)
 ### Earlier run (0% score):
 - Correctly used `currency(*)` and detected invoice was NOK
-- Manually created a `POST /ledger/voucher` to book agio — this corrupted the accounting state
-- Should have used the Company-Currency Fallback (simple payment, no FX logic)
+- Manually created a `POST /ledger/voucher` to book agio but used `row: 0` which is system-reserved → 422 error
+- Root cause: `row: 0` is universally rejected by Tripletex as "systemgenererte" — must use `row: 1`+; this was misdiagnosed as "corrupting the accounting state" but was actually a format error
 
 ## OpenAPI / Sandbox Status
 - `/invoice`, `/invoice/{id}/:payment`, and `/invoice/paymentType` verified in `./openapi.json`
@@ -143,3 +197,7 @@ The script pattern:
 - the resulting payment voucher `608897955` auto-booked the FX loss on account `8160` with amount `1000`; no manual `/ledger/voucher` write was needed
 - 2026-03-21 sandbox re-proof with EUR invoice `2147608960` (`amountCurrency=1000 EUR`, `amount=10001.3 NOK`): payment at settlement rate 10.01 auto-booked FX gain on account 8060 with amount 8.7 NOK
 - 2026-03-21 sandbox NOK-mismatch proof with NOK invoice `2147609133` (`amount=amountCurrency=2565`): sending `paidAmount=25675.65` + `paidAmountCurrency=2565` still closed the invoice; zero FX posting was created
+- 2026-03-21 sandbox proof: `POST /ledger/voucher` with `row: 0` → 422 for ALL accounts (tested 1920, 8060, 7100, 7140, 3000, 4300, 1500, 1900, 8160); error always says "Posteringene på rad 0 (guiRow 0) er systemgenererte"; `row: 1` succeeds for all accounts — this is a universal Tripletex restriction, not account-specific
+- 2026-03-21 sandbox proof: manual agio voucher `609118154` with `row: 1` on 1920 (debit +12613.73) and 8060 (credit -12613.73) succeeded; invoice `2147630683` remained closed (`amountOutstanding=0`); 8060 posting verified
+- 2026-03-21 sandbox proof: `GET /ledger/account?number=1920,8060&fields=id,number` returns exactly 2 accounts with correct IDs — comma-separated `number` query param works for precise multi-account lookup
+- 2026-03-21 sandbox auto-generated EUR payment voucher structure (voucher 339, invoice 333): `1920 +135899.19` (bank), `1500 -135899.19 / amountCurrency=-12689` (customer), `8160 +7429.41` (disagio), `1500 -7429.41 / amountCurrency=0` (disagio counter); the auto FX posting uses 1500/8160, but manual voucher uses 1920/8060 to avoid touching customer balance

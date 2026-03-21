@@ -59,6 +59,7 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
 | Innkjøper / 3323 | `innkjøper` | `2503` | `3416102` |
 | Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
+| HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
@@ -167,6 +168,9 @@ Standard worktime (per-employee):
 - When the contract gives only a STYRK code and no job title, resolve the STYRK code to its Norwegian occupation name (e.g., 3323 → "innkjøper"), then check hardcoded mappings before doing a dynamic lookup
 - Do not search `nameNO=seniorutvikler` — returns 0 results; use hardcoded id 5935 (SYSTEMUTVIKLER)
 - Do not fall back to `nameNO=utvikler` for software developer titles — returns DRIFTSUTVIKLER (IT operations, id 1173), wrong occupation code
+- Do not search `nameNO=HR-rådgiver` — returns 0 results; Tripletex uses "PERSONALRÅDGIVER" (traditional Norwegian), use hardcoded id 4169
+- Do not search `nameNO=rådgiver` as a broad fallback — returns 10+ compound results and PERSONALRÅDGIVER is not in the first 10 alphabetically
+- For modern "HR-" prefix job titles, map to traditional Norwegian equivalents: "HR-rådgiver" → "personalrådgiver", etc.
 
 ## Production Run History
 
@@ -199,3 +203,11 @@ Run 2026-03-21 (Regnskapssjef offer letter, German prompt, 100% employment, stan
 - correct mapping: Regnskapssjef → id 4679 (REGNSKAPSSJEF, code 1231115), now hardcoded
 - optimal was 4 calls with hardcoded mapping; actual was 5 calls with wrong code
 - this is the minimum-call floor for the Regnskapssjef + standard-worktime shape: 4 calls
+
+Run 2026-03-21 (HR-rådgiver offer letter, Nynorsk prompt, 100% employment, HR department, standard worktime 7.5h): 5 calls, 0 errors
+- correctly mapped "HR-rådgiver" to "personalrådgiver" for the occupation code search
+- `nameNO=personalrådgiver` returned 1 result: PERSONALRÅDGIVER (id 4169, code 2512149) — exact match
+- GET /division (0 rows, fresh account) → POST /department → GET /occupationCode → POST /employee → POST /employee/standardTime
+- hardcoding HR-rådgiver → id 4169 saves 1 call, reducing optimal flow from 5 to 4 calls
+- sandbox verified: `nameNO=HR-rådgiver` returns 0 results, `nameNO=rådgiver` returns 10+ results without PERSONALRÅDGIVER in first 10
+- this is the minimum-call floor for the HR-rådgiver + standard-worktime shape: 4 calls

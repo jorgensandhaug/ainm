@@ -37,13 +37,17 @@ These are the exact errors that caused 0% and 50% scores across 3 production run
 `isIncoming` and `isBankAccount` do NOT exist as top-level fields on payment type objects. They only exist on the expanded `debitAccount` subobject. Filtering by `paymentType.isIncoming` always returns zero matches.
 - Fix: filter by `pt.debitAccount.isBankAccount` after expanding with `debitAccount(*)`
 
-### Trap 5: Paying a NOK invoice with FX logic (caused 0% agio score)
-If `amount === amountCurrency`, the invoice is in company currency (NOK). Sending FX-adjusted `paidAmount` is silently ignored — bank is debited by actual outstanding only, no FX posting created. Checks for agio booking fail.
-- Fix: validate `amount !== amountCurrency` before applying FX logic
+### Trap 5: Paying a NOK invoice with FX logic (no auto-agio)
+If `amount === amountCurrency`, the invoice is in company currency (NOK). Sending FX-adjusted `paidAmount` is silently ignored — bank is debited by actual outstanding only, no FX posting created.
+- Fix: validate `amount !== amountCurrency` before applying FX logic; for NOK invoices, use simple payment + manual agio voucher
 
-### Trap 6: Manual voucher for agio (caused 0% score by corrupting state)
-The `:payment` endpoint auto-books FX gain (8060) and loss (8160). Creating a manual `POST /ledger/voucher` doubles the entry or corrupts the accounting state.
-- Fix: NEVER create a manual voucher for FX differences
+### Trap 6: Manual voucher with row=0 (caused 422 error)
+Row 0 is universally reserved as "system-generated" by Tripletex. `POST /ledger/voucher` with `row: 0` in any posting → 422 (`Posteringene på rad 0 er systemgenererte`). This applies to ALL accounts, not just bank/system accounts.
+- Fix: ALWAYS use `row: 1` and above in voucher postings
+
+### Trap 7: Manual voucher on EUR invoice (unnecessary, risks double-entry)
+For EUR invoices, the `:payment` endpoint auto-books FX gain (8060) and loss (8160). Creating an additional manual voucher doubles the entry.
+- Fix: ONLY create manual agio vouchers for NOK invoices where the auto-mechanism cannot work
 
 ## Minimal Flow (3 calls)
 
@@ -67,29 +71,42 @@ The script MUST contain inline fallback logic for NOK invoices. Do NOT write a s
 
 Script pattern:
 1. Filter for foreign currency invoices with outstanding > 0
-2. If found → FX payment (paidAmount = outstanding × rate, paidAmountCurrency = outstanding)
-3. If NOT found → match NOK invoice by `amountExcludingVat` → simple payment (paidAmount = amountOutstanding)
-4. ALWAYS register a payment. Never exit without paying.
+2. If found → FX payment (paidAmount = outstanding × rate, paidAmountCurrency = outstanding) — 3 calls
+3. If NOT found → match NOK invoice by `amountExcludingVat`:
+   a. Register simple payment (paidAmount = amountOutstanding)
+   b. Look up account IDs: `GET /ledger/account?number=1920,8060&fields=id,number`
+   c. Create manual agio voucher: `POST /ledger/voucher?sendToLedger=true` with `row: 1`+
+   d. Agio = promptEurAmount × (settlementRate − originalRate) — 5 calls total
+4. ALWAYS register a payment AND book agio. Never exit without paying.
 
-## Company-Currency Fallback
+## Company-Currency Fallback (NOK invoice with manual agio)
 
 If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - Register simple payment: `paidAmount = amountOutstanding`, no `paidAmountCurrency`
-- Do NOT apply FX logic — Tripletex creates zero FX postings on NOK invoices
-- Do NOT create a manual `POST /ledger/voucher` for agio — it corrupts the state
-- Accept that maximum achievable score for a NOK invoice variant is ~50% (payment checks pass, agio checks fail)
+- Then create a manual agio voucher with `POST /ledger/voucher?sendToLedger=true`:
+  - Debit 1920 (bank) for the agio amount
+  - Credit 8060 (agio) for the agio amount (negative amountGross)
+  - Use `row: 1` and `row: 2` — NEVER row 0 (system-reserved, causes 422)
+  - Use `vatType: { id: 0 }` on both postings
+  - Agio = promptEurAmount × (settlementRate − originalRate)
+- Do NOT apply FX logic on the `:payment` call — Tripletex ignores FX params on NOK invoices
+- For disagio (settlement rate < original rate): debit 8160, credit 1920
+- The account IDs must be resolved via `GET /ledger/account?number=1920,8060` — `account: { number: ... }` does NOT work in voucher body
 
 ## Canonical Call Count
 
-- standalone with no cached payment type: `3` calls
-- with cached same-run payment type: `2` calls
+- standalone EUR with no cached payment type: `3` calls
+- standalone NOK with manual agio: `5` calls
+- EUR with cached same-run payment type: `2` calls
+- NOK with cached same-run payment type: `4` calls
 
 ## Payment Rules
 
 - `paidAmount` = settlement amount in company currency (NOK) = `amountCurrencyOutstanding * settlementRate`
 - `paidAmountCurrency` = live outstanding in invoice currency (EUR) = `amountCurrencyOutstanding`
 - Do NOT use the prompt's ex-VAT amount directly as `paidAmountCurrency` — use the full outstanding from the invoice object
-- Do NOT add a manual `POST /ledger/voucher` — the `:payment` endpoint auto-books FX gain (8060) or loss (8160)
+- For EUR invoices: do NOT add a manual voucher — `:payment` auto-books FX gain (8060) or loss (8160)
+- For NOK invoices: DO add a manual voucher with `row: 1`+ to book agio (see Company-Currency Fallback)
 
 ## Payment Type Rules
 
@@ -105,6 +122,8 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - `fields=*` without `debitAccount(*)` on payment type → cannot filter by account number
 - `customerOrganizationNumber`, `currency` as query params → silently ignored, returns all invoices
 - `paymentType.isIncoming`, `paymentType.isBankAccount` → do not exist, always undefined
-- `amount === amountCurrency` → invoice is NOK, not foreign currency
-- Manual `POST /ledger/voucher` for agio → corrupts state, auto-booked by `:payment`
+- `amount === amountCurrency` → invoice is NOK, not foreign currency — use manual agio voucher
+- Manual `POST /ledger/voucher` on EUR invoice → corrupts state (auto-booked by `:payment`)
+- Manual `POST /ledger/voucher` on NOK invoice → REQUIRED for agio, use `row: 1`+ (row 0 → 422)
+- `account: { number: ... }` in voucher body → 422; must use `account: { id: ... }` from GET /ledger/account
 - Prompt amount is typically ex-VAT → multiply by 1.25 for full outstanding
