@@ -18,6 +18,8 @@ from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
+from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
+from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
 from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
 from astar.student.predictor.greybox_roundmatch import GreyboxRoundMatchPredictor
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
@@ -483,6 +485,34 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized == "greybox_cellknn_perround":
+        predictor = GreyboxCellKnnPerRoundPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_stacked":
+        predictor = GreyboxStackedPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            policy_name=policy_name or "coverage",
+            samples_per_round=samples_per_round or 1,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.query_residual.base_predictor.analyzed_seed_count,
+            predictor.query_residual.base_predictor.cell_count,
+        )
+
     if normalized == "greybox_roundmatch":
         predictor = GreyboxRoundMatchPredictor.fit_from_workspace(
             paths,
@@ -662,6 +692,8 @@ def evaluate_model_on_round(
                 "greybox_hybrid_lowrank_queryres_w45",
                 "greybox_gated_hybrid",
                 "greybox_cellknn",
+                "greybox_cellknn_perround",
+                "greybox_stacked",
                 "greybox_roundmatch",
                 "greybox_obsval_ensemble",
             }

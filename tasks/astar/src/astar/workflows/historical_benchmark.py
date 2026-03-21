@@ -190,6 +190,8 @@ def run_historical_benchmark(
         "greybox_hybrid_lowrank_queryres_w45",
         "greybox_gated_hybrid",
         "greybox_cellknn",
+        "greybox_cellknn_perround",
+        "greybox_stacked",
         "greybox_roundmatch",
         "greybox_obsval_ensemble",
     }

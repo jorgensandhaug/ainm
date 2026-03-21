@@ -11,6 +11,8 @@ from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
+from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
+from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
 from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
 from astar.student.predictor.greybox_roundmatch import GreyboxRoundMatchPredictor
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
@@ -319,11 +321,33 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if normalized == "greybox_cellknn_perround":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxCellKnnPerRoundPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     if normalized == "greybox_roundmatch":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxRoundMatchPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_stacked":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxStackedPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
         )
         return RoundPredictorAdapter(
             predictor=predictor,
