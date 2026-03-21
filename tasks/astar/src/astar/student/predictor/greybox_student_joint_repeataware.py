@@ -416,13 +416,13 @@ def _repeataware_feature_vector_from_evidence(
 class GreyboxStudentJointRepeatAwarePredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "greybox_student_joint_repeataware_v01"
+    name: str = "greybox_student_joint_repeataware_v02"
     lowrank_predictor: GreyboxHazardLowRankPredictor
     policy_name: str = "coverage"
     round_ids: tuple[str, ...] = ()
     samples_per_round: int = Field(default=4, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
-    residual_rank: int = Field(default=4, ge=1)
+    residual_rank: int = Field(default=6, ge=1)
     ridge_lambda: float = Field(default=12.0, ge=0.0)
     k_neighbors: int = Field(default=24, ge=1)
     memory_weight: float = Field(default=0.45, ge=0.0, le=1.0)
@@ -452,14 +452,14 @@ class GreyboxStudentJointRepeatAwarePredictor(BaseRoundPredictor):
         policy_name: str = "coverage",
         samples_per_round: int = 4,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
-        residual_rank: int = 4,
+        residual_rank: int = 6,
         ridge_lambda: float = 12.0,
         k_neighbors: int = 24,
         memory_weight: float = 0.45,
         correction_blend: float = 0.35,
         correction_scale: float = 0.40,
         probability_floor: float = 0.01,
-        model_name: str = "greybox_student_joint_repeataware_v01",
+        model_name: str = "greybox_student_joint_repeataware_v02",
     ) -> GreyboxStudentJointRepeatAwarePredictor:
         lowrank_predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
             paths,

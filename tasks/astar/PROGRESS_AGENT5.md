@@ -1896,3 +1896,58 @@
     - exploration_r3, `rank=6 k=24 mw=0.45 blend=0.35 scale=0.40`
       - log `data/artifacts/benchmarks/agent5_student_joint_repeataware_probe3_explr3_r6_k24_mw045_b35_s40_v01.log`
       - session `50699`
+
+### 2026-03-21T13:06:00Z
+
+- First strict 8-config hard-slice batch finished.
+- Coverage results:
+  - `rank=4 k=24 mw=0.00`
+    - mean `67.246478`
+    - KL `0.134897`
+  - `rank=4 k=16 mw=0.25`
+    - mean `67.410715`
+    - KL `0.134065`
+  - `rank=4 k=24 mw=0.45`
+    - mean `67.474243`
+    - KL `0.133753`
+  - `rank=6 k=24 mw=0.45`
+    - mean `67.483458`
+    - KL `0.133713`
+- Exploration_r3 results:
+  - `rank=4 k=24 mw=0.00`
+    - mean `67.535734`
+    - KL `0.133288`
+  - `rank=4 k=16 mw=0.25`
+    - mean `67.774937`
+    - KL `0.132050`
+  - `rank=4 k=24 mw=0.45`
+    - mean `67.905572`
+    - KL `0.131372`
+  - `rank=6 k=24 mw=0.45`
+    - mean `67.917127`
+    - KL `0.131326`
+- Per-round shape of the best hard-slice config:
+  - policy `exploration_r3`
+  - `rank=6 k=24 mw=0.45 blend=0.35 scale=0.40`
+  - results:
+    - `36e581...` `66.933536`
+    - `c5cdf...` `78.032411`
+    - `f1dac...` `58.785433`
+- Interpretation:
+  - repeat-aware memory helps consistently:
+    - `mw=0.45` > `mw=0.25` > `mw=0.00`
+  - `exploration_r3` dominates `coverage` for this branch
+  - `rank=6` gives a small but real edge over `rank=4`
+  - this branch beats the previous `greybox_student_joint` hard-slice best here:
+    - old best mean `67.0777`
+    - new best mean `67.9171`
+    - delta about `+0.8394`
+  - enough signal to justify official full-8 evaluation
+- Promoted defaults for the branch:
+  - `greybox_student_joint_repeataware_v02`
+  - changed default `residual_rank` from `4` to `6`
+- Re-validation after default promotion:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_student_joint_repeataware.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `24 passed in 105.67s`
