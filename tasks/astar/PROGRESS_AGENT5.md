@@ -2726,7 +2726,22 @@
 - The tristack provides marginal improvement over 2-way (+0.04)
 - More configs running: e35_c10, e25_c15, e20_c15
 - Fine expansion weight tuning failed (CLI missing those weight choices)
-- Current absolute best remains: **stacked_expansion w35 at 77.35** or **tristack e30_c05 at 77.39**
+- Current absolute best: **tristack e30_c05/e30_c10 at 77.39** or **stacked_expansion w35 at 77.35**
+- Complete tristack results:
+
+  | Config | Mean | f1dac |
+  |--------|------|-------|
+  | e20_c15 | 77.29 | 68.27 |
+  | e25_c10 | 77.37 | 68.53 |
+  | e25_c15 | 77.34 | 69.21 |
+  | **e30_c05** | **77.39** | 68.73 |
+  | **e30_c10** | **77.39** | 69.45 |
+  | e35_c05 | 77.38 | 69.63 |
+  | e35_c10 | 77.34 | 70.31 |
+
+- The tristack provides marginal improvement (+0.04) over 2-way stacked expansion
+- CellKNN adds minimal extra value on top of expansion-conditioned
+- The primary driver of all improvement is the expansion-rate conditioning
 
 ## Key Technical Achievements
 
