@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 4 Seed 2 f1_summary_rate_rollout_birthcollapse_terminal_v01",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/report.md",
+  "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+  "seed_index": 2,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 4,
+    "model_name": "f1_summary_rate_rollout_birthcollapse_terminal_v01",
+    "score": 40.56674210685417,
+    "weighted_kl": 0.3007405383349792,
+    "training_round_count": 2,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 0.38662962390460026,
+    "mean_ground_truth_entropy": 0.432343771439782,
+    "argmax_agreement_rate": 0.97625,
+    "predicted_class_mass": [
+      0.6785555463234094,
+      0.04323049531108711,
+      0.027640138133968956,
+      0.01029780655098806,
+      0.2017540812502185,
+      0.038521932430326776
+    ],
+    "ground_truth_class_mass": [
+      0.687456250000001,
+      0.07490937500000003,
+      0.005768749999999998,
+      0.00753124999999999,
+      0.19370937499999952,
+      0.030625
+    ],
+    "residual_class_mass": [
+      -0.00890070367659157,
+      -0.03167887968891292,
+      0.02187138813396896,
+      0.00276655655098807,
+      0.00804470625021897,
+      0.007896932430326777
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "f1_summary_rate_rollout_birthcollapse_terminal_v01 vs ground truth by class",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "f1_summary_rate_rollout_birthcollapse_terminal_v01 atlas",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/prediction_atlas.png",
+      "description": "All class probability maps for f1_summary_rate_rollout_birthcollapse_terminal_v01."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "f1_summary_rate_rollout_birthcollapse_terminal_v01 minus ground truth",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/f1_summary_rate_rollout_birthcollapse_terminal_v01/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

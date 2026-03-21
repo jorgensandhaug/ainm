@@ -3915,3 +3915,154 @@
 - Immediate next action:
   - commit/push runnable rollout branch
   - smoke the pure and blended rollout variants on current probe3
+
+## 2026-03-21 14:23-14:46 UTC - rollout branch exhausted for now
+
+- Re-read again before continuing:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br` still unavailable here:
+  - `/bin/bash: line 1: br: command not found`
+
+- Machine state checks used to set parallelism:
+  - `2026-03-21 14:23:25 UTC`
+    - load `62.97 213.17 200.16`
+    - mem available `1.4 TiB`
+  - `2026-03-21 14:31:35 UTC`
+    - load `50.77 94.60 144.57`
+    - mem available `1.4 TiB`
+  - `2026-03-21 14:37:33 UTC`
+    - load `39.82 49.74 107.13`
+    - mem available `1.4 TiB`
+  - kept rollout benchmarking at 2 jobs in parallel because other agents still had heavy foreign jobs on the box
+
+- New code/validation branch:
+  - added new posterior target family:
+    - `birth_collapse_terminal_shock`
+  - extended `summary_rate_rollout` with:
+    - terminal-target-steered rollout controls
+    - new stateful hidden rollout variant with food / wealth / defense / stress latents
+  - code:
+    - `src/astar/workflows/event_regime_posterior_audit.py`
+    - `src/astar/student/predictor/summary_rate_rollout.py`
+    - `src/astar/student/predictor/summary_rate_rollout_specs.py`
+    - `src/astar/student/predictor/interactive.py`
+  - tests:
+    - `tests/test_event_regime_posterior_audit.py`
+    - `tests/test_summary_rate_rollout_predictor.py`
+  - code commit:
+    - `ac975d6bd07c2a431424878c05aec69afe75bd44`
+    - message:
+      - `[f1] add terminal-target and stateful rollout variants`
+
+- Validation:
+  - `uv run python -m compileall src/astar/student/predictor/summary_rate_rollout.py src/astar/student/predictor/summary_rate_rollout_specs.py src/astar/workflows/event_regime_posterior_audit.py`
+  - `uv run pytest tests/test_summary_rate_rollout_predictor.py tests/test_event_regime_posterior_audit.py -q`
+    - `10 passed in 30.85s`
+  - `uv run python -m compileall src/astar/student/predictor/summary_rate_rollout.py src/astar/student/predictor/summary_rate_rollout_specs.py src/astar/student/predictor/interactive.py`
+  - `uv run pytest tests/test_summary_rate_rollout_predictor.py tests/test_event_regime_posterior_audit.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+    - `20 passed in 40.27s`
+
+- Probe3 current smoke results, first rollout pair:
+  - `f1_summary_rate_rollout_birthcollapse_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_v01_probe3_current/result.json`
+    - score `22.8355`
+    - weighted KL `0.535174`
+    - per-round scores:
+      - `[36.8625, 21.1992, 10.4449]`
+    - wall `2:01.77`
+    - max RSS `15.05 GB`
+    - compare vs family control:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_rollout_birthcollapse_v01.json`
+      - score delta `-47.0823`
+      - KL delta `+0.407906`
+      - win `0.000`
+  - `f1_summary_rate_rollout_birthcollapse_blend_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_blend_v01_probe3_current/result.json`
+    - score `51.2379`
+    - weighted KL `0.250511`
+    - per-round scores:
+      - `[72.2454, 55.0277, 26.4406]`
+    - wall `2:00.98`
+    - max RSS `15.16 GB`
+    - compare vs family control:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_rollout_birthcollapse_blend_v01.json`
+      - score delta `-18.6800`
+      - KL delta `+0.123244`
+      - win `0.000`
+    - compare vs supportx:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_rollout_birthcollapse_blend_v01.json`
+      - score delta `-21.6796`
+      - KL delta `+0.144815`
+      - win `0.333`
+
+- Probe3 current smoke results, terminal-target-steered rollout pair:
+  - `f1_summary_rate_rollout_birthcollapse_terminal_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_v01_probe3_current/result.json`
+    - score `23.2722`
+    - weighted KL `0.532222`
+    - per-round scores:
+      - `[38.1294, 21.4287, 10.2584]`
+    - wall `1:54.81`
+    - max RSS `15.22 GB`
+  - `f1_summary_rate_rollout_birthcollapse_terminal_blend_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_blend_v01_probe3_current/result.json`
+    - score `35.9128`
+    - weighted KL `0.383558`
+    - per-round scores:
+      - `[55.8926, 36.0721, 15.7737]`
+    - wall `1:52.81`
+    - max RSS `15.53 GB`
+    - compare vs family control:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_rollout_birthcollapse_terminal_blend_v01.json`
+      - score delta `-34.0051`
+      - KL delta `+0.256290`
+      - win `0.000`
+    - compare vs old rollout blend:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_rollout_birthcollapse_blend_v01__candidate=f1_summary_rate_rollout_birthcollapse_terminal_blend_v01.json`
+      - score delta `-15.3251`
+      - KL delta `+0.133047`
+      - win `0.000`
+
+- Probe3 current smoke results, stateful hidden rollout pair:
+  - `f1_summary_rate_rollout_birthcollapse_terminal_state_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_state_v01_probe3_current/result.json`
+    - score `15.2588`
+    - weighted KL `0.696702`
+    - per-round scores:
+      - `[28.0653, 12.0822, 5.6289]`
+    - wall `2:01.59`
+    - max RSS `15.57 GB`
+  - `f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01_probe3_current/result.json`
+    - score `30.3411`
+    - weighted KL `0.455671`
+    - per-round scores:
+      - `[50.7772, 28.9259, 11.3203]`
+    - wall `2:04.38`
+    - max RSS `15.32 GB`
+    - compare vs family control:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01.json`
+      - score delta `-39.5767`
+      - KL delta `+0.328403`
+      - win `0.000`
+
+- Scientific read after the full rollout sweep:
+  - direct heuristic annual-program rollout is not just slightly off here; it is catastrophically off
+  - prior blending can hide some damage, but even the least-bad rollout blend is still massively below the current family control
+  - adding terminal target controls did not help; it made the blended rollout much worse than the original coarse rollout
+  - adding explicit hidden food / wealth / defense / stress latents made things even worse
+  - so the current family bottleneck is not “need more rollout heuristics”
+  - it is:
+    - either a learned module teacher / fitted transition model
+    - or a different latent-to-terminal path entirely
+  - practical conclusion for this turn:
+    - stop rollout heuristics here
+    - do not spend more smoke budget on hand-tuned annual programs until there is a fitted teacher transition layer
