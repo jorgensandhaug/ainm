@@ -4032,6 +4032,35 @@
      - only `4` variants live
      - `jobs=1` each
      - no further wave stacked after this one because shared-machine headroom fell to about `1.5 TiB`
+449. New hypothesis branch started while all earlier radical families still build/cache:
+   - family:
+     - `round_transcript_prototype_residual`
+   - hypothesis:
+     - whole-round factor regression may wash out sharp discrete regime structure
+     - cluster whole-round transcript states into a small set of latent prototypes and store average residual bundles per prototype
+     - soft assignment over prototypes should capture discrete round laws better than continuous low-rank extrapolation
+   - objective:
+     - test a discrete latent round-regime model over whole-round ordered transcripts
+450. Implemented + validated `round_transcript_prototype_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_transcript_prototype_residual.py`
+   - reproducible models:
+     - `round_transcript_prototype_residual`
+     - `round_transcript_prototype_residual_v1`
+     - `round_transcript_prototype_residual_v2`
+     - `round_transcript_prototype_residual_v3`
+     - `round_transcript_prototype_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, last `4` queries, `8` prototypes, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, last `8` queries, `12` prototypes, correction scale `1.00`
+   - model form:
+     - whole-round ordered transcript state -> soft assignment over discrete prototype centers -> average residual bundle over prototypes -> apply jointly across seeds
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_transcript_prototype_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_transcript_prototype_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_transcript_prototype_residual_kmeans_returns_centers tests/test_historical_benchmark.py::test_round_transcript_prototype_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

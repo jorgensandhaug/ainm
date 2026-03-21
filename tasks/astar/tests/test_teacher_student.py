@@ -1276,6 +1276,25 @@ def test_round_transcript_factor_residual_ridge_reconstruction_sane() -> None:
     assert np.allclose(preds, targets, atol=1e-3)
 
 
+def test_round_transcript_prototype_residual_kmeans_returns_centers() -> None:
+    from astar.student.predictor.round_transcript_prototype_residual import _run_kmeans
+
+    features = np.asarray(
+        [
+            [0.0, 0.0],
+            [0.1, 0.0],
+            [5.0, 5.0],
+            [5.2, 5.1],
+        ],
+        dtype=np.float64,
+    )
+    centers, assignments = _run_kmeans(features, k=2, max_iter=10)
+
+    assert centers.shape == (2, 2)
+    assert assignments.shape == (4,)
+    assert len(set(assignments.tolist())) == 2
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

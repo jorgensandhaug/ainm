@@ -113,3 +113,17 @@ def test_cli_accepts_round_transcript_factor_residual_historical_benchmark_model
     )
 
     assert args.model == "round_transcript_factor_residual_v2"
+
+
+def test_cli_accepts_round_transcript_prototype_residual_historical_benchmark_model() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "round_transcript_prototype_residual_v2",
+        ],
+    )
+
+    assert args.model == "round_transcript_prototype_residual_v2"
