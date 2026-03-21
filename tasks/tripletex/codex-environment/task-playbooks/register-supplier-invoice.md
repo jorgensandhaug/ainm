@@ -482,6 +482,15 @@ Proven outcome:
 - voucher `609178672`, supplier `108438104`
 - both bugs now documented; sandbox re-proof: `000000000` → 422; `123456785` → 201; `999999999` → 201
 
+2026-03-21 production run for `Fossekraft AS` / `949805727` / `INV-2026-4995` / `62850` / `7000` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Nynorsk-language text-only prompt (no PDF), description "kontortenester" (Nynorsk spelling, lowercase preserved)
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 62850/1.25=50280 net, 12570 VAT (no rounding)
+- voucher `609191746`, supplier `108444991`
+- confirms Nynorsk description spelling "kontortenester" (vs Bokmål "kontortjenester") preserved exactly
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:

@@ -88,6 +88,27 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - do NOT use the deprecated `bankAccounts` string array field — it silently does nothing
   - `bankAccountPresentation` with `bban` is the correct modern field
 - 2026-03-21 sandbox re-proof confirmed all three fields (postalAddress, physicalAddress, bankAccountPresentation) work in a single `POST /supplier` with no extra calls
+- concrete supplier payload shape (copy this structure):
+```json
+{
+  "name": "<supplier name from PDF>",
+  "organizationNumber": "<org number from PDF>",
+  "postalAddress": {
+    "addressLine1": "<street from PDF>",
+    "postalCode": "<postal code from PDF>",
+    "city": "<city from PDF>",
+    "country": { "id": 161 }
+  },
+  "physicalAddress": {
+    "addressLine1": "<street from PDF>",
+    "postalCode": "<postal code from PDF>",
+    "city": "<city from PDF>",
+    "country": { "id": 161 }
+  },
+  "bankAccountPresentation": [{ "bban": "<11-digit bank account from PDF>" }]
+}
+```
+- do NOT use `country: "NO"` (string) — Tripletex rejects it with 422; always use `country: { id: 161 }` (object)
 
 ## Payload Rules
 - in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`
