@@ -370,6 +370,7 @@ export const strategy = {
           project: { id: project.id },
           orderDate: invoiceDate,
           deliveryDate: invoiceDate,
+          invoiceOnAccountVatHigh: false,
           orderLines: [
             {
               description: invoiceLineDescription,
@@ -408,11 +409,19 @@ export const strategy = {
         throw error;
       }
 
+      const existingBankAccountNumbers = new Set(
+        (ledgerAccountResponse.values ?? [])
+          .map((account) => String(account.bankAccountNumber ?? "").trim())
+          .filter((value) => /^\d{11}$/.test(value)),
+      );
+
       await ctx.tripletex.put<ResponseWrapper<LedgerAccountSummary>>(
         `/ledger/account/${invoiceBankAccount.id}`,
         {
           body: {
-            bankAccountNumber: makeValidBankAccountNumber(),
+            bankAccountNumber: makeValidBankAccountNumber(
+              existingBankAccountNumbers,
+            ),
           },
         },
       );
@@ -813,7 +822,9 @@ function isMissingBankAccountError(error: unknown): boolean {
   );
 }
 
-function makeValidBankAccountNumber(): string {
+function makeValidBankAccountNumber(
+  existingNumbers: ReadonlySet<string>,
+): string {
   const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
   for (let sequence = 3210000000; sequence < 3299999999; sequence += 1) {
     const prefix = String(sequence);
@@ -826,7 +837,10 @@ function makeValidBankAccountNumber(): string {
     const remainder = sum % 11;
     const checkDigit = remainder === 0 ? 0 : 11 - remainder;
     if (checkDigit < 10) {
-      return `${prefix}${checkDigit}`;
+      const candidate = `${prefix}${checkDigit}`;
+      if (!existingNumbers.has(candidate)) {
+        return candidate;
+      }
     }
   }
 
