@@ -152,6 +152,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - invoice: `amountExcludingVatCurrency=114412.5`, `amountCurrencyOutstanding=143015.63`, outgoing VAT `25%` (id=3)
   - third production confirmation of 25% milestone: `457650 * 0.25 = 114412.5` accepted directly as decimal
   - this is the 9th update-needed run: 7/9 had missing bank accounts (78%); proactive hedge averages 6.78 calls + 0 errors vs optimistic 7.33 + 0.78 errors
+- exact production confirmation on 2026-03-21 for `Horizonte Lda` / `804639764` / `Melhoria de infraestrutura` / `sofia.ferreira@example.org` / `228150` / `50%`:
+  - update-needed + missing bank account: proactive hedge discovered empty `bankAccountNumber` on account `1920` and fixed it pre-emptively
+  - production path: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (missing) -> `PUT /ledger/account` -> `PUT /order/:invoice` for `7` calls, `0` errors
+  - invoice: `amountExcludingVatCurrency=114075`, `amountCurrencyOutstanding=142593.75`, outgoing VAT `25%` (id=3)
+  - milestone arithmetic `228150 * 0.50 = 114075` is exact (no decimals) and was accepted directly
+  - this is the 10th update-needed run: 8/10 had missing bank accounts (80%); proactive hedge averages 6.8 calls + 0 errors vs optimistic 7.4 + 0.8 errors
 
 ## Minimal Safe Flow
 
@@ -328,8 +334,8 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order
 - Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- On the update-needed branch, DO insert `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/:invoice` as a proactive check; production evidence (7/9 update-needed runs had missing bank accounts, 78%) plus the double penalty of a failed `422` (extra call + error) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
-- Do not use the old optimistic `5/8` path on the update-needed branch; `Stormberg AS` (2026-03-21), `Elvdal AS` (2026-03-21), `Sjøbris AS` (2026-03-20), `Estrela Lda` 2nd run (2026-03-21), `Cascade SARL` (2026-03-21), `Havbris AS` (2026-03-21), and `Solmar SL` (2026-03-21) all had missing bank accounts — 7/9 update-needed runs (78%), costing extra calls and error penalties on the optimistic path
+- On the update-needed branch, DO insert `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/:invoice` as a proactive check; production evidence (8/10 update-needed runs had missing bank accounts, 80%) plus the double penalty of a failed `422` (extra call + error) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
+- Do not use the old optimistic `5/8` path on the update-needed branch; `Stormberg AS` (2026-03-21), `Elvdal AS` (2026-03-21), `Sjøbris AS` (2026-03-20), `Estrela Lda` 2nd run (2026-03-21), `Cascade SARL` (2026-03-21), `Havbris AS` (2026-03-21), `Solmar SL` (2026-03-21), and `Horizonte Lda` (2026-03-21) all had missing bank accounts — 8/10 update-needed runs (80%), costing extra calls and error penalties on the optimistic path
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
 - Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste and can be the difference between `2.96` and the task ceiling
 - Do not try to collapse the skip-`PUT /project` branch to `3` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
