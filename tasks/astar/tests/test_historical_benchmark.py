@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
@@ -106,6 +107,14 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
 @pytest.mark.parametrize(
     "model_name",
     [
+        "ffam_retrieval_v1",
+        "ffam_retrieval_v2",
+        "ffam_retrieval_v3",
+        "ffam_retrieval_v4",
+        "ffam_retrieval_v5",
+        "ffam_retrieval_v6",
+        "ffam_retrieval_v7",
+        "ffam_retrieval_v8",
         "query_residual",
         "query_residual_v8",
         "query_residual_v10",
@@ -113,6 +122,11 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "query_residual_v12",
         "query_residual_v13",
         "query_residual_v14",
+        "query_residual_v15",
+        "query_residual_v16",
+        "query_residual_v17",
+        "query_residual_v18",
+        "query_residual_v19",
     ],
 )
 def test_query_residual_online_historical_benchmark_runs(
@@ -320,3 +334,121 @@ def test_query_residual_v13_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_pa
     assert loaded.name == "query_residual_v13"
     assert loaded.beta_min == 4.0
     assert loaded.beta_scale == 12.0
+
+
+def test_query_residual_v15_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = QueryResidualPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="query_residual_v15",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "query_residual_v15" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "query_residual_v15"
+    assert loaded.beta_repeat_discount == 1.5
+
+
+def test_query_residual_v19_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = QueryResidualPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="query_residual_v19",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "query_residual_v19" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "query_residual_v19"
+    assert loaded.beta_min == 3.0
+    assert loaded.beta_scale == 10.0
+
+
+def test_ffam_retrieval_v3_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMRetrievalPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_retrieval_v3",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_retrieval_v3" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMRetrievalPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_retrieval_v3"
+    assert loaded.summary_variant == "v2"
+    assert loaded.projected_regime_dim == 3
+    assert loaded.k_neighbors == 8
+
+
+def test_ffam_retrieval_v5_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMRetrievalPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_retrieval_v5",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_retrieval_v5" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMRetrievalPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_retrieval_v5"
+    assert loaded.summary_variant == "v3"
+    assert loaded.target_kind == "coefficients"
+    assert loaded.projected_regime_dim == 4
+
+
+def test_ffam_retrieval_v7_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMRetrievalPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_retrieval_v7",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_retrieval_v7" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMRetrievalPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_retrieval_v7"
+    assert loaded.summary_variant == "v3"
+    assert loaded.target_kind == "coefficients"
+    assert loaded.inference_mode == "global_ridge"
+    assert loaded.projected_regime_dim == 4

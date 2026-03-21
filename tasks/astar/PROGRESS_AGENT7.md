@@ -791,3 +791,465 @@ Framework should accept unique query-residual family variant names directly so b
 - Validation after promotion:
   - `uv run --extra dev pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
   - passed: `25`
+
+### 2026-03-21T10:05Z approx
+
+- Resumed from pushed champ state after `v14` promotion.
+- Re-checked current progress ledger and current exact-cell blend implementation in [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py).
+- New working hypothesis:
+  - `v14` likely wins by fixing under-trust on multiply observed cells
+  - but it probably over-trusts singleton observations, which matches the givebacks on rounds `1`, `2`, `6`
+  - next branch should keep higher baseline beta on singleton cells and discount it only when `count_total > 1`
+- Validation rule stays the same:
+  - strict policy-sensitive 4-round probe first
+  - full 8-round dev only if the probe is honestly positive
+
+### 2026-03-21T10:25Z approx
+
+- Implemented repeat-aware beta discount in [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py)
+  - `beta = beta / (1 + discount * max(count_total - 1, 0))`
+  - singleton cells unchanged
+- Added configs in [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `query_residual_v15`: `beta_repeat_discount=1.5`
+  - `query_residual_v16`: `beta_repeat_discount=3.0`
+- Added benchmark/checkpoint coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `18`
+
+#### Probe result: `v15`
+
+- Strict 4-round probe [`agent7_probe_query_residual_v15_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v15_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.1840`
+  - mean weighted KL `0.155345`
+- Head-to-head vs current champ:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v15.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v15.json)
+  - mean score delta `-0.7965`
+  - mean weighted KL delta `+0.004446`
+  - win rate `0.200`
+  - CI95 `[-1.1140, -0.4919]`
+- Read:
+  - modest recovery only on round `6`
+  - large giveback on rounds `7`, `3`, `8`
+  - too conservative
+
+#### Probe result: `v16`
+
+- Strict 4-round probe [`agent7_probe_query_residual_v16_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v16_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.2567`
+  - mean weighted KL `0.154835`
+- Head-to-head vs current champ:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v16.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v16.json)
+  - mean score delta `-0.7239`
+  - mean weighted KL delta `+0.003936`
+  - win rate `0.100`
+  - CI95 `[-0.9573, -0.4953]`
+- Read:
+  - still below `v14` on all four probe rounds
+  - stronger selective discount did not rescue the branch
+
+### Updated Validation Read
+
+- Current 4-round strict probe `{7,3,6,8}` remains useful for hard-round sensitivity.
+- But the `v14` full-dev result exposed one missing failure mode:
+  - round `2` regressed materially on full dev and was not represented in the probe
+- So for further model-side balancing work, a better stricter probe is now:
+  - `{7,3,6,8,2}`
+  - rationale: keeps the existing hard/OOD rounds and adds the stable/giveback round that exact-cell-trust changes can hurt
+- Conclusion:
+  - repeat-only beta-discount branch is rejected
+  - next branch should use the stricter 5-round probe, not the old 4-round probe
+
+### 2026-03-21T10:50Z approx
+
+- Built stricter 5-round baseline for current champ:
+  - [`agent7_probe5_query_residual_v14_exploration_r3_r2r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe5_query_residual_v14_exploration_r3_r2r3r6r7r8/result.json)
+  - rounds `{7,3,6,8,2}`
+  - mean score `68.8262`
+  - mean weighted KL `0.127655`
+- Added pure balancing variants in [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `query_residual_v17`: `v14` beta + `prior_blend=0.40`
+  - `query_residual_v18`: reserved adjacent balancing slot; not evaluated yet
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `20`
+
+#### Probe result: `v17`
+
+- Strict 5-round probe [`agent7_probe5_query_residual_v17_exploration_r3_r2r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe5_query_residual_v17_exploration_r3_r2r3r6r7r8/result.json)
+  - mean score `68.2016`
+  - mean weighted KL `0.130984`
+- Head-to-head vs 5-round champ baseline:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v17.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v17.json)
+  - mean score delta `-0.6246`
+  - mean weighted KL delta `+0.003329`
+  - win rate `0.160`
+  - CI95 `[-0.8505, -0.4207]`
+- Round read:
+  - small recovery only on round `2` (`+0.0992`)
+  - clear givebacks on rounds `7`, `3`, `6`, `8`
+- Conclusion:
+  - raising `prior_blend` is the wrong direction
+  - new 5-round gate is stricter in the right way; it already rejected a candidate that might have looked acceptable on round `2` alone
+- Next:
+  - skip `v18` if direction is clearly monotone-worse
+  - test an intermediate global beta between `v13` and `v14` on this stricter 5-round gate
+
+### 2026-03-21T11:05Z approx
+
+- Re-opened from local exploratory state before new runs.
+  - branch still `agent7`
+  - `br` still unavailable in current shell env
+  - current pushed champ still [`query_residual_v14 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v14_exploration_r3/result.json)
+- New decision rule before adding more code:
+  - first evaluate existing `query_residual_v13` on the stricter 5-round gate `{7,3,6,8,2}`
+  - rationale: `v13` is the nearest already-implemented point between `v7` and `v14`
+  - if `v13` still loses clearly to `v14` on this gate, only then spend code/benchmark budget on a narrower midpoint beta variant
+
+### 2026-03-21T11:20Z approx
+
+- Strict 5-round probe completed for [`query_residual_v13 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe5_query_residual_v13_exploration_r3_r2r3r6r7r8/result.json)
+  - mean score `68.7483`
+  - mean weighted KL `0.128458`
+- Head-to-head vs stricter 5-round champ baseline:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v13.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=query_residual_v13.json)
+  - mean score delta `-0.0779`
+  - mean weighted KL delta `+0.000802`
+  - win rate `0.400`
+  - CI95 `[-0.3434, 0.1848]`
+- Round read vs `v14`:
+  - round `2`: `+0.7451`
+  - round `6`: `+0.8511`
+  - round `3`: `-0.5125`
+  - round `7`: `-0.8830`
+  - round `8`: `-0.5901`
+- Interpretation:
+  - `v13` is close enough that the beta tradeoff is not exhausted
+  - lower-beta side still owns rounds `3/7/8`
+  - slightly higher-beta side owns rounds `2/6`
+  - this justifies one honest interior-point test between `v13` and `v14`, not a wide sweep
+- Next:
+  - add `query_residual_v19` as a midpoint beta candidate
+  - validate tests
+  - run the same stricter 5-round probe
+  - only spend full 8-round dev if `v19` beats `v14` on this gate
+
+### 2026-03-21T11:35Z approx
+
+- User explicitly redirected scope:
+  - stop centering work on `query_residual`
+  - treat it only as a baseline
+  - prioritize a true fifth-family model under its own names
+  - use heavier experimentation / parallelism
+- Re-read handoff sections on `u_r -> beta_r -> F(map, beta)` and audited current reusable infra.
+- Important repo reality after audit:
+  - existing replay-summary/manifold code already gives a partial `u_r` and low-rank `beta_r`
+  - existing `SummaryBankStudent` already gives transcript-summary -> posterior over historical regime targets
+  - existing `HazardTeacher` already gives semimechanistic decode / posterior predictive
+  - missing piece is mainly a benchmarkable predictor family that wires those pieces together cleanly
+- New implementation target:
+  - add a separate `ffam_*` predictor family
+  - fit low-rank manifold coordinates on held-out training rounds
+  - build synthetic-live transcript bank on those same training rounds
+  - infer posterior over manifold coordinates from transcript summaries
+  - reconstruct semimechanistic coefficients from coordinates
+  - decode final tensors with the hazard decoder
+- This is the first real handoff-aligned mainline model in this branch; query-residual tuning is now secondary.
+
+### 2026-03-21T11:55Z approx
+
+- Re-opened current live `ffam` worktree state and found a partially landed new-family path already present:
+  - [`src/astar/student/predictor/ffam_retrieval.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_retrieval.py)
+  - [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+  - plus already-wired imports in CLI / interactive / historical benchmark paths
+- Decision:
+  - continue/repair that family instead of creating a second duplicate `ffam` implementation
+  - removed one temporary unused side-path file after confirming the retrieval path is the real integrated one
+- First validation outcome:
+  - built-in historical benchmark smoke already covered `ffam_retrieval_v1/v2/v3`
+  - initial run failed because `ffam_retrieval` rejected 1-round training folds inside 2-round LORO tests
+- Fix landed:
+  - `ffam_retrieval` now requires at least one replay-backed training round, not two
+  - kept checkpoint/load plumbing active in the interactive path
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `26`
+- Meaning:
+  - there is now a working benchmarkable non-query-residual fifth-family line in-tree
+  - next spend is honest ffam probe/full-dev benchmarking, not more scaffolding
+
+### 2026-03-21T12:10Z approx
+
+- Small but important ffam infra fix landed before benchmark spend:
+  - `ffam` synthetic-live dataset cache name no longer depends on `model_name` or `summary_variant`
+  - rationale: those settings affect posterior featurization / weighting, not the generated transcript artifacts themselves
+  - effect: `ffam_retrieval_v1/v2/v3` can now reuse the same synthetic-live episode caches for the same policy / sample count / training-round scope
+- Validation after this cache fix:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `26`
+- Benchmark plan now:
+  - first honest screen on 5-round probe `{7,3,6,8,2}`
+  - use `samples_per_round=8` for ffam, since this family is posterior-bank limited and compute is available
+  - compare `ffam_retrieval_v1/v2/v3`
+  - full 8-round dev only for the best probe candidate
+
+### 2026-03-21T11:40Z approx
+
+- User clarified direction sharply:
+  - stop treating `query_residual` as the main research target
+  - treat it as only a baseline / initial scaffold
+  - prioritize a true fifth-family operator/manifold/retrieval model
+  - use much heavier experimentation and more parallelism
+- Why prior work had concentrated on `query_residual`:
+  - it was the only benchmarkable in-tree path already combining replay teacher structure, online transcript features, and legal historical benchmark wiring
+  - that made it the fastest correctness-preserving way to move the leaderboard while learning the framework
+- Current pivot:
+  - build a new benchmarkable fifth-family model around existing reusable components:
+    - replay-derived semimechanistic coefficients
+    - low-rank coefficient manifold
+    - synthetic-live transcript datasets
+    - kNN/deepset posterior over regime coordinates
+    - decoder-driven posterior predictive serving path
+- Important reusable code confirmed:
+  - [`src/astar/history/summaries/round_coefficients.py`](/home/jorge/agent7/tasks/astar/src/astar/history/summaries/round_coefficients.py)
+  - [`src/astar/history/summaries/manifold.py`](/home/jorge/agent7/tasks/astar/src/astar/history/summaries/manifold.py)
+  - [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+  - [`src/astar/teacher/dynamics/hazard_teacher.py`](/home/jorge/agent7/tasks/astar/src/astar/teacher/dynamics/hazard_teacher.py)
+  - [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+- Key gap found:
+  - this stack exists in pieces but is not wired into `build_online_predictor` / historical benchmark as a first-class model family
+  - summary student checkpoint/load and generic decoder integration are incomplete for production use
+- Status of interrupted old branch:
+  - `query_residual_v19` midpoint beta probe was started but user interrupted before completion; do not use it for promotion decisions
+
+### 2026-03-21T12:10Z approx
+
+- Found existing partial fifth-family branch already present but unfinished:
+  - [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+  - ffam model names / variants already defined:
+    - `ffam_retrieval_v1`
+    - `ffam_retrieval_v2`
+    - `ffam_retrieval_v3`
+  - CLI / benchmark guards / policy defaults were already partly wired for these names
+- Implemented the missing benchmarkable predictor path in [`src/astar/student/predictor/ffam_retrieval.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_retrieval.py)
+  - fits replay-backed [`HazardTeacher`](/home/jorge/agent7/tasks/astar/src/astar/teacher/dynamics/hazard_teacher.py)
+  - builds synthetic-live transcript dataset using configured policy + sample count
+  - fits [`SummaryBankStudent`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+  - serves predictions through the same online predictor/historical benchmark path as other models
+  - supports checkpoint save/load
+- Completed missing checkpoint plumbing:
+  - added `HazardTeacher.load_checkpoint(...)`
+  - added `SummaryBankStudent.load_checkpoint(...)`
+  - updated [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py) so ffam can load/save checkpoints when no explicit training split is supplied
+- Added ffam checkpoint coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+  - explicit roundtrip test for `ffam_retrieval_v3`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `26`
+- Important correction while wiring:
+  - ffam must support the 2-round smoke case where LORO training leaves exactly one replay-backed round
+  - predictor now allows `>=1` replay-backed training round instead of incorrectly requiring `>=2`
+- Immediate next move:
+  - run cheap honest ffam probes on hard rounds first
+  - vary existing ffam variants + policy/sample-count in parallel
+  - only then spend full 8-round benchmark budget on winners
+
+### 2026-03-21T11:35Z approx
+
+- User redirected strategy explicitly:
+  - stop treating `query_residual` as the main line
+  - treat it as an initial baseline only
+  - build the actual fifth-family operator/manifold/retrieval stack aggressively
+  - use heavier parallel exploration / benchmarking
+- Immediate consequence:
+  - `query_residual_v19` probe is no longer the main objective
+  - current local `query_residual` ablations remain useful as documented baseline knowledge, but new code priority shifts to a fresh benchmarkable family
+- New build target:
+  - wire a true replay-teacher + transcript-posterior + decoder model into the online/historical benchmark path
+  - then iterate variants on that family rather than continuing residual-tuning
+- Current local architecture read before implementation:
+  - existing reusable pieces already present:
+    - semimechanistic decoder in [`src/astar/teacher/dynamics/hazard_teacher.py`](/home/jorge/agent7/tasks/astar/src/astar/teacher/dynamics/hazard_teacher.py)
+    - synthetic transcript dataset pipeline in [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+    - kNN-style transcript posterior in [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+    - low-rank round manifold tooling in [`src/astar/history/summaries/manifold.py`](/home/jorge/agent7/tasks/astar/src/astar/history/summaries/manifold.py)
+  - gap:
+    - these components are not yet exposed as a first-class benchmarkable online model family
+    - posterior summary features are still very coarse and need direct model-level iteration
+- New implementation plan:
+  - add a new named fifth-family retrieval model line separate from `query_residual`
+  - give it reproducible config/variant naming
+  - improve posterior distance weighting / normalization while wiring save-load + benchmark support
+  - run honest probes on the new family immediately after landing
+
+### 2026-03-21T11:50Z approx
+
+- Landed a new benchmarkable fifth-family line separate from `query_residual`.
+  - config registry: [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+  - predictor wiring: [`src/astar/student/predictor/ffam_retrieval.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_retrieval.py)
+  - online builder / CLI integration:
+    - [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py)
+    - [`src/astar/cli.py`](/home/jorge/agent7/tasks/astar/src/astar/cli.py)
+    - [`src/astar/workflows/model_eval.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/model_eval.py)
+    - [`src/astar/workflows/historical_benchmark.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/historical_benchmark.py)
+- Family design landed:
+  - semimechanistic replay teacher remains decoder backbone
+  - transcript posterior now trains from synthetic live episodes as a first-class model family
+  - variant surface:
+    - `ffam_retrieval_v1`: basic transcript summary + inverse-distance retrieval
+    - `ffam_retrieval_v2`: richer summary with query-geometry features + standardized softmax retrieval
+    - `ffam_retrieval_v3`: same richer summary + standardized retrieval + PCA-3 regime projection
+- Posterior improvements landed in [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+  - summary extraction now works directly from transcript observations
+  - added richer `v2` summary block with viewport-position / coverage / settlement-activity features
+  - added standardized-distance retrieval
+  - added optional low-rank regime projection before decoding
+- Synthetic dataset artifacts now carry fixed shape metadata in [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+  - `seed_count`
+  - `map_width`
+  - `map_height`
+- Validation:
+  - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - passed: `27`
+- Next:
+  - run parallel 4-round screen on `ffam_retrieval_v1/v2/v3`
+  - promote only the winning family variant to stricter/fuller benchmarks
+
+### 2026-03-21T12:20Z approx
+
+- Attempted to screen the new ffam variants in parallel and hit the expected prep-path contention again.
+  - failure mode was not model math
+  - failure mode was offline prep reuse / catalog-lock interaction
+  - also found stale `agent7` ffam benchmark processes from interrupted earlier runs still holding the catalog lock
+- Used that failure to harden the offline path instead of ignoring it.
+  - [`src/astar/workflows/materialize_episode.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/materialize_episode.py)
+    - added safe reuse of existing per-round materialized artifacts instead of always rebuilding
+    - avoided full JSON round-trip of ndarray-heavy replay summaries by reconstructing only minimal reusable metadata
+  - [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+    - synthetic dataset builder now reuses existing `summary.json` + `index.parquet`
+    - catalog logging made best-effort in this path
+  - [`src/astar/workflows/summarize_replays.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/summarize_replays.py)
+    - removed unnecessary `ingest_replays()` dependency from replay summarization
+    - catalog logging made best-effort
+  - dataset naming for ffam synthetic transcripts now reuses across model variants that share the same transcript source policy/samples/rounds
+- New bug found and fixed:
+  - first materialization-reuse attempt tried to parse cached JSON summaries containing ndarray-heavy replay summaries through pydantic
+  - this failed with `needs_python_object` validation errors
+  - fixed by reconstructing a minimal `MaterializeEpisodeResult` from cached file paths + fresh diagnostics instead of deserializing nested replay ndarrays from JSON
+- Current benchmark status:
+  - serious run now focused on [`ffam_retrieval_v2`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+  - config:
+    - richer transcript summary `v2`
+    - standardized softmax retrieval
+    - `samples_per_round=6`
+    - strict 5-round gate `{7,3,6,8,2}`
+  - after the reuse fixes, rerun no longer dies in prep and is executing normally
+
+### 2026-03-21T12:35Z approx
+
+- Re-read canon + handoff after user redirect.
+  - conclusion: previous `query_residual` focus came from already-wired benchmarkable line, but the handoff is explicit that the real target is fifth-family operator/manifold/retrieval
+  - therefore current effort is now centered on new ffam-family development, not more residual polishing
+- Environment / validation check:
+  - `br list` still unavailable in shell env
+  - reran key ffam-facing validation after cache/materialization fixes:
+    - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+    - passed: `28`
+- Active compute observed:
+  - local root strict probe still running:
+    - `ffam_retrieval_v2`
+    - `policy=exploration_r3`
+    - `samples_per_round=6`
+    - 5-round gate `{7,3,6,8,2}`
+  - isolated-root probe still running:
+    - `ffam_retrieval_v3`
+    - `policy=exploration_r3`
+    - `samples_per_round=1`
+    - 4-round gate `{3,6,7,8}`
+- New model insight from code review:
+  - current ffam transcript summary still mostly treats observed year-50 windows in isolation
+  - this likely throws away the most identifiable law signal, which is how year-50 outcomes differ from the known initial map and queried geometry
+  - strongest next branch is:
+    - add geometry/delta-aware transcript summaries using initial-map context inside queried windows
+    - add more direct coefficient/manifold targets instead of only the coarse 12d `round_regime_summary_vector`
+- Next implementation branch:
+  - add richer summary variant with initial-vs-final change features
+  - wire at least one new ffam variant onto that summary
+  - if clean, add a direct low-rank coefficient/manifold target variant after that
+
+### 2026-03-21T13:10Z approx
+
+- Honest benchmark result came back for the first serious coarse-ffam run:
+  - [`agent7_probe5_ffam_retrieval_v2_exploration_r3_r2r3r6r7r8_s6`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe5_ffam_retrieval_v2_exploration_r3_r2r3r6r7r8_s6/result.json)
+  - mean score `55.5827`
+  - mean weighted KL `0.217329`
+  - decisively non-competitive vs current hard-gate `query_residual_v14`
+  - conclusion:
+    - old coarse transcript summary / raw-regime retrieval path is not enough
+    - must move to stronger map-conditioned summaries and/or coefficient-space targets
+- Landed new ffam branch focused on that.
+  - [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+    - added summary variant `v3`
+    - `v3` now conditions transcript features on known initial-map structure inside queried windows
+    - new per-seed features include initial empty/forest/coast/inland shares and observed build/port/ruin/forest transitions conditioned on those initial categories
+    - student can now decode either:
+      - regime vectors
+      - direct coefficient-space targets via `HazardTeacher.decode_coefficients(...)`
+  - [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+    - synthetic transcript artifacts now carry `initial_grids`
+    - needed so `v3` summary can be built offline without reloading round JSON
+  - [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+    - added new variants:
+      - `ffam_retrieval_v4`
+      - `ffam_retrieval_v5`
+      - `ffam_retrieval_v6`
+    - `v4` = map-conditioned summary `v3` + regime retrieval
+    - `v5`/`v6` = map-conditioned summary `v3` + coefficient-space retrieval
+  - [`src/astar/student/predictor/ffam_retrieval.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_retrieval.py)
+    - wired `target_kind`
+    - ffam synthetic datasets now depend on target semantics
+    - important correctness fix:
+      - dataset build/name now uses the actual training split, not the whole replay corpus
+      - this prevents silent reuse of wrong targets across LORO holdouts
+- Validation:
+  - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - passed: `32`
+- Current hard-round baseline for comparison:
+  - [`agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.9805`
+  - mean weighted KL `0.150899`
+- Machine-health / parallelism check before new launch:
+  - `384` CPUs
+  - `2.8 TiB` RAM available
+  - load average only `14.19`
+  - other agents running some parallel jobs, but machine remains very underloaded
+- New screen launched with isolated roots and shared raw/derived caches:
+  - `ffam_retrieval_v3` on hard probe `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_retrieval_v4` on hard probe `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_retrieval_v5` on hard probe `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_retrieval_v6` on hard probe `{3,6,7,8}`, `samples_per_round=2`
+
+### 2026-03-21T13:25Z approx
+
+- Added a second posterior family inside ffam rather than waiting only on kNN retrieval.
+  - [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+    - new `inference_mode`
+      - `neighbor_average`
+      - `global_ridge`
+    - `global_ridge` fits ridge regression from transcript summary vectors to target space
+    - works for both:
+      - regime targets
+      - coefficient targets
+    - checkpoint serialization now stores regression intercept/weights
+  - [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+    - added:
+      - `ffam_retrieval_v7`
+      - `ffam_retrieval_v8`
+    - `v7` = summary `v3` + coefficient target + global ridge
+    - `v8` = summary `v3` + regime target + global ridge
+- Validation after adding ridge posterior branch:
+  - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - passed: `35`
+- Additional hard-probe runs launched with isolated roots:
+  - `ffam_retrieval_v7` on `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_retrieval_v8` on `{3,6,7,8}`, `samples_per_round=2`

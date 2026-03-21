@@ -38,9 +38,13 @@ class SyntheticEpisodeArtifact(BaseModel):
 
     round_id: str
     round_number: int
+    seed_count: int = Field(default=5, ge=1)
+    map_width: int = Field(default=40, ge=1)
+    map_height: int = Field(default=40, ge=1)
     sample_index: int = Field(ge=0)
     policy_name: str
     regime_vector: np.ndarray
+    initial_grids: tuple[np.ndarray, ...] = ()
     observations: tuple[LiveQueryObs, ...]
     target_sources: dict[int, str]
     target_paths: dict[int, Path]
@@ -74,6 +78,9 @@ def _target_info(
 def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["regime_vector"] = np.asarray(payload["regime_vector"], dtype=np.float64)
+    payload["initial_grids"] = tuple(
+        np.asarray(item, dtype=np.int64) for item in payload.get("initial_grids", [])
+    )
     normalized_observations: list[dict[str, object]] = []
     for observation in payload.get("observations", []):
         observation_payload = dict(observation)
@@ -90,6 +97,7 @@ def build_synthetic_live_dataset(
     round_ids: list[str] | None = None,
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
+    regime_vector_by_round: dict[str, np.ndarray] | None = None,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -101,6 +109,22 @@ def build_synthetic_live_dataset(
     episodes_dir.mkdir(parents=True, exist_ok=True)
     index_path = dataset_dir / "index.parquet"
     summary_path = dataset_dir / "summary.json"
+
+    if index_path.exists() and summary_path.exists():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        return SyntheticEpisodeDatasetRef(
+            dataset_name=dataset_name,
+            dataset_kind="synthetic_live",
+            dataset_dir=dataset_dir,
+            summary_path=summary_path,
+            index_path=index_path,
+            row_count=int(summary.get("episode_count", 0)),
+            round_count=int(summary.get("round_count", 0)),
+            policy_name=str(summary.get("policy_name", policy_name)),
+            episode_count=int(summary.get("episode_count", 0)),
+            total_query_count=int(summary.get("total_query_count", 0)),
+            samples_per_round=int(summary.get("samples_per_round", samples_per_round)),
+        )
 
     rows: list[dict[str, str | int]] = []
     total_query_count = 0
@@ -145,9 +169,20 @@ def build_synthetic_live_dataset(
             artifact = SyntheticEpisodeArtifact(
                 round_id=round_id,
                 round_number=int(episode_run.round_context.round_number or -1),
+                seed_count=len(episode_run.round_context.seeds),
+                map_width=episode_run.round_context.map_width,
+                map_height=episode_run.round_context.map_height,
                 sample_index=sample_index,
                 policy_name=policy.name,
-                regime_vector=round_regime_summary_vector(round_episode),
+                regime_vector=(
+                    np.asarray(regime_vector_by_round[round_id], dtype=np.float64)
+                    if regime_vector_by_round is not None and round_id in regime_vector_by_round
+                    else round_regime_summary_vector(round_episode)
+                ),
+                initial_grids=tuple(
+                    np.asarray(seed.initial_state.grid, dtype=np.int64)
+                    for seed in episode_run.round_context.seeds
+                ),
                 observations=observations,
                 target_sources=target_sources,
                 target_paths=target_paths,
@@ -181,15 +216,18 @@ def build_synthetic_live_dataset(
         "index_path": str(index_path),
     }
     summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")
-    CatalogDB(paths.catalog_path).log_event(
-        CatalogEvent(
-            event_kind="synthetic_episode_built",
-            status="ok",
-            artifact_path=summary_path,
-            payload_json=summary,
-            spec_name=dataset_name,
-        ),
-    )
+    try:
+        CatalogDB(paths.catalog_path).log_event(
+            CatalogEvent(
+                event_kind="synthetic_episode_built",
+                status="ok",
+                artifact_path=summary_path,
+                payload_json=summary,
+                spec_name=dataset_name,
+            ),
+        )
+    except Exception:
+        pass
     return SyntheticEpisodeDatasetRef(
         dataset_name=dataset_name,
         dataset_kind="synthetic_live",

@@ -2,58 +2,186 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
+from astar.core.grid import MapShape, coverage_counts
+from astar.core.terrain import CLASS_COUNT, buildable_mask, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
+from astar.features.coasts import coast_mask as build_coast_mask
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import load_synthetic_episode
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.evidence import RoundEvidenceBundle
 from astar.student.predictor.base import LiveInferenceContext
-from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
+
+SummaryVariant = Literal["v1", "v2", "v3"]
+TargetKind = Literal["regime", "coefficients"]
+InferenceMode = Literal["neighbor_average", "global_ridge"]
 
 
 def _optional_float(value: float | None) -> float:
     return 0.0 if value is None else float(value)
 
 
-def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
-    components: list[float] = []
-    for seed_index in sorted(evidence.per_seed):
-        seed = evidence.per_seed[seed_index]
-        components.append(float(seed.query_count))
-        components.extend(seed.observed_class_frequencies.astype(np.float64).tolist())
-        components.append(_optional_float(seed.mean_population))
-        components.append(_optional_float(seed.mean_food))
-        components.append(_optional_float(seed.mean_wealth))
-        components.append(_optional_float(seed.mean_defense))
-    return np.asarray(components, dtype=np.float64)
+def _fit_linear_map(
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    *,
+    ridge_alpha: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    design = np.concatenate(
+        [np.ones((inputs.shape[0], 1), dtype=np.float64), inputs],
+        axis=1,
+    )
+    penalty = np.eye(design.shape[1], dtype=np.float64)
+    penalty[0, 0] = 0.0
+    lhs = design.T @ design + ridge_alpha * penalty
+    rhs = design.T @ targets
+    solution = np.linalg.pinv(lhs) @ rhs
+    return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
 
 
-def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    artifact = load_synthetic_episode(path)
-    grouped: dict[int, list[LiveQueryObs]] = {}
-    for observation in artifact.observations:
+def _seed_summary_block_size(variant: SummaryVariant) -> int:
+    base = 1 + CLASS_COUNT + 4
+    if variant == "v1":
+        return base
+    if variant == "v2":
+        return base + 10
+    return base + 26
+
+
+def _summary_vector_from_observations(
+    observations: tuple[LiveQueryObs, ...],
+    *,
+    seed_count: int,
+    map_width: int,
+    map_height: int,
+    variant: SummaryVariant,
+    initial_grids: tuple[np.ndarray, ...] | None = None,
+) -> np.ndarray:
+    if variant == "v3":
+        if initial_grids is None or len(initial_grids) < seed_count:
+            raise ValueError("summary variant v3 requires initial grids")
+        per_seed_initial = {
+            seed_index: (
+                collapse_internal_grid(np.asarray(initial_grids[seed_index], dtype=np.int64)),
+                build_coast_mask(np.asarray(initial_grids[seed_index], dtype=np.int64)).astype(bool),
+                (
+                    buildable_mask(np.asarray(initial_grids[seed_index], dtype=np.int64))
+                    & ~build_coast_mask(np.asarray(initial_grids[seed_index], dtype=np.int64))
+                ).astype(bool),
+            )
+            for seed_index in range(seed_count)
+        }
+    else:
+        per_seed_initial = {}
+
+    grouped: dict[int, list[LiveQueryObs]] = {seed_index: [] for seed_index in range(seed_count)}
+    for observation in observations:
         grouped.setdefault(observation.seed_index, []).append(observation)
 
     components: list[float] = []
-    for seed_index in sorted(grouped):
-        observations = grouped[seed_index]
+    area_denominator = float(max(map_width * map_height, 1))
+
+    for seed_index in range(seed_count):
+        seed_observations = grouped.get(seed_index, [])
         class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
         populations: list[float] = []
         foods: list[float] = []
         wealths: list[float] = []
         defenses: list[float] = []
-        for observation in observations:
+
+        settlement_counts: list[float] = []
+        alive_share: list[float] = []
+        port_share: list[float] = []
+        center_x: list[float] = []
+        center_y: list[float] = []
+        area_share: list[float] = []
+
+        initial_empty_count = 0.0
+        initial_forest_count = 0.0
+        initial_coast_count = 0.0
+        initial_inland_count = 0.0
+        built_on_initial_empty = 0.0
+        port_on_initial_empty = 0.0
+        ruin_on_initial_empty = 0.0
+        forest_on_initial_empty = 0.0
+        built_on_initial_forest = 0.0
+        ruin_on_initial_forest = 0.0
+        forest_on_initial_forest = 0.0
+        built_on_initial_coast = 0.0
+        port_on_initial_coast = 0.0
+        ruin_on_initial_coast = 0.0
+        built_on_initial_inland = 0.0
+        changed_cell_count = 0.0
+        observed_cell_count = 0.0
+
+        for observation in seed_observations:
             collapsed = collapse_internal_grid(observation.grid)
             bincount = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
             class_counts += bincount
-            for settlement in observation.settlements:
+
+            settlements = observation.settlements
+            settlement_counts.append(float(len(settlements)))
+            if settlements:
+                alive_total = sum(1 for settlement in settlements if settlement.alive)
+                port_total = sum(1 for settlement in settlements if settlement.has_port)
+                alive_share.append(alive_total / float(len(settlements)))
+                port_share.append(port_total / float(len(settlements)))
+            else:
+                alive_share.append(0.0)
+                port_share.append(0.0)
+
+            center_x.append(
+                float(observation.viewport.x + (0.5 * observation.viewport.w)) / float(max(map_width, 1)),
+            )
+            center_y.append(
+                float(observation.viewport.y + (0.5 * observation.viewport.h)) / float(max(map_height, 1)),
+            )
+            area_share.append(
+                float(observation.viewport.w * observation.viewport.h) / area_denominator,
+            )
+
+            if variant == "v3":
+                initial_collapsed, initial_coast_mask, initial_inland_mask = per_seed_initial[seed_index]
+                y0 = int(observation.viewport.y)
+                y1 = y0 + int(observation.viewport.h)
+                x0 = int(observation.viewport.x)
+                x1 = x0 + int(observation.viewport.w)
+                initial_patch = initial_collapsed[y0:y1, x0:x1]
+                coast_patch = initial_coast_mask[y0:y1, x0:x1]
+                inland_patch = initial_inland_mask[y0:y1, x0:x1]
+
+                empty_patch = initial_patch == 0
+                forest_patch = initial_patch == 4
+                built_patch = np.isin(collapsed, (1, 2, 3))
+                port_patch = collapsed == 2
+                ruin_patch = collapsed == 3
+                forest_final_patch = collapsed == 4
+
+                observed_cell_count += float(collapsed.size)
+                initial_empty_count += float(np.count_nonzero(empty_patch))
+                initial_forest_count += float(np.count_nonzero(forest_patch))
+                initial_coast_count += float(np.count_nonzero(coast_patch))
+                initial_inland_count += float(np.count_nonzero(inland_patch))
+                built_on_initial_empty += float(np.count_nonzero(built_patch & empty_patch))
+                port_on_initial_empty += float(np.count_nonzero(port_patch & empty_patch))
+                ruin_on_initial_empty += float(np.count_nonzero(ruin_patch & empty_patch))
+                forest_on_initial_empty += float(np.count_nonzero(forest_final_patch & empty_patch))
+                built_on_initial_forest += float(np.count_nonzero(built_patch & forest_patch))
+                ruin_on_initial_forest += float(np.count_nonzero(ruin_patch & forest_patch))
+                forest_on_initial_forest += float(np.count_nonzero(forest_final_patch & forest_patch))
+                built_on_initial_coast += float(np.count_nonzero(built_patch & coast_patch))
+                port_on_initial_coast += float(np.count_nonzero(port_patch & coast_patch))
+                ruin_on_initial_coast += float(np.count_nonzero(ruin_patch & coast_patch))
+                built_on_initial_inland += float(np.count_nonzero(built_patch & inland_patch))
+                changed_cell_count += float(np.count_nonzero(collapsed != initial_patch))
+
+            for settlement in settlements:
                 if settlement.population is not None:
                     populations.append(float(settlement.population))
                 if settlement.food is not None:
@@ -62,17 +190,103 @@ def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
                     wealths.append(float(settlement.wealth))
                 if settlement.defense is not None:
                     defenses.append(float(settlement.defense))
+
         total = float(np.sum(class_counts))
         class_frequencies = (
             class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
         )
-        components.append(float(len(observations)))
+        components.append(float(len(seed_observations)))
         components.extend(class_frequencies.tolist())
         components.append(float(np.mean(populations)) if populations else 0.0)
         components.append(float(np.mean(foods)) if foods else 0.0)
         components.append(float(np.mean(wealths)) if wealths else 0.0)
         components.append(float(np.mean(defenses)) if defenses else 0.0)
-    return np.asarray(components, dtype=np.float64), artifact.regime_vector
+
+        if variant == "v2":
+            if seed_observations:
+                coverage = coverage_counts(
+                    MapShape(width=map_width, height=map_height),
+                    [item.viewport for item in seed_observations],
+                ).astype(np.float64)
+                covered = coverage > 0.0
+                repeated = coverage > 1.0
+                components.extend(
+                    [
+                        float(np.mean(settlement_counts)),
+                        float(np.mean(alive_share)),
+                        float(np.mean(port_share)),
+                        float(np.mean(center_x)),
+                        float(np.mean(center_y)),
+                        float(np.std(center_x)),
+                        float(np.std(center_y)),
+                        float(np.mean(area_share)),
+                        float(np.mean(covered)),
+                        float(np.mean(repeated)),
+                    ],
+                )
+            else:
+                components.extend([0.0] * 10)
+        elif variant == "v3":
+            if seed_observations:
+                coverage = coverage_counts(
+                    MapShape(width=map_width, height=map_height),
+                    [item.viewport for item in seed_observations],
+                ).astype(np.float64)
+                covered = coverage > 0.0
+                repeated = coverage > 1.0
+                components.extend(
+                    [
+                        float(np.mean(settlement_counts)),
+                        float(np.mean(alive_share)),
+                        float(np.mean(port_share)),
+                        float(np.mean(center_x)),
+                        float(np.mean(center_y)),
+                        float(np.std(center_x)),
+                        float(np.std(center_y)),
+                        float(np.mean(area_share)),
+                        float(np.mean(covered)),
+                        float(np.mean(repeated)),
+                        initial_empty_count / max(observed_cell_count, 1.0),
+                        initial_forest_count / max(observed_cell_count, 1.0),
+                        initial_coast_count / max(observed_cell_count, 1.0),
+                        initial_inland_count / max(observed_cell_count, 1.0),
+                        built_on_initial_empty / max(initial_empty_count, 1.0),
+                        port_on_initial_empty / max(initial_empty_count, 1.0),
+                        ruin_on_initial_empty / max(initial_empty_count, 1.0),
+                        forest_on_initial_empty / max(initial_empty_count, 1.0),
+                        built_on_initial_forest / max(initial_forest_count, 1.0),
+                        ruin_on_initial_forest / max(initial_forest_count, 1.0),
+                        forest_on_initial_forest / max(initial_forest_count, 1.0),
+                        built_on_initial_coast / max(initial_coast_count, 1.0),
+                        port_on_initial_coast / max(initial_coast_count, 1.0),
+                        ruin_on_initial_coast / max(initial_coast_count, 1.0),
+                        built_on_initial_inland / max(initial_inland_count, 1.0),
+                        changed_cell_count / max(observed_cell_count, 1.0),
+                    ],
+                )
+            else:
+                components.extend([0.0] * 26)
+
+    return np.asarray(components, dtype=np.float64)
+
+
+def _summary_vector_from_artifact(
+    path: Path,
+    *,
+    variant: SummaryVariant,
+) -> tuple[np.ndarray, np.ndarray]:
+    artifact = load_synthetic_episode(path)
+    return (
+        _summary_vector_from_observations(
+            artifact.observations,
+            seed_count=artifact.seed_count,
+            map_width=artifact.map_width,
+            map_height=artifact.map_height,
+            variant=variant,
+            initial_grids=artifact.initial_grids,
+        ),
+        artifact.regime_vector,
+    )
 
 
 class SummaryBankStudentCheckpoint(BaseModel):
@@ -86,6 +300,14 @@ class SummaryBankStudentCheckpoint(BaseModel):
     sample_count: int = Field(ge=0)
     summary_dim: int = Field(ge=1)
     regime_dim: int = Field(ge=1)
+    summary_variant: SummaryVariant = "v1"
+    use_standardized_distance: bool = False
+    weight_temperature: float = Field(default=0.0, ge=0.0)
+    inverse_distance_power: float = Field(default=1.0, gt=0.0)
+    projected_regime_dim: int = Field(default=0, ge=0)
+    target_kind: TargetKind = "regime"
+    inference_mode: InferenceMode = "neighbor_average"
+    ridge_alpha: float = Field(default=1e-2, gt=0.0)
 
 
 class SummaryBankStudent(BaseModel):
@@ -93,35 +315,142 @@ class SummaryBankStudent(BaseModel):
 
     name: str = "summary_bank_student_v1"
     dataset_name: str = "synthetic_live_v1"
+    summary_variant: SummaryVariant = "v1"
     summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     k_neighbors: int = Field(default=5, ge=1)
-    teacher: HazardTeacher
+    use_standardized_distance: bool = False
+    weight_temperature: float = Field(default=0.0, ge=0.0)
+    inverse_distance_power: float = Field(default=1.0, gt=0.0)
+    target_kind: TargetKind = "regime"
+    inference_mode: InferenceMode = "neighbor_average"
+    ridge_alpha: float = Field(default=1e-2, gt=0.0)
+    summary_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    summary_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    regime_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    regime_basis: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    regression_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    regression_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    teacher: Any
 
     @classmethod
     def fit_from_dataset(
         cls,
         dataset: SyntheticEpisodeDatasetRef,
-        teacher: HazardTeacher,
+        teacher: Any,
         *,
+        round_ids: list[str] | None = None,
         k_neighbors: int = 5,
+        summary_variant: SummaryVariant = "v1",
+        use_standardized_distance: bool = False,
+        weight_temperature: float = 0.0,
+        inverse_distance_power: float = 1.0,
+        projected_regime_dim: int = 0,
+        target_kind: TargetKind = "regime",
+        inference_mode: InferenceMode = "neighbor_average",
+        ridge_alpha: float = 1e-2,
     ) -> SummaryBankStudent:
         if dataset.index_path is None:
             raise ValueError("synthetic dataset requires an index path")
         index_table = pl.read_parquet(dataset.index_path)
+        if round_ids is not None:
+            index_table = index_table.filter(pl.col("round_id").is_in(round_ids))
         summary_vectors: list[np.ndarray] = []
         regime_vectors: list[np.ndarray] = []
         for path_value in index_table["episode_path"].to_list():
-            summary_vector, regime_vector = _summary_vector_from_artifact(Path(str(path_value)))
+            summary_vector, regime_vector = _summary_vector_from_artifact(
+                Path(str(path_value)),
+                variant=summary_variant,
+            )
             summary_vectors.append(summary_vector)
             regime_vectors.append(regime_vector)
         if not summary_vectors:
             raise ValueError("synthetic dataset did not yield any summary vectors")
+
+        summary_matrix = np.stack(summary_vectors, axis=0)
+        regime_matrix = np.stack(regime_vectors, axis=0)
+        summary_mean = np.mean(summary_matrix, axis=0)
+        summary_scale = np.std(summary_matrix, axis=0)
+        summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
+
+        effective_regime_vectors = regime_matrix
+        regime_mean = np.zeros(regime_matrix.shape[1], dtype=np.float64)
+        regime_basis = np.zeros((0, regime_matrix.shape[1]), dtype=np.float64)
+        if projected_regime_dim > 0 and regime_matrix.shape[0] > 0:
+            regime_mean = np.mean(regime_matrix, axis=0)
+            centered = regime_matrix - regime_mean[None, :]
+            _, _, vt_matrix = np.linalg.svd(centered, full_matrices=False)
+            effective_dim = max(1, min(projected_regime_dim, vt_matrix.shape[0]))
+            regime_basis = np.asarray(vt_matrix[:effective_dim], dtype=np.float64)
+            effective_regime_vectors = centered @ regime_basis.T
+
+        effective_summary_matrix = summary_matrix
+        if use_standardized_distance:
+            effective_summary_matrix = (
+                summary_matrix - summary_mean[None, :]
+            ) / summary_scale[None, :]
+        regression_intercept = np.zeros(effective_regime_vectors.shape[1], dtype=np.float64)
+        regression_weights = np.zeros(
+            (effective_summary_matrix.shape[1], effective_regime_vectors.shape[1]),
+            dtype=np.float64,
+        )
+        if inference_mode == "global_ridge":
+            regression_intercept, regression_weights = _fit_linear_map(
+                np.asarray(effective_summary_matrix, dtype=np.float64),
+                np.asarray(effective_regime_vectors, dtype=np.float64),
+                ridge_alpha=ridge_alpha,
+            )
+
         return cls(
             dataset_name=dataset.dataset_name,
-            summary_vectors=np.stack(summary_vectors, axis=0),
-            regime_vectors=np.stack(regime_vectors, axis=0),
+            summary_variant=summary_variant,
+            summary_vectors=summary_matrix,
+            regime_vectors=np.asarray(effective_regime_vectors, dtype=np.float64),
             k_neighbors=k_neighbors,
+            use_standardized_distance=use_standardized_distance,
+            weight_temperature=weight_temperature,
+            inverse_distance_power=inverse_distance_power,
+            target_kind=target_kind,
+            inference_mode=inference_mode,
+            ridge_alpha=ridge_alpha,
+            summary_mean=np.asarray(summary_mean, dtype=np.float64),
+            summary_scale=np.asarray(summary_scale, dtype=np.float64),
+            regime_mean=np.asarray(regime_mean, dtype=np.float64),
+            regime_basis=np.asarray(regime_basis, dtype=np.float64),
+            regression_intercept=np.asarray(regression_intercept, dtype=np.float64),
+            regression_weights=np.asarray(regression_weights, dtype=np.float64),
+            teacher=teacher,
+        )
+
+    @classmethod
+    def load_checkpoint(
+        cls,
+        path: Path,
+        teacher: Any,
+    ) -> SummaryBankStudent:
+        checkpoint = SummaryBankStudentCheckpoint.model_validate_json(
+            path.read_text(encoding="utf-8"),
+        )
+        arrays = np.load(checkpoint.checkpoint_npz_path)
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            summary_variant=checkpoint.summary_variant,
+            summary_vectors=np.asarray(arrays["summary_vectors"], dtype=np.float64),
+            regime_vectors=np.asarray(arrays["regime_vectors"], dtype=np.float64),
+            k_neighbors=checkpoint.k_neighbors,
+            use_standardized_distance=checkpoint.use_standardized_distance,
+            weight_temperature=checkpoint.weight_temperature,
+            inverse_distance_power=checkpoint.inverse_distance_power,
+            target_kind=checkpoint.target_kind,
+            inference_mode=checkpoint.inference_mode,
+            ridge_alpha=checkpoint.ridge_alpha,
+            summary_mean=np.asarray(arrays["summary_mean"], dtype=np.float64),
+            summary_scale=np.asarray(arrays["summary_scale"], dtype=np.float64),
+            regime_mean=np.asarray(arrays["regime_mean"], dtype=np.float64),
+            regime_basis=np.asarray(arrays["regime_basis"], dtype=np.float64),
+            regression_intercept=np.asarray(arrays["regression_intercept"], dtype=np.float64),
+            regression_weights=np.asarray(arrays["regression_weights"], dtype=np.float64),
             teacher=teacher,
         )
 
@@ -139,6 +468,14 @@ class SummaryBankStudent(BaseModel):
             sample_count=int(self.summary_vectors.shape[0]),
             summary_dim=int(self.summary_vectors.shape[1]),
             regime_dim=int(self.regime_vectors.shape[1]),
+            summary_variant=self.summary_variant,
+            use_standardized_distance=self.use_standardized_distance,
+            weight_temperature=self.weight_temperature,
+            inverse_distance_power=self.inverse_distance_power,
+            projected_regime_dim=int(self.regime_basis.shape[0]),
+            target_kind=self.target_kind,
+            inference_mode=self.inference_mode,
+            ridge_alpha=self.ridge_alpha,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
@@ -149,6 +486,12 @@ class SummaryBankStudent(BaseModel):
             npz_path,
             summary_vectors=self.summary_vectors,
             regime_vectors=self.regime_vectors,
+            summary_mean=self.summary_mean,
+            summary_scale=self.summary_scale,
+            regime_mean=self.regime_mean,
+            regime_basis=self.regime_basis,
+            regression_intercept=self.regression_intercept,
+            regression_weights=self.regression_weights,
         )
         json_path.write_text(
             json.dumps(
@@ -159,15 +502,63 @@ class SummaryBankStudent(BaseModel):
         )
         return json_path
 
+    def _summary_query_vector(self, context: LiveInferenceContext) -> np.ndarray:
+        return _summary_vector_from_observations(
+            context.observations,
+            seed_count=len(context.round_context.seeds),
+            map_width=context.round_context.map_width,
+            map_height=context.round_context.map_height,
+            variant=self.summary_variant,
+            initial_grids=tuple(
+                np.asarray(seed.initial_state.grid, dtype=np.int64)
+                for seed in context.round_context.seeds
+            ),
+        )
+
+    def _normalized_summary_matrix(self) -> np.ndarray:
+        if not self.use_standardized_distance:
+            return self.summary_vectors
+        return (self.summary_vectors - self.summary_mean[None, :]) / self.summary_scale[None, :]
+
+    def _normalized_summary_vector(self, query_vector: np.ndarray) -> np.ndarray:
+        if not self.use_standardized_distance:
+            return np.asarray(query_vector, dtype=np.float64)
+        return np.asarray((query_vector - self.summary_mean) / self.summary_scale, dtype=np.float64)
+
+    def _weights_from_distances(self, distances: np.ndarray) -> np.ndarray:
+        if self.weight_temperature > 0.0:
+            scaled = -distances / max(self.weight_temperature, 1e-6)
+            scaled -= np.max(scaled)
+            weights = np.exp(scaled)
+        else:
+            weights = 1.0 / np.clip(distances, 1e-6, None) ** self.inverse_distance_power
+        weights = np.asarray(weights, dtype=np.float64)
+        return weights / np.sum(weights)
+
+    def _decode_target_vectors(self, values: np.ndarray) -> np.ndarray:
+        if self.regime_basis.size == 0:
+            return np.asarray(values, dtype=np.float64)
+        return np.asarray(
+            self.regime_mean + np.asarray(values, dtype=np.float64) @ self.regime_basis,
+            dtype=np.float64,
+        )
+
     def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
-        query_vector = _summary_vector_from_evidence(context.evidence_bundle)
-        distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
+        query_vector = self._normalized_summary_vector(self._summary_query_vector(context))
+        if self.inference_mode == "global_ridge":
+            effective_mean = self.regression_intercept + query_vector @ self.regression_weights
+            decoded_mean = self._decode_target_vectors(effective_mean)
+            return RegimePosteriorState(
+                mean=np.asarray(decoded_mean, dtype=np.float64),
+            )
+        summary_matrix = self._normalized_summary_matrix()
+        distances = np.linalg.norm(summary_matrix - query_vector[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
         nearest_distances = distances[order]
-        weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
-        weights = weights / np.sum(weights)
-        mean = np.tensordot(weights, self.regime_vectors[order], axes=(0, 0))
-        particles = tuple(self.regime_vectors[index] for index in order)
+        weights = self._weights_from_distances(nearest_distances)
+        decoded_regimes = self._decode_target_vectors(self.regime_vectors[order])
+        mean = np.tensordot(weights, decoded_regimes, axes=(0, 0))
+        particles = tuple(decoded_regimes[index] for index in range(decoded_regimes.shape[0]))
         return RegimePosteriorState(
             mean=np.asarray(mean, dtype=np.float64),
             particles=particles,
@@ -176,7 +567,27 @@ class SummaryBankStudent(BaseModel):
 
     def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
         posterior = self.infer_regime(context)
+        seed = context.round_context.seeds[seed_index]
+        if self.target_kind == "coefficients":
+            if posterior.particles is not None and posterior.weights is not None:
+                components = [
+                    self.teacher.decode_coefficients(seed, particle) for particle in posterior.particles
+                ]
+                stacked = np.stack(components, axis=0)
+                weights = np.asarray(posterior.weights, dtype=np.float64)
+                weights = weights / np.sum(weights)
+                return np.tensordot(weights, stacked, axes=(0, 0))
+            return self.teacher.decode_coefficients(seed, posterior.mean)
         return self.teacher.posterior_predictive(
-            context.round_context.seeds[seed_index],
+            seed,
             posterior,
         )
+
+
+__all__ = [
+    "SummaryBankStudent",
+    "SummaryBankStudentCheckpoint",
+    "SummaryVariant",
+    "TargetKind",
+    "InferenceMode",
+]
