@@ -3009,6 +3009,30 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v76_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v78_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+335. Machine-wide check before launching item 333:
+   - about `898 GiB` used
+   - about `2.0 TiB` available
+   - agent3 still had only the 4 pending full LOO runs plus the `v71-v74` corrected wave active
+336. Mix-cap corrected-gate wave launched from pushed commit `e001f590`:
+   - `tmux` sessions:
+     - `agent3_v75_gate`
+     - `agent3_v76_gate`
+     - `agent3_v77_gate`
+     - `agent3_v78_gate`
+   - commands:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v75 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v75_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v76 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v76_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v77 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v77_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v78 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v78_targeted_holdout_2rounds_corrected --jobs 1`
+337. Post-launch check for item 336:
+   - live PIDs:
+     - `v75`: `1541993`, `1541998`
+     - `v76`: `1541999`, `1542165`
+     - `v77`: `1542542`, `1542811`
+     - `v78`: `1542810`, `1542817`
+   - machine stayed very healthy:
+     - about `891 GiB` used
+     - about `2.0 TiB` available
 
 
 ## Open Questions
