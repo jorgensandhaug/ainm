@@ -2346,3 +2346,31 @@ Framework should accept unique query-residual family variant names directly so b
 - Full 8-round dev promotions launched:
   - `agent7_dev_ffam_mode_v17_exploration_hybrid_r3_s2` (session `99928`)
   - `agent7_dev_ffam_mode_v17_exploration_hybrid_r3_global_s2` (session `65755`)
+
+### 2026-03-21T13:54Z approx
+
+- Full 8-round dev results for the positive policy gate winners:
+  - [`ffam_mode_v17 + exploration_hybrid_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_hybrid_r3_s2/result.json)
+    - mean score `75.2993`
+    - mean weighted KL `0.097708`
+  - [`ffam_mode_v17 + exploration_hybrid_r3_global`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_hybrid_r3_global_s2/result.json)
+    - mean score `75.8220`
+    - mean weighted KL `0.094700`
+- Current champ remains:
+  - [`ffam_mode_v17 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s2/result.json)
+    - mean score `76.0892`
+    - mean weighted KL `0.093167`
+- Paired comparisons vs current champ:
+  - [`exploration_hybrid_r3` compare](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_hybrid_r3__budget=50__episode_seed=0__baseline=ffam_mode_v17__candidate=ffam_mode_v17__run_pair=18d9fa878c8c.json)
+    - mean score delta `-0.7898`
+    - mean weighted KL delta `+0.004542`
+    - CI95 score delta `[-1.6027, -0.1303]`
+  - [`exploration_hybrid_r3_global` compare](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_hybrid_r3_global__budget=50__episode_seed=0__baseline=ffam_mode_v17__candidate=ffam_mode_v17__run_pair=427b07db7648.json)
+    - mean score delta `-0.2672`
+    - mean weighted KL delta `+0.001533`
+    - CI95 score delta `[-0.5726, 0.0173]`
+- Interpretation:
+  - new static motif policies gave strong hard-gate gains
+  - but those gains did not generalize to the full 8-round dev panel
+  - the global hybrid is the least-bad variant, but still not promotable
+  - policy default stays `exploration_r3`
