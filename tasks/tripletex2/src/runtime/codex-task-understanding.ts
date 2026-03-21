@@ -364,27 +364,33 @@ async function executeCodexTaskUnderstanding(
   }
 }
 
+const CLASSIFIER_PROMPT_PATH = path.resolve(
+  import.meta.dir,
+  "../../prompts/classifier.md",
+);
+
+let classifierPromptTemplateCache: string | undefined;
+
+function loadClassifierPromptTemplate(): string {
+  if (!classifierPromptTemplateCache) {
+    const raw = require("node:fs").readFileSync(CLASSIFIER_PROMPT_PATH, "utf8") as string;
+    const separator = "\n---\n";
+    const separatorIndex = raw.indexOf(separator);
+    classifierPromptTemplateCache =
+      separatorIndex >= 0 ? raw.slice(separatorIndex + separator.length).trim() : raw.trim();
+  }
+  return classifierPromptTemplateCache;
+}
+
 function buildCodexTaskUnderstandingSubmissionPrompt(input: {
   callbackUrl: string;
   outputSchema: Record<string, unknown>;
   prompt: string;
 }): string {
-  return [
-    "Tripletex2 task-understanding tmux run.",
-    "Follow ./AGENTS.md exactly.",
-    "Do not solve the Tripletex task and do not plan API calls.",
-    "",
-    "Submission contract:",
-    "- Build exactly one classification JSON object that matches this schema:",
-    JSON.stringify(input.outputSchema, null, 2),
-    `- The callback target is ${input.callbackUrl}.`,
-    "- The launch environment already sets TRIPLETEX2_CLASSIFY_CALLBACK_URL for ./submit-classification.ts.",
-    "- Submit the result by running: bun submit-classification.ts '<compact-json>'",
-    "- If shell quoting would be unsafe, write the JSON to a temporary file and pass that file path to bun submit-classification.ts instead.",
-    "- Do not print the JSON to chat. The submit-classification.ts call is the handoff.",
-    "",
-    input.prompt,
-  ].join("\n");
+  return loadClassifierPromptTemplate()
+    .replace("{{OUTPUT_SCHEMA}}", JSON.stringify(input.outputSchema, null, 2))
+    .replace("{{CALLBACK_URL}}", input.callbackUrl)
+    .replace("{{TASK_UNDERSTANDING_PROMPT}}", input.prompt);
 }
 
 function buildCodexTaskUnderstandingLaunchScript(input: {

@@ -237,56 +237,41 @@ export function resolveStorageMode(rawMode: string | undefined): StorageMode {
   }
 }
 
+const SOLVER_PROMPT_PATH = path.resolve(
+  import.meta.dir,
+  "../../prompts/solver.md",
+);
+
+let solverPromptTemplateCache: string | undefined;
+
+function loadSolverPromptTemplate(): string {
+  if (!solverPromptTemplateCache) {
+    const raw = require("node:fs").readFileSync(SOLVER_PROMPT_PATH, "utf8") as string;
+    const separator = "\n---\n";
+    const separatorIndex = raw.indexOf(separator);
+    solverPromptTemplateCache =
+      separatorIndex >= 0 ? raw.slice(separatorIndex + separator.length).trim() : raw.trim();
+  }
+  return solverPromptTemplateCache;
+}
+
 export function buildCodexPrompt(
   input: TmuxSolveRequest,
   files: readonly StoredSolveFile[],
   effectiveCredentials: EffectiveCredentials,
   scriptsDir: string,
 ): string {
-  const lines = [
-    "Scored Tripletex run.",
-    "Follow ./AGENTS.md exactly.",
-    "",
-    "Highest priorities:",
-    "- Get the final Tripletex state exactly correct.",
-    "- Use the fewest API calls possible.",
-    "- Avoid all avoidable 4xx errors.",
-    "",
-    "Run-specific rules:",
-    "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",
-    `- Put all API-interaction scripts only in this run scripts directory: ${scriptsDir}`,
-    "- Do not place API-interaction scripts anywhere else.",
-    "- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.",
-    "- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.",
-    "- Use only the provided base URL and session token.",
-    "- Authenticate with Basic Auth username 0 and password = session token.",
-    "- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.",
-    "- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.",
-    "- Do not ask questions. Do not talk to the user. Do only the task.",
-    "",
-    "Task:",
-    input.prompt,
-    "",
-    "Tripletex API base URL:",
-    effectiveCredentials.baseUrl,
-    "",
-    "Tripletex session token:",
-    effectiveCredentials.sessionToken,
-    "",
-    "Run scripts directory:",
-    scriptsDir,
-  ];
+  let prompt = loadSolverPromptTemplate()
+    .replaceAll("{{SCRIPTS_DIR}}", scriptsDir)
+    .replace("{{TASK_PROMPT}}", input.prompt)
+    .replace("{{BASE_URL}}", effectiveCredentials.baseUrl)
+    .replace("{{SESSION_TOKEN}}", effectiveCredentials.sessionToken);
 
-  if (files.length === 0) {
-    return lines.join("\n");
+  if (files.length > 0) {
+    prompt += "\n\nAttachment paths:\n" + files.map((file) => file.path).join("\n");
   }
 
-  return [
-    ...lines,
-    "",
-    "Attachment paths:",
-    ...files.map((file) => file.path),
-  ].join("\n");
+  return prompt;
 }
 
 export function buildLaunchScript(
