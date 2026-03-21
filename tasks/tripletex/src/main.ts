@@ -2581,27 +2581,14 @@ async function continuePostRunProcessing(
       });
     });
     await Promise.allSettled([leaderboardPromise, submissionScorePromise]);
-    const scoreArtifacts = await resolveScoreAwareReflectionArtifacts(preparedRun);
-    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession, scoreArtifacts);
-    await writeFile(
-      join(preparedRun.runDir, "codex-score-reflection.status.json"),
-      JSON.stringify(
-        {
-          status: "skipped",
-          reason: "unified_into_primary_reflection",
-          reflection_summary_path: join(preparedRun.runDir, "codex-reflection.summary.md"),
-          created_at: nowIso(),
-        },
-        null,
-        2,
-      ),
-    );
+    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
+    const scoreReflectionResult = await maybeLaunchScoreReflectionRun(preparedRun, tracedSession ?? matchedSession);
     log("INFO", "Post-run processing completed", {
       requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tracedSessionId: (tracedSession ?? matchedSession)?.sessionMeta.id,
       reflectionStatus: reflectionResult.status,
-      scoreArtifactsReady: Boolean(scoreArtifacts),
+      scoreReflectionStatus: scoreReflectionResult.status,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

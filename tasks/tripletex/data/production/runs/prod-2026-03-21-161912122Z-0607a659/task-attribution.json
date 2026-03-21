@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-161912122Z-0607a659",
+  "request_id": "86b3dcd9",
+  "prompt_raw": "Nous avons découvert des erreurs dans le grand livre de janvier et février 2026. Vérifiez toutes les pièces et trouvez les 4 erreurs : une écriture sur le mauvais compte (compte 6540 utilisé au lieu de 6860, montant 4800 NOK), une pièce en double (compte 7100, montant 2000 NOK), une ligne de TVA manquante (compte 4500, montant HT 14500 NOK, TVA manquante sur compte 2710), et un montant incorrect (compte 7100, 21650 NOK comptabilisé au lieu de 17900 NOK). Corrigez toutes les erreurs avec des écritures correctives.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T16:22:33Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T16:19:12.255Z",
+  "after_captured_at": "2026-03-21T16:23:05.194Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "24",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T16:23:05.198Z"
+}

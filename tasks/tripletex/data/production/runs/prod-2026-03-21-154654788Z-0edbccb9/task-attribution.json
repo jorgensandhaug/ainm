@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-154654788Z-0edbccb9",
+  "request_id": "d3c9a7bb",
+  "prompt_raw": "Hemos descubierto errores en el libro mayor de enero y febrero de 2026. Revise todos los comprobantes y encuentre los 4 errores: un asiento en la cuenta incorrecta (cuenta 7300 usada en lugar de 7000, importe 4500 NOK), un comprobante duplicado (cuenta 6590, importe 3300 NOK), una línea de IVA faltante (cuenta 6500, importe sin IVA 24750 NOK falta IVA en cuenta 2710), y un importe incorrecto (cuenta 7100, 18800 NOK registrado en lugar de 8550 NOK). Corrija todos los errores con asientos correctivos.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T15:50:42Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T15:46:55.272Z",
+  "after_captured_at": "2026-03-21T15:51:12.784Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "24",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T15:51:12.787Z"
+}

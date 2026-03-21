@@ -1,0 +1,8 @@
+{
+  "status": "exited",
+  "provider": "claude",
+  "run_id": "prod-2026-03-21-154515160Z-ad990f44",
+  "request_id": "3d9d3720",
+  "recorded_at": "2026-03-21T15:46:09Z",
+  "exit_code": 0
+}

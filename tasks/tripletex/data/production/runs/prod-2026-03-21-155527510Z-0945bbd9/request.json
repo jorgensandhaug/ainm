@@ -1,0 +1,8 @@
+{
+  "prompt": "Führen Sie den vollständigen Projektzyklus für 'Cloud-Migration Eichenhof' (Eichenhof GmbH, Org.-Nr. 986645888) durch: 1) Das Projekt hat ein Budget von 253000 NOK. 2) Erfassen Sie Stunden: Hannah Weber (Projektleiter, hannah.weber@example.org) 34 Stunden und Marie Fischer (Berater, marie.fischer@example.org) 118 Stunden. 3) Erfassen Sie Lieferantenkosten von 47050 NOK von Silberberg GmbH (Org.-Nr. 823323948). 4) Erstellen Sie eine Kundenrechnung für das Projekt.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "0hPsgxjWKjFmkUAkBkzPBL1htOhfVavdvLNv2ppGtbo"
+  }
+}

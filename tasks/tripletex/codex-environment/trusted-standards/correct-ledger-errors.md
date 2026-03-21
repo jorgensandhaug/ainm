@@ -80,31 +80,42 @@ Use the last day of the error period (or today) as the voucher date.
 - if the counterpart posting had vatType=0 (no VAT on bank), omit vatType on the counterpart line
 
 #### Missing VAT
-##### Exact branch: prompt says the VAT line is missing on `2710`
-If the original voucher truly has **no** `2710` posting and the prompt amount is the expense amount **excluding VAT**, the correction is a direct VAT-line add:
+**CRITICAL**: NEVER use expense-account-plus-`vatType: { id: 1 }` as a VAT correction mechanism. The auto-generated 2710 amount from vatType=1 will not match what the scorer expects. The 2026-03-21 production run (task 24, Check 3) failed exactly because of this — the agent posted `6500 +6187.5 gross, vatType=1`, which auto-generated only `2710 +1237.5`, and the scorer rejected it.
+
+**Always use direct 2710 postings for VAT corrections.** Two sub-cases:
+
+##### Case A: No `2710` posting exists in the original voucher
+The full VAT is missing. Post `net_amount * 0.25` directly on 2710:
 ```
-{ row: N, account: { id: <vatAcctId> }, amountGross: <net_amount * 0.25>, amountGrossCurrency: <net_amount * 0.25>, description: "Korreksjon: manglende MVA" },
+{ row: N, account: { id: <vatAcctId_2710> }, amountGross: <net_amount * 0.25>, amountGrossCurrency: <net_amount * 0.25>, description: "Korreksjon: manglende MVA" },
 { row: N+1, account: { id: <counterpartAcctId> }, amountGross: -<net_amount * 0.25>, amountGrossCurrency: -<net_amount * 0.25>, supplier: { id: <supplierId> }, description: "Korreksjon: manglende MVA" },
 ```
-- example for prompt `6500`, `18350`, missing `2710`: add `2710 +4587.5` and counterpart `-4587.5`
+- example: prompt says `6500`, `18350 excl. VAT`, missing `2710` → add `2710 +4587.5` and counterpart `-4587.5`
+
+##### Case B: `2710` posting exists but VAT is too low (net was booked as gross)
+When `net_amount` (excl. VAT) was booked as gross (VAT-inclusive), the original 2710 is `net_amount - net_amount/1.25` which is too low. The correct VAT is `net_amount * 0.25`. Post the shortfall directly on 2710:
+```
+{ row: N, account: { id: <vatAcctId_2710> }, amountGross: <vat_shortfall>, amountGrossCurrency: <vat_shortfall>, description: "Korreksjon: manglende MVA" },
+{ row: N+1, account: { id: <expenseAcctId> }, amountGross: <expense_net_shortfall>, amountGrossCurrency: <expense_net_shortfall>, vatType: { id: 0 }, description: "Korreksjon: manglende MVA" },
+{ row: N+2, account: { id: <counterpartAcctId> }, amountGross: -<total_shortfall>, amountGrossCurrency: -<total_shortfall>, supplier: { id: <supplierId> }, description: "Korreksjon: manglende MVA" },
+```
+Where:
+- `correct_vat = net_amount * 0.25`
+- `vat_shortfall = correct_vat - existing_2710_amount`
+- `expense_net_shortfall = net_amount - existing_expense_net`
+- `total_shortfall = vat_shortfall + expense_net_shortfall`
+
+Example: prompt `6500`, `24750 excl. VAT`, original has 2710=4950, expense net=19800:
+- `correct_vat = 24750 * 0.25 = 6187.5`
+- `vat_shortfall = 6187.5 - 4950 = 1237.5`
+- `expense_net_shortfall = 24750 - 19800 = 4950`
+- `total_shortfall = 1237.5 + 4950 = 6187.5`
+- Post: `2710 +1237.5`, `6500 +4950 (vatType=0)`, `2400 -6187.5`
+
+**Common rules for both cases:**
 - if counterpart is account `2400`, include `supplier: { id: ... }`
-- do **not** use the expense-account-plus-`vatType` shortcut on this exact shape
-
-##### Other branch: VAT is present but too low because net was booked as gross
-When 14200 HT (net / excl. VAT) was booked as gross (VAT-inclusive) instead of net, the original entry has:
-- expense account: net=11360 (=14200/1.25), gross=14200, vatType=1
-- VAT (2710): 2840 (=14200-11360) — too low, should be 3550 (=14200*0.25)
-- counterpart: -14200 — too low, should be -17750 (=14200*1.25)
-
-The correction adds the difference (3550):
-```
-{ row: N, account: { id: <expenseAcctId> }, amountGross: 3550, amountGrossCurrency: 3550, vatType: { id: 1 }, description: "Korreksjon: manglende MVA" },
-{ row: N+1, account: { id: <counterpartAcctId> }, amountGross: -3550, amountGrossCurrency: -3550, supplier: { id: <supplierId> }, description: "Korreksjon: leverandørgjeld MVA" },
-```
-- Tripletex auto-computes: net=2840 on expense, VAT=710 on 2710, credit=-3550 on counterpart
-- after correction: expense net = 11360+2840 = 14200 ✓, VAT = 2840+710 = 3550 ✓, counterpart = -14200-3550 = -17750 ✓
-- the correction amount is ALWAYS `net_amount * 0.25` (= 14200*0.25 = 3550), regardless of the incorrect VAT already on the books
-- if counterpart is account 2400 (Leverandørgjeld), the `supplier: { id: ... }` field is REQUIRED — extract it from the original voucher posting
+- use `vatType: { id: 0 }` on any expense-account correction line to prevent auto-VAT generation
+- do NOT use `vatType: { id: 1 }` on any line — it creates auto-generated 2710 postings that confuse scoring
 
 #### Incorrect Amount
 ```
@@ -141,6 +152,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
 - if `POST /ledger/voucher` fails with `422 postings.vatType.id` saying an account is locked to mva-kode 0, re-submit with `vatType: { id: 0 }` on that account's lines — but this wastes a call; always copy vatType from the original posting to avoid this
 - if `PUT /ledger/voucher/{id}/:reverse` fails (e.g., voucher type not reversible), fall back to a manual corrective POST that reverses all lines
 
+## Script Robustness: Avoid Crash-Induced Wasted Calls
+- Every error detection (wrong account, duplicate, missing VAT, incorrect amount) MUST have null safety
+- After the detection loop, verify all 4 error variables are non-null before building correction lines
+- If any error is not found, log a clear error message and try alternative detection strategies BEFORE crashing
+- The duplicate detection cascade MUST be: description keyword → signature grouping → single-entry fallback → error
+- Production run 0607a659 crashed twice due to null `dupPosting`, wasting 4 of 7 total calls
+- The script should succeed on the FIRST execution attempt — every re-execution doubles the GET count
+
 ## OpenAPI / Sandbox Status
 - persistent sandbox verified 2026-03-21:
   - nested field expansion `account(id,number)` on voucher postings returns inline account data
@@ -167,4 +186,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - supplier.id correctly included for 2400 counterpart in missing VAT correction
   - counterpart account IDs (1920, 2400) all came from voucher response nested expansion — no second account lookup needed
   - **latent bug**: used `dateTo=2026-02-28` instead of `dateTo=2026-03-01`; succeeded only because all error vouchers were dated before Feb 28; `dateTo` is exclusive so Feb 28 vouchers would have been missed
+- production run 2026-03-21 (correct-ledger-errors, third run — 0607a659):
+  - errors: 6540→6860 (4800, vatType 1), dup 7100 (2000, vatType 0), missing VAT 4500 (14500 excl, had 2710 → "other branch"), wrong amount 7100 (21650→17900, vatType 0)
+  - **script crashed twice due to duplicate detection failure**, wasting 4 API calls (2 GET pairs)
+  - root cause: only ONE voucher had 7100/2000 (desc="Kontorrekvisita duplikat"); signature grouping requires 2+ matching entries to identify a duplicate, so it found nothing; `dupPosting` was null → TypeError
+  - fix: use description keyword "duplikat" as PRIMARY detector, with signature grouping and single-entry fallback as secondary/tertiary
+  - after fix: third execution succeeded with 3 calls (GET accounts + GET vouchers + POST correction), 0 errors
+  - total calls: 7 (2+2+3 across 3 script executions), 4 wasted from crashes
+  - all 4 corrections were correct: reclassification 6540→6860, duplicate reversal 7100/2000, missing VAT "other branch" 4500/14500 (+3625 gross with vatType 1, auto-generated 725 on 2710), wrong amount 7100 (-3750 with vatType 0)
+  - `dateTo=2026-03-01` was correctly used (exclusive, includes all of Feb)
+  - sandbox confirms: duplikat-labeled vouchers may be the ONLY entry on that account+amount (no original to pair with), so signature grouping alone is insufficient
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers

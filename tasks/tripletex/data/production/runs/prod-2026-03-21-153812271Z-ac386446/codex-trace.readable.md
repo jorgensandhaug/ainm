@@ -1,0 +1,1269 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 0cc65548-6e8e-4e7c-9e79-5a6394c878d4
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/0cc65548-6e8e-4e7c-9e79-5a6394c878d4.jsonl
+- completed: false
+- assistant_messages: 0
+- tool_calls: 17
+- tool_results: 17
+
+## 2026-03-21T15:38:14.231Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-153812271Z-ac386446/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Vi treng Kontorstoler fra denne kvitteringa bokfort pa avdeling Drift. Bruk rett utgiftskonto basert pa kjopet, og sorg for korrekt MVA-behandling.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+sneAfOlN6JPVDYw5-LQsm-q--xbcgBMs08jwFyD1B9s
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-153812271Z-ac386446/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+Attachment paths:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-153812271Z-ac386446/attachments/01-kvittering_nn_07.pdf
+
+## 2026-03-21T15:38:24.263Z tool_call
+tool: Read
+call_id: toolu_vrtx_012ZdigjEiWHt5yB2GDHXLqn
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md"
+}
+```
+
+## 2026-03-21T15:38:24.268Z tool_call
+tool: Read
+call_id: toolu_vrtx_016ZznXnADj4xkbDRSuxqaK9
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-153812271Z-ac386446/attachments/01-kvittering_nn_07.pdf"
+}
+```
+
+## 2026-03-21T15:38:24.275Z tool_result
+tool: Read
+call_id: toolu_vrtx_016ZznXnADj4xkbDRSuxqaK9
+
+```text
+PDF file read: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-153812271Z-ac386446/attachments/01-kvittering_nn_07.pdf (1.4KB)
+```
+
+## 2026-03-21T15:38:33.346Z tool_result
+tool: Read
+call_id: toolu_vrtx_012ZdigjEiWHt5yB2GDHXLqn
+
+```text
+File content (27703 tokens) exceeds maximum allowed tokens (25000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-21T15:38:49.182Z tool_call
+tool: Read
+call_id: toolu_vrtx_01NCoMKnjbrJwvU8tTsGB8Aj
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md",
+  "offset": 1,
+  "limit": 200
+}
+```
+
+## 2026-03-21T15:38:49.188Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01UutTguE6mgSGr2aGE8WFia
+
+```json
+{
+  "pattern": "trusted-standards/*.md",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-21T15:38:49.190Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01YbPG8oSP3s67S2hiiJiXTa
+
+```json
+{
+  "pattern": "task-playbooks/*.md",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-21T15:38:49.199Z tool_result
+tool: Read
+call_id: toolu_vrtx_01NCoMKnjbrJwvU8tTsGB8Aj
+
+```text
+     1→# Tripletex Task Agent Instructions
+     2→
+     3→## Mission
+     4→- Perform the exact requested side effects in Tripletex.
+     5→- Optimize for score, not explanation.
+     6→- Correctness first. Efficiency second.
+     7→- Task is complete only when final Tripletex state is correct.
+     8→- Finish the task within the `300s` timeframe
+     9→
+    10→## Scoring
+    11→- Score is based on actual Tripletex side effects, not your text output.
+    12→- Correctness is normalized field-by-field from the expected output.
+    13→- Efficiency bonus applies only at perfect correctness.
+    14→- Efficiency bonus depends on:
+    15→  - low API call count (Important)
+    16→  - few or zero `4xx` errors (Make sure you know the API calls will work before running)
+    17→- Avoid trial-and-error. Every unnecessary call and every `4xx` hurts. (Verify the correct API call flow before running, this is MEGA important, this is often where alot of errors pile up)
+    18→
+    19→## Operating Rules
+    20→- Work fully autonomously.
+    21→- Do not ask questions.
+    22→- Do not talk to the user.
+    23→- Do only the requested task. No extra work.
+    24→- Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
+    25→- Ignore generic repo-wide startup rituals such as `br list` during scored Tripletex runs unless the prompt explicitly asks for them.
+    26→- Assume a hard `300s` budget. Plan before calling APIs.
+    27→- Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
+    28→- The prompt provides a run-specific scripts directory.
+    29→- Put all API-interaction scripts only in that provided scripts directory.
+    30→- Do not place API-interaction scripts anywhere else.
+    31→
+    32→## Environment Facts
+    33→- Real submissions use a fresh Tripletex account.
+    34→- Sandbox testing may use a persistent account.
+    35→- Prompts may be in `nb`, `en`, `es`, `pt`, `nn`, `de`, or `fr`.
+    36→- Files or images may be provided. Read them from disk before acting.
+    37→- Extract exact facts from attachments: names, dates, amounts, identifiers, relationships, requested actions.
+    38→
+    39→## Credentials
+    40→The prompt provides:
+    41→- `Tripletex API base URL`
+    42→- `Tripletex session token`
+    43→- `Run scripts directory`
+    44→
+    45→Authentication:
+    46→- Use Basic Auth.
+    47→- Username: `0`
+    48→- Password: provided session token.
+    49→- Always call the provided base URL.
+    50→- If the provided base URL already includes `/v2`, do not join endpoint paths with a leading slash in a way that escapes back to the host root; `new URL('/customer', baseUrl)` can silently turn `.../v2` into `/customer` and waste a `404`.
+    51→- If the provided base URL ends at `/v2` without a trailing slash, `new URL('supplier', baseUrl)` can also drop the `/v2` segment; either append the slash first or build paths with safe string concatenation such as ``${baseUrl.replace(/\/+$/, "")}/supplier``.
+    52→- Never switch to any default Tripletex URL and never look up online ever.
+    53→- If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
+    54→- In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
+    55→- If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
+    56→- If the first attempted call returns `403` with body `{"error":"Invalid or expired token"}`, treat the run as blocked by unusable credentials; do not spend more calls on alternate endpoints or auth variations.
+    57→- Treat the proxy-specific `403` body `{"error":"Invalid or expired proxy token. Each submission receives a unique token - do not reuse tokens from previous submissions.","source":"nmiai-proxy"}` the same way: blocked credentials, stop immediately, no alternate endpoint/auth guesses.
+    58→
+    59→## API Reference Strategy
+    60→- Knowledge order:
+    61→  1. `./trusted-standards/`
+    62→  2. `./task-playbooks/`
+    63→  3. `./openapi.json`
+    64→- Trusted standards are stricter than playbooks.
+    65→- Trusted standards are the canonical lowest-call, lowest-error, pre-verified flows for the most common task shapes.
+    66→- If the task is an exact or near-exact match for a trusted standard, use that trusted standard first.
+    67→- For an exact trusted-standard match, do not spend time re-checking `./openapi.json`.
+    68→- For exact trusted-standard matches, the anti-`4xx` rule is satisfied by following the trusted standard itself.
+    69→- Only fall back to `./openapi.json` if:
+    70→  - no trusted standard matches
+    71→  - the prompt materially differs from the trusted standard
+    72→  - the trusted standard explicitly tells you to confirm a detail
+    73→  - a live API response contradicts the trusted standard
+    74→- Use the common endpoints below first.
+    75→- These are common endpoints, not the only possible endpoints.
+    76→- Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling, except for exact trusted-standard matches.
+    77→- Use `./openapi.json` as the full API reference.
+    78→- When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
+    79→- Do not guess endpoint shapes, field names, request payloads, or delete/update paths, always verify.
+    80→- For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
+    81→- Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
+    82→
+    83→## Trusted Standards
+    84→- Before acting, check whether the task matches a trusted standard in `./trusted-standards/`
+    85→- If it matches exactly, execute the trusted standard directly
+    86→- For exact trusted-standard matches, do not double-check or triple-check `./openapi.json`; doing so wastes time and hurts score
+    87→- Trusted standards are intended to be safer than ad hoc spec-reading for their exact task shape
+    88→- If a trusted standard is incomplete, wrong, or no longer optimal, fix it during post-run reflection
+    89→
+    90→| Task pattern | Trusted standard |
+    91→|---|---|
+    92→| Canonical common endpoints | `./trusted-standards/common-endpoints.md` |
+    93→| Create customer | `./trusted-standards/create-customer.md` |
+    94→| Create supplier | `./trusted-standards/create-supplier.md` |
+    95→| Create department | `./trusted-standards/create-department.md` |
+    96→| Create product | `./trusted-standards/create-product.md` |
+    97→| Create project | `./trusted-standards/create-project.md` |
+    98→| Create project activity with budget | `./trusted-standards/create-project-activity-with-budget.md` |
+    99→| Analyze expense increase and create internal projects | `./trusted-standards/analyze-expense-increase-create-internal-projects.md` |
+   100→| Onboard employee | `./trusted-standards/onboard-employee.md` |
+   101→| Set project fixed price and invoice partial payment | `./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md` |
+   102→| Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
+   103→| Register project lifecycle with budget, hours, cost, and invoice | `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
+   104→| Create employee | `./trusted-standards/create-employee.md` |
+   105→| Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
+   106→| Register receipt expense voucher | `./trusted-standards/register-receipt-expense-voucher.md` |
+   107→| Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
+   108→| Create customer invoice credit note | `./trusted-standards/create-customer-invoice-credit-note.md` |
+   109→| Create and send customer invoice | `./trusted-standards/create-and-send-customer-invoice.md` |
+   110→| Create order, invoice it, and register full payment | `./trusted-standards/create-order-invoice-and-register-payment.md` |
+   111→| Run employee payroll | `./trusted-standards/run-employee-payroll.md` |
+   112→| Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
+   113→| Register foreign-currency payment on customer invoice | `./trusted-standards/register-foreign-currency-customer-invoice-payment.md` |
+   114→| Book reminder fee, invoice it, and register partial payment on overdue invoice | `./trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md` |
+   115→| Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
+   116→| Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
+   117→| Register travel expense | `./trusted-standards/register-travel-expense.md` |
+   118→| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
+   119→
+   120→## Task Playbooks
+   121→- Before acting, check whether the task matches a playbook in `./task-playbooks/`
+   122→- If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks and previous faults for similar tasks
+   123→- Playbooks are secondary to trusted standards
+   124→- If the prompt is an exact playbook match, keep pre-write exploration narrow: read the playbook, confirm the exact endpoint operation and referenced schema in `./openapi.json`, then execute
+   125→
+   126→| Task pattern | Playbook |
+   127→|---|---|
+   128→| Create customer invoice | `./task-playbooks/create-customer-invoice.md` |
+   129→| Create customer invoice credit note | `./task-playbooks/create-customer-invoice-credit-note.md` |
+   130→| Create customer | `./task-playbooks/create-customer.md` |
+   131→| Create supplier | `./task-playbooks/create-supplier.md` |
+   132→| Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
+   133→| Create order, invoice it, and register full payment | `./task-playbooks/create-order-invoice-and-register-payment.md` |
+   134→| Create department | `./task-playbooks/create-department.md` |
+   135→| Create employee | `./task-playbooks/create-employee.md` |
+   136→| Onboard employee | `./task-playbooks/onboard-employee.md` |
+   137→| Create product | `./task-playbooks/create-product.md` |
+   138→| Create project | `./task-playbooks/create-project.md` |
+   139→| Analyze expense increase and create internal projects | `./task-playbooks/analyze-expense-increase-create-internal-projects.md` |
+   140→| Register project lifecycle with budget, hours, cost, and invoice | `./task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
+   141→| Register project hours and create project invoice | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
+   142→| Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
+   143→| Register receipt expense voucher | `./task-playbooks/register-receipt-expense-voucher.md` |
+   144→| Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
+   145→| Set project fixed price and invoice partial payment | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
+   146→| Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
+   147→| Register foreign-currency payment on customer invoice | `./task-playbooks/register-foreign-currency-customer-invoice-payment.md` |
+   148→| Book reminder fee, invoice it, and register partial payment on overdue invoice | `./task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md` |
+   149→| Reverse registered payment on customer invoice | `./task-playbooks/reverse-customer-invoice-payment.md` |
+   150→| Reconcile bank statement with open invoices | `./task-playbooks/reconcile-bank-statement-open-invoices.md` |
+   151→| Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
+   152→| Register travel expense | `./task-playbooks/register-travel-expense.md` |
+   153→| Simplified year-end closing (depreciation, prepaid reversal, tax) | `./task-playbooks/simplified-year-end-closing.md` |
+   154→| Month-end closing (accrual reversal, depreciation, salary accrual) | `./task-playbooks/month-end-closing.md` |
+   155→| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./task-playbooks/correct-ledger-errors.md` |
+   156→
+   157→## Common Endpoints
+   158→- Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
+   159→- `/customer` and `/customer/{id}` — customer create/search/read/update/delete
+   160→- `/company` and `/company/{id}` — company update/read
+   161→- `/department`, `/department/{id}`, and `/department/list` — department create/search/update/delete/batch-create
+   162→- `/employee`, `/employee/{id}`, `/employee/employment`, `/employee/employment/details`, and `/employee/employment/occupationCode` — employee create/search/update plus employment, employment-details, and occupation-code lookup
+   163→- `/division` and `/division/{id}` — division search/create/read/update/delete
+   164→- `/salary/settings/standardTime` and `/salary/settings/standardTime/byDate` — company standard-worktime create/search/effective-date lookup
+   165→- `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, and `/salary/payslip/{id}` — salary-type lookup, payroll transaction create/read/delete, and payslip search/read
+   166→- `/product` and `/product/{id}` — product create/search/update/delete
+   167→- `/project`, `/project/list`, and `/project/{id}` — project create/search/batch-create/update/delete
+   168→- `/project/projectActivity` — project-activity create
+   169→- `/project/orderline` and `/project/orderline/{id}` — project order-line create/search/read/update/delete
+   170→- `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
+   171→- `/invoice`, `/invoice/{id}`, `/invoice/{id}/:createCreditNote`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, and `/invoice/paymentType` — invoice create/search/read/full-credit-note/payment/send/payment-type lookup
+   172→- `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
+   173→- `/supplierInvoice` and `/supplierInvoice/{invoiceId}/:addPayment` — supplier-invoice search/read and supplier-invoice payment
+   174→- `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` — travel-expense create/search/update/delete plus child-line and lookup endpoints
+   175→- `/ledger/account`, `/ledger/account/list`, and `/ledger/account/{id}` — chart-of-accounts search/create/batch-create/update/delete
+   176→- `/ledger/accountingDimensionName`, `/ledger/accountingDimensionName/{id}`, and `/ledger/accountingDimensionName/search` — free-dimension name create/search/read/update/delete
+   177→- `/ledger/accountingDimensionValue`, `/ledger/accountingDimensionValue/{id}`, `/ledger/accountingDimensionValue/list`, and `/ledger/accountingDimensionValue/search` — free-dimension value create/search/read/update/delete/batch-update
+   178→- `/ledger/posting` and `/ledger/posting/openPost` — ledger postings search/read plus open customer/supplier postings lookup
+   179→- `/ledger/paymentTypeOut` — outgoing payment-type lookup for supplier-payment flows
+   180→- `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
+   181→- `/timesheet/entry`, `/timesheet/entry/{id}`, and `/timesheet/entry/list` — timesheet entry create/search/read/update/delete/batch-create/batch-update; `POST /timesheet/entry/list` accepts an array for multi-employee batch timesheet creation
+   182→- `/activity/>forTimeSheet` — resolve available timesheet activities for a project+employee+date
+   183→- `/balanceSheet` — balance sheet (saldobalanse) search for account balances over a date range
+   184→
+   185→## Response Conventions
+   186→- List responses are typically wrapped as `{"values": [...], "fullResultSize": N}`.
+   187→- Single-object responses are typically wrapped as `{"value": {...}}`.
+   188→- Some successful writes or deletes may return `204 No Content`.
+   189→- **Exception**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version, ... }] }` even though it creates a single voucher. Extract from `response.values[0]`, not `response.value`. This mismatch caused a 4-call recovery penalty in the 2026-03-21 production supplier-invoice run.
+   190→- **Critical**: always handle both `values` (list) and `value` (single object) response shapes in your generic response parser from the very first script write. Using `response.value` on a list endpoint (e.g., `GET /invoice`) returns `undefined` and crashes the script, wasting a retry API call. The correct generic parser: `if (json.values !== undefined) return json.values; if (json.value !== undefined) return json.value; return json;`
+   191→- Confirm exact response shape in `./openapi.json` before relying on it.
+   192→
+   193→## API Usage Rules
+   194→- Parse the full prompt before making any API calls.
+   195→- Identify:
+   196→  - requested action
+   197→  - target entities
+   198→  - required fields
+   199→  - dates
+   200→  - amounts
+```
+
+## 2026-03-21T15:38:49.202Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01UutTguE6mgSGr2aGE8WFia
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/README.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project-activity-with-budget.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/onboard-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md
+```
+
+## 2026-03-21T15:38:49.203Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01YbPG8oSP3s67S2hiiJiXTa
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/onboard-employee.md
+```
+
+## 2026-03-21T15:38:54.404Z tool_call
+tool: Read
+call_id: toolu_vrtx_018xAXexKuvvaWPXzBTNKUrb
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-receipt-expense-voucher.md"
+}
+```
+
+## 2026-03-21T15:38:54.413Z tool_result
+tool: Read
+call_id: toolu_vrtx_018xAXexKuvvaWPXzBTNKUrb
+
+```text
+     1→# Register Receipt Expense Voucher
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- register one new manual voucher from one attached receipt
+    10→- the prompt identifies one exact receipt line to book, one exact department name, and asks for the correct expense account and VAT treatment
+    11→- the receipt line is a business-lunch / external-representation meal such as `Forretningslunsj`
+    12→- the receipt already shows the purchase was paid by company card / business card
+    13→- the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
+    14→
+    15→## Do Not Use This Standard If
+    16→- the task scores a real supplier invoice or supplier object linkage
+    17→- the task needs travel-expense, salary, employee-expense, project, or customer linkage
+    18→- the task needs several receipt lines booked separately or split across several accounts
+    19→- the expense text does not clearly belong to the proven non-deductible representation branch
+    20→- the prompt explicitly gives another expense account or another VAT treatment
+    21→
+    22→## Standard Flow
+    23→1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
+    24→2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
+    25→3. `GET /ledger/account?number=7360,1920&fields=*`
+    26→4. `POST /ledger/voucher`
+    27→5. `POST /ledger/voucher/{voucherId}/attachment`
+    28→6. verify from the two write responses
+    29→7. stop
+    30→
+    31→## Payload Rules
+    32→- for receipt line text `Forretningslunsj`, use expense account `7360 Representasjon, ikke fradragsberettiget`
+    33→- do not use `7350` for this exact restaurant-style business-lunch receipt shape; 2026-03-21 production feedback on the no-attachment `7350` branch was `0/10`
+    34→- account `7360` is `vatLocked=true` with only VAT code `0`, so do not resolve `/ledger/vatType` and do not send an explicit `vatType`
+    35→- book the selected receipt line at gross amount only, repeated in:
+    36→  - `amount`
+    37→  - `amountCurrency`
+    38→  - `amountGross`
+    39→  - `amountGrossCurrency`
+    40→- use the selected line amount from the receipt, not the whole receipt total; for the verified `Forretningslunsj` receipt:
+    41→  - line amount = `13650`
+    42→  - whole receipt total = `14020`
+    43→  - whole receipt VAT = `3505`
+    44→  - the scored voucher line still uses only `13650` because the other receipt rows are not part of the task
+    45→- use the receipt date as voucher date; for the verified receipt, `2026-01-30`
+    46→- preserve the receipt line text exactly in voucher `description` and expense-posting `description`
+    47→- attach the department only on the expense posting, using exact `department.id`
+    48→- use existing bank account `1920` as the balancing line for this card-paid exact shape
+    49→- preserve the receipt itself with `POST /ledger/voucher/{voucherId}/attachment`; do not treat the attachment as optional on this exact receipt-backed task
+    50→- do not use `POST /ledger/voucher/importDocument` as the default attachment path for this shape
+    51→
+    52→## Reuse From Write Response
+    53→- from `POST /department` when used:
+    54→  - `value.id`
+    55→  - `value.name`
+    56→- from `GET /ledger/account?...`:
+    57→  - account ids for `7360` and `1920`
+    58→- from `POST /ledger/voucher`:
+    59→  - `value.id`
+    60→  - `value.version`
+    61→  - `value.number`
+    62→  - expense-posting `department.id`
+    63→  - expense-posting `account.id`
+    64→  - expense-posting `vatType.id`
+    65→- from `POST /ledger/voucher/{voucherId}/attachment`:
+    66→  - `value.id`
+    67→  - `value.attachment.id`
+    68→
+    69→## Verification
+    70→- `POST /ledger/voucher` should already prove:
+    71→  - voucher date
+    72→  - voucher description
+    73→  - expense account id `7360`
+    74→  - department id on the expense posting
+    75→  - gross amount `13650`
+    76→  - VAT code `0`
+    77→- `POST /ledger/voucher/{voucherId}/attachment` should then prove the same voucher now has `attachment.id`
+    78→- no follow-up `GET /ledger/voucher/{id}` is needed unless one of those fields is unexpectedly missing
+    79→
+    80→## Known Recovery Branches
+    81→- `GET /department?name=Drift...` is a containing search, not exact-match search; local filtering must require exact `department.name == "Drift"`
+    82→- if that containing search returns rows such as `Drift sandbox ...` but not exact `Drift`, and the prompt does not say the department already exists, create exact `Drift` once with `POST /department`
+    83→- do not try `department: { "name": "Drift" }` on the voucher posting as a lower-call shortcut; persistent sandbox on 2026-03-21 returned `201` but silently stored `department=null`
+    84→- do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}` for this receipt-backed voucher shape; persistent sandbox on 2026-03-21 returned `422` that `description` and `postings` are not editable for that imported voucher type
+    85→- do not use `account: { "number": 7360 }` or `account: { "number": 1920 }` in `POST /ledger/voucher`; ordinary number-only account refs are still not a trusted voucher shortcut
+    86→
+    87→## OpenAPI / Sandbox Status
+    88→- `/department`, `/ledger/account`, `/ledger/voucher`, `/ledger/voucher/{voucherId}/attachment`, and `/ledger/voucher/importDocument` verified in `./openapi.json`
+    89→- persistent sandbox re-verified on 2026-03-21:
+    90→  - `GET /ledger/account?number=1920,7350,7360&fields=*` returned `7350` and `7360` as zero-VAT representation accounts and showed `7360` as the non-deductible representation branch
+    91→  - `POST /ledger/voucher` with `department: { "name": "Drift" }` succeeded as voucher `608898503` but persisted `department=null`, so name-only department refs are not a safe lower-call shortcut
+    92→  - `GET /department?name=Drift&isInactive=false&fields=*` first returned only containing-match row `Drift sandbox 20260320-223143`, proving exact local filtering is required
+    93→  - one exact `POST /department` then created `Drift` with id `927069`
+    94→  - `POST /ledger/voucher/importDocument` created non-posted attachment-backed voucher `608898541`, but the next `PUT /ledger/voucher/608898541` failed `422` because `description` and `postings` are not editable for that imported voucher type
+    95→  - the successful exact-shape proof was:
+    96→    1. exact `Drift` department available as id `927069`
+    97→    2. `GET /ledger/account?number=1920,7360&fields=*`
+    98→    3. `POST /ledger/voucher` with expense posting on `7360`, balancing line on `1920`, amount `13650`, date `2026-01-30`, and department `927069`
+    99→    4. `POST /ledger/voucher/608898560/attachment`
+   100→  - that final proof returned voucher `608898560` with:
+   101→    - expense posting `account.id=424191174` (`7360`)
+   102→    - expense posting `department.id=927069`
+   103→    - expense posting `vatType.id=0`
+   104→    - gross amount `13650`
+   105→    - attachment id `1024214336`
+   106→
+```
+
+## 2026-03-21T15:41:29.596Z tool_call
+tool: Read
+call_id: toolu_vrtx_01TnDBfGXX9dCg5ggMU8pvTH
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md"
+}
+```
+
+## 2026-03-21T15:41:29.600Z tool_call
+tool: Grep
+call_id: toolu_vrtx_014KwUh6oHH5sveRsc3Grmig
+
+```json
+{
+  "pattern": "vatType|VatType|vat_type",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md",
+  "output_mode": "content"
+}
+```
+
+## 2026-03-21T15:41:29.609Z tool_result
+tool: Grep
+call_id: toolu_vrtx_014KwUh6oHH5sveRsc3Grmig
+
+```text
+181:  - if the prompt requires a non-standard or otherwise non-default exact VAT percentage, resolve a valid outgoing `vatType`
+182:  - if the requested exact VAT percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+184:  - for the exact fresh-account create-one-product shape with prompt-provided `name`, `number`, excluding-VAT price, and standard `25%` VAT wording, the canonical winning path is one `POST /product` with no explicit `vatType`
+185:  - on that exact shortcut, verify directly from the `POST /product` response that Tripletex returned a `vatType` and the computed `priceIncludingVatCurrency` reflects `25%`; the 2026-03-20 `Softwarelizenz` / `7986` / `24900` production run again confirmed that one-write path with `priceIncludingVatCurrency=31125` and `vatType.id=3`
+189:  - `POST /product` without `vatType` can silently inherit an account default in some sandbox accounts; the persistent sandbox still auto-filled `0%` VAT code `6` on 2026-03-20 and produced `priceIncludingVatCurrency == priceExcludingVatCurrency`, so do not use that as the trusted fast path when the prompt scores exact VAT outside the exact fresh-account standard-`25%` shortcut
+191:  - the same persistent sandbox still omitted `15%` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, exposed `id=31` only in the broader `/ledger/vatType?fields=*` catalog, and rejected `POST /product` with `vatType.id=31` as `422 Ugyldig mva-kode.`; if the filtered outgoing list omits the requested reduced rate, treat the task as blocked in that account
+194:  - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
+200:  - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
+283:  - the 2026-03-20 production German `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18h` / `950` run re-confirmed that once `/activity/>forTimeSheet` already returns `isChargeable=false`, adding `GET /project/hourlyRates` would be wasted; keep the 7-call downstream floor `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+363:  - for the exact existing-employee + existing-project + existing-activity project-hour-invoice shape, once `/activity/>forTimeSheet` already proved the activity is non-chargeable, the configured-account floor is still the optimistic downstream branch `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` after the timesheet write
+369:  - if the same row already proves project + customer + manager and `fixedprice=<prompt-fixed-price>`, skip `PUT /project` and go straight to `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` for `4` total calls
+370:  - that skip-`PUT /project` branch is now fully settled: there is still no safe `3`-call shortcut, because removing the initial `GET /project` removes the proof that the project state already matches, and removing `GET /ledger/vatType` risks the wrong VAT result on taxable accounts
+371:  - otherwise, if the project exists but still needs the fixed-price or manager update, use the `5`-call downstream path `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+373:  - a later same-day production run for `Fossekraft AS` / `907433498` / `Automatiseringsprosjekt` / `solveig.eide@example.org` / `430750` / `50%` confirmed that the `4`-call skip-`PUT` branch is also the true minimum on a taxable account: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, with invoice totals `amountExcludingVatCurrency=215375` and `amountCurrencyOutstanding=269218.75`
+403:  - sometimes outgoing `vatType`
+407:  - for exact existing-customer plus exact existing-product-number create-only invoice tasks, the lower-call default is customer read, exact-number product read, then invoice write; if the resolved products already return reusable `vatType.id`, either copy that id onto the line or omit explicit line `vatType` and inherit from the product
+408:  - that exact-number branch still stays lower-call even when the prompt text itself repeats a mixed VAT set such as `25%` / `15%` / `0%`; do not add `GET /ledger/vatType` by reflex when the task is only to create the invoice and the resolved products already expose reusable `vatType.id`
+409:  - for existing-product invoice creates where the prompt gives exact VAT rates, `GET /product?fields=*` may still leave `vatType` too sparse to prove the percentages
+410:  - that sparse `product.vatType` link is still enough for the 3-call exact-number path when the task is only to create the invoice, not to override the stored product VAT
+411:[Omitted long matching line]
+415:  - in that case, the winning create-only path is customer read, product read, one filtered outgoing `vatType` read, then invoice write
+421:  - if the first `POST /invoice` on an exact-number existing-product create-only path fails only on the missing-company-bank-account validation, repair `/ledger/account/{id}` and retry the exact same invoice payload once; do not re-read customer, products, or `/ledger/vatType`
+423:  - for simple direct `orders[].orderLines[]` invoice writes without a product, do not omit line `vatType` just to save the `GET /ledger/vatType` call when the prompt implies a taxable service
+425:  - hardcoding `vatType.id=3` is not the safe shortcut either; accounts that only expose VAT code `6` on `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` reject hardcoded `3` with `422 ... Ugyldig mva-kode.`
+437:  - for the exact fresh-account one-line direct-service prompt that only gives customer `name + organizationNumber` and does not explicitly say the customer already exists, the lower-call path is direct `POST /customer` with `invoiceSendMethod: "MANUAL"`, then one filtered outgoing `vatType` read, then `POST /invoice`; do not spend `GET /customer` first
+438:  - once that same customer already exists, the verified existing-customer branch is one decisive `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing `vatType` read, then the same `POST /invoice`
+443:  - for explicit no-VAT direct-line prompts, still send `orderLines[].vatType` from the filtered outgoing `0%` result; omission is not the trusted shortcut
+453:  - 2026-03-20 production re-confirmed the exact `Snøhetta AS` / `871844062` / `Webdesign` / `20100` shape with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`, and the invoice write returned `amountExcludingVatCurrency=20100` plus `amountCurrency=25125`
+454:  - 2026-03-20 persistent sandbox re-check on the same direct-service standard-VAT shape exposed only VAT code `6` (`0%`); omitting `vatType` created `amountCurrency=20100`, and hardcoded `vatType.id=3` still failed with `422 ... Ugyldig mva-kode.`
+575:  - for a deliverable multi-day per-diem travel-expense shape with explicit travel dates, add `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*`, send `travelDetails.departureFrom`, explicit cost `vatType`, and per-diem `rateType` plus `overnightAccommodation`, then `PUT /travelExpense/:deliver`
+684:  - `fields=*` on `/ledger/posting` returns nested objects (`account`, `vatType`, `voucher`) as **sparse link stubs** containing only `id` and `url` — `account.number` and `account.name` will be `undefined`
+686:  - for VAT data, add `vatType(*)`: `fields=*,account(*),vatType(*)`
+688:  - the same sparse-link behavior applies to `/ledger/voucher` postings: use `fields=*,postings(*,account(*),vatType(*))` to expand nested posting account data
+708:  - for exact ledger-error correction tasks with multiple error types (wrong account, duplicate, missing VAT, incorrect amount), the canonical low-call path is now `3` calls: `GET /ledger/account?number=<all-needed>&fields=id,number` → `GET /ledger/voucher?dateFrom=...&dateTo=...&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000` → one combined `POST /ledger/voucher?sendToLedger=true`
+711:  - for the exact missing-VAT branch where the original voucher has no `2710` posting and the prompt amount is excluding VAT, post the correction directly to `2710` and the original counterpart for `net * 0.25`; do not use the expense-account-plus-`vatType` shortcut on that shape
+712:  - persistent sandbox 2026-03-21 re-proof: combined correction voucher `608960780` succeeded, while the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` created only `2710 +917.5` and `6500 amount=3670`, so that shortcut is wrong for the true no-`2710` case
+```
+
+## 2026-03-21T15:41:31.263Z tool_result
+tool: Read
+call_id: toolu_vrtx_01TnDBfGXX9dCg5ggMU8pvTH
+
+```text
+<persisted-output>
+Output too large (85KB). Full output saved to: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/0cc65548-6e8e-4e7c-9e79-5a6394c878d4/tool-results/toolu_vrtx_01TnDBfGXX9dCg5ggMU8pvTH.txt
+
+Preview (first 2KB):
+     1→# Common Endpoints
+     2→
+     3→Verified against `./openapi.json`.
+     4→
+     5→Use this as the exact endpoint-shape reference for the most common Tripletex resources.
+     6→
+     7→## Customer
+     8→- `/customer`
+     9→  - `GET` search
+    10→  - `POST` create
+    11→- `/customer/{id}`
+    12→  - `GET` read
+    13→  - `PUT` update
+    14→  - `DELETE` delete
+    15→- Standard create prerequisite:
+    16→  - none
+    17→- Standard fast-path note:
+    18→  - for the exact one-customer create shape with prompt-provided `name`, `email`, Norwegian `organizationNumber`, and optionally one ordinary `postalAddress`, the canonical path is one `POST /customer`
+    19→  - no `GET /customer` pre-read and no `GET /customer/{id}` follow-up read are part of the trusted fast path
+    20→  - prompt prose language does not change that one-call branch; French-, German-, and Spanish-language customer-create prompts with ordinary Norwegian fields stay on the same `POST /customer` path
+    21→- Standard verification note:
+    22→  - `POST /customer` can return a sparse auto-generated `physicalAddress` link object even when the payload only sent `postalAddress`; verify the prompt-scored fields from `value` and do not add a follow-up read just for that link
+    23→  - when the prompt includes one ordinary mailing address, `value.postalAddress.addressLine1`, `value.postalAddress.postalCode`, and `value.postalAddress.city` can already prove the scored address fields
+    24→  - localized generic email labels such as `Correo` and `E-mail` still map to the same `email` payload field; they are not a reason to add `invoiceEmail`
+    25→
+    26→## Department
+    27→- `/department`
+    28→  - `GET` search
+    29→  - `POST` create one
+    30→- `/department/{id}`
+    31→  - `GET` read
+    32→  - `PUT` update
+    33→  - `DELETE` delete
+    34→- `/department/list`
+    35→  - `POST` batch create
+    36→- Standard create prerequisite:
+    37→  - none
+    38→- Standard verification note:
+...
+</persisted-output>
+```
+
+## 2026-03-21T15:41:40.300Z tool_call
+tool: Read
+call_id: toolu_vrtx_01XqRS3cuWohpfJ9dW1NPqZD
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-receipt-expense-voucher.md"
+}
+```
+
+## 2026-03-21T15:41:40.303Z tool_call
+tool: Grep
+call_id: toolu_vrtx_01WzapaBntCQLxYMuGeuZoQQ
+
+```json
+{
+  "pattern": "/ledger/vatType",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md",
+  "output_mode": "content",
+  "-n": true
+}
+```
+
+## 2026-03-21T15:41:40.308Z tool_result
+tool: Read
+call_id: toolu_vrtx_01XqRS3cuWohpfJ9dW1NPqZD
+
+```text
+     1→# Register Receipt Expense Voucher
+     2→
+     3→## Scope
+     4→
+     5→Use for tasks like:
+     6→- register one manual expense voucher from one attached receipt
+     7→- book only one specific receipt line, not the whole receipt
+     8→- put the expense in one named department
+     9→- preserve the receipt as a voucher attachment
+    10→- use the correct expense account and VAT treatment for a business-lunch / representation line such as `Forretningslunsj`
+    11→
+    12→Do not use for:
+    13→- supplier-invoice tasks
+    14→- travel-expense or employee-reimbursement tasks
+    15→- prompts that need several receipt lines booked separately
+    16→- prompts that already provide an exact different expense account or VAT code
+    17→- prompts that score supplier, employee, project, or customer linkage
+    18→
+    19→## Verified Findings
+    20→
+    21→Verified in persistent sandbox on 2026-03-21:
+    22→- `GET /department?name=Drift&isInactive=false&fields=*` is a containing search, not an exact-match search
+    23→- that same read returned only `Drift sandbox 20260320-223143` until an exact `Drift` department was created, so local exact filtering by `department.name` is mandatory
+    24→- `POST /department` with `{ "name": "Drift" }` succeeded directly and returned exact department id `927069`
+    25→- `GET /ledger/account?number=1920,7350,7360&fields=*` showed:
+    26→  - `7350 Representasjon, fradragsberettiget`
+    27→  - `7360 Representasjon, ikke fradragsberettiget`
+    28→  - both were `vatLocked=true` with VAT code `0`
+    29→- 2026-03-21 production scoring feedback on the no-attachment `7350` branch was `0/10`, so the deductible-representation assumption was wrong for this exact restaurant-style `Forretningslunsj` receipt task
+    30→- `POST /ledger/voucher` with expense account `7360`, balancing account `1920`, gross amount `13650`, and exact department id succeeded directly and returned:
+    31→  - voucher `608898560`
+    32→  - expense posting `vatType.id=0`
+    33→  - expense posting `department.id=927069`
+    34→- `POST /ledger/voucher/608898560/attachment` then attached the PDF receipt and returned `attachment.id=1024214336`
+    35→- `POST /ledger/voucher` with `department: { "name": "Drift" }` looked tempting as a 2-call shortcut after the account read, but the response for voucher `608898503` showed `department=null`; the name-only shortcut is not safe
+    36→- `POST /ledger/voucher/importDocument` created non-posted voucher `608898541` with the receipt attached in one call, but the next `PUT /ledger/voucher/608898541` failed `422` on immutable `description` and `postings`
+    37→- therefore the attachment-preserving winning branch is not import-first; it is manual voucher first, then attachment upload
+    38→- the receipt facts for the verified prompt were:
+    39→  - vendor `Olivia`
+    40→  - date `2026-01-30`
+    41→  - line `Forretningslunsj` at `13650.00 kr`
+    42→  - whole receipt total `14020.00 kr`
+    43→  - whole receipt VAT `3505.00 kr`
+    44→  - paid with `Bedriftskort`
+    45→- the scored voucher line still uses only `13650`, because the other receipt rows are outside the prompt
+    46→
+    47→## Minimal Safe Flow
+    48→
+    49→1. Confirm these operations in `./openapi.json`
+    50→   - `POST /department` or `GET /department`
+    51→   - `GET /ledger/account`
+    52→   - `POST /ledger/voucher`
+    53→   - `POST /ledger/voucher/{voucherId}/attachment`
+    54→2. Resolve the department
+    55→   - fresh-account-like prompt that only gives the target department name and does not say it already exists:
+    56→     - `POST /department`
+    57→   - persistent / retry / explicit-existing-department branch:
+    58→     - `GET /department?name=...&isInactive=false&fields=*`
+    59→     - exact-filter locally by `department.name`
+    60→3. Resolve the voucher accounts
+    61→   - `GET /ledger/account?number=7360,1920&fields=*`
+    62→4. Create the manual voucher
+    63→   - `POST /ledger/voucher`
+    64→5. Attach the receipt PDF to that voucher
+    65→   - `POST /ledger/voucher/{voucherId}/attachment`
+    66→6. Verify from the two write responses
+    67→7. Stop
+    68→
+    69→## Exact-Match Fast Path
+    70→
+    71→- For the exact prompt family:
+    72→  - one attached receipt
+    73→  - one selected business-lunch line like `Forretningslunsj`
+    74→  - one department name
+    75→  - paid by company card
+    76→  - correct expense account and VAT treatment requested
+    77→- the best path is:
+    78→  1. `POST /department` if the department is not explicitly stated as existing in a fresh-account-like run, otherwise one exact-name `GET /department?...`
+    79→  2. `GET /ledger/account?number=7360,1920&fields=*`
+    80→  3. `POST /ledger/voucher`
+    81→  4. `POST /ledger/voucher/{voucherId}/attachment`
+    82→- there is no trusted 3-call shortcut for the exact attachment-backed shape:
+    83→  - `department.name` on voucher postings is not reliable
+    84→  - `importDocument` creates an attachment-backed shell but not an editable voucher for this flow
+    85→  - number-only voucher account refs are still unsafe
+    86→
+    87→## Winning Payload Shape
+    88→
+    89→Voucher create:
+    90→
+    91→```json
+    92→{
+    93→  "date": "2026-01-30",
+    94→  "description": "Forretningslunsj",
+    95→  "voucherType": null,
+    96→  "postings": [
+    97→    {
+    98→      "row": 1,
+    99→      "date": "2026-01-30",
+   100→      "description": "Forretningslunsj",
+   101→      "account": { "id": 424191174 },
+   102→      "department": { "id": 927069 },
+   103→      "amount": 13650,
+   104→      "amountCurrency": 13650,
+   105→      "amountGross": 13650,
+   106→      "amountGrossCurrency": 13650
+   107→    },
+   108→    {
+   109→      "row": 2,
+   110→      "date": "2026-01-30",
+   111→      "description": "Forretningslunsj",
+   112→      "account": { "id": 424190862 },
+   113→      "amount": -13650,
+   114→      "amountCurrency": -13650,
+   115→      "amountGross": -13650,
+   116→      "amountGrossCurrency": -13650
+   117→    }
+   118→  ]
+   119→}
+   120→```
+   121→
+   122→Then upload the original receipt PDF to `/ledger/voucher/{voucherId}/attachment`.
+   123→
+   124→Replace the ids with the current account ids. The important shape is:
+   125→- account `7360` for the expense line
+   126→- exact `department.id`
+   127→- gross-only amounts repeated in both amount fields
+   128→- balancing line on `1920`
+   129→- separate attachment upload on the created voucher
+   130→
+   131→## Validation Traps
+   132→
+   133→- do not use `7350` for this exact receipt line; the 2026-03-21 production run scored `0/10` on that deductible-representation branch
+   134→- do not use the whole receipt total `14020`; the selected expense line is only `13650`
+   135→- do not add `/ledger/vatType`; account `7360` is already locked to VAT code `0`
+   136→- do not rely on `department: { "name": "Drift" }`; the voucher can be created while silently dropping the department
+   137→- do not trust `GET /department?name=Drift...` by itself; it can return containing matches such as `Drift sandbox ...`
+   138→- do not use `POST /ledger/voucher/importDocument` as the default create step when you still need to control postings or description
+   139→- do not assume the receipt attachment is optional on this task family
+   140→- do not use `account.number` instead of resolved account ids on `POST /ledger/voucher`
+   141→
+   142→## Verification Shape
+   143→
+   144→- `POST /ledger/voucher` should prove:
+   145→  - voucher date
+   146→  - description
+   147→  - expense account id
+   148→  - department id on the expense posting
+   149→  - gross amount
+   150→  - VAT code `0`
+   151→- `POST /ledger/voucher/{voucherId}/attachment` should prove:
+   152→  - same voucher id
+   153→  - `attachment.id`
+   154→- no follow-up `GET /ledger/voucher/{id}` is needed unless either write response is unexpectedly sparse
+   155→
+   156→## Attachment Rule
+   157→
+   158→- for receipt-backed manual-voucher tasks, preserve the source document on the final voucher
+   159→- the trusted branch is:
+   160→  - create the final voucher first
+   161→  - then upload the receipt with `POST /ledger/voucher/{voucherId}/attachment`
+   162→- do not swap that order to `importDocument -> PUT voucher`; that imported voucher type was not editable enough for this flow in persistent sandbox on 2026-03-21
+   163→
+```
+
+## 2026-03-21T15:41:40.310Z tool_result
+tool: Grep
+call_id: toolu_vrtx_01WzapaBntCQLxYMuGeuZoQQ
+
+```text
+182:  - if the requested exact VAT percentage is absent from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`, treat product create as blocked in that account
+191:  - the same persistent sandbox still omitted `15%` from `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, exposed `id=31` only in the broader `/ledger/vatType?fields=*` catalog, and rejected `POST /product` with `vatType.id=31` as `422 Ugyldig mva-kode.`; if the filtered outgoing list omits the requested reduced rate, treat the task as blocked in that account
+200:  - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
+283:  - the 2026-03-20 production German `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18h` / `950` run re-confirmed that once `/activity/>forTimeSheet` already returns `isChargeable=false`, adding `GET /project/hourlyRates` would be wasted; keep the 7-call downstream floor `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+363:  - for the exact existing-employee + existing-project + existing-activity project-hour-invoice shape, once `/activity/>forTimeSheet` already proved the activity is non-chargeable, the configured-account floor is still the optimistic downstream branch `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` after the timesheet write
+369:  - if the same row already proves project + customer + manager and `fixedprice=<prompt-fixed-price>`, skip `PUT /project` and go straight to `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` for `4` total calls
+370:  - that skip-`PUT /project` branch is now fully settled: there is still no safe `3`-call shortcut, because removing the initial `GET /project` removes the proof that the project state already matches, and removing `GET /ledger/vatType` risks the wrong VAT result on taxable accounts
+371:  - otherwise, if the project exists but still needs the fixed-price or manager update, use the `5`-call downstream path `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+373:  - a later same-day production run for `Fossekraft AS` / `907433498` / `Automatiseringsprosjekt` / `solveig.eide@example.org` / `430750` / `50%` confirmed that the `4`-call skip-`PUT` branch is also the true minimum on a taxable account: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, with invoice totals `amountExcludingVatCurrency=215375` and `amountCurrencyOutstanding=269218.75`
+408:  - that exact-number branch still stays lower-call even when the prompt text itself repeats a mixed VAT set such as `25%` / `15%` / `0%`; do not add `GET /ledger/vatType` by reflex when the task is only to create the invoice and the resolved products already expose reusable `vatType.id`
+411:[Omitted long matching line]
+421:  - if the first `POST /invoice` on an exact-number existing-product create-only path fails only on the missing-company-bank-account validation, repair `/ledger/account/{id}` and retry the exact same invoice payload once; do not re-read customer, products, or `/ledger/vatType`
+423:  - for simple direct `orders[].orderLines[]` invoice writes without a product, do not omit line `vatType` just to save the `GET /ledger/vatType` call when the prompt implies a taxable service
+425:  - hardcoding `vatType.id=3` is not the safe shortcut either; accounts that only expose VAT code `6` on `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` reject hardcoded `3` with `422 ... Ugyldig mva-kode.`
+453:  - 2026-03-20 production re-confirmed the exact `Snøhetta AS` / `871844062` / `Webdesign` / `20100` shape with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`, and the invoice write returned `amountExcludingVatCurrency=20100` plus `amountCurrency=25125`
+```
+
+## 2026-03-21T15:42:28.949Z tool_call
+tool: Grep
+call_id: toolu_vrtx_01GwGuetQuKrARtm9JKNFt6c
+
+```json
+{
+  "pattern": "/ledger/vatType",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "output_mode": "content",
+  "-n": true,
+  "head_limit": 20
+}
+```
+
+## 2026-03-21T15:42:28.950Z tool_call
+tool: Grep
+call_id: toolu_vrtx_01R62udThhYrQFbesVXUxAcQ
+
+```json
+{
+  "pattern": "\"typeOfVat\"",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "output_mode": "content",
+  "-n": true,
+  "head_limit": 15
+}
+```
+
+## 2026-03-21T15:42:28.950Z tool_call
+tool: Grep
+call_id: toolu_vrtx_01JveszVBaR7aZjxKFoNuXgH
+
+```json
+{
+  "pattern": "\"amountGross\"|\"amountGrossCurrency\"",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "output_mode": "content",
+  "-n": true,
+  "head_limit": 20
+}
+```
+
+## 2026-03-21T15:42:28.957Z tool_result
+tool: Grep
+call_id: toolu_vrtx_01GwGuetQuKrARtm9JKNFt6c
+
+```text
+15773:    "/ledger/vatType/createRelativeVatType" : {
+15821:    "/ledger/vatType/{id}" : {
+15862:    "/ledger/vatType" : {
+
+[Showing results with pagination = limit: 20, offset: 0]
+```
+
+## 2026-03-21T15:42:28.959Z tool_result
+tool: Grep
+call_id: toolu_vrtx_01R62udThhYrQFbesVXUxAcQ
+
+```text
+15882:          "name" : "typeOfVat",
+
+[Showing results with pagination = limit: 15, offset: 0]
+```
+
+## 2026-03-21T15:42:28.961Z tool_result
+tool: Grep
+call_id: toolu_vrtx_01JveszVBaR7aZjxKFoNuXgH
+
+```text
+44165:          "amountGross" : {
+44168:          "amountGrossCurrency" : {
+72234:          "amountGross" : {
+72238:          "amountGrossCurrency" : {
+72828:          "amountGross" : {
+72841:          "amountGrossCurrency" : {
+72909:          "amountGross" : {
+72922:          "amountGrossCurrency" : {
+
+[Showing results with pagination = limit: 20, offset: 0]
+```
+
+## 2026-03-21T15:42:31.907Z tool_call
+tool: Read
+call_id: toolu_vrtx_01Xz5eJnkrzk531neJBynXkG
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "offset": 15862,
+  "limit": 50
+}
+```
+
+## 2026-03-21T15:42:31.916Z tool_result
+tool: Read
+call_id: toolu_vrtx_01Xz5eJnkrzk531neJBynXkG
+
+```text
+ 15862→    "/ledger/vatType" : {
+ 15863→      "get" : {
+ 15864→        "tags" : [ "ledger/vatType" ],
+ 15865→        "summary" : "Find vat types corresponding with sent data.",
+ 15866→        "operationId" : "LedgerVatType_search",
+ 15867→        "parameters" : [ {
+ 15868→          "name" : "id",
+ 15869→          "in" : "query",
+ 15870→          "description" : "List of IDs",
+ 15871→          "schema" : {
+ 15872→            "type" : "string"
+ 15873→          }
+ 15874→        }, {
+ 15875→          "name" : "number",
+ 15876→          "in" : "query",
+ 15877→          "description" : "List of IDs",
+ 15878→          "schema" : {
+ 15879→            "type" : "string"
+ 15880→          }
+ 15881→        }, {
+ 15882→          "name" : "typeOfVat",
+ 15883→          "in" : "query",
+ 15884→          "description" : "Type of VAT",
+ 15885→          "schema" : {
+ 15886→            "type" : "string",
+ 15887→            "enum" : [ "OUTGOING", "INCOMING", "INCOMING_INVOICE", "PROJECT", "LEDGER" ]
+ 15888→          }
+ 15889→        }, {
+ 15890→          "name" : "vatDate",
+ 15891→          "in" : "query",
+ 15892→          "description" : "yyyy-MM-dd. Defaults to today. Note that this is only used in combination with typeOfVat-parameter. Only valid vatTypes on the given date are returned.",
+ 15893→          "schema" : {
+ 15894→            "type" : "string"
+ 15895→          }
+ 15896→        }, {
+ 15897→          "name" : "shouldIncludeSpecificationTypes",
+ 15898→          "in" : "query",
+ 15899→          "description" : "Equals",
+ 15900→          "schema" : {
+ 15901→            "type" : "boolean"
+ 15902→          }
+ 15903→        }, {
+ 15904→          "name" : "from",
+ 15905→          "in" : "query",
+ 15906→          "description" : "From index",
+ 15907→          "required" : false,
+ 15908→          "schema" : {
+ 15909→            "type" : "integer",
+ 15910→            "default" : "0"
+ 15911→          }
+```
+
+## 2026-03-21T15:42:39.352Z tool_call
+tool: Read
+call_id: toolu_vrtx_01EQBAUYDvKKPQNcczu3u445
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "offset": 72780,
+  "limit": 100
+}
+```
+
+## 2026-03-21T15:42:39.365Z tool_result
+tool: Read
+call_id: toolu_vrtx_01EQBAUYDvKKPQNcczu3u445
+
+```text
+ 72780→            "$ref" : "#/components/schemas/VatType"
+ 72781→          },
+ 72782→          "product" : {
+ 72783→            "$ref" : "#/components/schemas/Product"
+ 72784→          },
+ 72785→          "project" : {
+ 72786→            "$ref" : "#/components/schemas/Project"
+ 72787→          },
+ 72788→          "employee" : {
+ 72789→            "$ref" : "#/components/schemas/Employee"
+ 72790→          },
+ 72791→          "department" : {
+ 72792→            "$ref" : "#/components/schemas/Department"
+ 72793→          },
+ 72794→          "asset" : {
+ 72795→            "$ref" : "#/components/schemas/Asset"
+ 72796→          },
+ 72797→          "incomeDescription" : {
+ 72798→            "type" : "string"
+ 72799→          },
+ 72800→          "postingId" : {
+ 72801→            "type" : "integer",
+ 72802→            "format" : "int64"
+ 72803→          },
+ 72804→          "currency" : {
+ 72805→            "$ref" : "#/components/schemas/Currency"
+ 72806→          },
+ 72807→          "clientId" : {
+ 72808→            "type" : "string"
+ 72809→          },
+ 72810→          "amount" : {
+ 72811→            "type" : "number"
+ 72812→          },
+ 72813→          "quantity1" : {
+ 72814→            "type" : "number"
+ 72815→          },
+ 72816→          "productUnit1" : {
+ 72817→            "$ref" : "#/components/schemas/ProductUnit"
+ 72818→          },
+ 72819→          "quantity2" : {
+ 72820→            "type" : "number"
+ 72821→          },
+ 72822→          "productUnit2" : {
+ 72823→            "$ref" : "#/components/schemas/ProductUnit"
+ 72824→          },
+ 72825→          "date" : {
+ 72826→            "type" : "string"
+ 72827→          },
+ 72828→          "amountGross" : {
+ 72829→            "type" : "number"
+ 72830→          },
+ 72831→          "isVatClosed" : {
+ 72832→            "type" : "boolean",
+ 72833→            "description" : "Is vat code closed?",
+ 72834→            "readOnly" : true
+ 72835→          },
+ 72836→          "isAmountVatClosed" : {
+ 72837→            "type" : "boolean",
+ 72838→            "description" : "Is amount of this posting (for VAT purposes) changeable",
+ 72839→            "readOnly" : true
+ 72840→          },
+ 72841→          "amountGrossCurrency" : {
+ 72842→            "type" : "number"
+ 72843→          },
+ 72844→          "paymentTypeId" : {
+ 72845→            "type" : "integer",
+ 72846→            "format" : "int64"
+ 72847→          }
+ 72848→        },
+ 72849→        "description" : "Payment postings"
+ 72850→      },
+ 72851→      "IncomeVoucherPosting" : {
+ 72852→        "type" : "object",
+ 72853→        "properties" : {
+ 72854→          "account" : {
+ 72855→            "$ref" : "#/components/schemas/Account"
+ 72856→          },
+ 72857→          "customer" : {
+ 72858→            "$ref" : "#/components/schemas/Customer"
+ 72859→          },
+ 72860→          "vatType" : {
+ 72861→            "$ref" : "#/components/schemas/VatType"
+ 72862→          },
+ 72863→          "product" : {
+ 72864→            "$ref" : "#/components/schemas/Product"
+ 72865→          },
+ 72866→          "project" : {
+ 72867→            "$ref" : "#/components/schemas/Project"
+ 72868→          },
+ 72869→          "employee" : {
+ 72870→            "$ref" : "#/components/schemas/Employee"
+ 72871→          },
+ 72872→          "department" : {
+ 72873→            "$ref" : "#/components/schemas/Department"
+ 72874→          },
+ 72875→          "asset" : {
+ 72876→            "$ref" : "#/components/schemas/Asset"
+ 72877→          },
+ 72878→          "incomeDescription" : {
+ 72879→            "type" : "string"
+```
+
+## 2026-03-21T15:42:54.958Z tool_call
+tool: Grep
+call_id: toolu_vrtx_013zAnJXeUCFfGdm6hnBUqNy
+
+```json
+{
+  "pattern": "\"Posting\" : \\{",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "output_mode": "content",
+  "-n": true
+}
+```
+
+## 2026-03-21T15:42:54.964Z tool_result
+tool: Grep
+call_id: toolu_vrtx_013zAnJXeUCFfGdm6hnBUqNy
+
+```text
+44094:      "Posting" : {
+```
+
+## 2026-03-21T15:42:57.979Z tool_call
+tool: Read
+call_id: toolu_vrtx_01L6pSBN7ubEykW4DqUDFvkU
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/openapi.json",
+  "offset": 44094,
+  "limit": 100
+}
+```
+
+## 2026-03-21T15:42:57.994Z tool_result
+tool: Read
+call_id: toolu_vrtx_01L6pSBN7ubEykW4DqUDFvkU
+
+```text
+ 44094→      "Posting" : {
+ 44095→        "type" : "object",
+ 44096→        "properties" : {
+ 44097→          "id" : {
+ 44098→            "type" : "integer",
+ 44099→            "format" : "int64"
+ 44100→          },
+ 44101→          "version" : {
+ 44102→            "type" : "integer",
+ 44103→            "format" : "int32"
+ 44104→          },
+ 44105→          "changes" : {
+ 44106→            "type" : "array",
+ 44107→            "readOnly" : true,
+ 44108→            "items" : {
+ 44109→              "$ref" : "#/components/schemas/Change"
+ 44110→            }
+ 44111→          },
+ 44112→          "url" : {
+ 44113→            "type" : "string",
+ 44114→            "readOnly" : true
+ 44115→          },
+ 44116→          "voucher" : {
+ 44117→            "$ref" : "#/components/schemas/Voucher"
+ 44118→          },
+ 44119→          "date" : {
+ 44120→            "type" : "string"
+ 44121→          },
+ 44122→          "description" : {
+ 44123→            "type" : "string"
+ 44124→          },
+ 44125→          "account" : {
+ 44126→            "$ref" : "#/components/schemas/Account"
+ 44127→          },
+ 44128→          "amortizationAccount" : {
+ 44129→            "$ref" : "#/components/schemas/Account"
+ 44130→          },
+ 44131→          "amortizationStartDate" : {
+ 44132→            "type" : "string",
+ 44133→            "description" : "Amortization start date. AmortizationAccountId, amortizationStartDate and amortizationEndDate should be provided."
+ 44134→          },
+ 44135→          "amortizationEndDate" : {
+ 44136→            "type" : "string"
+ 44137→          },
+ 44138→          "customer" : {
+ 44139→            "$ref" : "#/components/schemas/Customer"
+ 44140→          },
+ 44141→          "supplier" : {
+ 44142→            "$ref" : "#/components/schemas/Supplier"
+ 44143→          },
+ 44144→          "employee" : {
+ 44145→            "$ref" : "#/components/schemas/Employee"
+ 44146→          },
+ 44147→          "project" : {
+ 44148→            "$ref" : "#/components/schemas/Project"
+ 44149→          },
+ 44150→          "product" : {
+ 44151→            "$ref" : "#/components/schemas/Product"
+ 44152→          },
+ 44153→          "department" : {
+ 44154→            "$ref" : "#/components/schemas/Department"
+ 44155→          },
+ 44156→          "vatType" : {
+ 44157→            "$ref" : "#/components/schemas/VatType"
+ 44158→          },
+ 44159→          "amount" : {
+ 44160→            "type" : "number"
+ 44161→          },
+ 44162→          "amountCurrency" : {
+ 44163→            "type" : "number"
+ 44164→          },
+ 44165→          "amountGross" : {
+ 44166→            "type" : "number"
+ 44167→          },
+ 44168→          "amountGrossCurrency" : {
+ 44169→            "type" : "number"
+ 44170→          },
+ 44171→          "currency" : {
+ 44172→            "$ref" : "#/components/schemas/Currency"
+ 44173→          },
+ 44174→          "closeGroup" : {
+ 44175→            "$ref" : "#/components/schemas/CloseGroup"
+ 44176→          },
+ 44177→          "invoiceNumber" : {
+ 44178→            "type" : "string"
+ 44179→          },
+ 44180→          "termOfPayment" : {
+ 44181→            "type" : "string"
+ 44182→          },
+ 44183→          "row" : {
+ 44184→            "minimum" : 0,
+ 44185→            "type" : "integer",
+ 44186→            "format" : "int32"
+ 44187→          },
+ 44188→          "type" : {
+ 44189→            "type" : "string",
+ 44190→            "readOnly" : true,
+ 44191→            "enum" : [ "INCOMING_PAYMENT", "INCOMING_PAYMENT_OPPOSITE", "INCOMING_INVOICE_CUSTOMER_POSTING", "INVOICE_EXPENSE", "OUTGOING_INVOICE_CUSTOMER_POSTING", "WAGE" ]
+ 44192→          },
+ 44193→          "externalRef" : {
+```

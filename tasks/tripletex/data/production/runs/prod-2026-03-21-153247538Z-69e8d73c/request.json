@@ -1,0 +1,8 @@
+{
+  "prompt": "Create an invoice for the customer Ridgepoint Ltd (org no. 970844708) with three product lines: Software License (3957) at 3650 NOK with 25% VAT, Maintenance (8149) at 11000 NOK with 15% VAT (food), and Web Design (8092) at 17700 NOK with 0% VAT (exempt).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "ednfKnO0T1YtUhc7IXWBoCV_K8jx4tl2beYRpTJWTdU"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-154515160Z-ad990f44",
+  "request_id": "3d9d3720",
+  "prompt_raw": "Die Gesamtkosten sind von Januar bis Februar 2026 deutlich gestiegen. Analysieren Sie das Hauptbuch und identifizieren Sie die drei Aufwandskonten mit dem größten Anstieg. Erstellen Sie für jedes der drei Konten ein internes Projekt mit dem Kontonamen. Erstellen Sie außerdem eine Aktivität für jedes Projekt.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T15:46:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T15:45:15.956Z",
+  "after_captured_at": "2026-03-21T15:46:40.909Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "28",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T15:46:40.910Z"
+}
