@@ -396,6 +396,53 @@
     - `jobs=6`
     - session `64264`
 
+### 2026-03-21T12:10:00Z
+
+- Re-checked current machine state before another new branch:
+  - load about `71.7 / 82.0 / 74.9` on `384` cores
+  - RAM about `1.2 TiB free`, `1.3 TiB available`
+  - still ample headroom for another moderate parallel experiment family
+- Other current notable jobs:
+  - `agent2` full-8 coeffbank variant
+  - several `agent6` summary-rate decoder probes
+  - several `agent7` `ffam_mode` policy/sample sweeps
+- New branch decision:
+  - stop only doing explicit round-expert mixtures
+  - implement a closer handoff Phase-6 model:
+    - `greybox_hazard_clusteredmanifold_v01`
+  - intended form:
+    - small discrete regime family
+    - within-family low-rank coordinate
+    - transcript-conditioned family weighting + family-specific coordinate regression
+  - this is directly targeting the suggested form:
+    - `beta_r ≈ beta_0 + B_{m_r} u_r`
+  - reason:
+    - more structured than `greybox_hazard_bayesfamily`
+    - less brittle than pure round-expert lookup
+    - closer to the handoff's requested discrete+continuous regime model
+- Integration / validation:
+  - added new model:
+    - `greybox_hazard_clusteredmanifold_v01`
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_hazard_clusteredmanifold.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `22 passed in 90.92s`
+- Initial official hard-slice probes launched:
+  - `agent5_clusteredmanifold_coverage_probe3_v01`
+    - policy `coverage`
+    - rounds `{36e581..., c5cdf..., f1dac...}`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `jobs=3`
+    - session `35007`
+  - `agent5_clusteredmanifold_explorationr3_probe3_v01`
+    - policy `exploration_r3`
+    - rounds `{36e581..., c5cdf..., f1dac...}`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `jobs=3`
+    - session `7062`
+
 ### 2026-03-21T11:32:00Z
 
 - Re-read handoff hypotheses again, especially:

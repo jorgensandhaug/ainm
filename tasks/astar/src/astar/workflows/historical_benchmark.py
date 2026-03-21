@@ -174,6 +174,7 @@ def run_historical_benchmark(
         "greybox_regime_knn",
         "greybox_hazard_lowrank",
         "greybox_hazard_phasefactored",
+        "greybox_hazard_clusteredmanifold",
         "greybox_hazard_bayesfamily",
         "greybox_hazard_bayesfamily_anchor35_scale10_v02",
         "greybox_hazard_bayesfamily_anchor35_scale30_v03",
