@@ -17,7 +17,7 @@
 - the errors are in supplier invoices or customer invoices that need credit notes (use the credit note standard instead)
 
 ## Standard Flow (3 calls — combined corrective voucher)
-1. `GET /ledger/account?number=<all-error-accounts>,<correction-target-accounts>&fields=id,number`
+1. `GET /ledger/account?number=<all-error-accounts>,<correction-target-accounts>&fields=id,number,vatType(id)`
 2. `GET /ledger/voucher?dateFrom=<period-start>&dateTo=<first-of-month-after-period-end>&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000` — dateTo is EXCLUSIVE, so for Jan-Feb use `dateTo=2026-03-01`
 3. `POST /ledger/voucher?sendToLedger=true` — single combined voucher with all correction lines
 4. verify from the write response
@@ -34,9 +34,11 @@
 
 ### Step 1: Account Lookup
 ```
-GET /ledger/account?number=<all-needed>&fields=id,number
+GET /ledger/account?number=<all-needed>&fields=id,number,vatType(id)
 ```
 Include ALL accounts mentioned in the prompt — both the erroneous accounts AND the correction target accounts (e.g., 6860 if the prompt says 6540 was used instead of 6860).
+
+Include `vatType(id)` to detect each account's default/locked vatType. This is critical for reclassification: if the wrong account and correct account have different vatType locks, the correction lines must use different vatTypes on each side (see Reclassification section).
 
 Pre-resolving all account IDs avoids a second GET later, since correction-target accounts (like 6860) typically don't appear in any existing posting.
 
@@ -66,12 +68,13 @@ Use the last day of the error period (or today) as the voucher date.
 #### Wrong Account (reclassification)
 ```
 { row: N, account: { id: <wrongAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: ompostering fra <wrong>" },
-{ row: N+1, account: { id: <correctAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: ompostering til <correct>" },
+{ row: N+1, account: { id: <correctAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, vatType: { id: <targetAcctVatTypeId> }, description: "Korreksjon: ompostering til <correct>" },
 ```
-- **copy the `vatType` from the original posting** — do NOT hardcode `vatType: { id: 1 }`
-- some accounts (e.g., 7100 Bilgodtgjørelse oppgavepliktig) are locked to vatType 0; using vatType 1 on them triggers a 422
-- if the original posting had vatType 0, use vatType 0 on both reclassification lines
-- if the original posting had vatType 1, Tripletex auto-generates matching VAT lines on 2710 that cancel each other out
+- **reversal line**: copy `vatType` from the original posting — this properly reverses the original VAT effect (including any auto-generated 2710 lines)
+- **target line**: use the target account's `vatType.id` from the Step 1 account lookup — this respects the target account's vatType lock
+- **CRITICAL: source and target accounts may have different vatType locks**. Sandbox-verified 2026-03-21: account 7140 (Reisekostnad) has default vatType 12, account 7100 (Bilgodtgjørelse oppgavepliktig) is locked to vatType 0. Using vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`). Using vatType 12 on 7140 and vatType 0 on 7100 → success.
+- if source and target accounts share the same vatType, using the same vatType on both is correct (auto-generated 2710 lines cancel out)
+- do NOT hardcode `vatType: { id: 1 }` — always read from original posting + account lookup
 - net effect: expense moves from wrong account to correct account
 
 #### Duplicate Reversal
@@ -153,7 +156,7 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
 ## Known Recovery Branches
 - if `GET /ledger/account` does not return a needed account number, the account does not exist; create it with `POST /ledger/account { number: <num>, name: "<name>" }` before the voucher write
 - if `POST /ledger/voucher` fails with `422 postings.supplier.id` on a 2400 posting, extract the supplier ID from the original voucher's 2400 posting using the nested expansion `supplier(id)`
-- if `POST /ledger/voucher` fails with `422 postings.vatType.id` saying an account is locked to mva-kode 0, re-submit with `vatType: { id: 0 }` on that account's lines — but this wastes a call; always copy vatType from the original posting to avoid this
+- if `POST /ledger/voucher` fails with `422 postings.vatType.id` saying an account is locked to mva-kode N, re-submit with `vatType: { id: N }` on that account's lines — but this wastes a call; always check each account's `vatType.id` from the Step 1 lookup to avoid this
 - if `PUT /ledger/voucher/{id}/:reverse` fails (e.g., voucher type not reversible), fall back to a manual corrective POST that reverses all lines
 
 ## Script Robustness: Avoid Crash-Induced Wasted Calls
@@ -221,5 +224,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - counterpart accounts: 1920 (bank) for reclassification/dup/wrong-amount, 2400 (supplier ID 108392217) for missing VAT
   - `dateTo=2026-03-01` correctly used (exclusive)
   - second consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct with Case B
+- production run 2026-03-21 (correct-ledger-errors, sixth run — 49332405):
+  - errors: 7140→7100 (7500), dup 6540 (1000), missing VAT 4500 (21500 excl), wrong amount 6860 (17250→6000)
+  - **run blocked**: proxy token expired/invalid (`403 Invalid or expired proxy token`), 1 wasted call
+  - script was correctly written following 3-call path: account lookup (with `vatType(id)` expansion), voucher discovery, combined correction POST
+  - script correctly handled all 4 correction types including Case A/B missing VAT branching, duplicate detection cascade, and vatType copying
+  - **new pitfall identified**: 7140 (vatType 12) → 7100 (locked to vatType 0) reclassification requires different vatTypes on each side; blindly copying orignal vatType to target → 422
+  - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's default/locked vatType; use this for target-side vatType in reclassification
+  - the 3-call minimum remains proven; adding `vatType(id)` to account lookup adds no extra calls
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
 - sandbox verified 2026-03-21: `account: { number: ... }` in POST /ledger/voucher body does NOT work — Tripletex requires `account: { id: ... }`; `account: { number: 6300, name: "Leie lokale" }` → 422 (`Feltet må fylles ut`); this confirms **3 calls is the proven minimum** — the GET /ledger/account step cannot be eliminated
+- sandbox verified 2026-03-21: reclassification between accounts with different vatType locks — vatType 12 on 7140 (reversal) + vatType 0 on 7100 (target) succeeds; vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`); vatType 0 on both succeeds but creates incorrect accounting if original had vatType 12 (leaves residual balance on 7140)

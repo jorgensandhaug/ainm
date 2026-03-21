@@ -13,9 +13,10 @@ The prompt gives exact account numbers, amounts, and the nature of each error.
 
 ### Call 1: Resolve all needed account IDs
 ```
-GET /ledger/account?number=<all-prompt-accounts-and-target-accounts>&fields=id,number
+GET /ledger/account?number=<all-prompt-accounts-and-target-accounts>&fields=id,number,vatType(id)
 ```
 Include every account mentioned in the prompt, including correction targets that may not appear in the bad vouchers yet.
+Include `vatType(id)` to detect each account's default/locked vatType — needed for reclassification when source and target accounts have different vatType locks.
 
 ### Call 2: Discover vouchers with nested posting expansion
 ```
@@ -57,7 +58,8 @@ POST /ledger/voucher?sendToLedger=true
 - **Missing VAT: ALWAYS post directly on 2710** — NEVER use expense + `vatType: { id: 1 }`. The auto-generated 2710 amount from vatType=1 will not match what the scorer expects. Production runs confirmed this across multiple tasks.
   - **Case A (no `2710` exists)**: post full `net * 0.25` directly on 2710, counterpart for same amount.
   - **Case B (`2710` exists but too low)**: post 3 lines — `2710 +vat_shortfall`, expense `+expense_net_shortfall` with `vatType: { id: 0 }`, counterpart `-total_shortfall`. Where: `vat_shortfall = net*0.25 - existing_2710`, `expense_net_shortfall = net - existing_net`, `total_shortfall = vat_shortfall + expense_net_shortfall`. Production run 0607a659 used expense+vatType=1 for Case B and Check 3 failed.
-- Copy `vatType` from original postings on all other correction lines (wrong account, duplicate, incorrect amount). Do NOT hardcode vatType 1.
+- **Reclassification vatType**: use the original posting's vatType on the reversal line, and the target account's `vatType.id` (from Call 1 account lookup) on the target line. If source and target have different vatType locks, they MUST use different vatTypes — blindly copying the original's vatType to both causes 422. Sandbox-verified: 7140 (vatType 12) → 7100 (locked vatType 0) fails with vatType 12 on both.
+- Copy `vatType` from original postings on duplicate reversal and incorrect-amount correction lines. Do NOT hardcode vatType 1.
 - If any correction touches account `2400`, include `supplier: { id: ... }` from the original voucher.
 - Use the write response as default verification.
 
@@ -69,7 +71,7 @@ POST /ledger/voucher?sendToLedger=true
 5. **Duplicate detection cascade**: Use description keyword "duplikat" as PRIMARY detector, then signature grouping, then single-entry fallback. Do NOT rely solely on signature grouping — production run 0607a659 proved that the duplicate can be the ONLY entry on that account+amount (no original to pair with), causing 2 script crashes and 4 wasted calls.
 6. **NEVER use expense + vatType=1 for ANY missing VAT correction**: Whether Case A (no 2710) or Case B (2710 exists but too low), always post directly on 2710. The expense+vatType=1 approach creates auto-generated 2710 amounts that don't match scorer expectations. Production run 0607a659 Check 3 failed because of this.
 7. **Account 2400 requires supplier**: Postings on account 2400 (Leverandørgjeld) require `supplier: { id: ... }`. If the original error voucher used 2400 as contra, the correction voucher on 2400 also needs the supplier reference from the original posting.
-8. **vatType-locked accounts cause 422**: Some accounts are locked to a specific vatType (e.g., 7100 Bilgodtgjørelse oppgavepliktig is locked to vatType 0). Always copy the `vatType.id` from the original posting instead of hardcoding vatType 1. Production run 2026-03-21 wasted a call on this exact 422.
+8. **vatType-locked accounts cause 422**: Some accounts are locked to a specific vatType (e.g., 7100 is locked to vatType 0, 7140 defaults to vatType 12). For reclassification, use the original posting's vatType on the reversal line and the target account's `vatType.id` from the account lookup on the target line. Blindly copying one vatType to both sides → 422 if the accounts have different locks. Include `vatType(id)` in the `GET /ledger/account` fields to detect locks upfront (no extra call needed).
 9. **Do NOT make a second `GET /ledger/account` for counterpart IDs**: The voucher response's nested `account(id,number)` expansion already provides all counterpart account IDs. Only the initial `GET /ledger/account` is needed — for correction-target accounts not present in any voucher posting (e.g., the correct account in a reclassification).
 
 ## Sandbox Proof
@@ -108,3 +110,8 @@ POST /ledger/voucher?sendToLedger=true
   - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
   - second consecutive run to achieve 3 calls, 0 errors, all 4 corrections correct with Case B
   - sandbox confirmed `account: { number: ... }` does NOT work in POST — `account: { id: ... }` is required, proving 3 calls is the minimum
+- Sixth run (49332405): blocked by expired proxy token (403), 1 wasted call
+  - script was correctly written following proven 3-call path with all improvements from prior runs
+  - new pitfall identified: reclassification 7140→7100 requires different vatTypes (12 vs 0) on each side
+  - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's locked vatType at no extra cost
+  - sandbox verified: mixed vatType reclassification (vatType 12 on reversal, vatType 0 on target) succeeds; same vatType 12 on both → 422
