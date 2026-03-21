@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.active-strategy-selection.v1",
-  "selectionConfigId": "active-strategies-2026-03-21-task-01-02-03-04-05-07-10-12-15-16-17-18-real-a",
+  "selectionConfigId": "active-strategies-2026-03-21-task-14-real-a",
   "taskStrategies": {
     "07": "07.create-dimension-and-post-voucher.v1",
     "08": "08.order-then-invoice-send.v1",
@@ -19,6 +19,6 @@
     "13": "13.create-and-deliver-travel-expense.v1",
     "18": "18.reverse-payment.v1",
     "12": "12.repair-aware-payroll.v1",
-    "14": "14.not-implemented.v1"
+    "14": "14.set-fixed-price-milestone.v1"
   }
 }

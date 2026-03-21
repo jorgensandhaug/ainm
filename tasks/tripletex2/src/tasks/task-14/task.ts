@@ -89,7 +89,7 @@ export type SetProjectFixedPriceAndInvoiceMilestoneTaskUnderstandingResult = Tas
   typeof SET_PROJECT_FIXED_PRICE_AND_INVOICE_MILESTONE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<SetProjectFixedPriceAndInvoiceMilestoneTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/set-fixed-price-milestone");
   return {
     task,
     strategies: [strategy],
