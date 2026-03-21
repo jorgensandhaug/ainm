@@ -3823,6 +3823,25 @@
      - `uv run python -m py_compile src/astar/student/predictor/transcript_residual_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_transcript_residual_memory_historical_benchmark_model tests/test_teacher_student.py::test_transcript_residual_memory_blend_with_residual_shifts_mass tests/test_historical_benchmark.py::test_transcript_residual_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
    - validation result:
      - `3 passed`
+433. Git checkpoint created + pushed for item 432:
+   - commit:
+     - `689d01a1`
+   - message:
+     - `agent3: add transcript residual memory family`
+434. Launch state for item 432:
+   - machine headroom before launch:
+     - available memory about `2.0 TiB`
+   - corrected targeted-holdout gate sessions started:
+     - `agent3_tresid_v1_gate`
+     - `agent3_tresid_v2_gate`
+     - `agent3_tresid_v3_gate`
+     - `agent3_tresid_v4_gate`
+     - `agent3_tresid_v5_gate`
+     - `agent3_tresid_v6_gate`
+     - `agent3_tresid_v7_gate`
+     - `agent3_tresid_v8_gate`
+   - command family:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model transcript_residual_memory_vX --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_transcript_residual_memory_vX_targeted_holdout_2rounds_corrected --jobs 1`
 
 
 ## Open Questions
