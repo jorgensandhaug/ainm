@@ -255,6 +255,18 @@
    - reason:
      - old repo-visible `v7` full score (`73.9505`) predates the synthetic-coverage/cache fix
      - need apples-to-apples `v7` vs `v8` under the corrected pipeline before declaring `v8` final winner
+33. Additional git checkpoint created + pushed:
+   - commit: `6dbe7e8`
+   - message: `query_residual: validate v8 full benchmark and add v10 probe`
+   - pushed to remote branch `origin/agent3`
+34. `query_residual_v7` full corrected control status at end of this turn:
+   - benchmark command was started but not completed in-turn
+   - partial progress preserved via fold checkpoints:
+     - `data/artifacts/models/query_residual_v7__policy=coverage__samples=1__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v7__policy=coverage__samples=1__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
+     - `data/artifacts/models/query_residual_v7__policy=coverage__samples=1__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
+   - run was intentionally stopped after caching `3/8` folds to avoid leaving an orphan long-running process at turn end
+   - rerunning the same benchmark command should reuse those completed fold checkpoints
 
 ## Open Questions
 
