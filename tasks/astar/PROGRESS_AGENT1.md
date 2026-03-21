@@ -1013,3 +1013,86 @@
   - `proxy5_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
   - `proxy5_hazard_v4_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
   - `proxy5_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_seed0to1`
+
+### 2026-03-21 13:32 UTC: Block-Latent Rejection + Particle-Refined Posterior Mainline
+
+- resumed from pushed head:
+  - `8ddd477e`
+- canonical reread completed again this session:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent1.md`
+- machine check before deciding next branch:
+  - `13:20 UTC`: load about `83.8 / 56.0 / 49.1`
+  - memory used about `1.8 TiB`
+  - memory free about `918 GiB`
+  - many other agents active; do not widen top-level job count aggressively
+- in-flight block-latent `v6` proxy results:
+  - completed:
+    - `proxy5_hazard_v6_k5_b1_l16_m50_regime_probe_seed0to1`
+    - result: `1.7899 / 1.571099`
+    - runtime: `548.12s`
+  - interpretation:
+    - this is not a mild regression; current `v6` block-latent decoder collapses badly
+    - predicted mass is heavily distorted toward forest / dynamic classes and misses settlement support
+    - strong evidence the current `hazard_teacher_v4` block reconstruction is structurally broken for online prediction
+  - action:
+    - killed remaining `v6` proxy runs:
+      - `proxy5_hazard_v6_k5_b2_l16_m50_regime_probe_seed0to1`
+      - `proxy5_hazard_v6_k5_b2_l32_m70_regime_probe_seed0to1`
+    - conclusion:
+      - do not spend more sweep budget on `v6` as implemented
+- pivot chosen from handoff Axis F:
+  - move from more teacher-structure sweeps to `particle refinement on top of amortized posterior`
+  - rationale:
+    - current `regime_probe` / posterior policies still depend on a posterior inferred mostly from transcript summary regression + nearest neighbors
+    - handoff explicitly calls for particle refinement as the next student-posterior axis
+    - this is a real structural change, not another baseline sweep
+- implemented new family:
+  - new observation-likelihood refinement helpers in:
+    - `src/astar/student/posterior/deepset_student.py`
+  - new student:
+    - `ObservationSetParticleRefinedStudent`
+    - starts from the strong amortized+neighbor posterior
+    - then reweights particles by pseudo-likelihood of observed query patches under `teacher.terminal_tensor(...)`
+    - uses observed class-grid likelihood with floor clipping
+  - new predictor family:
+    - `src/astar/student/predictor/hazard_posterior_v7.py`
+    - base teacher: `HazardTeacherV2` (same regime-manifold family as strong `v4`)
+    - defaults intentionally centered on the broad-strong `v4` setting:
+      - `k=5`
+      - `rank=3`
+      - `ridge=32`
+      - `mix=70`
+      - observation refinement weight `obs=8`
+  - wiring updated:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/workflows/historical_benchmark.py`
+    - `tests/test_historical_benchmark.py`
+- focused validation:
+  - compile:
+    - `python3 -m compileall src/astar/student/posterior/deepset_student.py src/astar/student/predictor/hazard_posterior_v7.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - benchmark smoke:
+    - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+    - result: `20 passed in 99.13s`
+- machine check after validation:
+  - `13:31 UTC`: load about `58.2 / 78.9 / 71.9`
+  - memory free about `947 GiB`
+  - decision:
+    - safe to run a controlled `3`-job proxy sweep on `v7`
+- next immediate experiments:
+  - launch proxy-5 sweep on:
+    - `hazard_posterior_v7_k5_r3_l32_m70_q4`
+    - `hazard_posterior_v7_k5_r3_l32_m70_q8`
+    - `hazard_posterior_v7_k5_r3_l32_m70_q12`
+  - initial policy:
+    - `regime_probe_posterior_blend`
+  - reason:
+    - new posterior should help most where the policy can exploit posterior state conservatively
+- launched:
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q4_regime_probe_posterior_blend_seed0to1`
+    - session `67896`
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_posterior_blend_seed0to1`
+    - session `24596`
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q12_regime_probe_posterior_blend_seed0to1`
+    - session `24250`
