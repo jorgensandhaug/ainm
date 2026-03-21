@@ -130,7 +130,7 @@ Standard names for commonly missing accounts:
 - **Do NOT post zero-amount tax voucher**: If taxable result ≤ 0, skip the tax voucher entirely.
 - **Do NOT use `dateTo=YYYY-12-31`**: Balance sheet `dateTo` is exclusive. Use `dateTo=YYYY+1-01-01` to include all of December.
 
-## Production Verification (2026-03-21)
+## Production Verification (2026-03-21, run 1)
 - Task: 2025 year-end closing with 3 assets (Kontormaskiner 222900/10yr, Inventar 254250/8yr, IT-utstyr 207900/6yr), 78250 prepaid reversal (1700→6300), 22% tax (8700→2920)
 - Depreciation: 22290.00 + 31781.25 + 34650.00 = 88721.25
 - Balance sheet sum: -907054.87, preTaxProfit: 907054.87, adjusted: 740083.62, tax: 162818
@@ -138,6 +138,17 @@ Standard names for commonly missing accounts:
 - 0 errors, all calls succeeded on first attempt
 - Missing accounts: 1209, 8700 (as expected)
 - Existing accounts: 1700, 2920, 6010, 6300
+
+## Production Verification (2026-03-21, run 2 — Portuguese prompt)
+- Task: 2025 year-end closing with 3 assets (IT-utstyr 470650/10yr acct 1210, Kjøretøy 146700/3yr acct 1230, Inventar 313500/4yr acct 1240), 63300 prepaid reversal (1700→6300), 22% tax (8700→2920)
+- Prompt language: Portuguese ("Realize o encerramento anual simplificado de 2025")
+- Depreciation: 47065.00 + 48900.00 + 78375.00 = 174340.00
+- Balance sheet sum: -2012876.72, preTaxProfit: 2012876.72, adjusted: 1775236.72, tax: 390552
+- Used 8 calls: 2 GET (parallel) + 1 POST (batch create 1209+8700) + 5 POST (vouchers)
+- 0 errors, all calls succeeded on first attempt
+- Missing accounts: 1209, 8700 (as expected)
+- Existing accounts: 1700, 2920, 6010, 6300
+- Note: asset accounts (1210, 1230, 1240) from prompt are informational only — all depreciation postings use 6010 (expense) and 1209 (accumulated)
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
@@ -151,3 +162,5 @@ Standard names for commonly missing accounts:
   - Account 8700 does NOT exist in fresh Tripletex (must be created)
   - `POST /ledger/voucher/list` returns 400 (Method Not Allowed) — batch voucher creation is not supported
   - Full flow: 2 GETs + 1 POST (create missing) + 5 POSTs (vouchers) = 8 calls with missing accounts
+  - `POST /ledger/voucher` with `account: { number: ..., name: ... }` (no id) returns `422 "Internt felt (account): Feltet må fylles ut."` — account IDs are always required, no shortcut via number+name
+  - `POST /ledger/account/list` with any already-existing account in the batch rejects the entire batch with `422 "Finnes fra før"` — cannot blindly batch-create without checking first
