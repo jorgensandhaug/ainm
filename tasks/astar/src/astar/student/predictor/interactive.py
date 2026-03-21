@@ -488,6 +488,29 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if normalized.startswith("hazard_posterior_v15"):
+        from astar.student.predictor.hazard_posterior_v15 import (
+            HazardPosteriorV15Predictor,
+            hazard_posterior_v15_spec_for_model_name,
+        )
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        spec = hazard_posterior_v15_spec_for_model_name(normalized)
+        if spec is None:
+            spec = (5, 3, 32.0, 0.7, 8.0)
+        k, rank, ridge, mean_w, obs_w = spec
+        predictor = HazardPosteriorV15Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else [],
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+            k_neighbors=k,
+            latent_rank=rank,
+            ridge_alpha=ridge,
+            predicted_particle_weight=mean_w,
+            observation_weight=obs_w,
+            model_name=normalized,
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     if normalized == "query_residual":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
