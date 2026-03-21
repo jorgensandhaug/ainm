@@ -285,34 +285,63 @@ def _settlement_summary_from_observations(
     float | None,
     float,
     float,
+    float,
+    float,
+    float,
+    float,
 ]:
     populations: list[float] = []
     foods: list[float] = []
     wealths: list[float] = []
     defenses: list[float] = []
     ports = 0
+    food_stress = 0
+    defense_stress = 0
+    distress = 0
+    large_population = 0
+    settlement_count = 0
     for observation in observations:
         for settlement in observation.settlements:
+            settlement_count += 1
             if settlement.population is not None:
                 populations.append(float(settlement.population))
+                if _normalize_population(settlement.population) >= 0.65:
+                    large_population += 1
             if settlement.food is not None:
                 foods.append(float(settlement.food))
+                if _normalize_food(settlement.food) <= 0.35:
+                    food_stress += 1
             if settlement.wealth is not None:
                 wealths.append(float(settlement.wealth))
             if settlement.defense is not None:
                 defenses.append(float(settlement.defense))
+                if _normalize_defense(settlement.defense) <= 0.35:
+                    defense_stress += 1
+            if (
+                (settlement.food is not None and _normalize_food(settlement.food) <= 0.35)
+                or (settlement.defense is not None and _normalize_defense(settlement.defense) <= 0.35)
+            ):
+                distress += 1
             if settlement.has_port:
                 ports += 1
     if not populations and not foods and not wealths and not defenses:
-        return (None, None, None, None, None, None, None, None, 0.0, 0.0)
+        return (None, None, None, None, None, None, None, None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     population_mean, population_std = _mean_std(populations)
     food_mean, food_std = _mean_std(foods)
     wealth_mean, wealth_std = _mean_std(wealths)
     defense_mean, defense_std = _mean_std(defenses)
-    settlement_count = float(
-        max(len(populations), len(foods), len(wealths), len(defenses)),
+    settlement_count_float = float(settlement_count)
+    port_share = float(ports) / settlement_count_float if settlement_count_float > 0.0 else 0.0
+    food_stress_share = (
+        float(food_stress) / settlement_count_float if settlement_count_float > 0.0 else 0.0
     )
-    port_share = float(ports) / settlement_count if settlement_count > 0.0 else 0.0
+    defense_stress_share = (
+        float(defense_stress) / settlement_count_float if settlement_count_float > 0.0 else 0.0
+    )
+    distress_share = float(distress) / settlement_count_float if settlement_count_float > 0.0 else 0.0
+    large_population_share = (
+        float(large_population) / settlement_count_float if settlement_count_float > 0.0 else 0.0
+    )
     return (
         population_mean,
         food_mean,
@@ -322,8 +351,12 @@ def _settlement_summary_from_observations(
         food_std,
         wealth_std,
         defense_std,
-        settlement_count,
+        settlement_count_float,
         port_share,
+        food_stress_share,
+        defense_stress_share,
+        distress_share,
+        large_population_share,
     )
 
 
@@ -343,6 +376,10 @@ class SeedTranscriptStats(BaseModel):
     std_defense: float | None = None
     observed_settlement_count: float = Field(default=0.0, ge=0.0)
     port_share: float = Field(default=0.0, ge=0.0, le=1.0)
+    food_stress_share: float = Field(default=0.0, ge=0.0, le=1.0)
+    defense_stress_share: float = Field(default=0.0, ge=0.0, le=1.0)
+    distress_share: float = Field(default=0.0, ge=0.0, le=1.0)
+    large_population_share: float = Field(default=0.0, ge=0.0, le=1.0)
     owner_count: float = Field(default=0.0, ge=0.0)
     largest_owner_share: float = Field(default=0.0, ge=0.0, le=1.0)
     owner_hhi: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -425,6 +462,10 @@ def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscri
         std_defense=None,
         observed_settlement_count=0.0,
         port_share=0.0,
+        food_stress_share=0.0,
+        defense_stress_share=0.0,
+        distress_share=0.0,
+        large_population_share=0.0,
         owner_count=0.0,
         largest_owner_share=0.0,
         owner_hhi=0.0,
@@ -455,6 +496,10 @@ def _stats_from_observations(
             std_defense,
             observed_settlement_count,
             port_share,
+            food_stress_share,
+            defense_stress_share,
+            distress_share,
+            large_population_share,
         ) = _settlement_summary_from_observations(
             seed_observations,
         )
@@ -473,6 +518,10 @@ def _stats_from_observations(
             std_defense=std_defense,
             observed_settlement_count=observed_settlement_count,
             port_share=port_share,
+            food_stress_share=food_stress_share,
+            defense_stress_share=defense_stress_share,
+            distress_share=distress_share,
+            large_population_share=large_population_share,
             owner_count=owner_count,
             largest_owner_share=largest_owner_share,
             owner_hhi=owner_hhi,
@@ -547,6 +596,10 @@ def _derive_transcript_features_from_stats(
     defense_std_values: list[float] = []
     settlement_count_values: list[float] = []
     port_share_values: list[float] = []
+    food_stress_share_values: list[float] = []
+    defense_stress_share_values: list[float] = []
+    distress_share_values: list[float] = []
+    large_population_share_values: list[float] = []
     owner_count_values: list[float] = []
     owner_share_values: list[float] = []
     owner_hhi_values: list[float] = []
@@ -595,6 +648,10 @@ def _derive_transcript_features_from_stats(
                 _normalize_defense(stats.std_defense),
                 _normalize_observed_settlement_count(stats.observed_settlement_count),
                 stats.port_share,
+                stats.food_stress_share,
+                stats.defense_stress_share,
+                stats.distress_share,
+                stats.large_population_share,
                 stats.owner_count,
                 stats.largest_owner_share,
                 stats.owner_hhi,
@@ -648,6 +705,10 @@ def _derive_transcript_features_from_stats(
                 _normalize_observed_settlement_count(stats.observed_settlement_count),
             )
             port_share_values.append(stats.port_share)
+            food_stress_share_values.append(stats.food_stress_share)
+            defense_stress_share_values.append(stats.defense_stress_share)
+            distress_share_values.append(stats.distress_share)
+            large_population_share_values.append(stats.large_population_share)
             owner_count_values.append(stats.owner_count)
             owner_share_values.append(stats.largest_owner_share)
             owner_hhi_values.append(stats.owner_hhi)
@@ -690,6 +751,10 @@ def _derive_transcript_features_from_stats(
             float(np.mean(defense_std_values)) if defense_std_values else 0.0,
             float(np.mean(settlement_count_values)) if settlement_count_values else 0.0,
             float(np.mean(port_share_values)) if port_share_values else 0.0,
+            float(np.mean(food_stress_share_values)) if food_stress_share_values else 0.0,
+            float(np.mean(defense_stress_share_values)) if defense_stress_share_values else 0.0,
+            float(np.mean(distress_share_values)) if distress_share_values else 0.0,
+            float(np.mean(large_population_share_values)) if large_population_share_values else 0.0,
             float(np.mean(owner_count_values)) if owner_count_values else 0.0,
             float(np.mean(owner_share_values)) if owner_share_values else 0.0,
             float(np.mean(owner_hhi_values)) if owner_hhi_values else 0.0,
@@ -749,6 +814,10 @@ def _global_summary_names() -> list[str]:
             "global_std_defense",
             "global_observed_settlement_count",
             "global_port_share",
+            "global_food_stress_share",
+            "global_defense_stress_share",
+            "global_distress_share",
+            "global_large_population_share",
             "global_owner_count",
             "global_largest_owner_share",
             "global_owner_hhi",
@@ -777,6 +846,10 @@ def _seed_summary_names() -> list[str]:
             "seed_std_defense",
             "seed_observed_settlement_count",
             "seed_port_share",
+            "seed_food_stress_share",
+            "seed_defense_stress_share",
+            "seed_distress_share",
+            "seed_large_population_share",
             "seed_owner_count",
             "seed_largest_owner_share",
             "seed_owner_hhi",
@@ -814,9 +887,13 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
     normalized = feature_variant.strip().lower()
     base_global_len = 57
     base_seed_len = 39
+    state_global_len = 63
+    state_seed_len = 45
     if normalized == "v1":
         return (base_global_len, base_seed_len)
     if normalized == "v2_state":
+        return (state_global_len, state_seed_len)
+    if normalized == "v3_state_tails":
         return (len(_global_summary_names()), len(_seed_summary_names()))
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
@@ -1057,7 +1134,7 @@ def _compose_design_tensor(
         regime_interaction,
         interaction,
     ]
-    master_feature_names = tuple(_full_feature_names("v2_state"))
+    master_feature_names = tuple(_full_feature_names("v3_state_tails"))
     master_design = np.concatenate(blocks, axis=-1)
     if selected_feature_names is None:
         return master_design
@@ -1476,9 +1553,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 _regime_input_vector(
                     derived,
                     feature_variant=(
-                        "v2_state"
-                        if len(self.feature_names) == len(_full_feature_names("v2_state"))
-                        else "v1"
+                        "v1"
+                        if len(self.feature_names) == len(_full_feature_names("v1"))
+                        else (
+                            "v2_state"
+                            if len(self.feature_names) == len(_full_feature_names("v2_state"))
+                            else "v3_state_tails"
+                        )
                     ),
                 )
                 @ self.regime_weights

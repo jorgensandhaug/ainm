@@ -60,6 +60,11 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         model_name="f1_student_query_residual_state_v01",
         feature_variant="v2_state",
     ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_state_tails_v01",),
+        model_name="f1_student_query_residual_state_tails_v01",
+        feature_variant="v3_state_tails",
+    ),
 )
 
 _QUERY_RESIDUAL_MODEL_SPECS_BY_NAME = {

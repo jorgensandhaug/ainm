@@ -1046,3 +1046,48 @@
   - better follow-up would be:
     - more targeted state features tied to collapse/conflict, not just generic moments
     - or a new diagnostic that measures whether a proposed feature block improves held-out regime / residual fit before full benchmark
+- Next targeted residual-feature branch:
+  - new hypothesis:
+    - generic state moments were too diffuse
+    - the remaining missing signal is more likely in distress tails tied to collapse/conflict:
+      - low food share
+      - low defense share
+      - distress share
+      - large-population share
+  - planned variant:
+    - `f1_student_query_residual_state_tails_v01`
+  - rationale:
+    - this keeps the new feature-variant infra
+    - but focuses the added features on the parts of settlement state that should matter most for ruin/collapse/conflict dynamics
+- Targeted state-tail result:
+  - model:
+    - `f1_student_query_residual_state_tails_v01`
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_state_tails_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_state_tails_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_state_tails_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_state_tails_v01.json`
+  - result:
+    - mean score `72.0642`
+    - mean weighted KL `0.109612`
+    - runtime `257.721s`
+    - wall `4:30.24`
+    - max RSS `13829860` kB (`~13.83 GB`)
+  - paired compare vs baseline:
+    - mean score delta `-1.0385`
+    - mean weighted KL delta `+0.004828`
+    - win rate `0.000`
+    - loss rate `1.000`
+    - CI95 `[-1.3182, -0.7967]`
+  - read:
+    - targeted collapse/conflict tail shares are worse than the generic state-moment variant
+    - so this exact tail block is rejected
+    - the feature-variant infrastructure remains useful, but not this chosen feature family
+- Updated feature-library read after the tail-share rejection:
+  - generic state moments:
+    - close but negative
+  - targeted distress tails:
+    - clearly negative
+  - this narrows the next best feature-library work:
+    - not more hand-chosen summary scalars
+    - more likely a validation diagnostic that can score a proposed feature block before full benchmark, or a more structural latent target change instead
