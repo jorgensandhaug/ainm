@@ -1,12 +1,12 @@
 {
   "schemaVersion": "tripletex2.solve-stage-result.v1",
-  "completedAt": "2026-03-21T13:00:16.345Z",
+  "completedAt": "2026-03-21T15:07:34.472Z",
   "createdAt": "2026-03-20T21:45:00.000Z",
   "runId": "replay-2026-03-20T21-45-00-000Z-0d0ea1f3",
   "taskId": "08",
   "runtimeStatus": "completed",
-  "artifactPath": "/tmp/tripletex2-stored-request-replay-KIJxRh/2026-03-20/run-replay-2026-03-20T21-45-00-000Z-0d0ea1f3.json",
+  "artifactPath": "/tmp/tripletex2-stored-request-replay-1NIlIM/2026-03-20/run-replay-2026-03-20T21-45-00-000Z-0d0ea1f3.json",
   "sidecarPaths": [
-    "/tmp/tripletex2-stored-request-replay-KIJxRh/2026-03-20/run-replay-2026-03-20T21-45-00-000Z-0d0ea1f3.trace.json"
+    "/tmp/tripletex2-stored-request-replay-1NIlIM/2026-03-20/run-replay-2026-03-20T21-45-00-000Z-0d0ea1f3.trace.json"
   ]
 }

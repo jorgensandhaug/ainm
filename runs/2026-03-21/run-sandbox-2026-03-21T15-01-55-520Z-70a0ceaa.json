@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "sandbox-2026-03-21T15-01-55-520Z-70a0ceaa",
+  "createdAt": "2026-03-21T15:01:55.520Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "08",
+    "taskName": "Create and send invoice",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "08.order-then-invoice-send.v1",
+    "strategyName": "Order then invoice+send",
+    "strategyPath": "src/tasks/task-08/strategies/order-then-invoice-send.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-test-selection",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "08"
+  },
+  "request": {
+    "requestFingerprint": "req:0d0ea1f309074a11fd2a167b38af46ef50cd8a89782b22b5fb1f0f59de06aee3",
+    "promptText": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "promptSummary": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "files": [],
+    "credentialSource": "fixture"
+  },
+  "input": {
+    "inputSchemaId": "08.v1",
+    "status": "resolved",
+    "source": "fixture",
+    "value": {
+      "customerName": "Nordhav AS",
+      "lineDescription": "Analyserapport",
+      "organizationNumber": "876520427",
+      "quantity": 1,
+      "unitPriceExcludingVatNok": 7850
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-21T15:01:55.520Z",
+    "completedAt": "2026-03-21T15:01:55.520Z",
+    "durationMs": 0,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 3,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "id,name,organizationNumber",
+          "organizationNumber": "876520427"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200,
+        "durationMs": 0
+      },
+      {
+        "index": 2,
+        "method": "GET",
+        "path": "/ledger/vatType",
+        "query": {
+          "fields": "id,percentage",
+          "typeOfVat": "OUTGOING",
+          "vatDate": "2026-03-21"
+        },
+        "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+        "responseSummary": "vatType list 1 item",
+        "status": 200,
+        "durationMs": 0
+      },
+      {
+        "index": 3,
+        "method": "POST",
+        "path": "/invoice",
+        "query": {
+          "sendToCustomer": true
+        },
+        "requestSummary": "create invoice by sendToCustomer with invoiceDate, invoiceDueDate, customer, orders",
+        "responseSummary": "invoiceId 9001",
+        "status": 200,
+        "durationMs": 0,
+        "entityIds": {
+          "invoiceId": 9001
+        }
+      }
+    ],
+    "result": {
+      "createdEntityIds": {
+        "customerId": 42,
+        "invoiceId": 9001
+      },
+      "notes": [],
+      "verification": {
+        "invoiceDate": "2026-03-21",
+        "invoiceNumber": 110045,
+        "sendToCustomerRequested": true
+      }
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-sandbox-2026-03-21T15-01-55-520Z-70a0ceaa.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-21T15:01:55.520Z",
+      "sha256": "sha256:6697ec18446097189c77473c19bc2d0ee6f3c25010df22234523acdbfd76d1f9",
+      "summary": "Sanitized trace for 08.order-then-invoice-send.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}
