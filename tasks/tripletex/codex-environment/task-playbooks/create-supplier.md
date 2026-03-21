@@ -30,6 +30,7 @@ Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr p
 - response includes `ledgerAccount.id` plus sparse `postalAddress`/`physicalAddress` links (no follow-up read needed)
 - invoice-looking emails (`faktura@...`) must be mirrored to both `email` and `invoiceEmail` for perfect score
 - production 2026-03-21: Spanish prompt `Sierra SL` scored 6/6 (perfect) with one POST and mirrored email
+- production 2026-03-21: French prompt `Rivière SARL` scored 6/6 (perfect, normalized_score=2) with one POST and mirrored email — 5th consecutive perfect score
 
 ## Minimal Flow
 
