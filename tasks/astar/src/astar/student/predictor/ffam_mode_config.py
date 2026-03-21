@@ -43,7 +43,7 @@ class FFAMModeConfig(BaseModel):
     cluster_count: int = Field(default=1, ge=1)
 
 
-FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v12"
+FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v17"
 
 
 FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {

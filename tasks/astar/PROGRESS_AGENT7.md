@@ -1888,3 +1888,47 @@ Framework should accept unique query-residual family variant names directly so b
   - current fifth-family champ = `ffam_mode_v12`, `samples_per_round=2`
   - current overall local champ = `ffam_mode_v12`, `samples_per_round=2`, policy `exploration_r3`
   - promoted family alias `ffam_mode -> ffam_mode_v12` in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py)
+
+### 2026-03-21T12:10Z approx
+
+- Promoted the best follow-up candidate from the summary-input probe to a full 8-round dev benchmark:
+  - [`ffam_mode_v17`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s2/result.json)
+  - mode `online_interactive`
+  - policy `exploration_r3`
+  - `samples_per_round=2`
+  - budget `50`
+  - episode seed `0`
+- Result:
+  - mean score `76.0892`
+  - mean weighted KL `0.093167`
+  - this is another new overall local best
+- Per-round means:
+  - round `7`: `63.6517`
+  - round `1`: `81.0459`
+  - round `2`: `83.7354`
+  - round `4`: `83.1773`
+  - round `6`: `72.7693`
+  - round `8`: `81.9849`
+  - round `3`: `62.8453`
+  - round `5`: `79.5036`
+- Compared against previous champ [`ffam_mode_v12`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v12_exploration_r3_s2/result.json):
+  - aggregate score delta `+0.2029`
+  - aggregate weighted-KL delta `-0.001188`
+  - saved paired artifact:
+    - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=ffam_mode_v12__candidate=ffam_mode_v17.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=ffam_mode_v12__candidate=ffam_mode_v17.json)
+  - win rate `0.675`
+  - loss rate `0.325`
+  - score delta CI95 `[-0.0235, 0.4792]`
+- Compared against old pre-FFAM overall champ [`query_residual_v14`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v14_exploration_r3/result.json):
+  - aggregate score delta `+1.3674`
+  - aggregate weighted-KL delta `-0.006654`
+  - saved paired artifact:
+    - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=ffam_mode_v17.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=ffam_mode_v17.json)
+- Interpretation:
+  - summary-input `v3` is the first fifth-family line to clearly win full 8-round dev overall
+  - the main extra lift from `v12 -> v17` comes from another large round-3 improvement
+  - round 8 gives back a little vs `v12`, but the aggregate still improves and KL improves too
+- Promotion:
+  - current fifth-family champ = `ffam_mode_v17`, `samples_per_round=2`
+  - current overall local champ = `ffam_mode_v17`, `samples_per_round=2`, policy `exploration_r3`
+  - promoted family alias `ffam_mode -> ffam_mode_v17` in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py)

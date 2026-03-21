@@ -22,8 +22,8 @@ from tests.test_historical_bucket_baseline import (
 from tests.test_history_datasets import _write_replays_for_all_seeds
 
 
-def test_ffam_mode_default_alias_promoted_to_v12() -> None:
-    assert resolve_ffam_mode_config("ffam_mode").model_name == "ffam_mode_v12"
+def test_ffam_mode_default_alias_promoted_to_v17() -> None:
+    assert resolve_ffam_mode_config("ffam_mode").model_name == "ffam_mode_v17"
 
 
 def test_run_historical_benchmark_writes_summaries(sample_paths: RepoPaths) -> None:
