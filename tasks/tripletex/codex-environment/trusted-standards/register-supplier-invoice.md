@@ -20,28 +20,31 @@ Do not treat `/incomingInvoice*` as the alternative public branch for this repo.
 - those endpoints are beta-only here and should be treated as unavailable in scored runs
 - the 2026-03-21 reflection re-check again returned `403 You do not have permission to access this feature.` on `/incomingInvoice/search`
 
-## Standard Flow
+## Standard Flow (25% VAT — most common)
 1. `POST /supplier`
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
-3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
-4. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice carrying the prompt values
-5. `PUT /ledger/voucher/{id}?sendToLedger=false` with a partial body containing only `version` and `postings`
+3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice carrying the prompt values
+4. `PUT /ledger/voucher/{id}?sendToLedger=false` with a partial body containing only `version` and `postings`; use `vatType: { id: 1 }` on the debit posting
+
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it a 5-call path.
 
 Use this create-first flow when the real task is fresh-account-like and the prompt gives only supplier business fields without saying the supplier already exists.
 
 If the prompt explicitly says the supplier already exists, or you are in a retry/persistent-account context where duplicate suppliers are plausible, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.
 
 ## Minimal-Call Claim
-- for the exact fresh-account-like shape where the prompt does not say the supplier already exists, the canonical path is `5` API calls
-- that `5`-call path is:
+- for the exact fresh-account-like shape with **25% incoming VAT**, the canonical path is `4` API calls
+- that `4`-call path is:
   1. `POST /supplier`
   2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
-  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
-  4. `POST /ledger/voucher/importDocument`
-  5. `PUT /ledger/voucher/{id}?sendToLedger=false`
-- for the common existing-supplier shape, the canonical path is also `5` calls, but with the first step replaced by `GET /supplier?...`
-- the old lookup-first zero-hit branch is `6` calls total and is now dominated for fresh-account-like prompts that do not say the supplier already exists
-- 2026-03-20 production for `Océan SARL` / `853705209` / `INV-2026-4914` / `56300` / `6500` / `25%` took that older zero-hit branch and therefore wasted one initial supplier lookup before creating the supplier anyway
+  3. `POST /ledger/voucher/importDocument`
+  4. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
+- `vatType.id=1` is the standard 25% incoming VAT type; it has been stable across every sandbox and production instance tested (2026-03-20 and 2026-03-21 proofs)
+- 2026-03-21 sandbox re-proof confirmed: `PUT` with hard-coded `vatType: { id: 1 }` (no prior `GET /ledger/vatType`) succeeds with correct VAT posting
+- for **non-25% VAT**, add a `GET /ledger/vatType` call, making the path `5` calls
+- for the common existing-supplier shape with 25% VAT, the canonical path is also `4` calls, but with the first step replaced by `GET /supplier?...`
+- the old `5`-call path with `GET /ledger/vatType` is still correct but no longer optimal for 25% VAT
+- 2026-03-20 production for `Océan SARL` / `853705209` / `INV-2026-4914` / `56300` / `6500` / `25%` took the older zero-hit branch and wasted one initial supplier lookup before creating the supplier anyway
 
 ## Why This Standard Exists
 - direct `POST /ledger/voucher` can create a balanced voucher but not a real `supplierInvoice` object
@@ -78,7 +81,8 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`
 - in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`
 - resolve the expense account by `number` and require `isApplicableForSupplierInvoice=true`
-- resolve incoming VAT on the actual invoice date; choose the requested percentage and prefer base code `number="1"` when present for ordinary `25%`
+- for **25% incoming VAT**: hard-code `vatType: { id: 1 }` — skip the `GET /ledger/vatType` call entirely; this is the standard base code `number="1"` and has been stable across all tested instances
+- for **non-25% VAT rates**: resolve incoming VAT with `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`; choose the requested percentage and prefer the base code
 - import a valid EHF/UBL invoice; do not use arbitrary XML or PDF as the trusted fast path
 - in the XML, carry the exact prompt-scored values for:
   - supplier name
@@ -272,3 +276,16 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - PUT postings correctly used `row: 1` and `row: 2`
   - VAT rounding: PDF net=41050, gross=51312 → Tripletex stored net=41049.6, VAT=10262.4 (gross/1.25 recalculation)
   - voucher `609017332`, supplier `108370545`
+- 2026-03-21 production run for `Luna SL` / `966941901` / `INV-2026-7337` / `48625` / `6340` / `25%`:
+  - used exactly 5 calls, 0 errors — correct execution
+  - PDF data fully extracted: address `Fjordveien 86, 3015 Drammen`, bank account `36204404121`
+  - supplier created with `postalAddress` and `bankAccountPresentation`
+  - but the `GET /ledger/vatType` call was unnecessary for 25% VAT — `vatType.id=1` could have been hard-coded
+  - voucher `609036118`, supplier `108376507`
+- 2026-03-21 persistent-sandbox proof of the **4-call path** (skipping `GET /ledger/vatType`):
+  - confirmed `PUT /ledger/voucher/{id}` with hard-coded `vatType: { id: 1 }` succeeds without prior vatType lookup
+  - also confirmed `account: { number: 6340 }` does NOT work (needs `account.name`), so `GET /ledger/account` cannot be skipped
+  - 4-call path: POST supplier → GET account → POST importDocument → PUT voucher with `vatType: { id: 1 }`
+  - supplier `108377138`, voucher `609037638`
+  - final postings: expense row amount=20000, amountGross=25000, vatType.id=1; supplier row -25000; system VAT row 5000
+  - this is now the new canonical minimum for 25% incoming VAT

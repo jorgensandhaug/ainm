@@ -15,18 +15,19 @@ Do not use for:
 
 ## Proven Best Path
 
-The current best public path is:
+The current best public path for **25% incoming VAT** (most common) is:
 1. create the supplier directly when the prompt gives supplier business fields but does not say the supplier already exists
 2. resolve expense-account id by account number
-3. resolve incoming VAT id on the actual invoice date
-4. import a valid EHF/UBL XML invoice with the prompt values
-5. partially update that imported voucher with the correct debit and supplier postings
+3. import a valid EHF/UBL XML invoice with the prompt values
+4. partially update that imported voucher with the correct debit and supplier postings, using hard-coded `vatType: { id: 1 }` for 25% incoming VAT
 
 This path is preferred because it creates both:
 - a real `supplierInvoice` object
 - the correct ledger postings with correct VAT split
 
-For the exact fresh-account-like shape, that is `5` calls total.
+For the exact fresh-account-like shape with 25% VAT, that is `4` calls total.
+
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it `5` calls total.
 
 If the prompt explicitly says the supplier already exists, or the run context is persistent/retry-like enough that duplicate suppliers are a real risk, switch the first step to `GET /supplier?organizationNumber=...&fields=*` and only create on zero hits.
 
@@ -73,27 +74,31 @@ If the prompt explicitly says the supplier already exists, or the run context is
 
 ## Exact Minimal Flow
 
-For the fresh-account-like shape where the prompt does not say the supplier already exists:
+### Fresh-account-like, 25% VAT (4 calls — optimal):
+1. `POST /supplier`
+2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`
+3. `POST /ledger/voucher/importDocument`
+4. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
+
+### Fresh-account-like, non-25% VAT (5 calls):
 1. `POST /supplier`
 2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`
 3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
 4. `POST /ledger/voucher/importDocument`
 5. `PUT /ledger/voucher/{id}?sendToLedger=false`
 
-For an explicit existing-supplier or retry/persistent-account shape:
+### Existing-supplier, 25% VAT (4 calls):
 1. `GET /supplier?organizationNumber=...&fields=*`
 2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`
-3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
-4. `POST /ledger/voucher/importDocument`
-5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+3. `POST /ledger/voucher/importDocument`
+4. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
 
-If that lookup-first branch returns zero hits:
+### Existing-supplier lookup returns zero hits, 25% VAT (5 calls):
 1. `GET /supplier?...`
 2. `POST /supplier`
 3. `GET /ledger/account?...`
-4. `GET /ledger/vatType?...`
-5. `POST /ledger/voucher/importDocument`
-6. `PUT /ledger/voucher/{id}?sendToLedger=false`
+4. `POST /ledger/voucher/importDocument`
+5. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
 
 Fresh-account-like re-proof:
 - 2026-03-20 persistent sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` gross / `6500` / `25%` completed in the lower-call `5`-call create-first branch
@@ -141,10 +146,10 @@ Why this matters:
 
 ## VAT Resolution Rules
 
-- resolve VAT through `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
+- for **25% incoming VAT**: hard-code `vatType: { id: 1 }` — no lookup needed; this has been stable across all tested Tripletex instances (2026-03-20 and 2026-03-21 proofs)
+- for **non-25% VAT rates**: resolve VAT through `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`
 - choose the prompt percentage
-- if several rows match the percentage, prefer the base code, typically `number="1"` for ordinary `25%` input VAT
-- cache the selection rule in docs, not the concrete `vatType.id`
+- if several rows match the percentage, prefer the base code
 - do not use `INCOMING_INVOICE`
 
 ## XML Rules
@@ -345,3 +350,5 @@ Proven outcome:
 - if XML import fails, fix the XML structure; do not pivot back to the old voucher-first path
 - always access the importDocument response via `values[0]`, never via `value`
 - always set explicit `row` values on PUT postings (1 for debit, 2 for supplier)
+- for 25% incoming VAT, hard-code `vatType: { id: 1 }` — do not waste a call on `GET /ledger/vatType`
+- `account: { number: ... }` does NOT work in PUT postings — the GET /ledger/account lookup is still required
