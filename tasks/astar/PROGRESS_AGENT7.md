@@ -2629,7 +2629,58 @@ Framework should accept unique query-residual family variant names directly so b
   - beta=4/16 → +1.3 points
   - beta=8/32 → +1.8 points
 - Combined: floor=0.001 + beta=8/32 → v128 = 85.24
-- v129-v132 launched for final push
+- v129-v132 full dev:
+  - **v132 (floor=0.0003 + beta=8/32) = 85.50** ← CHAMPION
+  - v129 = 85.43, v131 = 85.38, v130 = 85.18
+- v133-v136 (final push):
+  - v133 (floor=0.0002 + beta=8/32) = 85.51 (tied with v132)
+  - v134 (floor=0.0001) = 85.43 (floor too low starts hurting)
+  - Floor/beta sweep exhausted at ~85.50
+
+## Current Champion
+
+- model: `ffam_mode_v132`
+- policy: `exploration_r3`
+- `samples_per_round=2`
+- score: `85.4988`
+- per-round: R1:85.5 R2:89.7 R3:83.7 R4:93.4 R5:83.9 R6:85.7 R7:71.3 R8:90.9
+- total improvement from v44: **+7.74 points** (77.76 → 85.50)
+- key config:
+  - `projected_mode_dim=4`
+  - `operator_ridge_lambda=2.0` (was 8.0)
+  - `posterior_ridge_lambda=0.05` (was 8.0)
+  - `prior_blend=0.02` (was 0.10)
+  - `posterior_ood_prior_blend=0.10` (was 0.28)
+  - `temperature=1.0` (was 1.02)
+  - `probability_floor=0.0003` (was 0.01 - 33x reduction!)
+  - `beta_min=8.0` (was 2.0 - 4x increase)
+  - `beta_scale=32.0` (was 8.0 - 4x increase)
+
+## Key Discoveries This Session
+
+1. **Probability floor was catastrophically too high (33x)**: 0.01 → 0.0003 gave +5.6 points
+2. **Exact-cell beta was too low (4x)**: 2/8 → 8/32 gave +2.0 points (model predictions more trustworthy than observed cells)
+3. **Prior blend was 5x too high**: 0.10 → 0.02 gave +1.5 points
+4. **Both ridge lambdas were too high**: posterior 160x (8→0.05), operator 4x (8→2)
+5. **Mode dim q=4 > q=3** with residual MLP posterior
+6. **Temperature=1.0 > 1.02** (no softening needed)
+7. **Multi-seed ensemble neutral**: MLP trains stably, no variance to reduce
+8. **More cells_per_seed hurts**: 1024 is worse than 512
+9. **These effects compound multiplicatively**, especially floor and beta
+
+## Per-Round Improvement vs Starting v44
+
+| Round | v44 | v132 | Delta |
+|-------|-----|------|-------|
+| R3 | 64.1 | 83.7 | **+19.6** |
+| R8 | 80.3 | 90.9 | **+10.6** |
+| R6 | 78.7 | 85.7 | **+7.0** |
+| R4 | 87.0 | 93.4 | **+6.4** |
+| R7 | 65.4 | 71.3 | **+5.9** |
+| R2 | 84.9 | 89.7 | **+4.8** |
+| R5 | 79.6 | 83.9 | **+4.3** |
+| R1 | 82.0 | 85.5 | **+3.5** |
+| **Mean** | **77.76** | **85.50** | **+7.74** |
 
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 

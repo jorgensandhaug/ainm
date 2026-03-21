@@ -53,7 +53,7 @@ class FFAMModeConfig(BaseModel):
     cluster_count: int = Field(default=1, ge=1)
 
 
-FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v128"
+FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v132"
 
 
 FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
@@ -2767,6 +2767,47 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         probability_floor=0.0003,
         beta_min=8.0,
         beta_scale=32.0,
+    ),
+    # v133-v136: final floor/beta optimization
+    "ffam_mode_v133": FFAMModeConfig(
+        model_name="ffam_mode_v133",
+        projected_mode_dim=4, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection", posterior_metric_method="supervised", cluster_count=2,
+        posterior_metric_dim=10, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.02, posterior_ood_prior_blend=0.10, operator_ridge_lambda=2.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0002, beta_min=8.0, beta_scale=32.0,
+    ),
+    "ffam_mode_v134": FFAMModeConfig(
+        model_name="ffam_mode_v134",
+        projected_mode_dim=4, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection", posterior_metric_method="supervised", cluster_count=2,
+        posterior_metric_dim=10, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.02, posterior_ood_prior_blend=0.10, operator_ridge_lambda=2.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0001, beta_min=8.0, beta_scale=32.0,
+    ),
+    "ffam_mode_v135": FFAMModeConfig(
+        model_name="ffam_mode_v135",
+        projected_mode_dim=4, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection", posterior_metric_method="supervised", cluster_count=2,
+        posterior_metric_dim=10, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.02, posterior_ood_prior_blend=0.10, operator_ridge_lambda=2.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0003, beta_min=12.0, beta_scale=48.0,
+    ),
+    "ffam_mode_v136": FFAMModeConfig(
+        model_name="ffam_mode_v136",
+        projected_mode_dim=4, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_mode_projection", posterior_metric_method="supervised", cluster_count=2,
+        posterior_metric_dim=10, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.02, posterior_ood_prior_blend=0.10, operator_ridge_lambda=2.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0002, beta_min=12.0, beta_scale=48.0,
     ),
     "ffam_mode_v60": FFAMModeConfig(
         model_name="ffam_mode_v60",
