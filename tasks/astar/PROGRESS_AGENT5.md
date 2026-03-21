@@ -822,3 +822,69 @@
       - should exploit the small-round / many-transcript asymmetry directly
   - housekeeping:
     - once code is in, revisit `greybox_hybrid_lowrank_queryres` versioning/defaults so the registered lead reflects full-8 evidence rather than the narrower 3-round probe
+
+### 2026-03-21T10:20:00Z
+
+- Validation/throughput improvement completed:
+  - `run_historical_benchmark()` now supports explicit held-out-round parallelism via `max_workers`
+  - CLI exposes:
+    - `--jobs`
+    - `--max-workers`
+  - design choice:
+    - default stays serial when `max_workers=None`
+    - no silent benchmark-behavior change
+    - parallelism only affects throughput, not metric semantics
+- Verification:
+  - serial-vs-parallel historical benchmark equivalence test added
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `14 passed`
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_coefficient_knn.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py` passed
+- Branch state:
+  - local branch head now:
+    - `305bb922 [astar] parallelize historical benchmark rounds`
+
+- Implemented new experimental grey-box branch:
+  - `greybox_coefficient_knn_v01`
+- Intended idea:
+  - infer transcript-conditioned posterior directly over semimechanistic coefficient vectors
+  - decode through `HazardTeacher`
+  - keep same online-safe prediction path:
+    - historical bucket prior blend
+    - exact observed-cell correction
+    - probability floor
+- Important correction made during implementation:
+  - first draft tried to use full-map replay frames as pseudo transcripts
+  - rejected/fixed immediately because that would leak non-legal information
+  - final current implementation trains only from legal synthetic transcript episodes via `_load_training_rows()` / `load_synthetic_episode()`
+
+- Early screen for the coefficient-knn idea:
+  - no-code prototype using full 7-round training and trusted held-out `36e581...`
+  - tested:
+    - `k in {8,16,32}`
+    - `prior_blend in {0.35,0.45}`
+    - small coefficient-mean shrinkage variants
+  - best observed on `36e581...`:
+    - `k=16`
+    - `shrink=0.00`
+    - `prior_blend=0.45`
+    - score `58.877493`
+    - weighted KL `0.176808`
+- Interpretation:
+  - this is far below:
+    - `greybox_hazard_lowrank_v01` on same round (`64.6992`)
+    - current hybrid lead on same round (`66.4555` to `66.6487` depending on weight in trusted/full probes)
+  - even before finishing the other held-out rounds, this effectively rules `greybox_coefficient_knn_v01` out as a near-term lead candidate
+  - kept as an experimental branch only unless later evidence shows a much stronger variant
+
+- Resource-management action:
+  - terminated the longer coefficient-knn prototype after the negative first-round screen
+  - reason:
+    - not worth burning more compute on a branch already dominated by existing low-rank / hybrid leads
+
+- Current lead unchanged:
+  - best validated fixed hybrid remains:
+    - policy `coverage`
+    - low-rank weight `0.35`
+    - low-rank prior blend `0.55`
+  - next highest-value model work is still:
+    - better online adaptation / student posterior than fixed coefficient knn
+    - likely something closer to discrete+continuous regime inference or better hybrid gating that does not collapse on `36e581...`

@@ -18,6 +18,8 @@ from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
+from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
+from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
 from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
 from astar.student.predictor.greybox_regime import (
     GreyboxHazardLowRankPredictor,
@@ -283,6 +285,34 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized == "greybox_coefficient_knn":
+        predictor = GreyboxCoefficientKnnPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_hybrid_lowrank_coefficientknn":
+        predictor = GreyboxLowRankCoefficientHybridPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
     if normalized == "greybox_hazard_mixture":
         predictor = GreyboxHazardMixturePredictor.fit_from_workspace(
             paths,
@@ -478,6 +508,8 @@ def evaluate_model_on_round(
                 "greybox_regime_ridge",
                 "greybox_regime_knn",
                 "greybox_hazard_lowrank",
+                "greybox_coefficient_knn",
+                "greybox_hybrid_lowrank_coefficientknn",
                 "greybox_hazard_mixture",
                 "greybox_hybrid_lowrank_queryres",
                 "greybox_hybrid_lowrank_queryres_w45",

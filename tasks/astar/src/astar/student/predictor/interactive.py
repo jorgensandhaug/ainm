@@ -11,6 +11,8 @@ from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
+from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
+from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
 from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
 from astar.student.predictor.greybox_regime import (
     GreyboxHazardLowRankPredictor,
@@ -137,6 +139,30 @@ def build_online_predictor(
     if normalized == "greybox_hazard_lowrank":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_coefficient_knn":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxCoefficientKnnPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_hybrid_lowrank_coefficientknn":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxLowRankCoefficientHybridPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=(policy_name or "coverage").strip().lower(),
