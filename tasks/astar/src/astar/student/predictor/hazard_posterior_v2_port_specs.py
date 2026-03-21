@@ -151,6 +151,39 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         ridge_alpha=32.0,
         predicted_particle_weight=0.8,
     ),
+    # k=11 - even more neighbors
+    "f1_hazard_posterior_v2_k11_r3_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k11_r3_v01",
+        k_neighbors=11,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+    ),
+    # k=15 - maximum neighbors
+    "f1_hazard_posterior_v2_k15_r3_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k15_r3_v01",
+        k_neighbors=15,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+    ),
+    # k=9 m80 - combine best k with best particle weight
+    "f1_hazard_posterior_v2_k9_r3_m80_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k9_r3_m80_v01",
+        k_neighbors=9,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.8,
+    ),
+    # k=9 s8 - more synthetic samples
+    "f1_hazard_posterior_v2_k9_r3_s8_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k9_r3_s8_v01",
+        k_neighbors=9,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        samples_per_round=8,
+    ),
 }
 
 
