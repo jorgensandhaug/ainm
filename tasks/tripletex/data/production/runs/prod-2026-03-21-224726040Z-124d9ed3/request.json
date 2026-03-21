@@ -1,0 +1,8 @@
+{
+  "prompt": "Create and send an invoice to the customer Ironbridge Ltd (org no. 841254546) for 28500 NOK excluding VAT. The invoice is for System Development.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "P49D8Ev7Wp1xFsTW6_CSLG1cT-4dgLIGowNpmnIlmXQ"
+  }
+}

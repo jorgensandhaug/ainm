@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-232908610Z-8ed57511",
+  "request_id": "45e1ba71",
+  "prompt_raw": "El cliente Viento SL (org. nº 978503071) ha reclamado sobre la factura por \"Licencia de software\" (25450 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:29:55Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:29:08.712Z",
+  "after_captured_at": "2026-03-21T23:30:27.315Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T23:30:27.316Z"
+}

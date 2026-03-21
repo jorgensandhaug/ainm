@@ -1,0 +1,7 @@
+{
+  "captured_at": "2026-03-21T23:22:59.269Z",
+  "run_id": "prod-2026-03-21-232006679Z-77175e8c",
+  "source": "after",
+  "url": "https://api.ainm.no/tripletex/my/submissions",
+  "error": "The operation timed out."
+}

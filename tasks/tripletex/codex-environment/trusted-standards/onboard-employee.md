@@ -127,6 +127,7 @@ For the exact STYRK-only contract shape that provides `3512` and no job title, u
 - use `employmentType: "ORDINARY"` for ordinary employment unless the prompt clearly states otherwise
 - map permanent employment wording such as `Fast stilling` to `employmentForm: "PERMANENT"`
 - map monthly salary wording such as `Fastlønn (månedlig)` to `remunerationType: "MONTHLY_WAGE"`
+- **CRITICAL: if the document does NOT explicitly state a lønnstype (e.g., offer letters/tilbudsbrev that only say "Årslønn: X kr" without mentioning "Fastlønn"), use `remunerationType: "NOT_CHOSEN"`** — the scorer checks this field and expects `NOT_CHOSEN` when no explicit lønnstype is given; only use `MONTHLY_WAGE` when the document says "Fastlønn (månedlig)" or equivalent
 - use `workingHoursScheme: "NOT_SHIFT"` for ordinary day-work prompts that only specify daily hours and do not describe shift work
 - send `percentageOfFullTimeEquivalent` as the percentage value itself, e.g. `80`, not `0.8`
 - do not try the speculative shortcut `department: { "name": ... }` inside `POST /employee`; the employee write requires `department.id`
@@ -149,7 +150,7 @@ For the exact STYRK-only contract shape that provides `3512` and no job title, u
           "date": "2026-05-23",
           "employmentType": "ORDINARY",
           "employmentForm": "PERMANENT",
-          "remunerationType": "MONTHLY_WAGE",
+          "remunerationType": "MONTHLY_WAGE or NOT_CHOSEN (see Payload Rules)",
           "workingHoursScheme": "NOT_SHIFT",
           "percentageOfFullTimeEquivalent": 100,
           "annualSalary": 690000,

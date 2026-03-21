@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea un pedido para el cliente Río Verde SL (org. nº 937237243) con los productos Informe de análisis (5700) a 33200 NOK y Diseño web (2680) a 17200 NOK. Convierte el pedido en factura y registra el pago completo.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "avgQ-ehhF0miOBLv1KDB3j_RGJli5H4mNoEzfdtwFhc"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-225903427Z-91f3e3c9",
+  "request_id": "f003fb84",
+  "prompt_raw": "The customer Windmill Ltd (org no. 830362894) has an outstanding invoice for 32200 NOK excluding VAT for \"System Development\". Register full payment on this invoice.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:59:52Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:59:03.481Z",
+  "after_captured_at": "2026-03-21T23:00:23.059Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T23:00:23.060Z"
+}

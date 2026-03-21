@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-221849488Z-682739dd",
+  "request_id": "52745230",
+  "prompt_raw": "Der Kunde Nordlicht GmbH (Org.-Nr. 912435113) hat die Rechnung für \"Webdesign\" (40550 NOK ohne MwSt.) reklamiert. Erstellen Sie eine vollständige Gutschrift, die die gesamte Rechnung storniert.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:19:31Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:18:49.545Z",
+  "after_captured_at": "2026-03-21T22:20:01.833Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:20:01.834Z"
+}

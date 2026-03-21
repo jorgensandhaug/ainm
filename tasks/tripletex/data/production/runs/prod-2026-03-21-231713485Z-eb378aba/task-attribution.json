@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-231713485Z-eb378aba",
+  "request_id": "f2729cc9",
+  "prompt_raw": "Opprett prosjektet \"Analyse Sjøbris\" knytt til kunden Sjøbris AS (org.nr 883693329). Prosjektleiar er Steinar Berge (steinar.berge@example.org).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:17:48Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:17:13.539Z",
+  "after_captured_at": "2026-03-21T23:18:19.905Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "08",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T23:18:19.906Z"
+}

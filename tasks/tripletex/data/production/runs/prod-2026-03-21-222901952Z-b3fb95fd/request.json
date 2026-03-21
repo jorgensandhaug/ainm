@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie o cliente Floresta Lda com número de organização 893475656. O endereço é Kirkegata 132, 7010 Trondheim. E-mail: post@floresta.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "zm6yIqHVbQ_SM0W4YqPdgdBOsmOGdto7jUqkW5gM7ns"
+  }
+}

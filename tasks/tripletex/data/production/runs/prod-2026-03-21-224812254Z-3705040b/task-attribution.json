@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224812254Z-3705040b",
+  "request_id": "1635571f",
+  "prompt_raw": "Wir haben einen neuen Mitarbeiter namens Hannah Becker, geboren am 31. January 1996. Bitte legen Sie ihn als Mitarbeiter mit der E-Mail hannah.becker@example.org und dem Startdatum 15. July 2026 an.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:48:51Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:48:12.678Z",
+  "after_captured_at": "2026-03-21T22:49:25.723Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:49:25.727Z"
+}

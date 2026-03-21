@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer leverandøren Tindra AS med organisasjonsnummer 888286195. E-post: faktura@tindra.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "0l_sPFKO1tjnLzA_cA-aEKM8kpeP1or_R0p9Zuua9nM"
+  }
+}

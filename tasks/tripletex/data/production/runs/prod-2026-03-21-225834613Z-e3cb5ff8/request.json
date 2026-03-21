@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett ein fri rekneskapsdimensjon \"Region\" med verdiane \"Midt-Norge\" og \"Vestlandet\". Bokfør deretter eit bilag på konto 7140 for 43750 kr, knytt til dimensjonsverdien \"Midt-Norge\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "N3yWXtSor6O_V8YEeFhyLPuX1a_DuFkGlbmZSFfRpfY"
+  }
+}

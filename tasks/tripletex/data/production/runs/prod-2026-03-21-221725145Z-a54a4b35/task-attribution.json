@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-221725145Z-a54a4b35",
+  "request_id": "8940ba7d",
+  "prompt_raw": "Crea un pedido para el cliente Río Verde SL (org. nº 937237243) con los productos Informe de análisis (5700) a 33200 NOK y Diseño web (2680) a 17200 NOK. Convierte el pedido en factura y registra el pago completo.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:18:19Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:17:25.296Z",
+  "after_captured_at": "2026-03-21T22:18:51.160Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:18:51.163Z"
+}

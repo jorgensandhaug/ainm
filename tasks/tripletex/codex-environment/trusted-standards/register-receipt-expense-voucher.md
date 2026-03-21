@@ -131,8 +131,8 @@
 - expense account: `7140 Reisekostnad, ikke oppgavepliktig`
 - account `7140` default vatType is id=`12` (incoming 12%, lav sats) — the statutory Norwegian rate for passenger transport and accommodation
 - **CRITICAL**: must send explicit `vatType: { id: <from account response> }` (typically id=`12`, 12%) on the expense posting — do NOT hardcode vatType 1 (25%), do NOT omit vatType (defaults to code 0)
-- **CRITICAL**: if receipt prices are NET, compute `GROSS = line_amount × 1.12` (using 12% rate, NOT 25%)
-- set `amountGross` = `amountGrossCurrency` = GROSS (= line_amount × 1.12 for NET-priced receipts)
+- **CRITICAL**: if receipt prices are NET, compute `GROSS = line_amount × 1.12` (using 12% rate, NOT 25%). Round to 2 decimals: `Math.round(line_amount * 1.12 * 100) / 100` to avoid floating-point artifacts (e.g. 8750×1.12 = 9800.000000000002 → 9800)
+- set `amountGross` = `amountGrossCurrency` = GROSS (= line_amount × 1.12, rounded, for NET-priced receipts)
 - Tripletex auto-calculates:
   - `amount` = GROSS / 1.12 = original NET line amount
   - auto-generated 3rd posting on account `2712` (Inngående merverdiavgift, lav sats) for the VAT recovery amount (= GROSS - NET = NET × 0.12)
@@ -255,6 +255,8 @@
   - Tripletex correctly auto-computed: net = 9800 / 1.12 = 8750 = original NET line amount ✓
   - VAT recovery on account `2712` (lav sats), NOT `2710` (høy sats) ✓
 - **Comparison with 25% (wrong) approach**: same NET=8750 but GROSS=10937.50, auto-VAT=2187.50 on 2710. The 25% approach produces incorrect GROSS and posts VAT on the wrong account.
+- **Second sandbox confirmation** (voucher #519, id=`609193564`): amountGross=9800, vatType=12, amount=8750 (auto-net), auto-VAT=1050 on 2712. Confirms identical behavior.
+- **Floating-point note**: `8750 × 1.12` yields `9800.000000000002` in JavaScript. Round GROSS to 2 decimals: `Math.round(NET * 1.12 * 100) / 100` or `Number((NET * 1.12).toFixed(2))`. Tripletex accepts the float but the payload is cleaner rounded.
 - Previous 25% sandbox tests (vouchers #319, #320) are retained below for reference as the WRONG approach:
   - Voucher #320: amountGross=6062.50 (4850×1.25), vatType=1 (25%), auto-VAT on 2710 — WRONG rate
   - Voucher #319: amountGross=14187.50 (11350×1.25), vatType=1 (25%), auto-VAT on 2710 — WRONG rate

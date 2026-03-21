@@ -1,0 +1,15 @@
+{
+  "run_id": "prod-2026-03-21-232006679Z-77175e8c",
+  "request_id": "b6582055",
+  "prompt_raw": "Opprett produktet \"Datarådgjeving\" med produktnummer 4993. Prisen er 16250 kr eksklusiv MVA, og standard MVA-sats på 25 % skal nyttast.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:20:38Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:20:06.730Z",
+  "diff_entry_count": 0,
+  "inference_status": "no_change_detected",
+  "generated_at": "2026-03-21T23:23:06.233Z"
+}

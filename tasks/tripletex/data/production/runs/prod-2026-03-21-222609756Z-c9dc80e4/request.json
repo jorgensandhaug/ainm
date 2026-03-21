@@ -1,0 +1,8 @@
+{
+  "prompt": "Defina um preço fixo de 228150 NOK no projeto \"Melhoria de infraestrutura\" para Horizonte Lda (org. nº 804639764). O gestor de projeto é Sofia Ferreira (sofia.ferreira@example.org). Fature ao cliente 50 % do preço fixo como pagamento por etapa.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "SGt0GSaI5TcWBriN1W6twEvi_Qj-0xh5xsQTqF5vSM8"
+  }
+}

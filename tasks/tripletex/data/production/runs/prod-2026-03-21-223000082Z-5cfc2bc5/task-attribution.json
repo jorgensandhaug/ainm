@@ -1,0 +1,15 @@
+{
+  "run_id": "prod-2026-03-21-223000082Z-5cfc2bc5",
+  "request_id": "ee17e569",
+  "prompt_raw": "Run payroll for James Williams (james.williams@example.org) for this month. The base salary is 34950 NOK. Add a one-time bonus of 15450 NOK on top of the base salary. If the salary API is unavailable, you can use manual vouchers on salary accounts (5000-series) to record the payroll expense.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:30:05.385Z",
+  "after_captured_at": "2026-03-21T22:35:38.674Z",
+  "diff_entry_count": 9,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:35:38.675Z"
+}

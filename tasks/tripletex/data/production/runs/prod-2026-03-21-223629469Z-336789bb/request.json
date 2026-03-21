@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Prosjekttype\" mit den Werten \"Internt\" und \"Utvikling\". Buchen Sie dann einen Beleg auf Konto 6340 über 44500 NOK, verknüpft mit dem Dimensionswert \"Internt\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "8HfR7Ty2B99LWbu-FL6MANHEn056SzA3BdXGYXAPMFg"
+  }
+}

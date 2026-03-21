@@ -45,7 +45,7 @@ The task typically says "reverser forskuddsbetalte kostnader på konto 1700" wit
 Include the contra account in the initial account lookup.
 If the task explicitly names a different expense contra, use that instead.
 
-**RESOLVED (2026-03-21, run 6 — 18f7ba9d)**: Checks 4+5 failed in runs 1–5 because they used either no disposition or wrong accounts (8960/2050). Run 6 used **8800/2050** and scored **6/6 checks passed** (8/8 raw, 0 errors, 8 calls). This confirms 8800 "Årsresultat" is the correct disposition account. Run 6 was a loss scenario: preTaxProfit = -411169.73, tax = 0, postTaxResult = -411169.73, disposition = DR 2050 / CR 8800. Both profit and loss disposition with 8800/2050 are now production-confirmed.
+**UNRESOLVED — checks 4+5 fail in ALL 11 production runs.** The previous claim that run 6 (18f7ba9d) scored 6/6 was WRONG — that run had ambiguous attribution (candidate_count=2) and the leaderboard shows best_score=1.8 unchanged. ALL runs score 6/10 (checks 1-3+6 pass, checks 4+5 fail) regardless of whether disposition is posted or which accounts (8800/2050 vs 8960/2050) are used. The root cause of checks 4+5 is UNKNOWN. Still include 8800/2050 disposition as it's standard Norwegian accounting, but it has NOT been proven to fix any checks. Investigation needed: (a) whether asset-specific accounts from the prompt should be used as CR instead of 1209, (b) whether the prepaid contra mapping is wrong, (c) whether the tax calculation formula or balance sheet range is wrong.
 
 ## Account Existence
 
@@ -249,10 +249,9 @@ Sandbox-verified (2026-03-21): all three disposition variants (8800/2080, 8800/2
 - 0 errors, all calls succeeded on first attempt
 - **FIRST RUN with result disposition voucher** — used DR 8960 / CR 2050
 - Score: 6/10, checks 1-3 + 6 passed, checks 4-5 STILL FAILED
-- **KEY FINDING**: Adding disposition did NOT fix checks 4+5. Check 6 passed in ALL runs (with and without disposition), proving check 6 is NOT about disposition. Checks 4+5 are likely about disposition but with WRONG ACCOUNTS — 8960 should be 8800 "Årsresultat" for forenklet årsoppgjør
-- Cross-run analysis: all 8 year-end runs score identically (6/10, checks 4-5 fail). Next run must use 8800/2050 instead of 8960/2050
+- **KEY FINDING**: Adding disposition did NOT fix checks 4+5. Check 6 passes in ALL runs (with and without disposition). 8800/2050 was tried in runs 6+7 but both had ambiguous attribution; leaderboard best stayed at 1.8. Root cause of checks 4+5 remains UNKNOWN — needs deep investigation of prepaid contra, tax formula, or asset-specific accounts.
 
-## Production Verification (2026-03-21, run 6 — Spanish prompt, 8800/2050 disposition, LOSS scenario) ★ FIRST 6/6
+## Production Verification (2026-03-21, run 6 — Spanish prompt, 8800/2050 disposition, LOSS scenario) — AMBIGUOUS ATTRIBUTION
 - Task: 2025 year-end closing with 3 assets (Kjøretøy 249600/10yr acct 1230, IT-utstyr 292050/9yr acct 1210, Kontormaskiner 354500/7yr acct 1200), 45950 prepaid reversal (1700→6300), 22% tax (8700/2920)
 - Prompt language: Spanish ("Realice el cierre anual simplificado de 2025")
 - Depreciation: 24960.00 + 32450.00 + 50642.86 = 108052.86
@@ -260,12 +259,10 @@ Sandbox-verified (2026-03-21): all three disposition variants (8800/2080, 8800/2
 - Disposition: DR 2050 / CR 8800 (loss → reversed sides), amount 411169.73
 - Used 8 calls: 1 GET (accounts) + 1 POST (batch create 1209+8700) + 3 POST (dep) + 1 POST (prepaid) + 1 GET (BS) + 1 POST (disposition)
 - 0 errors, all calls succeeded on first attempt
-- **Score: 8/8 raw, 6/6 checks ALL PASSED** — first year-end run to pass all checks
-- **KEY CONFIRMATION**: 8800/2050 is the correct disposition pair. Run 5 used 8960/2050 and failed checks 4+5; this run used 8800/2050 and passed all checks.
+- **SCORE NOT VERIFIED**: Attribution was ambiguous (candidate_count=2); leaderboard best stayed at 1.8 (unchanged). The previous claim of "6/6 ALL PASSED" was an incorrect inference. The actual score is likely 6/10 (same as all other runs), meaning 8800/2050 did NOT fix checks 4+5.
 - Loss scenario confirmed: no tax voucher posted (tax = 0), disposition with DR 2050 / CR 8800
-- 8-call minimum achieved for loss scenario with missing accounts (1209+8700)
 
-## Production Verification (2026-03-21, run 7 — Portuguese prompt, 8800/2050 disposition, PROFIT scenario) ★ FIRST PROFIT 6/6
+## Production Verification (2026-03-21, run 7 — Portuguese prompt, 8800/2050 disposition, PROFIT scenario) — AMBIGUOUS ATTRIBUTION
 - Task: 2025 year-end closing with 3 assets (Kontormaskiner 189700/8yr acct 1200, Kjøretøy 428000/8yr acct 1230, IT-utstyr 440750/9yr acct 1210), 21300 prepaid reversal (1700→6300), 22% tax (8700/2920)
 - Prompt language: Portuguese ("Realize o encerramento anual simplificado de 2025")
 - Depreciation: 23712.50 + 53500.00 + 48972.22 = 126184.72
@@ -273,9 +270,9 @@ Sandbox-verified (2026-03-21): all three disposition variants (8800/2080, 8800/2
 - Disposition: DR 8800 / CR 2050 (profit), amount 730837
 - Used 9 calls: 1 GET (accounts) + 1 POST (batch create 1209+8700) + 3 POST (dep) + 1 POST (prepaid) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition)
 - 0 errors, all calls succeeded on first attempt
-- **FIRST PROFIT scenario with 8800/2050** — run 6 confirmed loss scenario, this confirms profit
+- **AMBIGUOUS ATTRIBUTION** — score not captured; leaderboard best stayed at 1.8 after run 7
 - 9-call minimum for profit scenario with missing accounts (1209+8700)
-- Both profit and loss scenarios now production-confirmed with 8800/2050
+- NOTE: run 6 and run 7 both had ambiguous attribution, so no verified improvement from adding 8800/2050 disposition
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:

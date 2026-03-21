@@ -1,0 +1,22 @@
+[
+  {
+    "tx_task_id": "07",
+    "attempt_delta": 1,
+    "best_score_before": 2,
+    "best_score_after": 2,
+    "last_attempt_before": "2026-03-21T22:47:10.159037+00:00",
+    "last_attempt_after": "2026-03-21T22:59:57.420244+00:00",
+    "total_attempts_before": 24,
+    "total_attempts_after": 25
+  },
+  {
+    "tx_task_id": "17",
+    "attempt_delta": 1,
+    "best_score_before": 3.5,
+    "best_score_after": 3.5,
+    "last_attempt_before": "2026-03-21T22:50:40.197408+00:00",
+    "last_attempt_after": "2026-03-21T22:59:40.746471+00:00",
+    "total_attempts_before": 20,
+    "total_attempts_after": 21
+  }
+]

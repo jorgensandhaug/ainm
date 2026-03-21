@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-223145359Z-b5cac3a0",
+  "request_id": "3ae950f9",
+  "prompt_raw": "Voce recebeu uma carta de oferta (ver PDF anexo) para um novo funcionario. Complete a integracao: crie o funcionario, atribua o departamento correto, configure os detalhes de emprego com percentagem e salario anual, e configure as horas de trabalho padrao.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:32:32Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:31:45.886Z",
+  "after_captured_at": "2026-03-21T22:33:03.533Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:33:03.534Z"
+}

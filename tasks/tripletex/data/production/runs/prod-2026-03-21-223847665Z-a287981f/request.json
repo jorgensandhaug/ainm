@@ -1,0 +1,8 @@
+{
+  "prompt": "Me har motteke faktura INV-2026-4995 frå leverandøren Fossekraft AS (org.nr 949805727) på 62850 kr inklusiv MVA. Beløpet gjeld kontortenester (konto 7000). Registrer leverandørfakturaen med korrekt inngåande MVA (25 %).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "kwGM5i-4OitQ2PNDnfJOJD7Y6Yyitg3_C9aqbZy9kl4"
+  }
+}

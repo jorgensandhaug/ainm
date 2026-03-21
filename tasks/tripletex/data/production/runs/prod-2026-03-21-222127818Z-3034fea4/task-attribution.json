@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-222127818Z-3034fea4",
+  "request_id": "e65fb527",
+  "prompt_raw": "Registre el proveedor Dorada SL con número de organización 958363060. Correo electrónico: faktura@doradasl.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:22:01Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:21:28.299Z",
+  "after_captured_at": "2026-03-21T22:22:35.964Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:22:35.965Z"
+}

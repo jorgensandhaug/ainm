@@ -1,0 +1,8 @@
+{
+  "prompt": "Enregistrez le fournisseur Colline SARL avec le numéro d'organisation 915612865. E-mail : faktura@collinesarl.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "HnxIiL5VThw_kqyRFWKZsHj2Zkb80ptofQI7QR6MXsU"
+  }
+}

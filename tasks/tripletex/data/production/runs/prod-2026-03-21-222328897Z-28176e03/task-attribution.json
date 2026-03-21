@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-222328897Z-28176e03",
+  "request_id": "48c1d61f",
+  "prompt_raw": "The customer Clearwater Ltd (org no. 924324104) has an outstanding invoice for 44750 NOK excluding VAT for \"Cloud Storage\". Register full payment on this invoice.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:24:14Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:23:29.690Z",
+  "after_captured_at": "2026-03-21T22:24:47.899Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:24:47.899Z"
+}

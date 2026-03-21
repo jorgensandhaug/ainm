@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-225842000Z-c31672b0",
+  "request_id": "dabcca39",
+  "prompt_raw": "Gjennomfør hele prosjektsyklusen for 'Dataplattform Brattli' (Brattli AS, org.nr 937190808): 1) Prosjektet har budsjett 349100 kr. 2) Registrer timer: Hilde Ødegård (prosjektleder, hilde.degard@example.org) 21 timer og Lars Johansen (konsulent, lars.johansen@example.org) 141 timer. 3) Registrer leverandørkostnad 71800 kr fra Lysgård AS (org.nr 898870936). 4) Opprett kundefaktura for prosjektet.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:01:19Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:58:43.272Z",
+  "after_captured_at": "2026-03-21T23:01:50.221Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T23:01:50.222Z"
+}

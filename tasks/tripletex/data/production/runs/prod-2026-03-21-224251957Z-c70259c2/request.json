@@ -1,0 +1,8 @@
+{
+  "prompt": "Register the supplier Oakwood Ltd with organization number 887507295. Email: faktura@oakwoodltd.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "tmjLdYrnD8NeOmk14sj9EPnD8tu-_05kz3rbT1WzoaE"
+  }
+}

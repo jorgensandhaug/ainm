@@ -1,0 +1,7 @@
+{
+  "captured_at": "2026-03-21T22:55:07.698Z",
+  "run_id": "prod-2026-03-21-224902627Z-5cd19b53",
+  "source": "after",
+  "url": "https://api.ainm.no/tripletex/my/submissions",
+  "error": "Unable to connect. Is the computer able to access the url?"
+}

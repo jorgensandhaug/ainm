@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224636291Z-e3fd9f40",
+  "request_id": "84d63542",
+  "prompt_raw": "Opprett prosjektet \"Implementering Nordhav\" knyttet til kunden Nordhav AS (org.nr 957080138). Prosjektleder er Silje Ødegård (silje.degard@example.org).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:47:18Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:46:39.759Z",
+  "after_captured_at": "2026-03-21T22:47:53.148Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:47:53.149Z"
+}

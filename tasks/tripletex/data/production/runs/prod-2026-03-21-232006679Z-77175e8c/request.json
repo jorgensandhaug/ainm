@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett produktet \"Datarådgjeving\" med produktnummer 4993. Prisen er 16250 kr eksklusiv MVA, og standard MVA-sats på 25 % skal nyttast.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "nVCs5zIjLNtgpeCWJI1OcK95KbCv4zsyKz-i7LmwHnM"
+  }
+}

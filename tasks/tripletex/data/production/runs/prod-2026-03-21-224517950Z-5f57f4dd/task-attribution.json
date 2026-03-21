@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224517950Z-5f57f4dd",
+  "request_id": "dc543f08",
+  "prompt_raw": "Le paiement de Étoile SARL (nº org. 943745862) pour la facture \"Conseil en données\" (33900 NOK HT) a été retourné par la banque. Annulez le paiement afin que la facture affiche à nouveau le montant impayé.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:46:23Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:45:19.919Z",
+  "after_captured_at": "2026-03-21T22:46:54.554Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:46:54.554Z"
+}

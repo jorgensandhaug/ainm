@@ -159,7 +159,7 @@ Key findings:
 - if broad query returns payable rows, match by supplier name + amount, then use `POST /supplierInvoice/{id}/:addPayment`
 - if broad query returns 0 (common case in production), fall back to manual voucher payment (debit 2400, credit 1920)
 - resolve supplier ids from one `GET /supplier?count=1000&fields=*` (needed for manual voucher's `supplier: { id }` field)
-- to resolve account ids for manual voucher, use one `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*`
+- to resolve account ids for manual voucher and opening balance, use one `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*`
 
 ### What is unsafe
 - do not fire per-supplier `GET /supplierInvoice?supplierId=...` queries — use one broad query instead
@@ -178,23 +178,24 @@ Key findings:
 - **total: 2 reads + N customer payments**
 
 ### Mixed incoming/outgoing runs
-1. parse CSV locally — compute closing balance as `Math.round((sum(Inn) - sum(|Ut|)) * 100) / 100` from ALL CSV lines
+1. parse CSV locally — compute opening balance: `first_saldo - first_inn + first_ut` (e.g. 100000). Closing balance = last line's Saldo.
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)`
    - `GET /supplier?count=1000&fields=*`
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
-   - `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` (speculative; needed if no supplier invoices)
+   - `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*` (includes 2050 for opening balance voucher)
    - `GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after>&count=1&fields=*` (needed for bank reconciliation)
-3. **Bank statement import** (right after Step 1, in parallel with first customer payment): convert CSV to SBANKEN_BEDRIFT_CSV format, `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV`
-4. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
-5. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
-6. `PUT /invoice/{id}/:payment` once per matched incoming line
-7. **Bank reconciliation**: `POST /bank/reconciliation` with `isClosed: true` using rounded computed closing balance (see trusted standard Step 6)
-- **no-supplier-invoice floor with bank import: 6 reads + 1 bank import + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 3**
-- example: 5 customer + 3 supplier + 2 bankgebyr, computed balance = 6 + 5 + 3 = **14 calls**
-- **ROUND computed closing balance** — floating point caused 3 wasted calls in run ac903481
-- **DO NOT use CSV ending saldo** — it includes opening balance not in Tripletex
+3. **Opening balance voucher** (right after reads): `POST /ledger/voucher` with DR 1920 / CR 2050 for the opening balance amount (see trusted standard Step 0)
+4. **Bank statement import** (in parallel with first customer payment): convert CSV to SBANKEN_BEDRIFT_CSV format, `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV`
+5. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
+6. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
+7. `PUT /invoice/{id}/:payment` once per matched incoming line
+8. **Bank reconciliation**: `POST /bank/reconciliation` with `isClosed: true` using CSV ending saldo (see trusted standard Step 6)
+- **no-supplier-invoice floor with opening balance + bank import: 6 reads + 1 opening balance + 1 bank import + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 4**
+- example: 5 customer + 3 supplier + 2 bankgebyr = 6 + 5 + 4 = **15 calls** (includes opening balance + bank import)
+- **ROUND closing balance** — `Math.round(saldo * 100) / 100` — floating point caused 3 wasted calls in run ac903481
+- **USE CSV ending saldo** as closing balance (after posting opening balance in Step 0)
 
 ### Critical: do not split into multiple scripts or debug passes
 - write one comprehensive script that handles the complete flow
@@ -224,7 +225,7 @@ Key findings:
 - for manual voucher payments, match supplier name to supplier id
 
 ### Non-invoice lines — MUST BE BOOKED
-**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the account 1920 balance is correct for bank reconciliation. Note: run 5c02a044 included all non-invoice lines but still scored 0.6 — and runs WITH bank reconciliation (57c8f4db, 02daaa35) also scored 0.6. Check 1 failure is NOT caused by skipped non-invoice lines OR missing bank reconciliation. The root cause remains UNSOLVED (likely bank statement import via `/bank/statement/import`).
+**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the account 1920 balance matches the CSV saldo for bank reconciliation. All runs without opening balance + bank statement import scored 0.6/6. The full fix requires Step 0 (opening balance) + Step 6 (reconciliation) + Step 7 (bank statement import).
 
 Book each non-invoice line with 2 postings (bank + contra account):
 
@@ -249,7 +250,7 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **BANK STATEMENT IMPORT + RECONCILIATION BOTH REQUIRED**: Runs 57c8f4db and 02daaa35 created bank reconciliation but scored 0.6/6 (Check 1 failed). Reconciliation had `transactions: []` (empty). Check 1 likely requires bank statement transactions via `POST /bank/statement/import`. **Format now SOLVED**: use `SBANKEN_BEDRIFT_CSV` with `bankId=112` (sandbox-verified 2026-03-21). Include both import and reconciliation. Compute closing balance as `Math.round((sum(Inn) - sum(|Ut|)) * 100) / 100` — DO NOT use CSV ending saldo (includes opening balance) and ALWAYS round to 2 decimal places (production run ac903481 wasted 3 calls due to floating-point precision bug).
+- **ALL 3 STEPS REQUIRED FOR CHECK 1**: Step 0 (opening balance voucher DR 1920 / CR 2050) + Step 6 (bank reconciliation) + Step 7 (bank statement import). Without opening balance, ledger doesn't match CSV saldo. Without bank import, reconciliation has empty `transactions: []`. Use CSV ending saldo as closing balance after posting opening balance. ALWAYS round: `Math.round(saldo * 100) / 100`.
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)
@@ -261,6 +262,6 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 - do not spend the 300s budget on debug/exploration scripts after the main work
 - row 0 is system-reserved; start manual voucher postings at `row: 1` and increment per posting
 - do not create M separate `POST /ledger/voucher` calls for M supplier payments; combine all into one voucher with 2M postings
-- fire `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` speculatively in the initial parallel batch; it is wasted only in the rare has-supplier-invoices case
+- fire `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*` speculatively in the initial parallel batch; includes 2050 for opening balance voucher
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes a `400`; use `fields=*,supplier(*)` instead (the DTO only has `amountOutstanding`)
 - when matching customer invoices, use `amountCurrencyOutstanding` (exists on `InvoiceDTO`); when matching supplier invoices, use `amountOutstanding`

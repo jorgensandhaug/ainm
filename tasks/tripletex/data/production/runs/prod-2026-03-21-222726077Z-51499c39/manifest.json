@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-03-21T22:27:26.078Z",
+  "request_id": "b097d8ac",
+  "run_id": "prod-2026-03-21-222726077Z-51499c39",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222726077Z-51499c39",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-21-222726077Z-51499c39",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222726077Z-51499c39/scripts",
+  "runner_provider": "claude",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "agent_run_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222726077Z-51499c39/agent-run.status.json",
+  "attachments": [
+    {
+      "filename": "files/arbeidskontrakt_en_05.pdf",
+      "mime_type": "application/pdf",
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222726077Z-51499c39/attachments/01-arbeidskontrakt_en_05.pdf"
+    }
+  ]
+}

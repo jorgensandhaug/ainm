@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-222224246Z-a515e69b",
+  "request_id": "5bd803cc",
+  "prompt_raw": "Registrer 30 timar for Randi Lunde (randi.lunde@example.org) på aktiviteten \"Analyse\" i prosjektet \"Sikkerheitsrevisjon\" for Dalheim AS (org.nr 950103175). Timesats: 850 kr/t. Generer ein prosjektfaktura til kunden basert på dei registrerte timane.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:24:12Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:22:25.726Z",
+  "after_captured_at": "2026-03-21T22:24:44.684Z",
+  "diff_entry_count": 5,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:24:44.687Z"
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Establezca un precio fijo de 457650 NOK en el proyecto \"Implementación ERP\" para Solmar SL (org. nº 866378843). El director del proyecto es María Sánchez (maria.sanchez@example.org). Facture al cliente el 25 % del precio fijo como pago parcial.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "sGJkEIJdIgfQzzZi2g6IPv-4lB-qrTVP5gOPAeK5pSo"
+  }
+}

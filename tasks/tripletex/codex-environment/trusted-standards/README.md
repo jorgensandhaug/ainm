@@ -1,6 +1,6 @@
 # Trusted Standards
 
-**ABSOLUTE RULE: NO BETA API ENDPOINTS.** NEVER use any endpoint marked as beta in the OpenAPI spec. Beta endpoints ALWAYS return `403`. This includes `/incomingInvoice*`, `/bank/reconciliation*`, and any endpoint with `(BETA)` in its summary. Do not attempt, retry, explore, or use as fallback.
+**ABSOLUTE RULE: NO BETA API ENDPOINTS.** NEVER use any endpoint marked as beta in the OpenAPI spec. Beta endpoints ALWAYS return `403`. This includes `/incomingInvoice*` and any endpoint with `(BETA)` in its summary. Do not attempt, retry, explore, or use as fallback. Note: `/bank/reconciliation*` and `/bank/statement*` are NOT beta and work normally.
 
 These are stricter than task playbooks.
 

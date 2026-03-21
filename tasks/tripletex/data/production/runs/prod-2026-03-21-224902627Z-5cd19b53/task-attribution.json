@@ -1,0 +1,15 @@
+{
+  "run_id": "prod-2026-03-21-224902627Z-5cd19b53",
+  "request_id": "384e5242",
+  "prompt_raw": "Führen Sie den vollständigen Projektzyklus für 'Datenplattform Grünfeld' (Grünfeld GmbH, Org.-Nr. 905570862) durch: 1) Das Projekt hat ein Budget von 275500 NOK. 2) Erfassen Sie Stunden: Mia Becker (Projektleiter, mia.becker@example.org) 35 Stunden und Marie Becker (Berater, marie.becker@example.org) 42 Stunden. 3) Erfassen Sie Lieferantenkosten von 23000 NOK von Sonnental GmbH (Org.-Nr. 850186332). 4) Erstellen Sie eine Kundenrechnung für das Projekt.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:49:03.116Z",
+  "after_captured_at": "2026-03-21T22:55:32.936Z",
+  "diff_entry_count": 8,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:55:32.938Z"
+}

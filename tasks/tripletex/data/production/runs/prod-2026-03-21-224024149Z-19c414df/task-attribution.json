@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224024149Z-19c414df",
+  "request_id": "a2b593de",
+  "prompt_raw": "Erstellen Sie eine Rechnung für den Kunden Brückentor GmbH (Org.-Nr. 804379010) mit drei Produktzeilen: Schulung (2626) zu 17300 NOK mit 25 % MwSt., Beratungsstunden (7746) zu 12850 NOK mit 15 % MwSt. (Lebensmittel), und Cloud-Speicher (5675) zu 7050 NOK mit 0 % MwSt. (befreit).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:44:08Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:40:25.348Z",
+  "after_captured_at": "2026-03-21T22:44:39.626Z",
+  "diff_entry_count": 9,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:44:39.627Z"
+}

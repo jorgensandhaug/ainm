@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie das Projekt \"Analyse Sonnental\" verknüpft mit dem Kunden Sonnental GmbH (Org.-Nr. 980215350). Projektleiter ist Emma Schneider (emma.schneider@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "SxUgBb211XKLO_gQbV9awODNYRV1iQIBh6XwZmGNpu8"
+  }
+}

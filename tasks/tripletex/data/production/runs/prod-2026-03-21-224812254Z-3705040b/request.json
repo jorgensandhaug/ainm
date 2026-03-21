@@ -1,0 +1,8 @@
+{
+  "prompt": "Wir haben einen neuen Mitarbeiter namens Hannah Becker, geboren am 31. January 1996. Bitte legen Sie ihn als Mitarbeiter mit der E-Mail hannah.becker@example.org und dem Startdatum 15. July 2026 an.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "9gXPQyymzUG65Kf044Y3EY1345G-RSmLgt1D9ZNmA7Q"
+  }
+}

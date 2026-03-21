@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-223851561Z-c9831f7e",
+  "request_id": "928a1c9d",
+  "prompt_raw": "Legen Sie einen Festpreis von 292550 NOK für das Projekt \"E-Commerce-Entwicklung\" für Brückentor GmbH (Org.-Nr. 800357314) fest. Projektleiter ist Felix Fischer (felix.fischer@example.org). Stellen Sie dem Kunden 33 % des Festpreises als Meilensteinzahlung in Rechnung.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:40:53Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:38:54.842Z",
+  "after_captured_at": "2026-03-21T22:41:26.606Z",
+  "diff_entry_count": 5,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:41:26.607Z"
+}

@@ -1,0 +1,13 @@
+{
+  "status": "captured",
+  "captured_at": "2026-03-21T23:20:39.240Z",
+  "provider": "claude",
+  "session_id": "ec1b4bce-d258-4273-ad10-201c1bd36037",
+  "session_file": "/home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/ec1b4bce-d258-4273-ad10-201c1bd36037.jsonl",
+  "summary": {
+    "assistant_message_count": 2,
+    "tool_call_count": 5,
+    "tool_result_count": 5,
+    "user_message_count": 1
+  }
+}

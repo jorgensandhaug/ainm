@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-223154381Z-7ca0498a",
+  "request_id": "879058bf",
+  "prompt_raw": "Opprett prosjektet \"Migrasjon Vestfjord\" knytt til kunden Vestfjord AS (org.nr 887727872). Prosjektleiar er Liv Stølsvik (liv.stlsvik@example.org).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:32:38Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:31:55.464Z",
+  "after_captured_at": "2026-03-21T22:33:10.401Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:33:10.402Z"
+}

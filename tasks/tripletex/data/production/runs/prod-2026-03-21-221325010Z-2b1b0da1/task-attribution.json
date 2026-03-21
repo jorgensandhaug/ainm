@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-221325010Z-2b1b0da1",
+  "request_id": "0179e3e6",
+  "prompt_raw": "Processe o salário de Beatriz Pereira (beatriz.pereira@example.org) para este mês. O salário base é de 58650 NOK. Adicione um bónus único de 8850 NOK além do salário base.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:15:26Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:13:27.011Z",
+  "after_captured_at": "2026-03-21T22:15:58.865Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:15:58.865Z"
+}

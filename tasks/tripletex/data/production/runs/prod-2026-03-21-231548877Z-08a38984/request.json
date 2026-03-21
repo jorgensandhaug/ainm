@@ -1,0 +1,8 @@
+{
+  "prompt": "Exécutez la paie de Sarah Moreau (sarah.moreau@example.org) pour ce mois. Le salaire de base est de 56900 NOK. Ajoutez une prime unique de 15800 NOK en plus du salaire de base.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "CAS77ge2O-bxvpx8A_VwtJlWtS2m_L2IPlfokcqPpZc"
+  }
+}

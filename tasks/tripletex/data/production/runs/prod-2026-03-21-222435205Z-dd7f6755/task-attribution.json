@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-222435205Z-dd7f6755",
+  "request_id": "1c461cc0",
+  "prompt_raw": "Crie um pedido para o cliente Cascata Lda (org. nº 927161524) com os produtos Consultoria de dados (8400) a 5700 NOK e Design web (2535) a 3850 NOK. Converta o pedido em fatura e registe o pagamento total.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:25:34Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:24:42.014Z",
+  "after_captured_at": "2026-03-21T22:26:06.713Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "10",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T22:26:06.714Z"
+}

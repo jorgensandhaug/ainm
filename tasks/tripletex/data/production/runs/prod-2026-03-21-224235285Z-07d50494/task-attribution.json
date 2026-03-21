@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224235285Z-07d50494",
+  "request_id": "f53be80f",
+  "prompt_raw": "Enregistrez 16 heures pour Camille Dubois (camille.dubois@example.org) sur l'activité \"Design\" du projet \"Mise à niveau système\" pour Océan SARL (nº org. 953748460). Taux horaire : 1300 NOK/h. Générez une facture de projet au client basée sur les heures enregistrées.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:47:15Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:42:38.699Z",
+  "after_captured_at": "2026-03-21T22:47:47.165Z",
+  "diff_entry_count": 10,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:47:47.166Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-222008024Z-9554897c",
+  "request_id": "e532f2f7",
+  "prompt_raw": "Der Kunde Grünfeld GmbH (Org.-Nr. 888415769) hat eine offene Rechnung über 32800 NOK ohne MwSt. für \"Datenberatung\". Registrieren Sie die vollständige Zahlung dieser Rechnung.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:21:04Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:20:08.459Z",
+  "after_captured_at": "2026-03-21T22:21:36.160Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:21:36.161Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224811817Z-b23d4cc2",
+  "request_id": "080f4b84",
+  "prompt_raw": "Me har ein ny tilsett som heiter Torbjørn Neset, fødd 14. November 1991. Opprett vedkomande som tilsett med e-post torbjrn.neset@example.org og startdato 11. February 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:49:07Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:48:15.591Z",
+  "after_captured_at": "2026-03-21T22:49:38.104Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:49:38.105Z"
+}

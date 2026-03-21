@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-224706888Z-a66e419b",
+  "request_id": "405b4b3b",
+  "prompt_raw": "Registrer leverandøren Tindra AS med organisasjonsnummer 888286195. E-post: faktura@tindra.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:47:34Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:47:10.124Z",
+  "after_captured_at": "2026-03-21T22:48:05.912Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:48:05.914Z"
+}

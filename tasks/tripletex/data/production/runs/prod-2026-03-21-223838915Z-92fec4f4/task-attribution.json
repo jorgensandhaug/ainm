@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-223838915Z-92fec4f4",
+  "request_id": "00871c0f",
+  "prompt_raw": "Opprett og send ein faktura til kunden Sjøbris AS (org.nr 847830840) på 7350 kr eksklusiv MVA. Fakturaen gjeld Nettverksteneste.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:39:44Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:38:38.969Z",
+  "after_captured_at": "2026-03-21T22:40:14.548Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:40:14.548Z"
+}

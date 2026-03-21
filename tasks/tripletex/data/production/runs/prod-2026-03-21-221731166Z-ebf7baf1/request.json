@@ -1,0 +1,8 @@
+{
+  "prompt": "Vi har en ny ansatt som heter Astrid Nilsen, født 27. July 1990. Opprett vedkommende som ansatt med e-post astrid.nilsen@example.org og startdato 11. July 2026.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "p4CFC8dY6dHMuoqeMVc89SOMbWI_zcs4qIVVcIPJwHQ"
+  }
+}

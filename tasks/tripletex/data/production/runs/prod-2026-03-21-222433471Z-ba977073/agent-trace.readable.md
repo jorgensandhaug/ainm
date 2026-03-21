@@ -1,0 +1,903 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 5334e143-22f7-4504-990f-982b404cd899
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/5334e143-22f7-4504-990f-982b404cd899.jsonl
+- completed: true
+- assistant_messages: 4
+- tool_calls: 13
+- tool_results: 13
+
+## 2026-03-21T22:24:39.745Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Einer Ihrer Kunden hat eine uberfallige Rechnung. Finden Sie die uberfallige Rechnung und buchen Sie eine Mahngebuhr von 40 NOK. Soll Forderungen (1500), Haben Mahngebuhren (3400). Erstellen Sie außerdem eine Rechnung über die Mahngebühr an den Kunden und senden Sie diese. Registrieren Sie zusätzlich eine Teilzahlung von 5000 NOK auf der überfälligen Rechnung.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+Yi7bFvRBeibSxllTjefDiqCbrmzR8-X1tkCbHmRDL0E
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+## 2026-03-21T22:24:47.430Z tool_call
+tool: TodoWrite
+call_id: toolu_vrtx_016Bmme9AYCUUZhfpdFePoD4
+
+```json
+{
+  "todos": [
+    {
+      "content": "Read relevant trusted standards and playbooks",
+      "status": "in_progress",
+      "activeForm": "Reading trusted standards and playbooks"
+    },
+    {
+      "content": "Find the overdue invoice",
+      "status": "pending",
+      "activeForm": "Finding the overdue invoice"
+    },
+    {
+      "content": "Book reminder fee (40 NOK, debit 1500 / credit 3400)",
+      "status": "pending",
+      "activeForm": "Booking reminder fee"
+    },
+    {
+      "content": "Create and send invoice for reminder fee to customer",
+      "status": "pending",
+      "activeForm": "Creating and sending reminder fee invoice"
+    },
+    {
+      "content": "Register partial payment of 5000 NOK on overdue invoice",
+      "status": "pending",
+      "activeForm": "Registering partial payment"
+    }
+  ]
+}
+```
+
+## 2026-03-21T22:24:47.433Z tool_result
+tool: TodoWrite
+call_id: toolu_vrtx_016Bmme9AYCUUZhfpdFePoD4
+
+```text
+Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable
+```
+
+## 2026-03-21T22:24:50.332Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01Qo6oWPhDWhXx9NJF3Gpp8A
+
+```json
+{
+  "pattern": "trusted-standards/*.md"
+}
+```
+
+## 2026-03-21T22:24:50.336Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01FaLhF88Mvgoq6LuEDwNGXp
+
+```json
+{
+  "pattern": "task-playbooks/*.md"
+}
+```
+
+## 2026-03-21T22:24:50.339Z tool_call
+tool: Read
+call_id: toolu_vrtx_01L1ztMWg6iRJ2HcR42DCvPC
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md"
+}
+```
+
+## 2026-03-21T22:24:50.343Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01Qo6oWPhDWhXx9NJF3Gpp8A
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project-activity-with-budget.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/README.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/onboard-employee.md
+```
+
+## 2026-03-21T22:24:50.346Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01FaLhF88Mvgoq6LuEDwNGXp
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/onboard-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-hours-and-create-project-invoice.md
+```
+
+## 2026-03-21T22:24:51.268Z tool_result
+tool: Read
+call_id: toolu_vrtx_01L1ztMWg6iRJ2HcR42DCvPC
+
+```text
+File content (29153 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-21T22:24:55.812Z assistant_message
+Exact trusted standard match found. Reading it now.
+
+## 2026-03-21T22:24:55.813Z tool_call
+tool: Read
+call_id: toolu_vrtx_01PQxxyC3ChnFppRRKUnFjG2
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md"
+}
+```
+
+## 2026-03-21T22:24:55.815Z tool_call
+tool: Read
+call_id: toolu_vrtx_01DuG1PbAJJBFmEbRW1vw8PT
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md",
+  "limit": 100
+}
+```
+
+## 2026-03-21T22:24:55.818Z tool_result
+tool: Read
+call_id: toolu_vrtx_01DuG1PbAJJBFmEbRW1vw8PT
+
+```text
+     1→# Tripletex Task Agent Instructions
+     2→
+     3→## Mission
+     4→- Perform the exact requested side effects in Tripletex.
+     5→- Optimize for score, not explanation.
+     6→- Correctness first. Efficiency second.
+     7→- Task is complete only when final Tripletex state is correct.
+     8→- Finish the task within the `300s` timeframe
+     9→
+    10→## Scoring
+    11→- Score is based on actual Tripletex side effects, not your text output.
+    12→- Correctness is normalized field-by-field from the expected output.
+    13→- Efficiency bonus applies only at perfect correctness.
+    14→- Efficiency bonus depends on:
+    15→  - low API call count (Important)
+    16→  - few or zero `4xx` errors (Make sure you know the API calls will work before running)
+    17→- Avoid trial-and-error. Every unnecessary call and every `4xx` hurts. (Verify the correct API call flow before running, this is MEGA important, this is often where alot of errors pile up)
+    18→
+    19→## ABSOLUTE RULE: NO BETA API ENDPOINTS
+    20→- **NEVER use any API endpoint marked as beta in the OpenAPI spec.** Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in this environment. There are NO exceptions.
+    21→- This includes but is not limited to: `/incomingInvoice*` and any other endpoint with `(BETA)` in its summary or tagged as beta.
+    22→- `/bank/reconciliation*` and `/bank/statement*` are NOT beta — they are standard endpoints that work normally. Do not avoid them.
+    23→- Do not attempt beta endpoints even as a fallback. Do not retry them. Do not explore them. They will NEVER work.
+    24→- Every single production and sandbox attempt that used a beta endpoint scored 0% and wasted API calls.
+    25→- If the only apparent path to a task goes through a beta endpoint, use the alternative non-beta path documented in the trusted standard. If no alternative exists, the task shape is unsupported.
+    26→
+    27→## Operating Rules
+    28→- Work fully autonomously.
+    29→- Do not ask questions.
+    30→- Do not talk to the user.
+    31→- Do only the requested task. No extra work.
+    32→- Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
+    33→- Ignore generic repo-wide startup rituals such as `br list` during scored Tripletex runs unless the prompt explicitly asks for them.
+    34→- Assume a hard `300s` budget. Plan before calling APIs.
+    35→- For exact trusted-standard matches: ALWAYS read (cat) the matching trusted standard `.md` file BEFORE writing any script. Never write from memory — trusted standards contain API pitfalls and silent-ignore traps that you will not anticipate from general knowledge. Multiple production runs scored 0% because the agent skipped reading the standard and hit every documented pitfall.
+    36→- After reading the matched standard, immediately write and execute the script. Do not also read `AGENTS.md`, `openapi.json`, or multiple playbook files. A 2026-03-21 production run for `Ridgepoint Ltd` / `970844708` / products `3957`+`8149`+`8092` scored `0/1` because the agent spent all `300s` reading documentation files; the immediate retry with the same task succeeded in 6 calls (3 core + 3 bank-account repair) by reading only the trusted standard then executing.
+    37→- Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
+    38→- The prompt provides a run-specific scripts directory.
+    39→- Put all API-interaction scripts only in that provided scripts directory.
+    40→- Do not place API-interaction scripts anywhere else.
+    41→
+    42→## Environment Facts
+    43→- Real submissions use a fresh Tripletex account.
+    44→- Sandbox testing may use a persistent account.
+    45→- Prompts may be in `nb`, `en`, `es`, `pt`, `nn`, `de`, or `fr`.
+    46→- Files or images may be provided. Read them from disk before acting.
+    47→- Extract exact facts from attachments: names, dates, amounts, identifiers, relationships, requested actions.
+    48→
+    49→## Credentials
+    50→The prompt provides:
+    51→- `Tripletex API base URL`
+    52→- `Tripletex session token`
+    53→- `Run scripts directory`
+    54→
+    55→Authentication:
+    56→- Use Basic Auth.
+    57→- Username: `0`
+    58→- Password: provided session token.
+    59→- Always call the provided base URL.
+    60→- If the provided base URL already includes `/v2`, do not join endpoint paths with a leading slash in a way that escapes back to the host root; `new URL('/customer', baseUrl)` can silently turn `.../v2` into `/customer` and waste a `404`.
+    61→- If the provided base URL ends at `/v2` without a trailing slash, `new URL('supplier', baseUrl)` can also drop the `/v2` segment; either append the slash first or build paths with safe string concatenation such as ``${baseUrl.replace(/\/+$/, "")}/supplier``.
+    62→- Never switch to any default Tripletex URL and never look up online ever.
+    63→- If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
+    64→- In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
+    65→- If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
+    66→- If the first attempted call returns `403` with body `{"error":"Invalid or expired token"}`, treat the run as blocked by unusable credentials; do not spend more calls on alternate endpoints or auth variations.
+    67→- Treat the proxy-specific `403` body `{"error":"Invalid or expired proxy token. Each submission receives a unique token - do not reuse tokens from previous submissions.","source":"nmiai-proxy"}` the same way: blocked credentials, stop immediately, no alternate endpoint/auth guesses.
+    68→
+    69→## API Reference Strategy
+    70→- Knowledge order:
+    71→  1. `./trusted-standards/`
+    72→  2. `./task-playbooks/`
+    73→  3. `./openapi.json`
+    74→- Trusted standards are stricter than playbooks.
+    75→- Trusted standards are the canonical lowest-call, lowest-error, pre-verified flows for the most common task shapes.
+    76→- If the task is an exact or near-exact match for a trusted standard, use that trusted standard first.
+    77→- For an exact trusted-standard match, do not spend time re-checking `./openapi.json`.
+    78→- For exact trusted-standard matches, the anti-`4xx` rule is satisfied by following the trusted standard itself.
+    79→- Only fall back to `./openapi.json` if:
+    80→  - no trusted standard matches
+    81→  - the prompt materially differs from the trusted standard
+    82→  - the trusted standard explicitly tells you to confirm a detail
+    83→  - a live API response contradicts the trusted standard
+    84→- Use the common endpoints below first.
+    85→- These are common endpoints, not the only possible endpoints.
+    86→- Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling, except for exact trusted-standard matches.
+    87→- Use `./openapi.json` as the full API reference.
+    88→- When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
+    89→- Do not guess endpoint shapes, field names, request payloads, or delete/update paths, always verify.
+    90→- For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
+    91→- Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
+    92→
+    93→## Trusted Standards
+    94→- Before acting, check whether the task matches a trusted standard in `./trusted-standards/`
+    95→- If it matches exactly, read (cat) the matching `.md` file, then execute it directly
+    96→- NEVER skip reading the file — trusted standards document API traps (silently ignored params, required field expansions, nonexistent fields) that caused 0% production scores when agents wrote from memory instead
+    97→- For exact trusted-standard matches, do not double-check or triple-check `./openapi.json`; doing so wastes time and hurts score
+    98→- Trusted standards are intended to be safer than ad hoc spec-reading for their exact task shape
+    99→- If a trusted standard is incomplete, wrong, or no longer optimal, fix it during post-run reflection
+   100→
+```
+
+## 2026-03-21T22:24:57.355Z tool_result
+tool: Read
+call_id: toolu_vrtx_01PQxxyC3ChnFppRRKUnFjG2
+
+```text
+     1→# Book Reminder Fee, Invoice It, And Register Partial Payment On Overdue Invoice
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- exactly one existing overdue outgoing customer invoice is implied by the prompt
+    10→- prompt requires an exact manual reminder fee booking of the prompt-fixed amount to ledger accounts `1500` and `3400`
+    11→- prompt also requires a separate outgoing fee invoice for the same customer and wants it sent
+    12→- prompt also requires a partial payment of exactly `5000` on the overdue invoice
+    13→- prompt does not give the overdue invoice id directly
+    14→
+    15→## Do Not Use This Standard If
+    16→- several overdue invoices remain after one decisive invoice read
+    17→- the prompt explicitly says to use Tripletex reminder/remittance/debt-collection functionality instead of a manual fee booking
+    18→- the prompt requires different ledger accounts or a different payment amount
+    19→- the located overdue invoice has outstanding amount below `5000`
+    20→- the prompt requires a specific send-channel override for the fee invoice
+    21→
+    22→## Standard Flow
+    23→1. `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*)`
+    24→2. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+    25→3. `GET /ledger/account?number=1500,3400&fields=*`
+    26→4. `POST /ledger/voucher`
+    27→5. `POST /invoice`
+    28→6. `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=5000`
+    29→7. stop
+    30→
+    31→## Payload Rules
+    32→- on the locate read, treat the winning invoice as:
+    33→  - `invoiceDueDate < run-date`
+    34→  - positive `amountCurrencyOutstanding` or `amountOutstanding`
+    35→  - the only overdue row left after local filtering
+    36→- reuse the located `customer.id` for both the manual voucher and the fee invoice
+    37→- on `GET /invoice/paymentType`, prefer an incoming bank-style payment type whose debit account is `19xx`, `isBankAccount=true`, or `isInvoiceAccount=true`
+    38→- do not reject a usable payment type just because `name=null` or `creditAccount=null`
+    39→- do not try to save a call by omitting `paymentTypeId` on `PUT /invoice/{id}/:payment`; persistent sandbox on `2026-03-21` returned `422 paymentTypeId: Kan ikke være null.` on fixture invoice `206`
+    40→- on `GET /ledger/account?number=1500,3400&fields=*`, choose by exact numeric `account.number`, not by account name
+    41→- do not reject prompt-required account `3400` only because the returned row is marked `isInactive=true`; the id-based voucher write is the decisive test
+    42→- on `POST /ledger/voucher`, send:
+    43→  - `voucherType: null`
+    44→  - one positive posting on account `1500`
+    45→  - `customer: { "id": ... }` on that `1500` posting
+    46→  - one negative posting on account `3400`
+    47→  - `currency: { "id": 1 }`
+    48→  - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount
+    49→  - explicit `row: 1` on the first posting and `row: 2` on the second posting; omitting `row` defaults to row 0 which is system-generated, causing `422 Posteringene på rad 0 (guiRow 0) er systemgenererte` — sandbox-verified as consistent, not account-specific
+    50→- on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount
+    51→- omit `vatType` on the order line; the API defaults to vatType id=0 ("Ingen avgiftsbehandling", 0%) which is correct for a no-VAT reminder fee and produces the correct invoice amount
+    52→- do not use `/invoice/{id}/:createReminder` for this exact task shape:
+    53→  - the fee amount there is account-configured, not prompt-controlled
+    54→  - sandbox on `2026-03-21` required an explicit send type
+    55→  - sandbox rejected `type=REMINDER`
+    56→  - sandbox accepted `type=SOFT_REMINDER&dispatchTypes=EMAIL` but charged `38`, not the prompt-required fee amount
+    57→- on the partial-payment write, use the prompt-fixed `paidAmount=5000`, not the full outstanding amount
+    58→- because the task already proves an existing charged outgoing invoice, do not add a proactive company-bank-account hedge before the fee-invoice write
+    59→
+    60→## Response Parsing
+    61→- Tripletex list endpoints return `{ values: [...] }`, single-object endpoints return `{ value: {...} }`
+    62→- always handle both shapes from the very first script write; the `GET /invoice` response uses `values` (list), not `value`
+    63→- a response-parsing bug in the `prod-2026-03-21` run crashed the script after the first GET, wasting 1 API call; the fix-up added handling for both shapes before the successful re-run
+    64→- the correct generic parser: `if (json.values !== undefined) return json.values; if (json.value !== undefined) return json.value; return json;`
+    65→
+    66→## Reuse From Write Response
+    67→- from the locate read:
+    68→  - overdue invoice id
+    69→  - overdue invoice number
+    70→  - overdue invoice outstanding amount before payment
+    71→  - customer id
+    72→- from `POST /ledger/voucher`:
+    73→  - voucher id and number
+    74→  - returned postings proving `1500` / `3400` and the prompt fee amount / negative prompt fee amount
+    75→- from `POST /invoice`:
+    76→  - fee invoice id
+    77→  - fee invoice number
+    78→  - `amountCurrency=<prompt-fee>`
+    79→- from `PUT /invoice/{id}/:payment`:
+    80→  - remaining outstanding amount after the partial payment
+    81→
+    82→## Verification
+    83→- default verification is zero extra calls after the payment write
+    84→- trust the voucher write response when it already proves:
+    85→  - voucher id and number
+    86→  - one `1500` posting with `customer.id`
+    87→  - one `3400` posting
+    88→  - prompt fee amount / negative prompt fee amount
+    89→- trust the fee-invoice write response when it already proves `amountCurrency=<prompt-fee>` and a new fee invoice number
+    90→- trust the payment write response when it reduces outstanding by exactly `5000` from the locate-read amount
+    91→
+    92→## Known Recovery Branches
+    93→- if the first invoice read returns zero overdue invoices or more than one overdue invoice, stop treating the task as an exact-match standard
+    94→- if the same run already holds a proven incoming `paymentTypeId` for the same company and currency, reuse it instead of reading `/invoice/paymentType` again
+    95→- if the fee-invoice write fails only on the missing-company-bank-account validation, use the normal repair branch:
+    96→  - `GET /ledger/account?isBankAccount=true&fields=*`
+    97→  - `PUT /ledger/account/{id}` on the existing invoice account with minimal payload `{ "bankAccountNumber": "12345678903" }`
+    98→  - retry the same fee-invoice write once
+    99→- if that repair branch was already forced, do not restart from the voucher write or payment-type read
+   100→
+   101→## Canonical Call Count
+   102→- exact standalone task with no cached same-run ids: `6` calls
+   103→- same task shape with cached same-run incoming `paymentTypeId`: `5` calls
+   104→- no public lower-call standalone shortcut was proven for the exact task shape
+   105→
+   106→## OpenAPI / Sandbox Status
+   107→- `/invoice`, `/invoice/{id}/:payment`, `/invoice/paymentType`, `/ledger/account`, and `/ledger/voucher` verified in `./openapi.json`
+   108→- persistent sandbox proof on `2026-03-21` first disproved the tempting reminder shortcut:
+   109→  - `PUT /invoice/{id}/:createReminder` without a send type failed `422 Minst én sendetype må oppgis.`
+   110→  - `PUT /invoice/{id}/:createReminder?type=REMINDER...` failed `422 type: Ugyldig verdi.`
+   111→  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but created reminder charge `38`, not the prompt-controlled fee amount
+   112→  - that reminder branch therefore is not a correct exact-match replacement for prompt-controlled reminder-fee tasks on `1500` / `3400`
+   113→- persistent sandbox proof on `2026-03-21` confirmed the manual exact-fee branch on disposable fixture customer `995205756` / invoice `180`:
+   114→  - one decisive overdue-invoice locate read found the fixture invoice with `amountCurrencyOutstanding=10000` and `invoiceDueDate=2026-03-01`
+   115→  - `GET /invoice/paymentType` returned usable incoming bank payment type `32813748`
+   116→  - `GET /ledger/account?number=1500,3400&fields=*` returned both required account rows; account `3400` came back `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded
+   117→  - `POST /ledger/voucher` succeeded with voucher `608897119`
+   118→  - `POST /invoice` created fee invoice `181` with `amountCurrency=65`
+   119→  - `PUT /invoice/2147580713/:payment?paymentDate=2026-03-21&paymentTypeId=32813748&paidAmount=5000` reduced the overdue invoice outstanding from `10000` to `5000`
+   120→- production proof on `2026-03-21` confirmed the `7`-call branch (with vatType GET) for German prompt amount `50`:
+   121→  - `POST /invoice` created and sent fee invoice `5` with `amountCurrency=50`
+   122→  - `PUT /invoice/2147546735/:payment?paymentDate=2026-03-21&paymentTypeId=27178699&paidAmount=5000` reduced outstanding to `28562.5`
+   123→- production proof on `2026-03-21` (`prod-2026-03-21-124240715Z-4117f590`) confirmed `7`-call branch for Portuguese prompt amount `35` on fresh account, scoring 6/6 (normalized_score=6, best possible):
+   124→  - overdue invoice #2 (id=2147587824), customer=108342547, outstanding=18687.5
+   125→  - voucher #1, fee invoice #4 (amount=35), payment reduced outstanding to 13687.5
+   126→  - 1 wasted GET /invoice call due to response-parsing bug (`value` vs `values`) in the initial script
+   127→- persistent sandbox proof on `2026-03-21` confirmed the `6`-call path (omitting vatType GET):
+   128→  - `POST /invoice` without `orderLines[].vatType` succeeded for fee amount `35`; API defaulted to vatType id=0 ("Ingen avgiftsbehandling", 0%); invoice amount was correct at `35`
+   129→  - full end-to-end 6-call run: locate → paymentType → accounts → voucher → invoice → payment all succeeded
+   130→  - `POST /invoice` with the omitted vatType showed `amountCurrency=35`, `amountExcludingVatCurrency=35`, `amountIncludingVatCurrency=35` — all identical, confirming 0% VAT was applied
+   131→  - voucher posting with `account: { number: 1500 }` (instead of `account: { id: ... }`) failed `422 postings.account.name: Kan ikke være null` — the account GET is still required
+   132→- persistent sandbox re-proof on `2026-03-21` with a one-call disposable setup invoice `206` (`id=2147594276`, customer `108334046`, amount `9000`, due `2026-03-05`) re-confirmed two things:
+   133→  - the tempting `5`-call branch `... -> PUT /invoice/{id}/:payment?paymentDate=...&paidAmount=...` without `paymentTypeId` failed `422 paymentTypeId: Kan ikke være null.`
+   134→  - the full `6`-call branch with fee `50` then succeeded on that same fixture: payment type `32813748`, voucher `608963784`, fee invoice `207` (`amountCurrency=50`), and payment reduced outstanding from `9000` to `4000`
+   135→- production proof on `2026-03-21` (`prod-2026-03-21-134955068Z-b244cce3`) confirmed the `6`-call branch for a Spanish prompt with fee `50` and no bank-account repair:
+   136→  - overdue invoice `#2` (`id=2147593896`), customer `108352269`, outstanding `24812.5`
+   137→  - voucher `#1` (`id=608962870`), fee invoice `#4` (`id=2147594063`, amount `50`)
+   138→  - payment type `36469300`
+   139→  - payment reduced outstanding to `19812.5`
+   140→- persistent sandbox re-proof on `2026-03-21` tested whether `account: { number: 1500, name: "Kundefordringer" }` (number+name, no id) could skip the account GET:
+   141→  - `POST /ledger/voucher` with `account: { number: 1500, name: "Kundefordringer" }` failed `422 Internt felt (account): Feltet må fylles ut.`
+   142→  - this confirms `account.id` is strictly mandatory; neither `number` alone nor `number+name` is accepted
+   143→  - the `GET /ledger/account` call cannot be eliminated
+   144→- production proof on `2026-03-21` (`prod-2026-03-21-171051701Z-de935656`) confirmed the `6`-call path for Norwegian prompt with fee `50`, 0 errors, 0 wasted calls:
+   145→  - overdue invoice `#1` (`id=2147613724`), customer `108381232`, outstanding `16250`
+   146→  - voucher `#1` (`id=609051585`)
+   147→  - fee invoice `#4` (`id=2147613830`, amount `50`)
+   148→  - payment type `36723119`
+   149→  - payment reduced outstanding to `11250`
+   150→- the `6`-call path is now the default for this task shape; the previous `7`-call path included a now-unnecessary `GET /ledger/vatType` call
+   151→- production proof on `2026-03-21` (`prod-2026-03-21-184424564Z-d022ee19`) hit the `row 0 systemgenererte` trap on voucher POST without explicit `row` values, requiring 7 calls (1 wasted 422):
+   152→  - overdue invoice `#1` (`id=2147625691`), customer `108395937`, outstanding `19687.5`
+   153→  - voucher POST without `row` failed `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; retry with `row: 1` and `row: 2` succeeded as voucher `#1` (`id=609094799`)
+   154→  - fee invoice `#4` (`id=2147625942`, amount `70`)
+   155→  - payment type `36850274`
+   156→  - payment reduced outstanding to `14687.5`
+   157→  - **fix**: always set explicit `row: 1` and `row: 2` on voucher postings to avoid the system-generated row 0 trap
+   158→- persistent sandbox re-proof on `2026-03-21` confirmed the `row` requirement is consistent, not account-specific:
+   159→  - `POST /ledger/voucher` without `row` failed `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`
+   160→  - same payload with `row: 1` and `row: 2` succeeded as voucher `609095912`
+   161→  - full 6-call end-to-end re-proof with `row` fix: fixture invoice `#318` (`id=2147626400`, outstanding `10000`), voucher `609096514`, fee invoice `#319` (`id=2147626402`, amount `70`), payment reduced outstanding to `5000`
+   162→- production proof on `2026-03-21` (`prod-2026-03-21-203931462Z-00a15d2d`) confirmed the `6`-call path for French prompt with fee `50`, 0 errors, 0 wasted calls:
+   163→  - overdue invoice `#2` (`id=2147635863`), customer `108419715`, outstanding `29375`
+   164→  - voucher `#1` (`id=609142150`)
+   165→  - fee invoice `#4` (`id=2147635928`, amount `50`)
+   166→  - payment type `37216892`
+   167→  - payment reduced outstanding to `24375`
+   168→  - 5th production confirmation of the `6`-call path; now verified across `nb`, `es`, `pt`, `de`, and `fr` prompts
+   169→- production proof on `2026-03-21` (`prod-2026-03-21-214826630Z-16c30378`) confirmed the `6`-call path for French prompt with fee `60`, 0 errors, 0 wasted calls:
+   170→  - overdue invoice `#1` (`id=2147641528`), customer `108433770`, outstanding `23562.5`
+   171→  - voucher `#1` (`id=609169374`)
+   172→  - fee invoice `#4` (`id=2147641603`, amount `60`)
+   173→  - payment type `37435187`
+   174→  - payment reduced outstanding to `18562.5`
+   175→  - 6th production confirmation of the `6`-call path; verified across `nb`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `50`, `60`, `70`
+   176→- production proof on `2026-03-21` (`prod-2026-03-21-215357856Z-a1e81130`) confirmed the `6`-call path for Spanish prompt with fee `60`, 0 errors, 0 wasted calls:
+   177→  - overdue invoice `#3` (`id=2147642065`), customer `108434854`, outstanding `35000`
+   178→  - voucher `#1` (`id=609171478`)
+   179→  - fee invoice `#4` (`id=2147642189`, amount `60`)
+   180→  - payment type `37451308`
+   181→  - payment reduced outstanding to `30000`
+   182→  - 7th production confirmation of the `6`-call path; no new language or fee amount combination but re-confirms `es`+`60` stability
+   183→
+```
+
+## 2026-03-21T22:25:12.824Z tool_call
+tool: TodoWrite
+call_id: toolu_vrtx_01RqXQiwBx3P1D73WWrZ3j1e
+
+```json
+{
+  "todos": [
+    {
+      "content": "Read relevant trusted standards and playbooks",
+      "status": "completed",
+      "activeForm": "Reading trusted standards and playbooks"
+    },
+    {
+      "content": "Write and execute the 6-call script",
+      "status": "in_progress",
+      "activeForm": "Writing and executing the 6-call script"
+    },
+    {
+      "content": "Register partial payment of 5000 NOK on overdue invoice",
+      "status": "pending",
+      "activeForm": "Registering partial payment"
+    }
+  ]
+}
+```
+
+## 2026-03-21T22:25:12.828Z tool_result
+tool: TodoWrite
+call_id: toolu_vrtx_01RqXQiwBx3P1D73WWrZ3j1e
+
+```text
+Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable
+```
+
+## 2026-03-21T22:25:40.456Z tool_call
+tool: Write
+call_id: toolu_vrtx_01QTq36jVaseZpc3xH3jnL5C
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts/run.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"Yi7bFvRBeibSxllTjefDiqCbrmzR8-X1tkCbHmRDL0E\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\nconst TODAY = \"2026-03-21\";\nconst FEE = 40;\n\nasync function api(method: string, path: string, body?: any) {\n  const url = `${BASE}${path}`;\n  const opts: any = {\n    method,\n    headers: { Authorization: AUTH, \"Content-Type\": \"application/json\" },\n  };\n  if (body) opts.body = JSON.stringify(body);\n  const r = await fetch(url, opts);\n  const text = await r.text();\n  let json: any;\n  try { json = JSON.parse(text); } catch { json = text; }\n  if (!r.ok) {\n    console.error(`${method} ${path} → ${r.status}`, JSON.stringify(json).slice(0, 500));\n    throw new Error(`${r.status}`);\n  }\n  console.log(`${method} ${path} → ${r.status}`);\n  if (json?.values !== undefined) return json.values;\n  if (json?.value !== undefined) return json.value;\n  return json;\n}\n\nasync function main() {\n  // 1. Find overdue invoice\n  const invoices: any[] = await api(\"GET\",\n    \"/invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*)\");\n\n  const overdue = invoices.filter((inv: any) =>\n    inv.invoiceDueDate < TODAY &&\n    (inv.amountOutstanding > 0 || inv.amountCurrencyOutstanding > 0)\n  );\n  if (overdue.length !== 1) {\n    console.error(\"Expected exactly 1 overdue invoice, found\", overdue.length);\n    if (overdue.length > 1) {\n      overdue.forEach((inv: any) => console.log(`  id=${inv.id} #${inv.invoiceNumber} due=${inv.invoiceDueDate} outstanding=${inv.amountCurrencyOutstanding}`));\n    }\n    if (overdue.length === 0) return;\n  }\n  const inv = overdue[0];\n  const customerId = inv.customer.id;\n  const invoiceId = inv.id;\n  console.log(`Overdue invoice: id=${invoiceId} #${inv.invoiceNumber} customer=${customerId} outstanding=${inv.amountCurrencyOutstanding} due=${inv.invoiceDueDate}`);\n\n  // 2. Get payment types\n  const paymentTypes: any[] = await api(\"GET\",\n    \"/invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)\");\n  const pt = paymentTypes.find((p: any) =>\n    p.debitAccount && (p.debitAccount.number >= 1900 && p.debitAccount.number < 2000 || p.debitAccount.isBankAccount || p.isInvoiceAccount)\n  );\n  if (!pt) { console.error(\"No suitable payment type\"); return; }\n  console.log(`Payment type: id=${pt.id} name=${pt.description || pt.name}`);\n\n  // 3. Get ledger accounts 1500 and 3400\n  const accounts: any[] = await api(\"GET\", \"/ledger/account?number=1500,3400&fields=*\");\n  const acc1500 = accounts.find((a: any) => a.number === 1500);\n  const acc3400 = accounts.find((a: any) => a.number === 3400);\n  if (!acc1500 || !acc3400) { console.error(\"Missing accounts\", { acc1500, acc3400 }); return; }\n  console.log(`Account 1500: id=${acc1500.id}, Account 3400: id=${acc3400.id}`);\n\n  // 4. Book reminder fee voucher\n  const voucher = await api(\"POST\", \"/ledger/voucher\", {\n    date: TODAY,\n    description: \"Mahngebühr\",\n    voucherType: null,\n    postings: [\n      {\n        row: 1,\n        date: TODAY,\n        account: { id: acc1500.id },\n        customer: { id: customerId },\n        currency: { id: 1 },\n        amount: FEE,\n        amountCurrency: FEE,\n        amountGross: FEE,\n        amountGrossCurrency: FEE,\n      },\n      {\n        row: 2,\n        date: TODAY,\n        account: { id: acc3400.id },\n        currency: { id: 1 },\n        amount: -FEE,\n        amountCurrency: -FEE,\n        amountGross: -FEE,\n        amountGrossCurrency: -FEE,\n      },\n    ],\n  });\n  console.log(`Voucher created: id=${voucher.id} number=${voucher.number}`);\n\n  // 5. Create and send fee invoice\n  const feeInvoice = await api(\"POST\", \"/invoice\", {\n    invoiceDate: TODAY,\n    invoiceDueDate: TODAY,\n    customer: { id: customerId },\n    orders: [],\n    orderLines: [\n      {\n        description: \"Mahngebühr\",\n        count: 1,\n        unitPriceExcludingVatCurrency: FEE,\n      },\n    ],\n  });\n  console.log(`Fee invoice created: id=${feeInvoice.id} #${feeInvoice.invoiceNumber} amount=${feeInvoice.amountCurrency}`);\n\n  // 6. Register partial payment on overdue invoice\n  const paymentResult = await api(\"PUT\",\n    `/invoice/${invoiceId}/:payment?paymentDate=${TODAY}&paymentTypeId=${pt.id}&paidAmount=5000`);\n  console.log(`Payment registered. Remaining outstanding: ${paymentResult.amountCurrencyOutstanding ?? paymentResult.amountOutstanding}`);\n}\n\nmain().catch(e => { console.error(\"FATAL:\", e.message); process.exit(1); });\n"
+}
+```
+
+## 2026-03-21T22:25:40.513Z tool_result
+tool: Write
+call_id: toolu_vrtx_01QTq36jVaseZpc3xH3jnL5C
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts/run.ts
+```
+
+## 2026-03-21T22:25:45.790Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01JDEyfbEN4Yd2HZMpAD6oZT
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts && bun run run.ts 2>&1",
+  "description": "Execute the 6-call Tripletex script",
+  "timeout": 60000
+}
+```
+
+## 2026-03-21T22:25:49.754Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01JDEyfbEN4Yd2HZMpAD6oZT
+
+```text
+Exit code 1
+GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*) → 200
+Overdue invoice: id=2147645103 #1 customer=108441398 outstanding=36875 due=2026-02-07
+GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*) → 200
+Payment type: id=37539606 name=Kontant
+GET /ledger/account?number=1500,3400&fields=* → 200
+Account 1500: id=475220342, Account 3400: id=475220538
+POST /ledger/voucher → 201
+Voucher created: id=609186182 number=1
+POST /invoice → 422 {"status":422,"code":18000,"message":"Validering feilet.","link":"https://tripletex.no/v2-docs/","developerMessage":null,"validationMessages":[{"field":"orders","message":"Listen kan ikke være tom.","path":"null.orders","rootId":null}],"requestId":"b7278b71-6ab9-4985-a4ea-d0c30dfa219a"}
+FATAL: 422
+```
+
+## 2026-03-21T22:26:02.035Z assistant_message
+Invoice POST failed due to empty orders. Let me check the correct invoice creation pattern.
+
+## 2026-03-21T22:26:02.037Z tool_call
+tool: Read
+call_id: toolu_vrtx_01Rp5cakFBwf71daZQufExVu
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-and-send-customer-invoice.md"
+}
+```
+
+## 2026-03-21T22:26:03.247Z tool_result
+tool: Read
+call_id: toolu_vrtx_01Rp5cakFBwf71daZQufExVu
+
+```text
+     1→# Create And Send Customer Invoice
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- create one outgoing invoice
+    10→- send it as part of the same minimal flow
+    11→- invoice has one or more simple direct order lines (description-only or with product numbers to create)
+    12→- prompt gives the customer identity directly or the customer is resolvable in one decisive read
+    13→- prompt does not require a specific send channel override such as a forced email address
+    14→
+    15→## Do Not Use This Standard If
+    16→- prompt requires a specific send channel that is not already safely implied by known customer data
+    17→- prompt requires looking up existing products in the account (use `./trusted-standards/create-order-invoice-and-register-payment.md` instead)
+    18→- task is payment, reversal, or correction
+    19→
+    20→## Standard Flow
+    21→1. if the prompt explicitly identifies an already-existing customer, resolve that customer in one decisive `GET /customer?...&fields=*`; otherwise, in the normal fresh-account variant, create the customer directly
+    22→2. if creating a new customer and the prompt gives no email or postal address, `POST /customer` with:
+    23→   - `name`
+    24→   - `organizationNumber`
+    25→   - `invoiceSendMethod: "MANUAL"`
+    26→3. if the prompt gives product numbers (e.g. "Analysis Report (9796)"), batch-create all products in one call: `POST /product/list` with `[{ "name": "<description>", "number": <number> }, ...]`; in production fresh accounts these products will not exist yet; parallelize this call with steps 1 and 3a
+    27→3a. resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+    28→4. `POST /invoice` and let the default `sendToCustomer=true` handle the send in the same write; if products were created in step 3, reference them on each order line as `product: { "id": <id-from-batch-create-response> }`
+    29→5. only if that invoice write fails with missing company bank account:
+    30→   - `GET /ledger/account?isBankAccount=true&fields=*`
+    31→   - `PUT /ledger/account/{id}` on the existing invoice account (usually `1920`) with minimal payload `{ "bankAccountNumber": "12345678903" }`
+    32→   - if you must generate a different number, keep it unique and checksum-valid; the working Norwegian mod-11 weights are `5,4,3,2,7,6,5,4,3,2` across the first ten digits
+    33→   - once that repair branch has already identified the invoice `account.id`, reuse it directly; do not spend a second `/ledger/account` read after a local repair-payload mistake
+    34→   - retry the same `POST /invoice` once
+    35→6. stop
+    36→
+    37→## Payload Rules
+    38→- include:
+    39→  - `invoiceDate`
+    40→  - `invoiceDueDate`
+    41→  - `customer: { "id": ... }`
+    42→  - `orders[].customer`
+    43→  - `orders[].orderDate`
+    44→  - `orders[].deliveryDate`
+    45→  - `orders[].orderLines`
+    46→- create lines under `orders[].orderLines`, not `invoice.orderLines`
+    47→- if the prompt gives product numbers, each order line must include `product: { "id": <product-id> }` where the product was batch-created in step 3; description-only lines (no product number) should omit `product` entirely
+    48→- when the prompt gives multiple lines with different VAT rates (e.g. 25%, 15% food, 0% exempt), select the correct `vatType.id` for each line from the filtered outgoing VAT result; production accounts expose codes 3 (25%), 31 (15%), 5 (0% exempt), 6 (0% outside), 32 (12%), 52 (0% export)
+    49→- do not hardcode output VAT code `3`
+    50→- do not omit direct-line `vatType` just to save the VAT lookup; a successful write can still create the wrong VAT outcome
+    51→- for explicit no-VAT / `0%` direct-line prompts, still resolve the current account's filtered outgoing `0%` VAT row instead of assuming omission is equivalent
+    52→- for ordinary direct-line services explicitly priced excluding VAT / MVA, select an exact `25%` row from the filtered outgoing VAT result; if no such row exists, treat the task as blocked in that account instead of falling back to `0%`
+    53→- if creating the customer with no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` and let the invoice create do the send attempt
+    54→
+    55→## Reuse From Write Response
+    56→- `customer.value.id`
+    57→- `invoice.value.id`
+    58→- `invoice.value.invoiceNumber`
+    59→- totals from the invoice write response
+    60→- keep the resolved `customer.id` and filtered outgoing `vatType.id` in memory until the invoice write has either succeeded or been conclusively blocked; a local helper bug is not a reason to repeat those reads in the same run
+    61→
+    62→## Verification
+    63→- default verification is zero extra calls
+    64→- treat a successful `POST /invoice` with default `sendToCustomer=true` as the winning send path for this task shape
+    65→- do not add an automatic follow-up `PUT /invoice/{id}/:send`
+    66→
+    67→## Known Recovery Branches
+    68→- if invoice creation fails with missing company bank account:
+    69→  - repair the existing invoice bank account and retry the same invoice write once
+    70→- if the prompt explicitly identifies an already-existing customer, use one decisive customer read instead of blind customer create
+    71→- if customer creation already succeeded but local process state is lost before the repaired retry:
+    72→  - resume with `GET /customer?organizationNumber=...&fields=*`, the same filtered outgoing VAT read, and the same `POST /invoice`
+    73→
+    74→## Known Pitfalls
+    75→- the correct order-line price field is `unitPriceExcludingVatCurrency`; do not use `unitCostPrice` — it does not exist on the order-line schema and returns `422 Feltet eksisterer ikke i objektet.`; the 2026-03-21 production run for `Étoile SARL` / `976414284` / `Heures de conseil` / `20000` wasted one call on this wrong field name before correcting it
+    76→- do not spend `GET /customer` first on the normal fresh-account new-customer variant
+    77→- do not treat wording like `invoice customer <name> (<organizationNumber>)` as proof that the customer already exists; when the prompt only supplies business identity and the environment implies a fresh account, the winning path is still direct `POST /customer`
+    78→- do not branch into `PUT /invoice/{id}/:send?sendType=MANUAL` as the default path; sandbox reproduced `500` on 2026-03-20 while the same task shape succeeded through `POST /invoice` with default send behavior
+    79→- do not assume sparse `postalAddress` or `physicalAddress` links on the customer prove that `PAPER` send is available; sandbox returned `422 Faktura kan ikke sendes via PAPER`
+    80→- do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
+    81→- do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
+    82→- when the provided base URL already ends in `/v2`, do not pass endpoint paths with a leading slash into `new URL(...)`; that can drop `/v2` and waste a `404` before any real Tripletex write
+    83→- if the first common-endpoint call comes back `404` and the path clearly fell back to host-root instead of `/v2/...`, stop and fix the client URL builder locally before making any second Tripletex call
+    84→- for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
+    85→- the same exact no-VAT branch also covers Portuguese wording such as `sem IVA`; the 2026-03-20 production run for `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` used the same `3` calls and did not need `GET /customer` or `PUT /invoice/{id}/:send`
+    86→- the same exact no-VAT branch also covers German wording such as `ohne MwSt.`; the 2026-03-20 production run for `Bergwerk GmbH` / `981122011` / `Datenberatung` / `45150` used the same `3` calls and did not need `GET /customer`, `GET /ledger/account`, or `PUT /invoice/{id}/:send`
+    87→- for ordinary one-line service prompts that explicitly price the work excluding VAT / MVA, do not take the first filtered VAT row if it is `0%`; the safe branch is exact `25%` selection or a blocked conclusion for that account
+    88→- if the first `POST /invoice` fails only on missing company bank account, do not let a local helper bug or ad hoc bank-number guess force a full script restart; the minimum recovery is still one valid `PUT /ledger/account/{id}` and one retry of the same invoice payload
+    89→- do not invent the bank-account checksum branch during a scored run; production reflection on 2026-03-20 burned `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer` on the wrong weight order before the valid mod-11 routine was restored
+    90→- once `GET /ledger/account?isBankAccount=true&fields=*` has already identified the invoice account, do not repeat that same read just because the first repair attempt failed locally; reuse the same `account.id`
+    91→- if that first failed invoice happened after a successful customer create, do not blind-retry `POST /customer`; if you lost in-memory state, resume on the existing-customer branch instead
+    92→- French wording such as `hors TVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 production run for `Colline SARL` / `944164340` / `Service réseau` / `44750` succeeded in the canonical `3` calls, while the same-day persistent sandbox still exposed only `0%`, produced a wrong untaxed `44750` total when `vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422`.
+    93→- Norwegian wording such as `eksklusiv MVA` belongs to that same taxed ex-VAT branch, not the no-VAT branch. The 2026-03-20 persistent-sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` still exposed only VAT code `6` (`0%`) on the filtered outgoing VAT read for `2026-03-20`, so that sandbox state remains blocked for the taxed branch rather than a valid lower-call shortcut.
+    94→- when the bank-account repair branch fires, retain `customer.id` and `vatType.id` in memory across the repair; the Étoile SARL 2026-03-20 run wasted 2 calls re-reading both after losing local state, while the Fjelltopp AS 2026-03-21 run retained both and completed the repair branch in 6 total calls instead of 8
+    95→- do not preemptively add `GET /ledger/account` to every create-and-send flow just to avoid the bank-account 422; sandbox verification on 2026-03-21 showed the preemptive 3-way parallel approach costs 4 calls in the happy case (vs 3 sequential) with no wall-clock benefit (1423ms parallel vs 616ms sequential), making it worse ~70% of the time when no repair is needed
+    96→- Nynorsk prompt language (`nn`) follows the same rules as Bokmål (`nb`): `eksklusiv MVA` → taxed 25% branch, `Nettverksteneste` preserved as-is in the order line description
+    97→- do not confuse description-only invoice tasks (where the prompt gives only a service description like "Systemutvikling" without product numbers) with the order-based `create-order-invoice-and-register-payment` flow; description-only lines work perfectly with `POST /invoice` using `orders[].orderLines[]` with `description`, `count`, `unitPriceExcludingVatCurrency`, and resolved `vatType` — no product creation or product lookup is needed; sandbox readback confirmed `product: null` on the resulting order line
+    98→- when the Norwegian prompt says "kunden" (the customer, with definite article), the customer already exists; use `GET /customer?organizationNumber=...&fields=*` to resolve, not `POST /customer`; "en kunde" (a customer, indefinite) would imply creating
+    99→- the same definite-article heuristic applies in English: "the customer Brightstone Ltd" or "invoice to the customer X" implies the customer already exists; use `GET /customer?organizationNumber=...&fields=*` instead of `POST /customer`
+   100→- when the prompt says "create and send" an invoice, always match this standard (`create-and-send-customer-invoice.md`), not the create-only standard (`create-customer-invoice.md`); matching the wrong standard wastes agent time even if the final flow is similar
+   101→- the 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` used the wrong flow entirely — the agent selected the order-based standard (`create-order-invoice-and-register-payment`) instead of this standard, then created an unnecessary product and used `POST /order` + `PUT /order/:invoice` instead of direct `POST /invoice`; that cost 8 calls instead of the optimal 6 (with bank repair); the correct path was: `GET /customer` → `GET /ledger/vatType` (25%) → `POST /invoice` (422 bank account) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry
+   102→- **CRITICAL product-line pitfall**: when the prompt gives product numbers in parentheses (e.g. "Analysis Report (9796)"), those products must be created and referenced on order lines; description-only lines (`product: null` on readback) will fail product-related scorer checks; the 2026-03-21 production run for `Oakwood Ltd` / `909722500` / `Analysis Report (9796)` + `Maintenance (2145)` + `System Development (5995)` used description-only lines and failed 3 of 6 checks (checks 3, 4, 5) despite correct amounts and VAT; the correct path adds one `POST /product/list` call to batch-create all products, then references them by `product: { "id": <id> }` on each order line
+   103→- `POST /product/list` batch-creates multiple products in one call; sandbox-verified on 2026-03-21: `[{ "name": "Analysis Report", "number": 9796 }, { "name": "Maintenance", "number": 2145 }, { "name": "System Development", "number": 5995 }]` → returns all three IDs in one `201` response; this call can be parallelized with the customer resolution and VAT lookup
+   104→- `product: { "number": 9796 }` on an order line does NOT resolve to an existing product; Tripletex silently ignores the number-only reference and the readback shows `product: null`; always use `product: { "id": <id> }` from the batch-create response
+   105→- inline product creation via invoice (e.g. `product: { "name": "X", "number": 9796 }` on an order line inside `POST /invoice`) does NOT work; the invoice is created but readback shows `product: null`; products must be pre-created separately
+   106→- when the prompt gives product numbers, the optimal call count is 4 (happy path: 3 parallel [customer + vatType + product/list] + 1 invoice) or 7 (with bank repair: + 1 failed invoice + 1 GET account + 1 PUT account + 1 retry); this is 1 more call than the description-only variant but is required for correctness when product numbers appear in the prompt
+   107→
+   108→## OpenAPI / Sandbox Status
+   109→- `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
+   110→- minimal create-and-send path re-verified in persistent sandbox on 2026-03-20:
+   111→  - `POST /customer` with `invoiceSendMethod: "MANUAL"` succeeded
+   112→  - `POST /invoice` with default `sendToCustomer=true` succeeded for the same customer
+   113→  - explicit later `PUT /invoice/{id}/:send?sendType=MANUAL` reproduced `500`
+   114→  - explicit later `PUT /invoice/{id}/:send?sendType=PAPER` reproduced `422`
+   115→- VAT handling re-verified in persistent sandbox on 2026-03-20 for the same one-line service invoice shape:
+   116→  - `POST /invoice` without line `vatType` succeeded but created a no-VAT invoice (`amountExcludingVatCurrency=28500`, `amountCurrency=28500`)
+   117→  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)
+   118→  - hardcoded line `vatType.id=3` failed with `422 ... Ugyldig mva-kode.`
+   119→- exact ordinary-service ex-VAT create-and-send shape re-confirmed across production plus sandbox on 2026-03-20:
+   120→  - production run `Snøhetta AS` / `871844062` / `Webdesign` / `20100` succeeded in the canonical `3` calls: `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+   121→  - the production invoice write already proved the intended taxed outcome with `amountExcludingVatCurrency=20100` and `amountCurrency=25125`
+   122→  - the persistent sandbox still exposed only VAT code `6` (`0%`) for the same date, so the exact same prompt shape would be blocked there for standard VAT rather than downgraded to `0%`
+   123→  - the French prompt variant `Colline SARL` / `944164340` / `Service réseau` / `44750` / `hors TVA` succeeded in the same canonical `3` calls in production and confirms that `hors TVA` must be normalized to ordinary taxed ex-VAT handling, not `0%`
+   124→  - the same-day persistent sandbox re-check on analogous org `944164341` again exposed only VAT code `6`, created a wrong untaxed `44750` total when `orderLines[].vatType` was omitted, and rejected hardcoded `vatType.id=3` with `422 Ugyldig mva-kode.`
+   125→  - the later same-day French production run `Lumière SARL` / `959714320` / `Stockage cloud` / `34100` again finished on the same exact `3` calls and preserved the Unicode customer name exactly as prompted
+   126→  - the later same-day French production run `Étoile SARL` / `995085488` / `Rapport d'analyse` / `7250` confirmed the conditional bank-account repair branch for the same taxed direct-line shape: after the standard `POST /customer` and filtered outgoing VAT read, the first `POST /invoice` failed on missing company bank account, `PUT /ledger/account/{id}` on invoice account `1920` with minimal payload `{ "bankAccountNumber": "12345678903" }` repaired the prerequisite, and the existing-customer resume branch `GET /customer?organizationNumber=995085488&fields=*` -> filtered outgoing VAT read -> `POST /invoice` then completed with `amountExcludingVatCurrency=7250` and `amountCurrency=9062.5`; that run wasted 2 calls by re-reading customer and vatType after losing local state
+   127→  - the 2026-03-21 Norwegian `nn` production run `Fjelltopp AS` / `927173875` / `Nettverksteneste` / `42600` / `eksklusiv MVA` confirmed the same bank-account repair branch in 6 total calls (vs Étoile's 8): `POST /customer` → `GET /ledger/vatType` (found `vatType.id=3` at 25%) → `POST /invoice` (422 bank account) → `GET /ledger/account` (found account 1920, id=371676328) → `PUT /ledger/account/371676328` (registered `12345678903`) → `POST /invoice` (201, `amountExcludingVatCurrency=42600`, `amountCurrency=53250`); the key improvement was retaining `customer.id` and `vatType.id` in memory across the repair branch
+   128→  - the same-day persistent sandbox analog `Lumière Reflection b9572091 SARL` / `957223729` still exposed only VAT code `6` (`0%`); for that exact `34100` line, omitting `orderLines[].vatType` created a wrong untaxed `34100` total, so that sandbox account remains blocked for the taxed branch rather than a valid shortcut
+   129→  - the same-day persistent sandbox analog `Nordhav Reflection 12c28001 AS` / `999280012` / `Analyserapport` / `7850` re-confirmed that Norwegian wording `eksklusiv MVA` follows the same taxed branch: after the standard `POST /customer`, the filtered outgoing VAT read for `2026-03-20` still exposed only code `6` (`0%`), so that sandbox account remained blocked for the taxed branch rather than a no-VAT fallback
+   130→  - a same-day persistent sandbox control re-check on the provided follow-up sandbox still exposed only VAT code `6` (`0%`) for `2026-03-20`; the exact taxed `7250` branch therefore remained blocked there, but the surrounding create-and-send mechanics still re-proved cleanly in `3` calls on a control line by using the available `0%` row with the same `POST /customer` -> filtered `GET /ledger/vatType` -> `POST /invoice` flow
+   131→  - the 2026-03-21 production run `Étoile SARL` / `976414284` / `Heures de conseil` / `20000` / `hors TVA` completed in 7 calls (1 wasted) with bank-account repair branch; the wasted call was from using `unitCostPrice` instead of `unitPriceExcludingVatCurrency` — `unitCostPrice` does not exist on the order-line schema; the optimal path for the same bank-repair shape is 6 calls: `POST /customer` → `GET /ledger/vatType` (found `vatType.id=3` at 25%) → `POST /invoice` (422 bank account) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` (201, `amountExcludingVatCurrency=20000`, `amountCurrency=25000`); customer.id and vatType.id were correctly retained across the repair branch
+   132→  - the same-day persistent sandbox re-check confirmed `unitCostPrice` returns `422 Feltet eksisterer ikke i objektet.` while `unitPriceExcludingVatCurrency` succeeds
+   133→- exact no-VAT direct-line create-and-send shape re-verified in persistent sandbox on 2026-03-20:
+   134→  - fresh-account-style branch: on the same one-line `22700` / `Design web` / `0%` shape, direct `POST /customer` with `invoiceSendMethod=MANUAL`, then `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`, then `POST /invoice` succeeded without any customer pre-read
+   135→  - the filtered VAT read returned only code `6` (`0%`)
+   136→  - the invoice write returned `amountExcludingVatCurrency=22700`, `amountCurrency=22700`, and an invoice number without any extra verification read
+   137→  - on the exact `Porto Alegre Lda` / `826870192` task identity, once that customer existed in sandbox, the existing-customer branch also succeeded with one decisive `GET /customer?organizationNumber=826870192&fields=*`, the same filtered VAT read, and the same invoice write
+   138→- exact Portuguese no-VAT direct-line create-and-send shape re-confirmed across production plus persistent sandbox on 2026-03-20:
+   139→  - production run `Porto Alegre Lda` / `842889154` / `Consultoria de dados` / `11200` / `sem IVA` succeeded in the canonical `3` calls: direct `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+   140→  - the production invoice write already proved the intended no-VAT outcome with `amountExcludingVatCurrency=11200` and `amountCurrency=11200`
+   141→  - persistent sandbox re-check on the analogous fresh-customer `842889155` shape returned VAT code `6` (`0%`) and the same `11200` / `11200` totals through the same `3` calls, again without any customer pre-read or explicit `:send` call
+   142→- exact German no-VAT direct-line create-and-send shape re-confirmed across production plus persistent sandbox on 2026-03-20:
+   143→  - production run `Bergwerk GmbH` / `981122011` / `Datenberatung` / `45150` / `ohne MwSt.` succeeded in the canonical `3` calls: direct `POST /customer` with `invoiceSendMethod=MANUAL`, filtered outgoing VAT read, then `POST /invoice`
+   144→  - the production invoice write already proved the intended no-VAT outcome with `amountExcludingVatCurrency=45150` and `amountCurrency=45150`
+   145→  - persistent sandbox proof on analogous fresh-customer `999518478` / `Bergwerk Reflection 999518478 GmbH` returned only VAT code `6` (`0%`) and the same `45150` / `45150` totals through the same `3` calls, again without any customer pre-read, bank-account repair, or explicit `:send` call
+   146→- preemptive bank-account resolution tested in persistent sandbox on 2026-03-21:
+   147→  - 3-way parallel `[POST /customer, GET /ledger/vatType, GET /ledger/account]` completed in 141ms but total flow took 1423ms (4 calls) vs 616ms sequential (3 calls) for the same happy-path outcome
+   148→  - preemptive checking adds 1 unnecessary call (~70% of production runs don't need bank repair) with no wall-clock benefit from parallelization
+   149→  - conclusion: keep the reactive try-first approach; only enter the repair branch when `POST /invoice` actually returns the bank-account 422
+   150→- production VAT environment re-confirmed on 2026-03-21:
+   151→  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` on a production account returned VAT codes 3 (25%), 31 (15%), 32 (12%), 5 (0%), 52 (0%), 6 (0%) — the full set
+   152→  - persistent sandbox for the same date still returns only code 6 (0%)
+   153→  - this confirms that `vatType.id=3` at 25% is valid in production but NOT in sandbox; dynamic lookup remains essential
+   154→- description-only order lines (no product reference) verified in persistent sandbox on 2026-03-21:
+   155→  - `POST /invoice` with `orders[].orderLines[].description = "Systemutvikling"`, `count = 1`, `unitPriceExcludingVatCurrency = 28900`, `vatType.id = 6` succeeded in 201
+   156→  - readback via `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*)))` showed `product: null`, `description: "Systemutvikling"`, correct price and VAT
+   157→  - this proves no `POST /product` or `GET /product` is needed for description-only invoice tasks; `POST /invoice` handles product-less lines natively
+   158→  - the 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` should have used this exact standard but instead used the order-based flow and spent 8 calls (2 wasted on product search/creation + wrong flow choice); the optimal was 6 calls: `GET /customer` → `GET /ledger/vatType` → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry; the production invoice returned `amountExcludingVatCurrency=28900`, `amountCurrency=36125` (25% VAT)
+   159→- existing-customer direct-line create-and-send confirmed in production on 2026-03-21:
+   160→  - the production run for `Brightstone Ltd` / `894181273` / `Cloud Storage` / `14150` / `excluding VAT` (English prompt, existing customer) succeeded with optimal 6 API calls and 0 avoidable errors
+   161→  - `GET /customer?organizationNumber=894181273&fields=*` resolved the existing customer (id=108328570, name=Brightstone Ltd)
+   162→  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` resolved the outgoing VAT (id=3, 25%)
+   163→  - `POST /invoice?sendToCustomer=true` hit the known bank-account validation (422)
+   164→  - bank-account repair: `GET /ledger/account?isBankAccount=true&fields=*` → `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` → retry `POST /invoice?sendToCustomer=true` succeeded (201)
+   165→  - final invoice: id=2147643106, invoiceNumber=1, `amountExcludingVatCurrency=14150`, `amountCurrency=17687.5` (14150 × 1.25)
+   166→  - this is the first production confirmation of the existing-customer direct-line create-and-send variant with bank-account repair; the existing-customer branch (3 core + 3 repair = 6 calls) matches the optimal new-customer + repair shape
+   167→  - the prompt "the customer Brightstone Ltd" with English definite article correctly triggered `GET /customer` instead of `POST /customer`
+   168→  - persistent sandbox re-verification on 2026-03-21 confirmed the same create-and-send mechanics with `sendToCustomer=true` on the existing customer; sandbox only has 0% VAT so the exact 25% taxed outcome was not reproducible there
+   169→  - sandbox also re-confirmed that omitting `vatType` on a direct line creates 0% VAT (amountCurrency == amountExcludingVatCurrency), proving the VAT lookup is essential for the taxed branch
+   170→- product-line order lines with batch-created products verified in persistent sandbox on 2026-03-21:
+   171→  - `POST /product/list` with 3 products (`{ "name": "Analysis Report", "number": ... }`, etc.) returned 201 with all 3 IDs in one call
+   172→  - `POST /invoice` with `orders[].orderLines[].product: { "id": <product-id> }` referencing the batch-created products succeeded in 201
+   173→  - readback via `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*)))` confirmed all 3 order lines had the correct `product.number`, `product.name`, `unitPriceExcludingVatCurrency`, and `vatType`
+   174→  - optimal flow: 3 parallel calls (`POST /product/list` + `GET /customer` + `GET /ledger/vatType`) + 1 `POST /invoice` = 4 calls total
+   175→  - with bank repair: + 1 failed invoice + 1 `GET /ledger/account` + 1 `PUT /ledger/account/{id}` + 1 retry = 7 calls total
+   176→  - also verified: `product: { "number": 9796 }` on order line does NOT resolve products by number — readback shows `product: null`; must use `product: { "id": <id> }`
+   177→  - also verified: inline product creation via invoice (product with name+number but no id) does NOT work — readback shows `product: null`
+   178→  - the 2026-03-21 production run for `Oakwood Ltd` / `909722500` used description-only lines (6 calls with bank repair) and scored 5/8 (checks 3, 4, 5 failed); the correct path was 7 calls: `GET /customer` + `GET /ledger/vatType` + `POST /product/list` (parallel) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry
+   179→
+```
+
+## 2026-03-21T22:26:36.685Z assistant_message
+Invoice needs `orders[].orderLines[]`, not top-level. Let me fix and run only the remaining 2 calls.
+
+## 2026-03-21T22:26:36.693Z tool_call
+tool: Write
+call_id: toolu_vrtx_01HoqtkMxUKmAScHndJnCzin
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts/fix.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"Yi7bFvRBeibSxllTjefDiqCbrmzR8-X1tkCbHmRDL0E\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\nconst TODAY = \"2026-03-21\";\nconst FEE = 40;\n\n// From prior successful calls:\nconst customerId = 108441398;\nconst overdueInvoiceId = 2147645103;\nconst paymentTypeId = 37539606;\n\nasync function api(method: string, path: string, body?: any) {\n  const url = `${BASE}${path}`;\n  const opts: any = {\n    method,\n    headers: { Authorization: AUTH, \"Content-Type\": \"application/json\" },\n  };\n  if (body) opts.body = JSON.stringify(body);\n  const r = await fetch(url, opts);\n  const text = await r.text();\n  let json: any;\n  try { json = JSON.parse(text); } catch { json = text; }\n  if (!r.ok) {\n    console.error(`${method} ${path} → ${r.status}`, JSON.stringify(json).slice(0, 500));\n    throw new Error(`${r.status}`);\n  }\n  console.log(`${method} ${path} → ${r.status}`);\n  if (json?.values !== undefined) return json.values;\n  if (json?.value !== undefined) return json.value;\n  return json;\n}\n\nasync function main() {\n  // 5. Create and send fee invoice (fix: use orders[].orderLines[])\n  const feeInvoice = await api(\"POST\", \"/invoice\", {\n    invoiceDate: TODAY,\n    invoiceDueDate: TODAY,\n    customer: { id: customerId },\n    orders: [\n      {\n        customer: { id: customerId },\n        orderDate: TODAY,\n        deliveryDate: TODAY,\n        orderLines: [\n          {\n            description: \"Mahngebühr\",\n            count: 1,\n            unitPriceExcludingVatCurrency: FEE,\n          },\n        ],\n      },\n    ],\n  });\n  console.log(`Fee invoice created: id=${feeInvoice.id} #${feeInvoice.invoiceNumber} amount=${feeInvoice.amountCurrency}`);\n\n  // 6. Register partial payment on overdue invoice\n  const paymentResult = await api(\"PUT\",\n    `/invoice/${overdueInvoiceId}/:payment?paymentDate=${TODAY}&paymentTypeId=${paymentTypeId}&paidAmount=5000`);\n  console.log(`Payment registered. Remaining outstanding: ${paymentResult.amountCurrencyOutstanding ?? paymentResult.amountOutstanding}`);\n}\n\nmain().catch(e => { console.error(\"FATAL:\", e.message); process.exit(1); });\n"
+}
+```
+
+## 2026-03-21T22:26:36.711Z tool_result
+tool: Write
+call_id: toolu_vrtx_01HoqtkMxUKmAScHndJnCzin
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts/fix.ts
+```
+
+## 2026-03-21T22:26:39.425Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01DdXgNUDe5hUWFAXhqiD57D
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222433471Z-ba977073/scripts && bun run fix.ts 2>&1",
+  "description": "Execute remaining 2 API calls",
+  "timeout": 30000
+}
+```
+
+## 2026-03-21T22:26:43.371Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01DdXgNUDe5hUWFAXhqiD57D
+
+```text
+POST /invoice → 201
+Fee invoice created: id=2147645318 #4 amount=40
+PUT /invoice/2147645103/:payment?paymentDate=2026-03-21&paymentTypeId=37539606&paidAmount=5000 → 200
+Payment registered. Remaining outstanding: 31875
+```
+
+## 2026-03-21T22:26:51.760Z assistant_message
+All 6 steps completed successfully (7 total calls, 1 wasted 422 on invoice structure):
+
+1. **GET /invoice** → found overdue invoice #1 (id=2147645103, customer=108441398, outstanding=36875, due=2026-02-07)
+2. **GET /invoice/paymentType** → payment type 37539606
+3. **GET /ledger/account** → 1500 (id=475220342), 3400 (id=475220538)
+4. **POST /ledger/voucher** → voucher #1 (id=609186182), 40 NOK debit 1500 / credit 3400
+5. **POST /invoice** → fee invoice #4 (id=2147645318, amount=40)
+6. **PUT /invoice/:payment** → partial payment 5000, outstanding reduced 36875→31875
+
+## 2026-03-21T22:26:51.762Z tool_call
+tool: TodoWrite
+call_id: toolu_vrtx_01AbrRWPkEETPtSmha4aF4dE
+
+```json
+{
+  "todos": [
+    {
+      "content": "Read relevant trusted standards and playbooks",
+      "status": "completed",
+      "activeForm": "Reading trusted standards and playbooks"
+    },
+    {
+      "content": "Write and execute the 6-call script",
+      "status": "completed",
+      "activeForm": "Writing and executing the 6-call script"
+    },
+    {
+      "content": "Register partial payment of 5000 NOK on overdue invoice",
+      "status": "completed",
+      "activeForm": "Registering partial payment"
+    }
+  ]
+}
+```
+
+## 2026-03-21T22:26:51.763Z tool_result
+tool: TodoWrite
+call_id: toolu_vrtx_01AbrRWPkEETPtSmha4aF4dE
+
+```text
+Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable
+```

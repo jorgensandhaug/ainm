@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett prosjektet \"Migrasjon Elvdal\" knytt til kunden Elvdal AS (org.nr 962211348). Prosjektleiar er Geir Aasen (geir.aasen@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "9upuuZZrsD_zv0FV_2ea2keqCjZPsVGxDOAfpu4TSew"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "El cliente Viento SL (org. nº 978503071) ha reclamado sobre la factura por \"Licencia de software\" (25450 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "VIjxvJ1Ho36yb5szu0u3s7tAzbsVSWf-T8sd11TAvzA"
+  }
+}

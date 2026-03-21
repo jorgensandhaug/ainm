@@ -1,0 +1,1 @@
+Score reflection written. Task 17: perfect correctness (13/13, 6/6 checks), normalized 3.5/4.0 — matches leaderboard ceiling. The 0.5 gap is structural (5-call minimum enforced by API constraints). Nothing to change.

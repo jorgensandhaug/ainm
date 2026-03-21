@@ -1,0 +1,1 @@
+Score reflection written. The run was correct (4/4 checks, 8/8 raw) but scored `3/4` normalized due to the inherent 3-call floor for standalone payment tasks. The existing best of `3.3333` was likely from a run with a cached `paymentTypeId` (2-call path). No actionable fix for isolated runs.

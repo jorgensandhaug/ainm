@@ -1,0 +1,8 @@
+{
+  "prompt": "El cliente Olivares SL (org. nº 866946108) tiene una factura pendiente de 43300 NOK sin IVA por \"Sesión de formación\". Registre el pago completo de esta factura.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "adGJB0unGbYBiRt7lvozd0YVV-NnO4etAZ-e7YFqTDU"
+  }
+}

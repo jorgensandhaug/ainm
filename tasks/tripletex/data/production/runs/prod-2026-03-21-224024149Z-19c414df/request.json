@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie eine Rechnung für den Kunden Brückentor GmbH (Org.-Nr. 804379010) mit drei Produktzeilen: Schulung (2626) zu 17300 NOK mit 25 % MwSt., Beratungsstunden (7746) zu 12850 NOK mit 15 % MwSt. (Lebensmittel), und Cloud-Speicher (5675) zu 7050 NOK mit 0 % MwSt. (befreit).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "-q_4EIn57qBGFt9CqaSnbbseezwXF3gMpKBFB_91zq8"
+  }
+}
