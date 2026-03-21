@@ -94,12 +94,32 @@ To break through 78.4, we need fundamentally different modeling approaches.
 6. Polynomial time-static interactions (overfitting, -4.2 points)
 7. Tensor mixing (mathematically equivalent to weight-bank rollout for this config)
 
-## Key Conclusion
+## Additional Results (Phase 3)
 
-The GLMM latent z2 model at 78.4 is at the **architectural ceiling** for linear-softmax cell-transition models with low-rank round manifolds. Every attempt to make the model richer (more features, interactions, regularization changes, ensemble blending) has either hurt or had zero effect.
+| Model | Score | Weighted KL | Delta | Status |
+|-------|-------|-------------|-------|--------|
+| z2 barren_v003 (barren correction, threshold 0.05) | 76.82 | 0.094 | -1.56 | REJECTED |
+| z2 barren_v001 (barren correction, threshold 0.03) | 76.01 | 0.097 | -2.37 | REJECTED |
+| z2 barren_v002 (barren correction, threshold 0.04) | 75.83 | 0.098 | -2.55 | REJECTED |
 
-To break through, we need a fundamentally different approach:
-- Non-linear transition model (neural network)
-- Direct terminal prediction (skip rollout)
-- Much richer replay-derived features
-- Or a completely different model family
+Note: Barren correction does NOT trigger on the actual worst round (36e581f1). The GLMM model's failure mode is DIFFERENT from query_residual's failure mode - it's not about overestimating settlement activity.
+
+## Key Conclusions
+
+1. The GLMM latent z2 model at 78.4 is at the **architectural ceiling** for linear-softmax cell-transition models.
+
+2. **Every attempt to improve it has failed** (14 experiments, all negative or zero):
+   - More features (neighborhood, polynomial): -4 to -11 pts
+   - Stronger/weaker regularization: -6 to -12 pts
+   - Higher latent dimensions: -1 pt
+   - Ensemble blending (bucket prior): -1.2 pts
+   - Observation blending: -2.2 pts
+   - Barren round correction: -1.6 to -2.5 pts
+   - More epochs: +0.02 pts (negligible)
+   - Tensor mixing: ±0.00 pts (mathematically equivalent)
+
+3. The best score across ALL agents on this machine is agent3's **79.98** using an adaptive ensemble on query_residual_v19 with barren round correction. Our GLMM model at 78.4 is 1.6 points behind but cannot benefit from the same corrections.
+
+4. The fundamental bottleneck is the **limited number of independent rounds** (~8). With only 7 training rounds in leave-one-out, there is not enough diversity to handle novel regimes.
+
+5. The worst round (36e581f1, score 49) fails because it represents a regime that is far from all training rounds in the latent space. No amount of model tuning can fix this without more training rounds.
