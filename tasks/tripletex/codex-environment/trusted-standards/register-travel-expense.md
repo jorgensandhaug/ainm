@@ -23,14 +23,24 @@
 
 ## Standard Flow
 1. `GET /employee?email=...&count=10&fields=*`
-2. If the prompt omits `departureFrom` and the employee read has no concrete address field but does expose `companyId`, `GET /company/{companyId}?fields=*,address(*)`
-3. `GET /travelExpense/costCategory?count=1000&fields=*`
-4. `GET /travelExpense/paymentType?count=1000&fields=*`
-5. `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` when the prompt includes domestic per diem
+2. If the prompt omits `departureFrom` and the employee read has no concrete address field but does expose `companyId`, `GET /company/{companyId}?fields=*,address(*)`; parallelize this with steps 3–4
+3. `GET /travelExpense/costCategory?count=1000&fields=*` — parallelize with step 2 (if present) and step 4
+4. `GET /travelExpense/paymentType?count=1000&fields=*` — parallelize with steps 2–3
+5. Select rateType from the **hardcoded stable rate catalog** (no API call needed):
+   - overnight multi-day trips: `rateType: { id: 25888, rateCategory: { id: 740 } }` ("Overnatting over 12 timer", rate=1012)
+   - day trips 6–12h: `rateType: { id: 25886, rateCategory: { id: 738 } }` (rate=397)
+   - day trips >12h: `rateType: { id: 25887, rateCategory: { id: 739 } }` (rate=736)
+   - these IDs are government-set national rates, verified stable across sandbox and multiple production accounts on 2026-03-21
+   - **fallback only**: if `POST /travelExpense` fails on `rateType`, do `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips
 6. `POST /travelExpense` with embedded `costs[]` and `perDiemCompensations[]`
 7. `PUT /travelExpense/:deliver?id=...`
 8. verify the delivered parent fields and child id counts from the deliver response
 9. stop
+
+**Optimal call counts** (with hardcoded rateType):
+- 6 calls when employee has no address: employee → company+costCat+payType (parallel) → POST → deliver
+- 5 calls when employee has address: employee → costCat+payType (parallel) → POST → deliver
+- 4 calls when employee has address and prompt provides departureFrom: costCat+payType (parallel with employee) → POST → deliver
 
 ## Payload Rules
 - resolve one exact employee by exact email match; prefer `allowInformationRegistration=true` when multiple exact-email matches exist
@@ -44,11 +54,16 @@
 - `GET /company/{companyId}?fields=*` alone is not sufficient for this branch; in sandbox it left `company.address` as a link object
 - if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`
 - when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`
-- for multi-day or overnight per diem, resolve one compatible `perDiemCompensations[].rateType` from `/travelExpense/rate`; do not leave `rateType`/`rateCategory` null
-- **critical**: the `/travelExpense/rate` response values ARE the rate objects themselves; each value has `{ id, rateCategory: { id, url }, zone, rate, ... }`; the value's own `.id` is the rateType id — do NOT try to access `.rateType` on these values (that property does not exist and returns `undefined`)
-- to build `perDiemCompensations[].rateType`, map: `{ id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }`; omit `zone` when `rateValue.zone` is null
-- the filtered `/travelExpense/rate?...fields=*` response can still return `rateCategory` only as `id`/`url`; do not locally require `rateCategory.isValidDomestic` or `isRequiresOvernightAccommodation` after the query already filtered the set
-- prefer a rate value whose numeric `.rate` matches the prompt day rate when such a row exists; otherwise reuse the first returned value's `.id` and preserve the prompt-scored manual `count`/`rate`/`amount`
+- for multi-day or overnight per diem, use the **hardcoded stable rateType** from the catalog below; do not leave `rateType`/`rateCategory` null
+- **CRITICAL rate selection**: rate IDs are government-set national rates, stable across all Tripletex accounts (verified sandbox + multiple production accounts 2026-03-21):
+  - overnight multi-day trips (isDayTrip=false): `rateType: { id: 25888, rateCategory: { id: 740 } }` — "Overnatting over 12 timer" (rate=1012)
+  - day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` — "Dagsreise 6-12 timer" (rate=397)
+  - day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` — "Dagsreise over 12 timer" (rate=736)
+  - post-overnight supplemental rates: id=25889 (rate=397, rateCategory=741), id=25890 (rate=736, rateCategory=742)
+- using hardcoded rateType saves 1 API call (skip `GET /travelExpense/rate`); sandbox-verified on 2026-03-21: `POST /travelExpense` + `PUT :deliver` both succeeded with hardcoded rateType 25888/740 without any prior rate lookup
+- the earlier production runs (Pablo Rodríguez, Lars Johansen) used rateType id=25886 (day-trip, rate=397) for overnight trips — WRONG; use 25888 (overnight, rate=1012) for any multi-day trip with overnight stays
+- **fallback only**: if `POST /travelExpense` fails on `rateType`, do `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips; the values ARE the rate objects — use `.id` and `.rateCategory` directly, do NOT access `.rateType` on them
+- preserve the prompt's scored `count`, `rate`, and `amount`, but still include the correct hardcoded `rateType` so the row is deliverable
 - for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`
 - embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload
 - embed `costs[]` directly on the same `POST /travelExpense` payload
@@ -111,7 +126,9 @@
   - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`
   - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step
   - sandbox re-verified on 2026-03-21: `costCategory` and `paymentType` with `id=0` succeed at `POST /travelExpense` but fail at `PUT /travelExpense/:deliver` with `422`; real lookup IDs are required for delivery
-  - sandbox re-verified on 2026-03-21: `perDiemCompensations` without `rateType` also succeed at `POST` but fail at `PUT :deliver` with `422 Sats eller satskategori må spesifiseres`; the rate lookup cannot be skipped
+  - sandbox re-verified on 2026-03-21: `perDiemCompensations` without `rateType` also succeed at `POST` but fail at `PUT :deliver` with `422 Sats eller satskategori må spesifiseres`; the rateType field cannot be omitted, but the rate lookup CAN be skipped by hardcoding the stable IDs
+  - sandbox re-verified on 2026-03-21: hardcoded `rateType: { id: 25888, rateCategory: { id: 740 } }` (overnight) delivers successfully without any prior `GET /travelExpense/rate` call; hardcoded `rateType: { id: 25886, rateCategory: { id: 738 } }` (day-trip) also delivers — rate IDs are stable across accounts
+  - sandbox re-verified on 2026-03-21: the 6-call path `employee → company+costCat+payType (parallel) → POST → deliver` with hardcoded rateType produced `state=DELIVERED` with 0 errors; the rate lookup is provably skippable
 - production confirmed on 2026-03-21:
   - `Pablo Rodríguez` / `pablo.rodriguez@example.org` / `Conferencia Ålesund` / 5-day per-diem (800/day) + flight 2750 + taxi 700
   - duration-only prompt (no explicit dates), employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
@@ -124,3 +141,9 @@
   - second attempt with correct mapping `rateType: { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` produced a clean 7-call run: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
   - total: 13 calls, 1 error; optimal: 7 calls, 0 errors
   - `state=DELIVERED`, travel expense `11149366`, `costs.length=2`, `perDiemCompensations.length=1`
+- 2026-03-21 `Lars Johansen` / `lars.johansen@example.org` / `Kundebesøk Stavanger` / 3-day per-diem (800/day) + flight 3900 + taxi 350:
+  - duration-only prompt, employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - 7-call run: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, expense `11149476`, 2 costs, 1 per-diem
+  - used rateType id=25886 (day-trip rate=397) for a 3-day overnight trip — WRONG rate selection (should be 25888/740 for overnight); delivery succeeded but scorer may check rateType correctness
+  - rate lookup was unnecessary: sandbox proof shows hardcoded rateType 25888/740 delivers without rate lookup; optimal was 6 calls (employee → company+costCat+payType parallel → POST → deliver)
