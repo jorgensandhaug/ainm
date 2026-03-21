@@ -123,6 +123,15 @@ Verified on 2026-03-21:
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
   - correctness=1.0, normalized_score=4 (tied best), 5/5 checks passed
 - persistent-sandbox re-verification on 2026-03-21 with a disposable fixture matching `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050` again proved the same two-call core after setup
+- a ninth production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=812449982`
+  - `amountExcludingVatCurrency=45300`
+  - `description="Datarådgjeving"`
+- this is the second production confirmation for this exact prompt shape (first was 2026-03-20):
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - 2 API calls, 0 errors
 
 ## Minimal Flow
 

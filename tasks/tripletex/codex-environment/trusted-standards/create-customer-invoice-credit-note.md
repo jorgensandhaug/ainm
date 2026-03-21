@@ -36,6 +36,7 @@
 - only reduce this to one API call when the prompt already gives the exact invoice id
 - do not spend a separate `GET /customer` or `GET /invoice/{id}` in the standard shape
 - for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, `organizationNumber=882988155`, `description="Heures de conseil"`, `amountExcludingVatCurrency=40900`, `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, `organizationNumber=962075754`, `description="Analysebericht"`, `amountExcludingVatCurrency=30200`, that two-call path was the successful production path on 2026-03-20
+- for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, that two-call path was re-confirmed as the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=996887898`, `description="Vedlikehold"`, `amountExcludingVatCurrency=19200`, that two-call path was the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`, that two-call path was the successful production path on 2026-03-21
 
@@ -127,3 +128,7 @@
   - `PUT /invoice/2147566276/:createCreditNote?date=2026-03-21&sendToCustomer=false`
   - the run succeeded with 2 API calls, 0 errors, correctness=1.0, normalized_score=4 (tied best), 5/5 checks passed
   - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+- production run re-confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`:
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/2147571523/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+  - the run succeeded with 2 API calls, 0 errors; this is the second production confirmation for this exact prompt shape (first was 2026-03-20)
