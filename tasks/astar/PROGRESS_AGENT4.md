@@ -3148,6 +3148,44 @@ To make the evidence model competitive in live rounds, we need either:
 | Evidence v2 fixed | ev20 | ev20 | 82.50 | 0.064 |
 | **Evidence v2 fixed** | **ev15** | **ev15** | **83.06** | **0.062** |
 
+#### Evidence+prior model — NEGATIVE RESULT
+- Evidence model with explicit prior comparison features: `score=64.67, kl=0.158`
+- WORSE than simpler models — prior features create train/serve distribution shift
+- Rejected
+
+#### Summary of all new model experiments
+
+| Model | Config | Score | KL | Notes |
+|-------|--------|-------|-----|-------|
+| Historical bucket | prior-only | 66.32 | 0.142 | existing baseline |
+| Replay LGB | prior-only | 66.74 | 0.150 | marginal over baseline |
+| Evidence v2 fixed ev1 | single observation | 69.70 | 0.128 | spatial features help |
+| **Evidence mixed ev1** | mixed train, single serve | **72.35** | 0.112 | robust training helps |
+| Evidence v2 ev3 | 3 replays | 76.81 | 0.090 | |
+| **query_residual_v11** | online queries | **79.39** | 0.078 | **formal benchmark champion** |
+| Evidence v2 ev5 | 5 replays | 79.23 | 0.079 | matches champion |
+| Evidence v2 ev10 | 10 replays | 80.60 | 0.072 | beats champion |
+| Evidence mixed ev15 | mixed train, 15 serve | 81.15 | 0.071 | |
+| Evidence v2 ev20 | 20 replays | 82.50 | 0.064 | |
+| **Evidence v2 ev15** | **15 replays, 58 total** | **83.06** | **0.062** | **BEST EVER** |
+
+#### Key scientific findings
+1. **Spatial propagation of observed evidence is powerful**: Neighborhood evidence features give +3-5 points even with single observations
+2. **Multi-replay evidence averaging is transformative**: Going from 1 to 15 evidence replays gives +13 points
+3. **Mixed evidence training improves robustness**: Training with variable evidence quality gives +2.65 points for single-observation serving
+4. **Prior comparison features hurt**: Adding explicit prior comparison creates overfitting
+5. **The evidence model's limit**: With single observations (live-applicable), best is 72.35, still below champion at 79.39
+6. **With multiple replays (non-live)**: The evidence model crushes the champion at 83.06 vs 79.39
+
+#### Architecture: what made this work
+The key innovation is the **unified evidence-feature model**: instead of separate prior + Bayesian update, a single LightGBM model takes BOTH map features AND observed cell evidence as input. Features include:
+- Static map features (terrain, distance, topology): ~60 features
+- Observed class frequencies per cell: 6 features
+- Neighborhood evidence summaries at multiple scales: ~30 features
+- Evidence quality indicator: 1 feature
+
+The model learns to optimally combine map prior information with observational evidence, including learning when to trust observations vs prior.
+
 #### Next experiments to run
 1. Use overlapping viewport query policy to get 2-3 observations per cell
 2. Ensemble evidence LGB with query_residual champion
