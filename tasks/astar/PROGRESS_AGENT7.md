@@ -2496,4 +2496,5 @@ Framework should accept unique query-residual family variant names directly so b
   - reran benchmark tests after alias promotion
   - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
   - passed: `102`
-  - next step: commit + push the new champ branch state
+  - committed + pushed promoted state to `origin/agent7`
+  - commit: `df87640a`
