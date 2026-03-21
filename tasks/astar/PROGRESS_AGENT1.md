@@ -1245,3 +1245,13 @@
   - rationale:
     - broad/proxy v7 results are now strong enough that the next justified axis is score-aware class-weighted posterior refinement
     - reduced job count respects the higher shared-machine load while still using the available box
+- commit/push completed after logging the new `v7` frontier and `v8` implementation:
+  - commit: `4222ae37`
+  - pushed to `origin/agent1`
+- post-launch machine check:
+  - `14:15 UTC`: load about `720.7 / 292.0 / 159.1`
+  - memory free about `900 GiB`
+  - machine still has abundant memory, but total shared CPU contention spiked sharply
+  - action:
+    - keep the single reduced-width `v8` proxy alive
+    - do not launch any more top-level jobs until this result lands or load drops materially
