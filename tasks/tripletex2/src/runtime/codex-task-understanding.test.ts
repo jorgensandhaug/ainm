@@ -15,7 +15,13 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
         {
           fileName: "note.txt",
           mediaType: "text/plain",
+          path: "/tmp/run/attachments/01-note.txt",
           textContent: "hello tripletex",
+        },
+        {
+          fileName: "invoice.pdf",
+          mediaType: "application/pdf",
+          path: "/tmp/run/attachments/02-invoice.pdf",
         },
       ],
     },
@@ -24,7 +30,12 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
 
   assert.match(prompt, /Follow \.\/AGENTS\.md exactly\./);
   assert.match(prompt, /Registered task surfaces:/);
-  assert.match(prompt, /Attachment text:/);
+  assert.match(prompt, /Attachments:/);
+  assert.match(prompt, /path: \/tmp\/run\/attachments\/01-note\.txt/);
+  assert.match(prompt, /path: \/tmp\/run\/attachments\/02-invoice\.pdf/);
+  assert.match(prompt, /hasTextContent: yes/);
+  assert.match(prompt, /hasTextContent: no/);
+  assert.match(prompt, /textContent:\nhello tripletex/);
   assert.match(prompt, /hello tripletex/);
   assert.match(prompt, /"taskId": "08"/);
   assert.match(prompt, /"taskName": "Create and send invoice"/);

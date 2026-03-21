@@ -657,7 +657,7 @@ test("pollAndMatchSubmission skips when submissions auth is missing", async () =
     };
 
     assert.equal(score.status, "skipped");
-    assert.equal(score.reason, "solve_not_completed");
+    assert.equal(score.reason, "missing_submissions_access_token");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

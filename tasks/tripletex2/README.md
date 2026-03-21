@@ -115,7 +115,7 @@ The classifier intentionally uses the same tmux-based invocation style as the fu
 
 The important difference from the solver path is the prompt contract:
 
-- **classifier**: read `./AGENTS.md`, classify one task, extract typed input, submit JSON.
+- **classifier**: read `./AGENTS.md`, classify one task, extract typed input, submit JSON. The classifier prompt also receives staged attachment metadata and on-disk attachment paths under the run directory, so Codex can inspect the original PDF or other file directly when needed.
 - **solver fallback**: solve the full Tripletex task.
 
 ### Classification contract
@@ -376,6 +376,8 @@ Important artifact categories:
 - semantic routing research under `research/semantic-routing/`.
 
 These matter because they keep classifier decisions, retries, deterministic execution, fallback runs, and strategy-research decisions inspectable after the fact.
+
+Deterministic runs now stage attachments under the same `attachments/NN-filename` convention as tmux runs. The staged `request.json` may include a per-file `path`, and `textContent` is only preserved for genuinely textual attachments. Binary inputs such as PDFs keep their raw bytes and staged path, but do not get synthetic UTF-8 `textContent`.
 
 ## Local Development
 
