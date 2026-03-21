@@ -473,11 +473,11 @@
 ## Current Best Known Local Line
 
 - Current best full local historical-online result in this checkout:
-  - experiment: `agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321`
-  - model: `query_residual_v9_v10_blend025_v001`
+  - experiment: `agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321`
+  - model: `query_residual_v9_v10_adaptive025_v001`
   - policy: `exploration_v2`
-  - mean score: `74.5110`
-  - mean weighted KL: `0.101290`
+  - mean score: `74.5181`
+  - mean weighted KL: `0.101208`
 
 ### 2026-03-21T12:16:00Z
 
@@ -605,3 +605,141 @@
   - the immediate lighter-weight follow-up did not beat it, so the fixed-blend family now has at least a minimal local bracketing check rather than a single ad hoc win
   - keep the reusable fixed-blend machinery
   - removed the losing `query_residual_v9_v10_blend020_v001` registration after recording the result, mirroring the cleanup used for the failed `v10_pb040` probe
+
+### 2026-03-21T15:22:00Z
+
+- New follow-up direction after the fixed-weight bracketing check:
+  - avoid spending more full runs on near-identical scalar blend weights
+  - add held-out-fold checkpoint caching for query-residual-family predictors keyed by the exact training-round set
+  - expose one adaptive blend candidate:
+    - `query_residual_v9_v10_adaptive025_v001`
+- Rationale:
+  - `25%` fixed blending already won; `20%` confirmed the residual trade-off is localized, not just a globally too-large `v10` weight
+  - the next plausible gain is to reallocate `v10` mass toward cells where the two models disagree and uncertainty is high, while reducing `v10` on easy/agreeing cells
+  - fold-keyed checkpoints do not change validation semantics, but should materially improve iteration speed for any further blend-family probes
+- Adaptive blend design:
+  - compute per-cell normalized entropy from the midpoint prediction
+  - compute per-cell total-variation disagreement between `v9_locgate` and `v10`
+  - set the `v10` weight proportional to `entropy * disagreement`, then renormalize back toward a `25%` mean target with clipping
+- Validation plan:
+  - rerun smoke tests
+  - run a targeted 4-round complementarity probe on:
+    - `8e839974...`
+    - `ae78003a...`
+    - `c5cdf100...`
+    - `f1dac9a9...`
+  - only run the full 8-round benchmark if the targeted probe looks genuinely promising
+
+### 2026-03-21T15:48:00Z
+
+- Validation after exposing `query_residual_v9_v10_adaptive025_v001`:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `12 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` -> `1 passed`
+- Completed the targeted 4-round complementarity probe:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_adaptive025_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_dev_query_residual_v9_v10_adaptive025_path4_exploration_20260321 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --round-id c5cdf100-a876-4fb7-b5d8-757162c97989 --round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - result:
+    - mean score: `72.4575`
+    - mean weighted KL: `0.111134`
+    - runtime: `565.427s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev_query_residual_v9_v10_adaptive025_path4_exploration_20260321/result.json`
+- Comparison vs fixed `query_residual_v9_v10_blend025_v001` on the same 4 rounds:
+  - score delta: `+0.038175`
+  - weighted KL delta: `-0.000314`
+  - detailed pattern:
+    - wins:
+      - `8e839974...`: `+2.460528` score, `-0.009451375` KL
+      - `c5cdf100...`: `+2.422759` score, `-0.011169313` KL
+      - `f1dac9a9...`: `+4.919060` score, `-0.026955606` KL
+    - loss:
+      - `ae78003a...`: `-9.649557` score, `+0.046319157` KL
+- Interpretation:
+  - the adaptive gate is clearly more aggressive than the fixed `25%` blend
+  - it is not a uniformly safer replacement, but the exact targeted screen it was meant to attack is still net-positive
+  - therefore it has earned one honest full 8-round benchmark, rather than being promoted from the dev probe alone
+- Runtime / validation improvement confirmed:
+  - the new held-out-fold checkpoint caching is already materializing `n=3` and `n=7` component checkpoints keyed by the training-round set
+  - implication:
+    - the first adaptive full run is the expensive cache-building run
+    - any immediate follow-up blend-family rerun should now be materially cheaper without changing the holdout protocol
+
+### 2026-03-21T16:41:00Z
+
+- Completed the first full adaptive-blend benchmark:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_adaptive025_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.5181`
+    - mean weighted KL: `0.101208`
+    - runtime: `3005.827s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321/result.json`
+- Comparison vs current best fixed blend `query_residual_v9_v10_blend025_v001`:
+  - score delta: `+0.007162`
+  - weighted KL delta: `-0.000081729`
+  - dominant wins:
+    - `c5cdf100...`: `+0.220215` score, `-0.001041433` KL
+    - `f1dac9a9...`: `+0.219356` score, `-0.001264388` KL
+    - `8e839974...`: `+0.015009` score, `-0.000058469` KL
+  - main givebacks:
+    - `ae78003a...`: `-0.274970` score, `+0.001192964` KL
+    - `76909e29...`: `-0.081473` score, `+0.000323209` KL
+- Interpretation:
+  - the adaptive gate is a real full promotion signal, not just a dev-probe artifact
+  - but the linear weighting rule still appears sharper than ideal; it likely over-concentrates `v10` mass on a subset of cells in `ae78003a...`
+- New immediate follow-up:
+  - expose one milder variant:
+    - `query_residual_v9_v10_adaptive025sqrt_v001`
+  - change:
+    - keep the same entropy-times-disagreement adaptive rule
+    - compress the per-cell weight spread with a square-root exponent before scaling back to the `25%` target
+  - rationale:
+    - preserve the proven adaptive gain direction
+    - reduce the residual over-shoot on `ae78003a...` and the smaller easy-round regressions
+
+### 2026-03-21T16:58:00Z
+
+- Completed the cached sqrt-compressed adaptive follow-up:
+  - targeted 4-round result:
+    - `72.4570 / 0.111125` in `66.163s`
+  - full 8-round result:
+    - `74.5158 / 0.101245` in `180.440s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_adaptive025sqrt_8rounds_exploration_20260321/result.json`
+- Read:
+  - the cache-keyed held-out checkpoints work extremely well; repeat full blend-family runs are now cheap enough for tighter local search
+  - `adaptive025sqrt` remains better than fixed `blend025`, but it does not beat linear `adaptive025`
+- New final cheap follow-up:
+  - expose `query_residual_v9_v10_adaptive020_v001`
+  - rationale:
+    - the remaining failure mode of linear `adaptive025` is still excess loss on `ae78003a...`
+    - lowering the adaptive target mean from `25%` to `20%` is the most plausible remaining way to keep the adaptive hard-round allocation while softening that over-shoot
+
+### 2026-03-21T17:14:00Z
+
+- Validation after exposing `query_residual_v9_v10_adaptive020_v001`:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `14 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` -> `1 passed`
+- Completed the cached `adaptive020` sweep:
+  - targeted 4-round result:
+    - `72.4935 / 0.110934` in `66.806s`
+    - strongest path4 screen result among tested adaptive variants
+  - full 8-round result:
+    - `74.5164 / 0.101253` in `183.862s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_adaptive020_8rounds_exploration_20260321/result.json`
+- Comparison across the cached follow-up adaptive variants:
+  - `adaptive025`:
+    - full `74.5181 / 0.101208`
+    - current winner
+  - `adaptive025sqrt`:
+    - full `74.5158 / 0.101245`
+    - slightly below `adaptive025`
+  - `adaptive020`:
+    - full `74.5164 / 0.101253`
+    - slightly below `adaptive025`, despite the best path4 screen
+- Sweep conclusion for this turn:
+  - the adaptive family is real:
+    - it beats fixed `blend025` on full 8-round eval
+  - cached held-out-fold checkpoints are also real:
+    - first full adaptive run: `3005.827s`
+    - later full reruns with cached components: about `180s`
+  - among the tested adaptive variants, `query_residual_v9_v10_adaptive025_v001` remains the best local full result
+  - remove the losing temporary registrations `adaptive025sqrt` and `adaptive020` after recording them, keeping only the winning adaptive path plus the reusable checkpoint caching improvement

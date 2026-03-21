@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import hashlib
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -21,6 +22,9 @@ QUERY_RESIDUAL_V8 = "query_residual_v8"
 QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V9_LOCALGATE_V001 = "query_residual_v9_locgate_v001"
+QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001 = "query_residual_v9_v10_adaptive020_v001"
+QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001 = "query_residual_v9_v10_adaptive025_v001"
+QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001 = "query_residual_v9_v10_adaptive025sqrt_v001"
 QUERY_RESIDUAL_V9_V10_BLEND025_V001 = "query_residual_v9_v10_blend025_v001"
 
 
@@ -69,6 +73,20 @@ class RoundPredictorAdapter(BaseModel):
         )
 
 
+def _blend_prediction_arrays(
+    left_predictions: np.ndarray,
+    right_predictions: np.ndarray,
+    right_weight: float | np.ndarray,
+) -> np.ndarray:
+    right_weight_array = np.asarray(right_weight, dtype=np.float64)
+    if right_weight_array.ndim == 0:
+        return ((1.0 - right_weight_array) * left_predictions) + (right_weight_array * right_predictions)
+    return (
+        (1.0 - right_weight_array)[..., None] * left_predictions
+        + right_weight_array[..., None] * right_predictions
+    )
+
+
 class FixedPredictionBlendPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -77,15 +95,23 @@ class FixedPredictionBlendPredictor(BaseRoundPredictor):
     right_weight: float
     name: str = "fixed_prediction_blend_v1"
 
+    def _blend_seed_predictions(
+        self,
+        left_predictions: np.ndarray,
+        right_predictions: np.ndarray,
+    ) -> np.ndarray:
+        return _blend_prediction_arrays(left_predictions, right_predictions, self.right_weight)
+
     def _blend_bundles(
         self,
         left_bundle: PredictionBundle,
         right_bundle: PredictionBundle,
     ) -> PredictionBundle:
-        left_weight = 1.0 - self.right_weight
         predictions_by_seed = {
-            seed_index: (left_weight * np.asarray(left_bundle.predictions_by_seed[seed_index], dtype=np.float64))
-            + (self.right_weight * np.asarray(right_bundle.predictions_by_seed[seed_index], dtype=np.float64))
+            seed_index: self._blend_seed_predictions(
+                np.asarray(left_bundle.predictions_by_seed[seed_index], dtype=np.float64),
+                np.asarray(right_bundle.predictions_by_seed[seed_index], dtype=np.float64),
+            )
             for seed_index in left_bundle.predictions_by_seed
         }
         return PredictionBundle(
@@ -113,6 +139,95 @@ class FixedPredictionBlendPredictor(BaseRoundPredictor):
         return self._blend_bundles(left_bundle, right_bundle)
 
 
+class AdaptiveEntropyDisagreementBlendPredictor(BaseRoundPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    left_predictor: BaseRoundPredictor
+    right_predictor: BaseRoundPredictor
+    target_right_weight: float
+    min_right_weight: float
+    max_right_weight: float
+    weight_exponent: float
+    name: str = "adaptive_entropy_disagreement_blend_v1"
+
+    def _adaptive_right_weight(
+        self,
+        left_predictions: np.ndarray,
+        right_predictions: np.ndarray,
+    ) -> np.ndarray:
+        mean_predictions = 0.5 * (left_predictions + right_predictions)
+        entropy = -np.sum(mean_predictions * np.log(np.maximum(mean_predictions, 1e-12)), axis=-1) / np.log(
+            mean_predictions.shape[-1],
+        )
+        disagreement = 0.5 * np.sum(np.abs(right_predictions - left_predictions), axis=-1)
+        raw_weight = entropy * disagreement
+        raw_mean = float(np.mean(raw_weight))
+        if raw_mean <= 1e-12:
+            return np.full(raw_weight.shape, self.target_right_weight, dtype=np.float64)
+        scaled_weight = raw_weight / raw_mean
+        if self.weight_exponent != 1.0:
+            scaled_weight = np.power(np.maximum(scaled_weight, 0.0), self.weight_exponent)
+        right_weight = self.target_right_weight * scaled_weight
+        return np.clip(right_weight, self.min_right_weight, self.max_right_weight)
+
+    def _blend_bundles(
+        self,
+        left_bundle: PredictionBundle,
+        right_bundle: PredictionBundle,
+    ) -> PredictionBundle:
+        predictions_by_seed = {}
+        for seed_index in left_bundle.predictions_by_seed:
+            left_predictions = np.asarray(left_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            right_predictions = np.asarray(right_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            right_weight = self._adaptive_right_weight(left_predictions, right_predictions)
+            predictions_by_seed[seed_index] = _blend_prediction_arrays(
+                left_predictions,
+                right_predictions,
+                right_weight,
+            )
+        return PredictionBundle(
+            round_id=left_bundle.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        left_bundle = self.left_predictor.build_prediction_bundle_from_context(context)
+        right_bundle = self.right_predictor.build_prediction_bundle_from_context(context)
+        return self._blend_bundles(left_bundle, right_bundle)
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        left_bundle = self.left_predictor.build_prediction_bundle(round_detail, features, evidence)
+        right_bundle = self.right_predictor.build_prediction_bundle(round_detail, features, evidence)
+        return self._blend_bundles(left_bundle, right_bundle)
+
+
+def _query_residual_checkpoint_dir_name(
+    checkpoint_stem: str,
+    *,
+    policy_name: str,
+    samples_per_round: int | None,
+    historical_round_ids: Sequence[str] | None,
+) -> str:
+    samples_suffix = ""
+    if samples_per_round is not None:
+        samples_suffix = f"__samples={samples_per_round}"
+    rounds_suffix = ""
+    if historical_round_ids is not None:
+        normalized_round_ids = sorted(set(historical_round_ids))
+        digest = hashlib.sha1(",".join(normalized_round_ids).encode("utf-8")).hexdigest()[:10]
+        rounds_suffix = f"__rounds=n={len(normalized_round_ids)}__sha1={digest}"
+    return f"{checkpoint_stem}__policy={policy_name}{samples_suffix}{rounds_suffix}"
+
+
 def _load_or_fit_query_residual_predictor(
     workspace_paths: WorkspacePaths,
     *,
@@ -127,25 +242,20 @@ def _load_or_fit_query_residual_predictor(
     fit_kwargs = {} if fit_kwargs is None else dict(fit_kwargs)
     if samples_per_round is not None:
         fit_kwargs.setdefault("samples_per_round", samples_per_round)
-    if historical_round_ids is not None:
-        return QueryResidualPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=list(historical_round_ids),
-            policy_name=resolved_policy_name,
-            model_name=model_name,
-            **fit_kwargs,
-        )
-    samples_suffix = ""
-    if samples_per_round is not None:
-        samples_suffix = f"__samples={samples_per_round}"
     checkpoint_dir = workspace_paths.model_dir(
-        f"{checkpoint_stem}__policy={resolved_policy_name}{samples_suffix}",
+        _query_residual_checkpoint_dir_name(
+            checkpoint_stem,
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+            historical_round_ids=historical_round_ids,
+        ),
     )
     checkpoint_path = checkpoint_dir / "checkpoint.json"
     if checkpoint_path.exists():
         return QueryResidualPredictor.load_checkpoint(checkpoint_path)
     predictor = QueryResidualPredictor.fit_from_workspace(
         workspace_paths,
+        round_ids=None if historical_round_ids is None else list(historical_round_ids),
         policy_name=resolved_policy_name,
         model_name=model_name,
         **fit_kwargs,
@@ -194,15 +304,13 @@ def _query_residual_v10_fit_kwargs() -> dict[str, object]:
     }
 
 
-def _build_query_residual_v9_v10_blend_adapter(
+def _load_query_residual_v9_v10_blend_components(
     workspace_paths: WorkspacePaths,
     *,
     historical_round_ids: Sequence[str] | None,
     policy_name: str | None,
     samples_per_round: int | None,
-    blend_name: str,
-    right_weight: float,
-) -> RoundPredictorAdapter:
+) -> tuple[QueryResidualPredictor, QueryResidualPredictor]:
     left_predictor = _load_or_fit_query_residual_predictor(
         workspace_paths,
         historical_round_ids=historical_round_ids,
@@ -221,10 +329,59 @@ def _build_query_residual_v9_v10_blend_adapter(
         model_name=QUERY_RESIDUAL_V10,
         fit_kwargs=_query_residual_v10_fit_kwargs(),
     )
+    return left_predictor, right_predictor
+
+
+def _build_query_residual_v9_v10_blend_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    right_weight: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_query_residual_v9_v10_blend_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
     predictor = FixedPredictionBlendPredictor(
         left_predictor=left_predictor,
         right_predictor=right_predictor,
         right_weight=right_weight,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
+def _build_query_residual_v9_v10_adaptive025_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    target_right_weight: float,
+    weight_exponent: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_query_residual_v9_v10_blend_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    predictor = AdaptiveEntropyDisagreementBlendPredictor(
+        left_predictor=left_predictor,
+        right_predictor=right_predictor,
+        target_right_weight=target_right_weight,
+        min_right_weight=0.05,
+        max_right_weight=0.45,
+        weight_exponent=weight_exponent,
         name=blend_name,
     )
     return RoundPredictorAdapter(
@@ -342,6 +499,39 @@ def build_online_predictor(
             samples_per_round=samples_per_round,
             blend_name=QUERY_RESIDUAL_V9_V10_BLEND025_V001,
             right_weight=0.25,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_adaptive025_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001,
+            target_right_weight=0.20,
+            weight_exponent=1.0,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_adaptive025_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001,
+            target_right_weight=0.25,
+            weight_exponent=1.0,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_adaptive025_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001,
+            target_right_weight=0.25,
+            weight_exponent=0.5,
         )
     if normalized == SMH_RESID_LOCALGATE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
