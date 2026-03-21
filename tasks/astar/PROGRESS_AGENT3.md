@@ -4655,10 +4655,30 @@
    - Only used 45/50 queries - need to fix coverage policy to use all 50
    - Need to explore better query policies for improved evidence quality
 
+509. Multi-episode sweep results (live cellwise LGB v3):
+   - **2 episodes: 83.34** (NEW OVERALL LIVE BEST!)
+   - 3 episodes: 83.13
+   - 3ep + ultra-low floor: 83.21
+   - 7 episodes: 82.96
+   - 4 episodes: 82.87
+   - 5 episodes + ultra-low floor: 82.82
+   - 5 episodes: 82.76
+   - 10 episodes: 82.62
+   - 1 episode: 82.38
+   - Sweet spot: 2 episodes per training round
+   - More episodes = more data but more noise from evidence diversity
+
+510. Session improvement trajectory:
+   - Started: query_residual_v19 = 76.89
+   - adaptive_ensemble_v17 (barren calibration) = 79.98
+   - cellwise LGB v1 (single episode) = 82.38
+   - cellwise LGB v3 (2 episodes) = **83.34** (CURRENT BEST)
+   - Total improvement: **+6.45 points** over starting baseline
+
 ## Open Questions
 
 - How to improve settlement/port/ruin prediction specifically?
 - How to fix query policy to use all 50 queries?
 - Should we design a smarter query policy that targets dynamic cells?
-- Can we ensemble LGB with adaptive_ensemble for best of both worlds?
-- Need to wire live LGB into the run-live-online pipeline
+- Need to wire live LGB into the run-live-online pipeline for next live round
+- Can we push past 84?
