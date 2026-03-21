@@ -140,6 +140,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - invoice: `amountExcludingVatCurrency=244912.5`, `amountCurrencyOutstanding=306140.63`, outgoing VAT `25%` (id=3)
   - first production confirmation of 75% milestone: `326550 * 0.75 = 244912.5` accepted directly as decimal
   - this is the 7th update-needed run: 5/7 had missing bank accounts (71%); proactive hedge averages 6.71 calls + 0 errors vs optimistic 7.14 + 0.71 errors
+- exact production confirmation on 2026-03-21 for `Havbris AS` / `876325497` / `Nettbutikk-utvikling` / `ingrid.moe@example.org` / `363850` / `75%`:
+  - update-needed + missing bank account: proactive hedge discovered empty `bankAccountNumber` on account `1920` and fixed it pre-emptively
+  - production path: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (missing) -> `PUT /ledger/account` -> `PUT /order/:invoice` for `7` calls, `0` errors
+  - invoice: `amountExcludingVatCurrency=272887.5`, `amountCurrencyOutstanding=341109.38`, outgoing VAT `25%` (id=3)
+  - second production confirmation of 75% milestone: `363850 * 0.75 = 272887.5` accepted directly as decimal
+  - this is the 8th update-needed run: 6/8 had missing bank accounts (75%); proactive hedge averages 6.75 calls + 0 errors vs optimistic 7.25 + 0.75 errors
 
 ## Minimal Safe Flow
 
