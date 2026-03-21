@@ -91,6 +91,9 @@
 - the `/ledger/account` bank-account hedge must stay conditional, not canonical; on accounts where the company bank account is already configured, it would waste a sixth call
 - production confirmation on 2026-03-21 for Portuguese prompt `Solmar Lda` / `867069526` / `Sessão de formação (4466)` / `Licença de software (3717)` / prices `35600` + `3250`:
   - used `count=1000` product lookup (pre-comma-separated era), 5 calls, 0 errors, outstanding=0
+- production confirmation on 2026-03-21 for English prompt `Ridgepoint Ltd` / `997470311` / `Maintenance (6293)` + `Software License (5849)` / prices `21700` + `2250`:
+  - used comma-separated `number=6293,5849` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of the comma-separated product lookup path on this task shape
 
 ## Product Lookup Strategy
 - **primary**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call

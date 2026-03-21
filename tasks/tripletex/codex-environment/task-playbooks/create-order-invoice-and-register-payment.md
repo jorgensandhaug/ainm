@@ -123,6 +123,10 @@ Exact-match tasks should now prefer the trusted standard:
     - this is strictly better than `count=1000` for targeted lookups
   - also confirmed `productNumber` is NOT a valid field in ProductDTO `fields` filter (returns 400)
   - `number=X&number=Y` (repeated query params) uses non-OR semantics and only returns first value — do not confuse with comma-separated format
+- production run on 2026-03-21 for English prompt `Ridgepoint Ltd` / `997470311` / `Maintenance (6293)` + `Software License (5849)` / prices `21700` + `2250`:
+  - used comma-separated `number=6293,5849` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of the comma-separated product lookup on this exact task shape
+  - confirms the canonical 5-call path is stable across English and Portuguese prompts with comma-separated `number` filter
 
 ## Minimal Flow
 
