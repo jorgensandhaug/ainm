@@ -70,6 +70,63 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         ridge_alpha=32.0,
         predicted_particle_weight=0.7,
     ),
+    # Higher ridge alpha
+    "f1_hazard_posterior_v2_k5_r3_l64_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_l64_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=64.0,
+        predicted_particle_weight=0.7,
+    ),
+    # Much higher ridge alpha
+    "f1_hazard_posterior_v2_k5_r3_l128_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_l128_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=128.0,
+        predicted_particle_weight=0.7,
+    ),
+    # Higher predicted particle weight
+    "f1_hazard_posterior_v2_k5_r3_m80_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_m80_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.8,
+    ),
+    # Even higher predicted particle weight
+    "f1_hazard_posterior_v2_k5_r3_m90_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_m90_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.9,
+    ),
+    # More samples per round for richer summary bank
+    "f1_hazard_posterior_v2_k5_r3_s8_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_s8_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        samples_per_round=8,
+    ),
+    # k=7 for more neighbors
+    "f1_hazard_posterior_v2_k7_r3_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k7_r3_v01",
+        k_neighbors=7,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+    ),
+    # Lower rank
+    "f1_hazard_posterior_v2_k5_r2_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r2_v01",
+        k_neighbors=5,
+        latent_rank=2,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+    ),
 }
 
 
