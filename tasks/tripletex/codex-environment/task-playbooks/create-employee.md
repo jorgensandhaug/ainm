@@ -16,11 +16,11 @@ CRITICAL discovery on 2026-03-21:
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion is essential
 - `POST /employee?fields=employments(*)` returns full employment but omits top-level employee fields — always use `fields=*,employments(*)`
 
-Strategy update on 2026-03-21 (after Charles Walker run):
-- department pre-read is now the default; 5/9 production runs (56%) required department, past the 50% break-even
+Strategy update on 2026-03-21 (after dept-required rate crossed 50%):
+- department pre-read is now the default; 7/11 production runs (64%) required department
 - pre-reading department: always 2 calls, 0 errors (regardless of account)
-- no pre-read: 1 call 0 errors (no dept needed) or 3 calls 1 error (dept needed) — at 56% dept-required, averages 2.1 calls + 0.56 errors
-- pre-read wins on both calls and errors at current production rates
+- no pre-read: 1 call 0 errors (no dept needed) or 3 calls 1 error (dept needed) — at 64% dept-required, averages 2.3 calls + 0.64 errors
+- pre-read wins on both calls and errors; every subsequent no-pre-read run that hits dept wastes 1 call + 1 error
 
 Sandbox verification showed:
 - `POST /employee` fails with `422` if `userType` is omitted
@@ -89,12 +89,17 @@ Run 2026-03-21 (Astrid Nilsen, Norwegian prompt): 3 calls, 1 error — dept-repa
 
 Run 2026-03-21 (Charles Walker, English prompt): 3 calls, 1 error — dept-repair branch (f1d7b5dd); used `?fields=*,employments(*)` correctly; with the new pre-read strategy this would have been 2 calls, 0 errors; this run brought dept-required rate to 5/9 (56%), triggering the strategy switch to pre-read
 
+Run 2026-03-21 (Torbjørn Neset, Nynorsk prompt): 3 calls, 1 error — dept-repair branch (b23d4cc2); agent used OLD no-pre-read strategy despite trusted standard already specifying pre-read; with pre-read would have been 2 calls, 0 errors; dept-required rate now 6/10 (60%); root cause: agent cached the old strategy pattern instead of following the current trusted standard flow
+
+Run 2026-03-21 (Hannah Becker, German prompt): 3 calls, 1 error — dept-repair branch (3705040b); agent used OLD no-pre-read strategy (POST → 422 dept → GET /department found 745170 → POST with dept → 201); with pre-read would have been 2 calls, 0 errors; dept-required rate now 7/11 (64%); German date normalization (31. January 1996 → 1996-01-31, 15. July 2026 → 2026-07-15) correct
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not skip the `GET /department` pre-read; at 56% department-required rate, pre-reading saves calls and errors on average
-- Do not pre-read `/division` — 0/9 production runs needed it; only repair if `422` on `employments.division.id`
+- Do not skip the `GET /department` pre-read; at 64% department-required rate (7/11 runs), pre-reading saves calls and errors on average; the Torbjørn Neset and Hannah Becker runs both proved that using the old no-pre-read pattern wastes 1 call + 1 error
+- CRITICAL: always follow the CURRENT trusted standard flow, not a cached older version — the trusted standard may have been updated between runs
+- Do not pre-read `/division` — 0/11 production runs needed it; only repair if `422` on `employments.division.id`
 - Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on the generic `422 message`; inspect `validationMessages[].field`
 - Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"`

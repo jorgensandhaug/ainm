@@ -26,7 +26,7 @@
 ## Payload Rules
 - send only prompt-required employee fields
 - always pre-read department and include `department: { id: ... }` on the POST; this avoids a 422 repair branch on 50%+ of production accounts and eliminates avoidable 4xx errors
-- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it (0/9 production runs needed division; only persistent sandbox requires it)
+- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it (0/11 production runs needed division; only persistent sandbox requires it)
 - always include explicit `userType: "NO_ACCESS"` unless the prompt explicitly asks for login access; do not use `"STANDARD"` as the default — `"NO_ACCESS"` is the proven safe choice for create-only tasks
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
@@ -61,10 +61,10 @@
 - always use `?fields=*,employments(*)` on every POST /employee attempt (including retries) to get the full response and avoid needing a verification GET
 
 ## Strategy Rationale
-- pre-reading department was adopted after the 2026-03-21 production run for `Charles Walker` brought the department-required rate to 5/9 (56%), past the 50% break-even documented in the prior strategy
-- at 50%+ department-required: pre-read averages 2.0 calls / 0 errors vs no-pre-read 2.0 calls / 0.5 errors — same call count but zero avoidable 4xx errors
+- pre-reading department was adopted after the dept-required rate crossed 50% (now 7/11 = 64%)
+- at 64% department-required: pre-read averages 2.0 calls / 0 errors vs no-pre-read 2.3 calls / 0.64 errors — fewer calls AND zero 4xx errors
 - the AGENTS.md scoring rules penalize 4xx errors, making pre-read strictly better at 50%+
-- division remains at 0% in production (0/9 runs); pre-reading it would waste 1 call every time
+- division remains at 0% in production (0/11 runs); pre-reading it would waste 1 call every time
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
@@ -73,5 +73,6 @@
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
 - persistent sandbox re-verification on 2026-03-21 confirmed the pre-read strategy (GET /department + POST /employee with dept + division) succeeds in the sandbox with 0 errors
-- out of 9 known production create-employee runs, 4 succeeded without department (would be 1 call no-pre-read, 2 calls pre-read) and 5 needed it (3 calls + 1 error no-pre-read, 2 calls + 0 errors pre-read); pre-read is now strictly better
-- production runs: Miguel Sánchez (1 call), Thomas Harris (1 call), Jules Bernard (1 call), João Rodrigues (1 call), Ingrid Johansen (3+1err), Geir Neset (3+1err), Astrid Nilsen (3+1err), Charles Walker (3+1err), plus one earlier run — 4 no-dept / 5 dept-required = 56% dept-required rate
+- out of 11 known production create-employee runs, 4 succeeded without department and 7 needed it; dept-required rate is now 64%
+- latest run: Hannah Becker (3705040b, German prompt, 1996-01-31, hannah.becker@example.org, start 2026-07-15) used OLD no-pre-read strategy; 3 calls, 1 error (POST→422, GET /department found 745170, POST with dept→201); with pre-read would have been 2 calls, 0 errors
+- the Torbjørn Neset run (b23d4cc2) and Hannah Becker run (3705040b) both used the OLD no-pre-read strategy despite the trusted standard already specifying pre-read; each wasted 1 call + 1 error — agent MUST follow the CURRENT standard flow, not cached/old patterns
