@@ -2015,6 +2015,15 @@
    - launch policy:
      - `jobs=1` inside each model
      - outer model parallelism only
+217. Family-doc scaffold created for the active post-pivot branch:
+   - added:
+     - `docs/experiments/teacher_student_blend/README.md`
+     - `docs/experiments/teacher_student_blend/hypotheses.md`
+     - `docs/experiments/teacher_student_blend/best_models.md`
+     - `docs/experiments/teacher_student_blend/open_questions.md`
+   - purpose:
+     - satisfy the reusable handoff protocol
+     - keep family-level notes separate from the timestamped execution ledger
 
 
 ## Open Questions
