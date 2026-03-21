@@ -180,6 +180,13 @@ The script pattern:
 
 ## Production Confirmation History
 
+### prod-2026-03-21-220438743Z-b6a39077 (Norwegian prompt, Tindra AS / 890241662 / 10701 EUR, rate 10.54→11.43 agio):
+- NOK fallback path: invoice `2147643129` had `amountExcludingVat=10701`, `amountOutstanding=13376.25`, `amount===amountCurrency` (NOK)
+- 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8060) → manual agio voucher
+- Agio: 10701 × (11.43 − 10.54) = 10701 × 0.89 = 9523.89 NOK booked on 8060 (voucher `609176454`)
+- Payment type `37483992` ("Betalt til bank", debitAccount 1920, id=474619862)
+- 4th consecutive full-score NOK-fallback production confirmation; 3rd agio confirmation
+
 ### prod-2026-03-21-203449125Z-847457b2 (Nynorsk prompt, Fossekraft AS / 928230651 / 2716 EUR, rate 10.11→9.33 disagio):
 - NOK fallback path: invoice `2147635477` had `amountExcludingVat=2716`, `amountOutstanding=3395`, `amount===amountCurrency` (NOK)
 - 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8160) → manual disagio voucher

@@ -135,6 +135,7 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - Prompt amount is typically ex-VAT → multiply by 1.25 for full outstanding
 
 ## Production Confirmations
+- prod-2026-03-21-220438743Z-b6a39077: NOK fallback, 5 calls, 0 errors — Tindra AS / 890241662 / 10701 EUR, rate 10.54→11.43, agio 9523.89 NOK on 8060 (4th consecutive full-score NOK-fallback, 3rd agio)
 - prod-2026-03-21-203449125Z-847457b2: NOK fallback, 5 calls, 0 errors — Fossekraft AS / 928230651 / 2716 EUR, rate 10.11→9.33, disagio 2118.48 NOK on 8160 (1st full-score NOK-fallback disagio run)
 - prod-2026-03-21-201703889Z-3386d6a5: NOK fallback, 5 calls, 0 errors — Elvdal AS / 964825114 / 10781 EUR, rate 11.03→11.41, agio 4096.78 NOK on 8060 (2nd full-score NOK-fallback agio run)
 - prod-2026-03-21-200502800Z-86050544: NOK fallback, 5 calls, 0 errors — Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83, agio 12301 NOK on 8060 (first full-score NOK-fallback run)
