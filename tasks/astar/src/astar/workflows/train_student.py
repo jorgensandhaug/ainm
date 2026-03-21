@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -20,7 +22,9 @@ def train_summary_bank_student(
     samples_per_round: int = 1,
     k_neighbors: int = 5,
     model_name: str = "summary_bank_student_v1",
-    summary_backend: str = "behavioral_fingerprint_core",
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    ),
     behavioral_fingerprint_summary_profile: str = "core_v1",
 ) -> TrainSummaryStudentResult:
     teacher_result = train_hazard_teacher(
@@ -94,7 +98,9 @@ def train_state_space_student(
     decoder_rollouts: int = 32,
     model_name: str = "state_space_student_v1",
     teacher_model_name: str = "state_space_teacher_v1",
-    summary_backend: str = "behavioral_fingerprint_core",
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    ),
     behavioral_fingerprint_summary_profile: str = "core_v1",
     regime_max_rank: int = 4,
     fit_workers: int = 1,

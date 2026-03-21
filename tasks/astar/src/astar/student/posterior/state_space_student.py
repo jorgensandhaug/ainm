@@ -8,6 +8,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.core.prediction import PredictionBundle
 from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.infra.api.dto import RoundDetail
@@ -23,6 +24,7 @@ from astar.student.posterior.transcript_set import (
     build_round_initial_feature_vector,
 )
 from astar.student.predictor.base import LiveInferenceContext
+from astar.student.predictor.calibrate import apply_probability_floor
 from astar.teacher.dynamics.state_space_teacher import StateSpaceTeacher
 from astar.teacher.regime.base import RegimePosteriorState
 
@@ -413,6 +415,7 @@ class StateSpaceStudentCheckpoint(BaseModel):
     prior_mass_floor: float = Field(ge=0.0, lt=1.0)
     prior_ridge_alpha: float = Field(default=1.0, gt=0.0)
     decoder_rollouts: int = Field(ge=1)
+    probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_names: list[str] = Field(default_factory=list)
     prior_feature_names: list[str] = Field(default_factory=list)
     prototype_round_ids: list[str] = Field(default_factory=list)
@@ -458,6 +461,7 @@ class StateSpaceStudent(BaseModel):
     proposal_mass: float = Field(default=0.55, gt=0.0, lt=1.0)
     prior_mass_floor: float = Field(default=0.15, ge=0.0, lt=1.0)
     decoder_rollouts: int = Field(default=64, ge=1)
+    probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     prototype_round_ids: tuple[str, ...] = ()
     teacher: StateSpaceTeacher
 
@@ -695,6 +699,7 @@ class StateSpaceStudent(BaseModel):
             prior_mass_floor=float(self.prior_mass_floor),
             prior_ridge_alpha=float(self.prior_ridge_alpha),
             decoder_rollouts=int(self.decoder_rollouts),
+            probability_floor=self.probability_floor,
             summary_feature_names=list(self.summary_feature_names),
             prior_feature_names=list(self.prior_feature_names),
             prototype_round_ids=list(self.prototype_round_ids),
@@ -805,6 +810,7 @@ class StateSpaceStudent(BaseModel):
             proposal_mass=checkpoint.proposal_mass,
             prior_mass_floor=checkpoint.prior_mass_floor,
             decoder_rollouts=checkpoint.decoder_rollouts,
+            probability_floor=checkpoint.probability_floor,
             prototype_round_ids=tuple(checkpoint.prototype_round_ids),
             teacher=resolved_teacher,
         )
@@ -866,12 +872,56 @@ class StateSpaceStudent(BaseModel):
             exclude_round_id=context.round_context.round_id,
         )
 
-    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
-        posterior = self.infer_regime(context)
-        return self.teacher.posterior_predictive(
+    def _predict_seed_from_posterior(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+        posterior: RegimePosteriorState,
+    ) -> np.ndarray:
+        prediction = self.teacher.posterior_predictive(
             context.round_context.seeds[seed_index],
             posterior,
             n_rollouts=self.decoder_rollouts,
+        )
+        initial_grid = np.asarray(
+            context.round_context.seeds[seed_index].initial_state.grid,
+            dtype=np.int64,
+        )
+        return np.asarray(
+            apply_probability_floor(
+                np.asarray(prediction, dtype=np.float64),
+                self.probability_floor,
+                initial_grid=initial_grid,
+            ),
+            dtype=np.float64,
+        )
+
+    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
+        posterior = self.infer_regime(context)
+        return self._predict_seed_from_posterior(
+            context,
+            seed_index=seed_index,
+            posterior=posterior,
+        )
+
+    def build_prediction_bundle_from_context(
+        self,
+        context: LiveInferenceContext,
+    ) -> PredictionBundle:
+        posterior = self.infer_regime(context)
+        predictions_by_seed = {
+            seed.seed_index: self._predict_seed_from_posterior(
+                context,
+                seed_index=seed.seed_index,
+                posterior=posterior,
+            )
+            for seed in context.round_context.seeds
+        }
+        return PredictionBundle(
+            round_id=context.round_context.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
         )
 
 

@@ -289,6 +289,27 @@ class HazardTeacher(BaseModel):
         path.write_text(json.dumps(to_jsonable(self.checkpoint()), indent=2), encoding="utf-8")
         return path
 
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> HazardTeacher:
+        checkpoint = HazardTeacherCheckpoint.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+        regime_dim = int(checkpoint.regime_dim)
+        coefficient_dim = int(checkpoint.coefficient_dim)
+        return cls(
+            name=checkpoint.name,
+            summary_backend=checkpoint.summary_backend,
+            behavioral_fingerprint_summary_profile=checkpoint.behavioral_fingerprint_summary_profile,
+            feature_names=list(checkpoint.feature_names),
+            regime_summary_names=tuple(checkpoint.regime_summary_names),
+            round_ids=tuple(checkpoint.round_ids),
+            round_numbers=tuple(checkpoint.round_numbers),
+            regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            coefficient_bank=np.zeros((0, coefficient_dim), dtype=np.float64),
+            regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
+        )
+
     def _compat_regime_encoder(self) -> ReplaySummaryRegimeEncoder:
         if self.regime_bank.size == 0:
             raise ValueError("hazard teacher has no stored regime encoder state")

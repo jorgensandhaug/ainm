@@ -4,11 +4,13 @@ import json
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
+from astar.core.trajectory import ReplayRun
 from astar.core.terrain import collapse_internal_grid
-from astar.features.geometry import compute_round_features
+from astar.features.geometry import SeedFeatureBundle, compute_round_features
 from astar.history.replay.frame_stats import ReplaySeedAggregate, summarize_replay_runs
 from astar.history.replay.ingest import load_seed_replay_runs
 from astar.history.replay.inspect import inspect_replay_source, inspect_round_replays
@@ -39,6 +41,40 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.workflows.results import InspectReplaysResult, SummarizeReplaysResult
+
+SeedReplaySummaryResult = tuple[
+    int,
+    ReplaySeedAggregate,
+    ReplayHazardSeedSummary,
+    ReplayEventSeedSummary,
+    ReplayMeasurementSeedSummary,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+]
+
+
+def _replay_summary_max_workers(replay_seed_count: int) -> int:
+    configured = os.environ.get("ASTAR_REPLAY_SUMMARY_MAX_WORKERS")
+    if configured is not None:
+        parsed = int(configured)
+        if parsed < 1:
+            raise ValueError("ASTAR_REPLAY_SUMMARY_MAX_WORKERS must be >= 1")
+        return min(replay_seed_count, parsed)
+
+    # Replay summarization is memory-dominated; keep default fan-out conservative and
+    # let explicit overrides widen parallelism for one-off offline jobs.
+    cpu_bound = max(1, min(8, os.cpu_count() or 1))
+    return min(replay_seed_count, min(cpu_bound, 2))
 
 
 def inspect_replays(
@@ -114,7 +150,7 @@ def _seed_summary_payload(
     }
 
 
-def _seed_terminal_grid_payload(runs: list) -> dict[str, np.ndarray]:
+def _seed_terminal_grid_payload(runs: list[ReplayRun]) -> dict[str, np.ndarray]:
     return {
         "replay_run_ids": np.asarray([run.replay_run_id for run in runs], dtype=np.str_),
         "terminal_grids": np.stack(
@@ -213,7 +249,10 @@ def load_round_replay_summary(
     report_path = paths.replay_artifact_dir(round_id) / "report.md"
     if not round_summary_path.exists() or not report_path.exists():
         return None
-    payload = _from_jsonable_tree(json.loads(round_summary_path.read_text(encoding="utf-8")))
+    payload = cast(
+        dict[str, object],
+        _from_jsonable_tree(json.loads(round_summary_path.read_text(encoding="utf-8"))),
+    )
     hazard_summary = ReplayHazardRoundSummary.model_validate(payload["hazard_summary"])
     event_summary = ReplayEventRoundSummary.model_validate(payload["event_summary"])
     measurement_summary = ReplayMeasurementRoundSummary.model_validate(
@@ -315,8 +354,8 @@ def _summarize_seed_replays(
     round_id: str,
     seed_index: int,
     initial_grid: np.ndarray,
-    seed_feature_bundle,
-) -> tuple:
+    seed_feature_bundle: SeedFeatureBundle,
+) -> SeedReplaySummaryResult:
     paths = WorkspacePaths.from_root(root_path)
     runs = load_seed_replay_runs(paths, round_id, seed_index)
     aggregate = summarize_replay_runs(runs)
@@ -440,10 +479,7 @@ def summarize_round_replays(
     owner_year_paths_by_seed: dict[int, Path] = {}
     year_shock_paths_by_seed: dict[int, Path] = {}
     macro_trajectory_paths_by_seed: dict[int, Path] = {}
-    max_workers = min(
-        len(replay_seed_indexes),
-        max(1, min(8, os.cpu_count() or 1)),
-    )
+    max_workers = _replay_summary_max_workers(len(replay_seed_indexes))
     worker_args = [
         (
             str(paths.root),

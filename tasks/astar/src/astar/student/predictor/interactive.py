@@ -12,6 +12,10 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
+from astar.student.predictor.offline_stack import (
+    build_state_space_student_predictor,
+    build_summary_bank_student_predictor,
+)
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 
@@ -68,7 +72,7 @@ def build_online_predictor(
     historical_round_ids: Sequence[str] | None = None,
     policy_name: str | None = None,
     samples_per_round: int = 1,
-) -> RoundPredictorAdapter:
+) -> OnlinePredictor:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":
         geometry_predictor = GeometryPriorPredictor()
@@ -129,6 +133,22 @@ def build_online_predictor(
         return RoundPredictorAdapter(
             predictor=predictor,
             name=predictor.name,
+        )
+    if normalized == "summary_bank_student":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return build_summary_bank_student_predictor(
+            workspace_paths,
+            round_ids=historical_round_ids,
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+    if normalized == "state_space_student":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return build_state_space_student_predictor(
+            workspace_paths,
+            round_ids=historical_round_ids,
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
         )
     msg = f"unsupported online predictor: {model_name}"
     raise ValueError(msg)

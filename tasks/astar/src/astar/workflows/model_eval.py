@@ -240,6 +240,18 @@ def _build_prediction_bundle(
         bundle = predictor.build_prediction_bundle(round_detail, features, evidence)
         return bundle, {}, 0, 0
 
+    if normalized in {"summary_bank_student", "state_space_student"}:
+        predictor = build_online_predictor(
+            model_name,
+            paths=paths,
+            historical_round_ids=training_round_ids,
+            policy_name="coverage",
+            samples_per_round=samples_per_round,
+        )
+        round_context = HistoricalReplayOracle(paths=paths).get_round_context(round_id)
+        belief = predictor.init_belief(round_context)
+        return predictor.predict(belief), {}, 0, 0
+
     msg = f"unsupported historical eval model: {model_name}"
     raise ValueError(msg)
 

@@ -190,7 +190,7 @@ def save_analysis_tensor(
     arrays: dict[str, FloatArray] = {"ground_truth": ground_truth}
     if prediction is not None:
         arrays["prediction"] = prediction
-    np.savez_compressed(path, **arrays)
+    np.savez_compressed(file=path, **arrays)  # type: ignore[arg-type]
     return path
 
 

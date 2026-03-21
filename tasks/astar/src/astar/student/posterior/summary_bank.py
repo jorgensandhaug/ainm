@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.core.prediction import PredictionBundle
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.student.posterior.transcript_artifacts import (
@@ -14,6 +15,7 @@ from astar.student.posterior.transcript_artifacts import (
     summary_vector_from_context,
 )
 from astar.student.predictor.base import LiveInferenceContext
+from astar.student.predictor.calibrate import apply_probability_floor
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
 
@@ -29,6 +31,7 @@ class SummaryBankStudentCheckpoint(BaseModel):
     sample_count: int = Field(ge=0)
     summary_dim: int = Field(ge=1)
     regime_dim: int = Field(ge=1)
+    probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_names: list[str] = Field(default_factory=list)
     teacher_name: str
 
@@ -42,6 +45,7 @@ class SummaryBankStudent(BaseModel):
     summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     k_neighbors: int = Field(default=5, ge=1)
+    probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     teacher: HazardTeacher
 
     @classmethod
@@ -93,6 +97,7 @@ class SummaryBankStudent(BaseModel):
             sample_count=int(self.summary_vectors.shape[0]),
             summary_dim=int(self.summary_vectors.shape[1]),
             regime_dim=int(self.regime_vectors.shape[1]),
+            probability_floor=self.probability_floor,
             summary_feature_names=list(self.summary_feature_names),
             teacher_name=self.teacher.name,
         )
@@ -153,6 +158,7 @@ class SummaryBankStudent(BaseModel):
             summary_vectors=summary_vectors,
             regime_vectors=regime_vectors,
             k_neighbors=checkpoint.k_neighbors,
+            probability_floor=checkpoint.probability_floor,
             teacher=teacher,
         )
 
@@ -178,11 +184,55 @@ class SummaryBankStudent(BaseModel):
             weights=np.asarray(weights, dtype=np.float64),
         )
 
-    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
-        posterior = self.infer_regime(context)
-        return self.teacher.posterior_predictive(
+    def _predict_seed_from_posterior(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+        posterior: RegimePosteriorState,
+    ) -> np.ndarray:
+        prediction = self.teacher.posterior_predictive(
             context.round_context.seeds[seed_index],
             posterior,
+        )
+        initial_grid = np.asarray(
+            context.round_context.seeds[seed_index].initial_state.grid,
+            dtype=np.int64,
+        )
+        return np.asarray(
+            apply_probability_floor(
+                np.asarray(prediction, dtype=np.float64),
+                self.probability_floor,
+                initial_grid=initial_grid,
+            ),
+            dtype=np.float64,
+        )
+
+    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
+        posterior = self.infer_regime(context)
+        return self._predict_seed_from_posterior(
+            context,
+            seed_index=seed_index,
+            posterior=posterior,
+        )
+
+    def build_prediction_bundle_from_context(
+        self,
+        context: LiveInferenceContext,
+    ) -> PredictionBundle:
+        posterior = self.infer_regime(context)
+        predictions_by_seed = {
+            seed.seed_index: self._predict_seed_from_posterior(
+                context,
+                seed_index=seed.seed_index,
+                posterior=posterior,
+            )
+            for seed in context.round_context.seeds
+        }
+        return PredictionBundle(
+            round_id=context.round_context.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
         )
 
 
