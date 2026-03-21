@@ -407,8 +407,8 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
   assert.equal(artifact.task.taskSource, "llm-classifier");
   assert.equal(artifact.input.source, "llm-extractor");
   assert.deepEqual(artifact.analysis?.notes, [
-    "Task understanding ran via codex exec using ./AGENTS.md and a JSON-schema-constrained response.",
-    "This path requires a locally installed, authenticated Codex CLI.",
+    "Task understanding ran via codex in tmux using ./AGENTS.md and an internal callback handoff.",
+    "This path requires a locally installed, authenticated Codex CLI, tmux, and the local Tripletex2 server.",
     "Matched the prompt to the create-and-send-invoice task surface.",
     "Deterministic runtime started only after the task-understanding handoff.",
   ]);

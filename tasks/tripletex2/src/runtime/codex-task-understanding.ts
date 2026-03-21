@@ -1,8 +1,7 @@
-import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import type {
   ClassifierExtractorInput,
@@ -11,18 +10,23 @@ import type {
   TaskUnderstandingCode,
   TaskUnderstandingResult,
 } from "./contracts";
+import {
+  registerPendingCodexTaskUnderstandingResult,
+} from "./codex-task-understanding-callback";
+import {
+  buildTmuxCodexCommand,
+  DEFAULT_CODEX_ENVIRONMENT_DIR,
+  DEFAULT_TMUX_SESSION_NAME,
+  killTmuxWindow,
+  launchTmuxCommand,
+} from "./tmux-solve";
 
-const TRIPLETEX2_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
-const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
-  TRIPLETEX2_ROOT,
-  "codex-environment",
-);
 const DEFAULT_CODEX_EXECUTABLE = process.env.CODEX_BIN ?? "codex";
 const DEFAULT_CODEX_MODEL =
   process.env.TRIPLETEX2_TASK_UNDERSTANDING_MODEL ?? "gpt-5.4";
+const DEFAULT_CALLBACK_BASE_URL =
+  process.env.TRIPLETEX2_TASK_UNDERSTANDING_CALLBACK_BASE_URL ??
+  `http://127.0.0.1:${process.env.PORT ?? "3000"}`;
 const DEFAULT_TIMEOUT_MS = Number(
   process.env.TRIPLETEX2_TASK_UNDERSTANDING_TIMEOUT_MS ?? 120_000,
 );
@@ -38,6 +42,7 @@ const TASK_UNDERSTANDING_CODES = [
 ] as const satisfies readonly TaskUnderstandingCode[];
 
 export interface CodexTaskUnderstandingOptions {
+  callbackBaseUrl?: string;
   cwd?: string;
   executable?: string;
   model?: string;
@@ -46,6 +51,7 @@ export interface CodexTaskUnderstandingOptions {
 }
 
 export interface CodexTaskUnderstandingExecutorInput {
+  callbackBaseUrl: string;
   cwd: string;
   executable: string;
   model: string;
@@ -110,6 +116,7 @@ export async function runCodexTaskUnderstanding(
   input: ClassifierExtractorInput,
   options: CodexTaskUnderstandingOptions = {},
 ): Promise<CodexTaskUnderstandingRunResult> {
+  const callbackBaseUrl = options.callbackBaseUrl ?? DEFAULT_CALLBACK_BASE_URL;
   const cwd = options.cwd ?? DEFAULT_CODEX_ENVIRONMENT_DIR;
   const executable = options.executable ?? DEFAULT_CODEX_EXECUTABLE;
   const model = options.model ?? DEFAULT_CODEX_MODEL;
@@ -117,6 +124,7 @@ export async function runCodexTaskUnderstanding(
   const executor = options.executor ?? executeCodexTaskUnderstanding;
   const prompt = buildCodexTaskUnderstandingPrompt(input);
   const rawResponseText = await executor({
+    callbackBaseUrl,
     cwd,
     executable,
     model,
@@ -130,8 +138,8 @@ export async function runCodexTaskUnderstanding(
   return {
     result: adapted.result,
     notes: [
-      `Task understanding ran via ${path.basename(executable)} exec using ./AGENTS.md and a JSON-schema-constrained response.`,
-      "This path requires a locally installed, authenticated Codex CLI.",
+      `Task understanding ran via ${path.basename(executable)} in tmux using ./AGENTS.md and an internal callback handoff.`,
+      "This path requires a locally installed, authenticated Codex CLI, tmux, and the local Tripletex2 server.",
       ...adapted.notes,
     ],
   };
@@ -143,7 +151,7 @@ export function buildCodexTaskUnderstandingPrompt(
   const lines = [
     "Tripletex2 task-understanding run.",
     "Follow ./AGENTS.md exactly.",
-    "Return only JSON that matches the provided output schema.",
+    "Construct one classification JSON object that matches the runtime schema.",
     "Do not return a solve plan, strategy hint, or API sequence.",
     "",
     "Registered task surfaces:",
@@ -294,97 +302,146 @@ async function executeCodexTaskUnderstanding(
   const tempDir = await mkdtemp(
     path.join(os.tmpdir(), "tripletex2-codex-task-understanding-"),
   );
-  const outputSchemaPath = path.join(tempDir, "output-schema.json");
-  const outputPath = path.join(tempDir, "response.json");
+  const callbackRequestId = `task-understanding-${randomUUID()}`;
+  const callbackUrl = buildCodexTaskUnderstandingCallbackUrl(
+    input.callbackBaseUrl,
+    callbackRequestId,
+  );
+  const launchScriptPath = path.join(tempDir, "launch-codex.zsh");
+  const promptFilePath = path.join(tempDir, "codex-prompt.txt");
+  const tmuxWindow = callbackRequestId.slice(0, 48);
+  const tmuxTarget = `${DEFAULT_TMUX_SESSION_NAME}:${tmuxWindow}`;
+  const registration = registerPendingCodexTaskUnderstandingResult(
+    callbackRequestId,
+  );
 
   try {
     await writeFile(
-      outputSchemaPath,
-      JSON.stringify(input.outputSchema, null, 2),
+      promptFilePath,
+      buildCodexTaskUnderstandingSubmissionPrompt({
+        callbackUrl,
+        outputSchema: input.outputSchema,
+        prompt: input.prompt,
+      }),
       "utf8",
     );
+    await writeFile(
+      launchScriptPath,
+      buildCodexTaskUnderstandingLaunchScript({
+        callbackUrl,
+        codexEnvironmentDir: input.cwd,
+        executable: input.executable,
+        promptFilePath,
+      }),
+      "utf8",
+    );
+    await chmod(launchScriptPath, 0o755);
 
-    const args = [
-      "exec",
-      "-",
-      "-C",
-      input.cwd,
-      "--skip-git-repo-check",
-      "--sandbox",
-      "read-only",
-      "--color",
-      "never",
-      "--output-schema",
-      outputSchemaPath,
-      "--output-last-message",
-      outputPath,
-      "-m",
-      input.model,
-      "-c",
-      'model_reasoning_effort="high"',
-    ];
-
-    const child = spawn(input.executable, args, {
-      cwd: input.cwd,
-      env: process.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    let timedOut = false;
-
-    child.stdout?.on("data", (chunk: Buffer | string) => {
-      stdoutChunks.push(Buffer.from(chunk));
-    });
-    child.stderr?.on("data", (chunk: Buffer | string) => {
-      stderrChunks.push(Buffer.from(chunk));
+    await launchTmuxCommand({
+      command: launchScriptPath,
+      commandCwd: input.cwd,
+      tmuxSessionName: DEFAULT_TMUX_SESSION_NAME,
+      tmuxWindow,
     });
 
-    const completion = new Promise<number>((resolve, reject) => {
-      child.once("error", reject);
-      child.once("close", (code) => {
-        resolve(code ?? 1);
-      });
-    });
-
-    child.stdin?.on("error", () => {
-      // The child may exit before fully reading stdin.
-    });
-    child.stdin?.end(input.prompt);
-
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGKILL");
-    }, input.timeoutMs);
-    const exitCode = await completion.finally(() => clearTimeout(timeout));
-    const stdout = Buffer.concat(stdoutChunks).toString("utf8");
-    const stderr = Buffer.concat(stderrChunks).toString("utf8");
-
-    if (timedOut) {
+    const rawResponseText = await waitForCodexTaskUnderstandingCallback(
+      registration.promise,
+      input.timeoutMs,
+    );
+    if (!rawResponseText.trim()) {
       throw new CodexTaskUnderstandingInvocationError(
-        `codex exec timed out after ${input.timeoutMs}ms.`,
-        { stdout, stderr },
+        "codex task understanding completed without submitting a JSON response.",
       );
     }
 
-    if (exitCode !== 0) {
-      throw new CodexTaskUnderstandingInvocationError(
-        `codex exec exited with status ${exitCode}.`,
-        { stdout, stderr },
-      );
-    }
-
-    const outputText = await readFile(outputPath, "utf8");
-    if (!outputText.trim()) {
-      throw new CodexTaskUnderstandingInvocationError(
-        "codex exec completed without writing a final JSON response.",
-        { stdout, stderr },
-      );
-    }
-
-    return outputText;
+    return rawResponseText;
   } finally {
+    registration.cleanup();
+    await killTmuxWindow(tmuxTarget).catch(() => {
+      // The window may already be gone if tmux or Codex failed early.
+    });
     await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+function buildCodexTaskUnderstandingSubmissionPrompt(input: {
+  callbackUrl: string;
+  outputSchema: Record<string, unknown>;
+  prompt: string;
+}): string {
+  return [
+    "Tripletex2 task-understanding tmux run.",
+    "Follow ./AGENTS.md exactly.",
+    "Do not solve the Tripletex task and do not plan API calls.",
+    "",
+    "Submission contract:",
+    "- Build exactly one classification JSON object that matches this schema:",
+    JSON.stringify(input.outputSchema, null, 2),
+    `- The callback target is ${input.callbackUrl}.`,
+    "- The launch environment already sets TRIPLETEX2_CLASSIFY_CALLBACK_URL for ./submit-classification.ts.",
+    "- Submit the result by running: bun submit-classification.ts '<compact-json>'",
+    "- If shell quoting would be unsafe, write the JSON to a temporary file and pass that file path to bun submit-classification.ts instead.",
+    "- Do not print the JSON to chat. The submit-classification.ts call is the handoff.",
+    "",
+    input.prompt,
+  ].join("\n");
+}
+
+function buildCodexTaskUnderstandingLaunchScript(input: {
+  callbackUrl: string;
+  codexEnvironmentDir: string;
+  executable: string;
+  promptFilePath: string;
+}): string {
+  return `#!/usr/bin/env zsh
+set -u
+
+cd ${shellQuote(input.codexEnvironmentDir)}
+
+export TRIPLETEX2_CLASSIFY_CALLBACK_URL=${shellQuote(input.callbackUrl)}
+PROMPT_FILE=${shellQuote(input.promptFilePath)}
+
+${buildTmuxCodexCommand('"$(cat "$PROMPT_FILE")"', input.executable)}
+status=$?
+
+print
+print "codex exited with status $status"
+exec zsh -i
+`;
+}
+
+function buildCodexTaskUnderstandingCallbackUrl(
+  callbackBaseUrl: string,
+  requestId: string,
+): string {
+  const url = new URL("/internal/classify-result", ensureTrailingSlash(callbackBaseUrl));
+  url.searchParams.set("requestId", requestId);
+  return url.toString();
+}
+
+async function waitForCodexTaskUnderstandingCallback(
+  promise: Promise<string>,
+  timeoutMs: number,
+): Promise<string> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<string>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new CodexTaskUnderstandingInvocationError(
+              `codex task understanding timed out after ${timeoutMs}ms waiting for submit-classification.ts.`,
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
 }
 
@@ -437,7 +494,7 @@ function parseCodexTaskUnderstandingResponse(
     parsed = JSON.parse(rawText);
   } catch (error) {
     throw new CodexTaskUnderstandingInvocationError(
-      `codex exec returned invalid JSON: ${
+      `codex task understanding returned invalid JSON: ${
         error instanceof Error ? error.message : "unknown parse error"
       }`,
       { stdout: rawText },
@@ -446,7 +503,7 @@ function parseCodexTaskUnderstandingResponse(
 
   if (!isRecord(parsed) || typeof parsed.status !== "string") {
     throw new CodexTaskUnderstandingInvocationError(
-      "codex exec returned JSON without a valid task-understanding status.",
+      "codex task understanding returned JSON without a valid task-understanding status.",
       { stdout: rawText },
     );
   }
@@ -457,7 +514,7 @@ function parseCodexTaskUnderstandingResponse(
       typeof parsed.inputJson !== "string"
     ) {
       throw new CodexTaskUnderstandingInvocationError(
-        'codex exec returned an invalid "resolved" payload.',
+        'codex task understanding returned an invalid "resolved" payload.',
         { stdout: rawText },
       );
     }
@@ -489,7 +546,7 @@ function parseCodexTaskUnderstandingResponse(
   }
 
   throw new CodexTaskUnderstandingInvocationError(
-    `codex exec returned unsupported status "${String(parsed.status)}".`,
+    `codex task understanding returned unsupported status "${String(parsed.status)}".`,
     { stdout: rawText },
   );
 }
@@ -547,7 +604,7 @@ function parseJsonRecord(
     parsed = JSON.parse(rawJson);
   } catch (error) {
     throw new CodexTaskUnderstandingInvocationError(
-      `codex exec returned invalid ${fieldName}: ${
+      `codex task understanding returned invalid ${fieldName}: ${
         error instanceof Error ? error.message : "unknown parse error"
       }`,
       { stdout: rawText },
@@ -556,10 +613,18 @@ function parseJsonRecord(
 
   if (!isRecord(parsed)) {
     throw new CodexTaskUnderstandingInvocationError(
-      `codex exec returned non-object JSON in ${fieldName}.`,
+      `codex task understanding returned non-object JSON in ${fieldName}.`,
       { stdout: rawText },
     );
   }
 
   return parsed;
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
 }

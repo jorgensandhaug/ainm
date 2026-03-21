@@ -3,8 +3,8 @@
 ## Task Understanding Contract
 - Decide which registered Tripletex2 task a request belongs to.
 - Extract only the typed task input values for that task.
-- Return a small JSON result to the deterministic runtime.
-- Return JSON only; no prose, markdown, code fences, plans, API sequences, or execution notes.
+- Build one small JSON classification result for the deterministic runtime.
+- Do not answer with prose, markdown, code fences, plans, API sequences, or execution notes.
 - `src/runtime/contracts.ts` defines the classifier/extractor boundary.
 - `src/registry/tasks.ts` defines the registered task universe.
 - `src/tasks/*/task.ts` files are the classifier-facing task surfaces.
@@ -17,11 +17,31 @@
 - Normalize dates to ISO `YYYY-MM-DD` when the task surface expects dates.
 - Preserve user-provided business strings exactly, including Unicode.
 - Use attachment text when relevant.
-- If a value is uncertain, prefer `ambiguous` or `failed` over guessing.
+- If a value is uncertain, prefer an unresolved result over guessing.
 - If a request clearly belongs to a placeholder or otherwise unsupported task surface, return `unresolved` with `taskId`, `code: "unsupported-request"`, and a short explanation.
 - Do not plan the Tripletex API workflow.
 - Do not inspect or reason through strategy files unless the task surface is genuinely insufficient.
 - Optimize for a correct task id and correct typed inputs, not for narrative explanation.
+
+## Classification Entrypoint
+- The classifier harness launches Codex from `./` and expects you to read this `./AGENTS.md` file before classifying.
+- After building the classification JSON, submit it by running `bun submit-classification.ts ...` exactly as instructed in the prompt.
+- `submit-classification.ts` posts the result back to the local Tripletex2 server through `TRIPLETEX2_CLASSIFY_CALLBACK_URL`.
+- The prompt may ask you to pass either compact JSON directly or a file path containing that JSON. Both are supported by `submit-classification.ts`.
+- The `submit-classification.ts` call is the handoff. After it succeeds, stop.
+
+## Classification JSON Schema
+- Top-level object fields:
+  - `status`: `"resolved"` or `"unresolved"`.
+  - `taskId`: string task id for the matched task, or `null`.
+  - `inputJson`: JSON-stringified object of extracted typed fields for resolved results, or `null`.
+  - `code`: one of `ambiguous-task`, `no-task-match`, `missing-required-field`, `ambiguous-field-value`, `conflicting-field-values`, `invalid-field-value`, `unreadable-file`, `unsupported-request`, or `null`.
+  - `message`: short human-readable explanation for unresolved results, or `null`.
+  - `partialInputJson`: JSON-stringified object of partially extracted typed fields when useful for unresolved results, or `null`.
+  - `notes`: array of short strings explaining the match or unresolved reasoning.
+- Use `inputJson` and `partialInputJson` only as JSON-encoded objects. Do not emit nested objects directly in those fields.
+- Use `null` instead of omitting schema fields.
+- Keep the object small and exact. Do not add extra top-level properties.
 
 ## Environment Facts
 - Real submissions usually use a fresh Tripletex account.

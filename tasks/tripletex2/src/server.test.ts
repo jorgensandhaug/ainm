@@ -9,6 +9,7 @@ import type {
   TripletexFetch,
   TripletexFetchResponse,
 } from "./runtime/contracts";
+import { registerPendingCodexTaskUnderstandingResult } from "./runtime/codex-task-understanding-callback";
 import { taskRegistrations } from "./registry/tasks";
 import { createSolveRequestHandler } from "./server";
 
@@ -179,6 +180,53 @@ test("POST /solve enforces bearer auth", async () => {
   assert.deepEqual(await response.json(), {
     error: "Invalid bearer token.",
   });
+});
+
+test("POST /internal/classify-result resolves a pending classifier callback", async (t) => {
+  const handler = createSolveRequestHandler({
+    logger() {
+      // Silence test logs.
+    },
+  });
+  const registration = registerPendingCodexTaskUnderstandingResult(
+    "req-internal-classify-1",
+  );
+  t.after(() => {
+    registration.cleanup();
+  });
+
+  const payload = JSON.stringify({
+    status: "resolved",
+    taskId: "08",
+    inputJson: JSON.stringify({
+      customerName: "Nordhav AS",
+      organizationNumber: "876520427",
+      lineDescription: "Analyserapport",
+      quantity: 1,
+      unitPriceExcludingVatNok: 7850,
+    }),
+    code: null,
+    message: null,
+    partialInputJson: null,
+    notes: ["Matched task 08."],
+  });
+
+  const response = await handler(
+    new Request(
+      "http://localhost/internal/classify-result?requestId=req-internal-classify-1",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: payload,
+      },
+    ),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "accepted" });
+  assert.equal(await registration.promise, payload);
 });
 
 test("POST /solve enforces the concurrency limit", async () => {
