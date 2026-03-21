@@ -195,6 +195,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard search note:
   - `GET /product?fields=*` can still return `vatType` only as a sparse link object (`id`/`url`)
   - `GET /product?productNumber=...&fields=*` can return the matched identifier under `number` rather than `productNumber`; normalize both keys before deciding a direct numeric resolver failed
+  - **type pitfall**: `product.number` is always a **string** in the JSON response (e.g. `"6247"`), never an integer; use `String(p.number) === String(ref)` or loose equality — strict `=== intLiteral` silently fails
   - when the prompt clearly provides exact existing product numbers, the lower-call first resolver is one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
   - for invoice/order tasks where the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, the lower-call product resolver is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
   - only switch from the direct `productNumber` query to the broader catalog read when those numeric refs are unclear semantics or the direct numeric query returns an incomplete/ambiguous subset

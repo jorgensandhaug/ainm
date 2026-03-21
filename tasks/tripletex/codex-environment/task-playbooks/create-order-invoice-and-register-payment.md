@@ -106,6 +106,12 @@ Exact-match tasks should now prefer the trusted standard:
   - sandbox verification on 2026-03-21 also proved that `productNumber` and `number` API query params use AND semantics when combined, so mixing them in one call does not help cross-field matching
   - further production run on 2026-03-21 for Portuguese prompt `Estrela Lda` / `842487803` / `Design web (1851)` / `Consultoria de dados (5065)` also had `productNumber=1851` miss — confirming that `productNumber` is unreliable across accounts
   - sandbox verification on 2026-03-21 proved that `count=1000` as the default first product lookup guarantees 5 calls every time, eliminating the 2-tier inconsistency
+- production run on 2026-03-21 for Portuguese prompt `Horizonte Lda` / `904130338` / `Serviço de rede (6247)` / `Desenvolvimento de sistemas (5919)` / prices `15250` + `13250`:
+  - used the canonical 5-call path with `count=1000` product lookup
+  - initial script attempt wasted 2 API calls (GET customer + GET product) because it matched `p.number === 6247` with strict integer equality — `product.number` is always a string (`"6247"`), causing silent mismatch and local throw
+  - after fixing to `String(p.number) === "6247"`, the second run completed all 5 calls successfully with 0 errors
+  - this proves `product.number` type is string, not integer — added as a critical type pitfall in both trusted standard and playbook
+  - total actual API calls: 7 (2 wasted + 5 successful), ideal was 5
 
 ## Minimal Flow
 
@@ -215,6 +221,7 @@ Exact-match tasks should now prefer the trusted standard:
 
 - Use `GET /product?count=1000&fields=*` as the default and only product lookup
 - Filter locally by the `number` response field matching the prompt refs
+- **CRITICAL type pitfall**: `product.number` is always a **string** in the API response (e.g. `"6247"`), never an integer; use `String(p.number) === String(promptRef)` or loose equality — strict `p.number === 6247` silently fails and wastes API calls on the retry
 - Use exact product name from the prompt as a secondary match check
 - Do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
 - Do not use the old 2-tier approach (`productNumber` first → `count=1000` fallback); it is unreliable and wastes a call when `productNumber` partially resolves

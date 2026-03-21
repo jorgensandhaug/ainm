@@ -39,6 +39,7 @@
     - `unitPriceExcludingVatCurrency`
 - preserve prompt product names/descriptions exactly when they are part of the scored state
 - when resolving products from `GET /product?count=1000&fields=*`, match by the `number` response field against the prompt refs; do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
+- **CRITICAL type pitfall**: `product.number` is always a **string** in the API response (e.g. `"6247"`), never an integer; use `String(p.number) === String(promptRef)` or loose equality `p.number == promptRef` — strict `p.number === 6247` silently fails and wastes API calls on the retry
 - do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
 - if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
