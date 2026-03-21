@@ -43,6 +43,7 @@ QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V11 = "query_residual_v11"
 QUERY_RESIDUAL_V12 = "query_residual_v12"
+QUERY_RESIDUAL_V13 = "query_residual_v13"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -52,6 +53,7 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V10,
         QUERY_RESIDUAL_V11,
         QUERY_RESIDUAL_V12,
+        QUERY_RESIDUAL_V13,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -64,6 +66,7 @@ class QueryResidualNamedVariantSpec(BaseModel):
 
     model_name: str
     samples_per_round: int = Field(default=1, ge=1)
+    budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
     cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     include_exact_local_residual: bool = False
 
@@ -91,6 +94,7 @@ def resolve_query_residual_variant_spec(
     default_samples_per_round = {
         QUERY_RESIDUAL_V11: 2,
         QUERY_RESIDUAL_V12: 3,
+        QUERY_RESIDUAL_V13: 2,
     }.get(resolved_model_name, 1)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -99,6 +103,8 @@ def resolve_query_residual_variant_spec(
         raise ValueError("query_residual_v11 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V12 and effective_samples_per_round != 3:
         raise ValueError("query_residual_v12 fixes samples_per_round=3")
+    if resolved_model_name == QUERY_RESIDUAL_V13 and effective_samples_per_round != 2:
+        raise ValueError("query_residual_v13 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V8:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
@@ -130,6 +136,14 @@ def resolve_query_residual_variant_spec(
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
             samples_per_round=effective_samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V13:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=2,
+            budget_prefixes=(20, 35, 50),
             cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
             include_exact_local_residual=True,
         )
@@ -1652,6 +1666,7 @@ def fit_named_query_residual_predictor(
         policy_name=policy_name,
         model_name=spec.model_name,
         samples_per_round=spec.samples_per_round,
+        budget_prefixes=spec.budget_prefixes,
         cell_selection_strategy=spec.cell_selection_strategy,
         include_exact_local_residual=spec.include_exact_local_residual,
     )

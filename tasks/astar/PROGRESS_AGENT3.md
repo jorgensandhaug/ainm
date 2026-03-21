@@ -552,6 +552,80 @@
 69. Interpretation of item 68:
    - cached-fold rerun reproduced the exact same best `v11` score, so the validation/reporting upgrade did not perturb model behavior
    - benchmark artifact for the current lead model now includes the stronger native selection metrics
+70. New hypothesis after rejecting `v12`:
+   - the next likely mismatch is not transcript diversity but training-prefix alignment
+   - current query-residual training uses transcript prefixes `(0, 5, 10, 20, 35, 50)`, but benchmark/live scoring only cares about the final post-query prediction
+   - because the `coverage` policy is query-plan based and does not depend on predictor outputs, training on early sparse prefixes may dilute final-budget fit without helping the evaluated behavior
+71. Implemented late-prefix branch:
+   - new model name: `query_residual_v13`
+   - semantics:
+     - same architecture as `query_residual_v11`
+     - fixed `samples_per_round=2`
+     - fixed training `budget_prefixes=(20, 35, 50)`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+72. Validation after `query_residual_v13` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `19 passed`
+   - next:
+     - evaluate `query_residual_v13` on the representative 2-round/7-train holdout
+73. Turn-start context refresh completed before further iteration:
+   - reread:
+     - `README.md`
+     - `docs/game_facts.md`
+     - `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - `instructions/agent3/specific-handoff-information.md` is currently empty (`0` bytes)
+   - attempted `br list` per repo instructions, but `br` is not installed in this environment (`command not found`)
+74. `query_residual_v13` targeted holdout status during this turn:
+   - representative 2-round/7-train probe is running for:
+     - model `query_residual_v13`
+     - `policy=coverage`
+     - `budget=50`
+     - held-out rounds:
+       - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+       - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - process is confirmed active rather than wedged:
+     - worker pid `1836151`
+     - observed CPU during probe: `243%`
+   - cached fold checkpoint already exists at:
+     - `data/artifacts/models/query_residual_v13__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+75. Next likely hypothesis if `v13` fails:
+   - current code uses prefix selection only; all retained prefixes contribute equally to both:
+     - regime linear fit
+     - residual ridge fit
+   - because live / benchmark scoring only uses the final post-query prediction, a better aligned ablation is likely:
+     - keep all default prefixes for coverage of sparse-transcript regimes
+     - weight later prefixes more heavily instead of deleting early ones outright
+   - intended direction:
+     - add a new fixed-name branch that applies budget-dependent prefix weights in both fitting stages
+     - use representative 2-round/7-train holdout first, then full corrected LOO only if it wins cleanly
+76. `query_residual_v13` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v13_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v13`
+     - fixed `samples_per_round=2`
+     - fixed training `budget_prefixes=(20, 35, 50)`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `60.8438`
+     - mean weighted KL `0.165869`
+   - per-round:
+     - `36e581...`: score `62.1955`, KL `0.158415`
+     - `f1dac9...`: score `59.4920`, KL `0.173323`
+77. Interpretation of item 76:
+   - `v13` loses to current lead `v11` / `v8` samples-2 holdout result `60.9581`
+   - but the loss is structured rather than random:
+     - versus `v11`, `v13` hurts `36e581...` by about `-1.6328`
+     - versus `v11`, `v13` helps worst round `f1dac9...` by about `+1.4042`
+   - conclusion:
+     - hard deletion of early prefixes is too aggressive
+     - the underlying alignment idea still looks alive
+     - next branch should keep early prefixes with reduced weight, not remove them
 
 ## Open Questions
 
