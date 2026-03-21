@@ -2672,6 +2672,45 @@
 | 6 | stacked_w15 (QR+CellKNN) | coverage | 1 | 75.54 | 60.19 | — |
 | 7 | hybrid_lowrank_queryres | coverage | 4 | 74.94 | 55.67 | — |
 
+### 2026-03-21T18:40:00Z
+
+- **BREAKTHROUGH: Expansion-conditioned predictor dominates on extreme rounds**
+  - Pure expansion-conditioned: f1dac = **75.92** (+18.5 over old best!)
+  - c5cdf = **79.89** (+8.4 over old best!)
+  - But overall mean only 73.79 (weaker on moderate rounds)
+
+- **NEW ABSOLUTE BEST: Stacked QR + Expansion-Conditioned w35 → 77.35**
+  - Full weight sweep found optimal at 35% expansion weight
+  - Mean: 77.35 (vs 75.19 old best, **+2.16 points**)
+  - f1dac: 68.85 (+11.45 over old best's 57.40)
+  - c5cdf: 79.10 (+7.60 over old best's 71.50)
+  - 36e581: 68.24 (+2.04 over old best's 66.20)
+
+- Full weight sweep (stacked expansion, explr3, spr4):
+
+  | Weight | Mean Score | f1dac | 36e581 |
+  |--------|-----------|-------|--------|
+  | 10% | 76.40 | 63.48 | 67.94 |
+  | 15% | 76.75 | 64.68 | 68.11 |
+  | 25% | 77.20 | 66.89 | 68.28 |
+  | 30% | 77.31 | 67.90 | 68.29 |
+  | **35%** | **77.35** | **68.85** | **68.24** |
+  | 40% | 77.32 | 69.73 | 68.16 |
+  | 45% | 77.22 | 70.55 | 68.02 |
+  | 50% | 77.06 | 71.31 | 67.84 |
+
+- Architecture: 65% query_residual + 35% expansion-conditioned in logit space
+
+## Overall Experiment Leaderboard (Updated)
+
+| Rank | Model | Policy | spr | Mean | f1dac | Range |
+|------|-------|--------|-----|------|-------|-------|
+| **1** | **stacked_expansion w35** | **explr3** | **4** | **77.35** | **68.85** | 68.2-84.8 |
+| 2 | stacked_expansion w30 | explr3 | 4 | 77.31 | 67.90 | 67.9-84.8 |
+| 3 | stacked_expansion w25 | explr3 | 4 | 77.20 | 66.89 | 66.9-85.0 |
+| 4 | stacked w20 (QR+CellKNN) | explr3 | 4 | 76.06 | 63.93 | 63.9-85.3 |
+| 5 | hybrid_lowrank_queryres (OLD BEST) | explr3 | 4 | 75.19 | 57.40 | 57.4-86.2 |
+
 ## Key Technical Achievements
 
 1. **Cell-level kNN predictor** (`greybox_cellknn_v01`, `greybox_cellknn_perround_v01`)
