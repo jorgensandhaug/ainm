@@ -2686,3 +2686,87 @@
   - next best family branch should return to the subagent-consistent direction:
     - a qualitatively different hidden-stress / winter-shock latent
     - ideally supervised for terminal usefulness, not just easier posterior audit
+
+## 2026-03-21: Guided summary-roundlaw decoder branch
+
+- Re-read:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+
+- Repo / task hygiene:
+  - `br list` still unavailable in this env:
+    - `/bin/bash: br: command not found`
+
+- Machine-health snapshot before new heavy sweep:
+  - time:
+    - `2026-03-21 10:41:53 UTC`
+  - memory:
+    - `2.9 TiB total`
+    - `861 GiB used`
+    - `2.0 TiB free`
+    - `2.1 TiB available`
+  - cores:
+    - `384`
+  - loadavg:
+    - `35.97 54.78 63.30`
+  - read:
+    - enough headroom for several medium benchmark jobs in parallel
+    - but other agents were already running multiple `16-38 GiB` Python workers, so still cap parallelism deliberately
+
+- Sidecar analysis from earlier reused:
+  - Poincare read:
+    - best next branch inside `summary_rate_decoder` / law-decoder family is a terminal-law latent guided by small semimechanistic targets rather than more transcript-summary-only work
+  - Dalton read:
+    - collapse-only hidden stress / timing is the right family direction, not another cosmetic decoder tweak
+
+- New branch hypothesis:
+  - the failure of the earlier `summary_roundlaw_decoder_r3` path may be because the low-rank law manifold was unguided
+  - use a small latent target family with real replay support to orient the round-law basis:
+    - `rates`
+    - `birth_collapse_timing_stress`
+  - then decode full terminal law from that guided low-rank manifold
+
+- First implementation attempt:
+  - added guided-law support to `src/astar/student/predictor/summary_roundlaw_decoder.py`
+  - added immutable model names in `src/astar/student/predictor/summary_roundlaw_decoder_specs.py`
+  - wired via `src/astar/student/predictor/interactive.py`
+  - added coverage in `tests/test_summary_roundlaw_decoder_predictor.py`
+
+- First failure found:
+  - initial smoke/dev launch failed immediately with:
+    - `guided summary round-law decoder requires guide targets for exactly the fitted law rounds`
+  - investigation result:
+    - not a missing-data problem
+    - real cause was round-order mismatch
+    - the guide target frame sorts `round_id`
+    - the fitted law vectors preserve benchmark training-round order
+    - exact equality check was therefore wrong on held-out folds
+
+- Fix landed locally:
+  - added `_align_guide_targets(...)` in `src/astar/student/predictor/summary_roundlaw_decoder.py`
+  - guided decoder now:
+    - aligns guide rows to the actual law-round order
+    - drops any unmatched rounds instead of assuming identical ordering
+    - fails cleanly only if fewer than `2` aligned rounds remain
+  - default law vector now recomputed after alignment
+
+- New immutable model names added for this sweep:
+  - `f1_summary_roundlaw_decoder_hrates_r3_v01`
+  - `f1_summary_roundlaw_decoder_teacher_hrates_r3_v01`
+  - `f1_summary_roundlaw_decoder_hstress_r3_v01`
+  - `f1_summary_roundlaw_decoder_teacher_hstress_r3_v01`
+
+- Regression coverage added:
+  - direct order-preservation test for `_align_guide_targets(...)`
+  - parser / online builder coverage for the new guided model names
+
+- Validation after the fix:
+  - command:
+    - `uv run pytest tests/test_summary_roundlaw_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_teacher_student.py -q`
+  - result:
+    - `10 passed`
+
+- Immediate next action from this checkpoint:
+  - launch parallel current-smoke benchmarks for the 4 guided-law variants
+  - only carry winners to broader dev5
