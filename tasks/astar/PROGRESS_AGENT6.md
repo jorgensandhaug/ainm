@@ -4122,8 +4122,25 @@
 - Agent2's `smh_resid_z12_h0_covbase_locgate_v001`: score **74.41**
 - Key insight: the scoring gap is in the teacher/coefficient infrastructure, not in the posterior or decoder
 
-### Next best path
-- Port agent1's V2 coefficient fitting + teacher infrastructure
-- Build a proper low-rank regime latent with SVD compression
-- Add ridge-projected regime prediction for better online inference
-- This is the most promising path to >75 score
+### Hazard posterior V2 port (BREAKTHROUGH - new best!)
+- Code:
+  - `src/astar/history/summaries/round_coefficients_v2.py` (ported from agent1)
+  - `src/astar/teacher/dynamics/hazard_teacher_v2.py` (ported from agent1)
+  - `src/astar/student/predictor/hazard_posterior_v2_port.py`
+  - `src/astar/student/predictor/hazard_posterior_v2_port_specs.py`
+- Smoke results:
+  - `f1_hazard_posterior_v2_k5_r3_v01`: score **73.0480**, KL `0.107014`
+  - `f1_hazard_posterior_v2_k5_r5_v01`: score `73.0480`, KL `0.107014`
+  - `f1_hazard_posterior_v2_k3_r3_v01`: score `72.7596`, KL `0.108442`
+- **BEATS baseline query_residual (72.55) AND supportx_v01 (72.92) on probe3!**
+- Dev5 benchmark running for robustness confirmation
+- Next: iterate on this family with hyperparameter sweeps and dev5 validation
+
+### Current scoreboard on probe3:
+1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
+2. supportx_v01: 72.92
+3. baseline query_residual: 72.55
+4. cell_type_transfer blend50: 71.03
+5. summary_rate_decoder_dyn best: ~69.9
+6. MLP decoder: ~43-46 (reject)
+7. terminal retrieval: ~14 (reject)
