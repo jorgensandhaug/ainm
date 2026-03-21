@@ -43,6 +43,7 @@ Production verification on 2026-03-20 additionally showed:
 - second French production run on 2026-03-21 for `Implémentation Montagne` / `Montagne SARL` / `842138248` / `jules.martin@example.org` also succeeded with the same 3-call path; `é` in project name handled without extra reads
 - Nynorsk production run on 2026-03-21 for `Oppgradering Fjelltopp` / `Fjelltopp AS` / `826557990` / `torbjrn.stlsvik@example.org` also succeeded with the same 3-call path; Nynorsk prompt language (`Prosjektleiar`, `knytt til`) did not change the flow
 - third French production run on 2026-03-21 for `Implémentation Colline` / `Colline SARL` / `869753017` / `ines.dubois@example.org` also succeeded with the same 3-call path; 10 consecutive optimal runs across en/pt/es/nb/nn/fr confirm the standard is stable and language-independent
+- second Nynorsk production run on 2026-03-21 for `Migrasjon Vestfjord` / `Vestfjord AS` / `887727872` / `liv.stlsvik@example.org` also succeeded with the same 3-call path; 12 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent
 
 ## Minimal Safe Flow
 
