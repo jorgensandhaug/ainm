@@ -2,32 +2,32 @@
 
 ## Current Best
 
-- experiment: `agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321`
-- model: `query_residual_v9_v10_builtfreqgatexwide_v001`
+- experiment: `agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322`
+- model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
 - mode: `online_interactive`
 - policy: `exploration_v2`
-- mean score: `74.6943`
-- mean weighted KL: `0.100390`
-- note: best current full local round-held-out result in this checkout
+- mean score: `78.3805`
+- mean weighted KL: `0.086960`
+- note: best current full local round-held-out result in this checkout; tiny round-manifold semh teacher decisively beats the old residual line
 
 ## Current Best Standalone Semimech Line
 
-- experiment: `agent2_full_smh_coeffbank_hbblend50_exactobs_8rounds_coverage_20260321`
-- model: `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+- experiment: `agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322`
+- model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
 - mode: `online_interactive`
-- policy: `coverage`
-- mean score: `72.4834`
-- mean weighted KL: `0.110286`
-- note: current best standalone `smh_*` full round-held-out result; exact local observation conditioning is the key student-side gain so far
+- policy: `exploration_v2`
+- mean score: `78.3805`
+- mean weighted KL: `0.086960`
+- note: current best standalone `smh_*` full round-held-out result; low-rank round manifold is the decisive teacher-side gain
 
 ## Current Best Standalone Semimech KL Line
 
-- experiment: `agent2_full_smh_coeffbank_hbblend50_exactobs_8rounds_coverage_20260321`
-- model: `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+- experiment: `agent2_full_smh_glmmlatent_z2_8rounds_exploration_20260322`
+- model: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
 - mode: `online_interactive`
-- policy: `coverage`
-- mean score: `72.4834`
-- mean weighted KL: `0.110286`
+- policy: `exploration_v2`
+- mean score: `78.3805`
+- mean weighted KL: `0.086960`
 - note: also the current best standalone `smh_*` weighted KL on full round-held-out evaluation
 
 ## Previous Reference Line

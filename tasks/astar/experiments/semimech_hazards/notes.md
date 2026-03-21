@@ -225,3 +225,48 @@
   - first residual-student run spent most of its runtime finishing that cache
   - after cache completion, follow-up residual-student runs dropped sharply in runtime
   - widened DuckDB catalog lock retries were necessary because parallel materialization otherwise failed too early on the shared box
+
+## Semh GLMM manifold read
+
+- The `smh_glmmlatent_*` branch is the first semh teacher family member that fully breaks past the old residual baseline.
+- Core result:
+  - `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+  - full 8-round exploration:
+    - `78.3805 / 0.086960`
+  - same model full coverage:
+    - `77.8193 / 0.089306`
+  - old local best residual line:
+    - `query_residual_v9_v10_builtfreqgatexwide_v001`
+    - `74.6943 / 0.100390`
+- Same-policy paired compare vs the old exploration winner:
+  - mean score delta:
+    - `+3.6863`
+  - weighted KL delta:
+    - `-0.013431`
+  - bootstrap CI95:
+    - `[0.3465, 7.3703]`
+  - win rate:
+    - `0.625`
+  - read:
+    - the new teacher loses badly only on `36e581f1...`
+    - but the gains on the other rounds are much larger than those losses
+- Scientific interpretation:
+  - the handoff thesis was right:
+    - pooled transition law was too rigid
+    - raw round bank was too jagged
+    - tiny low-rank round manifold is the right regularizer
+  - larger latent was a mistake:
+    - serious 6-round `z4` result: `70.5723 / 0.127226`
+    - serious 6-round `z2` result: `72.8255 / 0.116068`
+  - this is direct evidence for “rich teacher; tiny regime manifold”
+- Policy read for this branch:
+  - coverage and exploration were identical on the serious 6-round slice
+  - implication:
+    - policy is not the current bottleneck for this model family
+- Dead follow-up:
+  - `smh_glmmlatent_z2_h0_covprior_calnone_v001`
+  - serious 6-round result matched plain `z2 covbase` exactly:
+    - `72.8255 / 0.116068`
+  - implication:
+    - the first simple ridge prior from initial-map summaries into `z_r` added no value
+    - if prior modeling is revisited it needs a more informative prior construction
