@@ -42,6 +42,7 @@ from astar.cli_output import (
     render_submit_prediction,
     render_summarize_replays,
     render_sync_round,
+    render_synthetic_transcript_audit,
     render_synthetic_benchmark,
     render_synthetic_tournament,
     render_teacher_science,
@@ -99,6 +100,7 @@ from astar.workflows.submissions import build_submission, submit_saved_predictio
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.sync_round import sync_round
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
+from astar.workflows.synthetic_transcript_audit import run_synthetic_transcript_audit
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
 from astar.workflows.visualize_model_prediction import visualize_model_prediction
@@ -281,6 +283,18 @@ def build_parser() -> argparse.ArgumentParser:
     event_regime_posterior_parser.add_argument("--samples-per-round", type=int, default=4)
     event_regime_posterior_parser.add_argument("--budget", type=int, default=50)
     event_regime_posterior_parser.add_argument("--k-neighbors", type=int, default=7)
+
+    synthetic_transcript_audit_parser = subparsers.add_parser("run-synthetic-transcript-audit")
+    synthetic_transcript_audit_parser.add_argument("--model", choices=online_models, required=True)
+    synthetic_transcript_audit_parser.add_argument("--round-id", action="append", default=None)
+    synthetic_transcript_audit_parser.add_argument(
+        "--dataset-name",
+        default="f1_synthetic_transcript_audit_coverage_b50_s2_v01",
+    )
+    synthetic_transcript_audit_parser.add_argument("--name", default="f1_synthetic_transcript_audit_v01")
+    synthetic_transcript_audit_parser.add_argument("--policy", default="coverage")
+    synthetic_transcript_audit_parser.add_argument("--samples-per-round", type=int, default=2)
+    synthetic_transcript_audit_parser.add_argument("--budget", type=int, default=50)
 
     birth_hazard_glm_parser = subparsers.add_parser("run-birth-hazard-glm-audit")
     birth_hazard_glm_parser.add_argument("--dataset-name", default="f1_birth_riskset_nr8_v1")
@@ -621,6 +635,20 @@ def _main() -> int:
             k_neighbors=args.k_neighbors,
         )
         _emit(args.json, result, render_event_regime_posterior_audit(result))
+        return 0
+
+    if args.command == "run-synthetic-transcript-audit":
+        result = run_synthetic_transcript_audit(
+            paths,
+            model_name=args.model,
+            round_ids=args.round_id,
+            dataset_name=args.dataset_name,
+            audit_name=args.name,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+            budget=args.budget,
+        )
+        _emit(args.json, result, render_synthetic_transcript_audit(result))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":

@@ -27,6 +27,7 @@ from astar.workflows.event_regime_posterior_audit import EventRegimePosteriorAud
 from astar.workflows.hazard_glm import HazardGlmAuditResult
 from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
+from astar.workflows.synthetic_transcript_audit import SyntheticTranscriptAuditResult
 from astar.workflows.results import (
     BuildSubmissionResult,
     EvaluateTeacherScienceResult,
@@ -377,6 +378,26 @@ def render_event_regime_posterior_audit(result: EventRegimePosteriorAuditResult)
         f"baseline_mse: {result.baseline_mse:.6f}",
         f"knn_mse: {result.knn_mse:.6f}",
         f"mse_gain: {result.mse_gain:.6f}",
+        f"report: {result.report_path}",
+        f"artifact: {result.artifact_path}",
+    ]
+    return "\n".join(lines)
+
+
+def render_synthetic_transcript_audit(result: SyntheticTranscriptAuditResult) -> str:
+    lines = [
+        f"synthetic-transcript-audit {result.audit_name}",
+        f"model: {result.model_name}",
+        f"dataset: {result.dataset_name}",
+        f"policy: {result.policy_name}",
+        f"budget: {result.budget}",
+        f"samples_per_round: {result.samples_per_round}",
+        f"rounds: {result.round_count}",
+        f"episodes: {result.episode_count}",
+        f"evaluated_seed_count: {result.evaluated_seed_count}",
+        f"aggregation: {result.aggregation_mode}",
+        f"aggregate_score: {result.aggregate_score:.6f}",
+        f"aggregate_weighted_kl: {result.aggregate_weighted_kl:.6f}",
         f"report: {result.report_path}",
         f"artifact: {result.artifact_path}",
     ]

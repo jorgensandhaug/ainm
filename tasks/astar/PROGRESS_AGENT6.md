@@ -1091,3 +1091,117 @@
   - this narrows the next best feature-library work:
     - not more hand-chosen summary scalars
     - more likely a validation diagnostic that can score a proposed feature block before full benchmark, or a more structural latent target change instead
+- New validation-upgrade branch started:
+  - hypothesis:
+    - repeated 3-round historical smokes are too expensive to use as the first screen for every `query_residual` feature block
+    - a stronger pre-benchmark surrogate can be built from cached legal synthetic-live transcripts on held-out rounds, scored against saved analysis tensors with the exact online predictor path
+  - desired property:
+    - if this surrogate is useful, it should at least preserve the known ordering on the recent smoke trio:
+      - `query_residual_v7`
+      - `f1_student_query_residual_state_v01`
+      - `f1_student_query_residual_state_tails_v01`
+  - implementation plan:
+    - add generic held-out synthetic-transcript audit workflow + CLI + tests
+    - calibrate it on the existing 3-round smoke slice before trusting it for new feature sweeps
+- Implemented held-out synthetic-transcript audit:
+  - new workflow:
+    - `src/astar/workflows/synthetic_transcript_audit.py`
+  - CLI:
+    - `uv run astar run-synthetic-transcript-audit --model <online_model>`
+  - semantics:
+    - held-out by round, same as benchmark discipline
+    - builds/reuses cached legal synthetic-live transcripts
+    - fits the candidate online model on training rounds only
+    - replays cached observations through the exact `build_online_predictor(...).init_belief/update/predict` path
+    - scores resulting full-map predictions against saved analysis tensors
+    - primary aggregate is equal-round mean over per-episode mean score / KL
+  - validation coverage added:
+    - `tests/test_synthetic_transcript_audit.py`
+- Focused validation reruns after adding the surrogate audit:
+  - `uv run pytest tests/test_synthetic_transcript_audit.py tests/test_history_datasets.py tests/test_historical_benchmark.py -q`
+  - result:
+    - `12 passed`
+  - `uv run pytest tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `18 passed`
+- Built calibration dataset for the existing 3-round smoke slice:
+  - dataset:
+    - `data/artifacts/datasets/f1_synthetic_transcript_probe3_b50_s2_v01/`
+  - size:
+    - `3.1M`
+  - scope:
+    - rounds:
+      - `8e839974-b13b-407b-a5e7-fc749d877195`
+      - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+      - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - policy:
+      - `coverage`
+    - budget:
+      - `50`
+    - samples_per_round:
+      - `2`
+- Surrogate calibration results on the known smoke trio:
+  - baseline:
+    - audit:
+      - `f1_synthetic_transcript_query_residual_probe3_b50s2_v01`
+    - artifact:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_query_residual_probe3_b50s2_v01/result.json`
+    - report:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_query_residual_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `72.519350`
+      - aggregate weighted KL `0.107541`
+      - wall `4:25.25`
+      - max RSS `13388724` kB (`~13.39 GB`)
+  - candidate:
+    - audit:
+      - `f1_synthetic_transcript_f1_student_query_residual_state_v01_probe3_b50s2_v01`
+    - artifact:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_f1_student_query_residual_state_v01_probe3_b50s2_v01/result.json`
+    - report:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_f1_student_query_residual_state_v01_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `72.190724`
+      - aggregate weighted KL `0.109060`
+      - delta vs surrogate baseline `-0.328626`
+      - KL delta `+0.001520`
+      - wall `3:02.70`
+      - max RSS `13320356` kB (`~13.32 GB`)
+  - candidate:
+    - audit:
+      - `f1_synthetic_transcript_f1_student_query_residual_state_tails_v01_probe3_b50s2_v01`
+    - artifact:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_f1_student_query_residual_state_tails_v01_probe3_b50s2_v01/result.json`
+    - report:
+      - `data/artifacts/family1/surrogate_audit/f1_synthetic_transcript_f1_student_query_residual_state_tails_v01_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `72.123513`
+      - aggregate weighted KL `0.109343`
+      - delta vs surrogate baseline `-0.395837`
+      - KL delta `+0.001803`
+      - wall `2:57.81`
+      - max RSS `13395964` kB (`~13.40 GB`)
+- Calibration read vs the true smoke benchmark:
+  - good:
+    - preserved ranking:
+      - `query_residual_v7 > state_v01 > state_tails_v01`
+    - preserved sign:
+      - both rejected variants remain negative under the surrogate
+  - not good enough to overtrust:
+    - effect sizes are compressed vs the true smoke benchmark
+      - true smoke deltas:
+        - state `-0.5115`
+        - tails `-1.0385`
+      - surrogate deltas:
+        - state `-0.3286`
+        - tails `-0.3958`
+    - one per-round direction flips for `state_tails_v01`
+      - surrogate says one held-out round is mildly positive while true smoke had all three negative
+    - runtime is still dominated by per-round model fit, so this v1 audit is not materially cheaper than the 3-round smoke benchmark for `query_residual`
+- Surrogate-audit conclusion:
+  - scientifically useful:
+    - yes, as a coarse reject screen or for early ordering checks
+  - operational replacement for smoke benchmarks:
+    - no
+  - next validation best path:
+    - if staying on `query_residual`, the real missing speed win is a within-fit residual/regime diagnostic or fit-sharing path, not merely more cached transcript scoring
