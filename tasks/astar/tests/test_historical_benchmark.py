@@ -7,6 +7,7 @@ import pytest
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.student.predictor.ffam_mode import FFAMModePredictor
+from astar.student.predictor.ffam_mode_config import resolve_ffam_mode_config
 from astar.student.predictor.ffam_operator import FFAMOperatorPredictor
 from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
@@ -19,6 +20,10 @@ from tests.test_historical_bucket_baseline import (
     _write_sample_analysis,
 )
 from tests.test_history_datasets import _write_replays_for_all_seeds
+
+
+def test_ffam_mode_default_alias_promoted_to_v12() -> None:
+    assert resolve_ffam_mode_config("ffam_mode").model_name == "ffam_mode_v12"
 
 
 def test_run_historical_benchmark_writes_summaries(sample_paths: RepoPaths) -> None:
@@ -130,6 +135,13 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_mode_v11",
         "ffam_mode_v12",
         "ffam_mode_v13",
+        "ffam_mode_v14",
+        "ffam_mode_v15",
+        "ffam_mode_v16",
+        "ffam_mode_v17",
+        "ffam_mode_v18",
+        "ffam_mode_v19",
+        "ffam_mode_v20",
         "ffam_operator_v1",
         "ffam_operator_v2",
         "ffam_operator_v3",
@@ -599,3 +611,51 @@ def test_ffam_mode_v12_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: P
     assert loaded.posterior_metric_method == "supervised"
     assert loaded.cluster_count == predictor.cluster_count
     assert loaded.posterior_cluster_id_bank.shape == predictor.posterior_cluster_id_bank.shape
+
+
+def test_ffam_mode_v15_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMModePredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_mode_v15",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_mode_v15" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMModePredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_mode_v15"
+    assert loaded.posterior_method == "kernel_ridge"
+    assert loaded.decoder_method == "cluster_mode_projection"
+    assert loaded.posterior_kernel_alpha.shape == predictor.posterior_kernel_alpha.shape
+
+
+def test_ffam_mode_v17_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMModePredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_mode_v17",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_mode_v17" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMModePredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_mode_v17"
+    assert loaded.posterior_input_source == "summary_input"
+    assert loaded.posterior_summary_variant == "v3"
+    assert loaded.posterior_fallback_weights.shape == predictor.posterior_fallback_weights.shape

@@ -38,12 +38,63 @@ from astar.student.predictor.query_residual import (
 )
 from astar.student.predictor.query_residual_config import RegimeInputVariant
 from astar.student.predictor.round import BaseRoundPredictor
+from astar.student.posterior.deepset_student import (
+    SummaryVariant,
+    _seed_summary_block_size,
+    _summary_vector_from_observations,
+)
 
 
 def _mode_feature_names() -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
     return names
+
+
+def _summary_input_names(*, seed_count: int, variant: SummaryVariant) -> list[str]:
+    block_size = _seed_summary_block_size(variant)
+    return [f"summary_seed{seed_index}_{feature_index}" for seed_index in range(seed_count) for feature_index in range(block_size)]
+
+
+def _posterior_input_names(
+    *,
+    seed_count: int,
+    posterior_input_source: str,
+    regime_input_variant: RegimeInputVariant,
+    posterior_summary_variant: SummaryVariant,
+) -> list[str]:
+    if posterior_input_source == "summary_input":
+        return _summary_input_names(seed_count=seed_count, variant=posterior_summary_variant)
+    return _regime_input_names(regime_input_variant)
+
+
+def _posterior_input_vector_from_state(
+    round_detail: RoundDetail,
+    observations: tuple | list | None,
+    derived,
+    *,
+    posterior_input_source: str,
+    regime_input_variant: RegimeInputVariant,
+    posterior_summary_variant: SummaryVariant,
+) -> np.ndarray | None:
+    if posterior_input_source == "summary_input":
+        if observations is None:
+            return None
+        return _summary_vector_from_observations(
+            tuple(observations),
+            seed_count=round_detail.seeds_count,
+            map_width=round_detail.map_width,
+            map_height=round_detail.map_height,
+            variant=posterior_summary_variant,
+            initial_grids=tuple(
+                np.asarray(initial_state.grid, dtype=np.int64)
+                for initial_state in round_detail.initial_states
+            ),
+        )
+    return _regime_input_vector(
+        derived,
+        variant=regime_input_variant,
+    )
 
 
 def _compose_mode_design_tensor(
@@ -209,6 +260,22 @@ def _cluster_mode_vectors(
     return np.asarray(labels, dtype=np.int64)
 
 
+def _fit_kernel_ridge_map(
+    metric_bank: np.ndarray,
+    targets: np.ndarray,
+    *,
+    bandwidth: float,
+    ridge_lambda: float,
+) -> np.ndarray:
+    if metric_bank.shape[0] == 0:
+        return np.zeros((0, targets.shape[1]), dtype=np.float64)
+    bandwidth_sq = max(float(bandwidth) ** 2, 1e-6)
+    pairwise_sq = np.sum(np.square(metric_bank[:, None, :] - metric_bank[None, :, :]), axis=2)
+    kernel = np.exp(-0.5 * pairwise_sq / bandwidth_sq)
+    system = kernel + (ridge_lambda + 1e-6) * np.eye(kernel.shape[0], dtype=np.float64)
+    return np.asarray(np.linalg.solve(system, targets), dtype=np.float64)
+
+
 class FFAMModePredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -230,6 +297,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
+    posterior_input_source: str = "regime_input"
+    posterior_summary_variant: SummaryVariant = "v3"
     posterior_method: str = "particle_mixture"
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -271,6 +340,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
+    posterior_input_source: str = "regime_input"
+    posterior_summary_variant: SummaryVariant = "v3"
     posterior_method: str = "particle_mixture"
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -296,6 +367,9 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_metric_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_coord_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_round_index_bank: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
+    posterior_kernel_alpha: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    posterior_fallback_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    posterior_fallback_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     round_cluster_ids: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
     cluster_operator_mean_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     cluster_basis_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1, 1), dtype=np.float64))
@@ -338,7 +412,6 @@ class FFAMModePredictor(BaseRoundPredictor):
         )
         round_entries: list[dict[str, object]] = []
         mode_feature_names = _mode_feature_names()
-        posterior_input_names = _regime_input_names(config.regime_input_variant)
 
         for round_id in selected_round_ids:
             round_detail = read_round_record(paths, round_id).round
@@ -360,6 +433,13 @@ class FFAMModePredictor(BaseRoundPredictor):
         if not round_entries:
             raise ValueError("ffam mode found no analyzed rounds to fit modes")
 
+        seed_count = int(round_entries[0]["round_detail"].seeds_count)
+        posterior_input_names = _posterior_input_names(
+            seed_count=seed_count,
+            posterior_input_source=config.posterior_input_source,
+            regime_input_variant=config.regime_input_variant,
+            posterior_summary_variant=config.posterior_summary_variant,
+        )
         global_operator_vector = _fit_mode_operator_vector(
             round_entries,
             cells_per_seed=config.cells_per_seed,
@@ -448,6 +528,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             for entry in round_entries
         }
         posterior_inputs: list[np.ndarray] = []
+        posterior_fallback_inputs: list[np.ndarray] = []
         posterior_targets: list[np.ndarray] = []
         posterior_round_indexes: list[int] = []
         posterior_cluster_coords: list[np.ndarray] = []
@@ -469,7 +550,18 @@ class FFAMModePredictor(BaseRoundPredictor):
                     _stats_from_observations(entry["round_detail"], observations),  # type: ignore[arg-type]
                     blur_sigmas=DEFAULT_BLUR_SIGMAS,
                 )
-                posterior_inputs.append(
+                posterior_input_vector = _posterior_input_vector_from_state(
+                    entry["round_detail"],  # type: ignore[arg-type]
+                    observations,
+                    derived,
+                    posterior_input_source=config.posterior_input_source,
+                    regime_input_variant=config.regime_input_variant,
+                    posterior_summary_variant=config.posterior_summary_variant,
+                )
+                if posterior_input_vector is None:
+                    continue
+                posterior_inputs.append(np.asarray(posterior_input_vector, dtype=np.float64))
+                posterior_fallback_inputs.append(
                     _regime_input_vector(
                         derived,
                         variant=config.regime_input_variant,
@@ -482,11 +574,17 @@ class FFAMModePredictor(BaseRoundPredictor):
                 posterior_cluster_ids.append(int(round_cluster_ids[round_index]))
 
         posterior_input_matrix = np.stack(posterior_inputs, axis=0).astype(np.float64)
+        posterior_fallback_input_matrix = np.stack(posterior_fallback_inputs, axis=0).astype(np.float64)
         posterior_target_matrix = np.stack(posterior_targets, axis=0).astype(np.float64)
         posterior_cluster_coord_matrix = np.stack(posterior_cluster_coords, axis=0).astype(np.float64)
         posterior_cluster_id_array = np.asarray(posterior_cluster_ids, dtype=np.int64)
         posterior_intercept, posterior_weights = _fit_linear_map(
             posterior_input_matrix,
+            posterior_target_matrix,
+            ridge_alpha=config.posterior_ridge_lambda,
+        )
+        posterior_fallback_intercept, posterior_fallback_weights = _fit_linear_map(
+            posterior_fallback_input_matrix,
             posterior_target_matrix,
             ridge_alpha=config.posterior_ridge_lambda,
         )
@@ -505,6 +603,12 @@ class FFAMModePredictor(BaseRoundPredictor):
             cluster_count=effective_cluster_count,
         )
         posterior_metric_bank = np.asarray(standardized_inputs @ posterior_metric_basis.T, dtype=np.float64)
+        posterior_kernel_alpha = _fit_kernel_ridge_map(
+            posterior_metric_bank,
+            posterior_target_matrix,
+            bandwidth=config.posterior_bandwidth,
+            ridge_lambda=config.posterior_ridge_lambda,
+        )
 
         return cls(
             name=config.model_name,
@@ -526,6 +630,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_repeat_discount=config.beta_repeat_discount,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
+            posterior_input_source=config.posterior_input_source,
+            posterior_summary_variant=config.posterior_summary_variant,
             posterior_method=config.posterior_method,
             decoder_method=config.decoder_method,
             decoder_particle_blend=config.decoder_particle_blend,
@@ -551,6 +657,9 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_bank=np.asarray(posterior_metric_bank, dtype=np.float64),
             posterior_coord_bank=np.asarray(posterior_target_matrix, dtype=np.float64),
             posterior_round_index_bank=np.asarray(posterior_round_indexes, dtype=np.int64),
+            posterior_kernel_alpha=np.asarray(posterior_kernel_alpha, dtype=np.float64),
+            posterior_fallback_intercept=np.asarray(posterior_fallback_intercept, dtype=np.float64),
+            posterior_fallback_weights=np.asarray(posterior_fallback_weights, dtype=np.float64),
             round_cluster_ids=np.asarray(round_cluster_ids, dtype=np.int64),
             cluster_operator_mean_bank=np.asarray(cluster_operator_mean_bank, dtype=np.float64),
             cluster_basis_bank=np.asarray(cluster_basis_bank, dtype=np.float64),
@@ -584,6 +693,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_repeat_discount=self.beta_repeat_discount,
             synthetic_dataset_version=self.synthetic_dataset_version,
             regime_input_variant=self.regime_input_variant,
+            posterior_input_source=self.posterior_input_source,
+            posterior_summary_variant=self.posterior_summary_variant,
             posterior_method=self.posterior_method,
             decoder_method=self.decoder_method,
             decoder_particle_blend=self.decoder_particle_blend,
@@ -618,6 +729,9 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_bank=self.posterior_metric_bank,
             posterior_coord_bank=self.posterior_coord_bank,
             posterior_round_index_bank=self.posterior_round_index_bank,
+            posterior_kernel_alpha=self.posterior_kernel_alpha,
+            posterior_fallback_intercept=self.posterior_fallback_intercept,
+            posterior_fallback_weights=self.posterior_fallback_weights,
             round_cluster_ids=self.round_cluster_ids,
             cluster_operator_mean_bank=self.cluster_operator_mean_bank,
             cluster_basis_bank=self.cluster_basis_bank,
@@ -666,6 +780,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_repeat_discount=checkpoint.beta_repeat_discount,
             synthetic_dataset_version=checkpoint.synthetic_dataset_version,
             regime_input_variant=checkpoint.regime_input_variant,
+            posterior_input_source=checkpoint.posterior_input_source,
+            posterior_summary_variant=checkpoint.posterior_summary_variant,
             posterior_method=checkpoint.posterior_method,
             decoder_method=checkpoint.decoder_method,
             decoder_particle_blend=checkpoint.decoder_particle_blend,
@@ -696,6 +812,22 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_round_index_bank=np.asarray(
                 arrays["posterior_round_index_bank"] if "posterior_round_index_bank" in arrays else np.zeros(0),
                 dtype=np.int64,
+            ),
+            posterior_kernel_alpha=np.asarray(
+                arrays["posterior_kernel_alpha"] if "posterior_kernel_alpha" in arrays else np.zeros((0, 1)),
+                dtype=np.float64,
+            ),
+            posterior_fallback_intercept=np.asarray(
+                arrays["posterior_fallback_intercept"]
+                if "posterior_fallback_intercept" in arrays
+                else arrays["posterior_intercept"],
+                dtype=np.float64,
+            ),
+            posterior_fallback_weights=np.asarray(
+                arrays["posterior_fallback_weights"]
+                if "posterior_fallback_weights" in arrays
+                else arrays["posterior_weights"],
+                dtype=np.float64,
             ),
             round_cluster_ids=np.asarray(
                 arrays["round_cluster_ids"] if "round_cluster_ids" in arrays else np.zeros(0),
@@ -799,15 +931,44 @@ class FFAMModePredictor(BaseRoundPredictor):
         coords = np.asarray(solved[0], dtype=np.float64)
         return coords, confidence
 
-    def _predict_mode_coords(self, derived) -> tuple[np.ndarray, float]:
-        input_vector = _regime_input_vector(
-            derived,
-            variant=self.regime_input_variant,
+    def _kernel_ridge_coords(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
+        if self.posterior_metric_bank.shape[0] == 0 or self.posterior_kernel_alpha.shape[0] == 0:
+            coords = np.asarray(self.posterior_intercept + (input_vector @ self.posterior_weights), dtype=np.float64)
+            return coords, 1.0
+        metric_input = self._posterior_metric_input(input_vector)
+        squared_distances = np.sum(np.square(self.posterior_metric_bank - metric_input[None, :]), axis=1)
+        bandwidth_sq = max(float(self.posterior_bandwidth) ** 2, 1e-6)
+        kernel = np.exp(-0.5 * squared_distances / bandwidth_sq)
+        coords = np.asarray(kernel @ self.posterior_kernel_alpha, dtype=np.float64)
+        confidence = float(np.clip(np.max(kernel), 0.0, 1.0))
+        return coords, confidence
+
+    def _fallback_mode_coords(
+        self,
+        fallback_input_vector: np.ndarray | None,
+    ) -> tuple[np.ndarray, float]:
+        if fallback_input_vector is None:
+            return np.zeros(self.mode_basis.shape[0], dtype=np.float64), 0.0
+        coords = np.asarray(
+            self.posterior_fallback_intercept + (fallback_input_vector @ self.posterior_fallback_weights),
+            dtype=np.float64,
         )
+        return coords, 0.0
+
+    def _predict_mode_coords(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        if input_vector is None:
+            return self._fallback_mode_coords(fallback_input_vector)
         if self.posterior_method == "particle_mixture":
             return self._particle_coords(input_vector)
         if self.posterior_method == "local_linear":
             return self._local_linear_coords(input_vector)
+        if self.posterior_method == "kernel_ridge":
+            return self._kernel_ridge_coords(input_vector)
         particle_coords, particle_confidence = self._particle_coords(input_vector)
         local_coords, local_confidence = self._local_linear_coords(input_vector)
         blend = float(np.clip(self.posterior_particle_blend, 0.0, 1.0))
@@ -815,18 +976,22 @@ class FFAMModePredictor(BaseRoundPredictor):
         confidence = max(particle_confidence, local_confidence)
         return np.asarray(coords, dtype=np.float64), confidence
 
-    def _mode_projection_operator_vector(self, derived) -> tuple[np.ndarray, float]:
-        mode_coords, posterior_confidence = self._predict_mode_coords(derived)
+    def _mode_projection_operator_vector(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        mode_coords, posterior_confidence = self._predict_mode_coords(
+            input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
         operator_vector = np.asarray(self.base_operator_vector + (mode_coords @ self.mode_basis), dtype=np.float64)
         return operator_vector, posterior_confidence
 
-    def _particle_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+    def _particle_operator_vector(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
         if self.round_operator_bank.shape[0] == 0 or self.posterior_round_index_bank.shape[0] == 0:
             return np.asarray(self.base_operator_vector, dtype=np.float64), 0.0
-        input_vector = _regime_input_vector(
-            derived,
-            variant=self.regime_input_variant,
-        )
         indexes, _, weights, confidence = self._posterior_neighbors(input_vector)
         if indexes.size == 0:
             return np.asarray(self.base_operator_vector, dtype=np.float64), 0.0
@@ -846,31 +1011,56 @@ class FFAMModePredictor(BaseRoundPredictor):
         operator_vector = np.asarray(round_weights @ self.round_operator_bank, dtype=np.float64)
         return operator_vector, confidence
 
-    def _predict_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+    def _predict_operator_vector(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        if input_vector is None:
+            return self._mode_projection_operator_vector(
+                input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
         if self.decoder_method == "mode_projection":
-            return self._mode_projection_operator_vector(derived)
+            return self._mode_projection_operator_vector(
+                input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
         if self.decoder_method == "operator_particle_mixture":
-            return self._particle_operator_vector(derived)
+            return self._particle_operator_vector(input_vector)
         if self.decoder_method == "cluster_mode_projection":
-            return self._cluster_mode_projection_operator_vector(derived)
-        mode_operator, mode_confidence = self._mode_projection_operator_vector(derived)
-        particle_operator, particle_confidence = self._particle_operator_vector(derived)
+            return self._cluster_mode_projection_operator_vector(
+                input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
+        mode_operator, mode_confidence = self._mode_projection_operator_vector(
+            input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
+        particle_operator, particle_confidence = self._particle_operator_vector(input_vector)
         blend = float(np.clip(self.decoder_particle_blend, 0.0, 1.0))
         operator_vector = (blend * particle_operator) + ((1.0 - blend) * mode_operator)
         return np.asarray(operator_vector, dtype=np.float64), max(mode_confidence, particle_confidence)
 
-    def _cluster_mode_projection_operator_vector(self, derived) -> tuple[np.ndarray, float]:
-        global_operator, global_confidence = self._mode_projection_operator_vector(derived)
+    def _cluster_mode_projection_operator_vector(
+        self,
+        input_vector: np.ndarray | None,
+        *,
+        fallback_input_vector: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, float]:
+        global_operator, global_confidence = self._mode_projection_operator_vector(
+            input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
         if (
-            self.cluster_count <= 1
+            input_vector is None
+            or self.posterior_metric_bank.shape[0] == 0
+            or self.cluster_count <= 1
             or self.posterior_cluster_id_bank.shape[0] == 0
             or self.cluster_operator_mean_bank.shape[0] == 0
         ):
             return global_operator, global_confidence
-        input_vector = _regime_input_vector(
-            derived,
-            variant=self.regime_input_variant,
-        )
         metric_input = self._posterior_metric_input(input_vector)
         indexes, _, weights, confidence = self._posterior_neighbors(input_vector)
         if indexes.size == 0:
@@ -965,9 +1155,29 @@ class FFAMModePredictor(BaseRoundPredictor):
         round_detail: RoundDetail,
         features: RoundFeatureBundle,
         derived,
+        *,
+        prior_bundle: PredictionBundle | None = None,
+        observations: tuple | list | None = None,
     ) -> PredictionBundle:
-        prior_bundle = self.base_predictor.build_prediction_bundle(round_detail, features)
-        operator_vector, posterior_confidence = self._predict_operator_vector(derived)
+        effective_prior_bundle = prior_bundle or self.base_predictor.build_prediction_bundle(round_detail, features)
+        posterior_input_vector = _posterior_input_vector_from_state(
+            round_detail,
+            observations,
+            derived,
+            posterior_input_source=self.posterior_input_source,
+            regime_input_variant=self.regime_input_variant,
+            posterior_summary_variant=self.posterior_summary_variant,
+        )
+        fallback_input_vector = None
+        if self.posterior_input_source != "regime_input":
+            fallback_input_vector = _regime_input_vector(
+                derived,
+                variant=self.regime_input_variant,
+            )
+        operator_vector, posterior_confidence = self._predict_operator_vector(
+            posterior_input_vector,
+            fallback_input_vector=fallback_input_vector,
+        )
         intercept, coefficients = _split_mode_operator_vector(
             operator_vector,
             feature_count=len(self.mode_feature_names),
@@ -978,7 +1188,7 @@ class FFAMModePredictor(BaseRoundPredictor):
         )
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
-            prior = np.asarray(prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            prior = np.asarray(effective_prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             static_stack = _build_static_feature_stack(round_detail, features, seed_index)
             design = _compose_mode_design_tensor(
                 static_stack,
@@ -1019,7 +1229,13 @@ class FFAMModePredictor(BaseRoundPredictor):
             _stats_from_observations(round_detail, context.observations),
             blur_sigmas=DEFAULT_BLUR_SIGMAS,
         )
-        return self._predict_from_derived(round_detail, context.geometry_bundle, derived)
+        return self._predict_from_derived(
+            round_detail,
+            context.geometry_bundle,
+            derived,
+            prior_bundle=prior_bundle,
+            observations=context.observations,
+        )
 
     def build_prediction_bundle(
         self,
@@ -1038,14 +1254,21 @@ class FFAMModePredictor(BaseRoundPredictor):
                 seed_index: _stats_from_seed_evidence(evidence.per_seed[seed_index])
                 for seed_index in range(round_detail.seeds_count)
             }
+        prior_bundle = self.base_predictor.build_prediction_bundle(round_detail, features)
         derived = _derive_transcript_features_from_stats(
             round_detail,
             features,
-            self.base_predictor.build_prediction_bundle(round_detail, features),
+            prior_bundle,
             per_seed_stats,
             blur_sigmas=DEFAULT_BLUR_SIGMAS,
         )
-        return self._predict_from_derived(round_detail, features, derived)
+        return self._predict_from_derived(
+            round_detail,
+            features,
+            derived,
+            prior_bundle=prior_bundle,
+            observations=None,
+        )
 
 
 __all__ = ["FFAMModePredictor", "FFAMModePredictorCheckpoint"]

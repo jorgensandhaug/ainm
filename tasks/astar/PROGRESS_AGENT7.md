@@ -1744,3 +1744,147 @@ Framework should accept unique query-residual family variant names directly so b
 - Full 8-round dev benchmark launched:
   - name `agent7_dev_ffam_mode_v12_exploration_r3_s2`
   - status at this log point: still running, no finalized `result.json` yet
+
+### 2026-03-21T11:40Z approx
+
+- Continued fifth-family work only; no new `query_residual` work.
+- Re-read [`instructions/agent7.md`](/home/jorge/agent7/tasks/astar/instructions/agent7.md) focus sections on:
+  - transcript summary posterior families
+  - GP / kernel style posterior branch
+  - Deep Sets / summary-input posterior branch
+- Re-checked machine state before more parallel runs:
+  - load roughly `48-62`
+  - memory free roughly `1.9 TiB`
+  - other agents active, but memory headroom still huge
+- Confirmed full dev run still alive:
+  - `agent7_dev_ffam_mode_v12_exploration_r3_s2`
+  - still no finalized [`result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v12_exploration_r3_s2/result.json)
+- Finished the previously incomplete summary-input posterior plumbing in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - generalized posterior input selection:
+    - `regime_input`
+    - `summary_input`
+  - training now uses summary vectors directly from synthetic live observations when configured
+  - live online inference now uses raw transcript observations for summary-input variants
+  - added evidence-only fallback:
+    - if raw observations are unavailable, use a separate regime-linear fallback posterior to produce mode coords
+    - this avoids summary-dimension mismatch on checkpointed models
+  - checkpoint save/load now persists:
+    - `posterior_input_source`
+    - `posterior_summary_variant`
+    - fallback posterior arrays
+- Added new benchmarkable summary-input variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v17`
+    - summary-input `v3`
+    - local-linear posterior
+    - supervised metric
+    - cluster-mode decoder
+  - `ffam_mode_v18`
+    - summary-input `v3`
+    - hybrid posterior
+    - supervised metric
+    - cluster-mode decoder
+  - `ffam_mode_v19`
+    - summary-input `v3`
+    - local-linear posterior
+    - PCA metric
+    - cluster-mode decoder
+  - `ffam_mode_v20`
+    - summary-input `v2`
+    - local-linear posterior
+    - supervised metric
+    - cluster-mode decoder
+- Extended validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v17..v20`
+  - added explicit summary-input checkpoint roundtrip for `v17`
+- Validation:
+  - first run hit a real import cycle:
+    - importing `SummaryVariant` from `deepset_student` in config pulled policy registry back into `ffam_mode_config`
+  - fixed by defining the lightweight `SummaryVariant` literal locally in config
+  - reran:
+    - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - passed: `71`
+- New probe sweep launched on the hard gate `{7,3,6,8}` with `samples_per_round=2`:
+  - `agent7_fast_probe_ffam_mode_v17_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v18_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v19_exploration_r3_r3r6r7r8_s2`
+  - `agent7_fast_probe_ffam_mode_v20_exploration_r3_r3r6r7r8_s2`
+- Note:
+  - attempted to use a `--jobs` CLI flag for more within-run parallelism, but this CLI does not expose it
+  - current acceleration strategy is therefore multiple concurrent benchmark processes
+
+### 2026-03-21T11:55Z approx
+
+- Benchmark validation nuance corrected again:
+  - `result.json` can exist before a benchmark process exits
+  - reliable completion condition is:
+    - benchmark process has exited
+    - then trust finalized top-level aggregate fields in `result.json`
+  - also corrected jq path for round summaries:
+    - use `.rounds[].mean_score`
+    - not `.rounds[].aggregate.mean_score`
+- Hard-gate summary-input probe results, `samples_per_round=2`, policy `exploration_r3`, rounds `{7,3,6,8}`:
+  - [`ffam_mode_v17`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v17_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `62.3382`
+    - mean weighted KL `0.164803`
+    - round `7`: `50.4373`
+    - round `3`: `62.5371`
+    - round `6`: `56.3406`
+    - round `8`: `80.0380`
+  - [`ffam_mode_v18`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v18_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `61.9078`
+    - mean weighted KL `0.167788`
+  - [`ffam_mode_v19`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v19_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `58.6537`
+    - mean weighted KL `0.190987`
+  - [`ffam_mode_v20`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v20_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `53.6206`
+    - mean weighted KL `0.214445`
+- Interpretation:
+  - summary-input `v3` is real and helps materially versus old fifth-family best hard-gate probe
+  - best new summary-input candidate is `v17`
+  - but hard-gate winner is still below hard-gate reference [`query_residual_v14`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json) at `63.9805`
+  - `v20` shows summary variant `v2` is much weaker than `v3`
+  - PCA metric (`v19`) is clearly worse than supervised metric on summary-input variants
+
+### 2026-03-21T12:00Z approx
+
+- The previously launched full 8-round dev benchmark for [`ffam_mode_v12`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v12_exploration_r3_s2/result.json) finalized and is a new overall local best.
+  - setup:
+    - mode `online_interactive`
+    - policy `exploration_r3`
+    - `samples_per_round=2`
+    - budget `50`
+    - episode seed `0`
+  - aggregate:
+    - mean score `75.8862`
+    - mean weighted KL `0.094355`
+  - per-round means:
+    - round `7`: `63.5616`
+    - round `1`: `81.0255`
+    - round `2`: `83.7340`
+    - round `4`: `83.4621`
+    - round `6`: `72.7692`
+    - round `8`: `82.4222`
+    - round `3`: `60.7655`
+    - round `5`: `79.3497`
+- Compared against prior overall champ [`query_residual_v14 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v14_exploration_r3/result.json):
+  - old mean score `74.7218`
+  - old mean weighted KL `0.099821`
+  - aggregate delta:
+    - score `+1.1645`
+    - weighted KL `-0.005466`
+  - saved paired comparison artifact:
+    - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=ffam_mode_v12.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v14__candidate=ffam_mode_v12.json)
+    - mean score delta `+1.1645`
+    - mean weighted KL delta `-0.005466`
+    - win rate `0.525`
+    - loss rate `0.475`
+    - score delta CI95 `[-0.1386, 2.6160]`
+- Important pattern:
+  - most of the gain comes from huge round-8 and round-3 improvement
+  - round 6 regresses a lot relative to `query_residual_v14`
+  - the old hard-gate `{7,3,6,8}` is still useful, but not sufficient as a promotion gate for this family because it undervalued `ffam_mode_v12`
+- Promotion:
+  - current fifth-family champ = `ffam_mode_v12`, `samples_per_round=2`
+  - current overall local champ = `ffam_mode_v12`, `samples_per_round=2`, policy `exploration_r3`
+  - promoted family alias `ffam_mode -> ffam_mode_v12` in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py)
