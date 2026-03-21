@@ -6,7 +6,7 @@ This document defines how strategy research should work in `tripletex2`.
 
 The repo is not just a runtime system. It is a search process over candidate strategies for 30 fixed task types. The workflow should make that search deliberate, cumulative, and inspectable.
 
-The durable operator surface for that loop now lives in `docs/research-os.md`. Use the sandbox verifier as the canonical proof mechanism for strategies instead of expanding per-strategy unit tests.
+The durable operator surface for that loop now lives in `docs/research-os.md`, with the concrete sandbox operator commands documented in `docs/sandbox.md`. Use sandbox verification as the canonical proof mechanism for strategies instead of expanding per-strategy unit tests.
 
 ## Core idea
 
@@ -288,15 +288,26 @@ The important upgrade from earlier: we are no longer entirely fixture-backed. Th
 
 ## How to ask coding agents for new strategies
 
-When using a coding agent to synthesize a new strategy, the prompt should be optimization-shaped.
+When using a coding agent to synthesize a new strategy, do not hand-write a vague brief.
 
-It should include:
+The durable manual-launch surface is:
+
+- packet = context
+- `research/AGENTS.md` = instructions
+
+The agent should read the packet first, identify the current frontier to beat, and only then touch code.
+
+The request should still be optimization-shaped.
+
+The packet should already include:
 
 - the task definition,
 - the existing best strategies,
 - the relevant run results,
 - the explicit optimization target,
-- hard constraints such as call budget or forbidden extra reads.
+- the verification command,
+- hard constraints such as call budget or forbidden extra reads,
+- routes to `openapi.json`, task-local files, and offline evidence.
 
 Examples:
 

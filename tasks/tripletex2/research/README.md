@@ -4,13 +4,20 @@ This folder is the durable operator surface for strategy research.
 
 Use it to continue task-by-task iteration without depending on chat history.
 
+For manual coding-agent launches, use:
+
+- packet = canonical context surface
+- `research/AGENTS.md` = canonical instruction surface
+
+The agent should read the packet first, then follow `research/AGENTS.md`.
+
 ## Workflow
 
 The intended research loop is:
 
 1. Start from the prioritized task queue in `task-queue.json`.
 2. Build a packet for one task with `bun scripts/research_os.ts packet build --task <NN>`.
-3. Use that packet as the working source of truth for code changes and sandbox verification.
+3. Use that packet as the working source of truth for context, current frontier, and sandbox verification.
 4. Verify exactly one challenger in a freshly reset sandbox with `bun scripts/research_os.ts verify ...`.
 5. Let the verifier update `candidate-strategies.json` with the latest sandbox result.
 6. Review successful candidates before promoting anything into `../configs/active-strategies.json`.
@@ -97,4 +104,10 @@ If a challenger is correct but exceeds the stored baseline call budget, it shoul
 
 ## External Manual Use
 
-Packets may still be copied into a manual AH or Codex workflow if you want an agent brief, but that is outside the research OS itself. `research_os.ts` does not launch or manage agents.
+`research_os.ts` does not launch or manage agents. Manual launches are still explicit and human-driven:
+
+1. build one packet,
+2. point the coding agent at `research/AGENTS.md`,
+3. hand it that packet,
+4. require it to read the packet first and beat the packet's documented frontier,
+5. verify the resulting challenger with the packet's `bun scripts/research_os.ts verify ...` command.

@@ -8,10 +8,12 @@ import {
 import { CANONICAL_TASK_REGISTRY } from "../registry/legacy-tripletex1-task-bridge";
 import type { RunArtifactV1, TaskStrategy } from "../runtime/contracts";
 import {
+  DEFAULT_CANDIDATE_STORE_PATH,
   loadCandidateStore,
   summarizeCandidateStatuses,
 } from "./candidate-store";
 import {
+  DEFAULT_RESEARCH_QUEUE_PATH,
   getResearchQueueEntry,
   loadResearchTaskQueue,
 } from "./queue";
@@ -30,11 +32,15 @@ import {
   type ResearchFrontierSummary,
   type ResearchHistoricalRunScore,
   type ResearchHistoricalRunSummary,
+  type ResearchLatestCandidateStatusSummary,
+  type ResearchOptimizationObjective,
   type ResearchPacketRunEvidence,
   type ResearchPacketStrategySummary,
   type ResearchPromptExample,
   type ResearchTaskPacket,
+  type ResearchContextLocator,
   type ResearchVerificationContractSummary,
+  type ResearchVerificationPlan,
 } from "./types";
 
 const TASK_FAILURE_MODE_PATTERN =
@@ -187,7 +193,10 @@ export interface BuildTaskPacketResult {
 export async function buildTaskPacket(
   options: BuildTaskPacketOptions,
 ): Promise<BuildTaskPacketResult> {
-  const queue = await loadResearchTaskQueue(options.queuePath);
+  const queuePath = options.queuePath ?? DEFAULT_RESEARCH_QUEUE_PATH;
+  const candidateStorePath =
+    options.candidateStorePath ?? DEFAULT_CANDIDATE_STORE_PATH;
+  const queue = await loadResearchTaskQueue(queuePath);
   const queueEntry = getResearchQueueEntry(queue, options.taskId);
   if (!queueEntry) {
     throw new Error(
@@ -199,7 +208,7 @@ export async function buildTaskPacket(
   const taskModule = await requireTaskModule(options.taskId);
   const activeStrategyResolver = await loadActiveStrategyResolver();
   const activeSelection = activeStrategyResolver.getResolvedSelection(options.taskId);
-  const candidateStore = await loadCandidateStore(options.candidateStorePath);
+  const candidateStore = await loadCandidateStore(candidateStorePath);
   const canonicalTask =
     CANONICAL_TASK_REGISTRY.find((entry) => entry.taskId === options.taskId) ??
     {
@@ -217,6 +226,9 @@ export async function buildTaskPacket(
     `task-${options.taskId}`,
     "README.md",
   );
+  const taskDirectoryPath = path.dirname(taskReadmePath);
+  const taskImplementationPath = path.join(taskDirectoryPath, "task.ts");
+  const strategiesDirectoryPath = path.join(taskDirectoryPath, "strategies");
   const trustedStandardPath = path.join(
     tripletex2Root,
     "research",
@@ -255,6 +267,18 @@ export async function buildTaskPacket(
   const baselineCallBudget =
     queueEntry.baselineCallBudget ??
     activeSelection?.strategy.expectedCallProfile?.targetCalls;
+  const verificationPlan =
+    queueEntry.verificationPlanId || options.taskId === "06"
+      ? buildTaskVerificationPlan(options.taskId)
+      : undefined;
+  const bestKnownCallBudget = resolveBestKnownCallBudget(
+    taskSpecificAdditions.frontier,
+    baselineCallBudget,
+  );
+  const latestCandidateStatus = summarizeLatestCandidateStatus(
+    candidateStore,
+    options.taskId,
+  );
   const packetCreatedAt = resolveNow(options.now).toISOString();
   const packetId = `task-${options.taskId}-packet-${packetCreatedAt.replace(/[:.]/g, "-")}`;
   const packetPath = path.join(
@@ -262,6 +286,38 @@ export async function buildTaskPacket(
     `task-${options.taskId}`,
     `${packetId}.json`,
   );
+  const optimizationObjective = buildOptimizationObjective({
+    taskName: canonicalTask.taskName,
+    queueEntry,
+    activeStrategy,
+    frontier: taskSpecificAdditions.frontier,
+    latestCandidateStatus,
+    bestKnownCallBudget,
+    baselineCallBudget,
+  });
+  const contextLocator = buildContextLocator({
+    packetPath,
+    taskDirectoryPath,
+    taskReadmePath: readmeText ? taskReadmePath : undefined,
+    taskImplementationPath,
+    strategiesDirectoryPath,
+    availableStrategies,
+    activeStrategy,
+    proofInputPath: queueEntry.proofInputPath
+      ? resolveTripletex2Path(queueEntry.proofInputPath)
+      : undefined,
+    verificationPlan,
+    queuePath: resolveTripletex2Path(queuePath),
+    candidateStorePath: resolveTripletex2Path(candidateStorePath),
+    trustedStandardPath: trustedStandardText ? trustedStandardPath : undefined,
+    taskPlaybookPath: playbookText ? taskPlaybookPath : undefined,
+    recentArtifactPaths: tripletex2Evidence.recentArtifacts.map(
+      (artifact) => artifact.artifactPath,
+    ),
+    additionalOfflineEvidencePaths: collectAdditionalOfflineEvidencePaths(
+      taskSpecificAdditions,
+    ),
+  });
 
   const packet: ResearchTaskPacket = {
     schemaVersion: RESEARCH_PACKET_SCHEMA_VERSION,
@@ -275,6 +331,8 @@ export async function buildTaskPacket(
     ...(activeStrategy ? { activeStrategy } : {}),
     availableStrategies,
     ...(baselineCallBudget !== undefined ? { baselineCallBudget } : {}),
+    optimizationObjective,
+    contextLocator,
     candidateSummary: {
       totalCandidates: candidateStore.entries.filter(
         (entry) => entry.taskId === options.taskId,
@@ -307,9 +365,7 @@ export async function buildTaskPacket(
       : {}),
     proof: {
       ...(queueEntry.proofInputPath ? { inputPath: queueEntry.proofInputPath } : {}),
-      ...(queueEntry.verificationPlanId || options.taskId === "06"
-        ? { verificationPlan: buildTaskVerificationPlan(options.taskId) }
-        : {}),
+      ...(verificationPlan ? { verificationPlan } : {}),
     },
     operatorNotes: [
       ...queueEntry.notes,
@@ -367,8 +423,20 @@ async function gatherTripletex2Evidence(
   const matchingArtifacts: ResearchPacketRunEvidence[] = [];
 
   for (const artifactPath of artifactFiles) {
-    const artifact = await readJsonFile<RunArtifactV1>(artifactPath);
-    if (artifact.task.taskId !== taskId) {
+    const artifact = await readJsonFile<Partial<RunArtifactV1>>(artifactPath);
+    if (
+      !artifact ||
+      typeof artifact !== "object" ||
+      !artifact.task ||
+      artifact.task.taskId !== taskId ||
+      typeof artifact.runId !== "string" ||
+      typeof artifact.createdAt !== "string" ||
+      !artifact.execution ||
+      typeof artifact.execution.runtimeStatus !== "string" ||
+      typeof artifact.execution.apiCallCount !== "number" ||
+      !artifact.strategy ||
+      typeof artifact.strategy.strategyId !== "string"
+    ) {
       continue;
     }
 
@@ -635,6 +703,384 @@ function buildTask06VerificationContractSummary(): ResearchVerificationContractS
       ],
     },
   };
+}
+
+function resolveBestKnownCallBudget(
+  frontier: ResearchFrontierSummary | undefined,
+  baselineCallBudget: number | undefined,
+): number | undefined {
+  return frontier?.strongestKnownBranch.apiCallCount ?? baselineCallBudget;
+}
+
+function summarizeLatestCandidateStatus(
+  candidateStore: Awaited<ReturnType<typeof loadCandidateStore>>,
+  taskId: string,
+): ResearchLatestCandidateStatusSummary | undefined {
+  const latestCandidate = candidateStore.entries
+    .filter((entry) => entry.taskId === taskId)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+
+  if (!latestCandidate) {
+    return undefined;
+  }
+
+  return {
+    candidateId: latestCandidate.candidateId,
+    strategyId: latestCandidate.strategyId,
+    status: latestCandidate.status,
+    updatedAt: latestCandidate.updatedAt,
+    ...(latestCandidate.strategyPath
+      ? { strategyPath: latestCandidate.strategyPath }
+      : {}),
+    ...(latestCandidate.strategyName
+      ? { strategyName: latestCandidate.strategyName }
+      : {}),
+    ...(latestCandidate.latestVerificationReportPath
+      ? {
+          latestVerificationReportPath:
+            latestCandidate.latestVerificationReportPath,
+        }
+      : {}),
+    ...(latestCandidate.latestSandboxVerdict
+      ? { latestSandboxVerdict: latestCandidate.latestSandboxVerdict }
+      : {}),
+  };
+}
+
+function buildOptimizationObjective(input: {
+  taskName: string;
+  queueEntry: ResearchTaskPacket["queueEntry"];
+  activeStrategy?: ResearchPacketStrategySummary;
+  frontier?: ResearchFrontierSummary;
+  latestCandidateStatus?: ResearchLatestCandidateStatusSummary;
+  bestKnownCallBudget?: number;
+  baselineCallBudget?: number;
+}): ResearchOptimizationObjective {
+  const scoreGap = calculateScoreGap(
+    input.queueEntry.bestKnownScore,
+    input.queueEntry.maxScore,
+  );
+
+  return {
+    frontierSummary: buildFrontierSummary(input),
+    ...(input.queueEntry.bestKnownScore !== undefined
+      ? { currentBestKnownScore: input.queueEntry.bestKnownScore }
+      : {}),
+    ...(input.queueEntry.maxScore !== undefined
+      ? { maxScore: input.queueEntry.maxScore }
+      : {}),
+    ...(scoreGap !== undefined ? { scoreGap } : {}),
+    ...(input.bestKnownCallBudget !== undefined
+      ? { bestKnownCallBudget: input.bestKnownCallBudget }
+      : {}),
+    ...(input.baselineCallBudget !== undefined
+      ? { baselineCallBudget: input.baselineCallBudget }
+      : {}),
+    ...(input.activeStrategy ? { activeStrategyToBeat: input.activeStrategy } : {}),
+    ...(input.latestCandidateStatus
+      ? { latestCandidateStatus: input.latestCandidateStatus }
+      : {}),
+    improvementRequirement: buildImprovementRequirement(input, scoreGap),
+    successRubric: buildSuccessRubric(input, scoreGap),
+  };
+}
+
+function buildFrontierSummary(input: {
+  taskName: string;
+  queueEntry: ResearchTaskPacket["queueEntry"];
+  activeStrategy?: ResearchPacketStrategySummary;
+  frontier?: ResearchFrontierSummary;
+  latestCandidateStatus?: ResearchLatestCandidateStatusSummary;
+  bestKnownCallBudget?: number;
+  baselineCallBudget?: number;
+}): string {
+  if (input.frontier?.summary) {
+    return input.frontier.summary;
+  }
+
+  const parts: string[] = [
+    `Current research target: ${input.taskName}.`,
+  ];
+  const scoreSummary = buildScoreSummary(
+    input.queueEntry.bestKnownScore,
+    input.queueEntry.maxScore,
+  );
+  if (scoreSummary) {
+    parts.push(scoreSummary);
+  }
+  if (input.bestKnownCallBudget !== undefined) {
+    parts.push(
+      `Known call frontier is ${input.bestKnownCallBudget} calls when correctness matches the current best evidence.`,
+    );
+  }
+  if (input.activeStrategy) {
+    const targetCalls =
+      input.activeStrategy.expectedCallProfile?.targetCalls;
+    if (
+      targetCalls !== undefined &&
+      input.bestKnownCallBudget !== undefined &&
+      targetCalls > input.bestKnownCallBudget
+    ) {
+      parts.push(
+        `The active pinned strategy ${input.activeStrategy.strategyId} currently targets ${targetCalls} calls, so matching correctness at ${input.bestKnownCallBudget} calls or fewer would already move the frontier.`,
+      );
+    } else if (targetCalls !== undefined) {
+      parts.push(
+        `The active pinned strategy to beat is ${input.activeStrategy.strategyId} with target ${targetCalls} calls.`,
+      );
+    } else {
+      parts.push(
+        `The active pinned strategy to beat is ${input.activeStrategy.strategyId}.`,
+      );
+    }
+  }
+  if (input.latestCandidateStatus) {
+    parts.push(
+      `Latest stored challenger status is ${input.latestCandidateStatus.status} for ${input.latestCandidateStatus.strategyId}.`,
+    );
+  }
+
+  return parts.join(" ");
+}
+
+function buildImprovementRequirement(
+  input: {
+    queueEntry: ResearchTaskPacket["queueEntry"];
+    activeStrategy?: ResearchPacketStrategySummary;
+    bestKnownCallBudget?: number;
+  },
+  scoreGap: number | undefined,
+): string {
+  const scoreRequirement = (() => {
+    if (
+      input.queueEntry.bestKnownScore !== undefined &&
+      input.queueEntry.maxScore !== undefined
+    ) {
+      if (scoreGap !== undefined && scoreGap > 0) {
+        return `improve beyond the current best known score of ${formatScore(input.queueEntry.bestKnownScore)}/${formatScore(input.queueEntry.maxScore)}`;
+      }
+
+      return `match the current best known score of ${formatScore(input.queueEntry.bestKnownScore)}/${formatScore(input.queueEntry.maxScore)} with stronger efficiency or evidence`;
+    }
+
+    return "improve the verified task outcome";
+  })();
+  const callRequirement =
+    input.bestKnownCallBudget !== undefined
+      ? `match the current correctness and score at ${input.bestKnownCallBudget} API calls or fewer`
+      : "match the current correctness and score with fewer API calls";
+  const strategyRequirement = input.activeStrategy
+    ? `Beat or replace ${input.activeStrategy.strategyId} only if the evidence is stronger.`
+    : "Do not claim improvement without stronger evidence.";
+
+  return [
+    `A worthwhile challenger must ${scoreRequirement}, or ${callRequirement}, or clearly explain from packet evidence and openapi.json why no plausible improvement was found.`,
+    strategyRequirement,
+  ].join(" ");
+}
+
+function buildSuccessRubric(
+  input: {
+    queueEntry: ResearchTaskPacket["queueEntry"];
+    activeStrategy?: ResearchPacketStrategySummary;
+    latestCandidateStatus?: ResearchLatestCandidateStatusSummary;
+    bestKnownCallBudget?: number;
+  },
+  scoreGap: number | undefined,
+): string[] {
+  const rubric = [
+    "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+  ];
+
+  if (
+    input.queueEntry.bestKnownScore !== undefined &&
+    input.queueEntry.maxScore !== undefined
+  ) {
+    rubric.push(
+      scoreGap !== undefined && scoreGap > 0
+        ? `Raise the current best known score above ${formatScore(input.queueEntry.bestKnownScore)}/${formatScore(input.queueEntry.maxScore)}.`
+        : `Keep the current best known score of ${formatScore(input.queueEntry.bestKnownScore)}/${formatScore(input.queueEntry.maxScore)} while improving efficiency or proof quality.`,
+    );
+  }
+
+  if (input.bestKnownCallBudget !== undefined) {
+    rubric.push(
+      `If score does not improve, match correctness at ${input.bestKnownCallBudget} API calls or fewer.`,
+    );
+  }
+
+  if (input.activeStrategy) {
+    rubric.push(
+      `Compare against the active pinned strategy ${input.activeStrategy.strategyId} before calling the new branch better.`,
+    );
+  }
+
+  if (input.latestCandidateStatus) {
+    rubric.push(
+      `Account for the latest stored candidate status (${input.latestCandidateStatus.status}) before retrying the same idea.`,
+    );
+  }
+
+  rubric.push(
+    "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests.",
+  );
+
+  return rubric;
+}
+
+function buildContextLocator(input: {
+  packetPath: string;
+  taskDirectoryPath: string;
+  taskReadmePath?: string;
+  taskImplementationPath: string;
+  strategiesDirectoryPath: string;
+  availableStrategies: ResearchPacketStrategySummary[];
+  activeStrategy?: ResearchPacketStrategySummary;
+  proofInputPath?: string;
+  verificationPlan?: ResearchVerificationPlan;
+  queuePath: string;
+  candidateStorePath: string;
+  trustedStandardPath?: string;
+  taskPlaybookPath?: string;
+  recentArtifactPaths: string[];
+  additionalOfflineEvidencePaths: string[];
+}): ResearchContextLocator {
+  return {
+    researchInstructionsPath: path.join(tripletex2Root, "research", "AGENTS.md"),
+    taskSurface: {
+      taskDirectoryPath: input.taskDirectoryPath,
+      ...(input.taskReadmePath ? { taskReadmePath: input.taskReadmePath } : {}),
+      taskImplementationPath: input.taskImplementationPath,
+    },
+    strategies: {
+      strategiesDirectoryPath: input.strategiesDirectoryPath,
+      ...(input.activeStrategy
+        ? {
+            activeStrategyPath: resolveTripletex2Path(
+              input.activeStrategy.strategyPath,
+            ),
+          }
+        : {}),
+      availableStrategyPaths: input.availableStrategies.map(
+        (strategy) => resolveTripletex2Path(strategy.strategyPath),
+      ),
+    },
+    proof: {
+      ...(input.proofInputPath ? { inputPath: input.proofInputPath } : {}),
+      ...(input.verificationPlan
+        ? { verificationPlanId: input.verificationPlan.planId }
+        : {}),
+      ...(input.verificationPlan
+        ? {
+            verificationPlanSourcePath: path.join(
+              tripletex2Root,
+              "src",
+              "research",
+              "verification-plan.ts",
+            ),
+          }
+        : {}),
+      verificationCommand: buildVerificationCommand(
+        input.packetPath,
+        input.proofInputPath,
+      ),
+    },
+    runtimeEvidence: {
+      openapiPath: path.join(tripletex2Root, "openapi.json"),
+      candidateStorePath: input.candidateStorePath,
+      researchQueuePath: input.queuePath,
+      recentArtifactPaths: input.recentArtifactPaths,
+    },
+    offlineEvidence: {
+      ...(input.trustedStandardPath
+        ? { trustedStandardPath: input.trustedStandardPath }
+        : {}),
+      ...(input.taskPlaybookPath ? { taskPlaybookPath: input.taskPlaybookPath } : {}),
+      leaderboardHistoryPath: path.join(
+        tripletex1Root,
+        "data",
+        "leaderboard-history.jsonl",
+      ),
+      promptLabelHistoryPath: path.join(
+        tripletex1Root,
+        "data",
+        "prompt-task-labels.jsonl",
+      ),
+      additionalEvidencePaths: input.additionalOfflineEvidencePaths,
+    },
+  };
+}
+
+function buildVerificationCommand(
+  packetPath: string,
+  proofInputPath?: string,
+): string {
+  const base = [
+    "bun scripts/research_os.ts verify",
+    `--packet ${packetPath}`,
+    "--strategy <strategy-id>",
+  ];
+
+  if (proofInputPath) {
+    base.push(`--input-file ${proofInputPath}`);
+  }
+
+  return base.join(" ");
+}
+
+function collectAdditionalOfflineEvidencePaths(
+  additions: TaskPacketAdditions,
+): string[] {
+  const paths = new Set<string>();
+
+  for (const historicalRun of additions.historicalRuns ?? []) {
+    for (const artifactPath of historicalRun.sourceArtifacts) {
+      paths.add(artifactPath);
+    }
+  }
+
+  for (const promptExample of additions.promptExamples ?? []) {
+    paths.add(promptExample.sourcePath);
+  }
+
+  return Array.from(paths).sort();
+}
+
+function resolveTripletex2Path(filePath: string): string {
+  return path.isAbsolute(filePath)
+    ? filePath
+    : path.join(tripletex2Root, filePath);
+}
+
+function buildScoreSummary(
+  bestKnownScore: number | undefined,
+  maxScore: number | undefined,
+): string | undefined {
+  if (bestKnownScore === undefined || maxScore === undefined) {
+    return undefined;
+  }
+
+  const scoreGap = calculateScoreGap(bestKnownScore, maxScore);
+  if (scoreGap === undefined) {
+    return undefined;
+  }
+
+  return `Current best known score is ${formatScore(bestKnownScore)}/${formatScore(maxScore)}, leaving a gap of ${formatScore(scoreGap)}.`;
+}
+
+function calculateScoreGap(
+  bestKnownScore: number | undefined,
+  maxScore: number | undefined,
+): number | undefined {
+  if (bestKnownScore === undefined || maxScore === undefined) {
+    return undefined;
+  }
+
+  return Math.max(0, Number((maxScore - bestKnownScore).toFixed(4)));
+}
+
+function formatScore(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/\.?0+$/, "");
 }
 
 async function readJsonlFile(filePath: string): Promise<any[]> {
