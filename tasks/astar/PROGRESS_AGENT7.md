@@ -433,6 +433,31 @@ Framework should accept unique query-residual family variant names directly so b
   - keep using isolated `--root /tmp/...` workspaces symlinked to shared `data/raw` + `data/derived`
   - this allows many concurrent probes without contaminating benchmark artifact namespaces
 
+### 2026-03-21T10:35Z approx
+
+- Added extreme fallback endpoints:
+  - `ffam_operator_v10`
+  - `ffam_operator_v11`
+  - purpose: exhaust the remaining obvious safety axis by pushing baseline fallback and residual damping close to the limit
+- Validation after `v10/v11` expansion:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `46`
+- Partial probe evidence tightened:
+  - `v6` reached round 8 and still scored `4.6316` there
+  - `v7` matched that same round-8 collapse once it reached the same point
+  - conclusion: posterior-only changes plus moderate fallback do not fix the main failure
+- Pruned:
+  - `v6`
+  - `v7`
+- Current active safety endpoints:
+  - `v8`
+  - `v9`
+  - `v10`
+  - `v11`
+- Current read:
+  - if any of `v8..v11` still leave round 8 near the old collapse value, the present linear-operator decoder family is effectively exhausted
+  - next branch after that should be stronger shared decoder / mixed-decoder work, not more posterior tuning
+
 ### 2026-03-21T04:05Z approx
 
 - Re-read current policy code and benchmark artifacts before new edits.
