@@ -12,6 +12,7 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.policy.registry import resolve_policy_name
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -97,7 +98,7 @@ def run_historical_benchmark(
     model_name: str,
     round_ids: list[str] | None = None,
     mode: str = "prior_only",
-    policy_name: str = "coverage",
+    policy_name: str = "default",
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
@@ -131,7 +132,11 @@ def run_historical_benchmark(
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
-        None if mode == "prior_only" else build_interactive_policy(policy_name).name
+        None
+        if mode == "prior_only"
+        else build_interactive_policy(
+            resolve_policy_name(policy_name, model_name=model_name),
+        ).name
     )
     interactive_suffix = ""
     if mode != "prior_only":
@@ -170,7 +175,7 @@ def run_historical_benchmark(
             model_name=model_name,
             training_round_ids=training_round_ids,
             mode=mode,
-            policy_name=policy_name if mode == "online_interactive" else None,
+            policy_name=resolved_policy_name if mode == "online_interactive" else None,
             samples_per_round=samples_per_round,
             budget=budget,
             episode_seed=episode_seed,

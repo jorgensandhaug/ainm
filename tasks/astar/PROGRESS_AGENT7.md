@@ -395,3 +395,39 @@ Framework should accept unique query-residual family variant names directly so b
   - score: `74.4011`
 - immediate action required by handoff:
   - commit + push this new best before further experimentation
+
+### 2026-03-21T03:45Z approx
+
+- Adjacent-candidate follow-up tested:
+  - [`data/artifacts/benchmarks/agent7_probe_query_residual_v9_exploration_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v9_exploration_r3r6r8/result.json)
+  - `query_residual_v9 + exploration_v2`
+  - mean score `62.4336`
+- Direct paired compare vs current exploration champ on same 3-round probe:
+  - [`historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v9.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual_v9.json)
+  - mean score delta `-2.3535`
+  - loss rate `1.000`
+  - conclusion: do not spend full-dev budget on `v9 + exploration_v2`
+- Promoted champion policy into model-aware defaults:
+  - [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py)
+  - [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py)
+  - [`src/astar/workflows/model_eval.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/model_eval.py)
+  - [`src/astar/workflows/historical_benchmark.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/historical_benchmark.py)
+  - [`src/astar/cli.py`](/home/jorge/agent7/tasks/astar/src/astar/cli.py)
+- Defaulting behavior now:
+  - `query_residual*` online flows resolve `policy=default` / omitted policy to `exploration_v2`
+  - other models still default to `coverage`
+  - registry now accepts canonical policy names (`exploration_v2`, `coverage_then_replicate_v1`) as well as short aliases
+- Validation after default-promotion work:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `10`
+
+## Current State
+
+- Best known full-dev system remains:
+  - `query_residual_v7 + exploration_v2`
+  - `74.4011`
+- Ensemble-over-`v9` branch remains rejected.
+- `v9 + exploration_v2` also rejected on matched probe.
+- Highest-value remaining search areas now look like:
+  - policy variants beyond fixed motif repeats
+  - better regime-summary / posterior features under exploration policy

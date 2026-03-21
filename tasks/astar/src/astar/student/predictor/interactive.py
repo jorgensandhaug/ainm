@@ -10,6 +10,7 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.policy.registry import resolve_policy_name
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
@@ -108,7 +109,7 @@ def build_online_predictor(
         )
     if is_query_residual_model_name(model_name):
         workspace_paths = paths or WorkspacePaths.from_root(".")
-        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
         if historical_round_ids is not None:
             predictor = QueryResidualPredictor.fit_named_from_workspace(
                 workspace_paths,

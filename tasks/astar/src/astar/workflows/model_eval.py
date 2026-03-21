@@ -17,6 +17,7 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
+from astar.policy.registry import resolve_policy_name
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
@@ -263,14 +264,15 @@ def _build_online_prediction_bundle(
     int,
     int,
 ]:
+    resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
     predictor = build_online_predictor(
         model_name,
         paths=paths,
         historical_round_ids=training_round_ids,
-        policy_name=policy_name,
+        policy_name=resolved_policy_name,
         samples_per_round=samples_per_round,
     )
-    policy = build_interactive_policy(policy_name)
+    policy = build_interactive_policy(resolved_policy_name)
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,

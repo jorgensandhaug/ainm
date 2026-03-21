@@ -143,6 +143,29 @@ def test_query_residual_online_historical_benchmark_runs(
             assert seed_result.samples_per_round == 2
 
 
+def test_query_residual_online_historical_benchmark_uses_model_default_policy(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="query_residual",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_query_residual_online_default_policy",
+    )
+
+    assert result.policy_name == "exploration_v2"
+
+
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
