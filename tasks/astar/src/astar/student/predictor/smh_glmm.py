@@ -21,6 +21,17 @@ from astar.student.predictor.round import BaseRoundPredictor
 
 _TIME_FEATURE_NAMES = ("time_frac", "time_frac_sq", "time_remaining")
 _MEMORY_FEATURE_NAMES = ("occupied_recent", "ruin_recent", "port_recent")
+# Polynomial interaction features: time × key static features
+# Each tuple is (static_feature_name, time_feature_index)
+# time_feature_index: 0=time_frac, 1=time_frac_sq, 2=time_remaining
+_POLY_INTERACTION_SPECS: tuple[tuple[str, int], ...] = (
+    ("settlement_proximity", 0),  # time_frac × settlement_proximity
+    ("coast", 0),                 # time_frac × coast
+    ("buildable", 0),             # time_frac × buildable
+    ("frontier_score", 0),        # time_frac × frontier_score
+    ("forest_density", 0),        # time_frac × forest_density
+    ("settlement_proximity", 1),  # time_frac_sq × settlement_proximity
+)
 _NBR_FEATURE_NAMES = (
     "nbr_empty_frac",
     "nbr_settlement_frac",
@@ -136,6 +147,7 @@ def _load_part_rows(
     static_feature_names: tuple[str, ...],
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
     max_steps: int,
 ) -> tuple[np.ndarray, np.ndarray] | None:
     columns = [
@@ -166,7 +178,18 @@ def _load_part_rows(
         else np.zeros((frame.height, 0), dtype=np.float64)
     )
     time_matrix = _time_features(frame["step"].to_numpy(), max_steps)
-    design = np.concatenate([static_matrix, memory_matrix, nbr_matrix, time_matrix], axis=1)
+    parts = [static_matrix, memory_matrix, nbr_matrix, time_matrix]
+    if include_poly_features:
+        poly_parts: list[np.ndarray] = []
+        for static_name, time_idx in _POLY_INTERACTION_SPECS:
+            if static_name in static_feature_names:
+                s_idx = list(static_feature_names).index(static_name)
+                poly_parts.append(
+                    (static_matrix[:, s_idx] * time_matrix[:, time_idx])[:, None]
+                )
+        if poly_parts:
+            parts.append(np.concatenate(poly_parts, axis=1))
+    design = np.concatenate(parts, axis=1)
     counts = frame.select(
         [f"next_count_{class_index}" for class_index in range(CLASS_COUNT)],
     ).to_numpy().astype(np.float64, copy=False)
@@ -180,6 +203,7 @@ def _class_marginal_counts(
     static_feature_names: tuple[str, ...],
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
 ) -> np.ndarray:
     counts = np.zeros(CLASS_COUNT, dtype=np.float64)
     for part_path, max_steps in part_records:
@@ -189,6 +213,7 @@ def _class_marginal_counts(
             static_feature_names=static_feature_names,
             memory_feature_names=memory_feature_names,
             nbr_feature_names=nbr_feature_names,
+            include_poly_features=include_poly_features,
             max_steps=max_steps,
         )
         if matrices is None:
@@ -220,6 +245,12 @@ def _loss_and_grad(
     return grad, loss, float(np.sum(weight))
 
 
+def _poly_feature_count(static_feature_names: tuple[str, ...]) -> int:
+    return sum(
+        1 for name, _ in _POLY_INTERACTION_SPECS if name in static_feature_names
+    )
+
+
 def _fit_softmax_branch(
     part_records: list[tuple[Path, int]],
     *,
@@ -227,11 +258,13 @@ def _fit_softmax_branch(
     static_feature_names: tuple[str, ...],
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
     ridge_lambda: float,
     learning_rate: float,
     max_epochs: int,
 ) -> np.ndarray:
-    feature_dim = len(static_feature_names) + len(memory_feature_names) + len(nbr_feature_names) + len(_TIME_FEATURE_NAMES)
+    poly_dim = _poly_feature_count(static_feature_names) if include_poly_features else 0
+    feature_dim = len(static_feature_names) + len(memory_feature_names) + len(nbr_feature_names) + len(_TIME_FEATURE_NAMES) + poly_dim
     if current_class == 5:
         return _default_theta(current_class, feature_dim)
     marginal_counts = _class_marginal_counts(
@@ -240,6 +273,7 @@ def _fit_softmax_branch(
         static_feature_names=static_feature_names,
         memory_feature_names=memory_feature_names,
         nbr_feature_names=nbr_feature_names,
+        include_poly_features=include_poly_features,
     )
     if float(np.sum(marginal_counts)) <= 0.0:
         return _default_theta(current_class, feature_dim)
@@ -261,6 +295,7 @@ def _fit_softmax_branch(
                 static_feature_names=static_feature_names,
                 memory_feature_names=memory_feature_names,
                 nbr_feature_names=nbr_feature_names,
+                include_poly_features=include_poly_features,
                 max_steps=max_steps,
             )
             if matrices is None:
@@ -321,6 +356,7 @@ def _transition_probs_for_class(
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
     nbr_feature_stack: np.ndarray | None = None,
+    include_poly_features: bool = False,
     current_class: int,
     step: int,
     rollout_steps: int,
@@ -363,6 +399,15 @@ def _transition_probs_for_class(
     time_values = _time_features(step, rollout_steps)
     for time_index, value in enumerate(np.asarray(time_values, dtype=np.float64)):
         logits += value * theta[offset + time_index][None, None, :]
+    offset += len(_TIME_FEATURE_NAMES)
+    if include_poly_features:
+        sfn_list = list(static_feature_names)
+        for static_name, time_idx in _POLY_INTERACTION_SPECS:
+            if static_name in sfn_list:
+                s_idx = sfn_list.index(static_name)
+                tv = float(np.asarray(time_values, dtype=np.float64)[time_idx])
+                logits += (tv * static_feature_stack[..., s_idx])[..., None] * theta[offset][None, None, :]
+                offset += 1
     return _softmax(logits)
 
 
@@ -373,6 +418,7 @@ def _rollout_seed_prediction(
     static_feature_names: tuple[str, ...],
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
     memory_decay: float,
     rollout_steps: int,
     prediction_floor: float,
@@ -395,6 +441,7 @@ def _rollout_seed_prediction(
                 memory_feature_names=memory_feature_names,
                 nbr_feature_names=nbr_feature_names,
                 nbr_feature_stack=nbr_stack,
+                include_poly_features=include_poly_features,
                 current_class=current_class,
                 step=step,
                 rollout_steps=rollout_steps,
@@ -456,6 +503,7 @@ class SemhGlmmLatentPredictorCheckpoint(BaseModel):
     static_feature_names: list[str]
     memory_feature_names: list[str] = Field(default_factory=list)
     nbr_feature_names: list[str] = Field(default_factory=list)
+    include_poly_features: bool = False
     memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(ge=1)
     ridge_lambda: float = Field(ge=0.0)
@@ -474,6 +522,7 @@ def _fit_round_weight_bank(
     static_feature_names: tuple[str, ...],
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
     ridge_lambda: float,
     learning_rate: float,
     max_epochs: int,
@@ -486,6 +535,7 @@ def _fit_round_weight_bank(
                 static_feature_names=static_feature_names,
                 memory_feature_names=memory_feature_names,
                 nbr_feature_names=nbr_feature_names,
+                include_poly_features=include_poly_features,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -503,6 +553,7 @@ def _fit_candidate_weight_banks(
     dataset_name: str,
     memory_feature_names: tuple[str, ...],
     nbr_feature_names: tuple[str, ...] = (),
+    include_poly_features: bool = False,
     memory_decay: float,
     ridge_lambda: float,
     learning_rate: float,
@@ -549,6 +600,7 @@ def _fit_candidate_weight_banks(
                 static_feature_names=static_feature_names,
                 memory_feature_names=memory_feature_names,
                 nbr_feature_names=nbr_feature_names,
+                include_poly_features=include_poly_features,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -1045,6 +1097,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
     static_feature_names: tuple[str, ...]
     memory_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     nbr_feature_names: tuple[str, ...] = Field(default_factory=tuple)
+    include_poly_features: bool = False
     mean_weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
@@ -1079,6 +1132,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
         dataset_name: str,
         memory_feature_names: tuple[str, ...] = (),
         nbr_feature_names: tuple[str, ...] = (),
+        include_poly_features: bool = False,
         memory_decay: float = 0.85,
         ridge_lambda: float = 1e-3,
         learning_rate: float = 0.1,
@@ -1095,6 +1149,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
                 dataset_name=dataset_name,
                 memory_feature_names=memory_feature_names,
                 nbr_feature_names=nbr_feature_names,
+                include_poly_features=include_poly_features,
                 memory_decay=memory_decay,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
@@ -1128,6 +1183,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             static_feature_names=static_feature_names,
             memory_feature_names=tuple(memory_feature_names),
             nbr_feature_names=tuple(nbr_feature_names),
+            include_poly_features=include_poly_features,
             mean_weight_bank=mean_weight_bank.astype(np.float64),
             latent_basis=latent_basis.astype(np.float64),
             candidate_round_latents=candidate_round_latents.astype(np.float64),
@@ -1157,6 +1213,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             static_feature_names=list(self.static_feature_names),
             memory_feature_names=list(self.memory_feature_names),
             nbr_feature_names=list(self.nbr_feature_names),
+            include_poly_features=self.include_poly_features,
             memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             ridge_lambda=self.ridge_lambda,
@@ -1201,6 +1258,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             static_feature_names=tuple(checkpoint.static_feature_names),
             memory_feature_names=tuple(checkpoint.memory_feature_names),
             nbr_feature_names=tuple(checkpoint.nbr_feature_names),
+            include_poly_features=checkpoint.include_poly_features,
             mean_weight_bank=np.asarray(arrays["mean_weight_bank"], dtype=np.float64),
             latent_basis=np.asarray(arrays["latent_basis"], dtype=np.float64),
             candidate_round_latents=np.asarray(arrays["candidate_round_latents"], dtype=np.float64),
@@ -1254,6 +1312,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
                             static_feature_names=self.static_feature_names,
                             memory_feature_names=self.memory_feature_names,
                             nbr_feature_names=self.nbr_feature_names,
+                            include_poly_features=self.include_poly_features,
                             memory_decay=self.memory_decay,
                             rollout_steps=self.rollout_steps,
                             prediction_floor=self.prediction_floor,
@@ -1341,6 +1400,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             static_feature_names=self.static_feature_names,
             memory_feature_names=self.memory_feature_names,
             nbr_feature_names=self.nbr_feature_names,
+            include_poly_features=self.include_poly_features,
             memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             prediction_floor=self.prediction_floor,
