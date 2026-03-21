@@ -2759,6 +2759,16 @@ All of these have been systematically swept and are near-optimal:
 - score: **86.9072**
 - per-round: R1:84.1 R2:89.2 R3:90.2 R4:93.6 R5:84.5 R6:88.0 R7:73.2 R8:92.2
 - total improvement from v44: **+9.15 points** (77.76 → 86.91, +11.8%)
+- with samples_per_round=6: **87.04** (+9.28 from v44)
+- IMPORTANT: never change evaluation dataset (add new round analyses) mid-experiment - invalidates all comparisons
+
+### 2026-03-21T20:00Z approx
+
+- Completed sample sweep: s2=86.91, s4=87.00, s5=87.02, **s6=87.04**, s7=86.92, s8=86.78
+- Optimum at s6 (6 synthetic transcript episodes per training round)
+- Submitted live prediction for round #17 using ffam_mode_v157 + s6 + exploration_r3
+- Fixed include_interactions checkpoint loading bug (wasn't persisted)
+- Policy tests: exploration_r4=81.13 (much worse), exploration_hybrid=81.80 (worse). exploration_r3 confirmed best.
 
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
