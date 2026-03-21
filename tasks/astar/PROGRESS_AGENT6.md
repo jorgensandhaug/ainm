@@ -4160,7 +4160,10 @@
   - Ridge alpha is not very sensitive (16-64 all similar)
   - Latent rank r2 vs r3 identical on smoke (degeneracy with 2 train rounds)
   - stress_v1 features hurt badly here
-- Dev5 k7_r3 running
+- Dev5 k7_r3 result: score **77.3995**, KL `0.086600`
+  - Essentially identical to k5_r3 dev5 (77.39)
+  - Both robustly beat supportx_v01 (76.23) by +1.17
+  - **This is the new production-quality best model**
 
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k7_r3: 73.25** (NEW BEST)
