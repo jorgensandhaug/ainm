@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-queue.v1",
-  "updatedAt": "2026-03-21T20:14:00.000Z",
+  "updatedAt": "2026-03-21T20:56:35.000Z",
   "entries": [
     {
       "taskId": "06",
@@ -11,7 +11,7 @@
       "band": "focus",
       "queueEligibility": "ready",
       "researchLane": "tier-1-gap",
-      "bestKnownScore": 1.2,
+      "bestKnownScore": 1.4,
       "maxScore": 2,
       "baselineCallBudget": 2,
       "proofInputPath": "research/proofs/task-06/task-06-proof-input.json",
@@ -64,10 +64,10 @@
       "band": "focus",
       "queueEligibility": "ready",
       "researchLane": "implemented-unproven",
-      "bestKnownScore": 0,
+      "bestKnownScore": 0.5455,
       "maxScore": 6,
       "notes": [
-        "Implemented and research-draftable, but not yet proven."
+        "Implemented and research-draftable, but still far from tier max after the latest live runs."
       ]
     },
     {
@@ -272,10 +272,10 @@
       "priority": 18,
       "band": "watch",
       "queueEligibility": "hold",
-      "bestKnownScore": 2.1,
+      "bestKnownScore": 2.4,
       "maxScore": 6,
       "notes": [
-        "Park unless a specific strategy idea appears."
+        "Improved recently, but still parked behind the higher-leverage Tier 3 frontier."
       ]
     },
     {

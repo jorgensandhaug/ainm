@@ -1,8 +1,9 @@
 # Task prioritization — score-gated research plan (2026-03-21)
 
 Based on:
-- the updated visual leaderboard chart shared in Discord on 2026-03-21 (~20:14 UTC)
-- the current interpretation that max-score tasks should be endpoint-killed for live routing and score-chasing
+- the latest `tasks/tripletex/data/leaderboard-history.jsonl` snapshot at `2026-03-21T20:23:48.413Z`
+- the recent Tripletex1 production run wave through `prod-2026-03-21-202346109Z-842e5dda`
+- the current policy that max-score tasks should be endpoint-killed for live routing and score-chasing
 
 ## Policy
 
@@ -57,7 +58,7 @@ Tier total: **27.0 / 40**
 
 ### Focus: fast / medium ROI
 - `17` — **3.5 / 4**
-- `15` — **3.33 / 4**
+- `15` — **3.3333 / 4**
 - `10` — **3 / 4**
 - `16` — **3 / 4**
 
@@ -65,13 +66,13 @@ These are not perfect, but they are already functional enough that strategy impr
 
 ### Focus: high-upside but harder
 - `12` — **0 / 4**
-- `13` — **1.13 / 4**
+- `13` — **1.125 / 4**
 - `11` — **1 / 4**
 
 Notes:
 - `11`, `12`, and `13` are the ugly Tier 2 cluster.
 - Historical note in research says these are difficult and involve file-upload style flows.
-- `12` has especially high upside because the current leaderboard gap is the full `4` points.
+- `12` still has the full `4` points of upside.
 
 ### Tier 2 conclusion
 Tier 2 splits into two lanes:
@@ -84,7 +85,7 @@ If we want quick score movement, start with the execution lane. If we want bigge
 
 ## Tier 3 snapshot
 
-Tier total: **36.6 / 72**
+Tier total: **36.9 / 72**
 
 ### Kill
 - `25` — 6 / 6
@@ -95,11 +96,12 @@ Tier total: **36.6 / 72**
 ### Focus: immediate strategy targets
 - `24` — **2.25 / 6**
   - known classifier/variant routing bug: a 4-error German ledger prompt was misrouted to task `21`
-  - this looks like a good score-per-fix candidate
+  - this still looks like a good score-per-fix candidate
 - `22` — **0 / 6**
-  - known zero-score task with suspected account/VAT heuristic problems
-- `29` — **0 / 6**
-  - implemented and research-draftable, but not yet proven
+  - still a known zero-score task with suspected account/VAT heuristic problems
+- `29` — **0.5455 / 6**
+  - no longer absolute zero, but still far from tier max
+  - implemented and still very research-worthy
 
 ### Focus: secondary open frontier
 - `30` — **1.8 / 6**
@@ -108,7 +110,7 @@ Tier total: **36.6 / 72**
 ### Watch / park for now
 - `19` — **2.7273 / 6**
 - `21` — **2.5714 / 6**
-- `20` — **2.1 / 6**
+- `20` — **2.4 / 6**
 
 These are not solved, but they are not the highest-leverage place to spend the next live research cycles compared with `22`, `24`, and `29`.
 
@@ -131,7 +133,7 @@ If we want one practical queue instead of thinking tier-by-tier, use this:
 1. `06` — only remaining Tier 1 gap
 2. `24` — classifier mismatch looks fixable and high leverage
 3. `22` — zero-score known-bad heuristic
-4. `29` — implemented but unproven, large upside
+4. `29` — implemented, improving, and still far from max
 5. `17` — near-max Tier 2 cleanup
 6. `15` — near-max Tier 2 cleanup
 7. `10`
