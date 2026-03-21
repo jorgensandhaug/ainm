@@ -236,6 +236,7 @@ def _build_prediction_bundle(
             teacher_blend=query_residual_spec.teacher_blend,
             beta_min=query_residual_spec.beta_min,
             beta_scale=query_residual_spec.beta_scale,
+            feature_variant=query_residual_spec.feature_variant,
         )
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (

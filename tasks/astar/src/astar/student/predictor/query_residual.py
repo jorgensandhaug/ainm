@@ -160,6 +160,12 @@ def _normalize_defense(value: float | None) -> float:
     return float(value)
 
 
+def _normalize_observed_settlement_count(value: float | None) -> float:
+    if value is None:
+        return 0.0
+    return float(np.log1p(max(value, 0.0)) / math.log(64.0))
+
+
 def _terrain_one_hot(initial_grid: np.ndarray) -> np.ndarray:
     collapsed = collapse_internal_grid(initial_grid)
     channels = [(collapsed == class_index).astype(np.float64) for class_index in range(CLASS_COUNT)]
@@ -259,13 +265,32 @@ def _owner_summary(observations: Sequence[LiveQueryObs]) -> tuple[float, float, 
     )
 
 
-def _settlement_means_from_observations(
+def _mean_std(values: Sequence[float]) -> tuple[float | None, float | None]:
+    if not values:
+        return (None, None)
+    array = np.asarray(values, dtype=np.float64)
+    return (float(np.mean(array)), float(np.std(array)))
+
+
+def _settlement_summary_from_observations(
     observations: Sequence[LiveQueryObs],
-) -> tuple[float | None, float | None, float | None, float | None]:
+) -> tuple[
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float,
+    float,
+]:
     populations: list[float] = []
     foods: list[float] = []
     wealths: list[float] = []
     defenses: list[float] = []
+    ports = 0
     for observation in observations:
         for settlement in observation.settlements:
             if settlement.population is not None:
@@ -276,13 +301,29 @@ def _settlement_means_from_observations(
                 wealths.append(float(settlement.wealth))
             if settlement.defense is not None:
                 defenses.append(float(settlement.defense))
-    if not populations:
-        return (None, None, None, None)
+            if settlement.has_port:
+                ports += 1
+    if not populations and not foods and not wealths and not defenses:
+        return (None, None, None, None, None, None, None, None, 0.0, 0.0)
+    population_mean, population_std = _mean_std(populations)
+    food_mean, food_std = _mean_std(foods)
+    wealth_mean, wealth_std = _mean_std(wealths)
+    defense_mean, defense_std = _mean_std(defenses)
+    settlement_count = float(
+        max(len(populations), len(foods), len(wealths), len(defenses)),
+    )
+    port_share = float(ports) / settlement_count if settlement_count > 0.0 else 0.0
     return (
-        float(np.mean(populations)),
-        float(np.mean(foods)) if foods else None,
-        float(np.mean(wealths)) if wealths else None,
-        float(np.mean(defenses)) if defenses else None,
+        population_mean,
+        food_mean,
+        wealth_mean,
+        defense_mean,
+        population_std,
+        food_std,
+        wealth_std,
+        defense_std,
+        settlement_count,
+        port_share,
     )
 
 
@@ -296,6 +337,12 @@ class SeedTranscriptStats(BaseModel):
     mean_food: float | None = None
     mean_wealth: float | None = None
     mean_defense: float | None = None
+    std_population: float | None = None
+    std_food: float | None = None
+    std_wealth: float | None = None
+    std_defense: float | None = None
+    observed_settlement_count: float = Field(default=0.0, ge=0.0)
+    port_share: float = Field(default=0.0, ge=0.0, le=1.0)
     owner_count: float = Field(default=0.0, ge=0.0)
     largest_owner_share: float = Field(default=0.0, ge=0.0, le=1.0)
     owner_hhi: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -372,6 +419,12 @@ def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscri
         mean_food=seed_evidence.mean_food,
         mean_wealth=seed_evidence.mean_wealth,
         mean_defense=seed_evidence.mean_defense,
+        std_population=None,
+        std_food=None,
+        std_wealth=None,
+        std_defense=None,
+        observed_settlement_count=0.0,
+        port_share=0.0,
         owner_count=0.0,
         largest_owner_share=0.0,
         owner_hhi=0.0,
@@ -391,7 +444,18 @@ def _stats_from_observations(
         seed_observations = grouped.get(seed_index, [])
         seed_evidence = evidence.per_seed[seed_index]
         owner_count, largest_owner_share, owner_hhi = _owner_summary(seed_observations)
-        mean_population, mean_food, mean_wealth, mean_defense = _settlement_means_from_observations(
+        (
+            mean_population,
+            mean_food,
+            mean_wealth,
+            mean_defense,
+            std_population,
+            std_food,
+            std_wealth,
+            std_defense,
+            observed_settlement_count,
+            port_share,
+        ) = _settlement_summary_from_observations(
             seed_observations,
         )
         count_tensor = np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64)
@@ -403,6 +467,12 @@ def _stats_from_observations(
             mean_food=mean_food,
             mean_wealth=mean_wealth,
             mean_defense=mean_defense,
+            std_population=std_population,
+            std_food=std_food,
+            std_wealth=std_wealth,
+            std_defense=std_defense,
+            observed_settlement_count=observed_settlement_count,
+            port_share=port_share,
             owner_count=owner_count,
             largest_owner_share=largest_owner_share,
             owner_hhi=owner_hhi,
@@ -471,6 +541,12 @@ def _derive_transcript_features_from_stats(
     food_values: list[float] = []
     wealth_values: list[float] = []
     defense_values: list[float] = []
+    population_std_values: list[float] = []
+    food_std_values: list[float] = []
+    wealth_std_values: list[float] = []
+    defense_std_values: list[float] = []
+    settlement_count_values: list[float] = []
+    port_share_values: list[float] = []
     owner_count_values: list[float] = []
     owner_share_values: list[float] = []
     owner_hhi_values: list[float] = []
@@ -513,6 +589,12 @@ def _derive_transcript_features_from_stats(
                 _normalize_food(stats.mean_food),
                 _normalize_wealth(stats.mean_wealth),
                 _normalize_defense(stats.mean_defense),
+                _normalize_population(stats.std_population),
+                _normalize_food(stats.std_food),
+                _normalize_wealth(stats.std_wealth),
+                _normalize_defense(stats.std_defense),
+                _normalize_observed_settlement_count(stats.observed_settlement_count),
+                stats.port_share,
                 stats.owner_count,
                 stats.largest_owner_share,
                 stats.owner_hhi,
@@ -558,6 +640,14 @@ def _derive_transcript_features_from_stats(
             food_values.append(_normalize_food(stats.mean_food))
             wealth_values.append(_normalize_wealth(stats.mean_wealth))
             defense_values.append(_normalize_defense(stats.mean_defense))
+            population_std_values.append(_normalize_population(stats.std_population))
+            food_std_values.append(_normalize_food(stats.std_food))
+            wealth_std_values.append(_normalize_wealth(stats.std_wealth))
+            defense_std_values.append(_normalize_defense(stats.std_defense))
+            settlement_count_values.append(
+                _normalize_observed_settlement_count(stats.observed_settlement_count),
+            )
+            port_share_values.append(stats.port_share)
             owner_count_values.append(stats.owner_count)
             owner_share_values.append(stats.largest_owner_share)
             owner_hhi_values.append(stats.owner_hhi)
@@ -594,6 +684,12 @@ def _derive_transcript_features_from_stats(
             float(np.mean(food_values)) if food_values else 0.0,
             float(np.mean(wealth_values)) if wealth_values else 0.0,
             float(np.mean(defense_values)) if defense_values else 0.0,
+            float(np.mean(population_std_values)) if population_std_values else 0.0,
+            float(np.mean(food_std_values)) if food_std_values else 0.0,
+            float(np.mean(wealth_std_values)) if wealth_std_values else 0.0,
+            float(np.mean(defense_std_values)) if defense_std_values else 0.0,
+            float(np.mean(settlement_count_values)) if settlement_count_values else 0.0,
+            float(np.mean(port_share_values)) if port_share_values else 0.0,
             float(np.mean(owner_count_values)) if owner_count_values else 0.0,
             float(np.mean(owner_share_values)) if owner_share_values else 0.0,
             float(np.mean(owner_hhi_values)) if owner_hhi_values else 0.0,
@@ -647,6 +743,12 @@ def _global_summary_names() -> list[str]:
             "global_mean_food",
             "global_mean_wealth",
             "global_mean_defense",
+            "global_std_population",
+            "global_std_food",
+            "global_std_wealth",
+            "global_std_defense",
+            "global_observed_settlement_count",
+            "global_port_share",
             "global_owner_count",
             "global_largest_owner_share",
             "global_owner_hhi",
@@ -669,6 +771,12 @@ def _seed_summary_names() -> list[str]:
             "seed_mean_food",
             "seed_mean_wealth",
             "seed_mean_defense",
+            "seed_std_population",
+            "seed_std_food",
+            "seed_std_wealth",
+            "seed_std_defense",
+            "seed_observed_settlement_count",
+            "seed_port_share",
             "seed_owner_count",
             "seed_largest_owner_share",
             "seed_owner_hhi",
@@ -702,10 +810,24 @@ def _regime_summary_names() -> list[str]:
     ]
 
 
-def _regime_input_names() -> list[str]:
-    names = [f"regime_in__{name}" for name in _global_summary_names()]
-    names.extend([f"regime_in__seed_mean__{name}" for name in _seed_summary_names()])
-    names.extend([f"regime_in__seed_std__{name}" for name in _seed_summary_names()])
+def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
+    normalized = feature_variant.strip().lower()
+    base_global_len = 57
+    base_seed_len = 39
+    if normalized == "v1":
+        return (base_global_len, base_seed_len)
+    if normalized == "v2_state":
+        return (len(_global_summary_names()), len(_seed_summary_names()))
+    raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
+
+
+def _regime_input_names(feature_variant: str) -> list[str]:
+    global_len, seed_len = _feature_variant_summary_lengths(feature_variant)
+    global_names = _global_summary_names()[:global_len]
+    seed_names = _seed_summary_names()[:seed_len]
+    names = [f"regime_in__{name}" for name in global_names]
+    names.extend([f"regime_in__seed_mean__{name}" for name in seed_names])
+    names.extend([f"regime_in__seed_std__{name}" for name in seed_names])
     return names
 
 
@@ -758,12 +880,15 @@ SEED_SUMMARY_INDEX = {name: index for index, name in enumerate(_seed_summary_nam
 REGIME_SUMMARY_INDEX = {name: index for index, name in enumerate(_regime_summary_names())}
 
 
-def _full_feature_names() -> list[str]:
+def _full_feature_names(feature_variant: str) -> list[str]:
+    global_len, seed_len = _feature_variant_summary_lengths(feature_variant)
+    global_names = _global_summary_names()[:global_len]
+    seed_names = _seed_summary_names()[:seed_len]
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
-    names.extend(_global_summary_names())
-    names.extend(_seed_summary_names())
+    names.extend(global_names)
+    names.extend(seed_names)
     names.extend(_regime_summary_names())
     names.extend(_local_evidence_names())
     names.extend(_regime_interaction_names())
@@ -852,12 +977,23 @@ def _interaction_tensor(
     )
 
 
-def _regime_input_vector(derived: TranscriptDerivedFeatures) -> np.ndarray:
+def _regime_input_vector(
+    derived: TranscriptDerivedFeatures,
+    *,
+    feature_variant: str,
+) -> np.ndarray:
+    global_len, seed_len = _feature_variant_summary_lengths(feature_variant)
     ordered_seed_indexes = sorted(derived.seed_summaries)
-    seed_stack = np.stack([derived.seed_summaries[seed_index] for seed_index in ordered_seed_indexes], axis=0)
+    seed_stack = np.stack(
+        [
+            derived.seed_summaries[seed_index][:seed_len]
+            for seed_index in ordered_seed_indexes
+        ],
+        axis=0,
+    )
     return np.concatenate(
         [
-            np.asarray(derived.global_summary, dtype=np.float64),
+            np.asarray(derived.global_summary[:global_len], dtype=np.float64),
             np.mean(seed_stack, axis=0),
             np.std(seed_stack, axis=0),
         ],
@@ -899,6 +1035,7 @@ def _compose_design_tensor(
     *,
     seed_index: int,
     probability_floor: float,
+    selected_feature_names: Sequence[str] | None = None,
 ) -> np.ndarray:
     height, width = prior.shape[:2]
     global_broadcast = np.broadcast_to(derived.global_summary, (height, width, len(derived.global_summary)))
@@ -909,20 +1046,26 @@ def _compose_design_tensor(
     teacher_logits = _safe_log_probs(teacher_prior, probability_floor) / LOG_FLOOR_DENOM
     regime_interaction = _regime_interaction_tensor(static_stack, regime_vector)
     interaction = _interaction_tensor(static_stack, derived.global_summary, seed_summary)
-    return np.concatenate(
-        [
-            static_stack,
-            prior_logits,
-            teacher_logits,
-            global_broadcast,
-            seed_broadcast,
-            regime_broadcast,
-            derived.local_evidence[seed_index],
-            regime_interaction,
-            interaction,
-        ],
-        axis=-1,
-    )
+    blocks = [
+        static_stack,
+        prior_logits,
+        teacher_logits,
+        global_broadcast,
+        seed_broadcast,
+        regime_broadcast,
+        derived.local_evidence[seed_index],
+        regime_interaction,
+        interaction,
+    ]
+    master_feature_names = tuple(_full_feature_names("v2_state"))
+    master_design = np.concatenate(blocks, axis=-1)
+    if selected_feature_names is None:
+        return master_design
+    if tuple(selected_feature_names) == master_feature_names:
+        return master_design
+    feature_index = {name: index for index, name in enumerate(master_feature_names)}
+    selected_indexes = [feature_index[name] for name in selected_feature_names]
+    return master_design[..., selected_indexes]
 
 
 def _select_training_cells(
@@ -973,9 +1116,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
     beta_scale: float = Field(default=24.0, ge=0.0)
     training_episode_count: int = Field(default=0, ge=0)
     sample_count: int = Field(default=0, ge=0)
-    feature_names: tuple[str, ...] = tuple(_full_feature_names())
+    feature_names: tuple[str, ...] = tuple(_full_feature_names("v1"))
     coefficients: np.ndarray = Field(
-        default_factory=lambda: np.zeros((len(_full_feature_names()), CLASS_COUNT), dtype=np.float64),
+        default_factory=lambda: np.zeros((len(_full_feature_names("v1")), CLASS_COUNT), dtype=np.float64),
     )
     intercept: np.ndarray = Field(
         default_factory=lambda: np.zeros(CLASS_COUNT, dtype=np.float64),
@@ -1002,6 +1145,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         teacher_blend: float = 0.12,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
+        feature_variant: str = "v1",
     ) -> QueryResidualPredictor:
         selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
         if not selected_round_ids:
@@ -1028,7 +1172,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
         if not rows:
             raise ValueError("query_residual synthetic transcript dataset is empty for selected rounds")
 
-        feature_dim = len(_full_feature_names())
+        selected_feature_names = tuple(_full_feature_names(feature_variant))
+        feature_dim = len(selected_feature_names)
         xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
         xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
         training_episode_count = 0
@@ -1109,7 +1254,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     ),
                 )
         regime_inputs = np.stack(
-            [_regime_input_vector(derived) for _, derived, _ in training_prefixes],
+            [
+                _regime_input_vector(derived, feature_variant=feature_variant)
+                for _, derived, _ in training_prefixes
+            ],
             axis=0,
         )
         regime_targets = np.stack([target for _, _, target in training_prefixes], axis=0)
@@ -1121,7 +1269,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
 
         for cached, derived, _ in training_prefixes:
             predicted_regime = np.asarray(
-                regime_intercept + (_regime_input_vector(derived) @ regime_weights),
+                regime_intercept
+                + (_regime_input_vector(derived, feature_variant=feature_variant) @ regime_weights),
                 dtype=np.float64,
             )
             predicted_regime = np.clip(predicted_regime, -0.25, 1.25)
@@ -1138,6 +1287,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     predicted_regime,
                     seed_index=seed_index,
                     probability_floor=probability_floor,
+                    selected_feature_names=selected_feature_names,
                 )
                 flat_design = design.reshape(-1, feature_dim)
                 selected = cached["selected_indices"][seed_index]  # type: ignore[index]
@@ -1180,7 +1330,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=beta_scale,
             training_episode_count=training_episode_count,
             sample_count=sample_count,
-            feature_names=tuple(_full_feature_names()),
+            feature_names=selected_feature_names,
             intercept=np.asarray(solved[0], dtype=np.float64),
             coefficients=np.asarray(solved[1:], dtype=np.float64),
         )
@@ -1284,6 +1434,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 inferred_regime,
                 seed_index=seed_index,
                 probability_floor=self.probability_floor,
+                selected_feature_names=self.feature_names,
             )
             flat_design = design.reshape(-1, self.coefficients.shape[0])
             delta = (
@@ -1320,7 +1471,18 @@ class QueryResidualPredictor(BaseRoundPredictor):
 
     def _infer_regime_from_derived(self, derived: TranscriptDerivedFeatures) -> np.ndarray:
         regime = np.asarray(
-            self.regime_intercept + (_regime_input_vector(derived) @ self.regime_weights),
+            self.regime_intercept
+            + (
+                _regime_input_vector(
+                    derived,
+                    feature_variant=(
+                        "v2_state"
+                        if len(self.feature_names) == len(_full_feature_names("v2_state"))
+                        else "v1"
+                    ),
+                )
+                @ self.regime_weights
+            ),
             dtype=np.float64,
         )
         return np.clip(regime, -0.25, 1.25)

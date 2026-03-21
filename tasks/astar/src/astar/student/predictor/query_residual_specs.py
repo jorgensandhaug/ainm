@@ -21,6 +21,7 @@ class QueryResidualModelSpec(BaseModel):
     teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
+    feature_variant: str = "v1"
 
 
 QUERY_RESIDUAL_MODEL_SPECS = (
@@ -53,6 +54,11 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         request_names=("f1_student_query_residual_s2_v01",),
         model_name="f1_student_query_residual_s2_v01",
         samples_per_round=2,
+    ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_state_v01",),
+        model_name="f1_student_query_residual_state_v01",
+        feature_variant="v2_state",
     ),
 )
 

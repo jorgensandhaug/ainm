@@ -227,6 +227,7 @@ def build_online_predictor(
                 teacher_blend=query_residual_spec.teacher_blend,
                 beta_min=query_residual_spec.beta_min,
                 beta_scale=query_residual_spec.beta_scale,
+                feature_variant=query_residual_spec.feature_variant,
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
@@ -253,6 +254,7 @@ def build_online_predictor(
                     teacher_blend=query_residual_spec.teacher_blend,
                     beta_min=query_residual_spec.beta_min,
                     beta_scale=query_residual_spec.beta_scale,
+                    feature_variant=query_residual_spec.feature_variant,
                 )
                 predictor.save_checkpoint(checkpoint_path)
         return RoundPredictorAdapter(

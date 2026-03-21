@@ -1003,3 +1003,46 @@
     - change the residual feature library itself,
     - add a better validation diagnostic around support mismatch before more dataset-size sweeps,
     - or move to a richer latent target closer to final tensor structure
+- New residual-feature-library branch:
+  - implementation work:
+    - refactored `query_residual` to support backward-compatible feature variants by selecting design columns from a richer master feature bank
+    - baseline / older checkpoint semantics are preserved because old feature-name sets still slice the old subset
+    - added a first richer state-moment feature family:
+      - per-seed stds of population / food / wealth / defense
+      - observed settlement count
+      - observed port share
+      - corresponding global averages
+  - new validation coverage:
+    - `tests/test_query_residual_feature_variants.py`
+    - plus `tests/test_historical_benchmark.py tests/test_live_online.py`
+- First richer state-moment query-residual result:
+  - model:
+    - `f1_student_query_residual_state_v01`
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_state_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_state_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_state_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_state_v01.json`
+  - result:
+    - mean score `72.5912`
+    - mean weighted KL `0.107218`
+    - runtime `231.224s`
+    - wall `4:04.02`
+    - max RSS `13851456` kB (`~13.85 GB`)
+  - paired compare vs baseline:
+    - mean score delta `-0.5115`
+    - mean weighted KL delta `+0.002435`
+    - win rate `0.333`
+    - loss rate `0.667`
+    - CI95 `[-0.9264, -0.0513]`
+  - read:
+    - first richer live settlement-state moments are not enough
+    - but unlike the support-expansion branch, this one is close rather than catastrophic
+    - and the feature-variant machinery is now in place for cheaper, more targeted residual-library sweeps
+- Updated family read after the first state-moment sweep:
+  - the first richer state-moment feature library still loses, but only slightly
+  - this keeps “residual feature library” alive longer than the cheap calibration/support knobs
+  - next best direct branch inside this line is not more random feature growth
+  - better follow-up would be:
+    - more targeted state features tied to collapse/conflict, not just generic moments
+    - or a new diagnostic that measures whether a proposed feature block improves held-out regime / residual fit before full benchmark
