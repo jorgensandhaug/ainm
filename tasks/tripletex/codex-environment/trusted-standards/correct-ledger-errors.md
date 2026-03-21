@@ -182,7 +182,7 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
   - errors: 6340→6390 (2300, vatType 1), dup 6860 (3150, vatType 1), missing VAT 4300 (16550 excl, had 2710 → "other branch"), wrong amount 6300 (17800→8900, vatType 0)
   - vatType correctly copied from originals: vatType 1 for 6340/6860/4300, vatType 0 for 6300
-  - "other branch" correctly detected (original 4300 voucher had 2710 posting) — correction was 4137.5 gross on 4300 with vatType 1, Tripletex auto-generated 827.5 on 2710
+  - "other branch" correctly detected (original 4300 voucher had 2710 posting) — but correction used 4137.5 gross on 4300 with vatType 1, which auto-generated 827.5 on 2710; **this likely failed Check 3** (same anti-pattern as 0607a659); should have used direct 2710 posting per Case B
   - supplier.id correctly included for 2400 counterpart in missing VAT correction
   - counterpart account IDs (1920, 2400) all came from voucher response nested expansion — no second account lookup needed
   - **latent bug**: used `dateTo=2026-02-28` instead of `dateTo=2026-03-01`; succeeded only because all error vouchers were dated before Feb 28; `dateTo` is exclusive so Feb 28 vouchers would have been missed
@@ -193,7 +193,10 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - fix: use description keyword "duplikat" as PRIMARY detector, with signature grouping and single-entry fallback as secondary/tertiary
   - after fix: third execution succeeded with 3 calls (GET accounts + GET vouchers + POST correction), 0 errors
   - total calls: 7 (2+2+3 across 3 script executions), 4 wasted from crashes
-  - all 4 corrections were correct: reclassification 6540→6860, duplicate reversal 7100/2000, missing VAT "other branch" 4500/14500 (+3625 gross with vatType 1, auto-generated 725 on 2710), wrong amount 7100 (-3750 with vatType 0)
+  - 3/4 corrections passed, **Check 3 (missing VAT) failed** — scored 2.25/6 (correctness 0.75)
+  - **Check 3 root cause**: used expense 4500 +3625 with vatType=1 ("other branch"), which auto-generated 2710 +725; scorer rejected this — requires direct 2710 posting per Case B in trusted standard
+  - correct approach: 2710 +725 (vat_shortfall), 4500 +2900 (expense_shortfall, vatType=0), 2400 -3625 with supplier
+  - the script ignored the trusted standard's own Case B guidance and used the simpler but wrong expense+vatType=1 pattern
   - `dateTo=2026-03-01` was correctly used (exclusive, includes all of Feb)
   - sandbox confirms: duplikat-labeled vouchers may be the ONLY entry on that account+amount (no original to pair with), so signature grouping alone is insufficient
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
