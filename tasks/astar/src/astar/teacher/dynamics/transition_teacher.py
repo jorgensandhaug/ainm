@@ -12,7 +12,11 @@ from astar.core.prediction import PredictionBundle
 from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import ReplayRun
 from astar.history.episodes.models import RoundEpisode
-from astar.history.replay.events import build_transition_feature_stack, local_class_ratio_stack
+from astar.history.replay.events import (
+    build_transition_feature_stack,
+    dynamic_graph_feature_stack,
+    local_class_ratio_stack,
+)
 from astar.history.summaries.map_summary import round_map_summary_names, round_map_summary_vector
 from astar.history.summaries.round_coefficients import round_regime_summary_vector, seed_feature_dict, seed_feature_names
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -24,17 +28,20 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 GBX_TRANSITION_TEACHER_MODEL = "gbx_transition_teacher_v1"
 GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL = "gbx_transition_teacher_mapprior_v1"
+GBX_TRANSITION_TEACHER_GRAPH_MODEL = "gbx_transition_teacher_graph_v1"
+GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL = "gbx_transition_teacher_graph_mapprior_v1"
 
 
 def gbx_transition_scoped_checkpoint_path(
     paths: WorkspacePaths,
     *,
     round_ids: Sequence[str],
+    model_name: str = GBX_TRANSITION_TEACHER_MODEL,
 ) -> Path:
     normalized = sorted(set(round_ids))
     digest = hashlib.sha1(",".join(normalized).encode("utf-8")).hexdigest()[:10]
     checkpoint_dir = paths.model_dir(
-        f"{GBX_TRANSITION_TEACHER_MODEL}__rounds=n={len(normalized)}__sha1={digest}",
+        f"{model_name}__rounds=n={len(normalized)}__sha1={digest}",
     )
     return checkpoint_dir / "checkpoint.json"
 
@@ -126,6 +133,58 @@ class RoundTransitionCoefficients(BaseModel):
         return np.concatenate([self.intercept.reshape(-1), self.coefficients.reshape(-1)], axis=0)
 
 
+class RoundTransitionCoefficientsCheckpoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    round_id: str
+    round_number: int
+    feature_names: list[str]
+    regime_vector: list[float]
+    intercept: list[float]
+    coefficients: list[list[float]]
+    sample_count: int = Field(ge=0)
+
+
+def gbx_transition_round_coefficients_path(
+    paths: WorkspacePaths,
+    *,
+    round_id: str,
+    model_name: str = GBX_TRANSITION_TEACHER_MODEL,
+) -> Path:
+    return paths.model_dir(f"{model_name}__round_coefficients") / f"{round_id}.json"
+
+
+def save_round_transition_coefficients(
+    path: Path,
+    row: RoundTransitionCoefficients,
+) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = RoundTransitionCoefficientsCheckpoint(
+        round_id=row.round_id,
+        round_number=row.round_number,
+        feature_names=list(row.feature_names),
+        regime_vector=np.asarray(row.regime_vector, dtype=np.float64).tolist(),
+        intercept=np.asarray(row.intercept, dtype=np.float64).tolist(),
+        coefficients=np.asarray(row.coefficients, dtype=np.float64).tolist(),
+        sample_count=row.sample_count,
+    )
+    path.write_text(json.dumps(to_jsonable(payload), indent=2), encoding="utf-8")
+    return path
+
+
+def load_round_transition_coefficients(path: Path) -> RoundTransitionCoefficients:
+    checkpoint = RoundTransitionCoefficientsCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+    return RoundTransitionCoefficients(
+        round_id=checkpoint.round_id,
+        round_number=checkpoint.round_number,
+        feature_names=list(checkpoint.feature_names),
+        regime_vector=np.asarray(checkpoint.regime_vector, dtype=np.float64),
+        intercept=np.asarray(checkpoint.intercept, dtype=np.float64),
+        coefficients=np.asarray(checkpoint.coefficients, dtype=np.float64),
+        sample_count=checkpoint.sample_count,
+    )
+
+
 class GreyBoxTransitionTeacherCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -146,6 +205,7 @@ class GreyBoxTransitionTeacherCheckpoint(BaseModel):
     map_weights: list[list[float]] = Field(default_factory=list)
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
+    include_graph_features: bool = False
     probability_floor: float = Field(gt=0.0, lt=1.0)
     horizon: int = Field(ge=1)
 
@@ -172,15 +232,15 @@ class GreyBoxTransitionTeacher(BaseModel):
     map_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 12), dtype=np.float64))
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
+    include_graph_features: bool = False
     probability_floor: float = Field(default=1e-3, gt=0.0, lt=1.0)
     horizon: int = Field(default=50, ge=1)
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
 
-    @classmethod
     def _fit_round_coefficients(
-        cls,
+        self,
         episode: RoundEpisode,
         *,
         ridge_alpha: float,
@@ -196,7 +256,11 @@ class GreyBoxTransitionTeacher(BaseModel):
                     next_frame = run.frames[step + 1]
                     current_grid = collapse_internal_grid(np.asarray(current_frame.grid, dtype=np.int64))
                     next_grid = collapse_internal_grid(np.asarray(next_frame.grid, dtype=np.int64))
-                    names, feature_stack = build_transition_feature_stack(seed.initial_state, current_grid)
+                    names, feature_stack = build_transition_feature_stack(
+                        seed.initial_state,
+                        current_grid,
+                        include_graph_features=self.include_graph_features,
+                    )
                     if feature_names is None:
                         feature_names = names
                         xtx = np.zeros((len(feature_names) + 1, len(feature_names) + 1), dtype=np.float64)
@@ -232,14 +296,21 @@ class GreyBoxTransitionTeacher(BaseModel):
         max_rank: int = 5,
         rank_selection: str = "loo_reconstruction_mse",
         ridge_alpha: float = 1.0,
+        coefficient_rows: Sequence[RoundTransitionCoefficients] | None = None,
     ) -> GreyBoxTransitionTeacher:
         replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
         if not replay_episodes:
             raise ValueError("no replay-backed episodes available for gbx transition teacher")
-        coefficient_rows = [
-            self._fit_round_coefficients(episode, ridge_alpha=ridge_alpha)
-            for episode in replay_episodes
-        ]
+        if coefficient_rows is None:
+            coefficient_rows = [
+                self._fit_round_coefficients(episode, ridge_alpha=ridge_alpha)
+                for episode in replay_episodes
+            ]
+        coefficient_rows = list(coefficient_rows)
+        if len(coefficient_rows) != len(replay_episodes):
+            raise ValueError(
+                f"expected {len(replay_episodes)} coefficient rows, got {len(coefficient_rows)}",
+            )
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
         map_bank = np.stack(
             [round_map_summary_vector(tuple(episode.seeds)) for episode in replay_episodes],
@@ -307,6 +378,7 @@ class GreyBoxTransitionTeacher(BaseModel):
                 "map_feature_names": tuple(round_map_summary_names()),
                 "map_intercept": map_intercept,
                 "map_weights": map_weights,
+                "include_graph_features": self.include_graph_features,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -332,6 +404,7 @@ class GreyBoxTransitionTeacher(BaseModel):
             map_weights=self.map_weights.tolist(),
             map_neighbor_count=self.map_neighbor_count,
             map_distance_floor=self.map_distance_floor,
+            include_graph_features=self.include_graph_features,
             probability_floor=self.probability_floor,
             horizon=self.horizon,
         )
@@ -362,6 +435,7 @@ class GreyBoxTransitionTeacher(BaseModel):
             map_weights=np.asarray(checkpoint.map_weights, dtype=np.float64),
             map_neighbor_count=checkpoint.map_neighbor_count,
             map_distance_floor=checkpoint.map_distance_floor,
+            include_graph_features=checkpoint.include_graph_features,
             probability_floor=checkpoint.probability_floor,
             horizon=checkpoint.horizon,
         )
@@ -420,15 +494,24 @@ class GreyBoxTransitionTeacher(BaseModel):
         intercept: np.ndarray,
         coefficients: np.ndarray,
     ) -> np.ndarray:
-        _, local_ratio_stack = local_class_ratio_stack(np.argmax(current_probs, axis=-1))
+        current_class_grid = np.argmax(current_probs, axis=-1)
+        _, local_ratio_stack = local_class_ratio_stack(current_class_grid)
+        graph_stack = np.zeros((0, *current_class_grid.shape), dtype=np.float64)
+        if self.include_graph_features:
+            _, graph_stack = dynamic_graph_feature_stack(current_class_grid)
         static_feature_count = len(seed_feature_names())
         current_class_coef = coefficients[static_feature_count : static_feature_count + CLASS_COUNT]
-        local_ratio_coef = coefficients[static_feature_count + CLASS_COUNT :]
+        local_ratio_start = static_feature_count + CLASS_COUNT
+        local_ratio_end = local_ratio_start + CLASS_COUNT
+        local_ratio_coef = coefficients[local_ratio_start:local_ratio_end]
+        graph_coef = coefficients[local_ratio_end:]
         base_scores = (
             intercept[None, None, :]
             + np.tensordot(static_stack, coefficients[:static_feature_count], axes=(0, 0))
             + np.tensordot(local_ratio_stack, local_ratio_coef, axes=(0, 0))
         )
+        if graph_coef.size > 0:
+            base_scores = base_scores + np.tensordot(graph_stack, graph_coef, axes=(0, 0))
         height, width, _ = current_probs.shape
         transition = np.zeros((CLASS_COUNT, height, width, CLASS_COUNT), dtype=np.float64)
         for current_class in range(CLASS_COUNT):
@@ -531,8 +614,14 @@ class GreyBoxTransitionTeacher(BaseModel):
 __all__ = [
     "GBX_TRANSITION_TEACHER_MODEL",
     "GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_MODEL",
+    "GBX_TRANSITION_TEACHER_GRAPH_MAPPRIOR_MODEL",
     "GreyBoxTransitionTeacher",
     "GreyBoxTransitionTeacherCheckpoint",
     "RoundTransitionCoefficients",
+    "RoundTransitionCoefficientsCheckpoint",
+    "gbx_transition_round_coefficients_path",
     "gbx_transition_scoped_checkpoint_path",
+    "load_round_transition_coefficients",
+    "save_round_transition_coefficients",
 ]

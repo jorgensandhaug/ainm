@@ -1545,3 +1545,59 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
     - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_cached`
     - `dev_gbx_transition_teacher_mapprior_prior1_jobs8`
     - map-only bucket sweep
+
+### 2026-03-21T11:32Z
+
+- Re-read `instructions/agent4.md` again after user pushback:
+  - keep moving deeper into the handoff family
+  - stop treating existing baselines as the main path
+  - use machine capacity more aggressively, but check machine health first
+- Machine-health check before next launch batch:
+  - `nproc` -> `384`
+  - `free -h` -> about `2.9 TiB` RAM total, about `21 GiB` used, about `2.9 TiB` available
+  - observed only light competing load relative to machine capacity
+  - conclusion:
+    - `jobs=8` full held-out benchmark concurrency is safe
+    - multiple benchmark families can run in parallel without RAM pressure
+- Re-checked `br list`:
+  - still unavailable: `br: command not found`
+
+### 2026-03-21T11:40Z
+
+- Implemented next handoff step after local-only transition teacher:
+  - graph-aware transition teacher family
+  - new model names:
+    - `gbx_transition_teacher_graph_v1`
+    - `gbx_transition_teacher_graph_mapprior_v1`
+- Main code changes:
+  - `src/astar/history/replay/events.py`
+    - added dynamic graph-influence feature stack
+    - features:
+      - settlement influence
+      - port influence
+      - occupied influence
+      - ruin influence
+  - `src/astar/teacher/dynamics/transition_teacher.py`
+    - variant-scoped checkpoints by model name
+    - optional graph feature inclusion in fit + rollout
+    - old checkpoint compatibility preserved with default `include_graph_features=False`
+  - `src/astar/workflows/model_eval.py`
+    - benchmark wiring for graph + graph-mapprior variants
+  - `src/astar/cli.py`
+    - CLI exposure for graph variants
+  - tests:
+    - `tests/test_transition_teacher.py`
+    - `tests/test_historical_benchmark.py`
+- Verification:
+  - first pass failed due `_fit_round_coefficients` still being a classmethod after the graph flag change
+  - fixed immediately by converting it to an instance method
+  - final verification:
+    - `uv run pytest tests/test_transition_teacher.py tests/test_historical_benchmark.py -q`
+    - `25 passed in 17.17s`
+- Active benchmark batch now:
+  - base transition teacher:
+    - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_rerun1`
+    - `dev_gbx_transition_teacher_mapprior_prior1_jobs8_rerun1`
+  - graph transition teacher:
+    - `tmp_gbx_transition_teacher_graph_mapprior_probe3_jobs3_v1`
+    - `dev_gbx_transition_teacher_graph_mapprior_prior1_jobs8_v1`

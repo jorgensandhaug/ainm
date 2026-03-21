@@ -7,6 +7,7 @@ import numpy as np
 
 from astar.core.terrain import CLASS_COUNT, CLASS_NAMES, collapse_internal_grid
 from astar.core.world_state import InitialWorldState, SettlementFullState, WorldFrame
+from astar.features.reachability import multi_source_distance
 from astar.history.episodes.models import RoundEpisode
 from astar.history.summaries.round_coefficients import seed_feature_dict, seed_feature_names
 
@@ -36,17 +37,63 @@ def local_class_ratio_stack(class_grid: np.ndarray) -> tuple[list[str], np.ndarr
     return names, stack
 
 
-def transition_feature_names() -> list[str]:
-    return (
+def dynamic_graph_feature_names() -> list[str]:
+    return [
+        "graph_influence_settlement",
+        "graph_influence_port",
+        "graph_influence_occupied",
+        "graph_influence_ruin",
+    ]
+
+
+def _inverse_distance_influence(
+    class_grid: np.ndarray,
+    *,
+    target_classes: set[int],
+) -> np.ndarray:
+    source_coords = np.argwhere(np.isin(class_grid, tuple(sorted(target_classes))))
+    if source_coords.size == 0:
+        return np.zeros(class_grid.shape, dtype=np.float64)
+    distances = multi_source_distance(
+        np.ones(class_grid.shape, dtype=bool),
+        [(int(y), int(x)) for y, x in source_coords],
+    )
+    influence = np.zeros(class_grid.shape, dtype=np.float64)
+    finite = distances >= 0
+    influence[finite] = 1.0 / (1.0 + distances[finite].astype(np.float64))
+    return influence
+
+
+def dynamic_graph_feature_stack(class_grid: np.ndarray) -> tuple[list[str], np.ndarray]:
+    names = dynamic_graph_feature_names()
+    stack = np.stack(
+        [
+            _inverse_distance_influence(class_grid, target_classes={1}),
+            _inverse_distance_influence(class_grid, target_classes={2}),
+            _inverse_distance_influence(class_grid, target_classes={1, 2}),
+            _inverse_distance_influence(class_grid, target_classes={3}),
+        ],
+        axis=0,
+    ).astype(np.float64)
+    return names, stack
+
+
+def transition_feature_names(*, include_graph_features: bool = False) -> list[str]:
+    names = (
         seed_feature_names()
         + [f"current_class_{CLASS_NAMES[class_index]}" for class_index in range(CLASS_COUNT)]
         + [f"local_ratio_{CLASS_NAMES[class_index]}" for class_index in range(CLASS_COUNT)]
     )
+    if include_graph_features:
+        names += dynamic_graph_feature_names()
+    return names
 
 
 def build_transition_feature_stack(
     initial_state: InitialWorldState,
     current_class_grid: np.ndarray,
+    *,
+    include_graph_features: bool = False,
 ) -> tuple[list[str], np.ndarray]:
     static_features = seed_feature_dict(initial_state)
     static_names = seed_feature_names()
@@ -59,8 +106,13 @@ def build_transition_feature_stack(
         axis=0,
     ).astype(np.float64)
     local_ratio_names, local_ratio_stack = local_class_ratio_stack(current_class_grid)
+    stacks = [static_stack, current_class_stack, local_ratio_stack]
     names = static_names + [f"current_class_{CLASS_NAMES[class_index]}" for class_index in range(CLASS_COUNT)] + local_ratio_names
-    return names, np.concatenate([static_stack, current_class_stack, local_ratio_stack], axis=0)
+    if include_graph_features:
+        graph_names, graph_stack = dynamic_graph_feature_stack(current_class_grid)
+        names += graph_names
+        stacks.append(graph_stack)
+    return names, np.concatenate(stacks, axis=0)
 
 
 def describe_cell_transition(current_class: int, next_class: int) -> str:
@@ -246,6 +298,8 @@ def extract_graph_snapshot_rows(episode: RoundEpisode) -> list[dict[str, object]
 __all__ = [
     "build_transition_feature_stack",
     "describe_cell_transition",
+    "dynamic_graph_feature_names",
+    "dynamic_graph_feature_stack",
     "extract_cell_transition_rows",
     "extract_graph_snapshot_rows",
     "extract_settlement_event_rows",
