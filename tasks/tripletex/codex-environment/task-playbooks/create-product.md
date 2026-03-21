@@ -91,6 +91,13 @@ Fresh-account production verification on 2026-03-21 also showed:
 - 3rd production confirmation of the 2-call path for explicit 0% VAT; first Nynorsk (`nn`) language confirmation
 - Nynorsk `nyttast` (shall be used) is task-level instruction, not a price-field variation; `eksklusiv MVA` still maps to `priceExcludingVatCurrency`
 
+Fresh-account production verification on 2026-03-22 also showed:
+- an exact standard-25% product-create task in Nynorsk (`Datarådgjeving` / `4993` / `16250 kr eksklusiv MVA` / standard `25%`) succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=20312.5` and `vatType.id=3`
+- 1 call, 0 errors, minimal-call execution
+- 11th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape
+- first Nynorsk 25% confirmation; extends proven 25% language set from {de, en, es, pt, fr} to {de, en, es, pt, fr, nn}
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
