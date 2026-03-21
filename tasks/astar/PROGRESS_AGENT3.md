@@ -1648,6 +1648,41 @@
    - added coverage:
      - semantic-ridge checkpoint roundtrip smoke
      - `teacher_student_blend_v8` default-sample historical benchmark smoke
+178. Next hypothesis after the semantic-ridge branch:
+   - collapsing the whole transcript to one summary may still discard informative trajectory shape
+   - test whether early-vs-late evidence evolution matters by explicitly encoding:
+     - full transcript summary
+     - first-half summary
+     - second-half summary
+     - second-minus-first delta
+179. Implemented temporal summary encoder:
+   - added `summary_temporal_v4`
+   - inputs:
+     - full semantic summary
+     - first-half semantic summary
+     - second-half semantic summary
+     - half-to-half delta
+   - this uses raw ordered observations from `LiveInferenceContext`, not only the collapsed evidence bundle
+180. New temporal-ridge variants:
+   - `teacher_student_blend_v9`
+     - `samples_per_round=4`
+     - `summary_encoder=summary_temporal_v4`
+     - `inference_head=ridge`
+     - `teacher_weight_max=0.65`
+     - `query_count_scale=12`
+   - `teacher_student_blend_v10`
+     - `samples_per_round=8`
+     - `summary_encoder=summary_temporal_v4`
+     - `inference_head=ridge`
+     - `teacher_weight_max=0.70`
+     - `query_count_scale=12`
+181. Validation after item 178-180:
+   - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+   - result:
+     - `32 passed`
+   - added coverage:
+     - temporal-ridge checkpoint roundtrip smoke
+     - `teacher_student_blend_v10` default-sample historical benchmark smoke
 
 
 ## Open Questions

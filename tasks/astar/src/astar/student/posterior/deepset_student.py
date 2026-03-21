@@ -21,11 +21,17 @@ from astar.teacher.regime.base import RegimePosteriorState
 SUMMARY_ENCODER_V1 = "summary_v1"
 SUMMARY_ENCODER_SPATIAL_V2 = "summary_spatial_v2"
 SUMMARY_ENCODER_SEMANTIC_V3 = "summary_semantic_v3"
+SUMMARY_ENCODER_TEMPORAL_V4 = "summary_temporal_v4"
 SUMMARY_HEAD_KNN = "knn"
 SUMMARY_HEAD_RIDGE = "ridge"
 SUMMARY_HEADS = frozenset({SUMMARY_HEAD_KNN, SUMMARY_HEAD_RIDGE})
 SUMMARY_ENCODERS = frozenset(
-    {SUMMARY_ENCODER_V1, SUMMARY_ENCODER_SPATIAL_V2, SUMMARY_ENCODER_SEMANTIC_V3},
+    {
+        SUMMARY_ENCODER_V1,
+        SUMMARY_ENCODER_SPATIAL_V2,
+        SUMMARY_ENCODER_SEMANTIC_V3,
+        SUMMARY_ENCODER_TEMPORAL_V4,
+    },
 )
 
 
@@ -220,11 +226,51 @@ def _summary_vector_semantic_v3(
     return np.asarray(components, dtype=np.float64)
 
 
+def _summary_vector_temporal_v4(
+    evidence: RoundEvidenceBundle,
+    *,
+    geometry_bundle: RoundFeatureBundle | None,
+    observations: tuple[object, ...] | list[object] | None,
+    round_detail: object | None,
+) -> np.ndarray:
+    if geometry_bundle is None or round_detail is None or observations is None:
+        raise ValueError("summary_temporal_v4 requires geometry, round_detail, and observations")
+    ordered = tuple(observations)
+    split_index = max(1, len(ordered) // 2) if ordered else 0
+    first_half = ordered[:split_index]
+    second_half = ordered[split_index:]
+    first_evidence = build_round_evidence_from_observations(round_detail, first_half)
+    second_evidence = build_round_evidence_from_observations(round_detail, second_half)
+    full_semantic = _summary_vector_semantic_v3(
+        evidence,
+        geometry_bundle=geometry_bundle,
+    )
+    first_semantic = _summary_vector_semantic_v3(
+        first_evidence,
+        geometry_bundle=geometry_bundle,
+    )
+    second_semantic = _summary_vector_semantic_v3(
+        second_evidence,
+        geometry_bundle=geometry_bundle,
+    )
+    return np.concatenate(
+        [
+            full_semantic,
+            first_semantic,
+            second_semantic,
+            second_semantic - first_semantic,
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
 def _summary_vector_from_evidence(
     evidence: RoundEvidenceBundle,
     *,
     summary_encoder: str = SUMMARY_ENCODER_V1,
     geometry_bundle: RoundFeatureBundle | None = None,
+    observations: tuple[object, ...] | list[object] | None = None,
+    round_detail: object | None = None,
 ) -> np.ndarray:
     if summary_encoder == SUMMARY_ENCODER_V1:
         return _summary_vector_v1(evidence)
@@ -234,6 +280,13 @@ def _summary_vector_from_evidence(
         return _summary_vector_semantic_v3(
             evidence,
             geometry_bundle=geometry_bundle,
+        )
+    if summary_encoder == SUMMARY_ENCODER_TEMPORAL_V4:
+        return _summary_vector_temporal_v4(
+            evidence,
+            geometry_bundle=geometry_bundle,
+            observations=observations,
+            round_detail=round_detail,
         )
     msg = f"unsupported summary encoder: {summary_encoder}"
     raise ValueError(msg)
@@ -259,6 +312,8 @@ def _summary_vector_from_artifact(
             evidence,
             summary_encoder=summary_encoder,
             geometry_bundle=geometry_bundle,
+            observations=artifact.observations,
+            round_detail=round_detail,
         ),
         artifact.regime_vector,
     )
@@ -460,6 +515,8 @@ class SummaryBankStudent(BaseModel):
             context.evidence_bundle,
             summary_encoder=self.summary_encoder,
             geometry_bundle=context.geometry_bundle,
+            observations=context.observations,
+            round_detail=context.round_context.to_round_detail(),
         )
         if self.normalize_summary:
             query_vector = (query_vector - self.feature_mean) / self.feature_scale
