@@ -108,6 +108,21 @@
     - v4 `l16/m50`: `+0.2090`, weighted KL `-0.000859`
   - round-level effect is concentrated on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`; the other two hard rounds stay almost unchanged
   - implication: posterior state helps most when it modulates the proven adaptive heuristic rather than replacing it
+- The observation-only adaptive policy also generalizes on the full 8-round benchmark:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`: `76.7061`, weighted KL `0.092236`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`: `75.0492`, weighted KL `0.100129`
+  - stored broad baseline `query_residual_v7`: `73.9505`, weighted KL `0.106326`
+  - implication: the regime-probe direction is not a hard-slice illusion; v4 currently looks more robust than v3 on the broad set
+- A better fast validation slice can be derived from the completed broad results:
+  - chosen 5-round proxy:
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - this proxy preserves broad model ranking across completed `query_residual_v7`, `v4 regime_probe`, `v3 regime_probe`, and `v3 coverage` results
+  - score RMSE vs full means is about `0.55`; KL RMSE is about `0.00256`
+  - implication: use this as the new fast prefilter, not the old misleading 3-round slice alone
 
 ## Strongly Supported Hypotheses
 
@@ -123,6 +138,7 @@
 - Adaptive, observation-driven query selection is now a larger lever than synthetic-bank widening for the current replay-regime family.
 - The modeling problem has likely shifted from “better static query template” to “better online regime identification”.
 - Predictor posterior state is a real policy lever, but it should be integrated conservatively on top of the adaptive heuristic rather than used as a dominating additive score.
+- The right fast validation set matters almost as much as the model changes themselves; a broad-proxy subset derived from finished full results is materially safer than the old hard-3 shortcut.
 
 ## Rejected / Weak Hypotheses
 
@@ -151,6 +167,9 @@
 - Direct additive posterior-disagreement scoring should transfer cleanly across the stronger v3/v4 model families.
   - Evidence: additive `regime_probe_posterior_v1` slightly helps v4 but materially hurts v3 on the same hard slice.
   - Conclusion: false in the current formulation; use a conservative posterior-aware blend instead.
+- The old 3-round hard slice should remain the only fast selector.
+  - Evidence: it was useful for discovery, but a 5-round proxy derived from completed broad results matches broad ranking and calibration much better.
+  - Conclusion: false; use the new 5-round proxy for the next sweep phase.
 
 ## Open Questions
 

@@ -11,3 +11,9 @@
 Current caution:
 - the first full 8-round multi-seed promotion that finished, `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`, scored only `72.3675 / 0.11438`
 - hard-slice wins are therefore not enough; current frontier status is provisional until the in-flight full `regime_probe_posterior_blend` promotions finish
+
+Current broad-set leader already completed:
+- `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_v1`
+- benchmark: `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`
+- score: `76.7061`
+- weighted KL: `0.092236`

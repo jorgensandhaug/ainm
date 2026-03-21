@@ -669,3 +669,51 @@
   - pushed `d4732d2f` to `origin/agent1`
   - pushed `9db0b7aa` to `origin/agent1`
   - pushed `10bba395` to `origin/agent1`
+### 2026-03-21 11:50 UTC: Broad Validation Signal + Better Fast Proxy
+
+- machine check before widening again:
+  - load: about `78 / 59 / 52`
+  - memory used: about `1.6 TiB`
+  - memory free: about `1.2 TiB`
+  - decision: still enough headroom for more parallel sweeps; use `jobs=5` proxy runs rather than `jobs=6+` everywhere because many other agents are active
+- completed broad observation-only promotions:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`:
+    - `76.7061 / 0.092236`
+    - materially above stored `query_residual_v7` broad baseline `73.9505 / 0.106326`
+    - round weaknesses: `36e...`, `ae780...`, `f1da...`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`:
+    - `75.0492 / 0.100129`
+    - above `query_residual_v7`, but clearly below the stronger v4 broad result
+  - implication:
+    - adaptive `regime_probe_v1` generalizes for real
+    - v4 currently looks more robust than v3 on the full 8-round set
+- validation refinement:
+  - searched all 4/5/6-round subsets of the completed 8-round results from:
+    - `query_residual_v7`
+    - `v4 l32/m70 + regime_probe_v1`
+    - `v3 l16/m50 + regime_probe_v1`
+    - `v3 l16/m50 + coverage`
+  - selected new fast proxy slice:
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - reason:
+    - preserves broad model ranking across the tested families
+    - score RMSE vs full means about `0.55`
+    - KL RMSE vs full means about `0.00256`
+    - much safer fast selector than the old 3-round hard slice
+- next:
+  - run a parallel posterior-blend config sweep on this new 5-round proxy
+- stopped dominated in-flight jobs to free workers:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_online50_v1`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_online50_v1`
+  - reason: additive posterior policy already lost to posterior-blend on the hard slice
+- launched proxy-5 sweep with `policy=regime_probe_posterior_blend`, `episode_seeds=[0,1]`, `jobs=5`:
+  - `proxy5_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v3_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v3_k5_r3_l32_m70_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v4_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
+  - `proxy5_hazard_v4_k5_r3_l32_m70_regime_probe_posterior_blend_seed0to1`
