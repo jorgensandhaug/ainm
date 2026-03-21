@@ -4277,6 +4277,35 @@
      - only `4` variants live in this new wave
      - `jobs=1` each
      - stopped there because shared-box headroom kept tightening while other agents ramped memory
+469. New hypothesis branch started while all heatmap-state families run:
+   - family:
+     - `round_settlement_graph_factor_residual`
+   - hypothesis:
+     - cell heatmaps still compress away too much of the live settlement-state signal that replay and `simulate` expose
+     - temporal settlement summaries, owner concentration, spacing graph statistics, and geometry sampled at observed settlements may infer round law better than coarse cell-count fields
+     - a whole-round settlement-graph factor head could be the first branch that actually uses the richer settlement state rather than only class observations
+   - objective:
+     - test a settlement-state / interaction-graph family on top of base `v59/v60`
+470. Implemented + validated `round_settlement_graph_factor_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_settlement_graph_factor_residual.py`
+   - reproducible models:
+     - `round_settlement_graph_factor_residual`
+     - `round_settlement_graph_factor_residual_v1`
+     - `round_settlement_graph_factor_residual_v2`
+     - `round_settlement_graph_factor_residual_v3`
+     - `round_settlement_graph_factor_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, rank `12`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, rank `24`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - temporal settlement-state summaries + owner concentration + spacing graph stats + geometry at observed settlements -> low-rank residual bundle -> apply jointly across all seeds on top of base `v59/v60`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_settlement_graph_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_settlement_graph_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_settlement_graph_summary_uses_geometry_and_owner_stats tests/test_historical_benchmark.py::test_round_settlement_graph_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

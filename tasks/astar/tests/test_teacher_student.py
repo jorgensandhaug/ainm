@@ -1380,6 +1380,59 @@ def test_round_heatmap_kernel_residual_rbf_features_are_bounded() -> None:
     assert np.all(kernel <= 1.0)
 
 
+def test_settlement_graph_summary_uses_geometry_and_owner_stats() -> None:
+    from astar.core.world_state import LiveSettlementObs
+    from astar.features.geometry import SeedFeatureBundle
+    from astar.student.predictor.round_settlement_graph_factor_residual import _settlement_window_summary
+
+    seed_features = SeedFeatureBundle(
+        round_id="round",
+        seed_index=0,
+        height=2,
+        width=2,
+        features={
+            "buildable": np.asarray([[1.0, 0.5], [0.0, 1.0]], dtype=np.float64),
+            "settlement_proximity": np.asarray([[1.0, 0.8], [0.2, 0.6]], dtype=np.float64),
+            "coastal_exposure": np.asarray([[0.0, 0.4], [0.6, 1.0]], dtype=np.float64),
+            "maritime_access": np.asarray([[0.0, 0.2], [0.5, 0.9]], dtype=np.float64),
+            "frontier_score": np.asarray([[0.1, 0.2], [0.7, 0.9]], dtype=np.float64),
+            "forest_density": np.asarray([[0.0, 0.3], [0.4, 0.1]], dtype=np.float64),
+            "mountain_density": np.asarray([[0.2, 0.0], [0.1, 0.5]], dtype=np.float64),
+        },
+    )
+    settlements = [
+        LiveSettlementObs(
+            x=0,
+            y=0,
+            population=2.0,
+            food=0.5,
+            wealth=0.4,
+            defense=0.3,
+            has_port=False,
+            alive=True,
+            owner_id=1,
+        ),
+        LiveSettlementObs(
+            x=1,
+            y=1,
+            population=3.0,
+            food=0.7,
+            wealth=0.8,
+            defense=0.6,
+            has_port=True,
+            alive=True,
+            owner_id=2,
+        ),
+    ]
+
+    summary = _settlement_window_summary(settlements, seed_features)
+
+    assert summary.shape == (25,)
+    assert float(summary[0]) > 0.0
+    assert float(summary[4]) > 0.0
+    assert float(summary[11]) > 0.0
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
