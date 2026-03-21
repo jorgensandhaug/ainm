@@ -38,7 +38,7 @@ The task typically says "reverser forskuddsbetalte kostnader på konto 1700" wit
 Include the contra account in the initial account lookup.
 If the task explicitly names a different expense contra, use that instead.
 
-**OPEN ISSUE (2026-03-21)**: Checks 4+5 fail in ALL 5 production runs despite using 6300 as contra when account name is "Forskuddsbetalt leiekostnad". Root cause uncertain.
+**OPEN ISSUE (2026-03-21)**: Checks 4+5 fail in ALL 4 year-end production runs despite using 6300 as contra when account name is "Forskuddsbetalt leiekostnad". Root cause uncertain. Cross-reference: month-end closing uses the same 1700→6300 mapping and passes, so the contra is likely NOT the issue. Possible causes: checks 4+5 validate something year-end-specific we're not doing.
 
 ## Account Existence
 
@@ -141,6 +141,7 @@ Standard names for commonly missing accounts:
 - 0 errors, all calls succeeded on first attempt
 - Missing accounts: 1209, 8700 (as expected)
 - Existing accounts: 1700, 2920, 6010, 6300
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
 - Promoted to trusted standard after this run
 
 ## Production Verification (2026-03-21, run 2 — Portuguese prompt)
@@ -151,6 +152,7 @@ Standard names for commonly missing accounts:
 - Used 8 calls: 2 GET (parallel) + 1 POST (batch create 1209+8700) + 5 POST (vouchers)
 - 0 errors, all calls succeeded on first attempt
 - Asset accounts from prompt (1210, 1230, 1240) are informational; all postings use 6010 + 1209
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
 
 ## Production Verification (2026-03-21, run 3 — French prompt)
 - Task: 2025 year-end closing with 3 assets (Programvare 111950/9yr acct 1250, Kontormaskiner 351450/9yr acct 1200, Inventar 418800/10yr acct 1240), 79750 prepaid reversal (1700→6300), 22% tax (8700→2920)
@@ -161,6 +163,18 @@ Standard names for commonly missing accounts:
 - 0 errors, all calls succeeded on first attempt
 - Used post-then-read approach — safer than parallel GETs with manual adjustment
 - Confirms 8-call minimum for task shape with missing accounts (1209, 8700)
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
+
+## Production Verification (2026-03-21, run 4 — English prompt)
+- Task: 2025 year-end closing with 3 assets (Kjøretøy 194750/9yr acct 1230, IT-utstyr 64350/9yr acct 1210, Inventar 446400/5yr acct 1240), 65700 prepaid reversal (1700→6300), 22% tax (8700→2920)
+- Prompt language: English
+- Depreciation: 21638.89 + 7150.00 + 89280.00 = 118068.89
+- Balance sheet sum: -2079712.11, preTaxProfit: 2079712.11, tax: 457537
+- Used 8 calls: 1 GET + 1 POST (create) + 3 POST (dep) + 1 POST (prepaid) + 1 GET (BS) + 1 POST (tax)
+- 0 errors, all calls succeeded on first attempt
+- Post-then-read approach, 8-call minimum
+- Score: 6/10, checks 1-3 + 6 passed, checks 4-5 failed
+- Cross-run analysis: all 4 year-end runs score identically (6/10, checks 4-5 fail), confirming systematic gap
 
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
