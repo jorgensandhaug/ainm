@@ -1163,12 +1163,12 @@ def _build_direct_terminal_adapter(
     model_name: str,
     fit_kwargs: dict[str, object] | None = None,
 ) -> RoundPredictorAdapter:
-    checkpoint_dir = workspace_paths.checkpoint_dir(checkpoint_stem)
+    checkpoint_dir = workspace_paths.model_dir(checkpoint_stem)
     if historical_round_ids is not None:
         round_hash = hashlib.sha1(
             ",".join(sorted(historical_round_ids)).encode()
         ).hexdigest()[:10]
-        checkpoint_dir = workspace_paths.checkpoint_dir(
+        checkpoint_dir = workspace_paths.model_dir(
             f"{checkpoint_stem}__rounds=n={len(historical_round_ids)}__sha1={round_hash}"
         )
     json_path = checkpoint_dir / "direct_terminal_predictor.json"
