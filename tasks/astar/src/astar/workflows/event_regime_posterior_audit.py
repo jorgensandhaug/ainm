@@ -21,9 +21,12 @@ from astar.student.posterior.deepset_student import (
     SUPPORTED_SUMMARY_FEATURE_VARIANTS,
     _summary_vector_from_artifact,
 )
+from astar.student.predictor.analysis_roundlaw import fit_analysis_roundlaw_matrix, law_residual_axis
+from astar.student.predictor.analysis_roundlaw import fit_law_residual_axis_model, project_law_residual_axis
 
 SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
     "rates",
+    "rates_law_resid1",
     "collapse_portsplit",
     "birth_collapse_portsplit",
     "collapse_timing_stress",
@@ -450,6 +453,40 @@ def _round_target_frame(
         .map_elements(_logit, return_dtype=pl.Float64)
         .alias("birth_logit_rate"),
     ).select("round_id", "birth_logit_rate")
+    if target_family == "rates_law_resid1":
+        rates = birth.join(collapse.select("round_id", "collapse_logit_rate"), on="round_id", how="inner").sort("round_id")
+        law_round_ids, law_matrix = fit_analysis_roundlaw_matrix(
+            paths,
+            round_ids=rates["round_id"].to_list(),
+        )
+        rates_by_round = {row["round_id"]: row for row in rates.iter_rows(named=True)}
+        aligned_round_ids = [round_id for round_id in law_round_ids if round_id in rates_by_round]
+        if len(aligned_round_ids) < 2:
+            raise ValueError("rates_law_resid1 requires at least two aligned analyzed rounds")
+        aligned_rates = np.asarray(
+            [
+                [
+                    float(rates_by_round[round_id]["birth_logit_rate"]),
+                    float(rates_by_round[round_id]["collapse_logit_rate"]),
+                ]
+                for round_id in aligned_round_ids
+            ],
+            dtype=np.float64,
+        )
+        law_row_by_round = {
+            round_id: np.asarray(law_matrix[index], dtype=np.float64)
+            for index, round_id in enumerate(law_round_ids)
+        }
+        aligned_law_matrix = np.stack([law_row_by_round[round_id] for round_id in aligned_round_ids], axis=0)
+        residual_axis = law_residual_axis(aligned_law_matrix, aligned_rates)
+        return pl.DataFrame(
+            {
+                "round_id": aligned_round_ids,
+                "birth_logit_rate": aligned_rates[:, 0].tolist(),
+                "collapse_logit_rate": aligned_rates[:, 1].tolist(),
+                "law_resid_1": residual_axis.tolist(),
+            },
+        ).sort("round_id")
     if target_family == "rates":
         return birth.join(collapse.select("round_id", "collapse_logit_rate"), on="round_id", how="inner").sort(
             "round_id",
@@ -475,6 +512,82 @@ def _round_target_frame(
         "collapse_logit_nonport",
         "collapse_pos_port_share_logit",
     )
+
+
+def _rates_law_resid1_fold_targets(
+    paths: WorkspacePaths,
+    *,
+    train_round_ids: list[str],
+    held_out_round_id: str,
+    birth_dataset_name: str,
+    collapse_dataset_name: str,
+) -> dict[str, np.ndarray]:
+    candidate_round_ids = [*train_round_ids, held_out_round_id]
+    rates_frame = _round_target_frame(
+        paths,
+        birth_dataset_name=birth_dataset_name,
+        collapse_dataset_name=collapse_dataset_name,
+        target_family="rates",
+    ).filter(
+        pl.col("round_id").is_in(candidate_round_ids),
+    ).sort("round_id")
+    rates_by_round = {
+        str(row["round_id"]): np.asarray(
+            [row["birth_logit_rate"], row["collapse_logit_rate"]],
+            dtype=np.float64,
+        )
+        for row in rates_frame.iter_rows(named=True)
+    }
+    if held_out_round_id not in rates_by_round:
+        raise ValueError("rates_law_resid1 held-out round missing rate targets")
+    aligned_train_round_ids = [round_id for round_id in train_round_ids if round_id in rates_by_round]
+    if not aligned_train_round_ids:
+        raise ValueError("rates_law_resid1 requires at least one train round with rate targets")
+    law_round_ids, law_matrix = fit_analysis_roundlaw_matrix(
+        paths,
+        round_ids=candidate_round_ids,
+        fit_round_ids=aligned_train_round_ids,
+    )
+    law_row_by_round = {
+        round_id: np.asarray(law_matrix[index], dtype=np.float64)
+        for index, round_id in enumerate(law_round_ids)
+    }
+    if held_out_round_id not in law_row_by_round:
+        raise ValueError("rates_law_resid1 held-out round missing analysis law vector")
+    aligned_train_round_ids = [round_id for round_id in aligned_train_round_ids if round_id in law_row_by_round]
+    if not aligned_train_round_ids:
+        raise ValueError("rates_law_resid1 requires at least one train round with law vectors")
+    train_rates = np.stack([rates_by_round[round_id] for round_id in aligned_train_round_ids], axis=0)
+    train_laws = np.stack([law_row_by_round[round_id] for round_id in aligned_train_round_ids], axis=0)
+    regression, residual_mean, axis = fit_law_residual_axis_model(train_laws, train_rates)
+    train_scores = project_law_residual_axis(
+        train_laws,
+        train_rates,
+        regression=regression,
+        residual_mean=residual_mean,
+        axis=axis,
+    )
+    held_out_rates = rates_by_round[held_out_round_id][None, :]
+    held_out_law = law_row_by_round[held_out_round_id][None, :]
+    held_out_score = project_law_residual_axis(
+        held_out_law,
+        held_out_rates,
+        regression=regression,
+        residual_mean=residual_mean,
+        axis=axis,
+    )
+    fold_targets: dict[str, np.ndarray] = {
+        round_id: np.asarray(
+            [train_rates[index, 0], train_rates[index, 1], train_scores[index]],
+            dtype=np.float64,
+        )
+        for index, round_id in enumerate(aligned_train_round_ids)
+    }
+    fold_targets[held_out_round_id] = np.asarray(
+        [held_out_rates[0, 0], held_out_rates[0, 1], held_out_score[0]],
+        dtype=np.float64,
+    )
+    return fold_targets
 
 
 def run_event_regime_posterior_audit(
@@ -525,33 +638,56 @@ def run_event_regime_posterior_audit(
     if dataset.index_path is None:
         raise ValueError("synthetic live dataset requires an index path")
     index_table = pl.read_parquet(dataset.index_path)
-    examples: list[tuple[str, np.ndarray, np.ndarray]] = []
+    examples: list[tuple[str, np.ndarray]] = []
     for row in index_table.iter_rows(named=True):
         round_id = str(row["round_id"])
         summary_vector, _ = _summary_vector_from_artifact(
             resolve_synthetic_episode_path(dataset.dataset_dir, Path(str(row["episode_path"]))),
             feature_variant=summary_feature_variant,
         )
-        target = target_by_round.get(round_id)
-        if target is None:
+        if round_id not in target_by_round:
             continue
-        examples.append((round_id, summary_vector, target))
+        examples.append((round_id, summary_vector))
     if not examples:
         raise ValueError("posterior audit did not load any synthetic episodes")
 
-    round_ids = sorted({round_id for round_id, _, _ in examples})
+    round_ids = sorted({round_id for round_id, _ in examples})
     if len(round_ids) < 2:
         raise ValueError("posterior audit requires at least two rounds")
 
     round_metrics: list[EventRegimePosteriorRoundMetric] = []
     standardized_round_metrics: list[tuple[float, float, float, float]] = []
+    round_targets_payload: list[dict[str, float | str]] = []
     for held_out_round_id in round_ids:
         train = [item for item in examples if item[0] != held_out_round_id]
         test = [item for item in examples if item[0] == held_out_round_id]
+        train_round_ids = sorted({item[0] for item in train})
+        if target_family == "rates_law_resid1":
+            fold_target_by_round = _rates_law_resid1_fold_targets(
+                paths,
+                train_round_ids=train_round_ids,
+                held_out_round_id=held_out_round_id,
+                birth_dataset_name=birth_dataset_name,
+                collapse_dataset_name=collapse_dataset_name,
+            )
+            fold_target_names = ["birth_logit_rate", "collapse_logit_rate", "law_resid_1"]
+        else:
+            fold_target_by_round = target_by_round
+            fold_target_names = target_names
         train_x = np.stack([item[1] for item in train], axis=0)
-        train_y = np.stack([item[2] for item in train], axis=0)
+        train_y = np.stack([fold_target_by_round[item[0]] for item in train], axis=0)
         test_x = np.stack([item[1] for item in test], axis=0)
-        test_y = np.stack([item[2] for item in test], axis=0)
+        test_y = np.stack([fold_target_by_round[item[0]] for item in test], axis=0)
+        if target_family == "rates_law_resid1":
+            round_targets_payload.append(
+                {
+                    "round_id": held_out_round_id,
+                    **{
+                        name: float(fold_target_by_round[held_out_round_id][index])
+                        for index, name in enumerate(fold_target_names)
+                    },
+                },
+            )
 
         means, scales = _standardize(train_x)
         train_x_scaled = (train_x - means[None, :]) / scales[None, :]
@@ -559,7 +695,7 @@ def run_event_regime_posterior_audit(
 
         unique_train_rounds = sorted({item[0] for item in train})
         baseline_vector = np.mean(
-            np.stack([target_by_round[round_id] for round_id in unique_train_rounds], axis=0),
+            np.stack([fold_target_by_round[round_id] for round_id in unique_train_rounds], axis=0),
             axis=0,
         )
         baseline_pred = np.repeat(baseline_vector[None, :], test_y.shape[0], axis=0)
@@ -607,19 +743,19 @@ def run_event_regime_posterior_audit(
                 mse_gain=float(np.mean(baseline_sq) - np.mean(knn_sq)),
                 per_target_baseline_mae={
                     name: float(np.mean(baseline_abs[:, index]))
-                    for index, name in enumerate(target_names)
+                    for index, name in enumerate(fold_target_names)
                 },
                 per_target_knn_mae={
                     name: float(np.mean(knn_abs[:, index]))
-                    for index, name in enumerate(target_names)
+                    for index, name in enumerate(fold_target_names)
                 },
                 per_target_baseline_mse={
                     name: float(np.mean(baseline_sq[:, index]))
-                    for index, name in enumerate(target_names)
+                    for index, name in enumerate(fold_target_names)
                 },
                 per_target_knn_mse={
                     name: float(np.mean(knn_sq[:, index]))
-                    for index, name in enumerate(target_names)
+                    for index, name in enumerate(fold_target_names)
                 },
             ),
         )
@@ -673,7 +809,7 @@ def run_event_regime_posterior_audit(
             name: float(np.mean([item.per_target_knn_mse[name] for item in round_metrics]))
             for name in target_names
         },
-        round_targets=target_frame.to_dicts(),
+        round_targets=round_targets_payload if target_family == "rates_law_resid1" else target_frame.to_dicts(),
         rounds=round_metrics,
         artifact_path=artifact_path,
         report_path=report_path,

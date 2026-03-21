@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import Field
 
+from astar.core.terrain import CLASS_COUNT
 from astar.core.prediction import PredictionBundle
 from astar.core.score import entropy_map
 from astar.envs.types import build_round_context_from_detail
@@ -118,6 +119,20 @@ def _target_frame(
     )
 
 
+def _active_delta_gate_mask(
+    spatial_names: Sequence[str],
+    spatial_basis: np.ndarray,
+    *,
+    gate_variant: str,
+) -> np.ndarray:
+    if gate_variant == "none":
+        return np.ones(spatial_basis.shape[:2], dtype=np.float64)
+    if gate_variant == "buildable":
+        buildable_index = list(spatial_names).index("buildable")
+        return np.asarray(spatial_basis[:, :, buildable_index], dtype=np.float64)
+    raise ValueError(f"unsupported active delta gate: {gate_variant}")
+
+
 class SummaryRateDecoderPredictor(BaseRoundPredictor):
     name: str = "f1_summary_rate_decoder_v01"
     base_predictor: HistoricalBucketPriorPredictor
@@ -136,6 +151,8 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
     k_neighbors: int = Field(default=7, ge=1)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     summary_feature_variant: str = "basic"
+    active_class_indices: tuple[int, ...] = Field(default_factory=tuple)
+    active_delta_gate: str = "none"
 
     @classmethod
     def fit_from_workspace(
@@ -156,10 +173,17 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
         collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
         summary_feature_variant: str = "basic",
+        active_class_indices: Sequence[int] | None = None,
+        active_delta_gate: str = "none",
     ) -> SummaryRateDecoderPredictor:
         selected_round_ids = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected_round_ids) < 2:
             raise ValueError("summary rate decoder requires at least two replay-backed analyzed rounds")
+        normalized_active_class_indices = tuple(dict.fromkeys(active_class_indices or ()))
+        if any(class_index < 0 or class_index >= CLASS_COUNT for class_index in normalized_active_class_indices):
+            raise ValueError(f"active class index must be in [0, {CLASS_COUNT - 1}]")
+        if active_delta_gate not in {"none", "buildable"}:
+            raise ValueError(f"unsupported active delta gate: {active_delta_gate}")
 
         target_frame = _target_frame(
             paths,
@@ -225,7 +249,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 }
             rate_vector = target_by_round[round_id]
             for seed_index, analysis_record in sorted(analyses.items()):
-                _, spatial_basis = _spatial_basis(round_detail, features, seed_index)
+                spatial_names, spatial_basis = _spatial_basis(round_detail, features, seed_index)
                 feature_names, design_tensor = _decoder_design_tensor(
                     spatial_basis,
                     prior_bundle.predictions_by_seed[seed_index],
@@ -239,7 +263,16 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 target_delta = np.log(np.maximum(ground_truth, 1.0e-6)) - prior_logits
                 cell_weights = entropy_map(ground_truth).reshape(-1) + 0.05
                 design_rows.append(design_tensor.reshape(-1, design_tensor.shape[-1]))
-                target_rows.append(target_delta.reshape(-1, 6))
+                target_matrix = target_delta.reshape(-1, CLASS_COUNT)
+                if normalized_active_class_indices:
+                    target_matrix = target_matrix[:, list(normalized_active_class_indices)]
+                    gate_mask = _active_delta_gate_mask(
+                        spatial_names,
+                        spatial_basis,
+                        gate_variant=active_delta_gate,
+                    ).reshape(-1, 1)
+                    target_matrix = target_matrix * gate_mask
+                target_rows.append(target_matrix)
                 weight_rows.append(cell_weights.astype(np.float64))
 
         if not design_rows or feature_names is None:
@@ -313,6 +346,8 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             k_neighbors=k_neighbors,
             probability_floor=probability_floor,
             summary_feature_variant=summary_feature_variant,
+            active_class_indices=normalized_active_class_indices,
+            active_delta_gate=active_delta_gate,
         )
 
     def infer_rate_vector(self, evidence: RoundEvidenceBundle | None) -> np.ndarray:
@@ -329,6 +364,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         weights = 1.0 / np.clip(neighbor_distances, 1.0e-6, None)
         weights = weights / np.sum(weights)
         return np.asarray(np.tensordot(weights, self.rate_target_vectors[order], axes=(0, 0)), dtype=np.float64)
+
+    def _expand_delta_logits(self, delta_logits: np.ndarray) -> np.ndarray:
+        if not self.active_class_indices:
+            return np.asarray(delta_logits, dtype=np.float64)
+        full_delta = np.zeros(delta_logits.shape[:2] + (CLASS_COUNT,), dtype=np.float64)
+        full_delta[:, :, list(self.active_class_indices)] = delta_logits
+        return full_delta
 
     def build_prediction_bundle(
         self,
@@ -348,7 +390,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             }
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
-            _, spatial_basis = _spatial_basis(round_detail, features, seed_index)
+            spatial_names, spatial_basis = _spatial_basis(round_detail, features, seed_index)
             _, design_tensor = _decoder_design_tensor(
                 spatial_basis,
                 base_bundle.predictions_by_seed[seed_index],
@@ -356,11 +398,19 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 teacher_prediction=teacher_predictions.get(seed_index),
             )
             normalized_design = (design_tensor - self.feature_means[None, None, :]) / self.feature_scales[None, None, :]
-            delta_logits = self.decoder_intercept[None, None, :] + np.tensordot(
+            raw_delta_logits = self.decoder_intercept[None, None, :] + np.tensordot(
                 normalized_design,
                 self.decoder_weights,
                 axes=([2], [0]),
             )
+            delta_logits = self._expand_delta_logits(raw_delta_logits)
+            if self.active_class_indices:
+                gate_mask = _active_delta_gate_mask(
+                    spatial_names,
+                    spatial_basis,
+                    gate_variant=self.active_delta_gate,
+                )
+                delta_logits[:, :, list(self.active_class_indices)] *= gate_mask[:, :, None]
             prior_logits = np.log(np.maximum(base_bundle.predictions_by_seed[seed_index], 1.0e-6))
             predictions_by_seed[seed_index] = apply_probability_floor(
                 softmax_logits(prior_logits + delta_logits),

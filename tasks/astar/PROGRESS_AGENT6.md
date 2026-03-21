@@ -2935,3 +2935,314 @@
   - both match the subagent diagnosis:
     - preserve the stable low-dimensional scaffold
     - spend the extra degree of freedom directly on the round-6 hidden-stress residual
+
+## 2026-03-21: `rates_law_resid1` branch
+
+- Re-read before coding:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br list` check:
+  - unavailable in this env: `/bin/bash: br: command not found`
+
+- Machine snapshot before launching new work:
+  - UTC `2026-03-21 11:24:40`
+  - load `52.04 47.28 43.53`
+  - RAM:
+    - total `2.9 TiB`
+    - used `1.1 TiB`
+    - free `1.7 TiB`
+    - available `1.8 TiB`
+  - cores: `384`
+  - important concurrent jobs already on box:
+    - agent1 many `~22-40 GiB` workers
+    - agent7 one `~24 GiB` benchmark worker
+    - agent2 one `~20 GiB` benchmark worker
+    - agent3 several `~12-14 GiB` workers
+  - read:
+    - plenty of headroom remains
+    - still sized my turn to medium parallelism, not a memory flood
+
+- Subagent guidance, rechecked:
+  - `Poincare`:
+    - main issue in the first local implementation was audit leakage
+    - correct target needs train-fold-only residual-axis fit
+  - `Dalton`:
+    - `rates_law_resid1` is already decoder-plumbed once target-family plumbing is correct
+    - if it still misses, next branch should be decoder-side partial-law head
+
+- New implementation landed locally:
+  - `src/astar/student/predictor/analysis_roundlaw.py`
+    - `fit_analysis_roundlaw_matrix(...)` now supports `fit_round_ids=...`
+    - added reusable residual-axis fit/project helpers:
+      - `fit_law_residual_axis_model(...)`
+      - `project_law_residual_axis(...)`
+  - `src/astar/workflows/event_regime_posterior_audit.py`
+    - added fold-local `rates_law_resid1` target builder:
+      - `_rates_law_resid1_fold_targets(...)`
+    - audit now:
+      - uses train-fold-only law residual axis
+      - projects held-out round into the train-fit axis
+      - stores fold-local held-out targets in `round_targets`
+  - specs/tests already extended earlier:
+    - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - `tests/test_event_regime_posterior_audit.py`
+    - `tests/test_summary_rate_decoder_predictor.py`
+
+- Important validation fix:
+  - previous `rates_law_resid1` audit implementation was not trustworthy
+  - bug:
+    - built `law_resid_1` globally across all rounds before leave-one-round-out scoring
+  - consequence:
+    - held-out-round information leaked into the latent target
+  - current fix:
+    - law vector fit for held-out round uses prior/normalization trained on train rounds only
+    - residual axis fit uses train rounds only
+    - held-out score is only a projection into that train-fit axis
+
+- Narrow validation after the fix:
+  - command:
+    - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_summary_rate_decoder_predictor.py tests/test_history_datasets.py -q`
+  - result:
+    - `16 passed in 48.83s`
+
+- Parallel experiments launched after the fix:
+  - posterior audits:
+    - `nice -n 10 /usr/bin/time -v uv run astar run-event-regime-posterior-audit --dataset-name f1_synthetic_live_coverage_b50_s4_v2 --name f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7 --target-family rates_law_resid1`
+    - `nice -n 10 /usr/bin/time -v uv run astar run-event-regime-posterior-audit --dataset-name f1_synthetic_live_coverage_b50_s4_v2 --name f1_event_regime_posterior_knn_rates_law_resid1_stress_b50s4_v01 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7 --target-family rates_law_resid1 --summary-feature-variant stress_v1`
+  - current smoke benchmarks:
+    - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_rates_lawresid1_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_rates_lawresid1_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_rates_lawresid1_teacher_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_rates_lawresid1_teacher_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_rates_lawresid1_stress_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_rates_lawresid1_stress_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+
+- Expected decision rule for this block:
+  - first trust the fixed posterior audit
+  - then trust current smoke
+  - if still below prior family best, stop target-tweaking and move to partial-law decoder head
+
+- Fold-safe posterior-audit results are back:
+  - dataset actually resolved to:
+    - `f1_synthetic_live_coverage_b50_s4_v2__cfg_5a44a494b751`
+    - read:
+      - the synthetic-live config fork protection is working
+      - this is why a new local dataset dir appeared instead of overwriting the old cache
+  - basic:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01/result.json`
+    - report:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01/report.md`
+    - result:
+      - rounds `8`
+      - episodes `32`
+      - baseline MAE `1.932730`
+      - kNN MAE `1.919609`
+      - MAE gain `+0.013121`
+      - standardized MAE gain `+0.141865`
+      - max RSS `6.21 GiB`
+      - wall `41.46s`
+  - `stress_v1`:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_stress_b50s4_v01/result.json`
+    - report:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_stress_b50s4_v01/report.md`
+    - result:
+      - rounds `8`
+      - episodes `32`
+      - baseline MAE `1.932730`
+      - kNN MAE `2.044241`
+      - MAE gain `-0.111511`
+      - standardized MAE gain `+0.126839`
+      - max RSS `6.76 GiB`
+      - wall `41.55s`
+  - read:
+    - this is a real downgrade versus the earlier `rates` latent posterior audits
+    - old `rates` / `stress_v1` was materially better (`+0.224329` / `+0.2766`)
+    - so `rates_law_resid1` is not a posterior-inference advance
+    - only remaining hope for this branch is decoder interaction on actual smoke benchmarks now running
+
+- Full `rates_law_resid1` smoke sweep is now complete on current probe3:
+  - plain:
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_rates_lawresid1_v01_probe3_current/result.json`
+    - result:
+      - score `69.4544`
+      - KL `0.129636`
+      - wall `1:54.26`
+      - max RSS `14.54 GiB`
+  - plain `stress_v1`:
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_rates_lawresid1_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.2009`
+      - KL `0.130683`
+      - wall `1:53.47`
+      - max RSS `14.51 GiB`
+  - teacher:
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_rates_lawresid1_teacher_v01_probe3_current/result.json`
+    - result:
+      - score `69.6745`
+      - KL `0.128940`
+      - wall `6:47.70`
+      - max RSS `17.96 GiB`
+  - teacher + `stress_v1`:
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.4176`
+      - KL `0.129992`
+      - wall `6:57.14`
+      - max RSS `18.53 GiB`
+
+- Paired compare read for `rates_law_resid1`:
+  - vs external current best `f1_student_query_residual_supportx_v01`:
+    - plain:
+      - delta `-3.4630`
+      - KL delta `+0.023940`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_v01.json`
+    - plain `stress_v1`:
+      - delta `-3.7166`
+      - KL delta `+0.024987`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_stress_v01.json`
+    - teacher:
+      - delta `-3.2430`
+      - KL delta `+0.023244`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_teacher_v01.json`
+    - teacher + `stress_v1`:
+      - delta `-3.4998`
+      - KL delta `+0.024296`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01.json`
+  - vs best earlier summary-rate family branch `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`:
+    - plain:
+      - delta `-0.4471`
+      - KL delta `+0.001978`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_v01.json`
+    - plain `stress_v1`:
+      - delta `-0.7007`
+      - KL delta `+0.003025`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_stress_v01.json`
+    - teacher:
+      - delta `-0.2271`
+      - KL delta `+0.001283`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_teacher_v01.json`
+    - teacher + `stress_v1`:
+      - delta `-0.4840`
+      - KL delta `+0.002334`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01.json`
+
+- Main verdict on `rates_law_resid1`:
+  - dead branch
+  - not a posterior-audit win
+  - not a smoke win
+  - not even a family-internal win
+  - same structural pattern persists:
+    - good round-4 gains
+    - catastrophic round-6 losses
+  - strongest read:
+    - decoder geometry, not latent target richness, is still the main bottleneck
+
+- Next decoder-side branch now implemented locally:
+  - partial-law / dynamic-class head in:
+    - `src/astar/student/predictor/summary_rate_decoder.py`
+    - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `tests/test_summary_rate_decoder_predictor.py`
+  - mechanism:
+    - fit residual-logit corrections only for active classes `(1, 2, 3)`
+    - leave the rest of the 6-class tensor on the prior
+  - first new immutable models added:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+    - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01`
+
+- First partial-law smoke launches:
+  - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+
+- Partial-law smoke results:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01_probe3_current/result.json`
+    - result:
+      - score `69.9179`
+      - KL `0.127268`
+      - wall `7:01.13`
+      - max RSS `17.49 GiB`
+    - paired vs old best family branch `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`:
+      - delta `+0.0163`
+      - KL delta `-0.000390`
+      - win rate `0.467`
+      - CI95 `[-0.7127, 0.8380]`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01.json`
+    - paired vs current external best `f1_student_query_residual_supportx_v01`:
+      - delta `-2.9996`
+      - KL delta `+0.021572`
+      - win rate `0.533`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01.json`
+    - per-round read:
+      - dynamic head traded away some round-4 gains
+      - but clearly improved most round-6 seeds
+      - one round-6 seed still implodes, so the branch is only a tiny smoke win
+  - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01_probe3_current/result.json`
+    - result:
+      - score `69.6412`
+      - KL `0.128415`
+      - wall `7:18.92`
+      - max RSS `18.07 GiB`
+    - read:
+      - better than the old full-head shock branch (`69.4025`)
+      - still below the simpler `collapse_portsplit_teacher_dyn_v01`
+      - confirms decoder-side restriction helps, but the shock latent still is not the best benchmark substrate here
+
+- Main read after first partial-law sweep:
+  - decoder-side restriction is a real positive direction
+  - the first family best-in-turn is now:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+  - gain is tiny and not yet robust enough to call a promotion
+  - next cheap structural move:
+    - add spatial gating to the dynamic head
+
+- New follow-up branch landed locally:
+  - buildable-gated dynamic head:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01`
+  - launch:
+    - `nice -n 10 /usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+
+- Buildable-gated dynamic-head result:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01_probe3_current/result.json`
+    - result:
+      - score `69.8958`
+      - KL `0.127365`
+      - wall `6:47.53`
+      - max RSS `17.77 GiB`
+    - read:
+      - slightly worse than ungated dynamic head (`69.9179`)
+      - buildable gating did not convert the tiny dyn gain into a larger win
+    - paired vs ungated dyn head:
+      - delta `-0.0220`
+      - KL delta `+0.000097`
+      - CI95 `[-0.0545, 0.0083]`
+      - artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01.json`
+
+- End-of-turn family read:
+  - `rates_law_resid1`: reject
+  - dynamic-class partial-law head: first real positive decoder-side direction
+  - best family model this turn:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+  - still far below current external best `supportx_v01`
+  - but now there is real evidence that restricting decoder corrections is better than changing latent targets again

@@ -69,6 +69,14 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
 
     assert adapter.name == "f1_summary_rate_decoder_v01"
 
+    lawresid_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert lawresid_adapter.name == "f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01"
+
     collapse_adapter = build_online_predictor(
         "f1_summary_rate_decoder_collapse_portsplit_v01",
         paths=sample_paths,
@@ -128,6 +136,36 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
 
     assert collapse_stress_adapter.name == "f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01"
 
+    collapse_dyn_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert collapse_dyn_adapter.name == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01"
+
+    collapse_terminal_dyn_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_terminal_dyn_adapter.name
+        == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01"
+    )
+
+    collapse_dyn_buildable_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_buildable_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01"
+    )
+
 
 def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     parser = build_parser()
@@ -153,6 +191,17 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
         ],
     )
     assert parsed_teacher.model == "f1_summary_rate_decoder_teacher_v01"
+
+    parsed_lawresid = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_lawresid.model == "f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01"
 
     parsed_collapse = parser.parse_args(
         [
@@ -224,6 +273,45 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     assert (
         parsed_collapse_terminal_stress.model
         == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_stress_v01"
+    )
+
+    parsed_collapse_dyn = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_collapse_dyn.model == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01"
+
+    parsed_collapse_terminal_dyn = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_terminal_dyn.model
+        == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01"
+    )
+
+    parsed_collapse_dyn_buildable = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_buildable.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01"
     )
 
     parsed_stress = parser.parse_args(

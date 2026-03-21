@@ -16,6 +16,8 @@ class SummaryRateDecoderModelSpec(BaseModel):
     include_teacher_logits: bool = False
     target_family: str = "rates"
     summary_feature_variant: str = "basic"
+    active_class_indices: tuple[int, ...] = ()
+    active_delta_gate: str = "none"
 
 
 SUMMARY_RATE_DECODER_MODEL_SPECS = (
@@ -27,6 +29,30 @@ SUMMARY_RATE_DECODER_MODEL_SPECS = (
         request_names=("f1_summary_rate_decoder_teacher_v01",),
         model_name="f1_summary_rate_decoder_teacher_v01",
         include_teacher_logits=True,
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_rates_lawresid1_v01",),
+        model_name="f1_summary_rate_decoder_rates_lawresid1_v01",
+        target_family="rates_law_resid1",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_rates_lawresid1_teacher_v01",),
+        model_name="f1_summary_rate_decoder_rates_lawresid1_teacher_v01",
+        target_family="rates_law_resid1",
+        include_teacher_logits=True,
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_rates_lawresid1_stress_v01",),
+        model_name="f1_summary_rate_decoder_rates_lawresid1_stress_v01",
+        target_family="rates_law_resid1",
+        summary_feature_variant="stress_v1",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01",),
+        model_name="f1_summary_rate_decoder_rates_lawresid1_teacher_stress_v01",
+        target_family="rates_law_resid1",
+        include_teacher_logits=True,
+        summary_feature_variant="stress_v1",
     ),
     SummaryRateDecoderModelSpec(
         request_names=("f1_summary_rate_decoder_collapse_portsplit_v01",),
@@ -165,6 +191,29 @@ SUMMARY_RATE_DECODER_MODEL_SPECS = (
         target_family="collapse_portsplit",
         include_teacher_logits=True,
         summary_feature_variant="stress_v1",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01",),
+        model_name="f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_dyn_v01",
+        target_family="collapse_terminal_shock_pca_r2",
+        include_teacher_logits=True,
+        summary_feature_variant="stress_v1",
+        active_class_indices=(1, 2, 3),
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        active_delta_gate="buildable",
     ),
 )
 

@@ -1,0 +1,344 @@
+{
+  "audit_name": "f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01",
+  "dataset_name": "f1_synthetic_live_coverage_b50_s4_v2__cfg_5a44a494b751",
+  "policy_name": "coverage",
+  "budget": 50,
+  "samples_per_round": 4,
+  "k_neighbors": 7,
+  "target_family": "rates_law_resid1",
+  "summary_feature_variant": "basic",
+  "target_names": [
+    "birth_logit_rate",
+    "collapse_logit_rate",
+    "law_resid_1"
+  ],
+  "round_count": 8,
+  "episode_count": 32,
+  "aggregation_mode": "equal_round_mean_primary",
+  "baseline_mae": 1.9327299104070876,
+  "knn_mae": 1.9196087304957192,
+  "mae_gain": 0.013121179911368422,
+  "baseline_mse": 8.740157206684632,
+  "knn_mse": 10.973835489795151,
+  "mse_gain": -2.233678283110519,
+  "standardized_baseline_mae": 1.2441517345439044,
+  "standardized_knn_mae": 1.102286289917131,
+  "standardized_mae_gain": 0.14186544462677336,
+  "standardized_baseline_mse": 2.6912007781374063,
+  "standardized_knn_mse": 2.326301917916704,
+  "standardized_mse_gain": 0.36489886022070256,
+  "per_target_baseline_mae": {
+    "birth_logit_rate": 1.053370185211469,
+    "collapse_logit_rate": 0.3111329312452503,
+    "law_resid_1": 4.433686614764544
+  },
+  "per_target_knn_mae": {
+    "birth_logit_rate": 0.5273611921744726,
+    "collapse_logit_rate": 0.28926182215373675,
+    "law_resid_1": 4.942203177158948
+  },
+  "per_target_baseline_mse": {
+    "birth_logit_rate": 1.863971919504904,
+    "collapse_logit_rate": 0.13600273244412925,
+    "law_resid_1": 24.220496968104868
+  },
+  "per_target_knn_mse": {
+    "birth_logit_rate": 0.8226084206596598,
+    "collapse_logit_rate": 0.09903263898716425,
+    "law_resid_1": 31.99986540973863
+  },
+  "round_targets": [
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "birth_logit_rate": -5.108557142706658,
+      "collapse_logit_rate": -2.7794235861435785,
+      "law_resid_1": -6.853227291326278
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "birth_logit_rate": -5.077742297287674,
+      "collapse_logit_rate": -2.768895724590083,
+      "law_resid_1": 3.2001655853223925
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "birth_logit_rate": -4.79128712874214,
+      "collapse_logit_rate": -2.531727001851373,
+      "law_resid_1": 2.552975703185145
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "birth_logit_rate": -5.612118920790354,
+      "collapse_logit_rate": -2.5218127866926254,
+      "law_resid_1": 4.165839971812829
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "birth_logit_rate": -4.393707615510038,
+      "collapse_logit_rate": -2.2496709503094023,
+      "law_resid_1": -8.65960672113471
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "birth_logit_rate": -6.632458431505308,
+      "collapse_logit_rate": -2.081949877062153,
+      "law_resid_1": 2.980803546499897
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "birth_logit_rate": -8.362418219860555,
+      "collapse_logit_rate": -1.7749409374142362,
+      "law_resid_1": -4.926752050055452
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "birth_logit_rate": -5.254034256100163,
+      "collapse_logit_rate": -2.4796512003209963,
+      "law_resid_1": -2.130122048779648
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "episode_count": 4,
+      "baseline_mae": 2.637322596899893,
+      "knn_mae": 2.8929292878387396,
+      "mae_gain": -0.2556066909388468,
+      "baseline_mse": 15.848292270071084,
+      "knn_mse": 23.628851816227026,
+      "mse_gain": -7.780559546155942,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 0.6234095529785177,
+        "collapse_logit_rate": 0.4353309463948829,
+        "law_resid_1": 6.853227291326278
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.011748773156257775,
+        "collapse_logit_rate": 0.2513867475464602,
+        "law_resid_1": 8.4156523428135
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 0.3886394707448753,
+        "collapse_logit_rate": 0.1895130328890644,
+        "law_resid_1": 46.966724306579316
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.0001498272355767177,
+        "collapse_logit_rate": 0.06319529856248282,
+        "law_resid_1": 70.82321032288301
+      }
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "episode_count": 4,
+      "baseline_mae": 1.4273637363711649,
+      "knn_mae": 0.9296521223503804,
+      "mae_gain": 0.49771161402078445,
+      "baseline_mse": 3.6180102657365336,
+      "knn_mse": 1.9898510965217886,
+      "mse_gain": 1.628159169214745,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 0.6586265191716434,
+        "collapse_logit_rate": 0.4232991046194594,
+        "law_resid_1": 3.2001655853223925
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.115147386065795,
+        "collapse_logit_rate": 0.24787158854096525,
+        "law_resid_1": 2.4259373924443812
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 0.43378889175615515,
+        "collapse_logit_rate": 0.17918213197163604,
+        "law_resid_1": 10.24105977348181
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.013375170667379175,
+        "collapse_logit_rate": 0.061698069483632725,
+        "law_resid_1": 5.894480049414354
+      }
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "episode_count": 4,
+      "baseline_mae": 1.230409564537539,
+      "knn_mae": 1.6559261359981552,
+      "mae_gain": -0.42551657146061617,
+      "baseline_mse": 2.50435611392903,
+      "knn_mse": 6.5616243878513245,
+      "mse_gain": -4.057268273922295,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 0.9860038546522532,
+        "collapse_logit_rate": 0.15224913577521892,
+        "law_resid_1": 2.552975703185145
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.3048042895552985,
+        "collapse_logit_rate": 0.24343768183918735,
+        "law_resid_1": 4.41953643659998
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 0.9722036013891016,
+        "collapse_logit_rate": 0.023179799344301047,
+        "law_resid_1": 6.517684941053687
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.09290566092921129,
+        "collapse_logit_rate": 0.0592619056393367,
+        "law_resid_1": 19.532705596985423
+      }
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "episode_count": 4,
+      "baseline_mae": 1.4515563180012583,
+      "knn_mae": 1.4834992728270127,
+      "mae_gain": -0.03194295482575438,
+      "baseline_mse": 5.792125376025318,
+      "knn_mse": 4.796819795223599,
+      "mse_gain": 0.9953055808017188,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 0.04791037802572351,
+        "collapse_logit_rate": 0.1409186041652224,
+        "law_resid_1": 4.165839971812829
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.5173580193562626,
+        "collapse_logit_rate": 0.19402626396900424,
+        "law_resid_1": 3.7391135351557705
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 0.0022954043225677304,
+        "collapse_logit_rate": 0.019858052999874636,
+        "law_resid_1": 17.354222670753515
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.3074793895656519,
+        "collapse_logit_rate": 0.04178352683822108,
+        "law_resid_1": 14.041196469266923
+      }
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "episode_count": 4,
+      "baseline_mae": 3.423362599917846,
+      "knn_mae": 3.588511669219702,
+      "mae_gain": -0.1651490693018558,
+      "baseline_mse": 25.697472868990477,
+      "knn_mse": 32.60860391001054,
+      "mse_gain": -6.9111310410200595,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 1.440380441203227,
+        "collapse_logit_rate": 0.170100637415604,
+        "law_resid_1": 8.65960672113471
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.5157406806022868,
+        "collapse_logit_rate": 0.3798868335271348,
+        "law_resid_1": 9.869907493529682
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 2.074695815400803,
+        "collapse_logit_rate": 0.028934226849194777,
+        "law_resid_1": 74.98878856472143
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.265990568483112,
+        "collapse_logit_rate": 0.1443154587424606,
+        "law_resid_1": 97.41550570280603
+      }
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "episode_count": 4,
+      "baseline_mae": 1.4869257768060038,
+      "knn_mae": 0.5962230047788758,
+      "mae_gain": 0.890702772027128,
+      "baseline_mse": 3.4221430232467362,
+      "knn_mse": 0.5508896549047034,
+      "mse_gain": 2.8712533683420327,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 1.1181919199342252,
+        "collapse_logit_rate": 0.36178186398388945,
+        "law_resid_1": 2.9808035464998968
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.35086897533128814,
+        "collapse_logit_rate": 0.2382228219965673,
+        "law_resid_1": 1.199577217008772
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 1.2503531698061887,
+        "collapse_logit_rate": 0.1308861171076575,
+        "law_resid_1": 8.885189782826362
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.15181288841379836,
+        "collapse_logit_rate": 0.0582635632150488,
+        "law_resid_1": 1.4425925130852626
+      }
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "episode_count": 4,
+      "baseline_mae": 2.911563364849537,
+      "knn_mae": 2.7314488383659086,
+      "mae_gain": 0.18011452648362836,
+      "baseline_mse": 11.453855854485852,
+      "knn_mse": 11.650766627346158,
+      "mse_gain": -0.19691077286030634,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 3.09528882091165,
+        "collapse_logit_rate": 0.7126492235815085,
+        "law_resid_1": 4.926752050055452
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 2.366877008261941,
+        "collapse_logit_rate": 0.5546524289303036,
+        "law_resid_1": 5.272817077905481
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 9.58081288486063,
+        "collapse_logit_rate": 0.5078689158713269,
+        "law_resid_1": 24.272885762725597
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 5.747722802750696,
+        "collapse_logit_rate": 0.32153608567975844,
+        "law_resid_1": 28.883040993608013
+      }
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "episode_count": 4,
+      "baseline_mae": 0.8933353258734593,
+      "knn_mae": 1.4786795125869796,
+      "mae_gain": -0.5853441867135203,
+      "baseline_mse": 1.5850018809920312,
+      "knn_mse": 6.003276630276077,
+      "mse_gain": -4.418274749284046,
+      "per_target_baseline_mae": {
+        "birth_logit_rate": 0.4571499948145128,
+        "collapse_logit_rate": 0.09273393402621721,
+        "law_resid_1": 2.130122048779648
+      },
+      "per_target_knn_mae": {
+        "birth_logit_rate": 0.036344405066651264,
+        "collapse_logit_rate": 0.2046102108802712,
+        "law_resid_1": 4.195083921814017
+      },
+      "per_target_baseline_mse": {
+        "birth_logit_rate": 0.20898611775890907,
+        "collapse_logit_rate": 0.008599582519978806,
+        "law_resid_1": 4.537419942697205
+      },
+      "per_target_knn_mse": {
+        "birth_logit_rate": 0.0014310572318522376,
+        "collapse_logit_rate": 0.04220720373637284,
+        "law_resid_1": 17.966191629860006
+      }
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_law_resid1_b50s4_v01/report.md"
+}

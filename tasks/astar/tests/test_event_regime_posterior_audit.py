@@ -101,6 +101,41 @@ def test_event_regime_posterior_audit_supports_collapse_portsplit_family(
     assert result.standardized_mae_gain == result.standardized_baseline_mae - result.standardized_knn_mae
 
 
+def test_event_regime_posterior_audit_supports_rates_law_resid1_family(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID_2, seed_index=0)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_rates_law_resid1_test",
+        audit_name="event_regime_posterior_rates_law_resid1_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        birth_dataset_name="birth_riskset_regime_posterior_rates_law_resid1_test",
+        collapse_dataset_name="collapse_riskset_regime_posterior_rates_law_resid1_test",
+        target_family="rates_law_resid1",
+    )
+
+    assert result.target_family == "rates_law_resid1"
+    assert result.target_names == [
+        "birth_logit_rate",
+        "collapse_logit_rate",
+        "law_resid_1",
+    ]
+
+
 def test_event_regime_posterior_audit_supports_collapse_timing_stress_family(
     sample_paths: RepoPaths,
 ) -> None:
