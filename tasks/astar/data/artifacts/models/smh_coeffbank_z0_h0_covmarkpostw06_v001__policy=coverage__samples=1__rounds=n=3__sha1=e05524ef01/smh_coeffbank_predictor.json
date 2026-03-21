@@ -1,0 +1,47 @@
+{
+  "name": "smh_coeffbank_z0_h0_covmarkpostw06_v001",
+  "checkpoint_npz_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/smh_coeffbank_z0_h0_covmarkpostw06_v001__policy=coverage__samples=1__rounds=n=3__sha1=e05524ef01/smh_coeffbank_predictor.npz",
+  "round_ids": [
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb"
+  ],
+  "round_numbers": [
+    6,
+    8,
+    3
+  ],
+  "feature_names": [
+    "buildable",
+    "land",
+    "coast",
+    "coast_distance",
+    "land_distance_to_settlement",
+    "sea_distance_to_port",
+    "forest_density",
+    "mountain_density",
+    "settlement_basin_gap",
+    "frontier_score",
+    "settlement_proximity",
+    "coastal_exposure",
+    "maritime_access",
+    "initial_forest",
+    "initial_mountain",
+    "initial_ocean"
+  ],
+  "candidate_count": 3,
+  "coefficient_dim": 51,
+  "class_weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "posterior_temperature": 1.0,
+  "prediction_floor": 0.01,
+  "summary_variant": "covmark",
+  "summary_weight": 6.0,
+  "summary_dim": 50
+}

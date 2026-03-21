@@ -1,0 +1,15 @@
+{
+  "name": "smh_knn5_z12_h0_covaug_calbase_v001",
+  "dataset_name": "smh_knn5_z12_h0_covaug_calbase_v001__synthetic_live__policy=exploration__samples=4__rounds=n=3__sha1=e05524ef01",
+  "checkpoint_npz_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/smh_knn5_z12_h0_covaug_calbase_v001__policy=exploration__samples=4__rounds=n=3__sha1=e05524ef01/smh_knn_predictor.npz",
+  "teacher_checkpoint_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/smh_knn5_z12_h0_covaug_calbase_v001__policy=exploration__samples=4__rounds=n=3__sha1=e05524ef01/hazard_teacher.json",
+  "summary_variant": "covaug",
+  "latent_kind": "regime",
+  "k_neighbors": 5,
+  "distance_power": 1.0,
+  "terminal_blend_weight": 0.0,
+  "sample_count": 12,
+  "summary_dim": 120,
+  "latent_dim": 12,
+  "seed_count": 5
+}

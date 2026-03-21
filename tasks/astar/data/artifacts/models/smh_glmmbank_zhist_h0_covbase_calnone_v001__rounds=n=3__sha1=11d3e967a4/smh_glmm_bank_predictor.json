@@ -1,0 +1,33 @@
+{
+  "name": "smh_glmmbank_zhist_h0_covbase_calnone_v001",
+  "dataset_name": "smh_glmmbank_zhist_h0_covbase_calnone_v001__cell_transition__rounds=n=3__sha1=11d3e967a4",
+  "checkpoint_npz_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/smh_glmmbank_zhist_h0_covbase_calnone_v001__rounds=n=3__sha1=11d3e967a4/smh_glmm_bank_predictor.npz",
+  "round_ids": [
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9"
+  ],
+  "static_feature_names": [
+    "buildable",
+    "land",
+    "coast",
+    "coast_distance",
+    "land_distance_to_settlement",
+    "sea_distance_to_port",
+    "forest_density",
+    "mountain_density",
+    "settlement_basin_gap",
+    "frontier_score",
+    "settlement_proximity",
+    "coastal_exposure",
+    "maritime_access",
+    "initial_forest",
+    "initial_mountain",
+    "initial_ocean"
+  ],
+  "rollout_steps": 50,
+  "ridge_lambda": 0.001,
+  "learning_rate": 0.1,
+  "max_epochs": 18,
+  "prediction_floor": 0.0001
+}

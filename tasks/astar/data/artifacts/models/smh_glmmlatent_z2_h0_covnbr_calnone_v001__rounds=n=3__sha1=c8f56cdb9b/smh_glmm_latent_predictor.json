@@ -1,0 +1,47 @@
+{
+  "name": "smh_glmmlatent_z2_h0_covnbr_calnone_v001",
+  "dataset_name": "smh_glmmlatent_z2_h0_covnbr_calnone_v001__cell_transition__rounds=n=3__sha1=c8f56cdb9b",
+  "checkpoint_npz_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/smh_glmmlatent_z2_h0_covnbr_calnone_v001__rounds=n=3__sha1=c8f56cdb9b/smh_glmm_latent_predictor.npz",
+  "round_ids": [
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989"
+  ],
+  "static_feature_names": [
+    "buildable",
+    "land",
+    "coast",
+    "coast_distance",
+    "land_distance_to_settlement",
+    "sea_distance_to_port",
+    "forest_density",
+    "mountain_density",
+    "settlement_basin_gap",
+    "frontier_score",
+    "settlement_proximity",
+    "coastal_exposure",
+    "maritime_access",
+    "initial_forest",
+    "initial_mountain",
+    "initial_ocean"
+  ],
+  "memory_feature_names": [],
+  "nbr_feature_names": [
+    "nbr_empty_frac",
+    "nbr_settlement_frac",
+    "nbr_port_frac",
+    "nbr_ruin_frac",
+    "nbr_occupied_frac",
+    "nbr_forest_frac"
+  ],
+  "memory_decay": 0.85,
+  "rollout_steps": 50,
+  "ridge_lambda": 0.001,
+  "learning_rate": 0.1,
+  "max_epochs": 18,
+  "prediction_floor": 0.0001,
+  "latent_dim_requested": 2,
+  "latent_dim_used": 2,
+  "feature_prior_enabled": false,
+  "feature_prior_ridge_lambda": 8.0
+}
