@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-194545009Z-e0bd9a2b",
+  "request_id": "4b96c361",
+  "prompt_raw": "Nous avons envoyé une facture de 12689 EUR à Océan SARL (nº org. 863081793) lorsque le taux de change était de 11.28 NOK/EUR. Le client a maintenant payé, mais le taux est de 10.71 NOK/EUR. Enregistrez le paiement et comptabilisez l'écart de change (disagio) sur le bon compte.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:47:29Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:45:45.056Z",
+  "after_captured_at": "2026-03-21T19:48:01.205Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "27",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:48:01.208Z"
+}

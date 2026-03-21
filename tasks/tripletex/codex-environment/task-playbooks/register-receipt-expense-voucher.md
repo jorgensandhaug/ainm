@@ -12,7 +12,7 @@ Use for tasks like:
 Three proven branches:
 - **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`, `Kundemøte lunsj`) → account `7360`, no VAT deduction
 - **Branch B**: office furniture / equipment / supplies line (e.g., `Kontorstoler`) → account `6540`, incoming 25% VAT deductible
-- **Branch C**: hotel / accommodation line (e.g., `Overnatting`) → account `7140`, incoming 12% VAT deductible
+- **Branch C**: travel / accommodation line (e.g., `Overnatting`, `Togbillett`) → account `7140`, incoming 25% VAT deductible
 
 Do not use for:
 - supplier-invoice tasks
@@ -21,73 +21,89 @@ Do not use for:
 - prompts that already provide an exact different expense account or VAT code
 - prompts that score supplier, employee, project, or customer linkage
 
+## Receipt Amount Interpretation — CRITICAL
+
+**These receipts show NET prices (before VAT), not GROSS.**
+
+Detection rule:
+- Compute `total × 0.25`. If it matches the stated MVA → prices are **NET**. Use `GROSS = line_amount × 1.25`.
+- Compute `total / 1.25 × 0.25`. If it matches the stated MVA → prices are **GROSS**. Use `GROSS = line_amount`.
+
+All known task 22 receipts are NET:
+- NSB: 11840 × 0.25 = 2960 ✓ (stated MVA = 2960)
+- Thon Hotels: 5330 × 0.25 = 1332.50 ✓ (stated MVA = 1332.50)
+- Peppes Pizza: 14380 × 0.25 = 3595 ✓ (stated MVA = 3595)
+
+**All previous production runs scored 0/5 because the NET amount was used as the gross amount (wrong by factor 1.25).**
+
 ## Account Selection
 
 | Receipt line text | Account | VAT treatment |
 |---|---|---|
-| `Forretningslunsj` / `Kundemøte lunsj` / business lunch / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction |
-| `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT, fully deductible |
-| `Overnatting` / hotel / accommodation | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 12% VAT (lav sats), fully deductible |
+| `Forretningslunsj` / `Kundemøte lunsj` / business lunch / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction. Amount = GROSS (full cost incl. non-recoverable VAT) |
+| `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT (vatType id from account), fully deductible |
+| `Overnatting` / hotel / accommodation | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
+| `Togbillett` / train ticket / transport | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
 | Office supplies / `Kontorrekvisita` | `6500` (if applicable) | Incoming 25% VAT, fully deductible |
 
 - Do NOT use `7350` for representation; 2026-03-21 production scored `0/10` on that branch
+- Do NOT use `7100` for train tickets; 7100 is "Bilgodtgjørelse oppgavepliktig" (car allowance), vatLocked=true, fails 422 with incoming VAT
+- For Branch C: do NOT use account 7140's default vatType.id=`12` (incoming 12%) — use `vatType: { id: 1 }` (incoming 25%) because the receipt states 25% MVA
 
 ## Verified Findings
 
-Verified in persistent sandbox on 2026-03-21:
+Verified in persistent sandbox on 2026-03-21 (CORRECTED tests with NET→GROSS conversion):
 
-### Branch A (Forretningslunsj / representation)
-- `GET /ledger/account?number=1920,7360&fields=*` returned `7360` as `vatLocked=true` with VAT code `0`
-- `POST /ledger/voucher` with expense account `7360`, balancing `1920`, gross amount `13650`, department id, succeeded
-- All four amount fields set to the same value (amount = amountGross = 13650) because no VAT split
-- Voucher `608898560` with attachment `1024214336`
+### Branch A (Kundemøte lunsj / representation) — CORRECTED
+- NET line = 14050, GROSS = 14050 × 1.25 = **17562.50**
+- `POST /ledger/voucher?sendToLedger=true` with amount=17562.50 on 7360, dept 951187
+- Voucher #318 (booked): amount=17562.50, amountGross=17562.50, vatType.id=0
+- Bank posting: -17562.50
 
 ### Branch B (Kontorstoler / deductible purchase)
 - `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)`:
   - account `6540` "Inventar": `vatLocked=false`, default `vatType.id=1` (incoming 25%)
-  - The `vatType(*)` expansion on the account response gives full VAT type details
-- No separate `GET /ledger/vatType` call needed — vatType.id extracted from account response
-- `POST /ledger/voucher` with expense account `6540`, `vatType: { id: 1 }`, `amountGross=13500`:
-  - Tripletex auto-computed `amount=10800` (net = 13500/1.25)
-  - Tripletex auto-generated 3rd posting on account `2710` (Inngående merverdiavgift) with amount `2700`
-  - Bank posting `1920` with amount `-13500`
-- **CRITICAL**: omitting `vatType` on the posting defaulted to code `0` — no VAT splitting at all (WRONG)
-- Account number refs (`account: { number: 6540 }`) failed `422` — must use account IDs
+- No separate `GET /ledger/vatType` call needed
+- `POST /ledger/voucher?sendToLedger=true` with `vatType: { id: 1 }`, `amountGross=<GROSS>`:
+  - Tripletex auto-computes `amount` = GROSS / 1.25 (net)
+  - Auto-generated 3rd posting on account `2710` with VAT recovery amount
 
-### Branch C (Overnatting / accommodation)
-- `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*)`:
-  - account `7140` "Reisekostnad, ikke oppgavepliktig": `vatLocked=false`, default `vatType.id=12` (incoming 12%, lav sats)
-  - vatType.id extracted from account response, no separate GET needed
-- `POST /ledger/voucher` with expense account `7140`, `vatType: { id: 12 }`, `amountGross=4850`:
-  - Tripletex auto-computed `amount=4330.36` (net = 4850/1.12)
-  - Tripletex auto-generated 3rd posting on account `2711` (Inngående merverdiavgift, lav sats) with amount `519.64`
-  - Bank posting `1920` with amount `-4850`
-- Same payload shape as Branch B, just different account and vatType.id
-- Production run 67d4ddca: 4 calls, 0 errors, optimal
+### Branch C (Overnatting / travel-accommodation) — CORRECTED
+- NET line = 4850, GROSS = 4850 × 1.25 = **6062.50**
+- `POST /ledger/voucher?sendToLedger=true` with amountGross=6062.50, `vatType: { id: 1 }` (incoming 25%), account 7140
+- Voucher #320 (booked):
+  - expense posting: amount=4850 (net), amountGross=6062.50, vatType.id=1
+  - bank posting: -6062.50
+  - auto-VAT posting: amount=1212.50 (= 6062.50 × 0.2)
+- Tripletex auto-computed net = 6062.50 / 1.25 = 4850 = original NET line amount ✓
 
-### Branch A (Kundemøte lunsj / customer meeting lunch)
-- Production run 01420e60: receipt Peppes Pizza, 26.04.2026, line "Kundemøte lunsj" 14050 kr
-- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
-- voucher 609104663: expense on 7360 (amount=14050, amountGross=14050, vatType.id=0, dept=949741), bank on 1920 (-14050)
-- confirms "Kundemøte lunsj" maps correctly to Branch A (non-deductible representation)
+### Branch C (Togbillett / train) — CORRECTED
+- NET line = 11350, GROSS = 11350 × 1.25 = **14187.50**
+- `POST /ledger/voucher?sendToLedger=true` with amountGross=14187.50, `vatType: { id: 1 }` (25%), account 7140
+- Voucher #319 (booked):
+  - expense posting: amount=11350 (net), amountGross=14187.50, vatType.id=1
+  - auto-VAT: amount=2837.50
 
 ### Common findings
 - `GET /department?name=Drift&isInactive=false&fields=*` is a containing search; local exact filtering mandatory
 - `department: { "name": "Drift" }` on voucher postings silently persists `department=null`
 - `POST /ledger/voucher/importDocument` creates uneditable voucher shell; not usable for this flow
+- Account 7140's default vatType is 12% (statutory), but receipt says 25% — must override to vatType id=1
 
 ## Minimal Safe Flow
 
 **4 API calls** for all branches on a fresh production account:
 
 1. `POST /department` — create the target department
-2. `GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*)` — resolve account IDs (and for Branch B/C, extract vatType.id)
-3. `POST /ledger/voucher` — create the voucher with correct postings
-4. `POST /ledger/voucher/{voucherId}/attachment` — upload the receipt PDF
+2. `GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*)` — resolve account IDs (and for Branch B, extract vatType.id)
+3. Detect NET vs GROSS: check `total × 0.25 == MVA` → NET. Compute `GROSS = line × 1.25` if NET.
+4. `POST /ledger/voucher?sendToLedger=true` — create AND BOOK the voucher. **MUST include `?sendToLedger=true`**
+5. `POST /ledger/voucher/{voucherId}/attachment` — upload the receipt PDF
 
 ## Winning Payload Shape
 
 ### Branch A — Non-deductible representation
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -97,20 +113,22 @@ Verified in persistent sandbox on 2026-03-21:
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<7360-id>" },
       "department": { "id": "<dept-id>" },
-      "amount": "<line-price>", "amountCurrency": "<line-price>",
-      "amountGross": "<line-price>", "amountGrossCurrency": "<line-price>"
+      "amount": "<GROSS>", "amountCurrency": "<GROSS>",
+      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>", "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>", "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
+Where GROSS = line_amount × 1.25 for NET-priced receipts.
 
 ### Branch B — Deductible purchase
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -121,20 +139,21 @@ Verified in persistent sandbox on 2026-03-21:
       "account": { "id": "<6540-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<line-price>", "amountGrossCurrency": "<line-price>"
+      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>", "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>", "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
-- Tripletex auto-calculates `amount` on expense posting (net) and creates a 3rd posting on `2710`
+- Tripletex auto-calculates `amount` on expense posting (net = GROSS / 1.25) and creates a 3rd posting on `2710`
 
-### Branch C — Deductible accommodation
+### Branch C — Deductible travel/accommodation
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -144,35 +163,39 @@ Verified in persistent sandbox on 2026-03-21:
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<7140-id>" },
       "department": { "id": "<dept-id>" },
-      "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<line-price>", "amountGrossCurrency": "<line-price>"
+      "vatType": { "id": 1 },
+      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>", "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>", "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
-- Tripletex auto-calculates `amount` on expense posting (net = line-price / 1.12) and creates a 3rd posting on `2711`
+- `vatType: { id: 1 }` = incoming 25% (NOT account's default 12%)
+- Tripletex auto-calculates `amount` on expense posting (net = GROSS / 1.25) and creates a 3rd posting on `2710`
+- Applies to: `Overnatting`, `Togbillett`, and other travel/accommodation lines
 
 ## Validation Traps
 
+- **CRITICAL: detect NET vs GROSS receipt prices FIRST** — `total × 0.25 == MVA` means NET, multiply by 1.25 for gross. All task 22 receipts are NET. Previous runs scored 0/5 because NET was treated as GROSS.
+- **CRITICAL: always use `?sendToLedger=true`** on POST /ledger/voucher — without it the voucher stays in draft and scorer cannot find it (all checks fail)
 - do not use `7350` for representation receipts
-- do not use the whole receipt total; use only the selected receipt line amount
+- do not use `7100` for train tickets (vatLocked=true, car allowance account)
+- do not use the whole receipt total; use only the selected receipt line amount (after NET→GROSS conversion)
 - do not omit `vatType` on Branch B/C postings; it defaults to code `0` (no VAT), not the account default
+- for Branch C: do NOT use account 7140's default vatType.id=`12` (12%); use `vatType: { id: 1 }` (25%) because the receipt states 25% MVA
 - do not rely on `department: { "name": "..." }`; always use exact `department.id`
 - do not use `account.number` on voucher postings; always resolve to `account.id`
 - do not use `POST /ledger/voucher/importDocument` for this flow
 - do not skip the receipt attachment; it is scored
-- do not add a separate `GET /ledger/vatType` for Branch B/C; extract from the account response instead
-- for Branch C (accommodation): account `7140` has vatType.id=`12` (12%, lav sats), not `1` (25%); do not hardcode
 
 ## Verification Shape
 
-- `POST /ledger/voucher` proves: date, description, expense account, department, amounts, vatType
-- For Branch B/C also proves: auto-generated VAT posting (`2710` for 25%, `2711` for 12%)
+- `POST /ledger/voucher?sendToLedger=true` proves: date, description, expense account, department, amounts, vatType, booked status
+- For Branch B/C also proves: auto-generated VAT posting (`2710` for 25%)
 - `POST /ledger/voucher/{voucherId}/attachment` proves: attachment.id
 - No follow-up `GET /ledger/voucher/{id}` needed unless a write response is unexpectedly sparse

@@ -115,10 +115,10 @@ Do not use for:
 2. Resolve the customer
    - usually `GET /customer?organizationNumber=...&fields=*`
 3. Resolve any existing products referenced by numeric prompt refs
-   - if the prompt clearly gives exact product numbers, start with one decisive `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-   - if the prompt also gives exact product names and the numeric refs are not explicitly guaranteed Tripletex product numbers, start instead with one decisive `GET /product?count=1000&fields=*` and filter locally by exact product `number` and/or exact product `name`
-   - only if the first resolver is ambiguous, truncated for the account, or the prompt lacks exact product names, continue to the next resolver
-   - only if those earlier reads still do not uniquely resolve them, use one fallback `GET /product?ids=<ref>,<ref>&fields=*`
+   - use `GET /product?number=<ref1>,<ref2>&fields=*` with comma-separated prompt refs (OR semantics); sandbox-verified on 2026-03-21
+   - verify the returned count matches expected; if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by `number` and/or `name`
+   - do NOT use `number=X&number=Y` (repeated query params) — non-OR semantics, returns only first value
+   - do NOT use `productNumber=X&productNumber=Y` — unreliable across accounts
    - do not let a partial first resolver terminate the script and force a full rerun; keep the broader catalog fallback in the same script/callback chain so the customer read is not duplicated
 4. If the prompt gives exact VAT rates, inspect how much VAT detail the product read actually returned
    - for exact existing-product create-only prompts, a sparse `product.vatType` link is still enough to keep the low-call branch: reuse `product.vatType.id` directly or omit explicit line `vatType` and inherit from the product
@@ -148,7 +148,7 @@ Do not use for:
   - gives explicit VAT percentages that must be respected
 - the winning path is usually:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics
   3. `POST /invoice?sendToCustomer=false`
   - on that write, use `product: { id }` and either:
     - explicit `vatType: { id: product.vatType.id }` copied from the resolved product read, or
@@ -162,20 +162,20 @@ Do not use for:
   - does not force an extra VAT confirmation step beyond what the product read already proves
 - the winning path is usually:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics; fall back to `count=1000` if any are missing
   3. `POST /invoice?sendToCustomer=false`
   4. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
-- For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`, the safer verified path is usually five calls:
+- For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`:
   - the lower-call winning path is usually four calls:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics
   3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
   4. `POST /invoice?sendToCustomer=false`
   - stop there if the write response totals match the intended line prices and VAT mix
   - add a fifth immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only when exact readback-only line proof is still needed
 - For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`, the documented proof path can still be five calls:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or `name`
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics
   3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
   4. `POST /invoice?sendToCustomer=false`
   5. immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
@@ -293,8 +293,9 @@ then the practical repair path is:
 - Do not use the send-invoice flow when the prompt only asks to create an invoice
 - Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
 - Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
-- Do not replace a clear product-number-only prompt (no names given) with a broad catalog read; use `GET /product?productNumber=...` when the prompt gives ONLY product numbers without exact names
-- When the prompt gives both exact product names AND parenthetical numbers, always use the catalog read `GET /product?count=1000&fields=*` with local filtering; the speculative `productNumber` query is never fewer calls (both are 1 call) and risks wasting an extra call when `productNumber` returns partial results, as confirmed in the 2026-03-21 production run for `810713909` / `7765` + `4369` + `5331`
+- Always use `GET /product?number=<ref1>,<ref2>&fields=*` (comma-separated, OR semantics) as the primary product resolver; fall back to `count=1000` only if it returns fewer products than expected
+- Do NOT use `number=X&number=Y` (repeated query params) — non-OR semantics, returns only first value
+- Do NOT use `productNumber=X&productNumber=Y` — unreliable across accounts, sometimes misses products
 - Do not add `/ledger/vatType` by reflex on an exact existing-product-number create-only prompt when the resolved products already carry reusable `vatType.id`
 - Do not treat `product: { number: ... }` on `POST /invoice` as a safe existing-product shortcut; sandbox created unlinked lines even though the write succeeded
 - Do not assume `customer: { name, organizationNumber }` on `POST /invoice` removes the need for a customer read; sandbox still rejected the related order because `customer.id` was missing

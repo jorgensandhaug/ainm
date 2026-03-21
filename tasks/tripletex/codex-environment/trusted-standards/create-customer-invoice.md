@@ -20,12 +20,12 @@
 ## Standard Flow
 1. resolve customer with one decisive `GET /customer?...&fields=*` if needed
 2. resolve existing products only if prompt clearly references existing products
-   - if the prompt clearly gives exact product numbers, prefer one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
-   - if the prompt gives exact product names plus numeric refs that are not explicitly guaranteed Tripletex product numbers, prefer one decisive `GET /product?count=1000&fields=*` and local exact filtering by product `number` and/or product `name`
-   - when the prompt gives both exact names and parenthetical numbers, always choose the catalog read path; a speculative `GET /product?productNumber=...` is never fewer calls than the catalog read (both are 1 call) and can waste an extra call when the productNumber filter returns a partial subset, as proven in the 2026-03-21 production run for `810713909` / `7765` + `4369` + `5331`
-   - only fall back from the direct numeric query or catalog read to the next resolver if the earlier read is ambiguous, truncated for the account, or the prompt lacks exact product names
-   - only spend `GET /product?ids=...` if the earlier resolver still leaves the products unresolved
-   - if you do start with a speculative product-number resolver and it returns an incomplete subset, keep the broader product-catalog fallback inside the same script and reuse the already-resolved customer instead of restarting the whole flow
+   - prefer `GET /product?number=<ref1>,<ref2>&fields=*` with comma-separated prompt refs (OR semantics, returns all matches in one call); sandbox-verified on 2026-03-21
+   - verify the returned count matches expected; if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by `number` and/or `name`
+   - do NOT use `number=X&number=Y` (repeated query params) — non-OR semantics, returns only first value
+   - do NOT use `productNumber=X&productNumber=Y` — unreliable across accounts, sometimes misses products
+   - do NOT use `GET /product?ids=<ref>` — prompt refs are small integers, never Tripletex internal IDs (84M+ range)
+   - if you do start with a speculative product resolver and it returns an incomplete subset, keep the broader catalog fallback inside the same script and reuse the already-resolved customer instead of restarting the whole flow
 3. for product-linked create-only prompts, treat the resolved product VAT as the default line VAT
    - if the product read already returns a reusable `product.vatType.id`, either reuse that same id on the line or omit explicit line `vatType` and inherit from the product
    - only resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` when the task must force a VAT different from the resolved product, the product read lacks even a reusable `vatType.id`, or the line is not product-linked

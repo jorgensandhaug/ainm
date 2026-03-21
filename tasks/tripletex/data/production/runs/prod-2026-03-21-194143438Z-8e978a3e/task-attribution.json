@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-194143438Z-8e978a3e",
+  "request_id": "3340c8e2",
+  "prompt_raw": "Crie um pedido para o cliente Solmar Lda (org. nº 867069526) com os produtos Sessão de formação (4466) a 35600 NOK e Licença de software (3717) a 3250 NOK. Converta o pedido em fatura e registe o pagamento total.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:42:39Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:41:43.614Z",
+  "after_captured_at": "2026-03-21T19:43:11.068Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "10",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:43:11.069Z"
+}

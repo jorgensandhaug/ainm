@@ -1,0 +1,1 @@
+Score reflection written. Task 10, T2: perfect correctness (5/5 checks, 8/8 raw), normalized 3/4 — tied leaderboard best. The 1-point gap is structural: 5 calls is the minimum for this task shape on fresh accounts, and no one in 15 attempts has reached 4.

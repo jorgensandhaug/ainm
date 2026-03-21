@@ -55,13 +55,13 @@
 - if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`
 - when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`
 - for multi-day or overnight per diem, use the **hardcoded stable rateType** from the catalog below; do not leave `rateType`/`rateCategory` null
-- **CRITICAL rate selection**: rate IDs are government-set national rates, stable across all Tripletex accounts (verified sandbox + multiple production accounts 2026-03-21):
-  - overnight multi-day trips (isDayTrip=false): `rateType: { id: 25888, rateCategory: { id: 740 } }` — "Overnatting over 12 timer" (rate=1012)
-  - day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` — "Dagsreise 6-12 timer" (rate=397)
-  - day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` — "Dagsreise over 12 timer" (rate=736)
-  - post-overnight supplemental rates: id=25889 (rate=397, rateCategory=741), id=25890 (rate=736, rateCategory=742)
-- using hardcoded rateType saves 1 API call (skip `GET /travelExpense/rate`); sandbox-verified on 2026-03-21: `POST /travelExpense` + `PUT :deliver` both succeeded with hardcoded rateType 25888/740 without any prior rate lookup
-- the earlier production runs (Pablo Rodríguez, Lars Johansen) used rateType id=25886 (day-trip, rate=397) for overnight trips — WRONG; use 25888 (overnight, rate=1012) for any multi-day trip with overnight stays
+- **CRITICAL rate selection — DO NOT use `GET /travelExpense/rate` for rate selection. Use hardcoded IDs:**
+  - **Multi-day / overnight trips (isDayTrip=false): `rateType: { id: 25888, rateCategory: { id: 740 } }`** — "Overnatting over 12 timer" (rate=1012). **ALL 3 production runs FAILED checks 2+3+6 by using day-trip rate 25886 instead of overnight rate 25888. This is the #1 scoring issue.**
+  - Day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` — "Dagsreise 6-12 timer" (rate=397)
+  - Day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` — "Dagsreise over 12 timer" (rate=736)
+  - Post-overnight supplemental rates: id=25889 (rate=397, rateCategory=741), id=25890 (rate=736, rateCategory=742)
+- **DO NOT call `GET /travelExpense/rate`** — hardcoded IDs are stable across all Tripletex accounts (government-set national rates). Skipping the rate lookup saves 1 API call.
+- **Rate selection logic**: if `isDayTrip=false` (any trip ≥ 2 days), ALWAYS use 25888/740 (overnight). Even if the prompt says "dagsats 800" — the rateType 25888 is about the TYPE of travel, not the amount. The prompt's rate (800) goes in `perDiemCompensations[].rate` and `amount`, while rateType 25888 goes in `perDiemCompensations[].rateType`.
 - **fallback only**: if `POST /travelExpense` fails on `rateType`, do `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips; the values ARE the rate objects — use `.id` and `.rateCategory` directly, do NOT access `.rateType` on them
 - preserve the prompt's scored `count`, `rate`, and `amount`, but still include the correct hardcoded `rateType` so the row is deliverable
 - for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`

@@ -204,27 +204,31 @@
 - omitting explicit `vatType` on the posting defaulted to vatType.id=`0` (no VAT), which is wrong — voucher `609014755` had amount=`13500`, amountGross=`13500` with no VAT splitting
 - `account: { number: 6540 }` failed with `422 postings.account.name: Kan ikke være null.`, confirming number-only refs are still unsafe
 
-### Branch C sandbox proof (2026-03-21)
-- `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*),vatLocked` returned:
-  - account `7140` "Reisekostnad, ikke oppgavepliktig": id=`424191165`, vatLocked=`false`, vatType.id=`12` ("Fradrag inngående avgift, lav sats", 12%, deductionPercentage=100)
-  - account `1920` "Bankinnskudd": id=`424190862`, vatLocked=`true`, vatType.id=`0`
-- `POST /ledger/voucher` with amountGross=`4850`, vatType={id:`12`}, account 7140, department 927069 returned voucher with:
-  - expense posting: account=`7140`, amount=`4330.36`, amountGross=`4850`, vatType.id=`12`, department=`927069`
-  - bank posting: account=`1920`, amount=`-4850`, amountGross=`-4850`
-  - auto-generated VAT posting: account=`2711` (Inngående merverdiavgift, lav sats), amount=`519.64`, amountGross=`519.64`
-- net = 4850 / 1.12 = 4330.36, VAT = 4850 - 4330.36 = 519.64 — both match
-- identical payload shape to Branch B; only the account number (7140 vs 6540) and vatType.id (12 vs 1) differ
+### Branch C sandbox proof — CORRECTED (2026-03-21)
+- **Previous sandbox proof used wrong VAT rate (12%) and wrong amounts (treated NET as GROSS). Both scored 0/5 in production.**
+- Corrected sandbox test with NET→GROSS conversion and 25% VAT:
+  - `POST /ledger/voucher?sendToLedger=true` with amountGross=`6062.50` (= 4850 NET × 1.25), vatType={id:`1`} (25%), account 7140, department 951187
+  - returned voucher #320 (booked):
+    - expense posting: account=`7140`, amount=`4850` (net), amountGross=`6062.50`, vatType.id=`1`
+    - bank posting: account=`1920`, amount=`-6062.50`
+    - auto-generated VAT posting: amount=`1212.50` (= 6062.50 × 0.2)
+  - Tripletex correctly auto-computed: net = 6062.50 / 1.25 = 4850 = original NET line amount ✓
+- Togbillett variant also verified:
+  - `POST /ledger/voucher?sendToLedger=true` with amountGross=`14187.50` (= 11350 NET × 1.25), vatType={id:`1`} (25%), account 7140
+  - returned voucher #319 (booked):
+    - expense posting: amount=`11350` (net), amountGross=`14187.50`, vatType.id=`1`
+    - auto-generated VAT posting: amount=`2837.50` (= 14187.50 × 0.2)
+- Branch A corrected sandbox test:
+  - `POST /ledger/voucher?sendToLedger=true` with amount=`17562.50` (= 14050 NET × 1.25), account 7360
+  - returned voucher #318 (booked):
+    - expense posting: amount=`17562.50`, amountGross=`17562.50`, vatType.id=`0`
+    - bank posting: amount=`-17562.50`
 
-### Branch C production proof (2026-03-21, run 67d4ddca)
-- receipt: Thon Hotels, 20.06.2026, line "Overnatting" 4850 kr, paid by Bedriftskort
-- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
-- voucher 609101338: expense on 7140 (amount=4330.36, amountGross=4850, vatType.id=12, dept=948839), bank on 1920 (-4850), auto-VAT on 2710 (519.64), attachment 1024278801
-
-### Branch A production proof (2026-03-21, run 01420e60)
-- receipt: Peppes Pizza, 26.04.2026, line "Kundemøte lunsj" 14050 kr, paid by Bedriftskort
-- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
-- voucher 609104663: expense on 7360 (amount=14050, amountGross=14050, vatType.id=0, dept=949741), bank on 1920 (-14050), attachment uploaded
-- confirms "Kundemøte lunsj" maps to Branch A (non-deductible representation, account 7360)
+### Branch C production proofs (2026-03-21, FAILED — all scored 0/5)
+- **run 67d4ddca** (Overnatting 4850): used 12% VAT and treated 4850 as GROSS → 0/5 (wrong VAT rate AND wrong amount)
+- **run 01420e60** (Kundemøte lunsj 14050): used 14050 as amount but correct gross is 17562.50 → 0/5 (NET treated as GROSS)
+- **run 1519c2a7** (Togbillett 11350): used 12% VAT, treated 11350 as gross, no sendToLedger → 0/5 (all three issues)
+- These proofs demonstrate the WRONG approach. The corrected sandbox proofs above show the RIGHT approach.
 
 ## Winning Payload Shapes
 

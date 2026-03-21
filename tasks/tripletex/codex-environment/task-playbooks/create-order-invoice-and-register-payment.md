@@ -112,6 +112,15 @@ Exact-match tasks should now prefer the trusted standard:
   - after fixing to `String(p.number) === "6247"`, the second run completed all 5 calls successfully with 0 errors
   - this proves `product.number` type is string, not integer — added as a critical type pitfall in both trusted standard and playbook
   - total actual API calls: 7 (2 wasted + 5 successful), ideal was 5
+- production run on 2026-03-21 for Portuguese prompt `Solmar Lda` / `867069526` / `Sessão de formação (4466)` / `Licença de software (3717)` / prices `35600` + `3250`:
+  - used `count=1000` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - 5 calls, 0 errors, outstanding=0 — canonical minimum confirmed
+  - sandbox investigation on same day proved `number=X,Y` comma-separated query uses OR semantics:
+    - `number=7579,2292` returned both products; `number=7579,2292,4366` returned all 3
+    - `number=7579,99999` gracefully returned 1 (no error for missing)
+    - this is strictly better than `count=1000` for targeted lookups
+  - also confirmed `productNumber` is NOT a valid field in ProductDTO `fields` filter (returns 400)
+  - `number=X&number=Y` (repeated query params) uses non-OR semantics and only returns first value — do not confuse with comma-separated format
 
 ## Minimal Flow
 
@@ -124,9 +133,10 @@ Exact-match tasks should now prefer the trusted standard:
 2. Resolve the customer
    - usually `GET /customer?organizationNumber=...&fields=*`
 3. Resolve the products from prompt refs
-   - use `GET /product?count=1000&fields=*` and filter locally by the `number` response field matching the prompt refs, and by exact product name from the prompt as a secondary check
-   - do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
-   - do not use a 2-tier `productNumber` first approach — it is unreliable and can waste an extra call when `productNumber` partially resolves
+   - use `GET /product?number=<ref1>,<ref2>&fields=*` with comma-separated prompt refs; verify the returned count matches the expected count
+   - if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by `number` response field
+   - do not rely on the `productNumber` field since it is often null/undefined in fresh accounts; `productNumber` is not even a valid ProductDTO `fields` value (returns 400)
+   - do not use `number=X&number=Y` (repeated query params) — this uses non-OR semantics and only returns the first value
 4. Resolve one usable incoming payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
    - prefer a bank-style incoming payment type whose debit account is `19xx`
@@ -159,7 +169,7 @@ Exact-match tasks should now prefer the trusted standard:
   - the need to invoice and fully pay immediately
 - the winning path is always 5 Tripletex API calls when the run does not already hold a reusable incoming `paymentTypeId`:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?count=1000&fields=*` + local filter by `number` field and exact name
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics
   3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
   4. `POST /order` with embedded `orderLines`
   5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`
@@ -219,12 +229,14 @@ Exact-match tasks should now prefer the trusted standard:
 
 ## Product Resolution Rules
 
-- Use `GET /product?count=1000&fields=*` as the default and only product lookup
-- Filter locally by the `number` response field matching the prompt refs
+- **Primary**: use `GET /product?number=<ref1>,<ref2>&fields=*` with comma-separated prompt refs
+  - comma-separated `number` values use OR semantics and return all matching products in one call
+  - verify the returned count matches the expected product count from the prompt
+  - if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by `number` response field
 - **CRITICAL type pitfall**: `product.number` is always a **string** in the API response (e.g. `"6247"`), never an integer; use `String(p.number) === String(promptRef)` or loose equality — strict `p.number === 6247` silently fails and wastes API calls on the retry
 - Use exact product name from the prompt as a secondary match check
-- Do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
-- Do not use the old 2-tier approach (`productNumber` first → `count=1000` fallback); it is unreliable and wastes a call when `productNumber` partially resolves
+- Do NOT use `number=X&number=Y` (repeated query params) — uses non-OR semantics, only returns first value
+- Do not rely on the `productNumber` field — it is often null/undefined in fresh accounts and is not even a valid field in ProductDTO's `fields` filter (returns 400)
 - Do not use `GET /product?ids=<ref>&fields=*` — prompt refs are small integers, never Tripletex internal IDs (84M+ range)
 - Do not spray multiple exploratory `/product` reads
 - Reuse the resolved product objects for IDs and any needed VAT context

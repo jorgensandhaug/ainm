@@ -76,11 +76,11 @@ This is the canonical flow only when the travel dates are explicit or otherwise 
    - `GET /travelExpense/costCategory?count=1000&fields=*`
    - `GET /travelExpense/paymentType?count=1000&fields=*`
    - filter locally on `showOnTravelExpenses=true`
-4. Select rateType from the **hardcoded stable rate catalog** (NO API call needed):
-   - overnight multi-day trips: `rateType: { id: 25888, rateCategory: { id: 740 } }` — "Overnatting over 12 timer" (rate=1012)
-   - day trips 6–12h: `rateType: { id: 25886, rateCategory: { id: 738 } }` — "Dagsreise 6-12 timer" (rate=397)
-   - day trips >12h: `rateType: { id: 25887, rateCategory: { id: 739 } }` — "Dagsreise over 12 timer" (rate=736)
-   - these are government-set national rates, verified stable across sandbox and multiple production accounts on 2026-03-21
+4. Select rateType from the **hardcoded stable rate catalog** (NO API call — DO NOT use `GET /travelExpense/rate`):
+   - **CRITICAL: Multi-day / overnight trips (isDayTrip=false) → ALWAYS use `rateType: { id: 25888, rateCategory: { id: 740 } }`** ("Overnatting over 12 timer", rate=1012). ALL 3 production runs scored 4.5/8 because they used day-trip rate 25886 instead of overnight rate 25888. Even if the prompt says "dagsats 800" — put 800 in `rate`/`amount`, but use rateType 25888.
+   - day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` (rate=397)
+   - day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` (rate=736)
+   - these are government-set national rates, stable across all Tripletex accounts
    - **fallback only**: if POST fails on rateType, do `GET /travelExpense/rate?...fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips
 5. Create the travel expense in one write
    - `POST /travelExpense`

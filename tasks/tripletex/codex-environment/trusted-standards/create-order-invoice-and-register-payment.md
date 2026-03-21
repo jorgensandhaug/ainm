@@ -20,7 +20,7 @@
 
 ## Standard Flow
 1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
-2. `GET /product?count=1000&fields=*` and filter locally by the `number` response field matching the prompt refs, and by exact product name from the prompt as a secondary check
+2. `GET /product?number=<ref1>,<ref2>&fields=*` using comma-separated prompt refs; verify that the returned count matches the expected count, and confirm each product name from the prompt as a secondary check
 3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
 4. `POST /order` with embedded `orderLines`
 5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
@@ -38,7 +38,8 @@
     - `count`
     - `unitPriceExcludingVatCurrency`
 - preserve prompt product names/descriptions exactly when they are part of the scored state
-- when resolving products from `GET /product?count=1000&fields=*`, match by the `number` response field against the prompt refs; do not rely on the `productNumber` field since it is often null/undefined in fresh accounts
+- when resolving products from `GET /product?number=<ref1>,<ref2>&fields=*`, verify the returned count matches the expected count; if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by the `number` response field
+- do not rely on the `productNumber` field since it is often null/undefined in fresh accounts; `productNumber` is not even a valid field in ProductDTO's `fields` filter (returns 400)
 - **CRITICAL type pitfall**: `product.number` is always a **string** in the API response (e.g. `"6247"`), never an integer; use `String(p.number) === String(promptRef)` or loose equality `p.number == promptRef` — strict `p.number === 6247` silently fails and wastes API calls on the retry
 - do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
@@ -77,7 +78,7 @@
 - `/order`, `/order/{id}/:invoice`, `/invoice/paymentType`, and `/invoice/{id}/:payment` verified in `./openapi.json`
 - the canonical exact-match path is 5 Tripletex API calls:
   1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?count=1000&fields=*`
+  2. `GET /product?number=<ref1>,<ref2>&fields=*`
   3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
   4. `POST /order` with embedded `orderLines`
   5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`
@@ -87,21 +88,16 @@
 - the invoice write returns `amountCurrencyOutstanding=0` directly when payment settles; no extra `PUT /invoice/{id}/:payment` call is needed
 - the prompt ex-VAT total can differ from the payment amount because payment uses the invoice outstanding balance (which includes VAT)
 - the `/ledger/account` bank-account hedge must stay conditional, not canonical; on accounts where the company bank account is already configured, it would waste a sixth call
+- production confirmation on 2026-03-21 for Portuguese prompt `Solmar Lda` / `867069526` / `Sessão de formação (4466)` / `Licença de software (3717)` / prices `35600` + `3250`:
+  - used `count=1000` product lookup (pre-comma-separated era), 5 calls, 0 errors, outstanding=0
 
-## Why count=1000 Is the Default Product Lookup
-- the old 2-tier approach (`productNumber` first → `count=1000` fallback) was inconsistent:
-  - `productNumber` query param sometimes resolves products whose ref is stored under `number`, sometimes doesn't
-  - in production on 2026-03-21, `productNumber=1851&productNumber=5065` found only 5065, missed 1851 — both had their ref under `number`
-  - earlier production run on 2026-03-21 for `Luna SL` also had `productNumber=5271` miss — wasting 2 extra calls (one `ids` fallback + one `count=1000`)
-- `count=1000` always resolves all products in a single call for fresh accounts with few products
-- scored runs use fresh accounts that typically have 2-5 products, well within the count=1000 limit
-- sandbox verification on 2026-03-21 confirmed the 5-call path with `count=1000` as default product lookup:
-  - `GET /customer?organizationNumber=864062245&fields=*`
-  - `GET /product?count=1000&fields=*` → resolved all products by `number` field filter
-  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-  - `POST /order`
-  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-21&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`
-  - invoice outstanding=0 from write response, total 5 calls
-- `number` multi-value query uses non-OR semantics (only first value returned), so `number=X&number=Y` cannot replace `count=1000`
-- `productNumber` and `number` cross-param uses AND semantics, so combining them does not work
-- do NOT use `GET /product?ids=<ref>&fields=*` as a fallback — prompt refs are small integers, never Tripletex internal IDs (84M+ range)
+## Product Lookup Strategy
+- **primary**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call
+  - sandbox verification on 2026-03-21 confirmed: `number=7579,2292` returned both, `number=7579,2292,4366` returned all 3, partial matches (one exists, one doesn't) return found ones without error
+  - if fewer products are returned than expected, fall back to `count=1000`
+- **fallback**: `GET /product?count=1000&fields=*` — returns all products, filter locally by `number` response field
+  - reliable for fresh accounts with few products (typically 2-5 products)
+- **CRITICAL**: do NOT use `number=X&number=Y` (repeated query params) — this uses non-OR semantics and only returns the first value
+- **CRITICAL**: `productNumber` is not a valid field in ProductDTO's `fields` filter (returns 400); it exists only as a query parameter for filtering, and even then is unreliable across accounts
+- the old 2-tier approach (`productNumber` first → `count=1000` fallback) was inconsistent and is superseded
+- do NOT use `GET /product?ids=<ref>&fields=*` — prompt refs are small integers, never Tripletex internal IDs (84M+ range)

@@ -1,0 +1,8 @@
+{
+  "prompt": "Enregistrez 38 heures pour Camille Petit (camille.petit@example.org) sur l'activité \"Design\" du projet \"Audit de sécurité\" pour Cascade SARL (nº org. 824869383). Taux horaire : 1400 NOK/h. Générez une facture de projet au client basée sur les heures enregistrées.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "-X-gnn7J6_LJNmCWiRjnmd28ANQOn7Nc9fl-nPOHglU"
+  }
+}
