@@ -106,7 +106,7 @@ POST /ledger/voucher?sendToLedger=true
   - Script matched a 6540 voucher WITH 2710=2290 and applied Case B. But the actual erroneous voucher was a DIFFERENT 6540 entry WITHOUT 2710 (Case A). Wrong voucher detected.
 - Fifth run (7fed6a02): 3 calls, 0 errors — **but scored 2.25/6, Check 3 FAILED**
   - Same root cause: matched wrong voucher (one WITH 2710) for missing-VAT. Actual error was Case A.
-- **CRITICAL LESSON from runs 4-5-7**: The missing-VAT error is ALWAYS Case A (no 2710). Case B was never the correct interpretation in production. Detection must prioritize no-2710 vouchers.
+- **CRITICAL LESSON from runs 4-5-7-8-9**: The missing-VAT error is ALWAYS Case A (no 2710). Case B has NEVER been correct in production (0/9 runs). Detection MUST use the multi-tier cascade (amountGross match + account.id fallback → description keyword → broadest no-2710 search) to find the error voucher. The script MUST build a `getAcctNumber()` helper using `acctIdToNumber` from Step 1 to match by both `account.number` and `account.id`.
 - Sixth run (49332405): blocked by expired proxy token (403), 1 wasted call
   - script was correctly written following proven 3-call path with all improvements from prior runs
   - new pitfall identified: reclassification 7140→7100 requires different vatTypes (12 vs 0) on each side
@@ -120,4 +120,15 @@ POST /ledger/voucher?sendToLedger=true
   - Same root cause: matched voucher WITH 2710=2820 on 6500 (correctly-booked) instead of the actual error voucher WITHOUT 2710 (Case A)
   - Applied Case B (2710 +705, 6500 +2820, 2400 -3525) instead of Case A (2710 +3525, counterpart -3525)
   - Sandbox-verified: with two 6500/14100 vouchers, one WITH and one WITHOUT 2710, prioritizing no-2710 correctly detects the error
-  - **CONCLUSION across 8 runs**: Check 3 has never passed. The missing-VAT error is ALWAYS Case A (no 2710). Next run must use no-2710-first detection to finally pass Check 3.
+- Ninth run (3d464771): 3 calls, 0 errors — **scored 2.25/6, Check 3 FAILED**
+  - errors: 6340→6390 (3050), dup 6860 (1650), missing VAT 4500 (22900 excl), wrong amount 6860 (24450→10850)
+  - Script found only 1 candidate for 4500/22900 (WITH 2710=4580) — the error voucher (WITHOUT 2710) was not found by the amountGross match
+  - Applied Case B (2710 +1145, 4500 +4580, 2400 -5725) instead of Case A (2710 +5725, counterpart -5725)
+  - Root cause: script's detection only matched by `p.account?.number === 4500 && Math.abs(p.amountGross) === 22900`. If the error voucher had `account.number` undefined in the API response (despite nested expansion), the match would fail silently.
+  - **FIX: multi-tier detection cascade** (see trusted standard):
+    1. amountGross match on prompt account (matching by BOTH account.number and account.id fallback) + no 2710 → Case A
+    2. description keyword ("uten MVA" etc.) + no 2710 → Case A
+    3. ANY voucher on prompt account + no 2710 → Case A
+    4. Last resort: Case B (WARNING: 0/9 production runs passed with Case B)
+  - Sandbox-verified: with two 4500/22900 vouchers, multi-tier detection correctly identifies the Case A error voucher
+  - **CONCLUSION across ALL 9 runs**: Check 3 has failed every single time. Case B has never been correct. The multi-tier detection cascade with account.id fallback is the minimum-viable fix.
