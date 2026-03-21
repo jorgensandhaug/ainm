@@ -342,6 +342,83 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
+    if normalized in {"gbx_cellwise_lgb", "gbx_cellwise_lgb_v1"}:
+        from astar.student.predictor.gbx_cellwise import (
+            CellwiseLGBPredictor,
+            cellwise_lgb_scoped_checkpoint_path,
+        )
+        checkpoint_path = cellwise_lgb_scoped_checkpoint_path(
+            paths, round_ids=list(training_round_ids),
+        )
+        if checkpoint_path.exists():
+            predictor = CellwiseLGBPredictor.load_checkpoint(checkpoint_path)
+        else:
+            predictor = CellwiseLGBPredictor.fit_from_workspace(
+                paths,
+                round_ids=list(training_round_ids),
+            )
+            predictor.save_checkpoint(checkpoint_path)
+        bundle = predictor.build_prediction_bundle(round_detail, None)
+        return bundle, {}, 0, 0
+
+    if normalized in {"gbx_cellwise_replay_lgb", "gbx_cellwise_replay_lgb_v1"}:
+        from astar.student.predictor.gbx_cellwise import (
+            CellwiseLGBPredictor,
+            GBX_CELLWISE_LGB_MODEL,
+            build_cellwise_features,
+            load_replay_final_grids,
+        )
+        import lightgbm as lgb
+        from astar.core.terrain import collapse_internal_grid
+
+        replays_dir = paths.raw_dir / "replays"
+        X_parts: list[np.ndarray] = []
+        Y_parts: list[np.ndarray] = []
+        for train_round_id in training_round_ids:
+            train_detail = read_round_record(paths, train_round_id).round
+            replay_grids = load_replay_final_grids(replays_dir, train_round_id, max_replays_per_seed=30)
+            for si in range(train_detail.seeds_count):
+                ist = train_detail.initial_states[si]
+                grid = np.asarray(ist.grid, dtype=np.int64)
+                feat = build_cellwise_features(grid, ist.settlements)
+                h, w, f = feat.shape
+                for rg in replay_grids.get(si, []):
+                    collapsed = collapse_internal_grid(rg)
+                    yf = np.zeros((h * w, 6), dtype=np.float64)
+                    for c in range(6):
+                        yf[:, c] = (collapsed.ravel() == c).astype(np.float64)
+                    X_parts.append(feat.reshape(-1, f))
+                    Y_parts.append(yf)
+        X_train = np.concatenate(X_parts)
+        Y_train = np.concatenate(Y_parts)
+        models = {}
+        for cls in range(6):
+            m = lgb.LGBMRegressor(
+                objective="regression", n_estimators=500, max_depth=8,
+                learning_rate=0.03, min_child_samples=50, subsample=0.7,
+                colsample_bytree=0.7, num_leaves=63, verbose=-1, n_jobs=8, random_state=42,
+            )
+            m.fit(X_train, Y_train[:, cls])
+            models[cls] = m
+        predictions_by_seed = {}
+        for si in range(round_detail.seeds_count):
+            ist = round_detail.initial_states[si]
+            grid = np.asarray(ist.grid, dtype=np.int64)
+            feat = build_cellwise_features(grid, ist.settlements)
+            h, w, f = feat.shape
+            Xe = feat.reshape(-1, f)
+            probs = np.zeros((h * w, 6), dtype=np.float64)
+            for c in range(6):
+                probs[:, c] = np.clip(models[c].predict(Xe), 0.0, 1.0)
+            probs /= probs.sum(axis=1, keepdims=True)
+            probs = np.maximum(probs, 0.01)
+            probs /= probs.sum(axis=1, keepdims=True)
+            predictions_by_seed[si] = probs.reshape(h, w, 6)
+        return (
+            PredictionBundle(round_id=round_id, model_name="gbx_cellwise_replay_lgb_v1", predictions_by_seed=predictions_by_seed),
+            {}, 0, 0,
+        )
+
     if normalized in {
         "hazard_teacher",
         HAZARD_TEACHER_MODEL,
