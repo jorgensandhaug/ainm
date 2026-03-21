@@ -44,12 +44,26 @@
    - Expected to compound the best individual improvements
    - **Still running** on hard-3 and proxy-5
 
+#### Broad Validation Results (8-round leave-one-out)
+
+| model | score | KL | delta vs v8 |
+| --- | ---: | ---: | ---: |
+| **v15** (orig coeff + obs blend t=20) | **82.88** | 0.0644 | **+3.68** |
+| v16 r=4 (orig coeff, no obs blend) | 82.45 | 0.0667 | +3.25 |
+| v16 r=3 (orig coeff, no obs blend) | 82.30 | 0.0671 | +3.11 |
+| v11 t=20 (obs blend only) | 79.94 | 0.0776 | +0.75 |
+| v8 (reference) | 79.19 | 0.0814 | baseline |
+
 #### Key Findings
+- **Original coefficients are the biggest lever** (+3.06 alone, +3.68 combined with obs blend)
+  - SVD rank-3 reconstruction loses ~13% of coefficient variance
+  - Using original per-round coefficients for training-round particles eliminates this loss
+  - Biggest gains on rounds where SVD truncation was worst: ae78003a +12.83, f1dac9a9 +11.64
+- Observation blending adds +0.58 on top of original coefficients (v15 82.88 vs v16 82.30)
+- Higher SVD rank (r=4) gives marginal improvement (+0.15) without obs blending
 - The linear v2-features teacher is already well-suited to the data
 - More features or nonlinear models overfit with limited training rounds (9 total)
-- The biggest remaining gains come from CALIBRATION, not model expressiveness
-- Observation blending with very high temperature (+0.96) is the first independently validated gain beyond v8
-- Probability floor correction is theoretically critical (3x KL reduction on zero-floor errors)
+- Probability floor and adaptive calibration both HURT performance
 
 ### Session Continuation
 
