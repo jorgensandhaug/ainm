@@ -25,6 +25,7 @@ test("POST /solve writes staging plus a canonical success artifact and respects 
     dataRoot: path.join(tempRoot, "data"),
     artifactRoot: path.join(tempRoot, "runs"),
     promptCorpusPath: path.join(tempRoot, "data", "prompt-corpus.jsonl"),
+    env: { TRIPLETEX_STORAGE_MODE: "sandbox" },
     taskUnderstanding: {
       result: {
         status: "resolved",
@@ -575,7 +576,7 @@ test(
       TRIPLETEX_LEADERBOARD_DELAY_MS: "0",
       TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS: "0",
       TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS: "1000",
-      TRIPLETEX_STORAGE_MODE: "testing",
+      TRIPLETEX_STORAGE_MODE: "sandbox",
     },
     now: () => new Date("2026-03-21T12:00:00.000Z"),
     selectionConfigOverride: await createSelectionConfigOverride(),
@@ -707,6 +708,7 @@ test(
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "sandbox",
+    solveBackend: "tmux",
     codexEnvironmentDir,
     codexHomeDir,
     createRunId: () => "test-http-tmux",
@@ -872,6 +874,7 @@ test(
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "competition",
+    solveBackend: "tmux",
     codexEnvironmentDir,
     codexHomeDir,
     createRunId: () => "competition-http-tmux",

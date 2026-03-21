@@ -17,7 +17,7 @@ import {
 } from "../sandbox-credentials";
 import type { RuntimeStatus, TripletexCredentialCompanyId } from "./contracts";
 
-export type StorageMode = "testing" | "production";
+export type StorageMode = "testing" | "sandbox" | "production";
 
 export interface TmuxSolveRequestFile {
   fileName: string;
@@ -230,6 +230,8 @@ export function resolveStorageMode(rawMode: string | undefined): StorageMode {
     case "production":
     case "prod":
       return "production";
+    case "sandbox":
+      return "sandbox";
     default:
       return "testing";
   }
@@ -241,7 +243,6 @@ export function buildCodexPrompt(
   effectiveCredentials: EffectiveCredentials,
   scriptsDir: string,
 ): string {
-  const openApiPath = "./openapi.json";
   const lines = [
     "Scored Tripletex run.",
     "Follow ./AGENTS.md exactly.",
@@ -250,12 +251,6 @@ export function buildCodexPrompt(
     "- Get the final Tripletex state exactly correct.",
     "- Use the fewest API calls possible.",
     "- Avoid all avoidable 4xx errors.",
-    "",
-    "Knowledge order:",
-    "- 1. ./trusted-standards/",
-    "- 2. ./task-playbooks/",
-    `- 3. ${openApiPath}`,
-    `- If this is an exact trusted-standard match, use it directly and do not re-check ${openApiPath}.`,
     "",
     "Run-specific rules:",
     "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",
