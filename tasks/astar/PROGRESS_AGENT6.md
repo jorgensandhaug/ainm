@@ -4143,7 +4143,31 @@
   - k5_r5 (higher rank): 73.05 on probe3 (identical to r3 - likely degenerate on smoke)
   - k3_r3 (fewer neighbors): 72.76 on probe3 (worse)
 - Best configuration: k5_r3 with ridge_alpha=32, predicted_particle_weight=0.7
-- Next: more hyperparameter sweeps, dev5 for best variants, full-tier validation
+- Hyperparameter sweep results (all probe3):
+  - k7_r3: **73.25** (NEW BEST on probe3)
+  - k5_r3_m90: 73.11
+  - k5_r3_m80: 73.08
+  - k5_r3 (original): 73.05
+  - k5_r2: 73.05
+  - k5_r3_l64: 73.01
+  - k5_r3_l16: 73.01
+  - k5_r3_m50: 72.94
+  - k3_r3: 72.76
+  - k5_r3_stress: 71.25 (stress_v1 features hurt here)
+- Key findings:
+  - More kNN neighbors (k7) helps - more data coverage
+  - Higher predicted particle weight (m90) helps - trust the ridge prediction more
+  - Ridge alpha is not very sensitive (16-64 all similar)
+  - Latent rank r2 vs r3 identical on smoke (degeneracy with 2 train rounds)
+  - stress_v1 features hurt badly here
+- Dev5 k7_r3 running
+
+### Current scoreboard on probe3:
+1. **hazard_posterior_v2 k7_r3: 73.25** (NEW BEST)
+2. hazard_posterior_v2 k5_r3_m90: 73.11
+3. hazard_posterior_v2 k5_r3: 73.05
+4. supportx_v01: 72.92
+5. baseline query_residual: 72.55
 
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
