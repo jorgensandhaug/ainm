@@ -69,9 +69,16 @@ Verified in production on 2026-03-20:
 - that same sandbox account contained `4` unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`, so persistent-sandbox duplicate noise is not proof that the fresh-account production task shape needs an extra resolver read
 - same-day persistent sandbox re-proof on invoice `2147551798` for customer `841254546`, ex-VAT amount `28500`, and line description `System Development` again finished in exactly `3` calls and used incoming bank payment type `32813748`
 
+Verified in production on 2026-03-21:
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147567128` for customer `896571559` by `amountExcludingVatCurrency=15200`, line description `Datarådgivning`, and positive `amountCurrencyOutstanding=19000`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27869893` with debit account `1920`
+- `PUT /invoice/2147567128/:payment?paymentDate=2026-03-21&paymentTypeId=27869893&paidAmount=19000` reduced the remaining outstanding amount to `0`
+- same-day persistent sandbox re-proof confirmed `GET /invoice?...&fields=*,paymentType(*)` returns `400`, so there is no field-expansion shortcut to embed a reusable `paymentTypeId` inside the invoice locate read; the standalone `3`-call floor remains proven
+
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
 - therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache
+- production `27869893` added on 2026-03-21
 
 ## Minimal Flow
 
