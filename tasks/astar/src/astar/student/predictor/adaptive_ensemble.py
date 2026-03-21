@@ -50,6 +50,10 @@ ADAPTIVE_ENSEMBLE_V17 = "adaptive_ensemble_v17"
 ADAPTIVE_ENSEMBLE_V18 = "adaptive_ensemble_v18"
 ADAPTIVE_ENSEMBLE_V19 = "adaptive_ensemble_v19"
 ADAPTIVE_ENSEMBLE_V20 = "adaptive_ensemble_v20"
+ADAPTIVE_ENSEMBLE_V21 = "adaptive_ensemble_v21"
+ADAPTIVE_ENSEMBLE_V22 = "adaptive_ensemble_v22"
+ADAPTIVE_ENSEMBLE_V23 = "adaptive_ensemble_v23"
+ADAPTIVE_ENSEMBLE_V24 = "adaptive_ensemble_v24"
 
 ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_ALIAS,
@@ -73,6 +77,10 @@ ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_V18,
     ADAPTIVE_ENSEMBLE_V19,
     ADAPTIVE_ENSEMBLE_V20,
+    ADAPTIVE_ENSEMBLE_V21,
+    ADAPTIVE_ENSEMBLE_V22,
+    ADAPTIVE_ENSEMBLE_V23,
+    ADAPTIVE_ENSEMBLE_V24,
 })
 
 ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
@@ -97,6 +105,10 @@ ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
     ADAPTIVE_ENSEMBLE_V18,
     ADAPTIVE_ENSEMBLE_V19,
     ADAPTIVE_ENSEMBLE_V20,
+    ADAPTIVE_ENSEMBLE_V21,
+    ADAPTIVE_ENSEMBLE_V22,
+    ADAPTIVE_ENSEMBLE_V23,
+    ADAPTIVE_ENSEMBLE_V24,
 ]
 
 
@@ -373,6 +385,55 @@ def resolve_adaptive_ensemble_variant_spec(
             active_settlement_boost=1.0,
             obs_correction_strength=0.0,
             barren_forest_boost=1.5,
+        ),
+        # v21-v24: fine-tune around v17's winning params (forest_boost=1.15, scale=0.3/0.2)
+        ADAPTIVE_ENSEMBLE_V21: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V21,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.10,
+        ),
+        ADAPTIVE_ENSEMBLE_V22: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V22,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.20,
+        ),
+        ADAPTIVE_ENSEMBLE_V23: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V23,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.25,
+            barren_ruin_scale=0.18,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.15,
+        ),
+        ADAPTIVE_ENSEMBLE_V24: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V24,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.35,
+            barren_ruin_scale=0.25,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.15,
         ),
     }
     resolved_name = normalized if normalized != ADAPTIVE_ENSEMBLE_ALIAS else ADAPTIVE_ENSEMBLE_V1
