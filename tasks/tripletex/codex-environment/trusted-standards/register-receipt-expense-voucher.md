@@ -11,7 +11,7 @@
 - the receipt already shows the purchase was paid by company card / business card
 - the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
 - three proven expense-type branches exist:
-  - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` → account `7360`, VAT code `0`
+  - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` or `Kundemøte lunsj` → account `7360`, VAT code `0`
   - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
   - **Branch C (deductible accommodation, 12% VAT)**: receipt line is hotel / accommodation such as `Overnatting` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 12% VAT (vatType id from account response)
 - select the branch based on the receipt line text, not the receipt vendor or total
@@ -23,7 +23,7 @@
 - the prompt explicitly gives another expense account or another VAT treatment
 
 ## Account Selection Rule
-- `Forretningslunsj` / restaurant meals / business lunch → `7360` (non-deductible representation)
+- `Forretningslunsj` / `Kundemøte lunsj` / restaurant meals / business lunch / customer meeting lunch → `7360` (non-deductible representation)
 - `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
 - `Overnatting` / hotel / accommodation → `7140` (Reisekostnad, ikke oppgavepliktig)
 - do not use `7350` for any representation receipt line; 2026-03-21 production scored `0/10` on that branch
@@ -192,6 +192,12 @@
 - receipt: Thon Hotels, 20.06.2026, line "Overnatting" 4850 kr, paid by Bedriftskort
 - 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
 - voucher 609101338: expense on 7140 (amount=4330.36, amountGross=4850, vatType.id=12, dept=948839), bank on 1920 (-4850), auto-VAT on 2710 (519.64), attachment 1024278801
+
+### Branch A production proof (2026-03-21, run 01420e60)
+- receipt: Peppes Pizza, 26.04.2026, line "Kundemøte lunsj" 14050 kr, paid by Bedriftskort
+- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
+- voucher 609104663: expense on 7360 (amount=14050, amountGross=14050, vatType.id=0, dept=949741), bank on 1920 (-14050), attachment uploaded
+- confirms "Kundemøte lunsj" maps to Branch A (non-deductible representation, account 7360)
 
 ## Winning Payload Shapes
 

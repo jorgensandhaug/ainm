@@ -10,7 +10,7 @@ Use for tasks like:
 - use the correct expense account and VAT treatment based on the receipt line text
 
 Three proven branches:
-- **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`) → account `7360`, no VAT deduction
+- **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`, `Kundemøte lunsj`) → account `7360`, no VAT deduction
 - **Branch B**: office furniture / equipment / supplies line (e.g., `Kontorstoler`) → account `6540`, incoming 25% VAT deductible
 - **Branch C**: hotel / accommodation line (e.g., `Overnatting`) → account `7140`, incoming 12% VAT deductible
 
@@ -25,7 +25,7 @@ Do not use for:
 
 | Receipt line text | Account | VAT treatment |
 |---|---|---|
-| `Forretningslunsj` / business lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction |
+| `Forretningslunsj` / `Kundemøte lunsj` / business lunch / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction |
 | `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT, fully deductible |
 | `Overnatting` / hotel / accommodation | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 12% VAT (lav sats), fully deductible |
 | Office supplies / `Kontorrekvisita` | `6500` (if applicable) | Incoming 25% VAT, fully deductible |
@@ -64,6 +64,12 @@ Verified in persistent sandbox on 2026-03-21:
   - Bank posting `1920` with amount `-4850`
 - Same payload shape as Branch B, just different account and vatType.id
 - Production run 67d4ddca: 4 calls, 0 errors, optimal
+
+### Branch A (Kundemøte lunsj / customer meeting lunch)
+- Production run 01420e60: receipt Peppes Pizza, 26.04.2026, line "Kundemøte lunsj" 14050 kr
+- 4 calls, 0 errors: POST /department → GET accounts → POST voucher → POST attachment
+- voucher 609104663: expense on 7360 (amount=14050, amountGross=14050, vatType.id=0, dept=949741), bank on 1920 (-14050)
+- confirms "Kundemøte lunsj" maps correctly to Branch A (non-deductible representation)
 
 ### Common findings
 - `GET /department?name=Drift&isInactive=false&fields=*` is a containing search; local exact filtering mandatory
