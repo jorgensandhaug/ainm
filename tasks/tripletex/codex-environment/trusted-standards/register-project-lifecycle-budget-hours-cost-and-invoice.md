@@ -59,7 +59,7 @@
   - include `startDate`
   - include `budgetFeeCurrency`
   - inline `activity` requires both `name` (e.g. `"Prosjektaktivitet"`) and `activityType: "PROJECT_SPECIFIC_ACTIVITY"`; omitting either causes `422`
-  - include `isChargeable: false` on the activity
+  - include `isChargeable: false` inside the `activity` object (NOT on the projectActivity root); placing `isChargeable` on the projectActivity root causes `422 isChargeable: Feltet eksisterer ikke i objektet.`
 - timesheet batch:
   - split totals above `24` into distinct dates before the first write
   - keep every date on or after the project `startDate`
@@ -158,3 +158,10 @@
   - the recovery script reran steps 6-9 with correct UTC dates, but also re-created the supplier (already created in the failed parallel batch), wasting 1 extra call
   - total: 17 calls (15 ideal with bank fix + 1 wasted 422 + 1 duplicate supplier), 1 error
   - sandbox re-proof confirmed the full 14-call path with UTC-safe date splitting succeeds with 0 errors
+- the 2026-03-21 production run `Cloud Migration Northwave` exposed an `isChargeable` placement trap on `POST /project/projectActivity`:
+  - agent placed `isChargeable: false` on the projectActivity root instead of inside the nested `activity` object
+  - got `422 isChargeable: Feltet eksisterer ikke i objektet.` — the field does not exist on the projectActivity schema, only on the activity schema
+  - the resume script moved `isChargeable: false` inside `activity: { name: ..., activityType: ..., isChargeable: false }` and succeeded
+  - total: 16 calls (15 ideal with bank fix + 1 wasted 422), 1 error
+  - sandbox re-proof confirmed: `isChargeable` on projectActivity root → 422; inside `activity` object → 201; omitted entirely → 201 (defaults to undefined/false)
+  - the trusted standard line "include `isChargeable: false` on the activity" was ambiguous — clarified to explicitly state "inside the `activity` object (NOT on the projectActivity root)"

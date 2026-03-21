@@ -86,6 +86,14 @@ Production run for `Migração Cloud Horizonte` on 2026-03-21 completed with 1 a
 - total calls: 16 (15 base with bank repair + 1 wasted 422); ideal was 15
 - sandbox re-proof confirmed both `name` and `activityType` are independently mandatory on the inline `activity` object
 
+Production run for `Cloud Migration Northwave` on 2026-03-21 completed with 1 avoidable 422:
+- the agent placed `isChargeable: false` on the `POST /project/projectActivity` root instead of inside the nested `activity` object
+- got `422 isChargeable: Feltet eksisterer ikke i objektet.`, wasting 1 call
+- the resume script moved `isChargeable` inside `activity: { name: "Prosjektaktivitet", activityType: "PROJECT_SPECIFIC_ACTIVITY", isChargeable: false }` and succeeded
+- the bank-account repair branch was also triggered (bank had no number), adding 1 conditional call
+- total calls: 16 (15 base with bank repair + 1 wasted 422); ideal was 15
+- sandbox re-proof confirmed: `isChargeable` on projectActivity root → 422; inside `activity` object → 201; omitted entirely → 201
+
 ## Minimal Safe Flow
 
 The optimized path uses batch timesheet creation and proactive department/division/bank-account reads:
@@ -271,3 +279,4 @@ Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
 - Do not use arbitrary 11-digit bank account numbers for the bank-account repair step; Norwegian bank accounts require a valid MOD11 check digit; always use the proven value `"12345678903"`; the 2026-03-21 production run `Cloud-Migration Eichenhof` used `"12345678901"` and failed `422`, leaving the invoice uncreated
 - Do not omit `activityType` from the inline `activity` object on `POST /project/projectActivity`; both `name` (any descriptive string) and `activityType: "PROJECT_SPECIFIC_ACTIVITY"` are mandatory; the 2026-03-21 production run `Migração Cloud Horizonte` sent only `name` and got `422 activity.activityType: Kan ikke være null.`, wasting 1 call; sandbox re-proof confirmed that `activityType` alone also fails with `422 name: Aktivitetsnavn må fylles ut.`
 - Do not use `new Date(dateStr + "T00:00:00")` then `.toISOString().slice(0, 10)` for timesheet date splitting; this creates local-time dates and the UTC conversion shifts them back by 1 day in CET/CEST timezones; use `new Date(Date.UTC(y, m-1, d))` instead; the 2026-03-21 production run `ERP-implementering Havbris` hit this trap: the first timesheet date became `2026-03-20` instead of `2026-03-21`, failing with `422` and wasting 2 calls (1 failed timesheet + 1 duplicate supplier in recovery)
+- Do not place `isChargeable` on the `POST /project/projectActivity` root object; it must be inside the nested `activity` object as `activity: { name: ..., activityType: ..., isChargeable: false }`; placing it on the projectActivity root causes `422 isChargeable: Feltet eksisterer ikke i objektet.`; the 2026-03-21 production run `Cloud Migration Northwave` hit this exact trap and wasted 1 call

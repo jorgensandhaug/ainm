@@ -37,6 +37,7 @@
   - `name`
   - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
   - `isChargeable: false`
+- CRITICAL: `isChargeable` must be inside the `activity` object, NOT on the projectActivity root; placing it on the root causes `422 isChargeable: Feltet eksisterer ikke i objektet.`
 
 ## Recommended Payload Shape
 
