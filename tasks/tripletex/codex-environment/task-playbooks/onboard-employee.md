@@ -36,6 +36,13 @@ Production run on 2026-03-21 (tilbudsbrev/Salgssjef) scored 11/14 (78.57%) with 
 - check 5 failed: missing occupation code — the job title "Salgssjef" from the offer letter should have been resolved to occupation code id `4930`
 - check 10 failed: wrong standard time endpoint — used `/salary/settings/standardTime` (company-wide) instead of `/employee/standardTime` (per-employee)
 
+Production run on 2026-03-21 (arbeidskontrakt/STYRK 3323) used 4 calls, 0 errors:
+- GET /division (returned 0 rows — fresh account), POST /department, GET /occupationCode?nameNO=innkjøper (returned id 2503), POST /employee
+- the occupation code lookup was correct but could have been saved by hardcoding STYRK 3323 → id 2503
+- optimal flow for this contract shape is 3 calls with the hardcoded mapping
+- key finding: STYRK 3323 maps to Tripletex code `3416102`, NOT `3323xxx` — the 4-digit STYRK code does not always match the Tripletex code prefix
+- `code=3323` returns 0 results from the Tripletex occupation code endpoint
+
 ## Occupation Code Resolution
 
 ### Job Title Extraction
@@ -50,10 +57,12 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 |---|---|---|---|
 | Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
+| Innkjøper / 3323 | `innkjøper` | `2503` | `3416102` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
+For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and skip the occupation-code GET.
 
 ### Dynamic Lookup
 For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
@@ -81,6 +90,7 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
    - include `division.id` from step 1 only if the read returned results
    - include nested `employmentDetails[]` with `occupationCode: { id: ... }` (hardcoded or resolved)
    - when the contract gives only STYRK `2511`, send `occupationCode: { id: 301 }`
+   - when the contract gives only STYRK `3323`, send `occupationCode: { id: 2503 }`
 3. If prompt provides standard worktime hours per day:
    - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: ... }`
 4. Stop after the successful writes
@@ -143,3 +153,5 @@ Standard worktime (per-employee):
 - Do not add a discovery `GET /department`; create the department directly when the prompt gives the exact name
 - Do not omit `division.id` when `GET /division` returns results — the persistent sandbox requires it
 - Do not include `division.id` when `GET /division` returns zero rows — fresh accounts work without it
+- Do not assume the 4-digit STYRK code from the contract matches the first 4 digits of the Tripletex 7-digit code — e.g., STYRK 3323 maps to code `3416102`, and `code=3323` returns 0 results
+- When the contract gives only a STYRK code and no job title, resolve the STYRK code to its Norwegian occupation name (e.g., 3323 → "innkjøper"), then check hardcoded mappings before doing a dynamic lookup

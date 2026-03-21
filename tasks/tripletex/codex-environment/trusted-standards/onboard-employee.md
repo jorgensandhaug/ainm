@@ -65,13 +65,17 @@ These occupation code ids are reference data and are the same across all Triplet
 |---|---|---|---|
 | Kontormedarbeider / STYRK 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / STYRK 1233 | `salgssjef` | `4930` | `1233105` |
+| Innkjøper / STYRK 3323 | `innkjøper` | `2503` | `3416102` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
 For the exact STYRK-only contract shape that provides `2511` and no job title, use hardcoded id `301` directly.
+For the exact STYRK-only contract shape that provides `3323` and no job title, use hardcoded id `2503` directly.
 
 ### Dynamic Lookup
 - for unknown job titles, search `nameNO=<Norwegian-job-title>&count=1&fields=id` and use the first result
+- if the prompt gives only a 4-digit STYRK group and there is no verified hardcoded mapping for that exact group, resolve the STYRK code to the Norwegian occupation name first, then search by `nameNO`
+- important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøper" maps to Tripletex code `3416102`, not `3323xxx`; and `code=3323` returns 0 results)
 - if the prompt gives only a 4-digit STYRK group and there is no verified hardcoded mapping for that exact group, a blind `code=<4-digit>` search is not safe because one group can fan out to many 7-digit occupations
 - Tripletex uses 7-digit occupation codes, not 4-digit STYRK group codes
 - the `code` filter on `/employee/employment/occupationCode` is a substring-containing match, not a prefix match — do NOT search by `code=<4-digit-STYRK>`
@@ -194,3 +198,8 @@ Standard worktime (per-employee):
 - persistent sandbox also confirmed that omitting `division` triggers `422 employments.division.id`
 - production run on 2026-03-21 confirmed that fresh accounts can succeed without `division` (GET /division returned 0 rows, POST /employee succeeded without it)
 - production run on 2026-03-21 scored 11/14 (78.57%) with 2 failed checks because: (1) missing occupation code for job title "Salgssjef", (2) used wrong standard time endpoint `/salary/settings/standardTime` instead of `/employee/standardTime`
+- production run on 2026-03-21 (second run, STYRK 3323 contract) used 4 calls: GET /division, POST /department, GET /occupationCode?nameNO=innkjøper, POST /employee — all succeeded, 0 errors
+  - `nameNO=innkjøper` returned id `2503` (INNKJØPER, code `3416102`) as the first result
+  - `code=3323` returned 0 results — confirming that STYRK 3323 does NOT appear as a substring in any Tripletex 7-digit occupation code
+  - sandbox readback confirmed: `occupationCode.id=2503`, `occupationCode.code=3416102`, `nameNO=INNKJØPER`, `annualSalary=970000`, `percentageOfFullTimeEquivalent=100`, `employmentForm=PERMANENT`
+  - hardcoding STYRK 3323 → id 2503 saves 1 call, reducing the optimal flow from 4 to 3 calls for this contract shape

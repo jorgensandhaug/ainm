@@ -106,7 +106,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - known hardcoded mappings (verified sandbox + production 2026-03-21):
     - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
     - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
+    - `innkjøper` → id `2503` (INNKJØPER, code `3416102`, STYRK 3323)
     - exact STYRK-only `2511` contract branch → id `301` (AUTORISERT REGNSKAPSFØRER, code `2511102`)
+  - important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøper" maps to Tripletex code `3416102`, and `code=3323` returns 0 results)
   - on employee writes, send `occupationCode` by `id`, not by `code`
   - persistent sandbox on 2026-03-21 showed that `POST /employee` with `occupationCode: { code: "2511" }` or `occupationCode: { code: "2511102" }` returned `201` but persisted `occupationCode: null`
 
