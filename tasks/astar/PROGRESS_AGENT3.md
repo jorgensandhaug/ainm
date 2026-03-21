@@ -4572,9 +4572,40 @@
    - BEST approach: surgical regime-specific calibration on top of a strong base
    - The barren-round detection + scaling is simple, robust, and highly effective
 
+499. **SECOND BREAKTHROUGH**: Forest boost on barren rounds
+   - Hypothesis: in barren rounds, forests reclaim land that model incorrectly predicts as settlement/ruin
+   - Adding `barren_forest_boost=1.15` to v7's winning params creates v17
+   - v17 full LOO: **79.98** (+0.64 over v7, +3.09 over query_residual_v19!)
+   - Per-round gains:
+     - f1dac9a9 (barren): 82.11 → **83.38** (+1.27)
+     - c5cdf100 (semi-barren): 81.41 → **85.27** (+3.86!!)
+     - All other rounds UNCHANGED
+
+500. Fine-tuning around v17's params (v21-v24):
+   - v17 (forest=1.15, scale=0.3/0.2): **79.98** (BEST)
+   - v23 (forest=1.15, scale=0.25/0.18): 79.95
+   - v21 (forest=1.10, scale=0.3/0.2): 79.92
+   - v24 (forest=1.15, scale=0.35/0.25): 79.91
+   - v22 (forest=1.20, scale=0.3/0.2): 79.84
+   - Optimal forest_boost: 1.15 (sharp optimum, ±0.05 loses 0.06-0.14)
+
+501. Final verified leaderboard:
+   - **1st: adaptive_ensemble_v17 = 79.98** (ALL-TIME BEST!)
+   - 2nd: adaptive_ensemble_v23 = 79.95
+   - 3rd: adaptive_ensemble_v21 = 79.92
+   - 4th: adaptive_ensemble_v24 = 79.91
+   - 5th: adaptive_ensemble_v19 = 79.85
+   - Previous best baseline: query_residual_v19 = 76.89
+   - Total improvement: **+3.09 points** on full LOO
+
+502. Session summary (all 20 full LOO evaluations):
+   - 18 of 20 adaptive_ensemble variants beat the previous best (76.89)
+   - The adaptive approach adds ~3 points by correctly handling barren rounds
+   - Remaining bottleneck: round 36e581f1 at 66.58 (active but unpredictable)
+   - This round cannot be improved by regime calibration alone
+
 ## Open Questions
 
-- Can the remaining worst round (36e581f1 at 66.58) be improved?
-- Can we detect and calibrate other regime types (high-conflict, port-heavy)?
-- Is there a way to break above 80 on full LOO?
-- Can other agents' radical families (when results land) be combined with adaptive_ensemble?
+- Can the remaining worst round (36e581f1 at 66.58) be improved by spatial methods?
+- Can we break 80 by combining adaptive_ensemble with better spatial prediction?
+- Should the adaptive_ensemble approach be applied on live rounds?
