@@ -38,6 +38,7 @@ Production and sandbox re-verification on 2026-03-21 showed:
 - an exact German prompt asking for `Logistikk`, `Salg`, and `Drift` was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
 - an exact Nynorsk prompt asking for `Produksjon`, `Lager`, and `Kvalitetskontroll` was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
 - the sandbox batch-create response still shows top-level `fullResultSize=0`, so verification must continue to trust `values[]`
+- a Nynorsk prompt asking for `Produksjon`, `Kvalitetskontroll`, and `HR` was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; short ASCII-only names like `HR` need no special handling
 
 ## Minimal Safe Flow
 

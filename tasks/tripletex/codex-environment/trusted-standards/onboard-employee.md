@@ -305,3 +305,11 @@ Standard worktime (per-employee):
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2610, nameNO=IT-KONSULENT, code=2130123, percentageOfFullTimeEquivalent=100, annualSalary=560000, employmentForm=PERMANENT, hoursPerDay=7.5
   - hardcoding IT-konsulent → id 2610 saves 1 call, reducing optimal flow from 5 to 4 calls
   - this is the minimum-call floor for the IT-konsulent + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
+- production run on 2026-03-21 (twelfth run, Salgssjef offer letter, Norwegian prompt, Lars Strand / 1982-08-04 / dept Regnskap / start 2026-06-24 / 100% / 800000 / 7.5h) used 4 calls: GET /division, POST /department, POST /employee?fields=*,employments(*), POST /employee/standardTime — all succeeded, 0 errors
+  - used hardcoded Salgssjef → id 4930 mapping, no occupation-code lookup needed
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 4930 }, percentageOfFullTimeEquivalent 100, annualSalary 800000
+  - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-06-24
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=4930, nameNO=SALGSSJEF, code=1233105, percentageOfFullTimeEquivalent=100, annualSalary=800000, employmentForm=PERMANENT, hoursPerDay=7.5
+  - 2nd production confirmation of the optimal 4-call path for hardcoded-occupation-code + standard-worktime shape; first Salgssjef run (11/14 score) used wrong standard-time endpoint and missed occupation code — both issues now fixed in the standard
+  - 12 total onboard-employee production runs; 9 of the last 10 runs used 3-5 calls with 0 errors, confirming the standard is stable

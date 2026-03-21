@@ -59,3 +59,4 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 - production re-confirmed on 2026-03-21 with a German three-department prompt for `Logistikk`, `Salg`, and `Drift`: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
 - production re-confirmed on 2026-03-21 with a Nynorsk three-department prompt for `Produksjon`, `Lager`, and `Kvalitetskontroll`: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
 - sandbox re-verified on 2026-03-21 with `Produksjon Reflection 20260321-173420`, `Lager Reflection 20260321-173420`, and `Kvalitetskontroll Reflection 20260321-173420`: one `POST /department/list`, 201, correct `values[]`
+- production re-confirmed on 2026-03-21 with a Nynorsk three-department prompt for `Produksjon`, `Kvalitetskontroll`, and `HR`: one `POST /department/list`, 201, 1 call 0 errors; confirms short ASCII-only names like `HR` need no special handling

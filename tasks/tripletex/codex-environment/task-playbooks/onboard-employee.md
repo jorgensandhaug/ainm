@@ -244,3 +244,10 @@ Run 2026-03-21 (IT-konsulent offer letter, Norwegian prompt, 100% employment, IT
 - sandbox readback confirmed: occupationCode.id=2610, nameNO=IT-KONSULENT, code=2130123, percentageOfFullTimeEquivalent=100, annualSalary=560000, employmentForm=PERMANENT, hoursPerDay=7.5
 - hardcoding IT-konsulent → id 2610 saves 1 call, reducing optimal flow from 5 to 4 calls
 - this is the minimum-call floor for the IT-konsulent + standard-worktime shape: 4 calls
+
+Run 2026-03-21 (Salgssjef offer letter, Norwegian prompt, Lars Strand / 1982-08-04 / Regnskap / start 2026-06-24 / 100% / 800000 / 7.5h): 4 calls, 0 errors
+- used hardcoded Salgssjef → id 4930 mapping (no occupation code lookup needed)
+- GET /division (0 rows, fresh account) → POST /department → POST /employee?fields=*,employments(*) → POST /employee/standardTime
+- all 4 calls succeeded; sandbox readback confirmed: occupationCode.id=4930, nameNO=SALGSSJEF, code=1233105, percentageOfFullTimeEquivalent=100, annualSalary=800000, employmentForm=PERMANENT, hoursPerDay=7.5
+- 2nd production confirmation of the optimal 4-call Salgssjef + standard-worktime path (first was the earlier 11/14 run that missed occupation code + wrong endpoint)
+- confirms the minimum-call floor for the hardcoded-occupation-code + standard-worktime shape: 4 calls
