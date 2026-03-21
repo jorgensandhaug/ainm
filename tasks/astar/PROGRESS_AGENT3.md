@@ -4865,9 +4865,32 @@ Key techniques to incorporate from other agents:
 4. **Expansion rate conditioning** (Agent5): 1D settlement expansion rate is the best regime variable
 5. **Entropy-conditioned class weighting** (Agent1): Weight particle likelihoods by class scoring contribution
 
+519. Observation-frequency blending on CatBoost:
+   - t=50: **85.38** (NEW BEST! +0.09 over no-blend)
+   - t=40: 85.36
+   - t=30: 85.31
+   - t=20: 85.12
+   - t=10: 84.13
+   - t=5: 81.15
+   - Conclusion: very gentle blending (t=50) gives marginal improvement
+   - The LGB/CatBoost already uses observation data as features, so blending is somewhat redundant
+
+520. FINAL SESSION LEADERBOARD:
+   - **CatBoost + obs-blend t=50: 85.38** (ALL-TIME BEST)
+   - CatBoost big (no blend): 85.29
+   - CatBoost d10: 85.23
+   - CatBoost d10_big: 85.17
+   - CatBoost default: 85.05
+   - LGB v5_d8: 84.94
+   - LGB v4_1ep_ulf: 84.81
+   - adaptive_ensemble_v17: 79.98
+   - query_residual_v19: 76.89
+
+   Total session improvement: **+8.49 points** (76.89 → 85.38)
+
 ## Open Questions
 
-- Can observation-frequency blending improve our CatBoost predictions?
 - Should we switch from coverage to exploration_r3 policy?
-- Can we ensemble our cellwise LGB/CatBoost with a hazard posterior model?
+- Can we ensemble our CatBoost with other agents' models?
 - Need to wire CatBoost into live pipeline for next round
+- Can further feature engineering push past 86?
