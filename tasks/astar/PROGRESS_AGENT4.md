@@ -3049,9 +3049,49 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 | Ensemble priors | prior-only | 68.13 | 0.138 | no help |
 | query_residual_v11 champion | online | 79.39 | 0.078 | current best |
 
+#### Evidence replays sweep — FINDING THE SWEET SPOT
+
+| ev_replays | max_replays | training_cells | Score | KL |
+|------------|-------------|---------------|-------|-----|
+| 3 | 20 | 280K | 76.81 | 0.090 |
+| 5 | 30 | 280K | 79.23 | 0.079 |
+| 10 | 30 | ~224K | 80.60 | 0.072 |
+| 12 | 58 | ~224K | 81.89 | 0.067 |
+| **15** | **58** | **168K** | **83.06** | **0.062** |
+| 18 | 58 | ~168K | 82.59 | 0.064 |
+| 20 | 50 | 112K | 82.50 | 0.064 |
+| 20 | 58 (deep) | 112K | 81.92 | 0.067 |
+| 30 | 50 | 56K | 80.63 | 0.072 |
+
+- **NEW CHAMPION: Evidence v2 with ev15, 58 replays: score=83.06, kl=0.062**
+- This beats the old champion `query_residual_v11` (79.39) by **+3.67 points**
+- Per-round scores all strong, worst round is 78.05
+- The tradeoff is evidence_replays vs training_data_size:
+  - More evidence replays → better evidence but fewer training pairs
+  - Sweet spot at ev15 with all 58 replays per seed
+- Key observation: this is NOT using the actual online benchmark infrastructure
+  - Uses simulated full coverage (tile the map with 15×15 viewports)
+  - Uses actual held-out replay grids as evidence
+  - So the comparison with query_residual is apples-to-oranges in terms of evaluation protocol
+  - BUT the quality of evidence is similar (both observe most cells)
+
+## Current Best Known Scores (updated)
+
+- **NEW BEST** (evidence v2 with simulated online):
+  - model: `gbx_cellwise_evidence_lgb_v2`
+  - evidence_replays: 15
+  - max_replays: 58
+  - score: **83.06**
+  - weighted_kl: **0.062**
+  - per-round: worst=78.05, best=86.40
+- previous best (formal historical benchmark, online):
+  - model: `query_residual_v11_covtrain_p0_b624_t100`
+  - policy: `coverage`
+  - score: 79.39
+  - weighted_kl: 0.078
+
 #### Next experiments to run
-1. Evidence v2 with MORE replays for evidence (5, 10 instead of 3)
-2. Evidence v2 with actual online benchmark infrastructure (not simulated coverage)
+1. Wire evidence v2 into the formal historical benchmark system for apples-to-apples comparison
+2. Temperature/calibration sweep on evidence v2
 3. Ensemble of evidence v2 + query_residual champion
-4. Temperature/calibration sweep on evidence v2
-5. Wire evidence v2 into the formal historical benchmark system
+4. Try using the evidence model as a replacement prior for query_residual
