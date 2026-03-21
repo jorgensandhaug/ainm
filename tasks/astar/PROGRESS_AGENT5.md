@@ -2578,9 +2578,45 @@
   - blended in logit space with 15% cellknn weight
   - exact-cell blending re-applied after blend
 
+### 2026-03-21T16:55:00Z
+
+- **OPTIMAL WEIGHT FOUND: w=20% → 75.82 (+0.63 over previous best)**
+
+- Complete weight sweep (exploration_r3, full 8 rounds):
+
+  | Weight | Mean Score | f1dac | 36e581 |
+  |--------|-----------|-------|--------|
+  | 0% (pure QR) | 75.19 | 57.40 | 66.20 |
+  | 10% | 75.69 | 60.85 | 65.46 |
+  | 15% | 75.80 | 61.70 | 65.53 |
+  | **20%** | **75.82** | **62.51** | 65.52 |
+  | 25% | 75.77 | 63.26 | 65.45 |
+  | 35% | 75.44 | 64.63 | 65.10 |
+  | 50% | 75.12 | 66.95 | 64.20 |
+
+- Interpretation:
+  - Optimal cellknn weight is 20% — strong diminishing returns above this
+  - The curve is very flat around 15-25%, so the model is robust to weight choice
+  - Coverage policy scored 75.54 at w15 — exploration_r3 remains the better policy
+  - f1dac improvement of +5.11 (57.40 → 62.51) is the primary driver
+
+- New per-round comparison vs old best:
+
+  | Round | Old Best | New Best (w20) | Delta |
+  |-------|---------|---------------|-------|
+  | 36e581 | 66.20 | 65.52 | -0.68 |
+  | 71451d | 79.39 | 81.00 | +1.61 |
+  | 76909e | 83.20 | 82.80 | -0.40 |
+  | 8e8399 | 86.17 | 85.35 | -0.82 |
+  | ae7800 | 78.88 | 75.80 | -3.08 |
+  | c5cdf | 71.50 | 74.42 | +2.92 |
+  | f1dac | 57.40 | 62.51 | **+5.11** |
+  | fd3c92 | 78.38 | 79.18 | +0.80 |
+  | **Mean** | **75.19** | **75.82** | **+0.63** |
+
 - **Next actions**:
-  1. Try finer weight sweep around 0.10-0.20 range
-  2. Try coverage policy (old best used exploration_r3)
-  3. Try higher samples_per_round for QR component
-  4. Try adaptive weighting based on regime hostility detection
-  5. Explore further improvements to cellknn features
+  1. Try samples_per_round=4 for QR component (currently 1)
+  2. Try different cellknn configurations (k_neighbors, spatial_sigma)
+  3. Add regime-hostility detection for adaptive cellknn weighting
+  4. Explore combining stacked with lowrank hazard hybrid
+  5. Try stacking with cellknn_perround vs pooled cellknn
