@@ -85,6 +85,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - omitting `vatType` from the order line defaults to wrong VAT code `id=0` (0%) instead of the correct outgoing type; GET /ledger/vatType is required on taxable accounts
 - the 2026-03-21 production French run `Cascade SARL` / `824869383` / `Audit de sécurité` / `camille.petit@example.org` / `Design` / `38` hours / `1400` matched the >24-hour non-chargeable optimistic branch, finished in `8` calls with `0` errors, and returned `amountExcludingVatCurrency=53200` plus `amountCurrencyOutstanding=66500`; production had 25% VAT (`id=3`), confirming `GET /ledger/vatType` is mandatory
 - same-day persistent-sandbox re-proof on 2026-03-21 with `38` hours + `1400` on dates `2026-09-01` / `2026-09-02` confirmed the same 8-call >24-hour non-chargeable branch, returning `amountExcludingVatCurrency=53200`
+- the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing 11 calls with 1 error; proactive + batch would have been 9 calls with 0 errors
+- persistent-sandbox re-proof on 2026-03-21 confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call works for >24-hour tasks, reducing the >24-hour non-chargeable branch from 8 to 7 calls on configured accounts; the full 7-call batch path returned `amountExcludingVatCurrency=33600`
 
 ## Minimal Safe Flow
 
@@ -95,7 +97,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `GET /project/hourlyRates`
    - `PUT /project/hourlyRates/{id}`
    - `POST /project/hourlyRates/projectSpecificRates`
-   - `POST /timesheet/entry`
+   - `POST /timesheet/entry` or `POST /timesheet/entry/list` (for >24h batch)
    - `GET /ledger/vatType`
    - `POST /order`
    - `PUT /order/{id}/:invoice`
@@ -131,8 +133,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - if it exposes one exact employee+activity rate with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
    - otherwise `POST /project/hourlyRates/projectSpecificRates`
 11. Register the hours
-   - `POST /timesheet/entry`
-   - send:
+   - if the prompt total is `<= 24`: `POST /timesheet/entry`
+   - if the prompt total is `> 24`: `POST /timesheet/entry/list` with all date chunks in one batch call
+   - send per entry:
      - `employee`
      - `project`
      - `activity`
@@ -226,7 +229,7 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   2. `GET /project?name=...&fields=*,customer(*)`
   3. `GET /activity/>forTimeSheet?...`
   4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`
-  5. if `activity.isChargeable=false` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
+  5. if `activity.isChargeable=false` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
   6. `GET /ledger/vatType?...`
   7. `POST /order`
   8. `PUT /order/{id}/:invoice?...sendToCustomer=false`
@@ -237,7 +240,7 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   13. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
   14. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
   15. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
-  16. if `activity.isChargeable=true` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
+  16. if `activity.isChargeable=true` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
   17. steps 6-9 apply to both chargeable and non-chargeable branches
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
@@ -251,8 +254,8 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
     - `employee.id`
     - `activity.id`
     - `hourlyRate`
-- `POST /timesheet/entry`
-  - expect `ResponseWrapperTimesheetEntry`
+- `POST /timesheet/entry` or `POST /timesheet/entry/list`
+  - expect `ResponseWrapperTimesheetEntry` or `ListResponseTimesheetEntry`
   - verify:
     - `hours`
     - `projectChargeableHours`
@@ -284,6 +287,7 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not generalize the `0%`-only sandbox shortcut of omitting `orderLines[].vatType`; taxable accounts can still silently create a wrong no-VAT invoice, so the default scored path keeps `GET /ledger/vatType`
 - Do not send `projectChargeableHours > 24` in one entry; Tripletex rejects it with `422`
 - Do not try to finish a `>24`-hour total by stacking two same-day entries for the same employee + project + activity; the second write returns `409`
+- Do not use N individual `POST /timesheet/entry` calls for >24-hour tasks when `POST /timesheet/entry/list` can batch all date chunks in 1 call, saving N-1 API calls
 - Do not assume `projectChargeableHours` overrides a non-chargeable activity; the timesheet entry can still come back with `chargeable=false` and `hourlyRate=0`
 - Do not stop the run solely because of that non-chargeable timesheet response when the prompt only scores requested hours registration plus the invoice side effect; the scoring-first fallback is still the timesheet write plus a manual project-linked order/invoice
 - Do not assume a positive project invoicing reserve means the public API can actually charge those hours into an invoice
@@ -292,5 +296,5 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not rely on `PUT /invoice/{id}` or `PUT /invoice/details/{id}`; both were re-proven as method-not-allowed
 - Do not assume the fallback public invoice consumes the registered project-hour reserve; it creates the customer-facing invoice side effect but leaves `includeHours=false`
 - Do not insert a proactive `GET /ledger/account` hedge by rote on this exact task shape; on configured accounts it wastes one call, as re-proved on 2026-03-21
-- Do not ignore the bank-account tradeoff either: the optimistic non-chargeable branch is `7` calls when configured but `10` when missing, while the proactive hedge is `8` when configured and `9` when missing
+- Do not ignore the bank-account tradeoff either: the optimistic non-chargeable branch is `7` calls when configured but `10` when missing, while the proactive hedge is `8` when configured and `9` when missing; with batch timesheet for >24h, both branches drop by 1 call each
 - If `PUT /order/{id}/:invoice` fails only on missing company bank account, repair the existing invoice account once and retry the same invoice write; do not create a second order or repeat earlier reads

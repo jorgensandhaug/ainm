@@ -36,9 +36,8 @@
    - if the holder already exposes one exact employee+activity `projectSpecificRate` with the prompt hourly rate, reuse it and skip an extra rate write
    - if the holder already exposes one exact employee+activity `projectSpecificRate` with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
    - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
-5. `POST /timesheet/entry`
-   - if the prompt hour total is `<= 24`, one write is enough
-   - if the prompt hour total is `> 24`, split it into one entry per date, each with `projectChargeableHours <= 24`
+5. if the prompt hour total is `<= 24`: `POST /timesheet/entry` once
+   if the prompt hour total is `> 24`: `POST /timesheet/entry/list` with all date chunks in one batch call, each entry with `projectChargeableHours <= 24`
 6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
 7. `POST /order` with:
    - `customer`
@@ -59,7 +58,7 @@
 - when `activity.isChargeable=true`, spend `GET /project/hourlyRates` before the timesheet write; a chargeable timesheet can still succeed with `hourlyRate=0` if the exact employee+activity rate is missing
 - when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
 - if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
-- if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live
+- if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live; use `POST /timesheet/entry/list` with all chunks in one batch call instead of N individual `POST /timesheet/entry` calls
 - the real invoice line should usually use:
   - `description` from the prompt activity or prompt billing text
   - `count` equal to the prompt hours
@@ -77,8 +76,8 @@
   - the created project-specific-rate id
 - from `PUT /project/hourlyRates/projectSpecificRates/{id}`:
   - the updated project-specific-rate id
-- from `POST /timesheet/entry`:
-  - the created entry id
+- from `POST /timesheet/entry` or `POST /timesheet/entry/list`:
+  - the created entry id(s)
   - `hourlyRate`
   - `chargeable`
 - from `POST /order`:
@@ -89,7 +88,7 @@
   - totals and outstanding amount
 
 ## Verification
-- trust the timesheet write response to verify:
+- trust the timesheet write response (`POST /timesheet/entry` or `POST /timesheet/entry/list`) to verify:
   - `hours`
   - `projectChargeableHours`
   - `activity.id`
@@ -116,13 +115,14 @@
   - do not send one oversized `POST /timesheet/entry`; Tripletex returns `422 projectChargeableHours: Kan ikke være over 24`
   - do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`
   - split the total across distinct dates, with at most `24` hours per date
+  - use `POST /timesheet/entry/list` with all date chunks in one batch call; this saves `N-1` calls compared to `N` individual `POST /timesheet/entry` writes
   - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates
 - if `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
-  - for this exact task family, the tradeoff is explicit:
-    - optimistic branch costs `7` calls on configured non-chargeable accounts and `10` when the company bank account is missing
+  - for this exact task family, the tradeoff is explicit (≤24h / >24h with batch):
+    - optimistic branch costs `7` calls on configured non-chargeable accounts (`7` for both ≤24h and >24h with batch) and `10` when the company bank account is missing
     - proactive hedge costs `8` calls on configured non-chargeable accounts and `9` when the company bank account is missing
   - because this trusted standard is the lowest-call default, keep the optimistic branch as canonical and reserve the hedge for run-specific evidence
 - if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first
@@ -162,3 +162,5 @@
   - omitting `vatType` from the order line defaults to VAT code `id=0` ("Ingen avgiftsbehandling", 0%) instead of the correct outgoing VAT type, which silently creates wrong totals on taxable production accounts with 25% VAT; GET /ledger/vatType is required
   - the 2026-03-21 production French run `Cascade SARL` / `824869383` / `Audit de sécurité` / `camille.petit@example.org` / `Design` / `38` hours / `1400` matched the >24-hour non-chargeable optimistic branch, finished in `8` calls with `0` errors, and returned `amountExcludingVatCurrency=53200` plus `amountCurrencyOutstanding=66500`; the production account had 25% VAT (`id=3`, `Utgående avgift, høy sats`), confirming the `GET /ledger/vatType` call is mandatory for correct VAT on taxable accounts
   - same-day persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `38` hours + `1400` on dates `2026-09-01` / `2026-09-02` confirmed the same 8-call >24-hour non-chargeable branch, returning `amountExcludingVatCurrency=53200`, and found no lower-call path for the >24-hour shape
+  - the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing `11` calls with `1` error (`10` would have been proactive); the invoice returned `amountExcludingVatCurrency=33600` plus `amountCurrencyOutstanding=42000` with 25% VAT
+  - persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `28` hours + `1200` on dates `2026-10-15` / `2026-10-16` confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call succeeds, reducing the >24-hour non-chargeable branch from `8` to `7` calls on configured accounts; the batch returned both entries with correct `hours` (24, 4) and `projectChargeableHours` (24, 4), and the full 7-call path `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry/list` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` returned `amountExcludingVatCurrency=33600`
