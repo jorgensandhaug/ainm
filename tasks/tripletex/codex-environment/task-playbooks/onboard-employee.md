@@ -62,6 +62,7 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | Regnskapsmedarbeider / 3313 | `regnskapsmedarbeider` | `4677` | `4121115` |
+| IT-konsulent | `IT-konsulent` | `2610` | `2130123` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
@@ -236,3 +237,10 @@ Run 2026-03-21 (STYRK 3313 contract, Spanish prompt, 80% employment, no standard
 - sandbox investigation: REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the literal STYRK-08 3313 group name match ("Regnskapsmedarbeidere og bokholdere")
 - corrected hardcoded mapping: STYRK 3313 → id 4677 (REGNSKAPSMEDARBEIDER) — to be verified in next production run
 - hypothesis: check 10 = wrong occupation code, check 13 = missing standard worktime (7.5h/day)
+
+Run 2026-03-21 (IT-konsulent offer letter, Norwegian prompt, 100% employment, IT department, standard worktime 7.5h): 5 calls, 0 errors
+- `nameNO=IT-konsulent&count=10` returned exactly 1 result: IT-KONSULENT (id 2610, code 2130123) — exact match
+- GET /division (0 rows, fresh account) → POST /department → GET /occupationCode → POST /employee → POST /employee/standardTime
+- sandbox readback confirmed: occupationCode.id=2610, nameNO=IT-KONSULENT, code=2130123, percentageOfFullTimeEquivalent=100, annualSalary=560000, employmentForm=PERMANENT, hoursPerDay=7.5
+- hardcoding IT-konsulent → id 2610 saves 1 call, reducing optimal flow from 5 to 4 calls
+- this is the minimum-call floor for the IT-konsulent + standard-worktime shape: 4 calls

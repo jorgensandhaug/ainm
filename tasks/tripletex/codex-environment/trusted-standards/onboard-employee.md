@@ -70,6 +70,7 @@ These occupation code ids are reference data and are the same across all Triplet
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | Regnskapsmedarbeider / STYRK 3313 | `regnskapsmedarbeider` | `4677` | `4121115` |
+| IT-konsulent | `IT-konsulent` | `2610` | `2130123` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
@@ -296,3 +297,11 @@ Standard worktime (per-employee):
   - hypothesis: check 10 failure is caused by wrong occupation code (REGNSKAPSFØRER vs expected REGNSKAPSMEDARBEIDER), check 13 may be missing standard worktime
   - corrected mapping: STYRK 3313 → id 4677 (REGNSKAPSMEDARBEIDER) — to be verified in next production run
   - sandbox confirmed REGNSKAPSMEDARBEIDER (4677) persists as: occupationCode.id=4677, nameNO=REGNSKAPSMEDARBEIDER, code=4121115
+- production run on 2026-03-21 (eleventh run, IT-konsulent offer letter, Norwegian prompt, 100% employment, IT department, with standard worktime 7.5h) used 5 calls: GET /division, POST /department, GET /occupationCode?nameNO=IT-konsulent&count=10, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - `nameNO=IT-konsulent` returned exactly 1 result: IT-KONSULENT (id 2610, code 2130123) — exact match
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 2610 }, percentageOfFullTimeEquivalent 100, annualSalary 560000
+  - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-05-24
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2610, nameNO=IT-KONSULENT, code=2130123, percentageOfFullTimeEquivalent=100, annualSalary=560000, employmentForm=PERMANENT, hoursPerDay=7.5
+  - hardcoding IT-konsulent → id 2610 saves 1 call, reducing optimal flow from 5 to 4 calls
+  - this is the minimum-call floor for the IT-konsulent + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
