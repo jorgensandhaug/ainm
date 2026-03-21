@@ -2770,6 +2770,27 @@ All of these have been systematically swept and are near-optimal:
 - Fixed include_interactions checkpoint loading bug (wasn't persisted)
 - Policy tests: exploration_r4=81.13 (much worse), exploration_hybrid=81.80 (worse). exploration_r3 confirmed best.
 
+### 2026-03-21T21:00Z approx
+
+- High-q mode dimension sweep:
+  - v167 (q=6, interactions, s2) = 86.95
+  - v168 (q=7, interactions, s2) = 86.96
+  - **v169 (q=6, no interactions, s2) = 87.05**
+  - v167 s6 = 87.06
+  - **v169 s6 = 87.12** ← NEW BEST
+- Finding: At q=6, interaction features are NOT helpful (opposite of q=5)
+  - Higher mode dim captures the nonlinear variation that interactions provided
+- Offline vs online comparison showed queries add +14.09 mean but HURT R1 by -2.79
+- IMPORTANT: Extra analysis dirs (rounds 9-11) cause benchmark crashes if round IDs not explicit
+  - Always specify --round-id flags for the 8 canonical rounds
+
+## Current Champion
+
+- model: `ffam_mode_v169` with `samples_per_round=6`
+- score: **87.1216**
+- per-round: R1:84.3 R2:91.1 R3:88.7 R4:92.4 R5:85.0 R6:88.3 R7:73.2 R8:93.9
+- total improvement from v44: **+9.36 points** (77.76 → 87.12, +12.0%)
+
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
 | Rank | Model | Score | Key difference vs v104 |
