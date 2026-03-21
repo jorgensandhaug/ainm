@@ -156,17 +156,16 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
                 per_seed_counts[seed_index], per_seed_total[seed_index],
             )
 
-        # Optionally get lowrank hybrid prediction
+        # Optionally get lowrank prediction as third expert
         hyb_bundle = None
         if self.use_lowrank_hybrid and self.lowrank_hybrid is not None:
-            hyb_derived = _derive_transcript_features_from_stats(
-                round_detail,
-                features,
+            from astar.student.predictor.greybox_regime import _derived_from_evidence
+            derived_for_lowrank = _derived_from_evidence(round_detail, features,
                 self.lowrank_hybrid.lowrank_predictor.base_predictor.build_prediction_bundle(round_detail, features),
-                per_seed_stats,
-                blur_sigmas=self.query_residual.blur_sigmas,
+                None)
+            hyb_bundle = self.lowrank_hybrid.lowrank_predictor._predict_from_derived(
+                round_detail, features, derived_for_lowrank,
             )
-            hyb_bundle = self.lowrank_hybrid._predict_from_derived(round_detail, features, hyb_derived)
 
         # Combine: weighted blend of base + CellKNN
         predictions_by_seed: dict[int, np.ndarray] = {}

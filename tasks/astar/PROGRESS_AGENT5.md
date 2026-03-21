@@ -2641,9 +2641,71 @@
 - The largest loss is ae7800 (-3.85) which needs investigation
 - The largest gain is f1dac (+6.53) which was the hardest round
 
-- **Next actions**:
-  1. Investigate ae7800 regression
-  2. Try different cellknn configurations (k, sigma)
-  3. Try adaptive cellknn weight based on detected regime hostility
-  4. Try stacking with lowrank hazard hybrid instead of pure QR
-  5. Push results
+### 2026-03-21T18:00:00Z
+
+- spr4 weight refinement results:
+
+  | Weight | spr1 Mean | spr4 Mean | spr4 f1dac | spr4 36e581 |
+  |--------|----------|----------|-----------|------------|
+  | 10% | 75.69 | 75.95 | 62.52 | 67.59 |
+  | 15% | 75.80 | 76.05 | 63.25 | 67.54 |
+  | **20%** | 75.82 | **76.06** | **63.93** | **67.41** |
+  | 25% | 75.77 | — | — | — |
+
+- spr4 consistently helps over spr1 (about +0.2 points)
+- Optimal weight remains around 15-20% with very flat profile
+- Coverage policy with w15: 75.54 (below exploration_r3's 76.05)
+
+- Attempted triple-stack (QR + lowrank + cellknn) but API complexity prevented clean implementation
+  - The lowrank hazard predictor is already embedded in QR as a feature
+  - Adding it as a third expert didn't provide easy path to improvement
+
+## Overall Experiment Leaderboard
+
+| Rank | Model | Policy | spr | Mean | f1dac | Range |
+|------|-------|--------|-----|------|-------|-------|
+| **1** | **stacked_w20 (QR+CellKNN)** | **explr3** | **4** | **76.06** | **63.93** | 63.9-85.3 |
+| 2 | stacked_w15 (QR+CellKNN) | explr3 | 4 | 76.05 | 63.25 | 63.2-85.4 |
+| 3 | stacked_w20 (QR+CellKNN) | explr3 | 1 | 75.82 | 62.51 | 62.5-85.4 |
+| 4 | stacked_w15 (QR+CellKNN) | explr3 | 1 | 75.80 | 61.70 | 61.7-85.4 |
+| 5 | hybrid_lowrank_queryres (OLD BEST) | explr3 | 4 | 75.19 | 57.40 | 57.4-86.2 |
+| 6 | stacked_w15 (QR+CellKNN) | coverage | 1 | 75.54 | 60.19 | — |
+| 7 | hybrid_lowrank_queryres | coverage | 4 | 74.94 | 55.67 | — |
+
+## Key Technical Achievements
+
+1. **Cell-level kNN predictor** (`greybox_cellknn_v01`, `greybox_cellknn_perround_v01`)
+   - Uses full replay terminal probability maps (40×40×6) instead of compressed 51-d coefficients
+   - Matches cells by spatial feature similarity across rounds
+   - Per-round variant avoids cross-round dilution
+
+2. **Stacked QR+CellKNN** (`greybox_stacked_v01`)
+   - Logit-space blend of query_residual (parametric) and cellknn (non-parametric)
+   - 20% cellknn weight optimal
+   - Combines QR's generalization ability with cellknn's full-resolution cell matching
+
+3. **Discovery of f1dac regime**: settlement survival prob = 0.002
+   - Existing models failed because hazard teacher can't represent "everything dies"
+   - CellKNN naturally captures this because most training cells end up empty
+
+4. **Observation-validated ensemble** (rejected: observation weighting too noisy)
+5. **Round-matching predictor** (rejected: cross-map position comparison broken)
+
+## Files Created/Modified
+
+### New model files:
+- `src/astar/student/predictor/greybox_cellknn.py`
+- `src/astar/student/predictor/greybox_cellknn_perround.py`
+- `src/astar/student/predictor/greybox_stacked_v01.py`
+- `src/astar/student/predictor/greybox_roundmatch.py`
+- `src/astar/student/predictor/greybox_obsval_ensemble.py`
+
+### Utility scripts:
+- `scripts/agent5_newmodel_sweep.py`
+
+### Framework modifications:
+- `src/astar/student/predictor/interactive.py` — model registry
+- `src/astar/workflows/model_eval.py` — eval path + prefix matching
+- `src/astar/workflows/historical_benchmark.py` — transcript model list
+- `src/astar/cli.py` — model choices
+- `tests/test_historical_benchmark.py` — smoke test matrix
