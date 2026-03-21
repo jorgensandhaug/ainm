@@ -1624,3 +1624,123 @@ Framework should accept unique query-residual family variant names directly so b
   - next rational branch from handoff is:
     - supervised factorization / discrete-mixture regime extraction if any operator family work continues
     - or more likely a genuinely stronger decoder family / mixed decoder ensemble, not more operator-posterior tuning
+
+### 2026-03-21T10:50Z approx
+
+- Correction to the previous `ffam_mode` probe verdict:
+  - the partial `report.md` / in-flight benchmark files were not reliable enough for early-kill math
+  - completed benchmark truth must come from finalized `result.json` aggregate fields, not transient report snippets
+- Verified completed hard-gate artifacts for the first `ffam_mode` sweep:
+  - [`ffam_mode_v1`](/tmp/astar_ffam_mode_v1_s2_enYgw5/data/artifacts/benchmarks/agent7_probe_ffam_mode_v1_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `54.2055`
+    - mean weighted KL `0.217210`
+  - [`ffam_mode_v2`](/tmp/astar_ffam_mode_v2_s2_2zFLdj/data/artifacts/benchmarks/agent7_probe_ffam_mode_v2_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `57.2038`
+    - mean weighted KL `0.199034`
+  - [`ffam_mode_v3`](/tmp/astar_ffam_mode_v3_s2_RKpvNd/data/artifacts/benchmarks/agent7_probe_ffam_mode_v3_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `50.2193`
+    - mean weighted KL `0.245162`
+- Hard-gate diagnosis against [`query_residual_v14` probe baseline](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json):
+  - `ffam_mode_v2` is best so far inside this line
+  - it helps round `3` by about `+1.06`
+  - it helps round `8` by about `+9.25`
+  - but still loses badly on rounds `6` and `7`
+- Validation policy change from here:
+  - do not prune family variants from partial benchmark artifacts
+  - use only completed `result.json` / aggregate output for benchmark decisions
+- Next branch chosen from handoff sections `13.4` and `14.4`:
+  - add supervised transcript metric learning for retrieval
+  - add discrete mixture + continuous residual decoder inside `ffam_mode`
+  - benchmark new variants `v10+`
+
+### 2026-03-21T11:15Z approx
+
+- Implemented the next fifth-family branch directly inside [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - supervised transcript metric basis:
+    - new `posterior_metric_method`
+    - `supervised` metric uses transcript-to-latent cross-covariance instead of unsupervised transcript PCA
+  - discrete mixture + continuous residual decoder:
+    - deterministic small-`k` clustering over round mode coordinates
+    - cluster-conditioned local operator means/bases
+    - new decoder path `cluster_mode_projection`
+    - inference blends cluster-conditioned reconstruction back toward the global decoder by posterior confidence
+- Added new reproducible variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v10`
+    - supervised metric only
+  - `ffam_mode_v11`
+    - supervised metric + hybrid posterior
+  - `ffam_mode_v12`
+    - supervised metric + 2-cluster discrete-mixture decoder
+  - `ffam_mode_v13`
+    - supervised metric + 2-cluster hybrid decoder
+- Test coverage extended in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+  - benchmark harness recognizes `v10..v13`
+  - added checkpoint roundtrip for `v12`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `62`
+
+### 2026-03-21T11:30Z approx
+
+- Direct per-round hard-gate diagnostics for `samples_per_round=2` on rounds `{7,3,6,8}` show the new branch is real, not noise.
+- Baseline within this family:
+  - `ffam_mode_v2`
+    - round `7`: `40.0057`
+    - round `3`: `57.9934`
+    - round `6`: `50.7243`
+    - round `8`: `80.0919`
+    - hard-gate mean: `57.2038`
+- New branch results:
+  - `ffam_mode_v10`
+    - round `7`: `43.1799`
+    - round `3`: `59.7861`
+    - round `6`: `52.5136`
+    - round `8`: `81.0833`
+    - hard-gate mean from direct eval: about `59.1407`
+  - `ffam_mode_v11`
+    - round `7`: `43.1932`
+    - round `3`: `59.0806`
+    - round `6`: `51.8131`
+    - round `8`: `80.7050`
+    - hard-gate mean from direct eval: about `58.6980`
+  - `ffam_mode_v12`
+    - round `7`: `43.1334`
+    - round `3`: `61.2163`
+    - round `6`: `53.8622`
+    - round `8`: `81.8026`
+    - hard-gate mean from direct eval: about `60.0036`
+  - `ffam_mode_v13`
+    - round `7`: `43.1600`
+    - round `3`: `60.5066`
+    - round `6`: `53.1980`
+    - round `8`: `81.4536`
+    - hard-gate mean from direct eval: about `59.5796`
+- Interpretation:
+  - supervised metric learning helps on all four hard rounds
+  - discrete mixture helps most on rounds `3/6/8`
+  - `ffam_mode_v12` is the new best fifth-family candidate so far
+  - still below current overall hard-gate reference `query_residual_v14` at `63.9805`, but the family gap narrowed by about `+2.80` vs old `ffam_mode_v2`
+- Current decision:
+  - promote `ffam_mode_v12` to the first full 8-round dev benchmark inside this family
+  - do not spend a full dev benchmark on `v10/v11/v13` unless `v12` fails strangely or `samples_per_round>2` materially changes the picture
+
+### 2026-03-21T11:45Z approx
+
+- Checked whether more synthetic transcript samples materially change the new branch.
+  - `ffam_mode_v10`, `samples_per_round=6`
+    - direct hard-gate mean: about `59.2888`
+    - only about `+0.15` over `v10 s2`
+  - `ffam_mode_v12`, `samples_per_round=6`
+    - round `7`: `43.1333`
+    - round `3`: `61.2327`
+    - round `6`: `53.8627`
+    - round `8`: `82.2538`
+    - direct hard-gate mean: about `60.1206`
+    - only about `+0.12` over `v12 s2`
+- Interpretation:
+  - extra synthetic transcript multiplicity is second-order here
+  - the main win is the new architecture (`supervised metric + discrete mixture`), not `samples_per_round`
+  - `ffam_mode_v12 s2` is the right first full-dev spend
+- Full 8-round dev benchmark launched:
+  - name `agent7_dev_ffam_mode_v12_exploration_r3_s2`
+  - status at this log point: still running, no finalized `result.json` yet

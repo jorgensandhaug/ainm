@@ -140,6 +140,75 @@ def _split_mode_operator_vector(
     return intercept, coefficients
 
 
+def _fit_posterior_metric_basis(
+    standardized_inputs: np.ndarray,
+    posterior_targets: np.ndarray,
+    *,
+    metric_dim: int,
+    metric_method: str,
+    cluster_ids: np.ndarray | None = None,
+    cluster_count: int = 1,
+) -> np.ndarray:
+    if metric_method == "supervised":
+        centered_targets = posterior_targets - np.mean(posterior_targets, axis=0, keepdims=True)
+        metric_targets = centered_targets
+        if cluster_ids is not None and cluster_count > 1:
+            cluster_one_hot = np.zeros((cluster_ids.shape[0], cluster_count), dtype=np.float64)
+            cluster_one_hot[np.arange(cluster_ids.shape[0]), cluster_ids] = 1.0
+            cluster_one_hot -= np.mean(cluster_one_hot, axis=0, keepdims=True)
+            metric_targets = np.concatenate([centered_targets, cluster_one_hot], axis=1)
+        cross_covariance = standardized_inputs.T @ metric_targets
+        left_basis, _, _ = np.linalg.svd(cross_covariance, full_matrices=False)
+        effective_dim = max(1, min(metric_dim, left_basis.shape[1]))
+        return np.asarray(left_basis[:, :effective_dim].T, dtype=np.float64)
+
+    _, _, vt_matrix = np.linalg.svd(standardized_inputs, full_matrices=False)
+    effective_dim = max(1, min(metric_dim, vt_matrix.shape[0]))
+    return np.asarray(vt_matrix[:effective_dim], dtype=np.float64)
+
+
+def _cluster_mode_vectors(
+    mode_vectors: np.ndarray,
+    *,
+    cluster_count: int,
+    max_iterations: int = 24,
+) -> np.ndarray:
+    sample_count = int(mode_vectors.shape[0])
+    effective_cluster_count = max(1, min(cluster_count, sample_count))
+    if effective_cluster_count <= 1 or sample_count <= 1:
+        return np.zeros(sample_count, dtype=np.int64)
+
+    offsets = mode_vectors - np.mean(mode_vectors, axis=0, keepdims=True)
+    distance_from_mean = np.linalg.norm(offsets, axis=1)
+    center_indexes = [int(np.argmax(distance_from_mean))]
+    while len(center_indexes) < effective_cluster_count:
+        centers = mode_vectors[np.asarray(center_indexes, dtype=np.int64)]
+        squared_distances = np.sum(np.square(mode_vectors[:, None, :] - centers[None, :, :]), axis=2)
+        nearest_distance = np.min(squared_distances, axis=1)
+        for taken_index in center_indexes:
+            nearest_distance[taken_index] = -1.0
+        center_indexes.append(int(np.argmax(nearest_distance)))
+    centers = np.asarray(mode_vectors[np.asarray(center_indexes, dtype=np.int64)], dtype=np.float64)
+    labels = np.zeros(sample_count, dtype=np.int64)
+    for _ in range(max_iterations):
+        squared_distances = np.sum(np.square(mode_vectors[:, None, :] - centers[None, :, :]), axis=2)
+        new_labels = np.asarray(np.argmin(squared_distances, axis=1), dtype=np.int64)
+        if np.array_equal(new_labels, labels):
+            break
+        labels = new_labels
+        new_centers = np.asarray(centers, dtype=np.float64)
+        for cluster_index in range(effective_cluster_count):
+            mask = labels == cluster_index
+            if np.any(mask):
+                new_centers[cluster_index] = np.mean(mode_vectors[mask], axis=0)
+                continue
+            refill_index = int(np.argmax(np.min(squared_distances, axis=1)))
+            labels[refill_index] = cluster_index
+            new_centers[cluster_index] = mode_vectors[refill_index]
+        centers = new_centers
+    return np.asarray(labels, dtype=np.int64)
+
+
 class FFAMModePredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -169,6 +238,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
     posterior_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    posterior_metric_method: str = "pca"
+    cluster_count: int = Field(default=1, ge=1)
     mode_feature_names: list[str]
     posterior_input_names: list[str]
     mode_round_ids: list[str]
@@ -208,6 +279,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
     posterior_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    posterior_metric_method: str = "pca"
+    cluster_count: int = Field(default=1, ge=1)
     mode_feature_names: tuple[str, ...] = ()
     posterior_input_names: tuple[str, ...] = ()
     mode_round_ids: tuple[str, ...] = ()
@@ -223,6 +296,12 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_metric_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_coord_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_round_index_bank: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
+    round_cluster_ids: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
+    cluster_operator_mean_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    cluster_basis_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1, 1), dtype=np.float64))
+    cluster_effective_dims: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.int64))
+    posterior_cluster_coord_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    posterior_cluster_id_bank: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
 
     @classmethod
     def fit_named_from_workspace(
@@ -308,6 +387,39 @@ class FFAMModePredictor(BaseRoundPredictor):
         effective_dim = max(1, min(config.projected_mode_dim, vt_matrix.shape[0]))
         mode_basis = np.asarray(vt_matrix[:effective_dim], dtype=np.float64)
         mode_coord_bank = np.asarray(centered_bank @ mode_basis.T, dtype=np.float64)
+        effective_cluster_count = max(1, min(config.cluster_count, mode_coord_bank.shape[0]))
+        round_cluster_ids = _cluster_mode_vectors(
+            mode_coord_bank,
+            cluster_count=effective_cluster_count,
+        )
+        operator_dim = int(round_operator_bank.shape[1])
+        cluster_operator_mean_bank = np.zeros((effective_cluster_count, operator_dim), dtype=np.float64)
+        cluster_basis_bank = np.zeros(
+            (effective_cluster_count, config.projected_mode_dim, operator_dim),
+            dtype=np.float64,
+        )
+        cluster_effective_dims = np.zeros(effective_cluster_count, dtype=np.int64)
+        round_cluster_coord_bank = np.zeros(
+            (round_operator_bank.shape[0], config.projected_mode_dim),
+            dtype=np.float64,
+        )
+        for cluster_index in range(effective_cluster_count):
+            cluster_mask = round_cluster_ids == cluster_index
+            cluster_bank = np.asarray(round_operator_bank[cluster_mask], dtype=np.float64)
+            if cluster_bank.shape[0] == 0:
+                continue
+            cluster_mean = np.mean(cluster_bank, axis=0)
+            cluster_operator_mean_bank[cluster_index] = cluster_mean
+            if cluster_bank.shape[0] <= 1:
+                continue
+            cluster_centered = cluster_bank - cluster_mean[None, :]
+            _, _, cluster_vt = np.linalg.svd(cluster_centered, full_matrices=False)
+            cluster_dim = max(1, min(config.projected_mode_dim, cluster_vt.shape[0]))
+            cluster_basis_bank[cluster_index, :cluster_dim] = cluster_vt[:cluster_dim]
+            cluster_effective_dims[cluster_index] = cluster_dim
+            round_cluster_coord_bank[cluster_mask, :cluster_dim] = (
+                cluster_centered @ cluster_vt[:cluster_dim].T
+            )
 
         index_path = _ensure_synthetic_dataset(
             paths,
@@ -338,6 +450,8 @@ class FFAMModePredictor(BaseRoundPredictor):
         posterior_inputs: list[np.ndarray] = []
         posterior_targets: list[np.ndarray] = []
         posterior_round_indexes: list[int] = []
+        posterior_cluster_coords: list[np.ndarray] = []
+        posterior_cluster_ids: list[int] = []
         for row in rows:
             round_id = str(row["round_id"])
             if round_id not in entry_by_round or round_id not in coord_by_round:
@@ -362,10 +476,15 @@ class FFAMModePredictor(BaseRoundPredictor):
                     ),
                 )
                 posterior_targets.append(np.asarray(coord_by_round[round_id], dtype=np.float64))
-                posterior_round_indexes.append(int(round_index_by_id[round_id]))
+                round_index = int(round_index_by_id[round_id])
+                posterior_round_indexes.append(round_index)
+                posterior_cluster_coords.append(np.asarray(round_cluster_coord_bank[round_index], dtype=np.float64))
+                posterior_cluster_ids.append(int(round_cluster_ids[round_index]))
 
         posterior_input_matrix = np.stack(posterior_inputs, axis=0).astype(np.float64)
         posterior_target_matrix = np.stack(posterior_targets, axis=0).astype(np.float64)
+        posterior_cluster_coord_matrix = np.stack(posterior_cluster_coords, axis=0).astype(np.float64)
+        posterior_cluster_id_array = np.asarray(posterior_cluster_ids, dtype=np.int64)
         posterior_intercept, posterior_weights = _fit_linear_map(
             posterior_input_matrix,
             posterior_target_matrix,
@@ -377,9 +496,14 @@ class FFAMModePredictor(BaseRoundPredictor):
         standardized_inputs = (posterior_input_matrix - posterior_input_mean[None, :]) / posterior_input_scale[
             None, :
         ]
-        _, _, posterior_vt = np.linalg.svd(standardized_inputs, full_matrices=False)
-        metric_dim = max(1, min(config.posterior_metric_dim, posterior_vt.shape[0]))
-        posterior_metric_basis = np.asarray(posterior_vt[:metric_dim], dtype=np.float64)
+        posterior_metric_basis = _fit_posterior_metric_basis(
+            standardized_inputs,
+            posterior_target_matrix,
+            metric_dim=config.posterior_metric_dim,
+            metric_method=config.posterior_metric_method,
+            cluster_ids=posterior_cluster_id_array,
+            cluster_count=effective_cluster_count,
+        )
         posterior_metric_bank = np.asarray(standardized_inputs @ posterior_metric_basis.T, dtype=np.float64)
 
         return cls(
@@ -410,6 +534,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_bandwidth=config.posterior_bandwidth,
             posterior_particle_blend=config.posterior_particle_blend,
             posterior_ood_prior_blend=config.posterior_ood_prior_blend,
+            posterior_metric_method=config.posterior_metric_method,
+            cluster_count=effective_cluster_count,
             mode_feature_names=tuple(mode_feature_names),
             posterior_input_names=tuple(posterior_input_names),
             mode_round_ids=tuple(mode_round_ids),
@@ -425,6 +551,12 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_bank=np.asarray(posterior_metric_bank, dtype=np.float64),
             posterior_coord_bank=np.asarray(posterior_target_matrix, dtype=np.float64),
             posterior_round_index_bank=np.asarray(posterior_round_indexes, dtype=np.int64),
+            round_cluster_ids=np.asarray(round_cluster_ids, dtype=np.int64),
+            cluster_operator_mean_bank=np.asarray(cluster_operator_mean_bank, dtype=np.float64),
+            cluster_basis_bank=np.asarray(cluster_basis_bank, dtype=np.float64),
+            cluster_effective_dims=np.asarray(cluster_effective_dims, dtype=np.int64),
+            posterior_cluster_coord_bank=np.asarray(posterior_cluster_coord_matrix, dtype=np.float64),
+            posterior_cluster_id_bank=np.asarray(posterior_cluster_id_array, dtype=np.int64),
         )
 
     def checkpoint(
@@ -460,6 +592,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_bandwidth=self.posterior_bandwidth,
             posterior_particle_blend=self.posterior_particle_blend,
             posterior_ood_prior_blend=self.posterior_ood_prior_blend,
+            posterior_metric_method=self.posterior_metric_method,
+            cluster_count=self.cluster_count,
             mode_feature_names=list(self.mode_feature_names),
             posterior_input_names=list(self.posterior_input_names),
             mode_round_ids=list(self.mode_round_ids),
@@ -484,6 +618,12 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_bank=self.posterior_metric_bank,
             posterior_coord_bank=self.posterior_coord_bank,
             posterior_round_index_bank=self.posterior_round_index_bank,
+            round_cluster_ids=self.round_cluster_ids,
+            cluster_operator_mean_bank=self.cluster_operator_mean_bank,
+            cluster_basis_bank=self.cluster_basis_bank,
+            cluster_effective_dims=self.cluster_effective_dims,
+            posterior_cluster_coord_bank=self.posterior_cluster_coord_bank,
+            posterior_cluster_id_bank=self.posterior_cluster_id_bank,
         )
         base_checkpoint_path = self.base_predictor.save_checkpoint(path.parent / "base_prior.json")
         path.write_text(
@@ -534,6 +674,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_bandwidth=checkpoint.posterior_bandwidth,
             posterior_particle_blend=checkpoint.posterior_particle_blend,
             posterior_ood_prior_blend=checkpoint.posterior_ood_prior_blend,
+            posterior_metric_method=checkpoint.posterior_metric_method,
+            cluster_count=checkpoint.cluster_count,
             mode_feature_names=tuple(checkpoint.mode_feature_names),
             posterior_input_names=tuple(checkpoint.posterior_input_names),
             mode_round_ids=tuple(checkpoint.mode_round_ids),
@@ -553,6 +695,32 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_coord_bank=np.asarray(arrays["posterior_coord_bank"], dtype=np.float64),
             posterior_round_index_bank=np.asarray(
                 arrays["posterior_round_index_bank"] if "posterior_round_index_bank" in arrays else np.zeros(0),
+                dtype=np.int64,
+            ),
+            round_cluster_ids=np.asarray(
+                arrays["round_cluster_ids"] if "round_cluster_ids" in arrays else np.zeros(0),
+                dtype=np.int64,
+            ),
+            cluster_operator_mean_bank=np.asarray(
+                arrays["cluster_operator_mean_bank"] if "cluster_operator_mean_bank" in arrays else np.zeros((1, 1)),
+                dtype=np.float64,
+            ),
+            cluster_basis_bank=np.asarray(
+                arrays["cluster_basis_bank"] if "cluster_basis_bank" in arrays else np.zeros((1, 1, 1)),
+                dtype=np.float64,
+            ),
+            cluster_effective_dims=np.asarray(
+                arrays["cluster_effective_dims"] if "cluster_effective_dims" in arrays else np.zeros(1),
+                dtype=np.int64,
+            ),
+            posterior_cluster_coord_bank=np.asarray(
+                arrays["posterior_cluster_coord_bank"]
+                if "posterior_cluster_coord_bank" in arrays
+                else np.zeros((0, 1)),
+                dtype=np.float64,
+            ),
+            posterior_cluster_id_bank=np.asarray(
+                arrays["posterior_cluster_id_bank"] if "posterior_cluster_id_bank" in arrays else np.zeros(0),
                 dtype=np.int64,
             ),
         )
@@ -683,11 +851,94 @@ class FFAMModePredictor(BaseRoundPredictor):
             return self._mode_projection_operator_vector(derived)
         if self.decoder_method == "operator_particle_mixture":
             return self._particle_operator_vector(derived)
+        if self.decoder_method == "cluster_mode_projection":
+            return self._cluster_mode_projection_operator_vector(derived)
         mode_operator, mode_confidence = self._mode_projection_operator_vector(derived)
         particle_operator, particle_confidence = self._particle_operator_vector(derived)
         blend = float(np.clip(self.decoder_particle_blend, 0.0, 1.0))
         operator_vector = (blend * particle_operator) + ((1.0 - blend) * mode_operator)
         return np.asarray(operator_vector, dtype=np.float64), max(mode_confidence, particle_confidence)
+
+    def _cluster_mode_projection_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+        global_operator, global_confidence = self._mode_projection_operator_vector(derived)
+        if (
+            self.cluster_count <= 1
+            or self.posterior_cluster_id_bank.shape[0] == 0
+            or self.cluster_operator_mean_bank.shape[0] == 0
+        ):
+            return global_operator, global_confidence
+        input_vector = _regime_input_vector(
+            derived,
+            variant=self.regime_input_variant,
+        )
+        metric_input = self._posterior_metric_input(input_vector)
+        indexes, _, weights, confidence = self._posterior_neighbors(input_vector)
+        if indexes.size == 0:
+            return global_operator, global_confidence
+        neighbor_cluster_ids = np.asarray(self.posterior_cluster_id_bank[indexes], dtype=np.int64)
+        cluster_weights = np.bincount(
+            neighbor_cluster_ids,
+            weights=weights,
+            minlength=max(int(self.cluster_count), 1),
+        ).astype(np.float64)
+        total_weight = float(np.sum(cluster_weights))
+        if total_weight <= 0.0 or not np.isfinite(total_weight):
+            return global_operator, global_confidence
+        cluster_weights /= total_weight
+
+        cluster_operator = np.zeros_like(global_operator, dtype=np.float64)
+        active_weight = 0.0
+        for cluster_index, cluster_weight in enumerate(cluster_weights):
+            if cluster_weight <= 0.0:
+                continue
+            cluster_mask = neighbor_cluster_ids == cluster_index
+            local_indexes = indexes[cluster_mask]
+            if local_indexes.size == 0:
+                continue
+            local_weights = np.asarray(weights[cluster_mask], dtype=np.float64)
+            local_weight_sum = float(np.sum(local_weights))
+            if local_weight_sum <= 0.0 or not np.isfinite(local_weight_sum):
+                continue
+            local_weights = local_weights / local_weight_sum
+            cluster_mean = np.asarray(self.cluster_operator_mean_bank[cluster_index], dtype=np.float64)
+            cluster_dim = int(self.cluster_effective_dims[min(cluster_index, self.cluster_effective_dims.shape[0] - 1)])
+            if cluster_dim <= 0:
+                local_operator = cluster_mean
+            else:
+                local_metric = np.asarray(self.posterior_metric_bank[local_indexes], dtype=np.float64)
+                local_coords = np.asarray(
+                    self.posterior_cluster_coord_bank[local_indexes, :cluster_dim],
+                    dtype=np.float64,
+                )
+                if local_indexes.size >= 2:
+                    centered_metric = local_metric - metric_input[None, :]
+                    augmented = np.concatenate(
+                        [np.ones((centered_metric.shape[0], 1), dtype=np.float64), centered_metric],
+                        axis=1,
+                    )
+                    regularizer = np.eye(augmented.shape[1], dtype=np.float64)
+                    regularizer[0, 0] = 0.0
+                    solved = np.linalg.solve(
+                        augmented.T @ (local_weights[:, None] * augmented)
+                        + (self.posterior_ridge_lambda * regularizer)
+                        + 1e-6 * np.eye(augmented.shape[1], dtype=np.float64),
+                        augmented.T @ (local_weights[:, None] * local_coords),
+                    )
+                    cluster_coords = np.asarray(solved[0], dtype=np.float64)
+                else:
+                    cluster_coords = np.sum(local_weights[:, None] * local_coords, axis=0)
+                local_operator = np.asarray(
+                    cluster_mean + (cluster_coords @ self.cluster_basis_bank[cluster_index, :cluster_dim]),
+                    dtype=np.float64,
+                )
+            cluster_operator += float(cluster_weight) * local_operator
+            active_weight += float(cluster_weight)
+        if active_weight <= 0.0:
+            return global_operator, global_confidence
+        cluster_operator /= active_weight
+        blend = float(np.clip(confidence, 0.0, 1.0))
+        operator_vector = (blend * cluster_operator) + ((1.0 - blend) * global_operator)
+        return np.asarray(operator_vector, dtype=np.float64), max(global_confidence, confidence)
 
     def _exact_cell_blend(
         self,

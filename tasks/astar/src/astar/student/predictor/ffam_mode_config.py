@@ -33,6 +33,8 @@ class FFAMModeConfig(BaseModel):
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
     posterior_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    posterior_metric_method: str = "pca"
+    cluster_count: int = Field(default=1, ge=1)
 
 
 FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v1"
@@ -137,6 +139,56 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         posterior_metric_dim=10,
         posterior_neighbor_count=20,
         posterior_bandwidth=1.05,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.3,
+    ),
+    "ffam_mode_v10": FFAMModeConfig(
+        model_name="ffam_mode_v10",
+        projected_mode_dim=3,
+        posterior_method="local_linear",
+        posterior_metric_method="supervised",
+        posterior_metric_dim=4,
+        posterior_neighbor_count=18,
+        posterior_bandwidth=1.0,
+        prior_blend=0.12,
+        posterior_ood_prior_blend=0.3,
+    ),
+    "ffam_mode_v11": FFAMModeConfig(
+        model_name="ffam_mode_v11",
+        projected_mode_dim=4,
+        posterior_method="hybrid",
+        posterior_metric_method="supervised",
+        posterior_metric_dim=5,
+        posterior_neighbor_count=20,
+        posterior_bandwidth=1.05,
+        posterior_particle_blend=0.45,
+        prior_blend=0.12,
+        posterior_ood_prior_blend=0.32,
+    ),
+    "ffam_mode_v12": FFAMModeConfig(
+        model_name="ffam_mode_v12",
+        projected_mode_dim=3,
+        posterior_method="local_linear",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=5,
+        posterior_neighbor_count=20,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+    ),
+    "ffam_mode_v13": FFAMModeConfig(
+        model_name="ffam_mode_v13",
+        projected_mode_dim=4,
+        posterior_method="hybrid",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=6,
+        posterior_neighbor_count=22,
+        posterior_bandwidth=1.05,
+        posterior_particle_blend=0.45,
         prior_blend=0.1,
         posterior_ood_prior_blend=0.3,
     ),
