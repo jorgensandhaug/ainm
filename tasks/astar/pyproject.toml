@@ -9,6 +9,7 @@ description = "CLI-first observatory for Astar Island rounds, queries, reports, 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "catboost>=1.2.10",
   "duckdb>=1.4.1",
   "httpx>=0.28.1",
   "lightgbm>=4.6.0",
@@ -21,6 +22,7 @@ dependencies = [
   "scikit-learn>=1.8.0",
   "streamlit>=1.49.1",
   "xarray>=2025.9.0",
+  "xgboost>=3.2.0",
 ]
 
 [project.optional-dependencies]
