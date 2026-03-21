@@ -20,6 +20,15 @@ interface AddressSummary {
 interface EmployeeSummary {
   id: number;
   email?: string;
+  user?: {
+    email?: string;
+  } | null;
+  person?: {
+    email?: string;
+  } | null;
+  contactPerson?: {
+    email?: string;
+  } | null;
   firstName?: string;
   lastName?: string;
   name?: string;
@@ -38,12 +47,14 @@ interface CompanySummary {
 interface CostCategorySummary {
   id: number;
   description?: string;
+  name?: string;
   showOnTravelExpenses?: boolean;
 }
 
 interface TravelPaymentTypeSummary {
   id: number;
   description?: string;
+  name?: string;
   showOnTravelExpenses?: boolean;
   isInactive?: boolean;
 }
@@ -88,6 +99,61 @@ type DepartureFromSource = "input" | "employee-address" | "company-address";
 
 const DEFAULT_DEPARTURE_TIME = "08:00";
 const DEFAULT_RETURN_TIME = "18:00";
+const PLACE_PREFIX_TOKENS = new Set([
+  "fort",
+  "las",
+  "los",
+  "new",
+  "port",
+  "rio",
+  "saint",
+  "san",
+  "santa",
+  "sankt",
+  "st",
+]);
+const NON_DESTINATION_TOKENS = new Set([
+  "april",
+  "august",
+  "customer",
+  "desember",
+  "februar",
+  "february",
+  "fredag",
+  "friday",
+  "jan",
+  "januar",
+  "january",
+  "jul",
+  "juli",
+  "july",
+  "jun",
+  "juni",
+  "june",
+  "kunde",
+  "kundebesok",
+  "kundebesøk",
+  "mandag",
+  "march",
+  "mars",
+  "may",
+  "monday",
+  "november",
+  "october",
+  "onsdag",
+  "saturday",
+  "september",
+  "søndag",
+  "thursday",
+  "tirsdag",
+  "trip",
+  "travel",
+  "tuesday",
+  "torsdag",
+  "visit",
+  "visita",
+  "wednesday",
+]);
 
 export const strategy = {
   strategyId: "13.create-and-deliver-travel-expense.v1",
@@ -177,41 +243,45 @@ export const strategy = {
       );
     }
 
-    const costCategoryResponse = await ctx.tripletex.get<ListResponse<CostCategorySummary>>(
-      "/travelExpense/costCategory",
-      {
-        query: {
-          count: 1000,
-          fields: "*",
-        },
-      },
-    );
-    const paymentTypeResponse = await ctx.tripletex.get<ListResponse<TravelPaymentTypeSummary>>(
-      "/travelExpense/paymentType",
-      {
-        query: {
-          count: 1000,
-          fields: "*",
-        },
-      },
-    );
-
-    let perDiemRateResponse: ListResponse<PerDiemRateSummary> | undefined;
-    if (input.perDiemCompensations.length > 0) {
-      perDiemRateResponse = await ctx.tripletex.get<ListResponse<PerDiemRateSummary>>(
-        "/travelExpense/rate",
+    const [
+      costCategoryResponse,
+      paymentTypeResponse,
+      perDiemRateResponse,
+    ] = await Promise.all([
+      ctx.tripletex.get<ListResponse<CostCategorySummary>>(
+        "/travelExpense/costCategory",
         {
           query: {
-            type: "PER_DIEM",
-            isValidDomestic: true,
-            dateFrom: input.departureDate,
-            dateTo: input.returnDate,
             count: 1000,
             fields: "*",
           },
         },
-      );
-    }
+      ),
+      ctx.tripletex.get<ListResponse<TravelPaymentTypeSummary>>(
+        "/travelExpense/paymentType",
+        {
+          query: {
+            count: 1000,
+            fields: "*",
+          },
+        },
+      ),
+      input.perDiemCompensations.length > 0
+        ? ctx.tripletex.get<ListResponse<PerDiemRateSummary>>(
+            "/travelExpense/rate",
+            {
+              query: {
+                type: "PER_DIEM",
+                isValidDomestic: true,
+                dateFrom: input.departureDate,
+                dateTo: input.returnDate,
+                count: 1000,
+                fields: "*",
+              },
+            },
+          )
+        : Promise.resolve<ListResponse<PerDiemRateSummary>>({ values: [] }),
+    ]);
 
     const costCategories = costCategoryResponse.values ?? [];
     const paymentType = chooseTravelPaymentType(paymentTypeResponse.values ?? []);
@@ -333,7 +403,7 @@ function pickEmployee(
   requestedName?: string,
 ): EmployeeSummary {
   const exactMatches = employees.filter(
-    (employee) => normalizeEmail(employee.email) === email,
+    (employee) => normalizeEmail(getEmployeeEmail(employee)) === email,
   );
 
   if (exactMatches.length === 0) {
@@ -374,7 +444,7 @@ function chooseTravelPaymentType(
   );
 
   const preferred = visible.find((paymentType) =>
-    sameText(paymentType.description ?? "", "Privat utlegg"),
+    sameText(getPaymentTypeLabel(paymentType), "Privat utlegg"),
   );
 
   if (preferred) {
@@ -398,14 +468,14 @@ function pickCostCategory(
   const normalizedTarget = normalizeText(categoryName);
 
   const exact = visible.find(
-    (category) => normalizeText(category.description ?? "") === normalizedTarget,
+    (category) => normalizeText(getCostCategoryLabel(category)) === normalizedTarget,
   );
   if (exact) {
     return exact;
   }
 
   const partial = visible.find((category) =>
-    normalizeText(category.description ?? "").includes(normalizedTarget),
+    normalizeText(getCostCategoryLabel(category)).includes(normalizedTarget),
   );
   if (partial) {
     return partial;
@@ -451,10 +521,11 @@ function choosePerDiemRateType(
 
   const matchingRate =
     rates.find((entry) => Number(entry.rate) === requestedRate) ?? rates[0];
-  const rateTypeId =
-    matchingRate.rateType?.id ?? matchingRate.rateTypeId ?? matchingRate.id;
+  const rateTypeId = normalizeNumericId(
+    matchingRate.rateType?.id ?? matchingRate.rateTypeId ?? matchingRate.id,
+  );
 
-  if (typeof rateTypeId !== "number") {
+  if (rateTypeId === undefined) {
     throw new Error("Tripletex did not return a usable per-diem rateType id.");
   }
 
@@ -537,9 +608,31 @@ function inferDestination(...values: Array<string | undefined>): string | undefi
       .split(/\s+/)
       .map((token) => token.replace(/[.,;:!?]+$/g, ""))
       .filter((token) => token.length > 0);
-    const lastToken = tokens[tokens.length - 1];
-    if (lastToken && looksLikePlaceToken(lastToken)) {
-      return lastToken;
+    const trailingPlaceToken = tokens[tokens.length - 1];
+    if (
+      trailingPlaceToken &&
+      looksLikePlaceToken(trailingPlaceToken) &&
+      !isNonDestinationToken(trailingPlaceToken)
+    ) {
+      return trailingPlaceToken;
+    }
+
+    for (let index = tokens.length - 1; index >= 0; index -= 1) {
+      const token = tokens[index];
+      if (!looksLikePlaceToken(token) || isNonDestinationToken(token)) {
+        continue;
+      }
+
+      const previousToken = tokens[index - 1];
+      if (
+        previousToken &&
+        looksLikePlaceToken(previousToken) &&
+        PLACE_PREFIX_TOKENS.has(normalizeText(previousToken))
+      ) {
+        return `${previousToken} ${token}`;
+      }
+
+      return token;
     }
   }
 
@@ -581,6 +674,13 @@ function assertTravelRows(input: RegisterTravelExpenseInput): void {
   if (input.costs.length === 0) {
     throw new Error("costs must contain at least one travel-expense cost row.");
   }
+
+  input.costs.forEach((cost, index) => {
+    if (!normalizeOptionalText(cost.categoryName)) {
+      throw new Error(`costs[${index}].categoryName must be a non-empty string.`);
+    }
+    assertPositiveNumber(cost.amountNokInclVat, `costs[${index}].amountNokInclVat`);
+  });
 }
 
 function assertPositiveNumber(value: number, fieldName: string): void {
@@ -601,6 +701,28 @@ function normalizeEmail(value: string | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+function getEmployeeEmail(employee: EmployeeSummary): string | undefined {
+  return (
+    employee.email ??
+    employee.user?.email ??
+    employee.person?.email ??
+    employee.contactPerson?.email
+  );
+}
+
+function getCostCategoryLabel(category: CostCategorySummary): string {
+  return category.description ?? category.name ?? "";
+}
+
+function getPaymentTypeLabel(paymentType: TravelPaymentTypeSummary): string {
+  return paymentType.description ?? paymentType.name ?? "";
+}
+
+function normalizeNumericId(value: unknown): number | undefined {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : undefined;
+}
+
 function normalizeOptionalText(value: unknown): string | undefined {
   const normalized = String(value ?? "").trim();
   return normalized.length > 0 ? normalized : undefined;
@@ -616,4 +738,8 @@ function normalizeText(value: string): string {
 
 function sameText(left: string, right: string): boolean {
   return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+}
+
+function isNonDestinationToken(token: string): boolean {
+  return NON_DESTINATION_TOKENS.has(normalizeText(token));
 }
