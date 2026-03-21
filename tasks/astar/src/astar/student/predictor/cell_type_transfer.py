@@ -319,7 +319,7 @@ class CellTypeTransferPredictor(BaseRoundPredictor):
             fn_capped = np.minimum(forest_neighbors, 8)
 
             keys = (
-                collapsed * 1000
+                collapsed.astype(np.int64) * 1000
                 + prox_buckets * 100
                 + coast_flags * 10
                 + fn_capped
