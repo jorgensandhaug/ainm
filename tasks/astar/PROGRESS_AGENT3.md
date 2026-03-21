@@ -4480,8 +4480,36 @@
    - spatial_correction: 59-67.4 (v5 competitive with best!)
    - spatial_correction_v5 is the ONLY new family that approaches v19's territory
 
+488. `spatial_correction_v5` full LOO result: **76.64** (worse than v19's 76.89)
+   - f1dac9a9 improved: 68.47 → 70.23 (+1.76)
+   - 36e581f1 regressed: 66.58 → 65.45 (-1.13)
+   - Most other rounds also slightly regressed
+   - CONCLUSION: spatial correction adds noise on good rounds, only helps barren round
+
+489. **BREAKTHROUGH**: `adaptive_ensemble` family
+   - approach: detect barren rounds via observation build_rate, apply targeted scaling
+   - targeted holdout (2 hard rounds):
+     - v2: **73.31** (vs previous best 67.42!)
+     - v1: 72.75
+     - v4: 72.38
+     - v3: 72.15
+   - **FULL LOO result for v1: 79.26** (vs query_residual_v19's 76.89!)
+     - GAIN: +2.37 overall
+     - KEY IMPROVEMENT: f1dac9a9 barren round: 68.47 → **80.86** (+12.39!)
+     - c5cdf100: 75.50 → 82.03 (+6.53!)
+     - All other rounds UNCHANGED (correction only fires on detected barren rounds)
+   - This is the FIRST model to break 79 on full LOO
+   - v2 full LOO running (scored even higher on targeted holdout)
+
+490. Current verified leaderboard:
+   - **1st: adaptive_ensemble_v1 = 79.26** (NEW BEST!)
+   - 2nd: query_residual_v19 = 76.89
+   - 3rd: query_residual_v18 = 76.68
+   - 4th: query_residual_v21 = 76.68
+   - 5th: query_residual_v17 = 76.15
+
 ## Open Questions
 
-- Will spatial_correction_v5 beat query_residual_v19 on full LOO?
-- Can the spatial correction be made even gentler to avoid hurting the active round?
-- Is there a fundamentally different approach that would help BOTH hard rounds simultaneously?
+- Will adaptive_ensemble_v2 beat v1 on full LOO?
+- Can the barren-round detection be improved with more features?
+- Can similar regime-specific calibration be applied to the active-but-unpredictable round?
