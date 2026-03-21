@@ -247,6 +247,199 @@
     - reject fixed `phasefactored + query_residual` hybrid as a lead candidate
     - keep phase-factored branch only as an experimental diagnostic branch for now
 
+### 2026-03-21T11:50:00Z
+
+- Re-read handoff again around:
+  - Phase 6 regime manifold
+  - `H6` discrete mixture over regime families
+  - `H9` direct online head / robust student ideas
+- Re-checked current machine state before allocating more jobs:
+  - load about `48.3 / 54.2 / 49.7` on `384` cores
+  - RAM about `1.5 TiB free`, `1.6 TiB available`
+  - still enough headroom for several more official benchmarks in parallel
+- Re-checked live competing runs:
+  - heavy `agent2` full-8 coeffbank benchmark
+  - several `agent3` teacher-student full/targeted runs
+  - `agent6` test-heavy summary/event work
+  - `agent7` `ffam_mode_v17`
+- `greybox_hazard_bayesfamily` hard-slice sweep status:
+  - sweep process still active and consuming about `600%` CPU
+  - only first `6 / 18` task results emitted so far
+  - partial rescued configs already materially better than default:
+    - `anchor=0.35 scale=0.10`:
+      - `36e581...`: `61.4980`
+      - `c5cdf...`: `79.3179`
+      - `f1dac...`: `59.6974`
+      - partial mean `66.8378`
+    - `anchor=0.35 scale=0.30`:
+      - `36e581...`: `59.7980`
+      - `c5cdf...`: `79.6556`
+      - `f1dac...`: `60.0263`
+      - partial mean `66.4933`
+- Decision from those partial results:
+  - current default `greybox_hazard_bayesfamily_v01` is too aggressive
+  - promote explicit conservative named variants for official benchmarking:
+    - `greybox_hazard_bayesfamily_anchor35_scale10_v02`
+    - `greybox_hazard_bayesfamily_anchor35_scale30_v03`
+  - reason:
+    - handoff wants explicit family members with distinct names
+    - easier to benchmark cleanly than ad hoc one-off script configs
+- Integration / validation for the named variants:
+  - wired builder / offline eval / historical benchmark / CLI / smoke tests
+  - new supported model names:
+    - `greybox_hazard_bayesfamily_anchor35_scale10_v02`
+    - `greybox_hazard_bayesfamily_anchor35_scale30_v03`
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_hazard_bayesfamily.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `20 passed in 69.66s`
+- Official full 8-round benchmarks launched in parallel:
+  - `agent5_bayesfamily_anchor35_scale10_explorationr3_online50_v02`
+    - model `greybox_hazard_bayesfamily_anchor35_scale10_v02`
+    - policy `exploration_r3`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `70489`
+  - `agent5_bayesfamily_anchor35_scale30_explorationr3_online50_v03`
+    - model `greybox_hazard_bayesfamily_anchor35_scale30_v03`
+    - policy `exploration_r3`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `92964`
+  - `agent5_bayesfamily_anchor35_scale10_coverage_online50_v02`
+    - model `greybox_hazard_bayesfamily_anchor35_scale10_v02`
+    - policy `coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `47565`
+  - `agent5_bayesfamily_anchor35_scale30_coverage_online50_v03`
+    - model `greybox_hazard_bayesfamily_anchor35_scale30_v03`
+    - policy `coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `28082`
+- Current additional signal from the still-running hard-slice sweep:
+  - `anchor=0.55 scale=0.10` now also has all three rounds:
+    - `36e581...`: `62.6492`
+    - `c5cdf...`: `79.1066`
+    - `f1dac...`: `59.5000`
+    - mean `67.0853`
+  - implication:
+    - if the launched `anchor=0.35` full-8 runs underperform, the next immediate branch should be an explicit `anchor=0.55 scale=0.10` variant
+
+### 2026-03-21T11:32:00Z
+
+- Re-read handoff hypotheses again, especially:
+  - `H6`: small discrete mixture over regime families helps
+  - `H8`: event-structured supervision helps
+- Re-checked machine health / other agent runs before new branch:
+  - load about `46.7 / 49.4 / 46.3` on `384` cores
+  - RAM about `1.9 TiB free`, `2.0 TiB available`
+  - other active heavy runs include:
+    - `agent2` full 8-round coeffbank benchmark
+    - several `agent6` summary-rate / law-residual probes
+    - `agent7` `ffam_mode_v12`
+    - many `agent1` high-memory python workers
+  - conclusion:
+    - still huge safe headroom
+    - okay to run several more heavy probes in parallel
+- New branch decision from evidence:
+  - current `greybox_hazard_mixture_v01` failed mainly because it regressed transcript features directly to prototype weights
+  - stronger H6 test is:
+    - discrete family experts from historical round laws
+    - online posterior weights updated directly from legal observed-cell likelihood
+    - anchored by the continuous low-rank expert for robustness
+- Next implementation:
+  - `greybox_hazard_bayesfamily`
+  - idea:
+    - keep a bank of per-round semimechanistic law experts
+    - add low-rank continuous anchor expert
+    - score exact observed query outcomes under each expert
+    - entropy-weight those observation likelihoods so dynamic cells dominate
+    - posterior-average expert predictions, then apply exact observed-cell correction
+  - reason:
+    - much closer to handoff H6 than the earlier crude centroid-regression prototype
+    - uses legal online evidence directly instead of asking transcript features alone to identify cluster id
+
+### 2026-03-21T11:40:00Z
+
+- Implemented new H6-aligned branch:
+  - `greybox_hazard_bayesfamily`
+  - file:
+    - `src/astar/student/predictor/greybox_hazard_bayesfamily.py`
+- Core design:
+  - continuous anchor expert:
+    - existing `GreyboxHazardLowRankPredictor`
+  - discrete family experts:
+    - one semimechanistic coefficient vector per historical training round
+  - online inference:
+    - compute raw pre-conditioning predictions for all experts
+    - score legal observed query outcomes under each expert
+    - entropy-weight evidence so dynamic cells matter more than static ones
+    - posterior-average expert predictions
+    - only then apply exact observed-cell correction + probability floor
+- Why this differs from failed `greybox_hazard_mixture_v01`:
+  - no transcript-feature regression to cluster ids
+  - evidence update is direct likelihood over observed outcomes
+  - includes a strong continuous anchor for robustness
+- Integrated:
+  - predictor registry / live builder
+  - model-eval
+  - historical benchmark transcript-model allowlist
+  - CLI model choices
+  - historical benchmark smoke matrix
+- Validation:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_hazard_bayesfamily.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `18 passed in 75.21s`
+- Launched experiments:
+  - official 3-round default benchmark, `coverage`
+    - `agent5_bayesfamily_coverage_probe3_v01`
+    - session `45082`
+  - official 3-round default benchmark, `exploration_r3`
+    - `agent5_bayesfamily_explorationr3_probe3_v01`
+    - session `66859`
+  - trusted hard-slice hyperparameter sweep, `exploration_r3`
+    - varying:
+      - `global_anchor_weight in {0.35, 0.55}`
+      - `likelihood_scale in {0.10, 0.30, 0.60}`
+    - eval rounds:
+      - `36e581...`
+      - `c5cdf...`
+      - `f1dac...`
+    - full 8-round training universe per held-out round
+    - log:
+      - `data/artifacts/benchmarks/agent5_bayesfamily_explorationr3_probe3_sweep_v01.log`
+    - session `22352`
+
+### 2026-03-21T11:42:00Z
+
+- Default official 3-round probes for `greybox_hazard_bayesfamily` finished:
+  - `agent5_bayesfamily_coverage_probe3_v01`
+    - mean score `55.2406`
+    - mean weighted KL `0.251578`
+  - `agent5_bayesfamily_explorationr3_probe3_v01`
+    - mean score `55.4411`
+    - mean weighted KL `0.249443`
+- Per-round pattern under `exploration_r3`:
+  - `36e581...`: `20.2235`
+  - `c5cdf...`: `80.5319`
+  - `f1dac...`: `65.5677`
+- Interpretation:
+  - family is directionally interesting on `c5cdf...` and decent on `f1dac...`
+  - but catastrophic on `36e581...`
+  - current default is nowhere near viable
+  - only reason to keep spending time here is if the sweep shows that conservative anchor/likelihood settings can rescue `36e581...` substantially
+
 ### 2026-03-20T00:00:00Z
 
 - Started.

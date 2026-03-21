@@ -13,6 +13,10 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
+from astar.student.predictor.greybox_hazard_bayesfamily import (
+    bayesfamily_model_names,
+    fit_named_bayesfamily_predictor,
+)
 from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
 from astar.student.predictor.greybox_hazard_phasefactored import GreyboxHazardPhaseFactoredPredictor
 from astar.student.predictor.greybox_regime import (
@@ -153,6 +157,19 @@ def build_online_predictor(
     if normalized == "greybox_hazard_phasefactored":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxHazardPhaseFactoredPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized in bayesfamily_model_names():
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = fit_named_bayesfamily_predictor(
+            model_name,
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=(policy_name or "coverage").strip().lower(),

@@ -20,6 +20,10 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
 from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
+from astar.student.predictor.greybox_hazard_bayesfamily import (
+    bayesfamily_model_names,
+    fit_named_bayesfamily_predictor,
+)
 from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
 from astar.student.predictor.greybox_hazard_phasefactored import GreyboxHazardPhaseFactoredPredictor
 from astar.student.predictor.greybox_regime import (
@@ -301,6 +305,21 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized in bayesfamily_model_names():
+        predictor = fit_named_bayesfamily_predictor(
+            model_name,
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
     if normalized == "greybox_student_joint":
         predictor = GreyboxStudentJointPredictor.fit_from_workspace(
             paths,
@@ -539,6 +558,7 @@ def evaluate_model_on_round(
                 "greybox_regime_knn",
                 "greybox_hazard_lowrank",
                 "greybox_hazard_phasefactored",
+                *bayesfamily_model_names(),
                 "greybox_student_joint",
                 "greybox_coefficient_knn",
                 "greybox_hybrid_lowrank_coefficientknn",
