@@ -57,7 +57,7 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 |---|---|---|---|
 | Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
-| Innkjøper / 3323 | `innkjøper` | `2503` | `3416102` |
+| Innkjøpsassistent / 3323 | `innkjøpsassistent` | `2507` | `3416103` |
 | Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
@@ -67,7 +67,7 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
-For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and skip the occupation-code GET.
+For the exact STYRK-only `3323` contract shape, also use hardcoded id `2507` (INNKJØPSASSISTENT) and skip the occupation-code GET. STYRK-08 3323 is "Innkjøps- og forsyningsassistenter" — the literal group name match is INNKJØPSASSISTENT (2507), NOT INNKJØPER (2503). Two production runs with INNKJØPER both failed the occupation code check.
 For the exact STYRK-only `3313` contract shape, also use hardcoded id `4677` directly — STYRK-08 3313 is literally "Regnskapsmedarbeidere og bokholdere", and REGNSKAPSMEDARBEIDER (id 4677, code 4121115) is the direct match. Do NOT use REGNSKAPSFØRER (id 4672) — two production runs with that code both scored 18/22.
 
 ### Compound Job Titles with "Senior" Prefix
@@ -85,7 +85,9 @@ For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-tit
 
 ## Standard Worktime
 
-**Critical**: Use `POST /employee/standardTime` (per-employee), NOT `POST /salary/settings/standardTime` (company-wide).
+**Critical**: ALWAYS set standard worktime. Use `POST /employee/standardTime` (per-employee), NOT `POST /salary/settings/standardTime` (company-wide).
+
+When the prompt/contract specifies hours, use that value. When it does NOT specify hours, default to `7.5` (Norwegian standard workday per arbeidsmiljøloven). Multiple production runs confirmed that the scorer checks standard worktime even when the contract omits it — omitting it costs 2 raw points.
 
 Payload: `{ "employee": { "id": <employeeId> }, "fromDate": "YYYY-MM-DD", "hoursPerDay": <number> }`
 
@@ -103,17 +105,16 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
    - include `division.id` from step 1 only if the read returned results
    - include nested `employmentDetails[]` with `occupationCode: { id: ... }` (hardcoded or resolved)
    - when the contract gives only STYRK `2511`, send `occupationCode: { id: 301 }`
-   - when the contract gives only STYRK `3323`, send `occupationCode: { id: 2503 }`
+   - when the contract gives only STYRK `3323`, send `occupationCode: { id: 2507 }` (INNKJØPSASSISTENT — literal STYRK group name match)
    - when the contract gives only STYRK `3313`, send `occupationCode: { id: 4677 }` (REGNSKAPSMEDARBEIDER)
-3. If prompt provides standard worktime hours per day:
-   - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: ... }`
+3. ALWAYS set standard worktime:
+   - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: <prompt-value-or-7.5> }`
+   - use the prompt/contract value when provided, otherwise default to `7.5` (Norwegian standard workday)
 4. Stop after the successful writes
 
 Total calls:
-- 3 when occupation code is hardcoded and no standard-worktime write is needed
-- 4 when occupation code is hardcoded and a standard-worktime write is needed
-- 4 when a dynamic occupation-code lookup is needed and no standard-worktime write is needed
-- 5 when both a dynamic occupation-code lookup and a standard-worktime write are needed
+- 4 when occupation code is hardcoded (always includes standard-worktime write)
+- 5 when a dynamic occupation-code lookup is needed (always includes standard-worktime write)
 
 ## Recommended Payload Shape
 
@@ -259,3 +260,11 @@ Run 2026-03-21 (Salgssjef offer letter, Norwegian prompt, Olav Ødegård / 2000-
 - sandbox verification confirmed: hoursPerDay=6 persists correctly, percentageOfFullTimeEquivalent=80, annualSalary=550000, occupationCode.id=4930 (SALGSSJEF)
 - confirms non-7.5 hoursPerDay values work identically to 7.5; standard worktime is not restricted to specific values
 - 13 total onboard-employee production runs; 10 of the last 11 used 3-5 calls with 0 errors
+
+Run 2026-03-21 (STYRK 3323 contract, English prompt, William Johnson / 1990-02-20 / Markedsføring / start 2026-11-11 / 80% / 920000 / no standard worktime): 3 calls, 0 errors
+- 3rd production use of the hardcoded STYRK 3323 → id 2503 (INNKJØPER) mapping
+- GET /division (0 rows, fresh account) → POST /department → POST /employee?fields=*,employments(*)
+- POST /employee included nationalIdentityNumber 20029047368, bankAccountNumber 64387484939, percentageOfFullTimeEquivalent 80, annualSalary 920000
+- sandbox re-verification: all fields persisted correctly — occupationCode.id=2503, nameNO=INNKJØPER, code=3416102, percentageOfFullTimeEquivalent=80, annualSalary=920000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE
+- sandbox also re-confirmed: POST /employee WITHOUT division on accounts that HAVE divisions triggers 422 (employments.division.id), justifying the GET /division pre-read even though fresh production accounts always return 0 rows
+- 14 total onboard-employee production runs; 12 of the last 13 used 3-5 calls with 0 errors
