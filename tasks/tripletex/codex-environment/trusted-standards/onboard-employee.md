@@ -219,3 +219,9 @@ Standard worktime (per-employee):
   - correct mapping: SYSTEMUTVIKLER (id 5935, code 2130109) verified in sandbox readback
   - sandbox verification on 2026-03-21: POST /employee with occupationCode {id: 5935} → 201, readback confirmed occupationCode.id=5935, nameNO=SYSTEMUTVIKLER, code=2130109
   - hardcoding Seniorutvikler → id 5935 saves 1 call and avoids the wrong-code trap, reducing optimal flow to 4 calls
+- production run on 2026-03-21 (fourth run, STYRK 3323 contract with nationalIdentityNumber + bankAccountNumber, no standard worktime, 80% employment, French prompt) used 3 calls: GET /division, POST /department, POST /employee — all succeeded, 0 errors
+  - first production run to use the hardcoded STYRK 3323 → id 2503 mapping, saving the occupation-code lookup call
+  - GET /division returned 0 rows (fresh account), division correctly omitted from payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 2503 }, percentageOfFullTimeEquivalent 80, annualSalary 860000
+  - scoring attribution was ambiguous (2 candidate tasks); correctness confirmed via sandbox readback
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2503, nameNO=INNKJØPER, code=3416102, percentageOfFullTimeEquivalent=80, annualSalary=860000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-04-23, nationalIdentityNumber and bankAccountNumber preserved

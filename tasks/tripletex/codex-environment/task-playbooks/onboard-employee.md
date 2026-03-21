@@ -176,3 +176,9 @@ Run 2026-03-21 (Seniorutvikler offer letter): 6 calls, 0 4xx errors but wrong oc
 - fallback `nameNO=utvikler` → id 1173 DRIFTSUTVIKLER (wrong — IT operations, not software dev)
 - correct: id 5935 SYSTEMUTVIKLER (code 2130109), now hardcoded
 - optimal was 4 calls with hardcoded mapping; actual was 6 calls with wrong code
+
+Run 2026-03-21 (STYRK 3323 contract, French prompt, 80% employment, no standard worktime): 3 calls, 0 errors
+- first production use of hardcoded STYRK 3323 → id 2503 mapping
+- GET /division (0 rows, fresh account) → POST /department → POST /employee (with nested employmentDetails)
+- this is the minimum-call floor for this contract shape: 3 calls
+- sandbox readback confirmed all fields persisted: occupationCode.id=2503, percentageOfFullTimeEquivalent=80, annualSalary=860000
