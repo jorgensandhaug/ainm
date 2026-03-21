@@ -3908,6 +3908,35 @@
      - `uv run python -m py_compile src/astar/student/predictor/transcript_sequence_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_transcript_sequence_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_transcript_sequence_factor_residual_ridge_weights_fit_targets tests/test_historical_benchmark.py::test_transcript_sequence_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
    - validation result:
      - `3 passed`
+439. Git checkpoints created + pushed for the new sequence-aware families:
+   - commit:
+     - `d16c8e12`
+   - message:
+     - `agent3: add transcript sequence residual memory family`
+   - commit:
+     - `9f6291a6`
+   - message:
+     - `agent3: add transcript sequence factor residual family`
+440. Launch state for the sequence-aware families:
+   - machine headroom before latest launch:
+     - available memory about `2.0 TiB`
+   - corrected targeted-holdout gate sessions started for `transcript_sequence_residual_memory`:
+     - `agent3_tseq_v1_gate`
+     - `agent3_tseq_v2_gate`
+     - `agent3_tseq_v3_gate`
+     - `agent3_tseq_v4_gate`
+     - `agent3_tseq_v5_gate`
+     - `agent3_tseq_v6_gate`
+     - `agent3_tseq_v7_gate`
+     - `agent3_tseq_v8_gate`
+   - corrected targeted-holdout gate sessions started for `transcript_sequence_factor_residual`:
+     - `agent3_tfactor_v1_gate`
+     - `agent3_tfactor_v2_gate`
+     - `agent3_tfactor_v3_gate`
+     - `agent3_tfactor_v4_gate`
+   - launch policy:
+     - all new gates use `jobs=1`
+     - factor-residual family limited to `4` variants live at once because transcript-memory, transcript-residual-memory, and transcript-sequence-residual-memory waves are already running on the shared machine
 
 
 ## Open Questions
