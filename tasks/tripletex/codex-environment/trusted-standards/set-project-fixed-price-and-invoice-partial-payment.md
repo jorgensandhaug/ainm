@@ -71,7 +71,7 @@
   - the initial `GET /project` is what proves the exact existing project, linked customer, linked manager, and whether `PUT /project` can be skipped
   - the filtered `GET /ledger/vatType` is still required on taxable accounts; omitting `orderLines[].vatType` can silently create the wrong VAT result
 - on the update-needed branch (where `PUT /project` is required), the canonical call count is `6` (configured bank) or `7` (missing bank), because the proactive `GET /ledger/account` between `POST /order` and `PUT /order/:invoice` is now the default
-- do not use the old optimistic `5`-call branch on the update-needed path; it risks a `422` and `8`-call recovery that costs more than the proactive hedge
+- do not use the old optimistic `5`-call branch on the update-needed path; it risks a `422` and `8`-call recovery that costs more than the proactive hedge; production evidence now shows 7/9 update-needed runs (78%) had missing bank accounts
 - do not use `createOnAccount` on an order with no real order lines for this task shape
 
 ## Reuse From Write Response
@@ -231,4 +231,16 @@
 - persistent-sandbox verification on 2026-03-21 with current-task arithmetic `363850 * 0.75 = 272887.5` re-confirmed the update-needed proactive-hedge path:
   - the update-needed proactive hedge path completed in `6` measured calls (bank already configured from prior sandbox proof): `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank configured) -> `PUT /order/:invoice`
   - proof invoice returned `amountExcludingVatCurrency=272887.5`; the sandbox exposed only outgoing VAT `0%` (id=6)
+  - therefore the conditional `4/6/7`-call standard remains the minimum proven path for this task family
+- exact production confirmation on 2026-03-21 for `Solmar SL` / `866378843` / `Implementación ERP` / `maria.sanchez@example.org` / `457650` / `25%` proved the update-needed proactive-hedge branch on a missing-bank account:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` found the project with correct customer and PM already linked, but `fixedprice` needed update
+  - the proactive hedge discovered invoice account `1920` with empty `bankAccountNumber` and fixed it before the invoice write
+  - the successful production path was `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank missing) -> `PUT /ledger/account` -> `PUT /order/:invoice` for `7` total calls with `0` errors
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=114412.5` and `amountCurrencyOutstanding=143015.63`
+  - milestone arithmetic `457650 * 0.25 = 114412.5` — third production confirmation of the 25% milestone percentage; decimal amount accepted directly
+  - this is the 9th update-needed production run: 7/9 had missing bank accounts (78%); proactive hedge averages 6.78 calls + 0 errors vs optimistic 7.33 + 0.78 errors
+- persistent-sandbox verification on 2026-03-21 with current-task arithmetic `457650 * 0.25 = 114412.5` re-confirmed both branches:
+  - the update-needed proactive hedge path completed in `6` measured calls (bank already configured from prior sandbox proof): `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank configured) -> `PUT /order/:invoice`
+  - the skip-`PUT /project` branch completed in `4` measured calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - both proof invoices returned `amountExcludingVatCurrency=114412.5`; the sandbox exposed only outgoing VAT `0%` (id=6)
   - therefore the conditional `4/6/7`-call standard remains the minimum proven path for this task family
