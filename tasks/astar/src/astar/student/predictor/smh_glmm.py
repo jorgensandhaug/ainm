@@ -1098,6 +1098,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
     memory_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     nbr_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     include_poly_features: bool = False
+    use_tensor_mixing: bool = False
     mean_weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
@@ -1133,6 +1134,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
         memory_feature_names: tuple[str, ...] = (),
         nbr_feature_names: tuple[str, ...] = (),
         include_poly_features: bool = False,
+        use_tensor_mixing: bool = False,
         memory_decay: float = 0.85,
         ridge_lambda: float = 1e-3,
         learning_rate: float = 0.1,
@@ -1184,6 +1186,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             memory_feature_names=tuple(memory_feature_names),
             nbr_feature_names=tuple(nbr_feature_names),
             include_poly_features=include_poly_features,
+            use_tensor_mixing=use_tensor_mixing,
             mean_weight_bank=mean_weight_bank.astype(np.float64),
             latent_basis=latent_basis.astype(np.float64),
             candidate_round_latents=candidate_round_latents.astype(np.float64),
@@ -1417,6 +1420,17 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             context.observations,
             prior_log_weights=self._prior_log_weights(round_detail),
         )
+        if self.use_tensor_mixing:
+            mixed = np.tensordot(posterior_weights, candidate_seed_tensors, axes=(0, 0))
+            normalized = _apply_probability_floor(mixed, self.prediction_floor)
+            return PredictionBundle(
+                round_id=round_detail.id,
+                model_name=self.name,
+                predictions_by_seed={
+                    seed_index: normalized[seed_index]
+                    for seed_index in range(normalized.shape[0])
+                },
+            )
         posterior_latent = posterior_weights @ self.candidate_round_latents
         weight_bank = self._weight_bank_from_latent(posterior_latent)
         return PredictionBundle(
@@ -1441,6 +1455,17 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             tuple(),
             prior_log_weights=self._prior_log_weights(round_detail),
         )
+        if self.use_tensor_mixing:
+            mixed = np.tensordot(prior_weights, candidate_seed_tensors, axes=(0, 0))
+            normalized = _apply_probability_floor(mixed, self.prediction_floor)
+            return PredictionBundle(
+                round_id=round_detail.id,
+                model_name=self.name,
+                predictions_by_seed={
+                    seed_index: normalized[seed_index]
+                    for seed_index in range(normalized.shape[0])
+                },
+            )
         weight_bank = self._weight_bank_from_latent(prior_weights @ self.candidate_round_latents)
         return PredictionBundle(
             round_id=round_detail.id,

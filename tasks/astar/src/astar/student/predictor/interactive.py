@@ -47,6 +47,7 @@ SMH_GLMMLATENT_Z2_H0_COVBASE_E50_V001 = "smh_glmmlatent_z2_h0_covbase_e50_v001"
 SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z3_h0_covbase_calnone_v001"
 SMH_GLMMLATENT_Z2_H0_COVBASE_HBBLEND20_V001 = "smh_glmmlatent_z2_h0_covbase_hbblend20_v001"
 SMH_GLMMLATENT_Z2_H0_COVPOLY_CALNONE_V001 = "smh_glmmlatent_z2_h0_covpoly_calnone_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001 = "smh_glmmlatent_z2_h0_covbase_tmix_v001"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1748,6 +1749,15 @@ def build_online_predictor(
                     "nbr_ruin_frac",
                 ),
             },
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001,
+            fit_kwargs={"latent_dim": 2, "use_tensor_mixing": True},
         )
     if normalized == SMH_GLMMLATENT_Z2_H0_COVPOLY_CALNONE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
