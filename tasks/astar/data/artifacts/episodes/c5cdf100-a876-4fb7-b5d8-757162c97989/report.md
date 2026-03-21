@@ -8,7 +8,7 @@ submissions: 5
 analyses: 5
 replay_runs: 290
 replay_seeds: 5
-replay_summaries: 0
+replay_summaries: 5
 mean_ground_truth_entropy: 0.2697
 seed 0: queries=9 coverage_min=1 coverage_max=4 repeats=0
 seed 1: queries=9 coverage_min=1 coverage_max=4 repeats=0

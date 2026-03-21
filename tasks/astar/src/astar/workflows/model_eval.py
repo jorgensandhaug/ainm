@@ -254,6 +254,7 @@ def _build_online_prediction_bundle(
     samples_per_round: int,
     budget: int,
     episode_seed: int,
+    predictor: RoundPredictorAdapter | None = None,
 ) -> tuple[
     PredictionBundle,
     dict[int, dict[str, np.ndarray]],
@@ -261,7 +262,7 @@ def _build_online_prediction_bundle(
     int,
     int,
 ]:
-    predictor = build_online_predictor(
+    resolved_predictor = predictor or build_online_predictor(
         model_name,
         paths=paths,
         historical_round_ids=training_round_ids,
@@ -272,7 +273,7 @@ def _build_online_prediction_bundle(
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,
-        predictor=predictor,
+        predictor=resolved_predictor,
         policy=policy,
         budget=budget,
         episode_seed=episode_seed,
@@ -282,18 +283,21 @@ def _build_online_prediction_bundle(
     training_analyzed_seed_count = 0
     training_cell_count = 0
     if (
-        isinstance(predictor, RoundPredictorAdapter)
-        and isinstance(predictor.predictor, HistoricalBucketPriorPredictor)
+        isinstance(resolved_predictor, RoundPredictorAdapter)
+        and isinstance(resolved_predictor.predictor, HistoricalBucketPriorPredictor)
     ):
         round_detail = read_round_record(paths, round_id).round
         diagnostics_by_seed = {
-            seed_index: predictor.predictor.build_seed_diagnostics(round_detail, seed_index).model_dump(
+            seed_index: resolved_predictor.predictor.build_seed_diagnostics(
+                round_detail,
+                seed_index,
+            ).model_dump(
                 mode="python",
             )
             for seed_index in range(round_detail.seeds_count)
         }
-        training_analyzed_seed_count = predictor.predictor.analyzed_seed_count
-        training_cell_count = predictor.predictor.cell_count
+        training_analyzed_seed_count = resolved_predictor.predictor.analyzed_seed_count
+        training_cell_count = resolved_predictor.predictor.cell_count
     return (
         online_episode.prediction_bundle,
         diagnostics_by_seed,
@@ -347,6 +351,7 @@ def evaluate_model_on_round(
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
+    online_predictor: RoundPredictorAdapter | None = None,
 ) -> list[ModelSeedEvaluationContext]:
     round_record = read_round_record(paths, round_id)
     analyses, truth_bundle = _analysis_ground_truth_bundle(paths, round_id)
@@ -384,6 +389,7 @@ def evaluate_model_on_round(
             samples_per_round=samples_per_round,
             budget=budget,
             episode_seed=episode_seed,
+            predictor=online_predictor,
         )
         resolved_policy_name = build_interactive_policy(policy_name).name
         resolved_samples_per_round = samples_per_round

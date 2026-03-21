@@ -310,3 +310,182 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - `tests/test_history_datasets.py`
   - `tests/test_teacher_student.py`
   - all passing
+
+### 2026-03-21T00:28Z
+
+- Resumed work from pushed `query_residual_v8` baseline.
+- Verified git status still clean on branch `agent4`.
+- Re-checked handoff and benchmark artifacts before new experimentation.
+- `br list` still blocked in this shell because `br` command is unavailable.
+- Identified next low-risk/high-signal experiment:
+  - test `query_residual` with `samples_per_round=2`
+  - reason: path is already wired through CLI/workflows/checkpoint naming
+  - expected effect: reduce transcript-training variance by exposing multiple stochastic transcripts per training round
+  - first target is exact prior 3-round probe subset:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+- Decision:
+  - do not change validation contract for this probe
+  - keep comparison apples-to-apples vs `tmp_query_residual_probe_3rounds_portablefix`
+
+### 2026-03-21T00:45Z
+
+- Completed exact matched 3-round probe for `query_residual` with `samples_per_round=2`:
+  - run: `tmp_query_residual_probe_3rounds_samples2`
+  - mean score `71.3184`
+  - mean weighted KL `0.113224`
+  - runtime `1012.5s`
+- Compared against matched fixed baseline `tmp_query_residual_probe_3rounds_portablefix`:
+  - score delta `-1.3135`
+  - weighted KL delta `+0.006177`
+  - win rate `0.267`
+  - loss rate `0.733`
+  - comparison artifact:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual__baseline_run=tmp_query_residual_probe_3rounds_portablefix__candidate_run=tmp_query_residual_probe_3rounds_samples2.md`
+- Failure pattern:
+  - modest regression on `8e839974-b13b-407b-a5e7-fc749d877195`
+  - severe regression on `ae78003a-4efe-425a-881a-d16a39bca0ad` across all seeds
+  - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b` stayed roughly flat
+- Conclusion:
+  - reject `samples_per_round=2` for active `query_residual`
+  - more synthetic transcript samples add variance/overfit cost here, not robustness
+
+### 2026-03-21T00:46Z
+
+- Checked local sibling worktrees for nearby family evidence before choosing next branch:
+  - agent7 full-dev reports:
+    - `query_residual_v8`: `73.0354`
+    - `query_residual_v9`: `73.4065`
+    - both below current agent4 best `74.2553`
+  - conclusion:
+    - do not import manifold-variant `v8/v9` serving path ideas
+- Checked local agent1 replay-family notes/artifacts:
+  - `exploration_v2` policy already exists in this branch via `policy/registry.py`
+  - matched 3-round single-seed probe in agent1:
+    - mean score `73.1346`
+    - slightly above old `coverage` probe `73.1027`
+  - matched 3-round multi-episode probe in agent1:
+    - mean score `73.2181`
+    - strong positive delta vs `coverage` multi-seed baseline
+- Updated next priority:
+  - run `query_residual` with `policy=exploration` on the same 3-round subset in this branch
+  - if positive enough, consider full 8-round benchmark
+  - separately consider porting multi-episode historical benchmark support as a stronger validation method
+
+### 2026-03-21T00:53Z
+
+- Implemented stronger historical benchmark validation in this branch:
+  - added `--episode-seed-count` support to `run-historical-benchmark`
+  - benchmark can now average over multiple transcript seeds per held-out round
+  - online historical benchmark now reuses one fitted predictor per held-out round across episode seeds
+  - comparison/report/result plumbing now pairs by `(round_id, seed_index, episode_seed)`
+- Reason:
+  - single transcript seed is noisy for online-query model selection
+  - multi-episode averaging is a more faithful proxy for live stochastic query rounds
+  - predictor reuse keeps this stronger validation computationally practical
+- Files touched for this validation upgrade:
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/workflows/results.py`
+  - `src/astar/workflows/compare_historical_benchmarks.py`
+  - `src/astar/eval/reports.py`
+  - `src/astar/cli_output.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run python -m py_compile ...` on changed files: passed
+  - `uv run pytest tests/test_historical_benchmark.py`: `5 passed`
+- In parallel:
+  - launched same 3-round probe with `policy=exploration`
+  - run name: `tmp_query_residual_probe_3rounds_exploration1`
+
+### 2026-03-21T01:22Z
+
+- Completed matched 3-round single-seed `exploration_v2` probe:
+  - run: `tmp_query_residual_probe_3rounds_exploration1`
+  - mean score `73.1346`
+  - mean weighted KL `0.104737`
+  - runtime `1038.3s`
+- Manual paired comparison vs matched fixed `coverage` baseline `tmp_query_residual_probe_3rounds_portablefix`:
+  - score delta `+0.5027`
+  - weighted KL delta `-0.002310`
+  - win rate `0.800`
+  - loss rate `0.200`
+  - by round:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+0.6723`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `+0.8208`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+0.0149`
+- Interpretation:
+  - single-seed signal favors `exploration_v2`
+  - but improvement is still small enough that stronger validation was necessary
+
+### 2026-03-21T01:27Z
+
+- Ran new stronger multi-episode historical benchmark on same 3-round subset with transcript seeds `0,1`:
+  - coverage run: `tmp_query_residual_probe_3rounds_cov_seed01`
+    - mean score `71.7303`
+    - mean weighted KL `0.111276`
+    - runtime `258.5s`
+  - exploration run: `tmp_query_residual_probe_3rounds_expl_seed01`
+    - mean score `73.2181`
+    - mean weighted KL `0.104341`
+    - runtime `254.5s`
+- Manual paired comparison across `(round_id, seed_index, episode_seed)`:
+  - score delta `+1.4878`
+  - weighted KL delta `-0.006935`
+  - win rate `1.000`
+  - loss rate `0.000`
+  - by round:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+1.4616`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `+0.7303`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+2.2714`
+- Conclusion:
+  - stronger validation materially supports `exploration_v2`
+  - next step is justified:
+    - launch full 8-round dev benchmark with `policy=exploration`
+
+### 2026-03-21T01:54Z
+
+- Completed full 8-round dev benchmark with `query_residual` + `exploration_v2`:
+  - run: `dev_query_residual_exploration_scopefix1`
+  - mean score `74.4011`
+  - mean weighted KL `0.101998`
+  - runtime `1597.9s`
+- Previous best full-dev result in this branch:
+  - `dev_query_residual_online50_scopefix1`
+  - mean score `74.2553`
+  - mean weighted KL `0.102772`
+- Manual paired comparison vs current best coverage run:
+  - score delta `+0.1458`
+  - weighted KL delta `-0.000774`
+  - win rate `0.650`
+  - loss rate `0.350`
+  - round deltas:
+    - `c5cdf100-a876-4fb7-b5d8-757162c97989`: `+2.5964`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`: `+1.2128`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+0.6638`
+    - `76909e29-f664-4b2f-b16b-61b7507277e9`: `+0.3803`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `+0.1913`
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`: `-0.0416`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `-1.6506`
+    - `36e581f1-73f8-453f-ab98-cbe3052b701b`: `-2.1862`
+- Interpretation:
+  - exploration does not win uniformly
+  - but it improves the branch-wide full-dev objective
+  - multi-episode probe support and full-dev result align enough to promote it as current champion configuration
+- Current champion configuration:
+  - model family: `query_residual` with scope-fix validation/caching improvements
+  - online policy: `exploration_v2`
+  - benchmark reference:
+    - `data/artifacts/benchmarks/dev_query_residual_exploration_scopefix1/report.md`
+
+### 2026-03-21T01:55Z
+
+- Final verification before commit:
+  - `uv run pytest tests/test_historical_benchmark.py`: passed
+  - `uv run pytest tests/test_historical_benchmark.py tests/test_history_datasets.py tests/test_teacher_student.py`: `11 passed`
+- Ready to commit + push:
+  - stronger historical validation (`episode_seed_count`, predictor reuse)
+  - negative `samples_per_round=2` result
+  - positive `exploration_v2` policy result on both 3-round multi-seed and full 8-round dev
