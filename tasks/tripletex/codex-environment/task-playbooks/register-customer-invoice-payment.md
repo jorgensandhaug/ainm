@@ -86,6 +86,10 @@ Verified in production on 2026-03-21:
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28273555` (`Betalt til bank`, debit `1920`)
 - `PUT /invoice/2147573361/:payment?paymentDate=2026-03-21&paymentTypeId=28273555&paidAmount=17750` reduced the remaining outstanding amount to `0`
 - this run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147574550` for customer `888415769` by `amountExcludingVatCurrency=32800`, line description `Datenberatung`, and positive `amountCurrencyOutstanding=41000`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28351269` (`Betalt til bank`, debit `1920`)
+- `PUT /invoice/2147574550/:payment?paymentDate=2026-03-21&paymentTypeId=28351269&paidAmount=41000` reduced the remaining outstanding amount to `0`
+- this German-language run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
@@ -93,6 +97,7 @@ Observed production/account variance:
 - production `27869893` added on 2026-03-21
 - production `28180406` added on 2026-03-21
 - production `28273555` added on 2026-03-21
+- production `28351269` added on 2026-03-21
 
 ## Minimal Flow
 
