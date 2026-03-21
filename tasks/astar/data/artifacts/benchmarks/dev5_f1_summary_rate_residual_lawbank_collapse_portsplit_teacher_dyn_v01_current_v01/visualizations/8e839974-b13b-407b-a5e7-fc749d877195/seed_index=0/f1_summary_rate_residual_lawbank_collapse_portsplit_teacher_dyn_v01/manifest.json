@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 4 Seed 0 f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/report.md",
+  "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+  "seed_index": 0,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 4,
+    "model_name": "f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01",
+    "score": 87.33536921256258,
+    "weighted_kl": 0.04513821985752905,
+    "training_round_count": 4,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 0.5832142676004861,
+    "mean_ground_truth_entropy": 0.45210741165846485,
+    "argmax_agreement_rate": 1.0,
+    "predicted_class_mass": [
+      0.6677049124305904,
+      0.06246960920602605,
+      0.012577446295104062,
+      0.00994066622040226,
+      0.21857208289611108,
+      0.028735282951765875
+    ],
+    "ground_truth_class_mass": [
+      0.6722437500000013,
+      0.07697500000000007,
+      0.006021875000000002,
+      0.007090625000000009,
+      0.21829374999999962,
+      0.019375
+    ],
+    "residual_class_mass": [
+      -0.00453883756941087,
+      -0.014505390793974018,
+      0.00655557129510406,
+      0.0028500412204022505,
+      0.00027833289611145506,
+      0.009360282951765875
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01 vs ground truth by class",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01 atlas",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/prediction_atlas.png",
+      "description": "All class probability maps for f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01 minus ground truth",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent6/tasks/astar/data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

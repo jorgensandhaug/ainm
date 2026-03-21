@@ -3797,3 +3797,64 @@
   - run 2 parallel current-smoke benchmarks:
     - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01`
     - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01`
+
+- Smoke results on current probe3:
+  - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_probe3_current/result.json`
+    - score `69.7755`
+    - weighted KL `0.128404`
+    - wall `9:25.79`
+    - max RSS `18.13 GB`
+  - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01_probe3_current/result.json`
+    - score `68.5337`
+    - weighted KL `0.135051`
+    - wall `9:45.45`
+    - max RSS `18.31 GB`
+
+- Smoke paired compares vs current family control `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`:
+  - dyn residual:
+    - compare:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01.json`
+    - score delta `-0.1424`
+    - KL delta `+0.001137`
+    - win rate `0.467`
+    - CI95 `[-0.7025, 0.4468]`
+    - read:
+      - first structural decoder branch here that was genuinely near-neutral on smoke
+      - big round-4 gains, mixed round-6 behavior
+  - collapsequad residual:
+    - compare:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01.json`
+    - score delta `-1.3841`
+    - KL delta `+0.007784`
+    - win rate `0.133`
+    - CI95 `[-2.2181, -0.6316]`
+    - read:
+      - collapsequad residual head is dead
+
+- Because dyn residual was smoke-near-neutral, I escalated it to current dev5:
+  - artifact:
+    - `data/artifacts/benchmarks/dev5_f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01_current_v01/result.json`
+  - score `71.8709`
+  - weighted KL `0.116351`
+  - wall `25:36.58`
+  - max RSS `33.10 GB`
+  - paired compare vs dev5 dyn control:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01.json`
+    - score delta `-1.6118`
+    - KL delta `+0.009361`
+    - win rate `0.200`
+    - CI95 `[-2.6856, -0.5575]`
+
+- Final read for this branch:
+  - residual lawbank was a real improvement over the dead full-law bank
+  - but it still fails broader current validation and adds a severe runtime hit
+  - so it is not promotable
+  - important scientific takeaway:
+    - decoder-side banked law residuals can make smoke look nearly alive
+    - but they overfit / misgeneralize on the broader current slice
+    - the main remaining family opportunity is probably not more generic law-bank retrieval
+    - next best path is more explicit year-program / rollout-teacher structure, or a different residual target than generic terminal-logit law residuals
