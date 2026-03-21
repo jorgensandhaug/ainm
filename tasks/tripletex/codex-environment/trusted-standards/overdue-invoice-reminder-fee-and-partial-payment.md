@@ -159,3 +159,10 @@
   - `POST /ledger/voucher` without `row` failed `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`
   - same payload with `row: 1` and `row: 2` succeeded as voucher `609095912`
   - full 6-call end-to-end re-proof with `row` fix: fixture invoice `#318` (`id=2147626400`, outstanding `10000`), voucher `609096514`, fee invoice `#319` (`id=2147626402`, amount `70`), payment reduced outstanding to `5000`
+- production proof on `2026-03-21` (`prod-2026-03-21-203931462Z-00a15d2d`) confirmed the `6`-call path for French prompt with fee `50`, 0 errors, 0 wasted calls:
+  - overdue invoice `#2` (`id=2147635863`), customer `108419715`, outstanding `29375`
+  - voucher `#1` (`id=609142150`)
+  - fee invoice `#4` (`id=2147635928`, amount `50`)
+  - payment type `37216892`
+  - payment reduced outstanding to `24375`
+  - 5th production confirmation of the `6`-call path; now verified across `nb`, `es`, `pt`, `de`, and `fr` prompts
