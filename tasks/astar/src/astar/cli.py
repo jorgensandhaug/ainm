@@ -72,6 +72,9 @@ from astar.policy import build_interactive_policy, build_named_policy
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.birth_posterior_specs import supported_birth_posterior_model_names
 from astar.student.predictor.interactive import build_online_predictor
+from astar.student.predictor.query_residual_birth_blend_specs import (
+    supported_query_residual_birth_blend_model_names,
+)
 from astar.student.predictor.query_residual_specs import supported_query_residual_model_names
 from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
@@ -126,6 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
         "latent_regime",
         "f1_event_regime_v01",
         *supported_birth_posterior_model_names(),
+        *supported_query_residual_birth_blend_model_names(),
         *supported_summary_bank_model_names(),
         *supported_query_residual_model_names(),
     ]

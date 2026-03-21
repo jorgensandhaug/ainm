@@ -803,3 +803,81 @@
   - better next path:
     - use the validated posterior substrate inside a stronger decoder / residualized decoder, or
     - derive better live-inferable latent targets closer to score-relevant terminal tensors than coarse birth/collapse rates or the current crude semimechanistic teacher regime
+- New session start after the first posterior-model failures:
+  - re-read `instructions/agent6.md`, `README.md`, `docs/game_facts.md`, and current tracker state
+  - `br list` is still unavailable in this workspace (`/bin/bash: br: command not found`)
+  - branch started clean/synced at `13abdf48c05a13acc07731511f0dce32566ddb0d`
+- Quick regime-swap diagnostic before writing more code:
+  - hypothesis under test:
+    - maybe `query_residual` could improve by replacing its linear inferred regime with the summary-bank kNN posterior that worked in the birth/collapse posterior audits
+  - first quick check on the legacy `query_residual` synthetic-live cache was too weak to trust, but still already not supportive:
+    - `episodes=6`, `rounds=8`
+    - linear derived-feature regime MAE `0.04515`
+    - summary-vector kNN regime MAE `0.04899`
+  - stricter rerun on the fuller cached dataset `f1_synthetic_live_coverage_b50_s4_v2`:
+    - `episodes=36`, `rounds=9`
+    - query-residual style linear regime MAE `0.02613`
+    - summary-vector kNN regime MAE `0.03304`
+  - read:
+    - direct “swap in summary-bank regime inference” is not the right next branch
+    - `query_residual`’s own derived transcript features already infer the teacher regime better than the simpler summary-vector kNN
+    - the next profitable posterior use is more likely a small residual signal layered on top of `query_residual`, not a full regime replacement
+- New working branch chosen from the diagnostic:
+  - target:
+    - benchmarkable `query_residual` + birth-posterior residual wrapper
+  - logic:
+    - the birth posterior signal is validated by held-out audits
+    - birth overlay on a weak structural prior was catastrophic
+    - but that same signal may still help as a small, geometry-masked residual on top of the strong `query_residual` baseline
+- Landed new benchmarkable residualized branch:
+  - new immutable model:
+    - `f1_query_residual_birthblend_b50s4k7_v01`
+  - implementation:
+    - wraps `QueryResidualPredictor` as the main decoder
+    - fits a train-fold-only `BirthPosteriorEventPredictor`
+    - applies only a small birth/post geometry mask on top of `query_residual`
+    - explicitly masks out already observed cells so the overlay cannot corrupt exact live evidence
+  - new files:
+    - `src/astar/student/predictor/query_residual_birth_blend.py`
+    - `src/astar/student/predictor/query_residual_birth_blend_specs.py`
+    - `tests/test_query_residual_birth_blend_predictor.py`
+  - wiring:
+    - `interactive.py`
+    - `historical_benchmark.py`
+    - `cli.py`
+- Regression after landing the new wrapper:
+  - `uv run pytest tests/test_query_residual_birth_blend_predictor.py tests/test_birth_posterior_predictor.py tests/test_history_datasets.py tests/test_historical_benchmark.py -q`
+  - result: `15 passed`
+- Smoke benchmark result for the new residualized branch:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_query_residual_birthblend_b50s4k7_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_query_residual_birthblend_b50s4k7_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_query_residual_birthblend_b50s4k7_v01_probe3/result.json`
+    - `data/artifacts/benchmarks/tmp_f1_query_residual_birthblend_b50s4k7_v01_probe3/report.md`
+  - result:
+    - mean score `69.9903`
+    - mean weighted KL `0.119656`
+    - runtime `434.199s`
+    - `/usr/bin/time -v` wall `7:30.32`
+    - max RSS `14916232` kB (`~14.92 GB`)
+  - paired compare vs `tmp_query_residual_probe_3rounds_v7`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_query_residual_birthblend_b50s4k7_v01.json`
+    - mean score delta `-3.1124`
+    - mean weighted KL delta `+0.014873`
+    - win rate `0.000`
+    - loss rate `1.000`
+  - read:
+    - reject this branch
+    - the validated birth posterior does not help when applied as a small post-hoc residual on top of `query_residual`
+    - it is also too expensive relative to the loss in quality
+- Updated family read after this rejection:
+  - posterior signal keeps failing once decoded toward the actual terminal tensor:
+    - pure birth overlay: catastrophic
+    - summary-bank teacher decode: respectable but clearly worse than query-residual
+    - birth residual on top of query-residual: uniformly negative and much slower
+  - this is now strong evidence that the current posterior target/decoder interface is mismatched to the score target
+  - best next branch is probably not “more birth posterior injection”
+  - better next branch:
+    - tune / extend the strong `query_residual` family directly, or
+    - invent a richer latent target much closer to terminal tensor structure than round-level birth prevalence

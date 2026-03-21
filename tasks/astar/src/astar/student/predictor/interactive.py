@@ -22,6 +22,11 @@ from astar.student.predictor.heuristic import (
 )
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_birth_blend import QueryResidualBirthBlendPredictor
+from astar.student.predictor.query_residual_birth_blend_specs import (
+    resolve_query_residual_birth_blend_model_spec,
+    supported_query_residual_birth_blend_model_names,
+)
 from astar.student.predictor.query_residual_specs import (
     resolve_query_residual_model_spec,
     supported_query_residual_model_names,
@@ -163,6 +168,42 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    query_residual_birth_blend_spec = resolve_query_residual_birth_blend_model_spec(normalized)
+    if query_residual_birth_blend_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = QueryResidualBirthBlendPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=query_residual_birth_blend_spec.policy_name,
+            model_name=query_residual_birth_blend_spec.model_name,
+            probability_floor=query_residual_birth_blend_spec.probability_floor,
+            query_samples_per_round=query_residual_birth_blend_spec.query_samples_per_round,
+            query_cells_per_seed=query_residual_birth_blend_spec.query_cells_per_seed,
+            query_budget_prefixes=query_residual_birth_blend_spec.query_budget_prefixes,
+            query_ridge_lambda=query_residual_birth_blend_spec.query_ridge_lambda,
+            query_temperature=query_residual_birth_blend_spec.query_temperature,
+            query_prior_blend=query_residual_birth_blend_spec.query_prior_blend,
+            query_signal_scale=query_residual_birth_blend_spec.query_signal_scale,
+            query_min_delta_scale=query_residual_birth_blend_spec.query_min_delta_scale,
+            query_residual_class_scale=query_residual_birth_blend_spec.query_residual_class_scale,
+            query_teacher_blend=query_residual_birth_blend_spec.query_teacher_blend,
+            query_beta_min=query_residual_birth_blend_spec.query_beta_min,
+            query_beta_scale=query_residual_birth_blend_spec.query_beta_scale,
+            birth_budget=query_residual_birth_blend_spec.birth_budget,
+            birth_samples_per_round=query_residual_birth_blend_spec.birth_samples_per_round,
+            birth_k_neighbors=query_residual_birth_blend_spec.birth_k_neighbors,
+            birth_signal_scale=query_residual_birth_blend_spec.birth_signal_scale,
+            birth_gain=query_residual_birth_blend_spec.birth_gain,
+            birth_dataset_name=query_residual_birth_blend_spec.birth_dataset_name,
+            settlement_gain=query_residual_birth_blend_spec.settlement_gain,
+            port_gain=query_residual_birth_blend_spec.port_gain,
+            empty_penalty=query_residual_birth_blend_spec.empty_penalty,
+            forest_penalty=query_residual_birth_blend_spec.forest_penalty,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     query_residual_spec = resolve_query_residual_model_spec(normalized)
     if query_residual_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -227,6 +268,7 @@ __all__ = [
     "RoundPredictorAdapter",
     "build_online_predictor",
     "supported_birth_posterior_model_names",
+    "supported_query_residual_birth_blend_model_names",
     "supported_query_residual_model_names",
     "supported_summary_bank_model_names",
 ]
