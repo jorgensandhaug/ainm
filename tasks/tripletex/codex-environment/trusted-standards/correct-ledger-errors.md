@@ -18,7 +18,7 @@
 
 ## Standard Flow (3 calls — combined corrective voucher)
 1. `GET /ledger/account?number=<all-error-accounts>,<correction-target-accounts>&fields=id,number`
-2. `GET /ledger/voucher?dateFrom=<start>&dateTo=<end>&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000`
+2. `GET /ledger/voucher?dateFrom=<period-start>&dateTo=<first-of-month-after-period-end>&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000` — dateTo is EXCLUSIVE, so for Jan-Feb use `dateTo=2026-03-01`
 3. `POST /ledger/voucher?sendToLedger=true` — single combined voucher with all correction lines
 4. verify from the write response
 5. stop
@@ -42,8 +42,9 @@ Pre-resolving all account IDs avoids a second GET later, since correction-target
 
 ### Step 2: Voucher Discovery with Nested Expansion
 ```
-GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000
+GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000
 ```
+**CRITICAL: `dateTo` is exclusive** ("To and excluding"). Sandbox-verified 2026-03-21: the error message explicitly says `'To and excluding'`. To include all of February, use `dateTo=2026-03-01`, NOT `dateTo=2026-02-28`. For Jan+Feb, use `dateFrom=2026-01-01&dateTo=2026-03-01`.
 From this response:
 - identify wrong-account and incorrect-amount vouchers by matching the stated account number plus the prompt amount on that account
 - identify the duplicate by grouping vouchers on the stated account into a normalized posting-signature map and selecting the repeated signature; the prompt amount confirms the group, but do not assume two direct `amountGross` matches will always be the only safe resolver
@@ -152,9 +153,18 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - vatType=1 on both sides of reclassification auto-generates matching VAT lines that cancel out
   - exact no-`2710` missing-VAT proof on `6500 18350 excl. VAT` succeeded with direct `2710 +4587.5` and counterpart `-4587.5`
   - the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` was proven wrong for that exact shape: Tripletex created only `2710 +917.5` and `6500 amount=3670`, which understates VAT and overstates expense
-- production run 2026-03-21 (correct-ledger-errors):
+- production run 2026-03-21 (correct-ledger-errors, first run):
   - account 7100 (Bilgodtgjørelse oppgavepliktig) is locked to vatType 0; using vatType 1 → 422 (`Kontoen 7100 er låst til mva-kode 0`)
   - accounts 7000 and 7300 accept both vatType 0 and 1 (default vatType 1, but vatType 0 also works)
   - counterpart account IDs (1920, 2400) were available from the voucher response's nested `account(id,number)` expansion — a second `GET /ledger/account` for counterparts was unnecessary
   - missing VAT case: the 6500/24750 voucher already had a 2710 posting (4950) → "other branch" applied, not "exact branch"
   - run used 6 calls instead of ideal 3 due to: 1 redundant debug GET, 1 unnecessary account lookup, 1 avoidable 422
+- production run 2026-03-21 (correct-ledger-errors, second run — 0f4ba20a):
+  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+  - errors: 6340→6390 (2300, vatType 1), dup 6860 (3150, vatType 1), missing VAT 4300 (16550 excl, had 2710 → "other branch"), wrong amount 6300 (17800→8900, vatType 0)
+  - vatType correctly copied from originals: vatType 1 for 6340/6860/4300, vatType 0 for 6300
+  - "other branch" correctly detected (original 4300 voucher had 2710 posting) — correction was 4137.5 gross on 4300 with vatType 1, Tripletex auto-generated 827.5 on 2710
+  - supplier.id correctly included for 2400 counterpart in missing VAT correction
+  - counterpart account IDs (1920, 2400) all came from voucher response nested expansion — no second account lookup needed
+  - **latent bug**: used `dateTo=2026-02-28` instead of `dateTo=2026-03-01`; succeeded only because all error vouchers were dated before Feb 28; `dateTo` is exclusive so Feb 28 vouchers would have been missed
+- sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers

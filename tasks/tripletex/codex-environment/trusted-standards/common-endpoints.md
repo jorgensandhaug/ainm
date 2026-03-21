@@ -696,6 +696,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - format is `YYYY-MM-DD`; use `date=2031-01-01` for a future-proof cutoff
   - `supplierId` and `customerId` are optional filters
   - `GET /ledger/posting` (not openPost) requires `dateFrom` and `dateTo` (not `date`)
+  - `dateTo` on `/ledger/posting` is also exclusive (same as `/ledger/voucher` and `/balanceSheet`); for full-month coverage always use first-of-next-month
   - production 2026-03-21 task 23 wasted 2 calls with `422` because `dateFrom`/`dateTo` were sent instead of `date` on the `openPost` variant
 
 ## Ledger Voucher
@@ -715,6 +716,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for duplicate detection in that task family, do not rely on a raw amount filter alone; group vouchers on the prompt account into normalized posting signatures and pick the repeated signature, usually the later voucher ID
   - for the exact missing-VAT branch where the original voucher has no `2710` posting and the prompt amount is excluding VAT, post the correction directly to `2710` and the original counterpart for `net * 0.25`; do not use the expense-account-plus-`vatType` shortcut on that shape
   - persistent sandbox 2026-03-21 re-proof: combined correction voucher `608960780` succeeded, while the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` created only `2710 +917.5` and `6500 amount=3670`, so that shortcut is wrong for the true no-`2710` case
+  - **`dateTo` on `/ledger/voucher` is exclusive** ("To and excluding"): to include all of February, use `dateTo=2026-03-01`, NOT `dateTo=2026-02-28`. Sandbox-verified 2026-03-21: `dateFrom=2026-02-28&dateTo=2026-02-28` → 422 with explicit `'To and excluding'` message. Production run 0f4ba20a used `dateTo=2026-02-28` and succeeded only because all error vouchers were dated before Feb 28.
   - for the voucher discovery read, use `GET /ledger/voucher` (not `/ledger/posting`) because it provides voucher descriptions for identifying duplicates and voucher IDs for the reverse operation
   - `PUT /ledger/voucher/{id}/:reverse?date=YYYY-MM-DD` requires the `date` query parameter (reversal date); use the run date
 - Standard create note:
