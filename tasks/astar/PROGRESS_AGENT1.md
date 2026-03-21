@@ -297,6 +297,18 @@ Optimum at 50% DT weight with low floor. Low floor adds only +0.03 - our floor w
 
 **Why GBT failed**: Training uses zero-valued evidence features (because training data comes from replays, not online queries). Agent 3's approach trains with synthetic evidence from simulated episodes. Without evidence-augmented training, the GBT model is just a nonlinear version of the static-feature model and can't beat the GLMM rollout.
 
+### Observation Blending on Ensemble (Phase 6) - NEW BEST!
+
+| Model | Score | Weighted KL | Worst Round | Notes |
+|-------|-------|-------------|-------------|-------|
+| **obsblend_v002 (50% DT + obs t=20)** | **81.73** | **0.070** | **59.85** | **NEW BEST** |
+| obsblend_v001 (50% DT + obs t=30) | 81.67 | 0.071 | 59.00 | |
+| ensemble_v010 (55% DT, no obs) | 80.81 | 0.075 | 56.80 | |
+| ensemble_v011 (60% DT, no obs) | 80.73 | 0.075 | 57.26 | |
+
+Observation blending at temperature=20 adds +0.86 points on top of the ensemble!
+DT weight peaks at 50% (higher hurts the good rounds).
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
