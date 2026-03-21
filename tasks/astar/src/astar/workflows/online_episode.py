@@ -46,6 +46,7 @@ def run_online_episode(
             round_id,
             query,
             rng_seed=episode_seed + query_index,
+            query_index=query_index,
         )
         belief = predictor.update(belief, observation)
         query_trace.append(

@@ -11,7 +11,7 @@ from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import write_analysis_record
 from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_sample_replay
+from tests.replay_test_utils import _write_sample_replay
 
 
 def _write_sample_analysis(paths: RepoPaths, *, seed_index: int) -> None:

@@ -48,6 +48,8 @@ from astar.workflows.results import (
     SyntheticTournamentResult,
     TrainHazardTeacherResult,
     TrainHistoricalBucketPriorResult,
+    TrainStateSpaceStudentResult,
+    TrainStateSpaceTeacherResult,
     TrainSummaryStudentResult,
     VisualizationReportResult,
 )
@@ -449,6 +451,7 @@ def render_factorize_round_summaries(result: FactorizeRoundSummariesResult) -> s
         [
             "factorize-round-summaries",
             f"summary_kind: {result.summary_kind}",
+            f"summary_profile: {result.summary_profile}",
             f"rounds: {result.round_count}",
             f"effective_rank: {result.effective_rank}",
             f"explained_variance_ratio: {result.factorization.explained_variance_ratio.tolist()}",
@@ -468,9 +471,24 @@ def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:
         [
             f"train-hazard-teacher {result.model_name}",
             f"summary_backend: {result.summary_backend}",
+            f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
             f"replay_episodes: {result.replay_episode_count}",
             f"replay_runs: {result.replay_run_count}",
             f"embedding_dim: {result.embedding_dim}",
+            f"checkpoint: {result.checkpoint_path}",
+        ],
+    )
+
+
+def render_train_state_space_teacher(result: TrainStateSpaceTeacherResult) -> str:
+    return "\n".join(
+        [
+            f"train-state-space-teacher {result.model_name}",
+            f"summary_backend: {result.summary_backend}",
+            f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
+            f"replay_episodes: {result.replay_episode_count}",
+            f"replay_runs: {result.replay_run_count}",
+            f"regime_dim: {result.regime_dim}",
             f"checkpoint: {result.checkpoint_path}",
         ],
     )
@@ -496,6 +514,7 @@ def render_train_summary_student(result: TrainSummaryStudentResult) -> str:
         [
             f"train-summary-student {result.model_name}",
             f"summary_backend: {result.summary_backend}",
+            f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
             f"dataset: {result.dataset.dataset_name}",
             f"samples: {result.sample_count}",
             f"summary_dim: {result.summary_dim}",
@@ -506,9 +525,31 @@ def render_train_summary_student(result: TrainSummaryStudentResult) -> str:
     )
 
 
+def render_train_state_space_student(result: TrainStateSpaceStudentResult) -> str:
+    return "\n".join(
+        [
+            f"train-state-space-student {result.model_name}",
+            f"summary_backend: {result.summary_backend}",
+            f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
+            f"dataset: {result.dataset.dataset_name}",
+            f"samples: {result.sample_count}",
+            f"summary_dim: {result.summary_dim}",
+            f"regime_dim: {result.regime_dim}",
+            f"prototype_count: {result.prototype_count}",
+            f"ridge_alpha: {result.ridge_alpha}",
+            f"proposal_mass: {result.proposal_mass}",
+            f"decoder_rollouts: {result.decoder_rollouts}",
+            f"teacher_checkpoint: {result.teacher_checkpoint_path}",
+            f"checkpoint: {result.checkpoint_path}",
+        ],
+    )
+
+
 def render_teacher_science(result: EvaluateTeacherScienceResult) -> str:
     lines = [
         f"evaluate-teacher-science {result.model_name}",
+        f"summary_backend: {result.summary_backend}",
+        f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
         f"train_rounds: {len(result.train_round_ids)}",
         f"eval_rounds: {len(result.eval_round_ids)}",
         f"reports: {result.report_count}",
@@ -559,6 +600,7 @@ def render_behavioral_fingerprint_summary_validation(
     return "\n".join(
         [
             "evaluate-behavioral-fingerprint-summary",
+            f"summary_profile: {result.summary_profile}",
             f"profile: {result.validation_profile}",
             f"rounds: {result.report_count}",
             f"holdout_runs: {result.max_holdout_runs}",
@@ -590,14 +632,21 @@ def render_regime_model_evaluation(result: EvaluateRegimeModelResult) -> str:
     lines = [
         "evaluate-regime-model",
         f"summary_backend: {result.summary_backend}",
+        f"summary_profile: {result.behavioral_fingerprint_summary_profile}",
+        f"profile: {result.validation_profile}",
         f"rounds: {result.round_count}",
         f"summary_dim: {result.summary_dim}",
         f"max_rank: {result.max_rank}",
         f"bootstrap_samples: {result.bootstrap_samples}",
         f"rng_seed: {result.rng_seed}",
+        f"site_max_rows: {result.site_max_rows}",
+        f"live_max_rows: {result.live_max_rows}",
+        f"ruin_max_rows: {result.ruin_max_rows}",
+        f"pairwise_max_rows: {result.pairwise_max_rows}",
+        f"owner_max_rows: {result.owner_max_rows}",
         f"elapsed_seconds: {result.elapsed_seconds:.3f}",
         f"best_rank_by_reconstruction: {result.best_rank_by_reconstruction}",
-        f"best_rank_by_terminal_l1: {result.best_rank_by_terminal_l1}",
+        f"best_rank_by_terminal_weighted_kl: {result.best_rank_by_terminal_weighted_kl}",
         f"artifact: {result.artifact_path}",
         f"report: {result.report_path}",
     ]
@@ -606,13 +655,26 @@ def render_regime_model_evaluation(result: EvaluateRegimeModelResult) -> str:
             " ".join(
                 [
                     f"rank={report.rank}",
-                    f"cumvar={report.cumulative_explained_variance}",
+                    f"in_sample_rank={report.in_sample_effective_rank}",
+                    f"cumvar={report.in_sample_cumulative_explained_variance}",
+                    f"mean_rank={report.mean_effective_rank}",
                     f"recon_rmse={report.mean_reconstruction_rmse}",
                     f"recon_improvement={report.mean_reconstruction_rmse_improvement}",
                     f"coeff_l2={report.mean_coefficient_l2}",
                     f"coeff_improvement={report.mean_coefficient_l2_improvement}",
-                    f"terminal_l1={report.mean_terminal_l1}",
-                    f"terminal_improvement={report.mean_terminal_l1_improvement}",
+                    f"raw_coeff_l2={report.mean_raw_summary_coefficient_l2}",
+                    "lowrank_vs_raw_coeff_improvement="
+                    + f"{report.mean_low_rank_vs_raw_summary_coefficient_l2_improvement}",
+                    f"terminal_kl={report.mean_terminal_weighted_kl}",
+                    f"terminal_kl_improvement={report.mean_terminal_weighted_kl_improvement}",
+                    f"raw_terminal_kl={report.mean_raw_summary_terminal_weighted_kl}",
+                    "lowrank_vs_raw_terminal_kl_improvement="
+                    + f"{report.mean_low_rank_vs_raw_summary_terminal_weighted_kl_improvement}",
+                    f"terminal_score={report.mean_terminal_score}",
+                    f"terminal_score_improvement={report.mean_terminal_score_improvement}",
+                    f"raw_terminal_score={report.mean_raw_summary_terminal_score}",
+                    "lowrank_vs_raw_terminal_score_improvement="
+                    + f"{report.mean_low_rank_vs_raw_summary_terminal_score_improvement}",
                 ]
             )
         )

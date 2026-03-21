@@ -187,9 +187,13 @@ Replay branch:
 
 1. harvest many replay trajectories from completed rounds
 2. summarize their terminal/hazard behavior
-3. fit a privileged `HazardTeacher`
+3. fit a replay-backed teacher:
+   - `HazardTeacher` for the terminal-decoder baseline
+   - `StateSpaceTeacher` for the event-head yearly rollout model
 4. build synthetic live-query episodes from replay-backed rounds
-5. fit a `SummaryBankStudent` that maps evidence summaries to regime posteriors
+5. fit a replay-safe student:
+   - `SummaryBankStudent` as the grouped-transcript kNN baseline
+   - `StateSpaceStudent` as the probabilistic regime posterior student for `StateSpaceTeacher`
 
 This stack exists and is testable, but it is still experimental and not yet wired into the live serving path.
 
@@ -198,6 +202,8 @@ Training entrypoints:
 ```bash
 uv run astar train-hazard-teacher
 uv run astar train-summary-student
+uv run astar train-state-space-teacher
+uv run astar train-state-space-student
 ```
 
 ### Synthetic Evaluation Pipeline
@@ -241,13 +247,18 @@ Live predictor wiring: [interactive.py](/home/jorge/repos/ainm/tasks/astar/src/a
 
 - `HazardTeacher`
   Fits semimechanistic round coefficients from replay-backed episodes, then decodes a regime vector into final tensors.
+- `StateSpaceTeacher`
+  Fits latent-modulated yearly event heads and rolls them forward into terminal tensors.
 - `SummaryBankStudent`
-  kNN-style posterior model over evidence summaries, using synthetic-live episodes plus the teacher decoder.
+  kNN-style posterior model over grouped transcript summaries, using synthetic-live episodes plus the teacher decoder.
+- `StateSpaceStudent`
+  Probabilistic posterior student over teacher regime coordinates, using grouped transcript summaries, ridge proposal inference, and prototype particle correction.
 
 Important current-state note:
 
 - this teacher/student path exists for offline research
 - it is not yet exposed via `run-live-online`
+- student implementation notes live in [student_model_implementation_plan.md](/home/jorge/ainm/tasks/astar/docs/student_model_implementation_plan.md)
 
 ## Data Layout
 
@@ -404,6 +415,8 @@ Useful starting files for agents:
   canonical external challenge facts and replay caveats
 - `handoff_from_high_level_agent.md`
   historical architecture handoff brief
+- `student_model_implementation_plan.md`
+  current student-role, schema, and implementation notes
 - `research_operating_system_backlog.md`
   long-horizon backlog
 - `ideas.md`

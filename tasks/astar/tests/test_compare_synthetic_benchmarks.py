@@ -6,7 +6,7 @@ from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_compare_synthetic_benchmarks_on_same_manifest(sample_paths: RepoPaths) -> None:

@@ -12,7 +12,7 @@ from astar.envs.types import RoundContext
 from astar.infra.api.client import AstarApiClient
 from astar.infra.api.dto import BudgetStatus
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.infra.artifacts.store import read_query_records
+from astar.infra.artifacts.store import read_query_records, sort_query_records_chronologically
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.workflows.online_episode import run_online_episode
@@ -39,14 +39,9 @@ def _build_live_observations_from_saved_queries(
     paths: WorkspacePaths,
     round_id: str,
 ) -> tuple[LiveQueryObs, ...]:
-    query_records = read_query_records(paths, round_id)
+    query_records = sort_query_records_chronologically(read_query_records(paths, round_id))
     observations: list[LiveQueryObs] = []
-    for query_index, item in enumerate(
-        sorted(
-            query_records,
-            key=lambda record: (record.record.requested_at, record.record.query_id),
-        ),
-    ):
+    for query_index, item in enumerate(query_records):
         observations.append(
             LiveQueryObs(
                 round_id=round_id,

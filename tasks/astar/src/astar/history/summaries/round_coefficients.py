@@ -228,10 +228,13 @@ class RoundSemimechanisticCoefficients(BaseModel):
         )
 
 
-def fit_round_semimechanistic_coefficients(
-    episode: RoundEpisode,
+def _fit_round_semimechanistic_from_targets(
     *,
-    ridge_alpha: float = 1e-2,
+    round_id: str,
+    round_number: int,
+    seed_targets: list[tuple[InitialWorldState, np.ndarray]],
+    ridge_alpha: float,
+    regime_vector: np.ndarray | None = None,
 ) -> RoundSemimechanisticCoefficients:
     feature_names = seed_feature_names()
     feature_rows: list[np.ndarray] = []
@@ -239,11 +242,8 @@ def fit_round_semimechanistic_coefficients(
     port_targets: list[np.ndarray] = []
     ruin_targets: list[np.ndarray] = []
 
-    for seed in episode.seeds:
-        empirical = seed_empirical_terminal_probs(seed)
-        if empirical is None:
-            continue
-        _, feature_stack = seed_feature_matrix(seed.initial_state)
+    for initial_state, empirical in seed_targets:
+        _, feature_stack = seed_feature_matrix(initial_state)
         feature_rows.append(feature_stack.reshape(feature_stack.shape[0], -1).T)
         build_targets.append(
             np.asarray(
@@ -255,9 +255,7 @@ def fit_round_semimechanistic_coefficients(
         ruin_targets.append(np.asarray(empirical[:, :, 3], dtype=np.float64).reshape(-1))
 
     if not feature_rows:
-        raise ValueError(
-            f"round {episode.metadata.round_id} has no replay-backed terminal targets",
-        )
+        raise ValueError(f"round {round_id} has no replay-backed terminal targets")
 
     design_matrix = np.concatenate(feature_rows, axis=0)
     build_target = np.concatenate(build_targets, axis=0)
@@ -280,10 +278,14 @@ def fit_round_semimechanistic_coefficients(
     )
 
     return RoundSemimechanisticCoefficients(
-        round_id=episode.metadata.round_id,
-        round_number=int(episode.metadata.round_number or -1),
+        round_id=round_id,
+        round_number=round_number,
         feature_names=feature_names,
-        regime_vector=round_regime_summary_vector(episode),
+        regime_vector=(
+            np.asarray(regime_vector, dtype=np.float64)
+            if regime_vector is not None
+            else np.zeros(12, dtype=np.float64)
+        ),
         build_intercept=build_intercept,
         build_coef=build_coef,
         port_intercept=port_intercept,
@@ -294,9 +296,46 @@ def fit_round_semimechanistic_coefficients(
     )
 
 
+def fit_round_semimechanistic_coefficients_from_seed_targets(
+    *,
+    round_id: str,
+    round_number: int,
+    seed_targets: list[tuple[InitialWorldState, np.ndarray]],
+    ridge_alpha: float = 1e-2,
+    regime_vector: np.ndarray | None = None,
+) -> RoundSemimechanisticCoefficients:
+    return _fit_round_semimechanistic_from_targets(
+        round_id=round_id,
+        round_number=round_number,
+        seed_targets=seed_targets,
+        ridge_alpha=ridge_alpha,
+        regime_vector=regime_vector,
+    )
+
+
+def fit_round_semimechanistic_coefficients(
+    episode: RoundEpisode,
+    *,
+    ridge_alpha: float = 1e-2,
+) -> RoundSemimechanisticCoefficients:
+    seed_targets = [
+        (seed.initial_state, empirical)
+        for seed in episode.seeds
+        if (empirical := seed_empirical_terminal_probs(seed)) is not None
+    ]
+    return _fit_round_semimechanistic_from_targets(
+        round_id=episode.metadata.round_id,
+        round_number=int(episode.metadata.round_number or -1),
+        seed_targets=seed_targets,
+        ridge_alpha=ridge_alpha,
+        regime_vector=round_regime_summary_vector(episode),
+    )
+
+
 __all__ = [
     "RoundSemimechanisticCoefficients",
     "fit_round_semimechanistic_coefficients",
+    "fit_round_semimechanistic_coefficients_from_seed_targets",
     "round_regime_summary_vector",
     "seed_empirical_terminal_probs",
     "seed_feature_dict",

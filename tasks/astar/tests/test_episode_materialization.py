@@ -39,7 +39,7 @@ def test_load_round_learning_episode_reads_materialized_arrays(sample_paths: Rep
 def test_load_round_learning_episode_reads_replay_event_summaries_when_present(
     sample_paths: RepoPaths,
 ) -> None:
-    from tests.test_history_datasets import _write_replays_for_all_seeds
+    from tests.replay_test_utils import _write_replays_for_all_seeds
 
     _write_replays_for_all_seeds(sample_paths, run_count=1)
     materialize_round_episode(sample_paths, ROUND_ID)
@@ -58,7 +58,7 @@ def test_load_round_learning_episode_reads_replay_event_summaries_when_present(
 def test_materialize_round_episode_keeps_replay_event_summary_when_present(
     sample_paths: RepoPaths,
 ) -> None:
-    from tests.test_history_datasets import _write_replays_for_all_seeds
+    from tests.replay_test_utils import _write_replays_for_all_seeds
 
     _write_replays_for_all_seeds(sample_paths, run_count=1)
     result = materialize_round_episode(sample_paths, ROUND_ID)
@@ -70,7 +70,7 @@ def test_materialize_round_episode_keeps_replay_event_summary_when_present(
 def test_materialize_round_episode_can_use_cached_replay_summaries_without_raw_replays(
     sample_paths: RepoPaths,
 ) -> None:
-    from tests.test_history_datasets import _write_replays_for_all_seeds
+    from tests.replay_test_utils import _write_replays_for_all_seeds
 
     _write_replays_for_all_seeds(sample_paths, run_count=1)
     summarize_round_replays(sample_paths, ROUND_ID)

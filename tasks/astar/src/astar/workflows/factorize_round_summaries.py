@@ -27,6 +27,7 @@ class FactorizeRoundSummariesResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     summary_kind: str
+    summary_profile: str | None = None
     round_count: int = Field(ge=1)
     effective_rank: int = Field(ge=1)
     summary_path: Path
@@ -61,6 +62,7 @@ def factorize_round_summaries(
     max_rank: int = 3,
     bootstrap_samples: int = 4,
     summary_name: str | None = None,
+    behavioral_fingerprint_summary_profile: str = "core_v1",
 ) -> FactorizeRoundSummariesResult:
     if summary_kind == "dynamic_law":
         resolved_summary_name = summary_name or "round_dynamic_law_subspace_v1"
@@ -80,13 +82,17 @@ def factorize_round_summaries(
             summary_name=resolved_summary_name,
         )
     elif summary_kind == "behavioral_fingerprint_core":
-        resolved_summary_name = summary_name or "round_behavioral_fingerprint_core_subspace_v1"
+        resolved_summary_name = summary_name or (
+            f"round_behavioral_fingerprint_core_subspace__"
+            f"{behavioral_fingerprint_summary_profile}"
+        )
         factorization, summary_path, basis_path = factorize_round_behavioral_fingerprint_core_subspace(
             paths,
             round_ids=round_ids,
             max_rank=max_rank,
             bootstrap_samples=bootstrap_samples,
             summary_name=resolved_summary_name,
+            summary_profile=behavioral_fingerprint_summary_profile,
         )
     elif summary_kind == "event_summary":
         resolved_summary_name = summary_name or "round_event_summary_subspace_v1"
@@ -131,6 +137,11 @@ def factorize_round_summaries(
 
     return FactorizeRoundSummariesResult(
         summary_kind=factorization.summary_kind,
+        summary_profile=(
+            behavioral_fingerprint_summary_profile
+            if summary_kind == "behavioral_fingerprint_core"
+            else None
+        ),
         round_count=len(factorization.round_ids),
         effective_rank=factorization.effective_rank,
         summary_path=summary_path,

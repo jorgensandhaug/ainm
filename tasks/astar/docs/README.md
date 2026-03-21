@@ -18,6 +18,7 @@ This `docs/` directory is now supplementary only. Current contents:
 
 - [game_facts.md](/home/jorge/repos/ainm/tasks/astar/docs/game_facts.md): canonical challenge facts, official-vs-observed replay split, scoring/mechanics/API reference
 - [cleanup_matrix.md](/home/jorge/repos/ainm/tasks/astar/docs/cleanup_matrix.md): refactor and ownership decision record
+- [dynamics_teacher_implementation_plan.md](/home/jorge/repos/ainm/tasks/astar/docs/dynamics_teacher_implementation_plan.md): concrete next-step teacher spec from handoff5 plus current repo gaps
 - [handoff_from_high_level_agent.md](/home/jorge/repos/ainm/tasks/astar/docs/handoff_from_high_level_agent.md): historical architecture handoff brief
 - [research_operating_system_backlog.md](/home/jorge/repos/ainm/tasks/astar/docs/research_operating_system_backlog.md): long-horizon backlog
 - [ideas.md](/home/jorge/repos/ainm/tasks/astar/docs/ideas.md): raw notes

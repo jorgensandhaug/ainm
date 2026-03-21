@@ -59,6 +59,7 @@ class LiveApiOracle(BaseModel):
         query: ViewportQuery,
         *,
         rng_seed: int | None = None,
+        query_index: int | None = None,
     ) -> LiveQueryObs:
         del rng_seed
         response = self.client.simulate(
@@ -107,7 +108,7 @@ class LiveApiOracle(BaseModel):
                 )
                 for item in response.settlements
             ),
-            query_index=0,
+            query_index=0 if query_index is None else int(query_index),
         )
 
 

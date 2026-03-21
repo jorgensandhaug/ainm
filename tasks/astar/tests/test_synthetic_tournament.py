@@ -5,7 +5,7 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_synthetic_tournament_runs_end_to_end(sample_paths: RepoPaths) -> None:
@@ -21,8 +21,8 @@ def test_synthetic_tournament_runs_end_to_end(sample_paths: RepoPaths) -> None:
     )
 
     assert result.round_id == ROUND_ID
-    assert result.executed_queries == 5
-    assert len(result.query_trace) == 5
+    assert result.executed_queries == 6
+    assert len(result.query_trace) == 6
     assert set(result.score_by_seed) == {0, 1, 2, 3, 4}
     assert 0.0 <= result.mean_score <= 100.0
     assert result.artifact_path.exists()

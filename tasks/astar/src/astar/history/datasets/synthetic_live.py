@@ -23,6 +23,8 @@ from astar.teacher.regime.base import RegimeEncoder
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.online_episode import run_online_episode
 
+_ROUND_DETAIL_RELPATH_PREFIX = Path("data") / "raw" / "rounds"
+
 
 class SyntheticEpisodeIndexRow(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -39,6 +41,7 @@ class SyntheticEpisodeArtifact(BaseModel):
 
     round_id: str
     round_number: int
+    round_detail_path: Path | None = None
     sample_index: int = Field(ge=0)
     policy_name: str
     regime_vector: np.ndarray
@@ -147,6 +150,7 @@ def build_synthetic_live_dataset(
             artifact = SyntheticEpisodeArtifact(
                 round_id=round_id,
                 round_number=int(episode_run.round_context.round_number or -1),
+                round_detail_path=_ROUND_DETAIL_RELPATH_PREFIX / f"{round_id}.json",
                 sample_index=sample_index,
                 policy_name=policy.name,
                 regime_vector=(

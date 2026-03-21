@@ -1,0 +1,113 @@
+{
+  "model_name": "teacher_science_small_behavioral_fingerprint_core",
+  "summary_backend": "behavioral_fingerprint_core",
+  "train_round_ids": [
+    "36e581f1-73f8-453f-ab98-cbe3052b701b"
+  ],
+  "eval_round_ids": [
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd"
+  ],
+  "report_count": 1,
+  "mean_terminal_l1": 0.1612973838991295,
+  "mean_alive_curve_mae": 22.14880282077837,
+  "mean_port_curve_mae": 2.0991498186005453,
+  "mean_ruin_curve_mae": 4.618948016139605,
+  "mean_owner_flip_mae": 3.395375,
+  "mean_coefficient_l2": 18.99583856546634,
+  "reports": [
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "round_number": 1,
+      "teacher_name": "teacher_science_small_behavioral_fingerprint_core",
+      "regime_dim": 1,
+      "seed_reports": [
+        {
+          "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+          "seed_index": 0,
+          "actual_replay_runs": 193,
+          "predicted_replay_runs": 2,
+          "terminal_l1": 0.1583721934369603,
+          "alive_curve_mae": 17.893020420603477,
+          "port_curve_mae": 0.897947780148329,
+          "ruin_curve_mae": 4.051153103728538,
+          "owner_flip_mae": 2.375,
+          "build_hit_rate_mae": 0.60125,
+          "port_hit_rate_mae": 0.10125,
+          "ruin_hit_rate_mae": 0.651875,
+          "coefficient_l2": 14.625245836557042
+        },
+        {
+          "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+          "seed_index": 1,
+          "actual_replay_runs": 193,
+          "predicted_replay_runs": 2,
+          "terminal_l1": 0.16026284542314337,
+          "alive_curve_mae": 14.379000304785128,
+          "port_curve_mae": 1.510362694300518,
+          "ruin_curve_mae": 4.4755155948389715,
+          "owner_flip_mae": 4.093125,
+          "build_hit_rate_mae": 0.54625,
+          "port_hit_rate_mae": 0.1175,
+          "ruin_hit_rate_mae": 0.611875,
+          "coefficient_l2": 6.6128919345708335
+        },
+        {
+          "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+          "seed_index": 2,
+          "actual_replay_runs": 192,
+          "predicted_replay_runs": 2,
+          "terminal_l1": 0.1654937065972222,
+          "alive_curve_mae": 28.411968954248373,
+          "port_curve_mae": 3.0205269607843133,
+          "ruin_curve_mae": 4.129799836601308,
+          "owner_flip_mae": 2.834375,
+          "build_hit_rate_mae": 0.559375,
+          "port_hit_rate_mae": 0.12625,
+          "ruin_hit_rate_mae": 0.620625,
+          "coefficient_l2": 26.444014338453687
+        },
+        {
+          "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+          "seed_index": 3,
+          "actual_replay_runs": 192,
+          "predicted_replay_runs": 2,
+          "terminal_l1": 0.16021375868055557,
+          "alive_curve_mae": 21.800040849673202,
+          "port_curve_mae": 2.0041870915032676,
+          "ruin_curve_mae": 5.162683823529412,
+          "owner_flip_mae": 5.275625,
+          "build_hit_rate_mae": 0.583125,
+          "port_hit_rate_mae": 0.105625,
+          "ruin_hit_rate_mae": 0.6425,
+          "coefficient_l2": 22.820826922132312
+        },
+        {
+          "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+          "seed_index": 4,
+          "actual_replay_runs": 191,
+          "predicted_replay_runs": 2,
+          "terminal_l1": 0.16214441535776614,
+          "alive_curve_mae": 28.259983574581664,
+          "port_curve_mae": 3.062724566266297,
+          "ruin_curve_mae": 5.275587721999794,
+          "owner_flip_mae": 2.39875,
+          "build_hit_rate_mae": 0.5675,
+          "port_hit_rate_mae": 0.109375,
+          "ruin_hit_rate_mae": 0.595,
+          "coefficient_l2": 24.476213795617827
+        }
+      ],
+      "mean_terminal_l1": 0.1612973838991295,
+      "mean_alive_curve_mae": 22.14880282077837,
+      "mean_port_curve_mae": 2.0991498186005453,
+      "mean_ruin_curve_mae": 4.618948016139605,
+      "mean_owner_flip_mae": 3.395375,
+      "mean_build_hit_rate_mae": 0.5715,
+      "mean_port_hit_rate_mae": 0.11199999999999999,
+      "mean_ruin_hit_rate_mae": 0.624375,
+      "mean_coefficient_l2": 18.99583856546634
+    }
+  ],
+  "artifact_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/teacher_science__teacher_science_small_behavioral_fingerprint_core.json",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/teacher_science__teacher_science_small_behavioral_fingerprint_core.md"
+}

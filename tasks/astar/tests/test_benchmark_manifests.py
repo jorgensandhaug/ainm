@@ -6,7 +6,7 @@ from astar.splits.synthetic_benchmark import (
     load_benchmark_manifest,
 )
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_build_default_benchmark_manifests(sample_paths: RepoPaths) -> None:

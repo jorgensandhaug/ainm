@@ -22,7 +22,7 @@ from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record, write_replay_record
 from astar.workflows.summarize_replays import summarize_round_replays
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_build_replay_measurement_bundle_captures_site_settlement_pair_and_shock_tables(

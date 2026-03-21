@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
     build_synthetic_live_dataset,
@@ -9,84 +7,12 @@ from astar.history.datasets.synthetic_live import (
 )
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
-from astar.infra.api.dto import (
-    ReplayFrame,
-    ReplayRequest,
-    ReplayResponse,
-    SettlementObservation,
-    StoredReplayRecord,
-)
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
-from astar.infra.artifacts.store import read_round_record, write_replay_record
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
 from astar.workflows.online_episode import run_online_episode
 from tests.conftest import ROUND_ID
-
-
-def _write_sample_replay(
-    paths: RepoPaths,
-    *,
-    round_id: str = ROUND_ID,
-    seed_index: int,
-    capture_id: str,
-    sim_seed: int,
-) -> None:
-    round_record = read_round_record(paths, round_id)
-    base_grid = [row[:] for row in round_record.round.initial_states[seed_index].grid]
-    built_grid = [row[:] for row in base_grid]
-    ruined_grid = [row[:] for row in built_grid]
-    built_grid[seed_index][seed_index] = 1
-    built_grid[seed_index][seed_index + 1] = 2
-    ruined_grid[seed_index][seed_index] = 3
-    ruined_grid[seed_index + 1][seed_index] = 4
-    settlement = SettlementObservation(
-        x=seed_index,
-        y=seed_index,
-        population=1.5 + seed_index,
-        food=0.4,
-        wealth=0.6,
-        defense=0.7,
-        has_port=(seed_index % 2 == 0),
-        alive=True,
-        owner_id=seed_index,
-    )
-    record = StoredReplayRecord(
-        capture_id=capture_id,
-        requested_at=datetime.now(UTC),
-        git_sha="test",
-        request=ReplayRequest(round_id=round_id, seed_index=seed_index),
-        response=ReplayResponse(
-            round_id=round_id,
-            seed_index=seed_index,
-            sim_seed=sim_seed,
-            width=round_record.round.map_width,
-            height=round_record.round.map_height,
-            frames=[
-                ReplayFrame(step=0, grid=base_grid, settlements=[settlement]),
-                ReplayFrame(step=1, grid=built_grid, settlements=[settlement]),
-                ReplayFrame(step=2, grid=ruined_grid, settlements=[settlement]),
-            ],
-        ),
-    )
-    write_replay_record(paths, record)
-
-
-def _write_replays_for_all_seeds(
-    paths: RepoPaths,
-    run_count: int = 1,
-    *,
-    round_id: str = ROUND_ID,
-) -> None:
-    for seed_index in range(5):
-        for run_index in range(run_count):
-            _write_sample_replay(
-                paths,
-                round_id=round_id,
-                seed_index=seed_index,
-                capture_id=f"seed{seed_index}_run{run_index}",
-                sim_seed=1000 + seed_index * 10 + run_index,
-            )
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_teacher_datasets_build_from_replay_backed_round(sample_paths: RepoPaths) -> None:

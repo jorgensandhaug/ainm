@@ -17,7 +17,7 @@ from astar.workflows.evaluate_behavioral_fingerprint_summary import (
 )
 from astar.workflows.summarize_replays import summarize_round_replays
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_evaluate_round_behavioral_fingerprint_summary_returns_finite_metrics(

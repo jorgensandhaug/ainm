@@ -7,7 +7,7 @@ from astar.envs.synthetic import SyntheticActiveOracle
 from astar.envs.types import ViewportQuery
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_historical_and_synthetic_oracles_expose_online_round_surface(

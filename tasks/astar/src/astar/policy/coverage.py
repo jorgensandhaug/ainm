@@ -8,12 +8,15 @@ from astar.infra.api.dto import RoundDetail
 from astar.observe.query_plan import QueryPlan, QueryPlanItem
 from astar.policy.query_plan import QueryPlanPolicy
 
+COMPETITION_QUERY_BUDGET = 50
+
 
 class CoverageThenReplicatePolicy(QueryPlanPolicy):
     name: str = "coverage_then_replicate_v1"
     viewport_w: int = Field(default=15, ge=1)
     viewport_h: int = Field(default=15, ge=1)
     replicate_budget: int = Field(default=5, ge=0)
+    target_query_budget: int | None = Field(default=None, ge=1)
     probe_first: bool = True
     motif_scorer: ViewportMotifScorer = Field(default_factory=ViewportMotifScorer)
 
@@ -33,7 +36,13 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
             for seed_index in range(round_detail.seeds_count)
             for viewport in viewports
         ]
-        if self.replicate_budget <= 0:
+        effective_replicate_budget = self.replicate_budget
+        if self.target_query_budget is not None:
+            effective_replicate_budget = max(
+                effective_replicate_budget,
+                self.target_query_budget - len(items),
+            )
+        if effective_replicate_budget <= 0:
             return QueryPlan(round_id=round_detail.id, policy_name=self.name, items=items)
 
         top_per_seed = [
@@ -54,7 +63,9 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
                 item.viewport.x,
             ),
         )
-        selected = ranked[: self.replicate_budget]
+        if not ranked:
+            return QueryPlan(round_id=round_detail.id, policy_name=self.name, items=items)
+        selected = [ranked[index % len(ranked)] for index in range(effective_replicate_budget)]
         diagnostic_items: list[QueryPlanItem] = []
         for item in selected:
             diagnostic_items.append(
@@ -72,3 +83,6 @@ class CoverageThenReplicatePolicy(QueryPlanPolicy):
         else:
             items = items + diagnostic_items
         return QueryPlan(round_id=round_detail.id, policy_name=self.name, items=items)
+
+
+__all__ = ["COMPETITION_QUERY_BUDGET", "CoverageThenReplicatePolicy"]

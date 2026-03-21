@@ -2,20 +2,30 @@ from __future__ import annotations
 
 import json
 import shutil
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import polars as pl
 
+from astar.core.grid import Viewport
 from astar.history.episodes.build import build_round_episode
 from astar.infra.api.dto import (
     ReplayFrame,
     ReplayRequest,
     ReplayResponse,
     SettlementObservation,
+    SimulationRequest,
+    SimulationResponse,
+    StoredQueryRecord,
     StoredReplayRecord,
 )
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
-from astar.infra.artifacts.store import load_named_arrays, read_round_record, write_replay_record
+from astar.infra.artifacts.store import (
+    load_named_arrays,
+    read_round_record,
+    write_query_record,
+    write_replay_record,
+)
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
 from astar.workflows.visualize_replay_events import visualize_replay_events
@@ -246,6 +256,76 @@ def test_build_round_episode_and_materialize_episode_include_replays(
     assert result.per_seed[0].replay_macro_trajectories_path is not None
     assert result.per_seed[0].replay_macro_trajectories_path.exists()
     assert result.replay_measurement_summary is not None
+
+
+def test_build_round_episode_orders_live_transcript_by_request_time(
+    tmp_path: Path,
+    repo_root: Path,
+) -> None:
+    paths = RepoPaths.from_root(tmp_path)
+    paths.ensure_layout()
+    shutil.copy(
+        repo_root / "data" / "raw" / "rounds" / f"{ROUND_ID}.json",
+        paths.raw_round_path(ROUND_ID),
+    )
+    round_record = read_round_record(paths, ROUND_ID)
+
+    base_time = datetime(2026, 1, 1, tzinfo=UTC)
+    early_record = StoredQueryRecord(
+        query_id="zzz-query",
+        requested_at=base_time,
+        git_sha="test",
+        config_hash="test",
+        request=SimulationRequest(
+            round_id=ROUND_ID,
+            seed_index=0,
+            viewport_x=7,
+            viewport_y=0,
+            viewport_w=1,
+            viewport_h=1,
+        ),
+        response=SimulationResponse(
+            grid=[[0]],
+            settlements=[],
+            viewport=Viewport(x=7, y=0, w=1, h=1),
+            width=round_record.round.map_width,
+            height=round_record.round.map_height,
+            queries_used=1,
+            queries_max=50,
+        ),
+    )
+    late_record = StoredQueryRecord(
+        query_id="aaa-query",
+        requested_at=base_time + timedelta(seconds=1),
+        git_sha="test",
+        config_hash="test",
+        request=SimulationRequest(
+            round_id=ROUND_ID,
+            seed_index=0,
+            viewport_x=3,
+            viewport_y=0,
+            viewport_w=1,
+            viewport_h=1,
+        ),
+        response=SimulationResponse(
+            grid=[[0]],
+            settlements=[],
+            viewport=Viewport(x=3, y=0, w=1, h=1),
+            width=round_record.round.map_width,
+            height=round_record.round.map_height,
+            queries_used=2,
+            queries_max=50,
+        ),
+    )
+
+    write_query_record(paths, ROUND_ID, late_record)
+    write_query_record(paths, ROUND_ID, early_record)
+
+    episode = build_round_episode(paths, ROUND_ID, include_replays=False)
+
+    assert episode.live_transcript is not None
+    assert [item.viewport.x for item in episode.live_transcript.observations] == [7, 3]
+    assert [item.query_index for item in episode.live_transcript.observations] == [0, 1]
 
 
 def test_visualize_replay_events_writes_report_and_figures(sample_paths: RepoPaths) -> None:

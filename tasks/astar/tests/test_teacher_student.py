@@ -15,11 +15,44 @@ from astar.infra.artifacts.store import read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.offline_env import OfflinePolicyEnv
 from astar.student.predictor.base import LiveInferenceContext
-from astar.teacher.dynamics.hazard_teacher import HazardTeacher
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher, _project_exclusive_pair
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
+
+
+def test_project_exclusive_pair_preserves_feasible_marginals() -> None:
+    build_prob = np.asarray([[0.60]], dtype=np.float64)
+    ruin_prob, port_prob = _project_exclusive_pair(
+        build_prob,
+        np.asarray([[0.20]], dtype=np.float64),
+        np.asarray([[0.10]], dtype=np.float64),
+    )
+
+    assert np.allclose(ruin_prob, 0.20)
+    assert np.allclose(port_prob, 0.10)
+    assert np.allclose(build_prob - ruin_prob - port_prob, 0.30)
+
+
+def test_project_exclusive_pair_avoids_order_bias_when_overfull() -> None:
+    build_prob = np.asarray([[0.20]], dtype=np.float64)
+    ruin_prob, port_prob = _project_exclusive_pair(
+        build_prob,
+        np.asarray([[0.19]], dtype=np.float64),
+        np.asarray([[0.05]], dtype=np.float64),
+    )
+    swapped_port, swapped_ruin = _project_exclusive_pair(
+        build_prob,
+        np.asarray([[0.05]], dtype=np.float64),
+        np.asarray([[0.19]], dtype=np.float64),
+    )
+
+    assert np.allclose(ruin_prob, 0.17)
+    assert np.allclose(port_prob, 0.03)
+    assert np.allclose(ruin_prob + port_prob, build_prob)
+    assert np.allclose(swapped_ruin, ruin_prob)
+    assert np.allclose(swapped_port, port_prob)
 
 
 def test_hazard_teacher_and_summary_bank_student_smoke(sample_paths: RepoPaths) -> None:
@@ -43,6 +76,22 @@ def test_hazard_teacher_and_summary_bank_student_smoke(sample_paths: RepoPaths) 
     assert teacher_result.checkpoint_path.exists()
     assert student_result.sample_count >= 1
     assert student_result.checkpoint_path.exists()
+
+
+def test_hazard_teacher_supports_behavioral_fingerprint_summary_profile(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(
+        name="hazard_teacher_full_profile_test",
+        behavioral_fingerprint_summary_profile="full_v1",
+    ).fit([round_episode])
+
+    assert teacher.behavioral_fingerprint_summary_profile == "full_v1"
+    assert any(name.startswith("year_shock::") for name in teacher.source_summary_names)
+    assert any(name.startswith("macro::") for name in teacher.source_summary_names)
 
 
 def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: RepoPaths) -> None:
@@ -89,7 +138,9 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
     assert np.allclose(artifact.regime_vector, encoded_round)
     assert teacher.summary_backend == "behavioral_fingerprint_core"
     assert all(
-        name.startswith("behavioral_fingerprint_core_coord_")
+        name.startswith(
+            f"behavioral_fingerprint_{teacher.behavioral_fingerprint_summary_profile}_coord_"
+        )
         for name in teacher.regime_summary_names
     )
     assert any(

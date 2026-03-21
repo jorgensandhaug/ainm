@@ -6,7 +6,7 @@ from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_evaluate_teacher_science_smoke(sample_paths: RepoPaths) -> None:

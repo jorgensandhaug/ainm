@@ -100,6 +100,9 @@ class WorkspacePaths(BaseModel):
     def replay_summary_path(self, round_id: str, seed_index: int) -> Path:
         return self.replay_summary_dir(round_id) / f"seed_index={seed_index}.npz"
 
+    def replay_terminal_grid_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_summary_dir(round_id) / f"seed_index={seed_index}__terminal_grids.npz"
+
     def replay_event_dir(self, round_id: str) -> Path:
         return self.derived_dir / "replay_events" / f"round_id={round_id}"
 

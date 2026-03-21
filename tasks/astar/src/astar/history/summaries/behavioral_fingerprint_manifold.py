@@ -21,8 +21,10 @@ from astar.history.summaries.behavioral_fingerprint import (
     estimate_round_behavioral_fingerprint,
 )
 from astar.history.summaries.behavioral_fingerprint_core import (
-    behavioral_fingerprint_core_column_scale,
-    select_behavioral_fingerprint_core,
+    DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
+    behavioral_fingerprint_summary_column_scale,
+    resolve_behavioral_fingerprint_summary_profile,
+    select_behavioral_fingerprint_summary_profile,
 )
 from astar.history.summaries.factorization import (
     RoundSummaryFactorization,
@@ -357,7 +359,14 @@ def factorize_round_behavioral_fingerprint_core_subspace(
     summary_name: str = "round_behavioral_fingerprint_core_subspace_v1",
     bootstrap_samples: int = 4,
     rng_seed: int = 0,
+    summary_profile: str = DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
 ) -> tuple[RoundSummaryFactorization, Path, Path]:
+    resolved_profile = resolve_behavioral_fingerprint_summary_profile(summary_profile)
+    if (
+        summary_name == "round_behavioral_fingerprint_core_subspace_v1"
+        and resolved_profile != DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE
+    ):
+        summary_name = f"round_behavioral_fingerprint_core_subspace__{resolved_profile}"
     (
         full_summary_names,
         row_round_ids,
@@ -375,16 +384,17 @@ def factorize_round_behavioral_fingerprint_core_subspace(
 
     full_matrix = np.asarray(row_vectors, dtype=np.float64)
     full_std_matrix = np.asarray(row_std_vectors, dtype=np.float64)
-    first_selection = select_behavioral_fingerprint_core(
+    first_selection = select_behavioral_fingerprint_summary_profile(
         full_summary_names,
         full_matrix[0],
         full_std_matrix[0],
+        summary_profile=resolved_profile,
     )
     source_indices = np.asarray(first_selection.source_indices, dtype=np.int64)
     summary_names = list(first_selection.summary_names)
     summary_matrix = full_matrix[:, source_indices]
     summary_std_matrix = full_std_matrix[:, source_indices]
-    scale_vector = behavioral_fingerprint_core_column_scale(
+    scale_vector = behavioral_fingerprint_summary_column_scale(
         summary_matrix,
         summary_std_matrix,
     )
@@ -406,6 +416,7 @@ def factorize_round_behavioral_fingerprint_core_subspace(
     summary_payload = {
         "factorization": factorization,
         "bootstrap_samples": bootstrap_samples,
+        "summary_profile": resolved_profile,
         "summary_std_matrix": summary_std_matrix,
         "probe_library_kind": probe_library.library_kind,
         "probe_library_version": probe_library.library_version,

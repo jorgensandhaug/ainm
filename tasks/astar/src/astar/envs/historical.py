@@ -113,10 +113,20 @@ class HistoricalReplayOracle(BaseModel):
         query: ViewportQuery,
         *,
         rng_seed: int | None = None,
+        query_index: int | None = None,
     ) -> LiveQueryObs:
         run = self.sample_trajectory(round_id, query.seed_index, rng_seed=rng_seed)
-        query_index = 0 if rng_seed is None else int(rng_seed)
-        return _sample_terminal_view(run, round_id=round_id, query=query, query_index=query_index)
+        resolved_query_index = (
+            int(query_index)
+            if query_index is not None
+            else (0 if rng_seed is None else int(rng_seed))
+        )
+        return _sample_terminal_view(
+            run,
+            round_id=round_id,
+            query=query,
+            query_index=resolved_query_index,
+        )
 
     def get_ground_truth(self, round_id: str) -> GroundTruthBundle:
         episode = self._episode(round_id)

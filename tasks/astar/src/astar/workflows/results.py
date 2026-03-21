@@ -224,10 +224,23 @@ class TrainHazardTeacherResult(BaseModel):
 
     model_name: str
     summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
     replay_episode_count: int = Field(ge=0)
     replay_run_count: int = Field(ge=0)
     checkpoint_path: Path
     embedding_dim: int = Field(ge=1)
+
+
+class TrainStateSpaceTeacherResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
+    replay_episode_count: int = Field(ge=0)
+    replay_run_count: int = Field(ge=0)
+    checkpoint_path: Path
+    regime_dim: int = Field(ge=1)
 
 
 class TrainHistoricalBucketPriorResult(BaseModel):
@@ -248,6 +261,7 @@ class TrainSummaryStudentResult(BaseModel):
 
     model_name: str
     summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
     dataset: SyntheticEpisodeDatasetRef
     checkpoint_path: Path
     teacher_checkpoint_path: Path
@@ -256,11 +270,30 @@ class TrainSummaryStudentResult(BaseModel):
     regime_dim: int = Field(ge=1)
 
 
+class TrainStateSpaceStudentResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    model_name: str
+    summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
+    dataset: SyntheticEpisodeDatasetRef
+    checkpoint_path: Path
+    teacher_checkpoint_path: Path
+    sample_count: int = Field(ge=0)
+    summary_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)
+    prototype_count: int = Field(ge=1)
+    ridge_alpha: float = Field(gt=0.0)
+    proposal_mass: float = Field(gt=0.0, lt=1.0)
+    decoder_rollouts: int = Field(ge=1)
+
+
 class EvaluateTeacherScienceResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     model_name: str
     summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
     train_round_ids: list[str]
     eval_round_ids: list[str]
     report_count: int = Field(ge=0)
@@ -307,6 +340,7 @@ class EvaluateBehavioralFingerprintSummaryResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     round_ids: list[str]
+    summary_profile: str = "core_v1"
     report_count: int = Field(ge=0)
     validation_profile: str
     max_holdout_runs: int = Field(ge=0)
@@ -337,15 +371,23 @@ class EvaluateRegimeModelResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
+    validation_profile: str = "science"
     round_ids: list[str]
     round_count: int = Field(ge=2)
     summary_dim: int = Field(ge=1)
     max_rank: int = Field(ge=1)
     bootstrap_samples: int = Field(ge=0)
     rng_seed: int = Field(ge=0)
+    site_max_rows: int | None = Field(default=None, ge=0)
+    live_max_rows: int | None = Field(default=None, ge=0)
+    ruin_max_rows: int | None = Field(default=None, ge=0)
+    pairwise_max_rows: int | None = Field(default=None, ge=0)
+    owner_max_rows: int | None = Field(default=None, ge=0)
     elapsed_seconds: float = Field(ge=0.0)
     best_rank_by_reconstruction: int | None = Field(default=None, ge=1)
     best_rank_by_terminal_l1: int | None = Field(default=None, ge=1)
+    best_rank_by_terminal_weighted_kl: int | None = Field(default=None, ge=1)
     artifact_path: Path
     report_path: Path
     rank_reports: tuple[RegimeRankValidationReport, ...]

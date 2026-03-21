@@ -5,6 +5,7 @@ import json
 import math
 from collections.abc import Sequence
 from pathlib import Path
+from statistics import fmean
 
 import numpy as np
 import polars as pl
@@ -267,19 +268,26 @@ def _owner_summary(observations: Sequence[LiveQueryObs]) -> tuple[float, float, 
             key = (settlement.y, settlement.x)
             if key not in site_owners:
                 site_owners[key] = {}
-            site_owners[key][settlement.owner_id] = site_owners[key].get(settlement.owner_id, 0) + 1
-            
+            site_owners[key][settlement.owner_id] = (
+                site_owners[key].get(settlement.owner_id, 0) + 1
+            )
+
     if not site_owners:
         return (0.0, 0.0, 0.0)
-        
+
     global_owner_expected: dict[int, float] = {}
     for site_counts in site_owners.values():
         total_obs = float(sum(site_counts.values()))
         for owner_id, count in site_counts.items():
-            global_owner_expected[owner_id] = global_owner_expected.get(owner_id, 0.0) + (float(count) / total_obs)
-            
+            global_owner_expected[owner_id] = (
+                global_owner_expected.get(owner_id, 0.0) + (float(count) / total_obs)
+            )
+
     total_sites = float(len(site_owners))
-    shares = np.asarray([expected / total_sites for expected in global_owner_expected.values()], dtype=np.float64)
+    shares = np.asarray(
+        [expected / total_sites for expected in global_owner_expected.values()],
+        dtype=np.float64,
+    )
     return (
         float(len(global_owner_expected)) / 10.0,
         float(np.max(shares)),
@@ -290,27 +298,32 @@ def _owner_summary(observations: Sequence[LiveQueryObs]) -> tuple[float, float, 
 def _settlement_means_from_observations(
     observations: Sequence[LiveQueryObs],
 ) -> tuple[float | None, float | None, float | None, float | None]:
-    populations: list[float] = []
-    foods: list[float] = []
-    wealths: list[float] = []
-    defenses: list[float] = []
+    populations: dict[tuple[int, int], list[float]] = {}
+    foods: dict[tuple[int, int], list[float]] = {}
+    wealths: dict[tuple[int, int], list[float]] = {}
+    defenses: dict[tuple[int, int], list[float]] = {}
     for observation in observations:
         for settlement in observation.settlements:
+            key = (settlement.y, settlement.x)
             if settlement.population is not None:
-                populations.append(float(settlement.population))
+                populations.setdefault(key, []).append(float(settlement.population))
             if settlement.food is not None:
-                foods.append(float(settlement.food))
+                foods.setdefault(key, []).append(float(settlement.food))
             if settlement.wealth is not None:
-                wealths.append(float(settlement.wealth))
+                wealths.setdefault(key, []).append(float(settlement.wealth))
             if settlement.defense is not None:
-                defenses.append(float(settlement.defense))
+                defenses.setdefault(key, []).append(float(settlement.defense))
     if not populations:
         return (None, None, None, None)
+    site_mean_populations = [fmean(values) for values in populations.values()]
+    site_mean_foods = [fmean(values) for values in foods.values()]
+    site_mean_wealths = [fmean(values) for values in wealths.values()]
+    site_mean_defenses = [fmean(values) for values in defenses.values()]
     return (
-        float(np.mean(populations)),
-        float(np.mean(foods)) if foods else None,
-        float(np.mean(wealths)) if wealths else None,
-        float(np.mean(defenses)) if defenses else None,
+        float(fmean(site_mean_populations)),
+        float(fmean(site_mean_foods)) if site_mean_foods else None,
+        float(fmean(site_mean_wealths)) if site_mean_wealths else None,
+        float(fmean(site_mean_defenses)) if site_mean_defenses else None,
     )
 
 
@@ -1339,25 +1352,12 @@ class QueryResidualPredictor(BaseRoundPredictor):
             logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -4.0, 4.0)
             prediction = softmax_logits(logits)
             exact_counts = np.asarray(derived.exact_counts[seed_index], dtype=np.float64)
-            prediction = self._exact_cell_blend(
+            predictions_by_seed[seed_index] = self._postprocess_prediction(
                 prediction,
                 exact_counts,
                 prior,
-            )
-            if self.temperature != 1.0:
-                prediction = softmax_logits(_safe_log_probs(prediction, self.probability_floor) / self.temperature)
-            if self.teacher_blend > 0.0:
-                teacher_weight = np.where(
-                    np.sum(exact_counts, axis=-1, keepdims=True) > 0.0,
-                    0.0,
-                    self.teacher_blend,
-                )
-                prediction = ((1.0 - teacher_weight) * prediction) + (teacher_weight * teacher_prior)
-            if effective_prior_blend > 0.0:
-                prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
-            predictions_by_seed[seed_index] = apply_probability_floor(
-                prediction,
-                self.probability_floor,
+                teacher_prior,
+                effective_prior_blend=effective_prior_blend,
                 initial_grid=np.asarray(round_detail.initial_states[seed_index].grid, dtype=np.int64),
             )
         return PredictionBundle(
@@ -1414,19 +1414,50 @@ class QueryResidualPredictor(BaseRoundPredictor):
         self,
         prediction: np.ndarray,
         exact_counts: np.ndarray,
-        prior: np.ndarray,
     ) -> np.ndarray:
         count_total = np.sum(exact_counts, axis=-1, keepdims=True)
         if not np.any(count_total > 0.0):
             return prediction
-        prior_entropy = np.asarray(entropy_map(prior), dtype=np.float64)[..., None]
-        beta = self.beta_min + self.beta_scale * (1.0 - (prior_entropy / math.log(6.0)))
+        prediction_entropy = np.asarray(entropy_map(prediction), dtype=np.float64)[..., None]
+        beta = self.beta_min + self.beta_scale * (1.0 - (prediction_entropy / math.log(6.0)))
         blended = np.where(
             count_total > 0.0,
             (beta * prediction + exact_counts) / np.maximum(beta + count_total, 1e-6),
             prediction,
         )
         return np.asarray(blended, dtype=np.float64)
+
+    def _postprocess_prediction(
+        self,
+        prediction: np.ndarray,
+        exact_counts: np.ndarray,
+        prior: np.ndarray,
+        teacher_prior: np.ndarray,
+        *,
+        effective_prior_blend: float,
+        initial_grid: np.ndarray,
+    ) -> np.ndarray:
+        post = np.asarray(prediction, dtype=np.float64)
+        if self.temperature != 1.0:
+            post = softmax_logits(_safe_log_probs(post, self.probability_floor) / self.temperature)
+        if self.teacher_blend > 0.0:
+            teacher_weight = np.where(
+                np.sum(exact_counts, axis=-1, keepdims=True) > 0.0,
+                0.0,
+                self.teacher_blend,
+            )
+            post = ((1.0 - teacher_weight) * post) + (teacher_weight * teacher_prior)
+        if effective_prior_blend > 0.0:
+            post = ((1.0 - effective_prior_blend) * post) + (effective_prior_blend * prior)
+        post = self._exact_cell_blend(
+            post,
+            exact_counts,
+        )
+        return apply_probability_floor(
+            post,
+            self.probability_floor,
+            initial_grid=initial_grid,
+        )
 
     def build_prediction_bundle_from_context(
         self,

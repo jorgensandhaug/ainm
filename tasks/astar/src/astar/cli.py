@@ -47,6 +47,8 @@ from astar.cli_output import (
     render_teacher_science,
     render_train_hazard_teacher,
     render_train_historical_bucket_prior,
+    render_train_state_space_student,
+    render_train_state_space_teacher,
     render_train_summary_student,
     render_validation,
     render_visualization_report,
@@ -58,6 +60,9 @@ from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
 from astar.history.replay.ingest import ingest_replays
+from astar.history.summaries.behavioral_fingerprint_core import (
+    BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+)
 from astar.infra.api.auth import AuthConfig
 from astar.infra.api.client import AstarApiClient, ClientConfig
 from astar.infra.api.dto import ReplayRequest, SimulationRequest
@@ -77,7 +82,10 @@ from astar.workflows.evaluate_behavioral_fingerprint_summary import (
 )
 from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
 from astar.workflows.evaluate_regime_model import evaluate_regime_model
-from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
+from astar.workflows.evaluate_teacher_science import (
+    evaluate_hazard_teacher_science,
+    evaluate_state_space_teacher_science,
+)
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
@@ -94,8 +102,14 @@ from astar.workflows.sync_round import sync_round
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
-from astar.workflows.train_student import train_summary_bank_student
-from astar.workflows.train_teacher import train_hazard_teacher
+from astar.workflows.train_student import (
+    train_state_space_student,
+    train_summary_bank_student,
+)
+from astar.workflows.train_teacher import (
+    train_hazard_teacher,
+    train_state_space_teacher,
+)
 from astar.workflows.visualize_model_prediction import visualize_model_prediction
 from astar.workflows.visualize_replay_events import visualize_replay_events
 from astar.workflows.visualize_replay_mismatches import visualize_replay_mismatches
@@ -263,6 +277,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
     factorize_rounds_parser.add_argument("--bootstrap-samples", type=int, default=4)
+    factorize_rounds_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
     teacher_transition_parser.add_argument("--round-id", action="append", default=None)
@@ -388,6 +407,25 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["dynamic_law", "behavioral_fingerprint_core"],
         default="behavioral_fingerprint_core",
     )
+    train_teacher_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
+
+    train_state_space_teacher_parser = subparsers.add_parser("train-state-space-teacher")
+    train_state_space_teacher_parser.add_argument("--round-id", action="append", default=None)
+    train_state_space_teacher_parser.add_argument("--model-name", default="state_space_teacher_v1")
+    train_state_space_teacher_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
+    train_state_space_teacher_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
 
     train_student_parser = subparsers.add_parser("train-summary-student")
     train_student_parser.add_argument("--dataset-name", default="synthetic_live_v1")
@@ -400,6 +438,37 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["dynamic_law", "behavioral_fingerprint_core"],
         default="behavioral_fingerprint_core",
     )
+    train_student_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
+
+    train_state_space_student_parser = subparsers.add_parser("train-state-space-student")
+    train_state_space_student_parser.add_argument("--round-id", action="append", default=None)
+    train_state_space_student_parser.add_argument(
+        "--dataset-name",
+        default="synthetic_live_state_space_v1",
+    )
+    train_state_space_student_parser.add_argument("--policy", default="coverage")
+    train_state_space_student_parser.add_argument("--samples-per-round", type=int, default=1)
+    train_state_space_student_parser.add_argument("--prototype-count", type=int, default=6)
+    train_state_space_student_parser.add_argument("--decoder-rollouts", type=int, default=32)
+    train_state_space_student_parser.add_argument("--model-name", default="state_space_student_v1")
+    train_state_space_student_parser.add_argument(
+        "--teacher-model-name",
+        default="state_space_teacher_v1",
+    )
+    train_state_space_student_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
+    train_state_space_student_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
 
     science_parser = subparsers.add_parser("evaluate-teacher-science")
     science_parser.add_argument("--eval-round-id", action="append", default=None)
@@ -410,7 +479,28 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["dynamic_law", "behavioral_fingerprint_core"],
         default="behavioral_fingerprint_core",
     )
+    science_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
     science_parser.add_argument("--n-rollouts", type=int, default=None)
+
+    state_space_science_parser = subparsers.add_parser("evaluate-state-space-teacher-science")
+    state_space_science_parser.add_argument("--eval-round-id", action="append", default=None)
+    state_space_science_parser.add_argument("--train-round-id", action="append", default=None)
+    state_space_science_parser.add_argument("--model-name", default="state_space_teacher_v1")
+    state_space_science_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
+    state_space_science_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
+    state_space_science_parser.add_argument("--n-rollouts", type=int, default=None)
 
     dynamic_law_parser = subparsers.add_parser("evaluate-dynamic-law-summary")
     dynamic_law_parser.add_argument("--round-id", action="append", default=None)
@@ -444,13 +534,33 @@ def build_parser() -> argparse.ArgumentParser:
     behavioral_fingerprint_parser.add_argument("--ruin-max-rows", type=int, default=None)
     behavioral_fingerprint_parser.add_argument("--pairwise-max-rows", type=int, default=None)
     behavioral_fingerprint_parser.add_argument("--owner-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument(
+        "--summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
     behavioral_fingerprint_parser.add_argument("--name", default=None)
 
     regime_parser = subparsers.add_parser("evaluate-regime-model")
     regime_parser.add_argument("--round-id", action="append", default=None)
+    regime_parser.add_argument(
+        "--profile",
+        choices=("smoke", "dev", "science"),
+        default="science",
+    )
     regime_parser.add_argument("--max-rank", type=int, default=4)
-    regime_parser.add_argument("--bootstrap-samples", type=int, default=4)
+    regime_parser.add_argument("--bootstrap-samples", type=int, default=None)
     regime_parser.add_argument("--rng-seed", type=int, default=0)
+    regime_parser.add_argument("--site-max-rows", type=int, default=None)
+    regime_parser.add_argument("--live-max-rows", type=int, default=None)
+    regime_parser.add_argument("--ruin-max-rows", type=int, default=None)
+    regime_parser.add_argument("--pairwise-max-rows", type=int, default=None)
+    regime_parser.add_argument("--owner-max-rows", type=int, default=None)
+    regime_parser.add_argument(
+        "--behavioral-fingerprint-summary-profile",
+        choices=BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+        default="core_v1",
+    )
     regime_parser.add_argument("--name", default=None)
 
     backtest_round_parser = subparsers.add_parser("backtest-round")
@@ -603,6 +713,7 @@ def _main() -> int:
             summary_kind=args.summary_kind,
             max_rank=args.max_rank,
             bootstrap_samples=args.bootstrap_samples,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
         )
         _emit(args.json, factorized, render_factorize_round_summaries(factorized))
         return 0
@@ -648,11 +759,27 @@ def _main() -> int:
             round_ids=args.round_id,
             model_name=args.model_name,
             summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
         )
         _emit(
             args.json,
             teacher_result,
             render_train_hazard_teacher(teacher_result),
+        )
+        return 0
+
+    if args.command == "train-state-space-teacher":
+        teacher_result = train_state_space_teacher(
+            paths,
+            round_ids=args.round_id,
+            model_name=args.model_name,
+            summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
+        )
+        _emit(
+            args.json,
+            teacher_result,
+            render_train_state_space_teacher(teacher_result),
         )
         return 0
 
@@ -665,11 +792,33 @@ def _main() -> int:
             k_neighbors=args.k_neighbors,
             model_name=args.model_name,
             summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
         )
         _emit(
             args.json,
             student_result,
             render_train_summary_student(student_result),
+        )
+        return 0
+
+    if args.command == "train-state-space-student":
+        student_result = train_state_space_student(
+            paths,
+            round_ids=args.round_id,
+            dataset_name=args.dataset_name,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+            prototype_count=args.prototype_count,
+            decoder_rollouts=args.decoder_rollouts,
+            model_name=args.model_name,
+            teacher_model_name=args.teacher_model_name,
+            summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
+        )
+        _emit(
+            args.json,
+            student_result,
+            render_train_state_space_student(student_result),
         )
         return 0
 
@@ -680,6 +829,20 @@ def _main() -> int:
             train_round_ids=args.train_round_id,
             model_name=args.model_name,
             summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
+            n_rollouts=args.n_rollouts,
+        )
+        _emit(args.json, science_result, render_teacher_science(science_result))
+        return 0
+
+    if args.command == "evaluate-state-space-teacher-science":
+        science_result = evaluate_state_space_teacher_science(
+            paths,
+            eval_round_ids=args.eval_round_id,
+            train_round_ids=args.train_round_id,
+            model_name=args.model_name,
+            summary_backend=args.summary_backend,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
             n_rollouts=args.n_rollouts,
         )
         _emit(args.json, science_result, render_teacher_science(science_result))
@@ -710,6 +873,7 @@ def _main() -> int:
             paths,
             round_ids=args.round_id,
             validation_profile=args.profile,
+            summary_profile=args.summary_profile,
             max_holdout_runs=args.max_holdout_runs,
             bootstrap_samples=args.bootstrap_samples,
             rng_seed=args.rng_seed,
@@ -731,10 +895,17 @@ def _main() -> int:
         evaluation_result = evaluate_regime_model(
             paths,
             round_ids=args.round_id,
+            validation_profile=args.profile,
             max_rank=args.max_rank,
+            behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
             bootstrap_samples=args.bootstrap_samples,
             rng_seed=args.rng_seed,
             name=args.name,
+            site_max_rows=args.site_max_rows,
+            live_max_rows=args.live_max_rows,
+            ruin_max_rows=args.ruin_max_rows,
+            pairwise_max_rows=args.pairwise_max_rows,
+            owner_max_rows=args.owner_max_rows,
         )
         _emit(
             args.json,

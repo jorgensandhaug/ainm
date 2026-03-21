@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import os
 import json
+import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
-import polars as pl
 
+from astar.core.terrain import collapse_internal_grid
 from astar.features.geometry import compute_round_features
 from astar.history.replay.frame_stats import ReplaySeedAggregate, summarize_replay_runs
 from astar.history.replay.ingest import load_seed_replay_runs
@@ -15,7 +15,6 @@ from astar.history.replay.inspect import inspect_replay_source, inspect_round_re
 from astar.history.summaries.event_summary import (
     ReplayEventRoundSummary,
     ReplayEventSeedSummary,
-    build_round_event_summary,
     build_round_event_summary_from_seed_summaries,
     summarize_replay_event_bundle,
 )
@@ -23,7 +22,6 @@ from astar.history.summaries.events import ReplayEventTableBundle, extract_repla
 from astar.history.summaries.hazards import (
     ReplayHazardRoundSummary,
     ReplayHazardSeedSummary,
-    build_round_hazard_summary,
     build_round_hazard_summary_from_seed_summaries,
     build_seed_hazard_summary_from_seed_features,
 )
@@ -32,7 +30,6 @@ from astar.history.summaries.measurements import (
     ReplayMeasurementRoundSummary,
     ReplayMeasurementSeedSummary,
     build_replay_measurement_bundle,
-    build_round_measurement_summary,
     build_round_measurement_summary_from_seed_summaries,
     replay_measurement_payload,
 )
@@ -113,6 +110,19 @@ def _seed_summary_payload(
         "macro_trajectory_count": np.asarray(
             [measurement_summary.macro_trajectory_count],
             dtype=np.int64,
+        ),
+    }
+
+
+def _seed_terminal_grid_payload(runs: list) -> dict[str, np.ndarray]:
+    return {
+        "replay_run_ids": np.asarray([run.replay_run_id for run in runs], dtype=np.str_),
+        "terminal_grids": np.stack(
+            [
+                collapse_internal_grid(run.frames[-1].grid).astype(np.int16)
+                for run in runs
+            ],
+            axis=0,
         ),
     }
 
@@ -211,16 +221,25 @@ def load_round_replay_summary(
     )
 
     ordered_seed_indexes = [item.seed_index for item in hazard_summary.seed_summaries]
-    summary_paths = [paths.replay_summary_path(round_id, seed_index) for seed_index in ordered_seed_indexes]
-    cell_event_paths = [paths.replay_cell_event_path(round_id, seed_index) for seed_index in ordered_seed_indexes]
+    summary_paths = [
+        paths.replay_summary_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
+    ]
+    cell_event_paths = [
+        paths.replay_cell_event_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
+    ]
     settlement_event_paths = [
-        paths.replay_settlement_event_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_settlement_event_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     site_transition_paths = [
-        paths.replay_site_transition_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_site_transition_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     site_opportunity_paths = [
-        paths.replay_site_opportunity_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_site_opportunity_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     settlement_measurement_paths = [
         paths.replay_settlement_measurement_path(round_id, seed_index)
@@ -231,20 +250,24 @@ def load_round_replay_summary(
         for seed_index in ordered_seed_indexes
     ]
     ruin_transition_paths = [
-        paths.replay_ruin_transition_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_ruin_transition_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     pairwise_candidate_paths = [
         paths.replay_pairwise_candidate_path(round_id, seed_index)
         for seed_index in ordered_seed_indexes
     ]
     owner_year_paths = [
-        paths.replay_owner_year_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_owner_year_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     year_shock_paths = [
-        paths.replay_year_shock_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_year_shock_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     macro_trajectory_paths = [
-        paths.replay_macro_trajectory_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+        paths.replay_macro_trajectory_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
     ]
     required_paths = (
         summary_paths
@@ -314,12 +337,22 @@ def _summarize_seed_replays(
         paths.replay_summary_path(round_id, seed_index),
         _seed_summary_payload(aggregate, hazard_seed_summary, event_summary, measurement_summary),
     )
+    save_named_arrays(
+        paths.replay_terminal_grid_path(round_id, seed_index),
+        _seed_terminal_grid_payload(runs),
+    )
     cell_event_path = paths.replay_cell_event_path(round_id, seed_index)
     settlement_event_path = paths.replay_settlement_event_path(round_id, seed_index)
     site_transition_path = paths.replay_site_transition_path(round_id, seed_index)
     site_opportunity_path = paths.replay_site_opportunity_path(round_id, seed_index)
-    settlement_measurement_path = paths.replay_settlement_measurement_path(round_id, seed_index)
-    live_settlement_transition_path = paths.replay_live_settlement_transition_path(round_id, seed_index)
+    settlement_measurement_path = paths.replay_settlement_measurement_path(
+        round_id,
+        seed_index,
+    )
+    live_settlement_transition_path = paths.replay_live_settlement_transition_path(
+        round_id,
+        seed_index,
+    )
     ruin_transition_path = paths.replay_ruin_transition_path(round_id, seed_index)
     pairwise_candidate_path = paths.replay_pairwise_candidate_path(round_id, seed_index)
     owner_year_path = paths.replay_owner_year_path(round_id, seed_index)

@@ -1,0 +1,13 @@
+{
+  "summary_kind": "behavioral_fingerprint_core",
+  "requested_rank": 2,
+  "eligible_round_count": 0,
+  "round_results": [],
+  "mean_mae": null,
+  "mean_rmse": null,
+  "mean_baseline_mae": null,
+  "mean_baseline_rmse": null,
+  "mean_mae_improvement": null,
+  "mean_rmse_improvement": null,
+  "mean_cosine_similarity": null
+}

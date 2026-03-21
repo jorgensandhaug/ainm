@@ -7,12 +7,12 @@ from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
 from tests.conftest import ROUND_ID
+from tests.replay_test_utils import _write_replays_for_all_seeds
 from tests.test_historical_bucket_baseline import (
     TRAIN_ROUND_ID,
     _copy_round,
     _write_sample_analysis,
 )
-from tests.test_history_datasets import _write_replays_for_all_seeds
 
 
 def test_run_historical_benchmark_writes_summaries(sample_paths: RepoPaths) -> None:

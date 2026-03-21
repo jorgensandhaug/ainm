@@ -8,35 +8,19 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
-from astar.features.geometry import SeedFeatureBundle, compute_static_feature_dict
 from astar.history.episodes.models import RoundEpisode
-from astar.history.summaries.behavioral_fingerprint import (
-    build_behavioral_fingerprint_probe_library,
-    estimate_round_behavioral_fingerprint,
-)
 from astar.history.summaries.behavioral_fingerprint_core import (
-    behavioral_fingerprint_core_column_scale,
-    select_behavioral_fingerprint_core,
-)
-from astar.history.summaries.dynamic_law import (
-    DynamicLawProbeLibrary,
-    build_dynamic_law_probe_library,
-    fit_round_dynamic_law_summary,
-)
-from astar.history.summaries.factorization import factorize_summary_matrix
-from astar.history.summaries.measurements import (
-    ReplayMeasurementBundle,
-    build_replay_measurement_bundle,
+    DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
 )
 from astar.history.summaries.round_coefficients import (
     fit_round_semimechanistic_coefficients,
     seed_feature_dict,
     seed_feature_matrix,
 )
-from astar.infra.api.dto import InitialSettlement
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
+from astar.teacher.regime.replay_summary import ReplaySummaryRegimeEncoder
 
 
 def _fit_linear_map(
@@ -64,67 +48,49 @@ def _sigmoid(values: np.ndarray) -> np.ndarray:
     )
 
 
-def _seed_feature_bundle(episode: RoundEpisode, seed_index: int) -> SeedFeatureBundle:
-    seed = next(seed for seed in episode.seeds if seed.seed_index == seed_index)
-    grid = np.asarray(seed.initial_state.grid, dtype=np.int64)
-    settlements = [
-        InitialSettlement(
-            x=item.x,
-            y=item.y,
-            has_port=item.has_port,
-            alive=item.alive,
-        )
-        for item in seed.initial_state.settlements
-    ]
-    return SeedFeatureBundle(
-        round_id=episode.metadata.round_id,
-        seed_index=seed.seed_index,
-        height=episode.metadata.map_height,
-        width=episode.metadata.map_width,
-        features=compute_static_feature_dict(grid, settlements),
-    )
+def _project_exclusive_pair(
+    total_cap: np.ndarray,
+    first: np.ndarray,
+    second: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    cap = np.asarray(np.clip(total_cap, 0.0, None), dtype=np.float64)
+    first_array = np.asarray(np.clip(first, 0.0, None), dtype=np.float64)
+    second_array = np.asarray(np.clip(second, 0.0, None), dtype=np.float64)
 
+    projected_first = np.array(first_array, copy=True)
+    projected_second = np.array(second_array, copy=True)
 
-def _episode_measurement_bundles(episode: RoundEpisode) -> list[ReplayMeasurementBundle]:
-    bundles: list[ReplayMeasurementBundle] = []
-    for seed in episode.seeds:
-        if not seed.replay_runs:
-            continue
-        bundles.append(
-            build_replay_measurement_bundle(
-                np.asarray(seed.initial_state.grid, dtype=np.int64),
-                _seed_feature_bundle(episode, seed.seed_index),
-                list(seed.replay_runs),
-            )
-        )
-    return bundles
+    over_mask = (first_array + second_array) > cap
+    if not np.any(over_mask):
+        return projected_first, projected_second
 
+    over_first = first_array[over_mask]
+    over_second = second_array[over_mask]
+    over_cap = cap[over_mask]
+    diff = over_first - over_second
 
-def _stored_probe_library(teacher: HazardTeacher) -> DynamicLawProbeLibrary:
-    return DynamicLawProbeLibrary(
-        site_feature_names=teacher.site_probe_feature_names,
-        settlement_feature_names=teacher.settlement_probe_feature_names,
-        pairwise_feature_names=teacher.pairwise_probe_feature_names,
-        ruin_feature_names=teacher.ruin_probe_feature_names,
-        owner_feature_names=teacher.owner_probe_feature_names,
-        macro_feature_names=teacher.macro_probe_feature_names,
-        site_probe_names=teacher.site_probe_names,
-        site_probe_matrix=teacher.site_probe_matrix,
-        settlement_probe_names=teacher.settlement_probe_names,
-        settlement_probe_matrix=teacher.settlement_probe_matrix,
-        pairwise_probe_names=teacher.pairwise_probe_names,
-        pairwise_probe_matrix=teacher.pairwise_probe_matrix,
-        ruin_probe_names=teacher.ruin_probe_names,
-        ruin_probe_matrix=teacher.ruin_probe_matrix,
-        owner_probe_names=teacher.owner_probe_names,
-        owner_probe_matrix=teacher.owner_probe_matrix,
-        macro_probe_names=teacher.macro_probe_names,
-        macro_probe_matrix=teacher.macro_probe_matrix,
-    )
+    first_dominates = diff >= over_cap
+    second_dominates = (-diff) >= over_cap
+    balanced = ~(first_dominates | second_dominates)
 
+    projected_over_first = np.array(over_first, copy=True)
+    projected_over_second = np.array(over_second, copy=True)
 
-def _regime_coordinate_names(prefix: str, dim: int) -> tuple[str, ...]:
-    return tuple(f"{prefix}_{index:03d}" for index in range(max(1, dim)))
+    projected_over_first[first_dominates] = over_cap[first_dominates]
+    projected_over_second[first_dominates] = 0.0
+
+    projected_over_first[second_dominates] = 0.0
+    projected_over_second[second_dominates] = over_cap[second_dominates]
+
+    balanced_first = over_first[balanced]
+    balanced_second = over_second[balanced]
+    balanced_cap = over_cap[balanced]
+    projected_over_first[balanced] = 0.5 * (balanced_first - balanced_second + balanced_cap)
+    projected_over_second[balanced] = 0.5 * (balanced_second - balanced_first + balanced_cap)
+
+    projected_first[over_mask] = np.clip(projected_over_first, 0.0, None)
+    projected_second[over_mask] = np.clip(projected_over_second, 0.0, None)
+    return projected_first, projected_second
 
 
 class HazardTeacherCheckpoint(BaseModel):
@@ -132,6 +98,7 @@ class HazardTeacherCheckpoint(BaseModel):
 
     name: str
     summary_backend: str = "behavioral_fingerprint_core"
+    behavioral_fingerprint_summary_profile: str = "core_v1"
     feature_names: list[str]
     round_ids: list[str]
     round_numbers: list[int]
@@ -149,8 +116,10 @@ class HazardTeacher(BaseModel):
     summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
         "behavioral_fingerprint_core"
     )
+    behavioral_fingerprint_summary_profile: str = DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE
     regime_max_rank: int = Field(default=3, ge=1)
     summary_bootstrap_samples: int = Field(default=4, ge=0)
+    regime_encoder: ReplaySummaryRegimeEncoder | None = None
     feature_names: list[str] = Field(default_factory=list)
     regime_summary_names: tuple[str, ...] = ()
     round_ids: tuple[str, ...] = ()
@@ -210,182 +179,19 @@ class HazardTeacher(BaseModel):
             fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
         ]
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
-
-        measurement_bundles_by_episode = [
-            _episode_measurement_bundles(episode) for episode in replay_episodes
-        ]
-        update: dict[str, object]
-        if self.summary_backend == "dynamic_law":
-            site_frames = [
-                bundle.site_opportunities
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            settlement_frames = [
-                bundle.settlement_measurements
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            pairwise_frames = [
-                bundle.pairwise_candidates
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            ruin_frames = [
-                bundle.ruin_transitions
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            owner_frames = [
-                bundle.owner_years
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            macro_frames = [
-                bundle.macro_trajectories
-                for bundles in measurement_bundles_by_episode
-                for bundle in bundles
-            ]
-            probe_library = build_dynamic_law_probe_library(
-                site_frames,
-                settlement_frames,
-                pairwise_frames,
-                ruin_frames,
-                owner_frames,
-                macro_frames,
-            )
-            regime_summary_names: list[str] | None = None
-            regime_bank_rows: list[np.ndarray] = []
-            for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
-                law = fit_round_dynamic_law_summary(
-                    round_id=episode.metadata.round_id,
-                    round_number=int(episode.metadata.round_number or -1),
-                    bundles=bundles,
-                )
-                names, vector = law.probe_summary(probe_library)
-                if regime_summary_names is None:
-                    regime_summary_names = names
-                regime_bank_rows.append(vector)
-            regime_bank = np.stack(regime_bank_rows, axis=0)
-            regime_intercept, regime_weights = _fit_linear_map(
-                regime_bank,
-                coefficient_bank,
-                ridge_alpha=1e-2,
-            )
-            update = {
-                "regime_summary_names": tuple(regime_summary_names or ()),
-                "regime_bank": regime_bank,
-                "regime_intercept": regime_intercept,
-                "regime_weights": regime_weights,
-                "source_summary_names": tuple(regime_summary_names or ()),
-                "source_summary_mean": np.mean(regime_bank, axis=0),
-                "source_summary_scale": np.ones(regime_bank.shape[1], dtype=np.float64),
-                "source_summary_basis": np.eye(regime_bank.shape[1], dtype=np.float64),
-                "site_probe_names": tuple(probe_library.site_probe_names),
-                "site_probe_matrix": probe_library.site_probe_matrix,
-                "settlement_probe_names": tuple(probe_library.settlement_probe_names),
-                "settlement_probe_matrix": probe_library.settlement_probe_matrix,
-                "pairwise_probe_names": tuple(probe_library.pairwise_probe_names),
-                "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
-                "ruin_probe_names": tuple(probe_library.ruin_probe_names),
-                "ruin_probe_matrix": probe_library.ruin_probe_matrix,
-                "owner_probe_names": tuple(probe_library.owner_probe_names),
-                "owner_probe_matrix": probe_library.owner_probe_matrix,
-                "macro_probe_names": tuple(probe_library.macro_probe_names),
-                "macro_probe_matrix": probe_library.macro_probe_matrix,
-                "site_probe_feature_names": tuple(probe_library.site_feature_names),
-                "settlement_probe_feature_names": tuple(probe_library.settlement_feature_names),
-                "pairwise_probe_feature_names": tuple(probe_library.pairwise_feature_names),
-                "ruin_probe_feature_names": tuple(probe_library.ruin_feature_names),
-                "owner_probe_feature_names": tuple(probe_library.owner_feature_names),
-                "macro_probe_feature_names": tuple(probe_library.macro_feature_names),
-            }
-        else:
-            probe_library = build_behavioral_fingerprint_probe_library([], [], [], [], [])
-            source_summary_names: list[str] | None = None
-            source_summary_rows: list[np.ndarray] = []
-            source_std_rows: list[np.ndarray] = []
-            for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
-                estimate = estimate_round_behavioral_fingerprint(
-                    round_id=episode.metadata.round_id,
-                    round_number=int(episode.metadata.round_number or -1),
-                    bundles=bundles,
-                    probe_library=probe_library,
-                    bootstrap_samples=self.summary_bootstrap_samples,
-                    rng_seed=0,
-                )
-                selection = select_behavioral_fingerprint_core(
-                    estimate.summary_names,
-                    estimate.summary_vector,
-                    estimate.summary_std,
-                )
-                if source_summary_names is None:
-                    source_summary_names = list(selection.summary_names)
-                regime_source_names = list(selection.summary_names)
-                if regime_source_names != list(source_summary_names):
-                    raise ValueError("behavioral fingerprint core names drifted across rounds")
-                source_summary_rows.append(selection.summary_vector)
-                source_std_rows.append(
-                    selection.summary_std
-                    if selection.summary_std is not None
-                    else np.zeros_like(selection.summary_vector, dtype=np.float64)
-                )
-            source_summary_matrix = np.stack(source_summary_rows, axis=0)
-            source_std_matrix = np.stack(source_std_rows, axis=0)
-            source_scale = behavioral_fingerprint_core_column_scale(
-                source_summary_matrix,
-                source_std_matrix,
-            )
-            factorization = factorize_summary_matrix(
-                summary_kind="behavioral_fingerprint_core",
-                summary_names=list(source_summary_names or ()),
-                round_ids=[episode.metadata.round_id for episode in replay_episodes],
-                round_numbers=[int(episode.metadata.round_number or -1) for episode in replay_episodes],
-                sample_counts=[max(1, episode.replay_run_count) for episode in replay_episodes],
-                summary_matrix=source_summary_matrix,
-                max_rank=self.regime_max_rank,
-                column_scale=source_scale,
-            )
-            regime_bank = factorization.coordinates
-            regime_summary_names = _regime_coordinate_names(
-                "behavioral_fingerprint_core_coord",
-                int(regime_bank.shape[1]),
-            )
-            regime_intercept, regime_weights = _fit_linear_map(
-                regime_bank,
-                coefficient_bank,
-                ridge_alpha=1e-2,
-            )
-            update = {
-                "regime_summary_names": regime_summary_names,
-                "regime_bank": regime_bank,
-                "regime_intercept": regime_intercept,
-                "regime_weights": regime_weights,
-                "source_summary_names": tuple(source_summary_names or ()),
-                "source_summary_mean": factorization.mean_vector,
-                "source_summary_scale": factorization.scale_vector,
-                "source_summary_basis": factorization.basis,
-                "source_probe_library_kind": probe_library.library_kind,
-                "source_probe_library_version": probe_library.library_version,
-                "site_probe_names": tuple(),
-                "site_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "settlement_probe_names": tuple(),
-                "settlement_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "pairwise_probe_names": tuple(),
-                "pairwise_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "ruin_probe_names": tuple(),
-                "ruin_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "owner_probe_names": tuple(),
-                "owner_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "macro_probe_names": tuple(),
-                "macro_probe_matrix": np.zeros((0, 0), dtype=np.float64),
-                "site_probe_feature_names": tuple(),
-                "settlement_probe_feature_names": tuple(),
-                "pairwise_probe_feature_names": tuple(),
-                "ruin_probe_feature_names": tuple(),
-                "owner_probe_feature_names": tuple(),
-                "macro_probe_feature_names": tuple(),
-            }
+        regime_encoder = ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+            summary_bootstrap_samples=self.summary_bootstrap_samples,
+        ).fit(replay_episodes)
+        regime_bank = np.asarray(regime_encoder.regime_bank, dtype=np.float64)
+        regime_intercept, regime_weights = _fit_linear_map(
+            regime_bank,
+            coefficient_bank,
+            ridge_alpha=1e-2,
+        )
 
         replay_bank_round_ids: list[str] = []
         replay_bank_seed_indexes: list[int] = []
@@ -400,14 +206,66 @@ class HazardTeacher(BaseModel):
 
         return self.model_copy(
             update={
+                "regime_encoder": regime_encoder,
+                "behavioral_fingerprint_summary_profile": (
+                    regime_encoder.behavioral_fingerprint_summary_profile
+                ),
                 "feature_names": coefficient_rows[0].feature_names,
                 "round_ids": tuple(row.round_id for row in coefficient_rows),
                 "round_numbers": tuple(row.round_number for row in coefficient_rows),
+                "regime_summary_names": regime_encoder.regime_summary_names,
+                "regime_bank": regime_bank,
                 "coefficient_bank": coefficient_bank,
+                "regime_intercept": regime_intercept,
+                "regime_weights": regime_weights,
+                "source_summary_names": regime_encoder.source_summary_names,
+                "source_summary_mean": np.asarray(
+                    regime_encoder.source_summary_mean,
+                    dtype=np.float64,
+                ),
+                "source_summary_scale": np.asarray(
+                    regime_encoder.source_summary_scale,
+                    dtype=np.float64,
+                ),
+                "source_summary_basis": np.asarray(
+                    regime_encoder.source_summary_basis,
+                    dtype=np.float64,
+                ),
+                "source_probe_library_kind": regime_encoder.source_probe_library_kind,
+                "source_probe_library_version": regime_encoder.source_probe_library_version,
+                "site_probe_names": regime_encoder.site_probe_names,
+                "site_probe_matrix": np.asarray(regime_encoder.site_probe_matrix, dtype=np.float64),
+                "settlement_probe_names": regime_encoder.settlement_probe_names,
+                "settlement_probe_matrix": np.asarray(
+                    regime_encoder.settlement_probe_matrix,
+                    dtype=np.float64,
+                ),
+                "pairwise_probe_names": regime_encoder.pairwise_probe_names,
+                "pairwise_probe_matrix": np.asarray(
+                    regime_encoder.pairwise_probe_matrix,
+                    dtype=np.float64,
+                ),
+                "ruin_probe_names": regime_encoder.ruin_probe_names,
+                "ruin_probe_matrix": np.asarray(regime_encoder.ruin_probe_matrix, dtype=np.float64),
+                "owner_probe_names": regime_encoder.owner_probe_names,
+                "owner_probe_matrix": np.asarray(
+                    regime_encoder.owner_probe_matrix,
+                    dtype=np.float64,
+                ),
+                "macro_probe_names": regime_encoder.macro_probe_names,
+                "macro_probe_matrix": np.asarray(
+                    regime_encoder.macro_probe_matrix,
+                    dtype=np.float64,
+                ),
+                "site_probe_feature_names": regime_encoder.site_probe_feature_names,
+                "settlement_probe_feature_names": regime_encoder.settlement_probe_feature_names,
+                "pairwise_probe_feature_names": regime_encoder.pairwise_probe_feature_names,
+                "ruin_probe_feature_names": regime_encoder.ruin_probe_feature_names,
+                "owner_probe_feature_names": regime_encoder.owner_probe_feature_names,
+                "macro_probe_feature_names": regime_encoder.macro_probe_feature_names,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
-                **update,
             },
         )
 
@@ -415,6 +273,7 @@ class HazardTeacher(BaseModel):
         return HazardTeacherCheckpoint(
             name=self.name,
             summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
             feature_names=self.feature_names,
             round_ids=list(self.round_ids),
             round_numbers=list(self.round_numbers),
@@ -430,59 +289,50 @@ class HazardTeacher(BaseModel):
         path.write_text(json.dumps(to_jsonable(self.checkpoint()), indent=2), encoding="utf-8")
         return path
 
+    def _compat_regime_encoder(self) -> ReplaySummaryRegimeEncoder:
+        if self.regime_bank.size == 0:
+            raise ValueError("hazard teacher has no stored regime encoder state")
+        return ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__compat_regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+            summary_bootstrap_samples=self.summary_bootstrap_samples,
+            regime_summary_names=self.regime_summary_names,
+            round_ids=self.round_ids,
+            round_numbers=self.round_numbers,
+            regime_bank=np.asarray(self.regime_bank, dtype=np.float64),
+            source_summary_names=self.source_summary_names,
+            source_summary_mean=np.asarray(self.source_summary_mean, dtype=np.float64),
+            source_summary_scale=np.asarray(self.source_summary_scale, dtype=np.float64),
+            source_summary_basis=np.asarray(self.source_summary_basis, dtype=np.float64),
+            source_probe_library_kind=self.source_probe_library_kind,
+            source_probe_library_version=self.source_probe_library_version,
+            site_probe_names=self.site_probe_names,
+            site_probe_matrix=np.asarray(self.site_probe_matrix, dtype=np.float64),
+            settlement_probe_names=self.settlement_probe_names,
+            settlement_probe_matrix=np.asarray(self.settlement_probe_matrix, dtype=np.float64),
+            pairwise_probe_names=self.pairwise_probe_names,
+            pairwise_probe_matrix=np.asarray(self.pairwise_probe_matrix, dtype=np.float64),
+            ruin_probe_names=self.ruin_probe_names,
+            ruin_probe_matrix=np.asarray(self.ruin_probe_matrix, dtype=np.float64),
+            owner_probe_names=self.owner_probe_names,
+            owner_probe_matrix=np.asarray(self.owner_probe_matrix, dtype=np.float64),
+            macro_probe_names=self.macro_probe_names,
+            macro_probe_matrix=np.asarray(self.macro_probe_matrix, dtype=np.float64),
+            site_probe_feature_names=self.site_probe_feature_names,
+            settlement_probe_feature_names=self.settlement_probe_feature_names,
+            pairwise_probe_feature_names=self.pairwise_probe_feature_names,
+            ruin_probe_feature_names=self.ruin_probe_feature_names,
+            owner_probe_feature_names=self.owner_probe_feature_names,
+            macro_probe_feature_names=self.macro_probe_feature_names,
+        )
+
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
-        bundles = _episode_measurement_bundles(episode)
-        if not bundles:
-            raise ValueError(
-                f"round {episode.metadata.round_id} has no replay measurements to encode"
-            )
-        if self.summary_backend == "dynamic_law":
-            if (
-                self.site_probe_matrix.size == 0
-                or self.settlement_probe_matrix.size == 0
-                or self.pairwise_probe_matrix.size == 0
-            ):
-                raise ValueError("hazard teacher has no dynamic-law probe library")
-            law = fit_round_dynamic_law_summary(
-                round_id=episode.metadata.round_id,
-                round_number=int(episode.metadata.round_number or -1),
-                bundles=bundles,
-            )
-            _, vector = law.probe_summary(_stored_probe_library(self))
-            return vector
-        if self.source_summary_basis.size == 0:
-            raise ValueError("hazard teacher has no behavioral-fingerprint-core basis")
-        probe_library = build_behavioral_fingerprint_probe_library([], [], [], [], [])
-        if (
-            self.source_probe_library_kind is not None
-            and probe_library.library_kind != self.source_probe_library_kind
-        ):
-            raise ValueError("behavioral fingerprint probe library kind mismatch")
-        if (
-            self.source_probe_library_version is not None
-            and probe_library.library_version != self.source_probe_library_version
-        ):
-            raise ValueError("behavioral fingerprint probe library version mismatch")
-        estimate = estimate_round_behavioral_fingerprint(
-            round_id=episode.metadata.round_id,
-            round_number=int(episode.metadata.round_number or -1),
-            bundles=bundles,
-            probe_library=probe_library,
-            bootstrap_samples=0,
-            rng_seed=0,
-        )
-        selection = select_behavioral_fingerprint_core(
-            estimate.summary_names,
-            estimate.summary_vector,
-        )
-        if tuple(selection.summary_names) != tuple(self.source_summary_names):
-            raise ValueError("behavioral fingerprint core names mismatch")
-        centered = np.asarray(selection.summary_vector, dtype=np.float64) - np.asarray(
-            self.source_summary_mean,
-            dtype=np.float64,
-        )
-        scaled = centered / np.asarray(self.source_summary_scale, dtype=np.float64)
-        return np.asarray(scaled @ self.source_summary_basis.T, dtype=np.float64)
+        encoder = self.regime_encoder
+        if encoder is None:
+            encoder = self._compat_regime_encoder()
+        return np.asarray(encoder.encode_round(episode), dtype=np.float64)
 
     def _coefficients_from_regime(self, regime: np.ndarray) -> np.ndarray:
         regime_array = np.asarray(regime, dtype=np.float64)
@@ -561,12 +411,15 @@ class HazardTeacher(BaseModel):
         mountain = feature_dict["initial_mountain"] > 0.5
 
         build_prob = _sigmoid(build_score) * buildable.astype(np.float64)
-        ruin_cond = _sigmoid(ruin_score)
-        port_cond = _sigmoid(port_score) * coast.astype(np.float64)
+        raw_ruin = _sigmoid(ruin_score) * buildable.astype(np.float64)
+        raw_port = _sigmoid(port_score) * coast.astype(np.float64)
 
-        ruin_prob = build_prob * ruin_cond
-        port_prob = build_prob * (1.0 - ruin_cond) * port_cond
-        settlement_prob = build_prob * (1.0 - ruin_cond) * (1.0 - port_cond)
+        ruin_prob, port_prob = _project_exclusive_pair(
+            build_prob,
+            raw_ruin,
+            raw_port,
+        )
+        settlement_prob = np.clip(build_prob - ruin_prob - port_prob, 0.0, 1.0)
         forest_prior = np.where(grid == 4, 0.70, 0.05)
         forest_prob = np.where(
             buildable,
@@ -666,13 +519,17 @@ class HazardTeacher(BaseModel):
         posterior: RegimePosteriorState,
         n_rollouts: int = 256,
     ) -> np.ndarray:
-        if posterior.particles is not None and posterior.weights is not None:
+        if posterior.particles and posterior.weights is not None:
             components = [
                 self.terminal_tensor(seed, particle, n_rollouts=n_rollouts)
                 for particle in posterior.particles
             ]
             stacked = np.stack(components, axis=0)
             weights = np.asarray(posterior.weights, dtype=np.float64)
-            weights = weights / np.sum(weights)
+            weight_sum = float(np.sum(weights))
+            if weight_sum > 0.0:
+                weights = weights / weight_sum
+            else:
+                weights = np.ones_like(weights) / float(len(weights))
             return np.tensordot(weights, stacked, axes=(0, 0))
         return self.terminal_tensor(seed, posterior.mean, n_rollouts=n_rollouts)

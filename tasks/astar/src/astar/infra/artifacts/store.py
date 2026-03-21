@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import UTC
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +30,16 @@ class ReplayFileRecord(BaseModel):
 
     path: Path
     record: StoredReplayRecord
+
+
+def query_record_chronological_key(record: QueryFileRecord) -> tuple[datetime, str]:
+    return (record.record.requested_at.astimezone(UTC), record.record.query_id)
+
+
+def sort_query_records_chronologically(
+    records: Sequence[QueryFileRecord],
+) -> list[QueryFileRecord]:
+    return sorted(records, key=query_record_chronological_key)
 
 
 def _write_json(path: Path, payload: BaseModel) -> Path:
@@ -206,6 +216,7 @@ __all__ = [
     "StoredSubmissionRecord",
     "load_named_arrays",
     "load_prediction_tensor",
+    "query_record_chronological_key",
     "read_analysis_record",
     "read_analysis_records",
     "read_query_records",
@@ -216,6 +227,7 @@ __all__ = [
     "save_analysis_tensor",
     "save_named_arrays",
     "save_prediction_tensor",
+    "sort_query_records_chronologically",
     "write_analysis_record",
     "write_query_record",
     "write_replay_record",

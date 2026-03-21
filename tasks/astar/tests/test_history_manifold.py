@@ -29,7 +29,7 @@ from astar.infra.artifacts.store import read_round_record
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.summarize_replays import summarize_round_replays
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_factorize_round_regime_manifold_writes_summary_and_basis(

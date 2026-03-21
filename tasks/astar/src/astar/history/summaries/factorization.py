@@ -19,7 +19,7 @@ class RoundSummaryFactorization(BaseModel):
     explained_variance_ratio: np.ndarray
     basis: np.ndarray
     coordinates: np.ndarray
-    effective_rank: int = Field(ge=1)
+    effective_rank: int = Field(ge=0)
 
 
 class RoundSummaryLeaveOneOutRoundResult(BaseModel):
@@ -39,7 +39,7 @@ class RoundSummaryLeaveOneOutReport(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     summary_kind: str
-    requested_rank: int = Field(ge=1)
+    requested_rank: int = Field(ge=0)
     eligible_round_count: int = Field(ge=0)
     round_results: tuple[RoundSummaryLeaveOneOutRoundResult, ...]
     mean_mae: float | None = None
@@ -61,6 +61,7 @@ def factorize_summary_matrix(
     summary_matrix: np.ndarray,
     max_rank: int = 3,
     column_scale: np.ndarray | None = None,
+    allow_zero_rank: bool = False,
 ) -> RoundSummaryFactorization:
     matrix = np.asarray(summary_matrix, dtype=np.float64)
     if matrix.ndim != 2:
@@ -87,7 +88,21 @@ def factorize_summary_matrix(
             raise ValueError("column_scale must be strictly positive")
     normalized = centered / scale_vector[None, :]
     _, singular_values, vt_matrix = np.linalg.svd(normalized, full_matrices=False)
-    effective_rank = max(1, min(max_rank, vt_matrix.shape[0]))
+    if singular_values.size == 0:
+        nonzero_rank = 0
+    else:
+        tolerance = (
+            max(normalized.shape)
+            * float(np.max(singular_values))
+            * np.finfo(np.float64).eps
+        )
+        nonzero_rank = int(np.count_nonzero(singular_values > tolerance))
+    if nonzero_rank > 0:
+        effective_rank = min(max_rank, nonzero_rank)
+    elif allow_zero_rank:
+        effective_rank = 0
+    else:
+        effective_rank = min(max_rank, 1)
     basis = vt_matrix[:effective_rank]
     coordinates = normalized @ basis.T
     variance = singular_values**2
@@ -179,11 +194,8 @@ def evaluate_factorization_leave_one_out(
             sample_counts=np.asarray(factorization.sample_counts)[keep_mask].tolist(),
             summary_matrix=matrix[keep_mask],
             max_rank=requested_rank,
-            column_scale=(
-                factorization.scale_vector
-                if factorization.scale_vector.shape == factorization.mean_vector.shape
-                else None
-            ),
+            column_scale=None,
+            allow_zero_rank=True,
         )
         heldout_vector = matrix[heldout_index]
         coordinates = project_summary_vector(train_factorization, heldout_vector)

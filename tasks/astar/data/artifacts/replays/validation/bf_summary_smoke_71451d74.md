@@ -1,0 +1,54 @@
+# Behavioral Fingerprint Summary Validation
+
+- summary_profile: core_v1
+- profile: smoke
+- rounds: 1
+- holdout_runs: 1
+- bootstrap_samples: 0
+- rng_seed: 0
+- site_max_rows: 8000
+- live_max_rows: 8000
+- ruin_max_rows: 8000
+- pairwise_max_rows: 16000
+- owner_max_rows: 8000
+- elapsed_seconds: 5.946
+- mean_site_binary_brier: 2.4616045024864092e-05
+- mean_live_binary_brier: 0.02653830666904216
+- mean_live_linear_rmse: 0.0382049761923605
+- mean_pairwise_binary_brier: 0.015614466162846787
+- mean_pairwise_linear_rmse: 0.05448899888301405
+- mean_ruin_binary_brier: 0.16641924283787735
+- mean_owner_linear_rmse: 0.8624867834653153
+- mean_probe_std: 0.0
+- min_probe_support_fraction: 0.9375
+- all_probe_families_in_range: False
+
+## Round 1 71451d74-be9f-471f-aacd-a41f3b68a9cd
+
+- replay_seeds: 5
+- replay_runs: 961
+- holdout_runs: 1
+- bootstrap_samples: 0
+- probe_std_mean: 0.0
+- probe_std_max: 0.0
+- site_binary_brier: 0.000025, improvement=-0.000005
+- live_binary_brier: 0.026538, improvement=0.003365
+- live_linear_rmse: 0.038205, improvement=0.018955
+- pairwise_binary_brier: 0.015614, improvement=0.001399
+- pairwise_linear_rmse: 0.054489, improvement=0.011049
+- ruin_binary_brier: 0.166419, improvement=-0.047105
+- owner_linear_rmse: 0.862487, improvement=0.003696
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=1.0 in_range=True worst=weak_inland
+- support ruin: min=1.0 in_range=True worst=coastal_supported
+- support pairwise: min=0.9375 in_range=False worst=strong_rival_pressure
+- support owner: min=1.0 in_range=True worst=small_frontier_owner
+- top_unstable:
+  - site_binary::birth::open_inland: 0.000000
+  - site_binary::birth::open_coastal: 0.000000
+  - site_binary::birth::frontier_open: 0.000000
+  - site_binary::birth::forest_edge_open: 0.000000
+  - site_binary::site_ruin_created::open_inland: 0.000000
+  - site_binary::site_ruin_created::open_coastal: 0.000000
+  - site_binary::site_ruin_created::frontier_open: 0.000000
+  - site_binary::site_ruin_created::forest_edge_open: 0.000000

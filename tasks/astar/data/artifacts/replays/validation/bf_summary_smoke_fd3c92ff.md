@@ -1,0 +1,54 @@
+# Behavioral Fingerprint Summary Validation
+
+- summary_profile: core_v1
+- profile: smoke
+- rounds: 1
+- holdout_runs: 1
+- bootstrap_samples: 0
+- rng_seed: 0
+- site_max_rows: 8000
+- live_max_rows: 8000
+- ruin_max_rows: 8000
+- pairwise_max_rows: 16000
+- owner_max_rows: 8000
+- elapsed_seconds: 6.011
+- mean_site_binary_brier: 2.7821765903212898e-05
+- mean_live_binary_brier: 0.04509699750412413
+- mean_live_linear_rmse: 0.06122666475070721
+- mean_pairwise_binary_brier: 0.03162397441992766
+- mean_pairwise_linear_rmse: 0.06784443678251298
+- mean_ruin_binary_brier: 0.1245018427336764
+- mean_owner_linear_rmse: 0.4900349474813703
+- mean_probe_std: 0.0
+- min_probe_support_fraction: 0.9090909090909091
+- all_probe_families_in_range: False
+
+## Round 5 fd3c92ff-3178-4dc9-8d9b-acf389b3982b
+
+- replay_seeds: 5
+- replay_runs: 960
+- holdout_runs: 1
+- bootstrap_samples: 0
+- probe_std_mean: 0.0
+- probe_std_max: 0.0
+- site_binary_brier: 0.000028, improvement=-0.000014
+- live_binary_brier: 0.045097, improvement=0.000147
+- live_linear_rmse: 0.061227, improvement=0.019456
+- pairwise_binary_brier: 0.031624, improvement=0.005614
+- pairwise_linear_rmse: 0.067844, improvement=0.009760
+- ruin_binary_brier: 0.124502, improvement=-0.000923
+- owner_linear_rmse: 0.490035, improvement=0.014539
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=1.0 in_range=True worst=weak_inland
+- support ruin: min=1.0 in_range=True worst=coastal_supported
+- support pairwise: min=0.9375 in_range=False worst=strong_rival_pressure
+- support owner: min=0.9090909090909091 in_range=False worst=large_maritime_owner
+- top_unstable:
+  - site_binary::birth::open_inland: 0.000000
+  - site_binary::birth::open_coastal: 0.000000
+  - site_binary::birth::frontier_open: 0.000000
+  - site_binary::birth::forest_edge_open: 0.000000
+  - site_binary::site_ruin_created::open_inland: 0.000000
+  - site_binary::site_ruin_created::open_coastal: 0.000000
+  - site_binary::site_ruin_created::frontier_open: 0.000000
+  - site_binary::site_ruin_created::forest_edge_open: 0.000000

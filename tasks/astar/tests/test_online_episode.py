@@ -6,7 +6,7 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.online_episode import run_online_episode
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_run_online_episode_uses_generic_oracle_loop(sample_paths: RepoPaths) -> None:

@@ -15,7 +15,7 @@ from astar.infra.artifacts.store import read_round_record
 from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
 from astar.workflows.summarize_replays import summarize_round_replays
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_evaluate_round_dynamic_law_summary_returns_finite_metrics(

@@ -5,7 +5,6 @@ import pytest
 
 from astar.features.geometry import compute_round_features
 from astar.history.episodes.build import build_round_episode
-from astar.history.summaries.canonical_behavioral_probes import build_canonical_site_probes
 from astar.history.summaries.behavioral_fingerprint import (
     CANONICAL_PROBE_LIBRARY_VERSION,
     SITE_FEATURE_NAMES,
@@ -17,12 +16,14 @@ from astar.history.summaries.behavioral_fingerprint import (
 from astar.history.summaries.behavioral_fingerprint_core import (
     behavioral_fingerprint_core_column_scale,
     select_behavioral_fingerprint_core,
+    select_behavioral_fingerprint_summary_profile,
 )
+from astar.history.summaries.canonical_behavioral_probes import build_canonical_site_probes
 from astar.history.summaries.measurements import build_replay_measurement_bundle
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_fit_round_behavioral_fingerprint_and_probe_summary(
@@ -257,7 +258,7 @@ def test_probe_summary_rejects_wrong_library_version(
 
 def test_canonical_probe_builder_rejects_missing_feature_assignments() -> None:
     with pytest.raises(ValueError, match="missing canonical probe feature"):
-        build_canonical_site_probes(SITE_FEATURE_NAMES + ("new_feature",))
+        build_canonical_site_probes((*SITE_FEATURE_NAMES, "new_feature"))
 
 
 def test_summarize_probe_support_is_finite(
@@ -340,7 +341,6 @@ def test_behavioral_fingerprint_core_column_scale_uses_variance_and_noise() -> N
             dtype=np.float64,
         ),
     )
-
     assert scale.shape == (2,)
     assert np.all(scale > 0.0)
     assert np.allclose(
@@ -353,3 +353,25 @@ def test_behavioral_fingerprint_core_column_scale_uses_variance_and_noise() -> N
             dtype=np.float64,
         ),
     )
+
+
+def test_select_behavioral_fingerprint_summary_profile_can_include_shock_and_macro() -> None:
+    selection = select_behavioral_fingerprint_summary_profile(
+        [
+            "site_binary::birth::open_inland",
+            "year_shock::negative_food_rate",
+            "macro::live_delta_mean",
+            "pairwise_linear::dst_food_delta::near_rival",
+        ],
+        np.asarray([0.1, 0.2, 0.3, 0.4], dtype=np.float64),
+        np.asarray([0.01, 0.02, 0.03, 0.04], dtype=np.float64),
+        summary_profile="full_v1",
+    )
+
+    assert selection.summary_names == (
+        "site_binary::birth::open_inland",
+        "year_shock::negative_food_rate",
+        "macro::live_delta_mean",
+        "pairwise_linear::dst_food_delta::near_rival",
+    )
+    assert selection.source_indices == (0, 1, 2, 3)

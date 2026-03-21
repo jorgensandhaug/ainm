@@ -19,6 +19,10 @@ from astar.history.summaries.behavioral_fingerprint_validation import (
     BehavioralFingerprintRoundValidationReport,
     evaluate_round_behavioral_fingerprint_summary,
 )
+from astar.history.summaries.behavioral_fingerprint_core import (
+    DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
+    resolve_behavioral_fingerprint_summary_profile,
+)
 from astar.history.summaries.measurements import load_replay_measurement_bundle
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_round_record
@@ -110,6 +114,7 @@ def _default_summary_name(
     *,
     round_ids: list[str],
     validation_profile: str,
+    summary_profile: str,
     max_holdout_runs: int,
     bootstrap_samples: int,
     rng_seed: int,
@@ -122,6 +127,7 @@ def _default_summary_name(
     payload = {
         "round_ids": round_ids,
         "validation_profile": validation_profile,
+        "summary_profile": summary_profile,
         "max_holdout_runs": max_holdout_runs,
         "bootstrap_samples": bootstrap_samples,
         "rng_seed": rng_seed,
@@ -163,6 +169,7 @@ def _render_report_markdown(
     lines = [
         "# Behavioral Fingerprint Summary Validation",
         "",
+        f"- summary_profile: {result.summary_profile}",
         f"- profile: {result.validation_profile}",
         f"- rounds: {result.report_count}",
         f"- holdout_runs: {result.max_holdout_runs}",
@@ -230,6 +237,7 @@ def evaluate_behavioral_fingerprint_summary(
     *,
     round_ids: list[str] | None = None,
     validation_profile: str = "science",
+    summary_profile: str = DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
     max_holdout_runs: int | None = None,
     bootstrap_samples: int | None = None,
     rng_seed: int = 0,
@@ -241,6 +249,7 @@ def evaluate_behavioral_fingerprint_summary(
     owner_max_rows: int | None = None,
 ) -> EvaluateBehavioralFingerprintSummaryResult:
     started_at = time.perf_counter()
+    resolved_summary_profile = resolve_behavioral_fingerprint_summary_profile(summary_profile)
     profile_name = validation_profile.lower()
     if profile_name not in _PROFILE_DEFAULTS:
         raise ValueError(
@@ -316,6 +325,7 @@ def evaluate_behavioral_fingerprint_summary(
                 round_number=round_number,
                 bundles=bundles,
                 support_bundles=support_bundles,
+                summary_profile=resolved_summary_profile,
                 max_holdout_runs=resolved_max_holdout_runs,
                 bootstrap_samples=resolved_bootstrap_samples,
                 rng_seed=rng_seed,
@@ -328,6 +338,7 @@ def evaluate_behavioral_fingerprint_summary(
     summary_name = name or _default_summary_name(
         round_ids=[report.round_id for report in report_tuple],
         validation_profile=profile_name,
+        summary_profile=resolved_summary_profile,
         max_holdout_runs=resolved_max_holdout_runs,
         bootstrap_samples=resolved_bootstrap_samples,
         rng_seed=rng_seed,
@@ -344,6 +355,7 @@ def evaluate_behavioral_fingerprint_summary(
     elapsed_seconds = time.perf_counter() - started_at
     result = EvaluateBehavioralFingerprintSummaryResult(
         round_ids=[report.round_id for report in report_tuple],
+        summary_profile=resolved_summary_profile,
         report_count=len(report_tuple),
         validation_profile=profile_name,
         max_holdout_runs=resolved_max_holdout_runs,

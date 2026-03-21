@@ -1,0 +1,54 @@
+# Behavioral Fingerprint Summary Validation
+
+- summary_profile: core_v1
+- profile: smoke
+- rounds: 1
+- holdout_runs: 1
+- bootstrap_samples: 0
+- rng_seed: 0
+- site_max_rows: 8000
+- live_max_rows: 8000
+- ruin_max_rows: 8000
+- pairwise_max_rows: 16000
+- owner_max_rows: 8000
+- elapsed_seconds: 8.290
+- mean_site_binary_brier: 0.022440432555118184
+- mean_live_binary_brier: 0.009335171124025503
+- mean_live_linear_rmse: 0.04827109140215528
+- mean_pairwise_binary_brier: 0.018374111962751793
+- mean_pairwise_linear_rmse: 0.06539190613161468
+- mean_ruin_binary_brier: 0.12165617032358363
+- mean_owner_linear_rmse: 0.4101338089022774
+- mean_probe_std: 0.0
+- min_probe_support_fraction: 0.9047619047619048
+- all_probe_families_in_range: False
+
+## Round 7 36e581f1-73f8-453f-ab98-cbe3052b701b
+
+- replay_seeds: 5
+- replay_runs: 945
+- holdout_runs: 1
+- bootstrap_samples: 0
+- probe_std_mean: 0.0
+- probe_std_max: 0.0
+- site_binary_brier: 0.022440, improvement=0.000545
+- live_binary_brier: 0.009335, improvement=0.002377
+- live_linear_rmse: 0.048271, improvement=0.012872
+- pairwise_binary_brier: 0.018374, improvement=-0.000038
+- pairwise_linear_rmse: 0.065392, improvement=0.010867
+- ruin_binary_brier: 0.121656, improvement=0.004697
+- owner_linear_rmse: 0.410134, improvement=0.004881
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=0.96 in_range=False worst=weak_inland
+- support ruin: min=0.9047619047619048 in_range=False worst=isolated
+- support pairwise: min=0.9375 in_range=False worst=strong_rival_pressure
+- support owner: min=0.9090909090909091 in_range=False worst=small_frontier_owner
+- top_unstable:
+  - site_binary::birth::open_inland: 0.000000
+  - site_binary::birth::open_coastal: 0.000000
+  - site_binary::birth::frontier_open: 0.000000
+  - site_binary::birth::forest_edge_open: 0.000000
+  - site_binary::site_ruin_created::open_inland: 0.000000
+  - site_binary::site_ruin_created::open_coastal: 0.000000
+  - site_binary::site_ruin_created::frontier_open: 0.000000
+  - site_binary::site_ruin_created::forest_edge_open: 0.000000

@@ -26,7 +26,9 @@ from astar.history.summaries.behavioral_fingerprint import (
     summarize_probe_support,
 )
 from astar.history.summaries.behavioral_fingerprint_core import (
-    select_behavioral_fingerprint_core,
+    DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
+    resolve_behavioral_fingerprint_summary_profile,
+    select_behavioral_fingerprint_summary_profile,
 )
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
@@ -583,12 +585,14 @@ def evaluate_round_behavioral_fingerprint_summary(
     round_number: int,
     bundles: list[ReplayMeasurementBundle],
     support_bundles: list[ReplayMeasurementBundle] | None = None,
+    summary_profile: str = DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
     max_holdout_runs: int = 8,
     bootstrap_samples: int = 8,
     rng_seed: int = 0,
 ) -> BehavioralFingerprintRoundValidationReport:
     if not bundles:
         raise ValueError("cannot validate behavioral fingerprint without replay measurements")
+    resolved_summary_profile = resolve_behavioral_fingerprint_summary_profile(summary_profile)
 
     partitioned_bundles = [_partition_bundle(bundle) for bundle in bundles]
     all_run_ids = tuple(sorted({run_id for bundle in partitioned_bundles for run_id in bundle.run_ids}))
@@ -730,10 +734,11 @@ def evaluate_round_behavioral_fingerprint_summary(
         bootstrap_samples=bootstrap_samples,
         rng_seed=rng_seed,
     )
-    core_estimate = select_behavioral_fingerprint_core(
+    core_estimate = select_behavioral_fingerprint_summary_profile(
         estimate.summary_names,
         estimate.summary_vector,
         estimate.summary_std,
+        summary_profile=resolved_summary_profile,
     )
     probe_std = (
         np.asarray(core_estimate.summary_std, dtype=np.float64)

@@ -35,6 +35,7 @@ class ActiveOracle(Protocol):
         query: ViewportQuery,
         *,
         rng_seed: int | None = None,
+        query_index: int | None = None,
     ) -> LiveQueryObs: ...
 
 

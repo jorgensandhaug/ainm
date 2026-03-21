@@ -11,11 +11,18 @@ from astar.history.summaries.behavioral_fingerprint import (
     fit_round_behavioral_fingerprint,
 )
 from astar.history.summaries.behavioral_fingerprint_core import (
+    BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
+    DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
     BehavioralFingerprintCoreSelection,
     CORE_BLOCK_PREFIXES,
     behavioral_fingerprint_core_column_scale,
+    behavioral_fingerprint_summary_column_scale,
+    behavioral_fingerprint_summary_profile_prefixes,
     is_behavioral_fingerprint_core_name,
+    is_behavioral_fingerprint_summary_name,
+    resolve_behavioral_fingerprint_summary_profile,
     select_behavioral_fingerprint_core,
+    select_behavioral_fingerprint_summary_profile,
 )
 from astar.history.summaries.behavioral_fingerprint_manifold import (
     factorize_round_behavioral_fingerprint_core_subspace,
@@ -59,9 +66,11 @@ from astar.history.summaries.measurements import (
 __all__ = [
     "BehavioralBinaryHead",
     "BehavioralFingerprintCoreSelection",
+    "BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES",
     "BehavioralFingerprintProbeLibrary",
     "BehavioralLinearHead",
     "CORE_BLOCK_PREFIXES",
+    "DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE",
     "EVENT_SUMMARY_NAMES",
     "RoundBehavioralFingerprintEstimate",
     "RoundBehavioralFingerprintFit",
@@ -80,6 +89,8 @@ __all__ = [
     "ReplayMeasurementSeedSummary",
     "RoundDynamicLawFit",
     "behavioral_fingerprint_core_column_scale",
+    "behavioral_fingerprint_summary_column_scale",
+    "behavioral_fingerprint_summary_profile_prefixes",
     "build_dynamic_law_probe_library",
     "build_behavioral_fingerprint_probe_library",
     "build_replay_measurement_bundle",
@@ -92,8 +103,11 @@ __all__ = [
     "extract_replay_event_tables",
     "extract_replay_event_tensors",
     "is_behavioral_fingerprint_core_name",
+    "is_behavioral_fingerprint_summary_name",
+    "resolve_behavioral_fingerprint_summary_profile",
     "fit_round_behavioral_fingerprint",
     "fit_round_dynamic_law_summary",
     "select_behavioral_fingerprint_core",
+    "select_behavioral_fingerprint_summary_profile",
     "summarize_replay_event_bundle",
 ]

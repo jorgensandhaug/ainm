@@ -5,7 +5,7 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from tests.conftest import ROUND_ID
-from tests.test_history_datasets import _write_replays_for_all_seeds
+from tests.replay_test_utils import _write_replays_for_all_seeds
 
 
 def test_synthetic_benchmark_runs_multiple_episode_seeds(sample_paths: RepoPaths) -> None:

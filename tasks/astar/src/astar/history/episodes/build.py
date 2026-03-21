@@ -19,6 +19,7 @@ from astar.infra.artifacts.store import (
     read_query_records,
     read_round_record,
     read_submission_records,
+    sort_query_records_chronologically,
 )
 
 
@@ -40,13 +41,11 @@ def _build_initial_state(round_id: str, initial_state: Any) -> InitialWorldState
 
 
 def _build_live_transcript(paths: WorkspacePaths, round_id: str) -> LiveTranscript | None:
-    query_records = read_query_records(paths, round_id)
+    query_records = sort_query_records_chronologically(read_query_records(paths, round_id))
     if not query_records:
         return None
     observations: list[LiveQueryObs] = []
-    for query_index, item in enumerate(
-        sorted(query_records, key=lambda record: record.record.query_id)
-    ):
+    for query_index, item in enumerate(query_records):
         observations.append(
             LiveQueryObs(
                 round_id=round_id,
@@ -76,10 +75,14 @@ def _build_live_transcript(paths: WorkspacePaths, round_id: str) -> LiveTranscri
 def build_round_episode(
     paths: WorkspacePaths,
     round_id: str,
+    *,
+    include_replays: bool = True,
+    include_live_transcript: bool = True,
+    include_submitted_prediction: bool = True,
 ) -> RoundEpisode:
     round_record = read_round_record(paths, round_id)
     analyses = read_analysis_records(paths, round_id)
-    submissions = read_submission_records(paths, round_id)
+    submissions = read_submission_records(paths, round_id) if include_submitted_prediction else {}
     seeds: list[SeedEpisode] = []
 
     for seed_index in range(round_record.round.seeds_count):
@@ -94,16 +97,21 @@ def build_round_episode(
                 score_against_submission=analyses[seed_index].analysis.score,
             )
         submitted_prediction = None
-        prediction_path = paths.prediction_tensor_path(round_id, seed_index)
-        if seed_index in submissions and prediction_path.exists():
-            submitted_prediction = load_prediction_tensor(prediction_path)
+        if include_submitted_prediction:
+            prediction_path = paths.prediction_tensor_path(round_id, seed_index)
+            if seed_index in submissions and prediction_path.exists():
+                submitted_prediction = load_prediction_tensor(prediction_path)
         seeds.append(
             SeedEpisode(
                 seed_index=seed_index,
                 initial_state=initial_state,
                 terminal_truth=terminal_truth,
                 submitted_prediction=submitted_prediction,
-                replay_runs=tuple(load_seed_replay_runs(paths, round_id, seed_index)),
+                replay_runs=(
+                    tuple(load_seed_replay_runs(paths, round_id, seed_index))
+                    if include_replays
+                    else ()
+                ),
             ),
         )
 
@@ -117,5 +125,7 @@ def build_round_episode(
             seeds_count=round_record.round.seeds_count,
         ),
         seeds=tuple(seeds),
-        live_transcript=_build_live_transcript(paths, round_id),
+        live_transcript=(
+            _build_live_transcript(paths, round_id) if include_live_transcript else None
+        ),
     )

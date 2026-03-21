@@ -23,11 +23,13 @@ class SyntheticActiveOracle(BaseModel):
         query: ViewportQuery,
         *,
         rng_seed: int | None = None,
+        query_index: int | None = None,
     ) -> LiveQueryObs:
         return HistoricalReplayOracle(paths=self.paths).sample_view(
             round_id,
             query,
             rng_seed=rng_seed,
+            query_index=query_index,
         )
 
     def get_ground_truth(self, round_id: str) -> GroundTruthBundle:
