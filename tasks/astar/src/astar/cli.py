@@ -9,6 +9,7 @@ import httpx
 
 from astar.cli_output import (
     render_backtest_round,
+    render_birth_hazard_glm_audit,
     render_build_benchmark_manifests,
     render_build_submission,
     render_corpus_summary,
@@ -72,6 +73,7 @@ from astar.student.predictor.query_residual_specs import supported_query_residua
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
+from astar.workflows.birth_hazard_glm import run_birth_hazard_glm_audit
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
@@ -249,6 +251,12 @@ def build_parser() -> argparse.ArgumentParser:
     hazard_riskset_parser.add_argument("--round-id", action="append", default=None)
     hazard_riskset_parser.add_argument("--dataset-name", default=None)
     hazard_riskset_parser.add_argument("--negative-ratio", type=float, default=8.0)
+
+    birth_hazard_glm_parser = subparsers.add_parser("run-birth-hazard-glm-audit")
+    birth_hazard_glm_parser.add_argument("--dataset-name", default="f1_birth_riskset_nr8_v1")
+    birth_hazard_glm_parser.add_argument("--name", default="f1_birth_glm_staticlocal_audit_v01")
+    birth_hazard_glm_parser.add_argument("--ridge-lambda", type=float, default=1.0)
+    birth_hazard_glm_parser.add_argument("--max-iter", type=int, default=12)
 
     teacher_terminal_parser = subparsers.add_parser("build-teacher-terminal-dataset")
     teacher_terminal_parser.add_argument("--round-id", action="append", default=None)
@@ -545,6 +553,17 @@ def _main() -> int:
             negative_ratio=args.negative_ratio,
         )
         _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "run-birth-hazard-glm-audit":
+        result = run_birth_hazard_glm_audit(
+            paths,
+            dataset_name=args.dataset_name,
+            audit_name=args.name,
+            ridge_lambda=args.ridge_lambda,
+            max_iter=args.max_iter,
+        )
+        _emit(args.json, result, render_birth_hazard_glm_audit(result))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":

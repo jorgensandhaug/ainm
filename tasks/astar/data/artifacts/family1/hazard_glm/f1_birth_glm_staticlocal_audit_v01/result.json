@@ -1,0 +1,207 @@
+{
+  "audit_name": "f1_birth_glm_staticlocal_audit_v01",
+  "dataset_name": "f1_birth_riskset_nr8_v1",
+  "aggregation_mode": "equal_round_mean_primary",
+  "round_ids": [
+    "2a341ace-0f57-4309-9b89-e59fe0f09179",
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "round_count": 9,
+  "row_count": 6789262,
+  "weighted_positive_rate": 0.0052380282367207875,
+  "baseline_log_loss": 0.033967679662614735,
+  "glm_log_loss": 0.03190733977587566,
+  "log_loss_gain": 0.0020603398867390724,
+  "baseline_brier": 0.005384293741622835,
+  "glm_brier": 0.005367333610883454,
+  "brier_gain": 1.696013073938102e-05,
+  "pooled_baseline_log_loss": 0.03309786577518296,
+  "pooled_glm_log_loss": 0.030880290963592474,
+  "pooled_log_loss_gain": 0.0022175748115904823,
+  "pooled_baseline_brier": 0.00521432948547649,
+  "pooled_glm_brier": 0.005194442475725457,
+  "pooled_brier_gain": 1.9887009751032997e-05,
+  "feature_names": [
+    "intercept",
+    "coast",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "forest_density",
+    "mountain_density",
+    "settlement_neighbors",
+    "port_neighbors",
+    "ruin_neighbors",
+    "forest_neighbors",
+    "current_is_forest"
+  ],
+  "coefficients": [
+    {
+      "feature_name": "intercept",
+      "coefficient": -5.542075955499371
+    },
+    {
+      "feature_name": "coast",
+      "coefficient": 0.017108586391517376
+    },
+    {
+      "feature_name": "settlement_proximity",
+      "coefficient": 0.21636484957517138
+    },
+    {
+      "feature_name": "maritime_access",
+      "coefficient": -0.008345863751010272
+    },
+    {
+      "feature_name": "frontier_score",
+      "coefficient": -0.007072252524084781
+    },
+    {
+      "feature_name": "forest_density",
+      "coefficient": -0.006612653610840273
+    },
+    {
+      "feature_name": "mountain_density",
+      "coefficient": 0.04214012305777028
+    },
+    {
+      "feature_name": "settlement_neighbors",
+      "coefficient": 0.5236372318674666
+    },
+    {
+      "feature_name": "port_neighbors",
+      "coefficient": 0.10990043476525936
+    },
+    {
+      "feature_name": "ruin_neighbors",
+      "coefficient": 0.08863223816281555
+    },
+    {
+      "feature_name": "forest_neighbors",
+      "coefficient": 0.02009608335807352
+    },
+    {
+      "feature_name": "current_is_forest",
+      "coefficient": 0.01130341010853044
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "row_count": 96368,
+      "population_weight_sum": 2026590.3591860656,
+      "weighted_positive_rate": 0.005662219771246062,
+      "baseline_log_loss": 0.0349594579294148,
+      "glm_log_loss": 0.034428180244768535,
+      "log_loss_gain": 0.0005312776846462669,
+      "baseline_brier": 0.0056303441504255885,
+      "glm_brier": 0.005640686210003359,
+      "brier_gain": -1.0342059577770658e-05
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "row_count": 833184,
+      "population_weight_sum": 17400245.697496127,
+      "weighted_positive_rate": 0.00600847837539699,
+      "baseline_log_loss": 0.03679253404605031,
+      "glm_log_loss": 0.03118798802205643,
+      "log_loss_gain": 0.005604546023993882,
+      "baseline_brier": 0.005973144530445296,
+      "glm_brier": 0.005867401366041729,
+      "brier_gain": 0.00010574316440356644
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "row_count": 842136,
+      "population_weight_sum": 17521700.96906449,
+      "weighted_positive_rate": 0.006195345999321424,
+      "baseline_log_loss": 0.03778243242370903,
+      "glm_log_loss": 0.03685448912451158,
+      "log_loss_gain": 0.000927943299197452,
+      "baseline_brier": 0.006158151641239903,
+      "glm_brier": 0.006175078203777974,
+      "brier_gain": -1.6926562538071253e-05
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "row_count": 852436,
+      "population_weight_sum": 17043721.309215963,
+      "weighted_positive_rate": 0.008233413199740667,
+      "baseline_log_loss": 0.048705692797577804,
+      "glm_log_loss": 0.048426192344324465,
+      "log_loss_gain": 0.0002795004532533396,
+      "baseline_brier": 0.008177167048635685,
+      "glm_brier": 0.008195416858754192,
+      "brier_gain": -1.8249810118506696e-05
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "row_count": 818204,
+      "population_weight_sum": 17937254.768608708,
+      "weighted_positive_rate": 0.0036400218897634767,
+      "baseline_log_loss": 0.024422470559374566,
+      "glm_log_loss": 0.023769341906518377,
+      "log_loss_gain": 0.0006531286528561886,
+      "baseline_brier": 0.003630104113118221,
+      "glm_brier": 0.0036354254360145537,
+      "brier_gain": -5.321322896332907e-06
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "row_count": 894833,
+      "population_weight_sum": 16627010.374796342,
+      "weighted_positive_rate": 0.0122040580613089,
+      "baseline_log_loss": 0.07070551193870477,
+      "glm_log_loss": 0.06752460764131595,
+      "log_loss_gain": 0.00318090429738882,
+      "baseline_brier": 0.012117139591577696,
+      "glm_brier": 0.012097580070210548,
+      "brier_gain": 1.955952136714796e-05
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "row_count": 811748,
+      "population_weight_sum": 18709090.398718834,
+      "weighted_positive_rate": 0.0013151895402507103,
+      "baseline_log_loss": 0.012600829142950349,
+      "glm_log_loss": 0.011096107647414703,
+      "log_loss_gain": 0.001504721495535646,
+      "baseline_brier": 0.0013337871662294735,
+      "glm_brier": 0.0013237627663939989,
+      "brier_gain": 1.0024399835474596e-05
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "row_count": 805396,
+      "population_weight_sum": 19016851.716567837,
+      "weighted_positive_rate": 0.0002334245471416628,
+      "baseline_log_loss": 0.007210348998376266,
+      "glm_log_loss": 0.004822165738055035,
+      "log_loss_gain": 0.002388183260321231,
+      "baseline_brier": 0.00026661727931706993,
+      "glm_brier": 0.00024557174922533215,
+      "brier_gain": 2.1045530091737784e-05
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "row_count": 834957,
+      "population_weight_sum": 17724203.693074875,
+      "weighted_positive_rate": 0.005199218063376536,
+      "baseline_log_loss": 0.03252983912737467,
+      "glm_log_loss": 0.029056985313915845,
+      "log_loss_gain": 0.003472853813458826,
+      "baseline_brier": 0.005172188153616585,
+      "glm_brier": 0.005125079837529407,
+      "brier_gain": 4.710831608717783e-05
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md"
+}

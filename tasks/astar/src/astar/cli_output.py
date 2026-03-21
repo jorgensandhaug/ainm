@@ -22,6 +22,7 @@ from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
 from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
 from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
+from astar.workflows.birth_hazard_glm import BirthHazardGlmAuditResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
 from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
@@ -330,6 +331,25 @@ def render_round_dynamics_lowrank_audit(result: RoundDynamicsLowRankAuditResult)
         )
     lines.append(f"report: {result.report_path}")
     lines.append(f"artifact: {result.artifact_path}")
+    return "\n".join(lines)
+
+
+def render_birth_hazard_glm_audit(result: BirthHazardGlmAuditResult) -> str:
+    lines = [
+        f"birth-hazard-glm-audit {result.audit_name}",
+        f"dataset: {result.dataset_name}",
+        f"rounds: {result.round_count}",
+        f"aggregation: {result.aggregation_mode}",
+        f"weighted_positive_rate: {result.weighted_positive_rate:.6f}",
+        f"round_mean_baseline_log_loss: {result.baseline_log_loss:.6f}",
+        f"round_mean_glm_log_loss: {result.glm_log_loss:.6f}",
+        f"round_mean_log_loss_gain: {result.log_loss_gain:.6f}",
+        f"pooled_baseline_log_loss: {result.pooled_baseline_log_loss:.6f}",
+        f"pooled_glm_log_loss: {result.pooled_glm_log_loss:.6f}",
+        f"pooled_log_loss_gain: {result.pooled_log_loss_gain:.6f}",
+        f"report: {result.report_path}",
+        f"artifact: {result.artifact_path}",
+    ]
     return "\n".join(lines)
 
 

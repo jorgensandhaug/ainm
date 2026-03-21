@@ -289,3 +289,55 @@
 - Updated next-step read:
   - next mainline move should be a held-out round build-hazard model using this weighted risk set
   - collapse should likely be second, not first, because build/birth still dominates error mass
+- Implemented first held-out birth hazard audit:
+  - workflow: `src/astar/workflows/birth_hazard_glm.py`
+  - CLI: `uv run astar run-birth-hazard-glm-audit --dataset-name f1_birth_riskset_nr8_v1 --name f1_birth_glm_staticlocal_audit_v01`
+  - regression test: `tests/test_birth_hazard_glm.py`
+- Validation correction before trusting audit numbers:
+  - first draft aggregated held-out folds by sampled row count
+  - fixed to use equal-round mean as the primary metric because round is the statistical unit from the handoff
+  - kept pooled inverse-probability-weighted metrics as secondary diagnostics only
+- Validation rerun after birth-GLM audit changes:
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py -q`
+  - result: `3 passed`
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `19 passed`
+- Full-corpus birth hazard audit completed:
+  - artifact: `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/result.json`
+  - report: `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md`
+  - dataset: `f1_birth_riskset_nr8_v1`
+  - rounds: `9`
+  - rows: `6789262`
+  - weighted_positive_rate: `0.00523803`
+  - aggregation mode: `equal_round_mean_primary`
+- Birth hazard audit aggregate metrics:
+  - round_mean_baseline_log_loss: `0.0339677`
+  - round_mean_glm_log_loss: `0.0319073`
+  - round_mean_log_loss_gain: `0.00206034`
+  - pooled_baseline_log_loss: `0.0330979`
+  - pooled_glm_log_loss: `0.0308803`
+  - pooled_log_loss_gain: `0.00221757`
+  - round_mean_baseline_brier: `0.00538429`
+  - round_mean_glm_brier: `0.00536733`
+  - round_mean_brier_gain: `0.00001696`
+- Birth hazard audit coefficient readout (z-scored feature space):
+  - strongest positive local signal is `settlement_neighbors = +0.5236`
+  - next strongest: `settlement_proximity = +0.2164`, `port_neighbors = +0.1099`, `ruin_neighbors = +0.0886`
+  - weak effects elsewhere; sign pattern is directionally plausible for frontier/neighbor-driven founding
+- Per-round held-out behavior:
+  - positive log-loss gain on all `9/9` rounds
+  - largest gains:
+    - `36e581f1-73f8-453f-ab98-cbe3052b701b`: `+0.005605`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `+0.003473`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+0.003181`
+  - smallest gains:
+    - `76909e29-f664-4b2f-b16b-61b7507277e9`: `+0.000280`
+    - `2a341ace-0f57-4309-9b89-e59fe0f09179`: `+0.000531`
+  - Brier improved in aggregate but not every round; this looks like real ranking signal with imperfect calibration, not a pure calibration win
+- Current interpretation update:
+  - this is the first clear positive module-level result after Gate 2 rejected the crude terminal-law family
+  - event-level birth hazard modeling has real cross-round predictive signal under held-out-round validation
+  - this justifies continuing the event-hazard branch rather than returning to terminal-law low-rank tuning
+  - next best move remains:
+    - fit collapse hazard second
+    - then assemble the first benchmarkable semimechanistic event-hazard baseline rather than stopping at diagnostics
