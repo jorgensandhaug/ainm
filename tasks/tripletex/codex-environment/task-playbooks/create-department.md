@@ -32,6 +32,12 @@ Production and sandbox re-verification on 2026-03-20 showed:
 - an exact Norwegian prompt asking for `Lager`, `Regnskap`, and `Kvalitetskontroll` was the same exact-match flow
 - one same-day persistent-sandbox `POST /department/list` with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created names in `values[]` while top-level `fullResultSize` stayed `0`
 
+Production and sandbox re-verification on 2026-03-21 showed:
+- an exact Portuguese prompt asking for `IT`, `Kvalitetskontroll`, and `Regnskap` was still the same exact-match flow
+- one production `POST /department/list` created all three requested departments with zero reads and zero errors
+- one persistent-sandbox `POST /department/list` with `IT Reflection 20260321-134807`, `Kvalitetskontroll Reflection 20260321-134807`, and `Regnskap Reflection 20260321-134807` again returned the created names in `values[]`
+- the sandbox batch-create response still showed top-level `fullResultSize=0`, so verification must continue to trust `values[]`
+
 ## Minimal Safe Flow
 
 1. Confirm `POST /department` and `POST /department/list` in `./openapi.json`
@@ -55,6 +61,7 @@ Production and sandbox re-verification on 2026-03-20 showed:
 - Use `POST /department/list`
 - Do not spend a discovery `GET`
 - Do not split the work into repeated `POST /department` calls unless the prompt only asks for a single department
+- Treat that single batch write as the call floor for exact multi-department create prompts
 - Do not change the endpoint choice just because the prompt is written in German, French, or another supported language
 - Preserve the prompt-provided department names exactly; do not ASCII-normalize `Ø`
 

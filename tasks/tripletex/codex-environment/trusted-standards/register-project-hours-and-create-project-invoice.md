@@ -39,10 +39,7 @@
 5. `POST /timesheet/entry`
    - if the prompt hour total is `<= 24`, one write is enough
    - if the prompt hour total is `> 24`, split it into one entry per date, each with `projectChargeableHours <= 24`
-6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` and `GET /ledger/account?isBankAccount=true&fields=*` in parallel
-   - the bank-account read is proactive: if the invoice account (`1920` / `isInvoiceAccount=true`) has no `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` before the invoice write
-   - if the invoice account already has a `bankAccountNumber`, skip the PUT and continue
-   - this proactive check avoids a `422` on `PUT /order/:invoice` plus a retry, saving 1 call and 1 error on fresh accounts
+6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
 7. `POST /order` with:
    - `customer`
    - `project`
@@ -50,6 +47,8 @@
    - `deliveryDate`
    - one real embedded `orderLines[]` entry using the prompt hours and prompt rate
 8. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+   - keep `/ledger/account` out of the default exact-match path
+   - use the bank-account branch only after the specific missing-company-bank-account validation, or when earlier same-run evidence already proves the invoice account is unconfigured
 
 ## Payload Rules
 - use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
@@ -118,11 +117,14 @@
   - do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`
   - split the total across distinct dates, with at most `24` hours per date
   - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates
-- if the proactive `GET /ledger/account` was skipped and `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+- if `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
-  - this reactive branch costs 3 extra calls (failed invoice + GET + PUT + retry) vs the proactive check which costs 1 extra call (GET) or 2 (GET + PUT) with 0 errors
+  - for this exact task family, the tradeoff is explicit:
+    - optimistic branch costs `7` calls on configured non-chargeable accounts and `10` when the company bank account is missing
+    - proactive hedge costs `8` calls on configured non-chargeable accounts and `9` when the company bank account is missing
+  - because this trusted standard is the lowest-call default, keep the optimistic branch as canonical and reserve the hedge for run-specific evidence
 - if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first
 
 ## OpenAPI / Sandbox Status
@@ -145,7 +147,7 @@
   - a same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `18` hours at rate `950` re-confirmed the same `7`-call non-chargeable floor, returning `amountExcludingVatCurrency=17100` with no `/project/hourlyRates` read
   - a later same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `14` hours at rate `1150` again finished in `7` calls on fresh date `2026-06-21`, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=16100`, and found no lower-call public replacement path
   - for that same sandbox analog with rate `1450` and total hours `39`, `POST /timesheet/entry` with `projectChargeableHours=39` failed with `422 ... Kan ikke være over 24`, a second same-day write after one successful `24`-hour chunk failed with `409 Det er allerede registrert timer ...`, and the corrected 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` (`24`) -> `POST /timesheet/entry` (`15` on a different date) -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded with `amountExcludingVatCurrency=56550`
-  - a same-session persistent-sandbox re-proof on 2026-03-20 repeated that exact `39`-hour non-chargeable branch on fresh dates `2026-05-11` / `2026-05-12`, again finished in `8` calls, and found no lower-call public replacement path
+  - a same-session persistent-sandbox re-proof on 2026-03-20 repeated that exact `39`-hour non-chargeable branch on fresh dates `2026-05-11` / `2026-05-12`, again finished in `8` calls, and found no lower-call public replacement path for the `>24`-hours branch
   - the 2026-03-20 production German run `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18` hours / `950` matched that same branch: `/activity/>forTimeSheet` returned `isChargeable=false`, the write path stayed at `7` calls, and the invoice returned `amountExcludingVatCurrency=17100` plus `amountCurrencyOutstanding=21375`
   - the 2026-03-20 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=7000` plus `amountCurrencyOutstanding=8750`, and did not expose a lower-call taxable-safe replacement path
   - a later 2026-03-20 production German run `Waldstein GmbH` / `948366207` / `Sicherheitsaudit` / `anna.wagner@example.org` / `Analyse` / `14` hours / `1150` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=20125`, and again showed that any added `/project/hourlyRates` call would be wasted
@@ -155,4 +157,6 @@
   - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so the proactive `/ledger/account` check added `1` extra call there (8 total) while skipping the PUT
   - the 2026-03-21 production French run `Soleil SARL` / `933986861` / `Configuration cloud` / `louis.petit@example.org` / `Design` / `12` hours / `1450` hit the non-chargeable branch and the reactive bank-account recovery after `PUT /order/:invoice` returned `422 Faktura kan ikke opprettes ...`, costing 10 total calls (7 main + failed invoice + GET /ledger/account + PUT /ledger/account + retry invoice) with 1 error; the proactive approach would have been 9 calls with 0 errors
   - persistent-sandbox re-proof on 2026-03-21 with that same analog employee/project/activity and `12` hours at `1450` on date `2026-07-15` confirmed the 8-call proactive branch (GET /employee + GET /project + GET /activity + POST /timesheet + parallel GET /ledger/vatType + GET /ledger/account + POST /order + PUT /order/:invoice) with 0 errors, returning `amountExcludingVatCurrency=17400`
+  - the later 2026-03-21 production French run `Océan SARL` / `953748460` / `Mise à niveau système` / `camille.dubois@example.org` / `Design` / `16` hours / `1300` followed that older proactive hedge and still created the correct side effects, but on a configured account that hedge sits one call above the true floor
+  - same-day persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `16` hours + `1300` on date `2026-08-03` confirmed the lower-call optimistic branch in `7` calls: `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, returning `amountExcludingVatCurrency=20800`
   - omitting `vatType` from the order line defaults to VAT code `id=0` ("Ingen avgiftsbehandling", 0%) instead of the correct outgoing VAT type, which silently creates wrong totals on taxable production accounts with 25% VAT; GET /ledger/vatType is required

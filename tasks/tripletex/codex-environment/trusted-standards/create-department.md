@@ -22,6 +22,8 @@
 3. verify directly from write response
 4. stop
 
+For exact multi-department creates, this one batch write is the call floor: there is no lower-call valid path than one `POST /department/list`.
+
 For exact matches, do not spend extra time re-reading `./trusted-standards/common-endpoints.md` or `./openapi.json`; this standard already fixes the winning endpoint and payload shape.
 
 ## Payload Rules
@@ -58,4 +60,6 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 - production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `HR`, `Salg`, and `Økonomi`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
 - production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `Lager`, `Regnskap`, and `Kvalitetskontroll`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
 - production re-confirmed on 2026-03-21 with a Norwegian three-department prompt for `Utvikling`, `Drift`, and `HR`: one `POST /department/list`, 201, perfect score (7/7, normalized 2), zero errors
+- production re-confirmed on 2026-03-21 with a Portuguese three-department prompt for `IT`, `Kvalitetskontroll`, and `Regnskap`: one `POST /department/list`, 201, zero reads, zero errors
 - sandbox re-verified on 2026-03-21: batch create still returns `fullResultSize=0` with correct `values[]`
+- sandbox re-verified on 2026-03-21 with `IT Reflection 20260321-134807`, `Kvalitetskontroll Reflection 20260321-134807`, and `Regnskap Reflection 20260321-134807`: one `POST /department/list` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`

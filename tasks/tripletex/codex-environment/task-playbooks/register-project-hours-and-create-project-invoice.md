@@ -80,6 +80,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so the proactive `/ledger/account` check added 1 extra call but skipped the PUT
 - the 2026-03-21 production French run `Soleil SARL` / `933986861` / `Configuration cloud` / `louis.petit@example.org` / `Design` / `12` hours / `1450` hit the non-chargeable branch and the reactive bank-account recovery cost 10 calls with 1 error; proactive check would have been 9 calls with 0 errors
 - persistent-sandbox re-proof on 2026-03-21 confirmed the proactive 8-call branch (with bank account already set) succeeded with 0 errors
+- the later 2026-03-21 production French run `Océan SARL` / `953748460` / `Mise à niveau système` / `camille.dubois@example.org` / `Design` / `16` hours / `1300` still created the correct side effects on the older proactive branch, but that hedge sat one call above the true configured-account floor for this exact non-chargeable task shape
+- same-day persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `16` hours + `1300` on `2026-08-03` confirmed the lower-call optimistic branch in `7` calls: `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
 - omitting `vatType` from the order line defaults to wrong VAT code `id=0` (0%) instead of the correct outgoing type; GET /ledger/vatType is required on taxable accounts
 
 ## Minimal Safe Flow
@@ -138,12 +140,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - keep each entry at `projectChargeableHours <= 24`
    - if the prompt total exceeds `24`, plan one entry per distinct date before the first write
    - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
-12. Resolve VAT type and proactively check bank account in parallel
+12. Resolve VAT type
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - if the invoice account (`1920` / `isInvoiceAccount=true`) has no `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` before the order write
-   - if the invoice account already has a `bankAccountNumber`, skip the PUT
-   - this proactive check avoids a `422` on `PUT /order/:invoice` plus a 3-call recovery (failed invoice + GET + PUT + retry), saving 1 call and 1 error on fresh accounts
 13. Create a real project-linked order line derived from the prompt hours and rate
    - `POST /order`
    - include:
@@ -154,7 +152,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - one embedded `orderLines[]` row using the prompt hours and prompt rate
 14. Invoice that order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-15. Only if the proactive check was skipped and that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
+15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
 
 ## Recommended Shapes
 
@@ -227,10 +225,10 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   3. `GET /activity/>forTimeSheet?...`
   4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`
   5. if `activity.isChargeable=false` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
-  6. `GET /ledger/vatType?...` and `GET /ledger/account?isBankAccount=true&fields=*` in parallel
-  7. if the invoice account has no `bankAccountNumber`: `PUT /ledger/account/{id}` to fix it
-  8. `POST /order`
-  9. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  6. `GET /ledger/vatType?...`
+  7. `POST /order`
+  8. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  9. only if that invoice write fails on missing company bank account: `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry the same `PUT /order/{id}/:invoice`
   10. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
   11. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
   12. if needed: conditional `PUT /project/hourlyRates/{id}`
@@ -291,5 +289,6 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not treat writable-looking nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` as a working path; the server accepts or validates the payload but still persists `includeHours=false`
 - Do not rely on `PUT /invoice/{id}` or `PUT /invoice/details/{id}`; both were re-proven as method-not-allowed
 - Do not assume the fallback public invoice consumes the registered project-hour reserve; it creates the customer-facing invoice side effect but leaves `includeHours=false`
-- Do not skip the proactive `GET /ledger/account` check in this task shape; the 2026-03-21 production run proved that the reactive recovery (failed invoice + GET + PUT + retry) costs 3 extra calls and 1 error vs the proactive check which costs 1 extra call and 0 errors
-- Run `GET /ledger/vatType` and `GET /ledger/account` in parallel to minimize wall time without increasing call count
+- Do not insert a proactive `GET /ledger/account` hedge by rote on this exact task shape; on configured accounts it wastes one call, as re-proved on 2026-03-21
+- Do not ignore the bank-account tradeoff either: the optimistic non-chargeable branch is `7` calls when configured but `10` when missing, while the proactive hedge is `8` when configured and `9` when missing
+- If `PUT /order/{id}/:invoice` fails only on missing company bank account, repair the existing invoice account once and retry the same invoice write; do not create a second order or repeat earlier reads
