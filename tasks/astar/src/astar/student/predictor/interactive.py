@@ -41,6 +41,11 @@ SMH_GLMMLATENT_Z4_H0_COVNBR_CALNONE_V001 = "smh_glmmlatent_z4_h0_covnbr_calnone_
 SMH_GLMMLATENT_Z2_H0_COVNBR3_CALNONE_V001 = "smh_glmmlatent_z2_h0_covnbr3_calnone_v001"
 SMH_GLMMLATENT_Z2_H0_COVBASE_CALOBS_V001 = "smh_glmmlatent_z2_h0_covbase_calobs_v001"
 SMH_GLMMLATENT_Z2_H0_COVNBR_CALOBS_V001 = "smh_glmmlatent_z2_h0_covnbr_calobs_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_R01_V001 = "smh_glmmlatent_z2_h0_covbase_r01_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_R10_V001 = "smh_glmmlatent_z2_h0_covbase_r10_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_E50_V001 = "smh_glmmlatent_z2_h0_covbase_e50_v001"
+SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z3_h0_covbase_calnone_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_HBBLEND20_V001 = "smh_glmmlatent_z2_h0_covbase_hbblend20_v001"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1138,6 +1143,39 @@ def _load_smh_coeffbank_historical_bucket_components(
     return left_predictor, right_predictor
 
 
+def _build_smh_glmm_latent_hb_blend_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    blend_name: str,
+    bucket_weight: float,
+    glmm_fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    bucket_predictor = _load_or_fit_historical_bucket_predictor(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        checkpoint_stem="historical_bucket_prior_v1",
+        model_name="historical_bucket_prior_v1",
+    )
+    glmm_adapter = _build_smh_glmm_latent_adapter(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+        model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+        fit_kwargs=glmm_fit_kwargs or {"latent_dim": 2},
+    )
+    predictor = FixedPredictionBlendPredictor(
+        left_predictor=glmm_adapter.predictor,
+        right_predictor=bucket_predictor,
+        right_weight=bucket_weight,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def _build_smh_coeffbank_hb_blend_adapter(
     workspace_paths: WorkspacePaths,
     *,
@@ -1710,6 +1748,14 @@ def build_online_predictor(
                 ),
             },
         )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_HBBLEND20_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_hb_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            blend_name=SMH_GLMMLATENT_Z2_H0_COVBASE_HBBLEND20_V001,
+            bucket_weight=0.20,
+        )
     if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_CALOBS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         base_adapter = _build_smh_glmm_latent_adapter(
@@ -1722,6 +1768,42 @@ def build_online_predictor(
         return _build_exact_observation_adapter(
             base_adapter.predictor,
             name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALOBS_V001,
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_R01_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_R01_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_R01_V001,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.01},
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_R10_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_R10_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_R10_V001,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.1},
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_E50_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_E50_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_E50_V001,
+            fit_kwargs={"latent_dim": 2, "max_epochs": 50},
+        )
+    if normalized == SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 3},
         )
     if normalized == SMH_GLMMLATENT_Z2_H0_COVNBR_CALOBS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
