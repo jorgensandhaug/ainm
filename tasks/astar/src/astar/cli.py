@@ -243,7 +243,19 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "greybox_regime_ridge",
+            "greybox_regime_knn",
+            "greybox_hazard_lowrank",
+            "greybox_hazard_mixture",
+            "greybox_hybrid_lowrank_queryres",
+            "greybox_hybrid_lowrank_queryres_w45",
+            "greybox_gated_hybrid",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -256,7 +268,19 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "greybox_regime_ridge",
+            "greybox_regime_knn",
+            "greybox_hazard_lowrank",
+            "greybox_hazard_mixture",
+            "greybox_hybrid_lowrank_queryres",
+            "greybox_hybrid_lowrank_queryres_w45",
+            "greybox_gated_hybrid",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -277,6 +301,13 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "greybox_regime_ridge",
+            "greybox_regime_knn",
+            "greybox_hazard_lowrank",
+            "greybox_hazard_mixture",
+            "greybox_hybrid_lowrank_queryres",
+            "greybox_hybrid_lowrank_queryres_w45",
+            "greybox_gated_hybrid",
             "query_residual",
         ],
         required=True,
@@ -307,7 +338,19 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "greybox_regime_ridge",
+            "greybox_regime_knn",
+            "greybox_hazard_lowrank",
+            "greybox_hazard_mixture",
+            "greybox_hybrid_lowrank_queryres",
+            "greybox_hybrid_lowrank_queryres_w45",
+            "greybox_gated_hybrid",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

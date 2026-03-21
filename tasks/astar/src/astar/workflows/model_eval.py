@@ -17,6 +17,14 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
+from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
+from astar.student.predictor.greybox_regime import (
+    GreyboxHazardLowRankPredictor,
+    GreyboxLowRankQueryResidualHybridPredictor,
+    GreyboxRegimeKnnPredictor,
+    GreyboxRegimeRidgePredictor,
+)
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
@@ -233,6 +241,106 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized == "greybox_regime_ridge":
+        predictor = GreyboxRegimeRidgePredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_regime_knn":
+        predictor = GreyboxRegimeKnnPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_hazard_lowrank":
+        predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_hazard_mixture":
+        predictor = GreyboxHazardMixturePredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.base_predictor.analyzed_seed_count,
+            predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_hybrid_lowrank_queryres":
+        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_hybrid_lowrank_queryres_w45":
+        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+            lowrank_weight=0.45,
+            model_name="greybox_hybrid_lowrank_queryres_w45_v01",
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
+    if normalized == "greybox_gated_hybrid":
+        predictor = GreyboxGatedHybridPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
+            predictor.lowrank_predictor.base_predictor.cell_count,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -362,7 +470,21 @@ def evaluate_model_on_round(
             )
         )
         resolved_policy_name = None
-        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
+        resolved_samples_per_round = (
+            samples_per_round
+            if model_name.strip().lower()
+            in {
+                "query_residual",
+                "greybox_regime_ridge",
+                "greybox_regime_knn",
+                "greybox_hazard_lowrank",
+                "greybox_hazard_mixture",
+                "greybox_hybrid_lowrank_queryres",
+                "greybox_hybrid_lowrank_queryres_w45",
+                "greybox_gated_hybrid",
+            }
+            else None
+        )
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0

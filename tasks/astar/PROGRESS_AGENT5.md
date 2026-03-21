@@ -158,3 +158,531 @@
   - richer transcript diversity (`samples_per_round > 1`) may help more than stronger ridge.
   - policy-conditioned transcript generation (`exploration` / repeat-aware) still needs probing.
   - may need smarter training-round selection or mixture logic rather than “always all 7 rounds”.
+
+### 2026-03-21T01:00:00Z
+
+- Verified replay diversity ceiling for current local test corpus:
+  - most rounds have `58` replay runs per seed
+  - `71451d74-be9f-471f-aacd-a41f3b68a9cd` has one seed with `59`
+  - implication: `samples_per_round > 1` is real extra transcript diversity, not duplicate rollout noise.
+- Finished full scoped 8-round `samples_per_round=4` coverage dataset build:
+  - `query_residual_synthetic_live__policy=coverage__samples=4__rounds=n=8__sha1=ea07400de1`
+  - `row_count=32`
+  - `round_count=8`
+  - `total_query_count=1440`
+  - wall time `327.370s`
+- Next immediate step:
+  - run same held-out probes (`f1dac...`, `c5cdf...`, `36e581...`) with `samples_per_round=4`
+  - compare directly against current `samples=1` scoped-dataset results
+
+### 2026-03-21T07:00:00Z
+
+- User clarified direction:
+  - stop spending iteration budget mainly on `query_residual`
+  - build genuinely new grey-box teacher/student model family members
+  - use much more parallel experimentation / hardware
+- Why `query_residual` happened first:
+  - handoff explicitly required adapting to existing framework, running working end-to-end baselines, validating on held-out rounds, and continuing from current state.
+  - that established trustworthy validation + fixed real local bugs, but it was only baseline/infra work.
+- Parallel codebase recon done:
+  - teacher/regime stack map
+  - student/posterior stack map
+  - conclusion: easiest benchmarkable new family is teacher/student online inference, not more residual tweaking.
+- Implemented new benchmarkable grey-box predictors:
+  - `greybox_regime_ridge_v01`
+  - `greybox_regime_knn_v01`
+- Design:
+  - train `HazardTeacher` on held-in replay rounds
+  - train transcript-to-regime posterior on legal synthetic transcripts from held-in rounds
+  - transcript features reuse rich regime-oriented residual summaries rather than crude frequency counts
+  - decode via hazard teacher
+  - blend with historical bucket prior
+  - enforce exact observed-cell evidence with count-based exact-cell blending
+- Framework integration added:
+  - online predictor registry
+  - historical eval path
+  - CLI model choices for synthetic / historical / live runs
+  - held-out benchmark smoke tests for both new models
+- Verification:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `7 passed`
+  - `uv run --extra dev pytest tests/test_history_datasets.py -q` -> `5 passed`
+- Immediate next:
+  - run real held-out probes on local full corpus for both grey-box models
+  - compare against `query_residual` and existing `latent_regime`
+  - if promising, scale transcript sample count upward and run larger parallel ablations
+
+### 2026-03-21T08:00:00Z
+
+- New grey-box probe results on full local corpus, `policy=coverage`, `samples_per_round=4`, held-out rounds `{f1dac..., c5cdf..., 36e581...}`:
+
+- `greybox_regime_knn_v01`
+  - `f1dac...`: `51.2754`
+  - `c5cdf...`: `77.1572`
+  - `36e581...`: `45.8848`
+  - interpretation:
+    - strong on `c5cdf...`
+    - too unstable; rejected as current lead
+
+- `greybox_regime_ridge_v01`
+  - default `prior_blend=0.25`
+  - `f1dac...`: `53.5571`
+  - `c5cdf...`: `78.7253`
+  - `36e581...`: `49.7357`
+  - interpretation:
+    - strong new family signal
+    - massive gain on `c5cdf...`
+    - still too weak on `36e581...`
+
+- Ridge prior-blend sweep:
+  - `f1dac...`
+    - best near `prior_blend=0.25` (`53.5571`)
+  - `c5cdf...`
+    - best near `prior_blend=0.35` (`79.1772`)
+  - `36e581...`
+    - monotonically improved up to `prior_blend=0.55` (`53.8911`)
+  - Interpretation:
+    - constant global blend is not enough
+    - likely decoder generalization / confidence mismatch remains
+
+### 2026-03-21T09:00:00Z
+
+- Implemented third new grey-box family member:
+  - `greybox_hazard_lowrank_v01`
+- Design:
+  - fit semimechanistic replay coefficients per held-in round
+  - factorize them into low-rank round coordinates
+  - learn transcript-to-coordinate regression on legal synthetic transcripts
+  - decode reconstructed coefficient vector through `HazardTeacher`
+  - blend with historical bucket prior + exact observed-cell evidence
+- 3-round held-out probes, `policy=coverage`, `samples_per_round=4`, default `prior_blend=0.35`:
+  - `f1dac...`: `57.3516`
+  - `c5cdf...`: `78.5253`
+  - `36e581...`: `64.6992`
+- Interpretation:
+  - first genuinely strong cross-round grey-box model
+  - much better balance than ridge/knn
+  - worth full-corpus validation + blend sweeps
+
+- Full 8-round held-out evaluation, `greybox_hazard_lowrank_v01`, `prior_blend=0.35`:
+  - `36e581...`: `64.6992`
+  - `71451d...`: `69.9241`
+  - `76909e...`: `75.8642`
+  - `8e8399...`: `81.0221`
+  - `ae7800...`: `75.5373`
+  - `c5cdf...`: `78.5253`
+  - `f1dac...`: `57.3516`
+  - `fd3c92...`: `66.5113`
+  - mean round score `71.179393`
+  - mean round weighted KL `0.115481`
+
+- Low-rank prior-blend sweep on representative held-out rounds:
+  - `f1dac...`
+    - `0.35`: `57.3516`
+    - `0.45`: `56.0437`
+    - `0.55`: `54.2762`
+    - `0.65`: `52.1114`
+    - `0.75`: `49.6517`
+  - `c5cdf...`
+    - `0.35`: `78.5253`
+    - `0.45`: `78.1557`
+    - `0.55`: `77.2615`
+    - `0.65`: `75.8803`
+    - `0.75`: `74.0655`
+  - `71451d...`
+    - `0.35`: `69.9241`
+    - `0.45`: `71.6980`
+    - `0.55`: `73.2280`
+    - `0.65`: `74.5468`
+    - `0.75`: `75.6192`
+  - `76909e...`
+    - `0.35`: `75.8642`
+    - `0.45`: `76.7368`
+    - `0.55`: `77.3242`
+    - `0.65`: `77.6497`
+    - `0.75`: `77.6723`
+  - `fd3c92...`
+    - `0.35`: `66.5113`
+    - `0.45`: `69.6132`
+    - `0.55`: `72.2452`
+    - `0.65`: `74.5054`
+    - `0.75`: `76.4645`
+- Interpretation:
+  - higher prior helps easier rounds substantially
+  - but it damages `f1dac...` and `c5cdf...`
+  - constant prior blend alone cannot dominate everywhere
+
+- Full 8-round rerun, `greybox_hazard_lowrank_v01`, `prior_blend=0.55`:
+  - `36e581...`: `65.8168`
+  - `71451d...`: `73.2280`
+  - `76909e...`: `77.3242`
+  - `8e8399...`: `84.9902`
+  - `ae7800...`: `74.7563`
+  - `c5cdf...`: `77.2615`
+  - `f1dac...`: `54.2762`
+  - `fd3c92...`: `72.2452`
+  - mean round score `72.487302`
+  - mean round weighted KL `0.109967`
+- Interpretation:
+  - clear gain over low-rank default
+  - still not enough to beat visible old best benchmark report
+
+- Built first hybrid model:
+  - `greybox_hybrid_lowrank_queryres_v01`
+  - blend `0.25 * lowrank(prior_blend=0.55) + 0.75 * query_residual(samples=1)`
+  - rationale:
+    - low-rank is much stronger on several easier rounds
+    - `query_residual` still protects some hard/off-manifold cases
+    - fixed blend already looked promising in ad hoc probes
+
+- 5-round hybrid probe:
+  - `36e581...`: `65.8363`
+  - `71451d...`: `79.8373`
+  - `c5cdf...`: `70.2865`
+  - `f1dac...`: `55.4568`
+  - `fd3c92...`: `78.8574`
+
+- Full 8-round held-out hybrid evaluation:
+  - `36e581...`: `65.836291`
+  - `71451d...`: `79.837298`
+  - `76909e...`: `83.512497`
+  - `8e8399...`: `86.048940`
+  - `ae7800...`: `79.104778`
+  - `c5cdf...`: `70.286534`
+  - `f1dac...`: `55.456790`
+  - `fd3c92...`: `78.857417`
+  - mean round score `74.867568`
+  - mean round weighted KL `0.099605`
+- Interpretation:
+  - current best result in this session
+  - beats visible old report mean `73.9505` by about `+0.9171`
+  - next priority was productizing this ad hoc hybrid through normal registry / CLI / benchmark path
+
+### 2026-03-21T10:00:00Z
+
+- Re-read family-specific handoff sections in `instructions/agent5.md`.
+- Main implications re-confirmed:
+  - keep pushing teacher + tiny round regime + fast student
+  - benchmark-trained query policy matters
+  - once low-rank plateaus, discrete mixture and smarter online adaptation are first-class next branches
+
+- Machine health / concurrency read:
+  - early check:
+    - `Mem available ~= 2.9 TiB`
+    - `cores = 384`
+    - only one significant competing `astar` run visible
+  - later during our experiment burst:
+    - `Mem available ~= 2.4 TiB`
+    - load average about `45.9`
+    - still large headroom
+  - other active agents visibly running:
+    - `hazard_posterior_*`
+    - `ffam_retrieval_*`
+    - `teacher_student_blend_*`
+  - operating choice:
+    - keep several long probes live, but not spam dozens of redundant full-benchmark jobs into an already busy machine
+
+- Productized current best fixed hybrid through normal framework path:
+  - registry / model-eval / CLI / historical-benchmark integration for:
+    - `greybox_hybrid_lowrank_queryres`
+  - fixed missing `QueryResidualPredictor` import bug in hybrid implementation
+  - verification:
+    - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `9 passed`
+    - `uv run --extra dev pytest tests/test_history_datasets.py -q` -> `5 passed`
+    - `uv run --extra dev pytest tests/test_teacher_student.py -q` -> `4 passed`
+
+- Added fast experiment harness:
+  - `scripts/agent5_hybrid_sweep.py`
+  - purpose:
+    - sweep lowrank/query-residual blend weights cheaply
+    - separate `lowrank_samples_per_round` vs `residual_samples_per_round`
+    - reuse one recorded transcript belief per held-out round
+    - stream per-round results with flushing
+
+- Opened policy search space without changing benchmark API:
+  - `build_named_policy()` now parses:
+    - `coverage`
+    - `exploration`
+    - `coverage_rN`
+    - `exploration_rN`
+  - new test:
+    - `uv run --extra dev pytest tests/test_exploration_policy.py -q` -> `2 passed`
+
+- New predictor-family branches added to codebase:
+  - `greybox_gated_hybrid_v01`
+    - transcript-dependent gate over:
+      - `greybox_hazard_lowrank_v01`
+      - `query_residual`
+    - gate inputs:
+      - transcript regime features
+      - expert disagreement features
+    - gate target:
+      - best lowrank blend weight over synthetic legal transcripts on held-in rounds
+  - `greybox_hazard_mixture_v01`
+    - discrete regime mixture over clustered semimechanistic coefficient prototypes
+    - motivated directly by handoff’s “low-rank or richer discrete-mixture regime model” branch
+
+- Integrated new predictors into benchmark path:
+  - registry / model-eval / CLI / historical benchmark / smoke tests now include:
+    - `greybox_hazard_mixture`
+    - `greybox_gated_hybrid`
+  - verification:
+    - `uv run --extra dev pytest tests/test_historical_benchmark.py -q -k greybox_regime_online_historical_benchmark_runs` -> `6 passed, 5 deselected`
+
+- Parallel experiment program launched:
+  - full 8-round fixed-weight sweeps:
+    - `coverage`
+    - `exploration`
+  - short 4-round flushed policy probes:
+    - `coverage`
+    - `exploration`
+    - `exploration_r3`
+    - `exploration_r8`
+  - direct 4-round standard-path probes:
+    - `greybox_gated_hybrid`
+    - `greybox_hazard_mixture`
+
+- Partial result already informative on first 2 completed rounds of short policy probes:
+  - held-out `36e581...`
+    - `coverage`
+      - best among tested weights so far at `lowrank_weight=0.45`
+      - score `61.0651`
+    - `exploration`
+      - best among tested weights so far at `lowrank_weight=0.25`
+      - score `60.2697`
+    - interpretation:
+      - `coverage` beats default `exploration`
+      - this round wants materially more low-rank mass than the old fixed `0.25`
+  - held-out `71451d...`
+    - `coverage`
+      - best among tested weights so far at `lowrank_weight=0.00`
+      - score `76.3894`
+    - `exploration`
+      - best among tested weights so far at `lowrank_weight=0.00`
+      - score `75.8661`
+    - interpretation:
+      - `coverage` again beats default `exploration`
+      - this round wants essentially pure residual, opposite of `36e581...`
+
+- Current scientific conclusion from partial probes:
+  - policy:
+    - default `exploration` does not currently look superior to `coverage`
+    - richer `exploration_rN` variants still under test
+  - inference:
+    - fixed blend weight is clearly wrong
+    - evidence already strongly favors transcript-dependent gating as the next highest-value branch
+    - discrete hazard mixture remains worth testing because low-rank vs residual disagreement appears regime-structured, not random
+
+### 2026-03-21T11:00:00Z
+
+- Found and fixed a serious sweep-harness validation bug:
+  - earlier `scripts/agent5_hybrid_sweep.py` was accidentally sweeping against `greybox_hazard_lowrank` default `prior_blend=0.35`
+  - but the actual current best hybrid uses low-rank `prior_blend=0.55`
+  - harness now instantiates the tuned low-rank expert directly with configurable `--lowrank-prior-blend`
+  - consequence:
+    - earlier sweep numbers remain useful for broad direction only
+    - corrected sweeps are the ones to trust for model selection
+
+- Sweep harness validation against standard benchmark path:
+  - 2-round coverage subset `{36e581..., 71451...}`
+  - corrected sweep at `lowrank_weight=0.25`:
+    - mean score `67.267978`
+    - mean weighted KL `0.132953`
+  - direct standard benchmark for `greybox_hybrid_lowrank_queryres` on same subset:
+    - mean score `67.26797838955613`
+    - mean weighted KL `0.1329526785429317`
+  - interpretation:
+    - sweep harness is now validated for this family/config
+    - can use it confidently for rapid model selection before spending more full-benchmark wall time
+
+- Corrected 4-round sweep with tuned low-rank expert, held-out rounds `{36e581..., 71451..., c5cdf..., f1dac...}`:
+
+- `coverage`
+  - tested weights: `0.00, 0.15, 0.25, 0.35, 0.45, 0.55`
+  - best:
+    - `lowrank_weight=0.35`
+    - mean score `68.305538`
+    - mean weighted KL `0.130043`
+  - interpretation:
+    - coverage alone only wants a mild retune over the current fixed `0.25`
+
+- `exploration_r3`
+  - tested weights: `0.00, 0.15, 0.25, 0.35, 0.45, 0.55`
+  - best:
+    - `lowrank_weight=0.45`
+    - mean score `69.886928`
+    - mean weighted KL `0.122225`
+  - interpretation:
+    - materially better than corrected `coverage`
+    - delta vs best corrected `coverage`: about `+1.5814` score and `-0.007818` weighted KL
+    - current strongest post-fix direction is:
+      - policy `exploration_r3`
+      - hybrid low-rank weight `0.45`
+      - low-rank prior blend `0.55`
+      - residual samples `1`
+
+- Branch triage from direct benchmark probes:
+  - `greybox_gated_hybrid` on 2-round coverage subset `{36e581..., 71451...}`:
+    - mean score `66.881302`
+    - mean weighted KL `0.134754`
+    - worse than fixed hybrid baseline on same subset (`67.267978`, `0.132953`)
+    - conclusion:
+      - first gating implementation is not production-ready
+  - `greybox_hazard_mixture` on 4-round coverage subset `{36e581..., 71451..., c5cdf..., f1dac...}`:
+    - mean score `47.513991`
+    - mean weighted KL `0.277624`
+    - catastrophic on `36e581...`, `71451...`, `f1dac...`
+    - conclusion:
+      - discrete hazard-mixture branch is currently rejected
+
+- Productized new explicit fixed-hybrid model variant:
+  - `greybox_hybrid_lowrank_queryres_w45`
+  - rationale:
+    - handoff requires distinct model names for materially distinct configs
+    - corrected sweep selected `lowrank_weight=0.45` as current best on the 4-round probe
+
+- Live long-running jobs now:
+  - standard 4-round benchmarks still running for:
+    - `greybox_hybrid_lowrank_queryres` with `policy=exploration_r3`
+    - `greybox_hybrid_lowrank_queryres_w45` with `policy=exploration_r3`
+  - full 8-round corrected sweep running for:
+    - `policy=exploration_r3`
+    - weights `{0.25, 0.45, 0.55}`
+
+### 2026-03-21T09:20:00Z
+
+- Re-read full grey-box handoff again, especially:
+  - tiny regime manifold / maybe discrete mixture
+  - direct student head / joint student
+  - posterior-aware repeated-query policy
+- Machine-health snapshot before scaling parallelism:
+  - `Mem`: `2.9 TiB total`, `28 GiB used`, effectively all free at launch
+  - later under broad multi-agent load: `494 GiB used`, `2.4 TiB available`
+  - `nproc`: `384`
+  - load around `48` on `384` cores while many other agents were already benchmarking
+  - implication:
+    - still enormous headroom
+    - safe to run multiple heavy experiments in parallel
+    - need monitor RAM because other agents are active, but no need to throttle hard yet
+
+- Active machine observations:
+  - multiple other agents are running serious benchmark jobs on the same host
+  - examples seen in `ps`:
+    - `agent1` hazard-posterior exploration benchmarks
+    - `agent2` coeffbank variants
+    - `agent6` summary/roundlaw decoder probes
+    - `agent7` ffam retrieval exploration probes
+  - decision:
+    - keep parallelism moderate-high rather than maxing all cores blindly
+
+- Added new-family experiment harness:
+  - `scripts/agent5_hybrid_sweep.py`
+  - purpose:
+    - fit `greybox_hazard_lowrank` + `query_residual` once per held-out round
+    - reuse one transcript and both expert bundles to score many convex blend weights cheaply
+    - much better iteration path than re-running a full registered benchmark for every weight
+
+- Added new-family model branches aligned with handoff:
+  - `greybox_gated_hybrid_v01`
+    - transcript-dependent gate over `{greybox_hazard_lowrank, query_residual}`
+    - gate features:
+      - transcript regime features
+      - expert-disagreement features
+    - gate target:
+      - best convex low-rank weight per held-in synthetic transcript prefix under weighted KL
+  - `greybox_hazard_mixture_v01`
+    - discrete regime-mixture decoder over per-round semimechanistic coefficient fingerprints
+    - clusters historical round fingerprints into a tiny set of prototypes
+    - infers soft mixture weights from transcript features
+    - directly tests handoff hypothesis `H6` (small discrete mixture over regime families helps)
+
+- Quick viability checks:
+  - `uv run python -m py_compile scripts/agent5_hybrid_sweep.py src/astar/student/predictor/greybox_gated_hybrid.py src/astar/student/predictor/greybox_hazard_mixture.py` passed
+  - `greybox_hazard_mixture_v01` 3-round fit smoke succeeded:
+    - `clusters=3`
+    - `training_example_count=72`
+    - `coefficient_prototypes.shape=(3, 51)`
+
+- Parallel experiments launched:
+  - standard-path full 8-round registered benchmark for `greybox_hybrid_lowrank_queryres`
+  - 3-round `exploration` policy probe for the same hybrid
+  - full fixed-weight hybrid sweep with `scripts/agent5_hybrid_sweep.py`
+  - 3-round held-out probe for `greybox_gated_hybrid_v01`
+  - 3-round held-out probe for `greybox_hazard_mixture_v01`
+- Status:
+  - runs in flight
+  - waiting on numeric results before deciding which new branch to wire into registry/tests next
+
+- First new-branch result back:
+  - `greybox_hazard_mixture_v01` 3-round held-out probe, `cluster_count=2`, `policy=coverage`, `samples_per_round=4`
+  - round scores:
+    - `36e581...`: `11.5467`
+    - `c5cdf...`: `81.3993`
+    - `f1dac...`: `39.8258`
+  - mean score: `44.2572`
+  - mean weighted KL: `0.366848`
+- Conclusion:
+  - this first simple discrete-mixture prototype is not viable
+  - confirms that a naive tiny-discrete regime family can be extremely unstable even when one round is excellent
+  - reject current `greybox_hazard_mixture_v01` as a benchmark candidate
+
+- Trusted hybrid reweighting probe:
+  - used new `scripts/agent5_hybrid_sweep.py --eval-round-id ...`
+  - crucially:
+    - evaluated only `{36e581..., c5cdf..., f1dac...}`
+    - but trained each held-out round on the full 8-round corpus minus that held-out round
+    - this is much more trustworthy than the earlier tiny 3-round-only training split
+
+- Coverage policy, full-training trusted probe:
+  - `36e581...`
+    - `0.00`: `64.4914`
+    - `0.25`: `65.8363`
+    - `0.45`: `66.4555`
+    - `0.55`: `66.6075`
+    - `0.65`: `66.6487`
+  - `c5cdf...`
+    - `0.00`: `67.0175`
+    - `0.25`: `70.2865`
+    - `0.45`: `72.6394`
+    - `0.55`: `73.7078`
+    - `0.65`: `74.6911`
+  - `f1dac...`
+    - `0.00`: `54.5655`
+    - `0.25`: `55.4568`
+    - `0.45`: `55.7925`
+    - `0.55`: `55.8119`
+    - `0.65`: `55.7180`
+  - aggregate:
+    - `0.00`: `62.0248`
+    - `0.25`: `63.8599`
+    - `0.45`: `64.9625`
+    - `0.55`: `65.3757`
+    - `0.65`: `65.6859`
+    - best weighted KL also at `0.65`: `0.142659`
+- Interpretation:
+  - old hybrid weight `0.25` is clearly too conservative
+  - heavier low-rank weight keeps helping on two of the three trusted rounds and only slightly softens `f1dac...`
+  - promoted new lead config:
+    - `greybox_hybrid_lowrank_queryres_v02`
+    - `lowrank_weight=0.65`
+    - low-rank component still uses `prior_blend=0.55`
+
+- Exploration policy, full-training trusted probe on same 3 rounds:
+  - aggregate:
+    - `0.00`: `62.5658`
+    - `0.25`: `64.0308`
+    - `0.45`: `64.8471`
+    - `0.55`: `65.1229`
+    - `0.65`: `65.3011`
+  - best at `0.65`, but still below coverage at the same weight (`65.3011` vs `65.6859`)
+- Interpretation:
+  - `exploration` is competitive, not dominant
+  - current evidence says `coverage + heavier low-rank blend` is still the better lead
+
+- Gated hybrid status:
+  - partial 3-round probe showed:
+    - `36e581...`: `16.9708`
+    - `c5cdf...`: `81.6963`
+  - run manually interrupted before final third round once it was clear the gate was extremely unstable on at least one trusted round
+- Current conclusion:
+  - keep `greybox_gated_hybrid_v01` as an experimental branch only
+  - do not promote it ahead of fixed-weight hybrid v02 without much stronger evidence

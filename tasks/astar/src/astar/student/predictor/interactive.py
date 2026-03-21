@@ -10,6 +10,14 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
+from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
+from astar.student.predictor.greybox_regime import (
+    GreyboxHazardLowRankPredictor,
+    GreyboxLowRankQueryResidualHybridPredictor,
+    GreyboxRegimeKnnPredictor,
+    GreyboxRegimeRidgePredictor,
+)
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
@@ -101,6 +109,92 @@ def build_online_predictor(
         return RoundPredictorAdapter(
             predictor=latent_predictor,
             name=latent_predictor.name,
+        )
+    if normalized == "greybox_regime_ridge":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxRegimeRidgePredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_regime_knn":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxRegimeKnnPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_hazard_lowrank":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_hazard_mixture":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxHazardMixturePredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_hybrid_lowrank_queryres":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_hybrid_lowrank_queryres_w45":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+            lowrank_weight=0.45,
+            model_name="greybox_hybrid_lowrank_queryres_w45_v01",
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_gated_hybrid":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxGatedHybridPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
         )
     if normalized == "query_residual":
         workspace_paths = paths or WorkspacePaths.from_root(".")

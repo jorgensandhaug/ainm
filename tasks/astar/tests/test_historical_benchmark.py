@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
+
+import pytest
 
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
@@ -164,6 +167,60 @@ def test_query_residual_online_historical_benchmark_rebuilds_incomplete_legacy_d
 
     assert result.evaluated_seed_count == 2
     assert result.artifact_path.exists()
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "greybox_regime_ridge",
+        "greybox_regime_knn",
+        "greybox_hazard_lowrank",
+        "greybox_hazard_mixture",
+        "greybox_hybrid_lowrank_queryres",
+        "greybox_hybrid_lowrank_queryres_w45",
+        "greybox_gated_hybrid",
+    ],
+)
+def test_greybox_regime_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+    model_name: Literal[
+        "greybox_regime_ridge",
+        "greybox_regime_knn",
+        "greybox_hazard_lowrank",
+        "greybox_hazard_mixture",
+        "greybox_hybrid_lowrank_queryres",
+        "greybox_hybrid_lowrank_queryres_w45",
+        "greybox_gated_hybrid",
+    ],
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name=model_name,
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=2,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name=f"test_{model_name}_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 2
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 2
+        for seed_result in round_result.seed_results:
+            assert seed_result.samples_per_round == 2
 
 
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:
