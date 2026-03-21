@@ -57,7 +57,7 @@ class GreyboxCellKnnPerRoundPredictor(BaseRoundPredictor):
     bank_seed_indexes: tuple[int, ...] = ()
     bank_terminal_probs: tuple[np.ndarray, ...] = ()  # (H, W, 6) per entry
     bank_cell_features: tuple[np.ndarray, ...] = ()  # (H, W, F) per entry
-    bank_feature_dim: int = Field(default=13, ge=1)
+    bank_feature_dim: int = Field(default=19, ge=1)
 
     @classmethod
     def fit_from_workspace(

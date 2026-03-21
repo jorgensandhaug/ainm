@@ -91,6 +91,19 @@ def _cell_features(
     mountain_density = _local_ratio(mountain.astype(bool))
     settlement_density = _local_ratio(settlement_map.astype(bool))
 
+    # Add richer features matching what QR uses
+    from astar.features.coasts import normalized_coast_distance
+    from astar.features.influence import (
+        normalized_sea_distance_to_initial_ports,
+        settlement_basin_gap,
+    )
+
+    coast_distance = normalized_coast_distance(grid)
+    sea_distance = normalized_sea_distance_to_initial_ports(grid, settlement_locs)
+    basin_gap = settlement_basin_gap(grid, settlement_locs)
+    coastal_exposure = 1.0 - coast_distance
+    maritime_access = 1.0 - sea_distance
+
     features = np.stack([
         buildable,
         ocean,
@@ -105,6 +118,12 @@ def _cell_features(
         mountain_density,
         settlement_density,
         1.0 - land_dist,  # settlement proximity
+        coast_distance,
+        sea_distance,
+        basin_gap,
+        1.0 - basin_gap,  # frontier score
+        coastal_exposure,
+        maritime_access,
     ], axis=-1)
 
     return features
@@ -186,7 +205,7 @@ class GreyboxCellKnnPredictor(BaseRoundPredictor):
     bank_seed_indexes: tuple[int, ...] = ()
     bank_terminal_probs: tuple[np.ndarray, ...] = ()  # list of (H, W, 6)
     bank_cell_features: tuple[np.ndarray, ...] = ()  # list of (H, W, F)
-    bank_feature_dim: int = Field(default=13, ge=1)
+    bank_feature_dim: int = Field(default=19, ge=1)
 
     @classmethod
     def fit_from_workspace(

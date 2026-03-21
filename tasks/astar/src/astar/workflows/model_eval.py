@@ -511,6 +511,28 @@ def _build_prediction_bundle(
         return (bundle, {}, predictor.query_residual.base_predictor.analyzed_seed_count,
                 predictor.query_residual.base_predictor.cell_count)
 
+    if normalized.startswith("greybox_adaptive_stack"):
+        from astar.student.predictor.greybox_adaptive_stack import GreyboxAdaptiveStackPredictor
+
+        predictor = GreyboxAdaptiveStackPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            policy_name=policy_name or "coverage",
+            samples_per_round=samples_per_round or 4,
+            model_name=normalized,
+        )
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
+        return (
+            bundle,
+            {},
+            predictor.query_residual.base_predictor.analyzed_seed_count,
+            predictor.query_residual.base_predictor.cell_count,
+        )
+
     if normalized == "greybox_expansion_conditioned":
         predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
             paths,
@@ -734,6 +756,7 @@ def evaluate_model_on_round(
             "greybox_gated_hybrid",
             "greybox_cellknn",
             "greybox_expansion_conditioned",
+            "greybox_adaptive_stack",
             "greybox_cellknn_perround",
             "greybox_stacked",
             "greybox_roundmatch",
@@ -741,7 +764,11 @@ def evaluate_model_on_round(
         }
         resolved_samples_per_round = (
             samples_per_round
-            if _norm_model in _transcript_set or _norm_model.startswith("greybox_stacked")
+            if _norm_model in _transcript_set
+            or _norm_model.startswith("greybox_stacked")
+            or _norm_model.startswith("greybox_tristack")
+            or _norm_model.startswith("greybox_multiregime")
+            or _norm_model.startswith("greybox_adaptive")
             else None
         )
         resolved_budget = None

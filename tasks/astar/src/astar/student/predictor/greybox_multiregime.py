@@ -141,7 +141,7 @@ class GreyboxMultiRegimePredictor(BaseRoundPredictor):
     bank_terminal_probs: tuple[np.ndarray, ...] = ()
     bank_cell_features: tuple[np.ndarray, ...] = ()
     bank_regime_vectors: tuple[np.ndarray, ...] = ()
-    bank_feature_dim: int = Field(default=13, ge=1)
+    bank_feature_dim: int = Field(default=19, ge=1)
     regime_dim: int = Field(default=7, ge=1)
 
     @classmethod

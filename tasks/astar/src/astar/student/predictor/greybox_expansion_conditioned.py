@@ -121,7 +121,7 @@ class GreyboxExpansionConditionedPredictor(BaseRoundPredictor):
     bank_terminal_probs: tuple[np.ndarray, ...] = ()
     bank_cell_features: tuple[np.ndarray, ...] = ()
     bank_expansion_rates: tuple[float, ...] = ()
-    bank_feature_dim: int = Field(default=13, ge=1)
+    bank_feature_dim: int = Field(default=19, ge=1)
 
     @classmethod
     def fit_from_workspace(

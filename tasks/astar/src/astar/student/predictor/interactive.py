@@ -380,6 +380,17 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if normalized.startswith("greybox_adaptive_stack"):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        from astar.student.predictor.greybox_adaptive_stack import GreyboxAdaptiveStackPredictor
+        predictor = GreyboxAdaptiveStackPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+            model_name=normalized,
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     if normalized.startswith("greybox_stacked_multiregime"):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         from astar.student.predictor.greybox_stacked_multiregime import GreyboxStackedMultiRegimePredictor
