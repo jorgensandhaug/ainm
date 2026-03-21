@@ -42,6 +42,7 @@ Production verification on 2026-03-20 additionally showed:
 - in that French production proof, the Unicode `è` in both project and customer names did not justify any extra resolver read once the exact `organizationNumber` hit and exact `email` hit were already found
 - second French production run on 2026-03-21 for `Implémentation Montagne` / `Montagne SARL` / `842138248` / `jules.martin@example.org` also succeeded with the same 3-call path; `é` in project name handled without extra reads
 - Nynorsk production run on 2026-03-21 for `Oppgradering Fjelltopp` / `Fjelltopp AS` / `826557990` / `torbjrn.stlsvik@example.org` also succeeded with the same 3-call path; Nynorsk prompt language (`Prosjektleiar`, `knytt til`) did not change the flow
+- third French production run on 2026-03-21 for `Implémentation Colline` / `Colline SARL` / `869753017` / `ines.dubois@example.org` also succeeded with the same 3-call path; 10 consecutive optimal runs across en/pt/es/nb/nn/fr confirm the standard is stable and language-independent
 
 ## Minimal Safe Flow
 
