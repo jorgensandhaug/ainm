@@ -178,6 +178,7 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
 
 ## Important Constraints
 
+- The correct order-line price field is `unitPriceExcludingVatCurrency`; do not use `unitCostPrice` — it does not exist on the order-line schema and returns `422 Feltet eksisterer ikke i objektet.`
 - Do not assume there is a separate public company-level bank-account endpoint in `openapi.json`
 - The public/spec-confirmed path that solved this was `PUT /ledger/account/{id}`
 - Do not create a second invoice bank account with the same `bankAccountNumber`
@@ -276,3 +277,4 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - When the bank-account repair branch fires, retain `customer.id` and `vatType.id` in memory across the repair; the 2026-03-21 production run for `Fjelltopp AS` completed the repair in 6 total calls by retaining state, while the earlier Étoile SARL run wasted 2 calls re-reading both after losing local state (8 total calls)
 - Do not preemptively add `GET /ledger/account` to every create-and-send flow to avoid the bank-account 422; sandbox verification on 2026-03-21 showed the preemptive approach costs 4 calls in the happy case (vs 3 sequential) with no wall-clock benefit, making it worse ~70% of the time
 - Nynorsk prompt language (`nn`) follows the same rules as Bokmål (`nb`): `eksklusiv MVA` → taxed 25% branch
+- Do not use `unitCostPrice` on order lines; the only accepted price field is `unitPriceExcludingVatCurrency`; the 2026-03-21 production run for `Étoile SARL` / `976414284` wasted 1 call on this wrong field name before correcting it
