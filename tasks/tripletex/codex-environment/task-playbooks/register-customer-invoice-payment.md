@@ -82,12 +82,17 @@ Verified in production on 2026-03-21:
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28180406` (`Betalt til bank`)
 - `PUT /invoice/2147572074/:payment?paymentDate=2026-03-21&paymentTypeId=28180406&paidAmount=39125` reduced the remaining outstanding amount to `0`
 - this run initially wasted 3 extra calls (6 total) due to: (a) omitting required date params on GET /invoice → avoidable 422, (b) using `fields=*` without expansions → null descriptions → logic failure → repeat GET, (c) sending PUT /:payment params as JSON body → avoidable 422
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147573361` for customer `841333608` by `amountExcludingVatCurrency=14200`, line description `Skylagring`, and positive `amountCurrencyOutstanding=17750`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28273555` (`Betalt til bank`, debit `1920`)
+- `PUT /invoice/2147573361/:payment?paymentDate=2026-03-21&paymentTypeId=28273555&paidAmount=17750` reduced the remaining outstanding amount to `0`
+- this run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
 - therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache
 - production `27869893` added on 2026-03-21
 - production `28180406` added on 2026-03-21
+- production `28273555` added on 2026-03-21
 
 ## Minimal Flow
 
