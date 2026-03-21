@@ -1,6 +1,9 @@
 # Next Steps
 
-1. Finish `dev_query_residual_exploration_online50_v1` full 8-round run now in flight.
-2. If strong, treat `query_residual` + `exploration_v2` as current policy default for further tuning.
-3. Investigate round `8e839974-b13b-407b-a5e7-fc749d877195`, still the hardest round even after exploration.
-4. Add a compare workflow for different policies under matched multi-seed validation, not just same-policy paired comparisons.
+1. Isolate whether semimechanistic failure is decoder-side or posterior-side.
+2. Upgrade the semimechanistic family before more sweep budget:
+   - richer transcript summaries or stronger transcript encoder
+   - stronger round-coefficient / regime-factorization features
+   - only then rerun hazard-only probes
+3. Keep conservative bucket blending as a fallback calibration layer, but do not spend more grid budget on convex blends of the current hazard-v1 component.
+4. After the hazard family becomes additive on the hard 3-round slice, rerun broader multi-seed policy sweeps and then promote to 8-round evaluation.

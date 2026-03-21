@@ -1,5 +1,28 @@
 ## Agent1 Progress
 
+### Session Continuation
+
+- date: 2026-03-21 UTC
+- resumed commit: `43c3671`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- worktree state at resume: clean
+- `br` check at resume: unavailable (`command not found`)
+- immediate objective: finish the first full 8-round `query_residual` + `exploration` benchmark on the repaired multi-seed-capable benchmark stack, then decide whether to expand validation or pivot
+- note: no `dev_query_residual_exploration_online50_v1` artifact exists yet; prior promotion was interrupted before completion
+
+### Pivot
+
+- user overrode the previous “improve strongest implemented baseline first” direction
+- new instruction priority: stop treating `query_residual` as mainline; push directly into the handoff’s new replay-regime family
+- concrete pivot target:
+  - take the existing hazard-teacher + posterior-student components that already exist in-tree
+  - make them holdout-safe and benchmarkable in `online_interactive`
+  - then run multiple parallel probes on that new family instead of spending more time polishing `query_residual`
+- implementation gap identified at pivot:
+  - `latent_regime` historical/online eval still routes to the older heuristic predictor
+  - the actual hazard-teacher + summary-bank student stack is trained/tested in isolation but not wired into benchmark model selection
+
 ### Session
 
 - date: 2026-03-20 UTC
@@ -113,6 +136,57 @@
 24. promoted `query_residual` + `exploration` to full 8-round benchmark `dev_query_residual_exploration_online50_v1` (running)
 25. fixed benchmark timing accounting after predictor reuse so `evaluation_seconds` includes predictor-fit time again
 26. reran focused tests after stale-cache + timing fixes: `6 passed in 5.78s`
+27. pivoted from `query_residual`-first exploration to direct replay-regime-family development after user override
+28. identified that the hazard-teacher + summary-bank posterior stack already existed but was not wired into historical online benchmarking
+29. implemented a new holdout-safe online model family:
+   - new predictor: `hazard_posterior_knn`
+   - trains `HazardTeacher` on training rounds only
+   - builds / reuses round-scoped synthetic live datasets for those training rounds only
+   - fits `SummaryBankStudent` on those synthetic episodes
+   - exposes config-specific model names such as `hazard_posterior_knn_v1__policy=...__samples=...__k=...`
+30. added parallel-experiment-friendly CLI model aliases:
+   - `hazard_posterior_knn`
+   - `hazard_posterior_knn_k1`
+   - `hazard_posterior_knn_k3`
+   - `hazard_posterior_knn_k5`
+   - `hazard_posterior_knn_k9`
+31. updated historical benchmark metadata plumbing so the new synthetic-live-backed model family records `samples_per_round`
+32. added focused historical benchmark smoke coverage for the new family
+33. reran focused historical benchmark suite after the new model wiring: `7 passed in 7.28s`
+34. attempted the first 8-way parallel real-data probe sweep on the new family
+35. discovered an infra bottleneck that blocked parallel experimentation:
+   - multiple jobs building/materializing datasets collided on `data/catalog.duckdb`
+   - failure mode was DuckDB file-lock contention during auxiliary `CatalogDB.log_event(...)`
+36. changed catalog logging to be best-effort under lock contention so telemetry cannot kill the main workload
+37. reran focused historical benchmark suite after the catalog concurrency fix: `7 passed in 8.14s`
+38. restarted the parallel hazard-posterior probe sweep after cache creation + catalog fix
+39. completed the first real hazard-posterior grid on the matched hard 3-round, 2-episode-seed probe:
+   - `k1 + exploration`: `51.8630`, KL `0.231672`
+   - `k3 + coverage`: `55.6897`, KL `0.210982`
+   - `k5 + coverage`: `56.5785`, KL `0.206602`
+   - `k5 + exploration`: `56.6601`, KL `0.206195`
+   - `k9 + coverage`: `56.5785`, KL `0.206602`
+40. key finding from the first hazard-only sweep:
+   - new semimechanistic family is real but currently far behind `query_residual` on this benchmark slice
+   - failure is dominated by held-out round `ae78003a-4efe-425a-881a-d16a39bca0ad` (`35.9` mean score vs `73.6` for query-residual exploration on the same slice)
+   - coverage vs exploration only weakly matters at this stage; decoder/calibration dominates
+41. moved immediately to the handoff’s calibration/ensemble step instead of sweeping more hazard-only variants
+42. implemented `hazard_posterior_blend` family:
+   - blends the new hazard posterior predictor with `HistoricalBucketPriorPredictor`
+   - config encoded in the resolved model name, including `k` and hazard weight `a`
+   - initial CLI aliases added: `hazard_posterior_blend_a25_k5`, `hazard_posterior_blend_a35_k5`, `hazard_posterior_blend_a50_k5`
+43. added focused historical benchmark smoke coverage for the blend family
+44. reran focused historical benchmark suite after adding the blend family: `8 passed in 10.44s`
+45. measured the actual bucket anchor on the same matched hard 3-round, 2-episode-seed slice:
+   - `historical_bucket_prior + coverage`: `70.3257`, KL `0.122435`
+46. completed the first blend sweep on the same slice with `policy=exploration`, `samples_per_round=2`, `k=5`:
+   - `a=0.25`: `70.2024`, KL `0.122086`
+   - `a=0.35`: `69.5894`, KL `0.124981`
+   - `a=0.50`: `68.1605`, KL `0.132057`
+47. key blend conclusion:
+   - calibration/ensemble dramatically rescues the catastrophic `ae780...` failure compared with hazard-only
+   - but even the best blend (`a=0.25`) still does **not** beat the bucket anchor on aggregate (`70.2024 < 70.3257`)
+   - therefore current hazard component is still net-negative on this slice; the next gain must come from improving the semimechanistic teacher/posterior itself, not from more convex blending of the same v1 hazard model
 
 ### Working Hypotheses
 

@@ -174,6 +174,68 @@ def test_query_residual_online_historical_benchmark_multi_episode_runs(
             assert seed_result.episode_seed in {1, 2}
 
 
+def test_hazard_posterior_knn_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="hazard_posterior_knn_k3",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=2,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_hazard_posterior_knn_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 2
+    assert result.budget == 4
+    assert result.evaluated_seed_count == 2
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 2
+        for seed_result in round_result.seed_results:
+            assert "hazard_posterior_knn_v1" in seed_result.model_name
+            assert "__k=3" in seed_result.model_name
+
+
+def test_hazard_posterior_blend_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="hazard_posterior_blend_a35_k5",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=2,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_hazard_posterior_blend_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 2
+    assert result.evaluated_seed_count == 2
+    for round_result in result.rounds:
+        for seed_result in round_result.seed_results:
+            assert "hazard_posterior_blend_v1" in seed_result.model_name
+            assert "__a=35" in seed_result.model_name
+
+
 def test_query_residual_rebuilds_stale_legacy_synthetic_dataset(
     sample_paths: RepoPaths,
 ) -> None:

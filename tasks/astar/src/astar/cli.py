@@ -205,6 +205,14 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "hazard_posterior_knn",
+            "hazard_posterior_knn_k1",
+            "hazard_posterior_knn_k3",
+            "hazard_posterior_knn_k5",
+            "hazard_posterior_knn_k9",
+            "hazard_posterior_blend_a25_k5",
+            "hazard_posterior_blend_a35_k5",
+            "hazard_posterior_blend_a50_k5",
             "query_residual",
         ],
         required=True,
@@ -243,7 +251,20 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "hazard_posterior_knn",
+            "hazard_posterior_knn_k1",
+            "hazard_posterior_knn_k3",
+            "hazard_posterior_knn_k5",
+            "hazard_posterior_knn_k9",
+            "hazard_posterior_blend_a25_k5",
+            "hazard_posterior_blend_a35_k5",
+            "hazard_posterior_blend_a50_k5",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -256,7 +277,20 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "hazard_posterior_knn",
+            "hazard_posterior_knn_k1",
+            "hazard_posterior_knn_k3",
+            "hazard_posterior_knn_k5",
+            "hazard_posterior_knn_k9",
+            "hazard_posterior_blend_a25_k5",
+            "hazard_posterior_blend_a35_k5",
+            "hazard_posterior_blend_a50_k5",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -277,6 +311,14 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "hazard_posterior_knn",
+            "hazard_posterior_knn_k1",
+            "hazard_posterior_knn_k3",
+            "hazard_posterior_knn_k5",
+            "hazard_posterior_knn_k9",
+            "hazard_posterior_blend_a25_k5",
+            "hazard_posterior_blend_a35_k5",
+            "hazard_posterior_blend_a50_k5",
             "query_residual",
         ],
         required=True,
@@ -308,7 +350,20 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "hazard_posterior_knn",
+            "hazard_posterior_knn_k1",
+            "hazard_posterior_knn_k3",
+            "hazard_posterior_knn_k5",
+            "hazard_posterior_knn_k9",
+            "hazard_posterior_blend_a25_k5",
+            "hazard_posterior_blend_a35_k5",
+            "hazard_posterior_blend_a50_k5",
+            "query_residual",
+        ],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

@@ -48,27 +48,33 @@ class CatalogDB:
             connection.execute(_SCHEMA_SQL)
 
     def log_event(self, event: CatalogEvent) -> None:
-        self.initialize()
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO event_log (
-                    event_id, happened_at, event_kind, round_id, seed_index, spec_name,
-                    status, artifact_path, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                [
-                    event.event_id,
-                    event.happened_at,
-                    event.event_kind,
-                    event.round_id,
-                    event.seed_index,
-                    event.spec_name,
-                    event.status,
-                    None if event.artifact_path is None else str(event.artifact_path),
-                    json.dumps(to_jsonable(event.payload_json), sort_keys=True),
-                ],
-            )
+        try:
+            self.initialize()
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO event_log (
+                        event_id, happened_at, event_kind, round_id, seed_index, spec_name,
+                        status, artifact_path, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        event.event_id,
+                        event.happened_at,
+                        event.event_kind,
+                        event.round_id,
+                        event.seed_index,
+                        event.spec_name,
+                        event.status,
+                        None if event.artifact_path is None else str(event.artifact_path),
+                        json.dumps(to_jsonable(event.payload_json), sort_keys=True),
+                    ],
+                )
+        except duckdb.IOException as exc:
+            if "Could not set lock" in str(exc):
+                # Catalog logging is auxiliary; do not fail the main workload on file-lock contention.
+                return
+            raise
 
     def summarize_dataset(self) -> CatalogDatasetSummary:
         if not self._path.exists():

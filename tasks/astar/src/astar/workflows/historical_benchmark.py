@@ -12,6 +12,10 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.hazard_posterior import (
+    hazard_posterior_blend_spec_for_model_name,
+    hazard_posterior_k_neighbors_for_model_name,
+)
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -125,11 +129,20 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    resolved_samples_per_round = samples_per_round if normalized_model_name == "query_residual" else None
+    uses_synthetic_live_dataset = (
+        normalized_model_name == "query_residual"
+        or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
+    )
+    resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
     if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
-    if mode == "prior_only" and normalized_model_name == "latent_regime":
-        raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
+    if mode == "prior_only" and (
+        normalized_model_name == "latent_regime"
+        or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
+    ):
+        raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
     if mode not in {"prior_only", "online_interactive"}:
@@ -138,7 +151,7 @@ def run_historical_benchmark(
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
     model_suffix = ""
-    if normalized_model_name == "query_residual":
+    if uses_synthetic_live_dataset:
         model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     resolved_episode_seeds = (
