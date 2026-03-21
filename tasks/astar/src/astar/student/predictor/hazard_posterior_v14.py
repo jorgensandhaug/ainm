@@ -166,8 +166,14 @@ def _apply_adaptive_calibration(
         result = exp_l / np.sum(exp_l, axis=-1, keepdims=True)
 
     if floor > 1e-6:
-        result = np.maximum(result, floor)
-        result = result / np.maximum(np.sum(result, axis=-1, keepdims=True), 1e-8)
+        # Only floor uncertain cells (max prob < 0.95) to avoid diluting
+        # correct confident predictions on ocean/mountain/settled cells
+        max_prob = np.max(result, axis=-1)
+        uncertain = max_prob < 0.95
+        if np.any(uncertain):
+            result[uncertain] = np.maximum(result[uncertain], floor)
+            sums = np.sum(result[uncertain], axis=-1, keepdims=True)
+            result[uncertain] = result[uncertain] / np.maximum(sums, 1e-8)
 
     return result.astype(np.float64)
 
@@ -330,10 +336,14 @@ class HazardPosteriorV14Predictor(BaseRoundPredictor):
                 self.obs_blend_temperature,
             )
 
-            # 4. Final probability floor enforcement
+            # 4. Final probability floor enforcement (uncertain cells only)
             if self.probability_floor > 0:
-                pred = np.maximum(pred, self.probability_floor)
-                pred = pred / np.maximum(np.sum(pred, axis=-1, keepdims=True), 1e-8)
+                max_prob = np.max(pred, axis=-1)
+                uncertain = max_prob < 0.95
+                if np.any(uncertain):
+                    pred[uncertain] = np.maximum(pred[uncertain], self.probability_floor)
+                    sums = np.sum(pred[uncertain], axis=-1, keepdims=True)
+                    pred[uncertain] = pred[uncertain] / np.maximum(sums, 1e-8)
 
             predictions[seed.seed_index] = pred
 

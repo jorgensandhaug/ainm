@@ -131,17 +131,28 @@ def _entropy_conditioned_class_weights(
 def _apply_probability_floor(
     prediction: np.ndarray,
     floor: float,
+    *,
+    max_confidence_skip: float = 0.95,
 ) -> np.ndarray:
-    """Apply a minimum probability floor and renormalize.
+    """Apply a minimum probability floor to UNCERTAIN cells only.
+
+    Only floors cells where max predicted probability < max_confidence_skip.
+    Cells that are near-deterministic (ocean, mountain, deep forest) are left
+    untouched to avoid diluting correct confident predictions.
 
     This is critical for KL-based scoring: assigning near-zero probability
     to a class with non-trivial true probability causes enormous KL penalty.
     """
     if floor <= 0:
         return prediction
-    floored = np.maximum(prediction, floor)
-    sums = np.sum(floored, axis=-1, keepdims=True)
-    return np.asarray(floored / np.maximum(sums, 1e-8), dtype=np.float64)
+    result = prediction.copy()
+    max_prob = np.max(prediction, axis=-1)
+    uncertain_mask = max_prob < max_confidence_skip
+    if np.any(uncertain_mask):
+        result[uncertain_mask] = np.maximum(result[uncertain_mask], floor)
+        sums = np.sum(result[uncertain_mask], axis=-1, keepdims=True)
+        result[uncertain_mask] = result[uncertain_mask] / np.maximum(sums, 1e-8)
+    return np.asarray(result, dtype=np.float64)
 
 
 class HazardPosteriorV13Predictor(BaseRoundPredictor):
