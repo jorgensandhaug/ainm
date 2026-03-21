@@ -1951,3 +1951,63 @@
     - passed
   - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
     - `24 passed in 105.67s`
+
+### 2026-03-21T13:36:00Z
+
+- Official full-8 benchmark finished for the promoted default:
+  - command:
+    - `uv run astar run-historical-benchmark --model greybox_student_joint_repeataware --mode online_interactive --policy exploration_r3 --samples-per-round 4 --budget 50 --episode-seed 0 --with-png none --jobs 8 --name agent5_student_joint_repeataware_explorationr3_online50_v02`
+  - artifact dir:
+    - `data/artifacts/benchmarks/agent5_student_joint_repeataware_explorationr3_online50_v02/`
+  - report:
+    - `data/artifacts/benchmarks/agent5_student_joint_repeataware_explorationr3_online50_v02/report.md`
+  - summary:
+    - mean score `73.0190`
+    - mean weighted KL `0.107172`
+    - total runtime `485.449s`
+    - eval runtime `3812.939s`
+- Official full-8 interpretation:
+  - this branch is **well below** the current overall lead:
+    - `73.0190` vs `75.1931`
+    - gap about `-2.1741`
+  - biggest persistent weakness remains `f1dac...`
+    - round mean `58.7854`
+  - also weak on `ae7800...` and `fd3c92...`
+  - conclusion:
+    - hard-slice gains did not translate enough to full 8-round robustness
+    - `greybox_student_joint_repeataware_v02` is not a promotion candidate over the current lead
+- Exploration_r3 refinement batch around the best hard-slice point:
+  - `rank=6 k=24 mw=0.65 scale=0.40`
+    - mean `68.046558`
+    - KL `0.130674`
+  - `rank=6 k=48 mw=0.45 scale=0.40`
+    - mean `67.779001`
+    - KL `0.132065`
+  - `rank=6 k=24 mw=0.45 scale=0.50`
+    - mean `67.966977`
+    - KL `0.130998`
+  - `rank=6 k=24 mw=0.65 scale=0.50`
+    - mean `68.149171`
+    - KL `0.130078`
+- Refinement interpretation:
+  - stronger correction scale helps:
+    - `scale=0.50` > `scale=0.40`
+  - more memory weight still helps on the hard slice:
+    - `mw=0.65` > `mw=0.45`
+  - larger neighbor count hurts:
+    - `k=48` < `k=24`
+  - new best hard-slice point for this family:
+    - policy `exploration_r3`
+    - `rank=6 k=24 mw=0.65 blend=0.35 scale=0.50`
+    - mean `68.149171`
+    - KL `0.130078`
+- However:
+  - that gain over the already-tested default is only about `+0.2320` on the hard slice
+  - given the official full-8 gap to lead is about `2.17`, this does **not** justify another immediate official full-8 rerun ahead of trying a more different branch
+- Current state:
+  - repeat-aware joint student branch is a real improvement over old `greybox_student_joint`
+  - but still rejected as the global lead family here
+  - current overall lead remains:
+    - `greybox_hybrid_lowrank_queryres`
+    - `policy=exploration_r3`
+    - mean `75.1931`
