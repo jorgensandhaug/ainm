@@ -23,16 +23,18 @@
 2. aggregate signed `amount` by expense account and by month in local code
 3. select the top three accounts by `(february total - january total)` descending
 4. resolve one assignable manager with `GET /employee?assignableProjectManagers=true&count=1&fields=*`
-5. `POST /project/list` once with the three internal projects
-6. `POST /project/projectActivity` once per returned project id
-7. verify from write responses
-8. stop
+5. `POST /project/list` once with the three internal projects **and inline `projectActivities`** on each row
+6. verify from write responses
+7. stop
+
+Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create with inline activities)
 
 ## Keep It Minimal
 - do not split the ledger analysis into separate January and February reads when one combined read already covers both months
 - do not add `GET /project`, `GET /project/{id}`, or `GET /activity` verification reads for this exact shape
 - do not loop over three separate `POST /project` calls when `POST /project/list` already supports batch create
-- do not `POST /activity` first; create the inline project-specific activity directly on `POST /project/projectActivity`
+- do not use three separate `POST /project/projectActivity` calls; inline the `projectActivities` array directly in each project row of `POST /project/list`
+- do not `POST /activity` first; create the inline project-specific activity directly inside the project payload
 
 ## Payload Rules
 - on the ledger read:
@@ -50,13 +52,12 @@
   - `startDate`
   - `isInternal: true`
   - `projectManager: { "id": ... }`
-- on each `POST /project/projectActivity`, include:
-  - `project: { "id": ... }`
-  - `startDate`
-  - inline `activity` with:
-    - `name`
-    - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
-    - `isChargeable: false`
+  - `projectActivities`: array with one element containing:
+    - `startDate`
+    - `activity` with:
+      - `name` (same as project name)
+      - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
+      - `isChargeable: false`
 
 ## Reuse From Write Responses
 - from `GET /ledger/posting`:
@@ -71,25 +72,24 @@
   - returned `project.name`
   - returned `project.isInternal`
   - returned `project.projectManager.id`
-- from each `POST /project/projectActivity`:
-  - `value.id`
-  - `value.project.id`
-  - `value.activity.id`
+  - returned `project.projectActivities[].id`
 
 ## Verification
 - default verification is zero extra calls
-- trust `POST /project/list` for project ids, names, `isInternal`, and manager linkage
-- trust each `POST /project/projectActivity` for the created activity id and linked project id
+- trust `POST /project/list` for project ids, names, `isInternal`, manager linkage, and inline activity ids
 
 ## Known Pitfalls
 - `POST /project` without `projectManager` is not a safe shortcut for internal projects; both production and persistent sandbox returned `422` with `Feltet "Prosjektleder" må fylles ut.`
 - using bare `account.name` risks dropping the account number from the scorer-facing label; prefer `account.displayName`
 - re-running the whole script after a validation error can waste the decisive ledger read; fix the exact branch and resume
 - do not rank by absolute values unless the prompt explicitly asks for absolute movement rather than increase
+- do not use 3 separate `POST /project/projectActivity` calls; the `projectActivities` array on `POST /project/list` creates them inline (sandbox-verified 2026-03-21)
 
 ## OpenAPI / Sandbox Status
-- `/ledger/posting`, `/employee`, `/project/list`, and `/project/projectActivity` verified in `./openapi.json`
+- `/ledger/posting`, `/employee`, and `/project/list` verified in `./openapi.json`
 - persistent sandbox proof on `2026-03-21` confirmed:
   - `POST /project` without `projectManager` returned `422` with validation message `Feltet "Prosjektleder" må fylles ut.`
-  - `POST /project/list` successfully created three internal projects in one call when each row included `name`, `startDate`, `isInternal: true`, and `projectManager.id`
-  - `POST /project/projectActivity` then created one inline non-chargeable project-specific activity per created project with no extra read
+  - `POST /project/list` successfully created internal projects with inline `projectActivities` in one call
+  - each inline activity was created with the correct `name`, `activityType=PROJECT_SPECIFIC_ACTIVITY`, and `isChargeable=false`
+  - the `Activity` objects were verified via `GET /activity` to have the expected names and properties
+  - this eliminates the need for any separate `POST /project/projectActivity` calls

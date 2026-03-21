@@ -15,60 +15,36 @@ Do not use for:
 
 ## Verified Findings
 
-Production reflection on 2026-03-21 showed:
-- the original run was not minimal-call and not fully correct
-- it wasted two full reruns of the decisive ledger read after avoidable `422` project-creation errors
-- `POST /project` without `projectManager` failed twice with `422`
-- the prompt score later came back only `5/10`, so the first implementation likely missed a scorer-facing naming or ranking detail in addition to wasting calls
-- the safest correction is:
-  - resolve the internal-project manager up front
-  - use batch project create
-  - keep the account label intact via `account.displayName`
+Production run on 2026-03-21 (second attempt) achieved:
+- 6 calls, 0 errors, correct result
+- used `POST /project/list` for batch project create + 3 separate `POST /project/projectActivity` calls
+- post-run sandbox investigation proved that inline `projectActivities` on `POST /project/list` works, reducing the optimal call count from 6 to 3
 
 Persistent-sandbox verification on 2026-03-21 showed:
-- `POST /project` with:
-  - `name`
-  - `startDate`
-  - `isInternal: true`
-  but without `projectManager`
-  failed with:
-  - `422`
-  - validation message `Feltet "Prosjektleder" må fylles ut.`
-- `GET /employee?assignableProjectManagers=true&count=1&fields=*` returned one reusable assignable manager id
-- `POST /project/list` successfully created three internal projects in one call when each row included:
-  - `name`
-  - `startDate`
-  - `isInternal: true`
-  - `projectManager: { id }`
-- each `POST /project/projectActivity` then succeeded with:
-  - `project`
-  - `startDate`
-  - inline `activity.name`
-  - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
-  - `isChargeable: false`
-- the ledger read `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)` exposed both:
-  - `account.name`
-  - `account.displayName`
-  so the future agent can preserve the full ledger-facing label instead of dropping the account number
+- `POST /project/list` with inline `projectActivities` array per project successfully creates both the project and its activity in a single batch call
+- each activity was verified to have the correct `name`, `activityType=PROJECT_SPECIFIC_ACTIVITY`, and `isChargeable=false`
+- `POST /project` without `projectManager` returns `422` with `Feltet "Prosjektleder" må fylles ut.`
+- `GET /employee?assignableProjectManagers=true&count=1&fields=*` returns a reusable assignable manager id
 
 ## Minimal Safe Flow
 
 1. Read the whole analysis window once
    - `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
 2. Aggregate locally
-   - filter to expense accounts
+   - filter to expense accounts (`account.type == "OPERATING_EXPENSES"`, fallback `4000-8999`)
    - sum signed `amount` by account for January and February
    - rank by `(feb - jan)` descending
    - take the top three
 3. Resolve one assignable manager
    - `GET /employee?assignableProjectManagers=true&count=1&fields=*`
-4. Batch-create the internal projects
-   - `POST /project/list`
-5. Create one project-specific activity per returned project id
-   - `POST /project/projectActivity`
-   - `POST /project/projectActivity`
-   - `POST /project/projectActivity`
-6. Stop
+4. Batch-create the internal projects with inline activities
+   - `POST /project/list` with each row containing:
+     - `name` (use `account.displayName`)
+     - `startDate`
+     - `isInternal: true`
+     - `projectManager: { id }`
+     - `projectActivities: [{ startDate, activity: { name, activityType: "PROJECT_SPECIFIC_ACTIVITY", isChargeable: false } }]`
+5. Stop
 
 ## Naming Rule
 
@@ -81,13 +57,10 @@ Persistent-sandbox verification on 2026-03-21 showed:
 
 ## Call Efficiency
 
-- The next agent should target `6` calls for this exact shape when the first ledger page already contains the needed postings:
-  1. `GET /ledger/posting?...dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+- The next agent should target **3 calls** for this exact shape:
+  1. `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
   2. `GET /employee?assignableProjectManagers=true&count=1&fields=*`
-  3. `POST /project/list`
-  4. `POST /project/projectActivity`
-  5. `POST /project/projectActivity`
-  6. `POST /project/projectActivity`
+  3. `POST /project/list` (with inline `projectActivities` per project)
 - Only add more ledger reads if pagination is actually needed
 
 ## Avoidable Mistakes
@@ -95,6 +68,7 @@ Persistent-sandbox verification on 2026-03-21 showed:
 - Do not probe `POST /project` without `projectManager`; that `422` is now proven
 - Do not rerun the whole workflow from the first ledger read after a mid-flow validation error
 - Do not spend three separate `POST /project` calls when `POST /project/list` already creates all three
+- Do not use three separate `POST /project/projectActivity` calls; inline `projectActivities` in the `POST /project/list` payload
 - Do not use bare `account.name` by reflex on ledger-facing naming tasks
 - Do not switch to `amountCurrency` or absolute values unless the prompt explicitly changes the ranking criterion
-- Do not add verification reads after `POST /project/list` or `POST /project/projectActivity` when the write responses already prove the created ids and links
+- Do not add verification reads after `POST /project/list` when the write response already proves the created ids and links
