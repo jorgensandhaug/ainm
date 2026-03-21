@@ -1,44 +1,57 @@
 import type {
   TaskModule,
   TaskRegistration,
+  TaskSpec,
   TaskStrategy,
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
-import {
-  createNotImplementedTaskSpec,
-  type NotImplementedTaskInput,
-} from "../shared/not-implemented";
 
-export const UNKNOWN_TASK_28_TASK_ID = "28";
-export const UNKNOWN_TASK_28_TX_TASK_ID = "28";
-export const UNKNOWN_TASK_28_INPUT_SCHEMA_ID = "28.v1";
+export const ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID = "28";
+export const ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TX_TASK_ID = "28";
+export const ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_INPUT_SCHEMA_ID =
+  "28.v1";
 
-export const task = createNotImplementedTaskSpec({
-  taskId: UNKNOWN_TASK_28_TASK_ID,
-  txTaskId: UNKNOWN_TASK_28_TX_TASK_ID,
-  taskName: "Unknown task 28",
+export interface AnalyzeExpenseIncreaseCreateInternalProjectsInput {}
+
+export const task = {
+  taskId: ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID,
+  txTaskId: ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TX_TASK_ID,
+  taskName: "Analyze expense increase and create internal projects",
+  implementationStatus: "implemented",
+  signature: "analyzeExpenseIncreaseCreateInternalProjects()",
   summary:
-    "Tier 3 placeholder for tx_task_id 28 with no checked-in prompt examples yet.",
-  signature: "unknownTask28()",
-});
-
-export type UnknownTask28Strategy = TaskStrategy<
-  NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_28_TASK_ID
+    "Analyze January-versus-February 2026 ledger expenses, select the three expense accounts with the largest increase, and create one internal project plus one activity for each selected account.",
+  inputSchemaId:
+    ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_INPUT_SCHEMA_ID,
+  requiredFields: [] as const,
+  extractionNotes: [
+    "This task family has no free-form extracted inputs; the scored workflow is the fixed January-versus-February 2026 expense-account analysis.",
+    "Do not invent alternate month windows, manager identities, or customer linkage for this exact task shape.",
+    "The deterministic runtime must create exactly three internal projects and one non-chargeable project-specific activity per selected account.",
+  ] as const,
+} satisfies TaskSpec<
+  AnalyzeExpenseIncreaseCreateInternalProjectsInput,
+  typeof ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID
 >;
 
-export type UnknownTask28TaskModule = TaskModule<
-  NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_28_TASK_ID
+export type AnalyzeExpenseIncreaseCreateInternalProjectsStrategy = TaskStrategy<
+  AnalyzeExpenseIncreaseCreateInternalProjectsInput,
+  typeof ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID
 >;
 
-export type UnknownTask28TaskUnderstandingResult = TaskUnderstandingResult<
-  NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_28_TASK_ID
+export type AnalyzeExpenseIncreaseCreateInternalProjectsTaskModule = TaskModule<
+  AnalyzeExpenseIncreaseCreateInternalProjectsInput,
+  typeof ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID
 >;
 
-export async function loadTaskModule(): Promise<UnknownTask28TaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+export type AnalyzeExpenseIncreaseCreateInternalProjectsTaskUnderstandingResult =
+  TaskUnderstandingResult<
+    AnalyzeExpenseIncreaseCreateInternalProjectsInput,
+    typeof ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID
+  >;
+
+export async function loadTaskModule(): Promise<AnalyzeExpenseIncreaseCreateInternalProjectsTaskModule> {
+  const { strategy } = await import("./strategies/cost-analysis-projects");
 
   return {
     task,
@@ -50,6 +63,6 @@ export const taskRegistration = {
   task,
   loadTaskModule,
 } satisfies TaskRegistration<
-  NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_28_TASK_ID
+  AnalyzeExpenseIncreaseCreateInternalProjectsInput,
+  typeof ANALYZE_EXPENSE_INCREASE_CREATE_INTERNAL_PROJECTS_TASK_ID
 >;

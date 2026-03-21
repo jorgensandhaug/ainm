@@ -15,6 +15,7 @@ import {
   runTmuxSolvePipeline,
   type TmuxSolveRequest,
 } from "./runtime/tmux-solve";
+import { resolvePendingCodexTaskUnderstandingResult } from "./runtime/codex-task-understanding-callback";
 import { loadSandboxCredentials } from "./sandbox-credentials";
 
 interface ParsedSolveRequestPayload {
@@ -71,6 +72,7 @@ const DEFAULT_BEARER_TOKEN = Bun.env.API_KEY ?? "";
 const DEFAULT_MAX_CONCURRENCY = Number(
   Bun.env.TRIPLETEX2_MAX_CONCURRENT_SOLVES ?? 3,
 );
+const INTERNAL_CLASSIFY_RESULT_PATH = "/internal/classify-result";
 
 export function createSolveRequestHandler(
   options: SolveServerOptions = {},
@@ -85,11 +87,19 @@ export function createSolveRequestHandler(
   const maxConcurrentSolveRequests =
     options.maxConcurrentSolveRequests ?? DEFAULT_MAX_CONCURRENCY;
   const log = options.logger ?? defaultLogger;
+  const callbackBaseUrl =
+    options.codexTaskUnderstanding?.callbackBaseUrl ??
+    `http://127.0.0.1:${options.port ?? DEFAULT_PORT}`;
   let activeSolveRequests = 0;
 
   return async (request: Request): Promise<Response> => {
     const requestId = request.headers.get("x-request-id") ?? randomUUID();
-    const pathname = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    if (pathname === INTERNAL_CLASSIFY_RESULT_PATH) {
+      return handleInternalClassifyResultRequest(request, requestId, url);
+    }
 
     if (pathname !== "/solve") {
       return jsonResponse(
@@ -248,6 +258,10 @@ export function createSolveRequestHandler(
         normalizedSolveRequest,
         {
           ...options,
+          codexTaskUnderstanding: {
+            ...options.codexTaskUnderstanding,
+            callbackBaseUrl,
+          },
           mode,
           now: () => now,
         },
@@ -311,6 +325,10 @@ export function createSolveRequestHandler(
       };
       const result = await runCompetitionSolvePipeline(solveRequest, {
         ...options,
+        codexTaskUnderstanding: {
+          ...options.codexTaskUnderstanding,
+          callbackBaseUrl,
+        },
         mode,
         now: () => now,
         requestId,
@@ -370,6 +388,85 @@ export function startSolveServer(options: SolveServerOptions = {}) {
   });
 
   return server;
+}
+
+async function handleInternalClassifyResultRequest(
+  request: Request,
+  requestId: string,
+  url: URL,
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return jsonResponse(
+      405,
+      { error: "Method not allowed." },
+      {
+        Allow: "POST",
+        "x-request-id": requestId,
+      },
+    );
+  }
+
+  const classificationRequestId = url.searchParams.get("requestId")?.trim();
+  if (!classificationRequestId) {
+    return jsonResponse(
+      400,
+      { error: "Missing requestId query parameter." },
+      {
+        "x-request-id": requestId,
+      },
+    );
+  }
+
+  const rawBody = await request.text();
+  if (!rawBody.trim()) {
+    return jsonResponse(
+      400,
+      { error: "Expected a JSON classification result body." },
+      {
+        "x-request-id": requestId,
+      },
+    );
+  }
+
+  try {
+    JSON.parse(rawBody);
+  } catch (error) {
+    return jsonResponse(
+      400,
+      {
+        error:
+          error instanceof Error
+            ? `Invalid classification JSON: ${error.message}`
+            : "Invalid classification JSON.",
+      },
+      {
+        "x-request-id": requestId,
+      },
+    );
+  }
+
+  if (
+    !resolvePendingCodexTaskUnderstandingResult(
+      classificationRequestId,
+      rawBody,
+    )
+  ) {
+    return jsonResponse(
+      404,
+      { error: "No pending task-understanding callback for that requestId." },
+      {
+        "x-request-id": requestId,
+      },
+    );
+  }
+
+  return jsonResponse(
+    200,
+    { status: "accepted" },
+    {
+      "x-request-id": requestId,
+    },
+  );
 }
 
 function authorizeRequest(request: Request, bearerToken: string): string | undefined {

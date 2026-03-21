@@ -9,6 +9,7 @@ import type {
   TripletexFetch,
   TripletexFetchResponse,
 } from "./runtime/contracts";
+import { registerPendingCodexTaskUnderstandingResult } from "./runtime/codex-task-understanding-callback";
 import { taskRegistrations } from "./registry/tasks";
 import { createSolveRequestHandler } from "./server";
 
@@ -179,6 +180,53 @@ test("POST /solve enforces bearer auth", async () => {
   assert.deepEqual(await response.json(), {
     error: "Invalid bearer token.",
   });
+});
+
+test("POST /internal/classify-result resolves a pending classifier callback", async (t) => {
+  const handler = createSolveRequestHandler({
+    logger() {
+      // Silence test logs.
+    },
+  });
+  const registration = registerPendingCodexTaskUnderstandingResult(
+    "req-internal-classify-1",
+  );
+  t.after(() => {
+    registration.cleanup();
+  });
+
+  const payload = JSON.stringify({
+    status: "resolved",
+    taskId: "08",
+    inputJson: JSON.stringify({
+      customerName: "Nordhav AS",
+      organizationNumber: "876520427",
+      lineDescription: "Analyserapport",
+      quantity: 1,
+      unitPriceExcludingVatNok: 7850,
+    }),
+    code: null,
+    message: null,
+    partialInputJson: null,
+    notes: ["Matched task 08."],
+  });
+
+  const response = await handler(
+    new Request(
+      "http://localhost/internal/classify-result?requestId=req-internal-classify-1",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: payload,
+      },
+    ),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "accepted" });
+  assert.equal(await registration.promise, payload);
 });
 
 test("POST /solve enforces the concurrency limit", async () => {
@@ -366,7 +414,7 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
 });
 
 test(
-  "POST /solve in deterministic mode falls through to tmux when the selected strategy is not implemented",
+  "POST /solve in deterministic mode executes task 21 directly when the pinned strategy is implemented",
   { concurrency: false },
   async (t) => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
@@ -382,6 +430,7 @@ test(
     codexHomeDir,
     createRunId: () => "sandbox-http-tier3-fallback",
     dataRoot,
+    artifactRoot: path.join(tempRoot, "runs"),
     env: {
       CODEX_HOME: codexHomeDir,
       HOME: tempRoot,
@@ -401,6 +450,7 @@ test(
       taskSource: "manual-label",
       inputSource: "fixture",
     },
+    fetch: createTask21FixtureTripletexFetch(),
     tmuxRunCommand: async (cmd) => {
       tmuxCommands.push([...cmd]);
       if (cmd[1] === "new-window") {
@@ -487,12 +537,13 @@ test(
 
   const runDir = path.join(
     dataRoot,
-    "testing",
+    "sandbox",
     "runs",
     "sandbox-http-tier3-fallback",
   );
-  await stat(path.join(runDir, "manifest.json"));
-  assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-window"), true);
+  await stat(path.join(runDir, "request.json"));
+  await stat(path.join(runDir, "result.json"));
+  assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-window"), false);
   assert.equal(
     await exists(path.join(
       tempRoot,
@@ -500,7 +551,7 @@ test(
       "2026-03-21",
       "run-sandbox-http-tier3-fallback.json",
     )),
-    false,
+    true,
   );
   },
 );
@@ -890,6 +941,166 @@ function createFixtureTripletexFetch(): TripletexFetch {
 
     if (init.method === "PUT" && url.pathname === "/invoice/9001/:send") {
       return createResponse(200, {});
+    }
+
+    throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
+  };
+}
+
+function createTask21FixtureTripletexFetch(): TripletexFetch {
+  let createdVoucherCount = 0;
+
+  return async (input, init) => {
+    const url = new URL(input);
+    const pathname = url.pathname.replace(/^\/v2(?=\/|$)/, "") || "/";
+
+    if (init.method === "GET" && pathname === "/ledger/voucher") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 101,
+            number: 1101,
+            date: "2026-01-12",
+            description: "Telefonkostnad feil konto",
+            postings: [
+              {
+                account: { id: 710001, number: 7100 },
+                amount: 2250,
+                amountCurrency: 2250,
+                amountGross: 2250,
+                amountGrossCurrency: 2250,
+              },
+              {
+                account: { id: 192001, number: 1920 },
+                amount: -2250,
+                amountCurrency: -2250,
+                amountGross: -2250,
+                amountGrossCurrency: -2250,
+              },
+            ],
+          },
+          {
+            id: 201,
+            number: 1201,
+            date: "2026-01-20",
+            description: "Kontorrekvisita",
+            postings: [
+              {
+                account: { id: 650001, number: 6500 },
+                amount: 1500,
+                amountCurrency: 1500,
+                amountGross: 1500,
+                amountGrossCurrency: 1500,
+              },
+              {
+                account: { id: 240001, number: 2400 },
+                amount: -1500,
+                amountCurrency: -1500,
+                amountGross: -1500,
+                amountGrossCurrency: -1500,
+              },
+            ],
+          },
+          {
+            id: 202,
+            number: 1202,
+            date: "2026-01-20",
+            description: "Kontorrekvisita",
+            postings: [
+              {
+                account: { id: 650001, number: 6500 },
+                amount: 1500,
+                amountCurrency: 1500,
+                amountGross: 1500,
+                amountGrossCurrency: 1500,
+              },
+              {
+                account: { id: 240001, number: 2400 },
+                amount: -1500,
+                amountCurrency: -1500,
+                amountGross: -1500,
+                amountGrossCurrency: -1500,
+              },
+            ],
+          },
+          {
+            id: 301,
+            number: 1301,
+            date: "2026-02-03",
+            description: "Programvarelisens",
+            postings: [
+              {
+                account: { id: 654001, number: 6540 },
+                amount: 22000,
+                amountCurrency: 22000,
+                amountGross: 22000,
+                amountGrossCurrency: 22000,
+              },
+              {
+                account: { id: 240002, number: 2400 },
+                supplier: { id: 88 },
+                currency: { id: 1 },
+                invoiceNumber: "LEV-8841",
+                amount: -22000,
+                amountCurrency: -22000,
+                amountGross: -22000,
+                amountGrossCurrency: -22000,
+              },
+            ],
+          },
+          {
+            id: 401,
+            number: 1401,
+            date: "2026-02-17",
+            description: "Kursavgift",
+            postings: [
+              {
+                account: { id: 686001, number: 6860 },
+                amount: 8650,
+                amountCurrency: 8650,
+                amountGross: 8650,
+                amountGrossCurrency: 8650,
+              },
+              {
+                account: { id: 240003, number: 2400 },
+                supplier: { id: 99 },
+                currency: { id: 1 },
+                invoiceNumber: "KURS-2026-09",
+                amount: -8650,
+                amountCurrency: -8650,
+                amountGross: -8650,
+                amountGrossCurrency: -8650,
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    if (init.method === "GET" && pathname === "/ledger/account") {
+      return createResponse(200, {
+        values: [
+          { id: 271001, number: 2710 },
+          { id: 714001, number: 7140 },
+        ],
+      });
+    }
+
+    if (init.method === "POST" && pathname === "/ledger/voucher") {
+      createdVoucherCount += 1;
+      return createResponse(200, {
+        value: {
+          id: 9000 + createdVoucherCount,
+        },
+      });
+    }
+
+    if (init.method === "PUT" && pathname === "/ledger/voucher/202/:reverse") {
+      return createResponse(200, {
+        value: {
+          id: 9002,
+        },
+      });
     }
 
     throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);

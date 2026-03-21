@@ -194,7 +194,14 @@ export interface TmuxSolveOptions {
   tmuxSessionName?: string;
 }
 
-const DEFAULT_TMUX_SESSION_NAME = "ainm-tripletex-sessions";
+export interface LaunchTmuxCommandInput {
+  command: string;
+  commandCwd: string;
+  tmuxSessionName: string;
+  tmuxWindow: string;
+}
+
+export const DEFAULT_TMUX_SESSION_NAME = "ainm-tripletex-sessions";
 const DEFAULT_SOLVE_TIMEOUT_MS = 300_000;
 const DEFAULT_LEADERBOARD_URL =
   "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516";
@@ -211,7 +218,7 @@ const tripletex2Root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
+export const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
   tripletex2Root,
   "codex-environment",
 );
@@ -301,7 +308,7 @@ cd ${shellQuote(codexEnvironmentDir)}
 
 PROMPT_FILE=${shellQuote(preparedRun.promptFilePath)}
 
-codex -m gpt-5.4 -c model_reasoning_effort='"high"' -c service_tier='"fast"' --yolo --no-alt-screen "$(cat "$PROMPT_FILE")"
+${buildTmuxCodexCommand('"$(cat "$PROMPT_FILE")"')}
 status=$?
 
 print
@@ -311,6 +318,13 @@ print "run dir: ${preparedRun.runDir}"
 print "request file: ${preparedRun.requestFilePath}"
 exec zsh -i
 `;
+}
+
+export function buildTmuxCodexCommand(
+  promptExpression: string,
+  executable = "codex",
+): string {
+  return `${executable} -m gpt-5.4 -c model_reasoning_effort='"high"' -c service_tier='"fast"' --yolo --no-alt-screen ${promptExpression}`;
 }
 
 export async function prepareRun(
@@ -452,13 +466,28 @@ export async function launchTmuxRun(
 ): Promise<void> {
   const codexEnvironmentDir =
     options.codexEnvironmentDir ?? DEFAULT_CODEX_ENVIRONMENT_DIR;
+  await launchTmuxCommand(
+    {
+      command: preparedRun.launchScriptPath,
+      commandCwd: codexEnvironmentDir,
+      tmuxSessionName: preparedRun.tmuxSessionName,
+      tmuxWindow: preparedRun.tmuxWindow,
+    },
+    options,
+  );
+}
+
+export async function launchTmuxCommand(
+  input: LaunchTmuxCommandInput,
+  options: Pick<TmuxSolveOptions, "runCommand" | "tmuxSessionExists"> = {},
+): Promise<void> {
   const runCommand = options.runCommand ?? defaultRunCommand;
   const tmuxSessionExists =
     options.tmuxSessionExists ??
     ((sessionName) => defaultTmuxSessionExists(sessionName));
 
   await withTmuxLaunchLock(async () => {
-    const sessionExisted = await tmuxSessionExists(preparedRun.tmuxSessionName);
+    const sessionExisted = await tmuxSessionExists(input.tmuxSessionName);
 
     if (!sessionExisted) {
       await runCommand([
@@ -466,17 +495,17 @@ export async function launchTmuxRun(
         "new-session",
         "-d",
         "-s",
-        preparedRun.tmuxSessionName,
+        input.tmuxSessionName,
         "-n",
         "__control__",
         "-c",
-        codexEnvironmentDir,
+        input.commandCwd,
       ]);
       await runCommand([
         "tmux",
         "set-option",
         "-t",
-        preparedRun.tmuxSessionName,
+        input.tmuxSessionName,
         "remain-on-exit",
         "on",
       ]);
@@ -487,12 +516,12 @@ export async function launchTmuxRun(
       "new-window",
       "-d",
       "-t",
-      preparedRun.tmuxSessionName,
+      input.tmuxSessionName,
       "-n",
-      preparedRun.tmuxWindow,
+      input.tmuxWindow,
       "-c",
-      codexEnvironmentDir,
-      preparedRun.launchScriptPath,
+      input.commandCwd,
+      input.command,
     ]);
   });
 }
@@ -1457,7 +1486,7 @@ async function handleSolveTimeout(
   let killWindowError: string | undefined;
 
   try {
-    await runCommand(["tmux", "kill-window", "-t", tmuxTarget]);
+    await killTmuxWindow(tmuxTarget, { runCommand });
     killWindowSucceeded = true;
   } catch (error) {
     killWindowError = error instanceof Error ? error.message : String(error);
@@ -1497,6 +1526,14 @@ async function handleSolveTimeout(
     killWindowSucceeded,
     ...(killWindowError ? { killWindowError } : {}),
   });
+}
+
+export async function killTmuxWindow(
+  tmuxTarget: string,
+  options: Pick<TmuxSolveOptions, "runCommand"> = {},
+): Promise<void> {
+  const runCommand = options.runCommand ?? defaultRunCommand;
+  await runCommand(["tmux", "kill-window", "-t", tmuxTarget]);
 }
 
 async function defaultTmuxSessionExists(sessionName: string): Promise<boolean> {

@@ -220,10 +220,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "19",
     txTaskId: "19",
-    taskSlug: "unknown-task-19",
-    taskName: "Unknown task 19",
+    taskSlug: "onboard-employee-from-contract",
+    taskName: "Onboard employee from contract",
     summary:
-      "Tier 3 placeholder for tx_task_id 19 with no checked-in prompt examples yet.",
+      "Create a new employee from a contract, creating the department if needed and writing employment details with the resolved occupation code.",
     legacyTripletex1TaskIds: ["19"],
   },
   {
@@ -247,10 +247,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "22",
     txTaskId: "22",
-    taskSlug: "unknown-task-22",
-    taskName: "Unknown task 22",
+    taskSlug: "register-receipt-expense-voucher",
+    taskName: "Register receipt expense voucher",
     summary:
-      "Tier 3 placeholder for tx_task_id 22 with no checked-in prompt examples yet.",
+      "Book one receipt-backed expense voucher to the requested department, balance it against bank account 1920, and upload the source receipt.",
     legacyTripletex1TaskIds: ["22"],
   },
   {
@@ -263,12 +263,21 @@ export const CANONICAL_TASK_REGISTRY = [
     legacyTripletex1TaskIds: ["23"],
   },
   {
+    taskId: "24",
+    txTaskId: "24",
+    taskSlug: "correct-ledger-errors",
+    taskName: "Correct ledger errors",
+    summary:
+      "Review Jan-Feb 2026 vouchers for four known bookkeeping errors and post corrective entries.",
+    legacyTripletex1TaskIds: ["24"],
+  },
+  {
     taskId: "25",
     txTaskId: "25",
-    taskSlug: "unknown-task-25",
-    taskName: "Unknown task 25",
+    taskSlug: "overdue-reminder-fee-and-partial-payment",
+    taskName: "Overdue reminder fee and partial payment",
     summary:
-      "Tier 3 placeholder for tx_task_id 25 with no checked-in prompt examples yet.",
+      "Find the one overdue customer invoice, post a 50 NOK reminder fee, create and send the fee invoice, and register a 5000 NOK partial payment.",
     legacyTripletex1TaskIds: ["25"],
   },
   {
@@ -292,10 +301,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "28",
     txTaskId: "28",
-    taskSlug: "unknown-task-28",
-    taskName: "Unknown task 28",
+    taskSlug: "analyze-expense-increase-create-internal-projects",
+    taskName: "Analyze expense increase and create internal projects",
     summary:
-      "Tier 3 placeholder for tx_task_id 28 with no checked-in prompt examples yet.",
+      "Analyze January-versus-February 2026 expense-account increases, then create one internal project and one activity for each of the top three accounts.",
     legacyTripletex1TaskIds: ["28"],
   },
   {
