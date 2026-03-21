@@ -4604,8 +4604,29 @@
    - Remaining bottleneck: round 36e581f1 at 66.58 (active but unpredictable)
    - This round cannot be improved by regime calibration alone
 
+503. **Cellwise LightGBM with evidence replays** (ported from agent4):
+   - Fundamentally different approach: per-cell LightGBM trained on replay ground truth
+   - Uses replay final grids as "evidence" features during both training and evaluation
+   - Results (local benchmark, NOT live-compatible):
+     - **ev15_lowfloor (floor=0.003): 85.72** (NEW LOCAL BEST!)
+     - ev15_nobc (no barren cal): 83.85
+     - ev18_nobc: 83.59
+     - ev15_big: 83.56
+     - ev20_nobc: 83.45
+     - ev15_v1 (with barren cal): 83.42
+     - ev12_v1: 81.81
+   - CRITICAL CAVEAT: this model uses REPLAY data during evaluation, which is NOT available during live rounds
+   - For live rounds, only viewport query results are available as evidence
+   - The 85.72 score represents the ceiling with ideal evidence, not live performance
+
+504. **Live round 16 submission** (8f664aed):
+   - Model: adaptive_ensemble_v17 (best live-compatible model, 79.98 local LOO)
+   - Queries used: 45/50
+   - All 5 seeds submitted
+   - This is our best VALIDATED model that works with actual live viewport queries
+
 ## Open Questions
 
-- Can the remaining worst round (36e581f1 at 66.58) be improved by spatial methods?
-- Can we break 80 by combining adaptive_ensemble with better spatial prediction?
-- Should the adaptive_ensemble approach be applied on live rounds?
+- Can the cellwise LGB be adapted to use viewport queries instead of replay grids as evidence?
+- Can the remaining worst round (36e581f1 at 66.58) be improved?
+- What was the actual live score for round 16?
