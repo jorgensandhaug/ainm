@@ -4907,9 +4907,20 @@ Key techniques to incorporate from other agents:
 
    **Total session improvement: +9.43 points** (76.89 → 86.32)
 
+523. Further optimization results:
+   - CatBoost+LGB geometric mean ensemble (70/30): 86.34 (marginal +0.02)
+   - CatBoost deeper (d10) + exploration: 86.26
+   - CatBoost bigger (2500 iter) + exploration: 86.27
+   - Multi-episode (2ep) + exploration: 85.60 (hurts!)
+   - Multi-episode (3ep) + exploration: 85.35 (hurts more!)
+
+524. AutoGluon experiment launched (separate venv with best_quality preset)
+   - Includes LightGBM, CatBoost, TabPFN, neural networks, stacking
+   - Results pending
+
 ## Open Questions
 
+- Can AutoGluon's ensemble/stacking beat our manual CatBoost?
 - Can we push past 87?
 - Need to wire CatBoost + exploration into live pipeline
-- Can ensemble with Agent1's hazard posterior help?
 - What else can improve round 36e581f1 (73.64)?
