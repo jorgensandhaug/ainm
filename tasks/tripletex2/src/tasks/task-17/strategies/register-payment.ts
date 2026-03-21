@@ -19,9 +19,11 @@ interface ResponseWrapper<TValue> {
 interface InvoiceEvidenceLine {
   description?: string | null;
   displayName?: string | null;
+  productName?: string | null;
 }
 
 interface InvoiceEvidenceOrder {
+  comment?: string | null;
   invoiceComment?: string | null;
   orderLines?: InvoiceEvidenceLine[] | null;
 }
@@ -30,6 +32,12 @@ interface InvoiceSummary {
   id?: number;
   invoiceNumber?: number | string | null;
   invoiceDate?: string | null;
+  comment?: string | null;
+  invoiceComment?: string | null;
+  deliveryComment?: string | null;
+  yourReference?: string | null;
+  ourReference?: string | null;
+  reference?: string | null;
   customer?: {
     id?: number;
     name?: string | null;
@@ -59,6 +67,10 @@ interface PaymentTypeSummary {
   } | null;
 }
 
+type CompletedStrategyResult = StrategyResult & {
+  status: "completed";
+};
+
 export const strategy = {
   strategyId: "17.register-payment.v1",
   strategyPath: "src/tasks/task-17/strategies/register-payment.ts",
@@ -82,6 +94,11 @@ export const strategy = {
     ctx: StrategyContext,
     input: RegisterCustomerInvoicePaymentInput,
   ): Promise<StrategyResult> {
+    assertNormalizedDigits(
+      input.customerOrganizationNumber,
+      "customerOrganizationNumber",
+    );
+    assertNonEmptyText(input.lineDescription, "lineDescription");
     assertPositiveNumber(
       input.amountExcludingVatNok,
       "amountExcludingVatNok",
@@ -162,7 +179,8 @@ export const strategy = {
       normalizedOrgNumber,
     );
 
-    return {
+    const result: CompletedStrategyResult = {
+      status: "completed",
       notes,
       verification: {
         invoiceId,
@@ -173,6 +191,8 @@ export const strategy = {
         remainingOutstanding,
       },
     };
+
+    return result;
   },
 } satisfies RegisterCustomerInvoicePaymentStrategy;
 
@@ -325,32 +345,35 @@ function matchesLineEvidence(
   normalizedDescription: string,
 ): boolean {
   const evidence = extractEvidence(invoice).map(normalizeText);
-  return evidence.includes(normalizedDescription);
+  return evidence.some(
+    (text) =>
+      text === normalizedDescription || text.includes(normalizedDescription),
+  );
 }
 
 function extractEvidence(invoice: InvoiceSummary): string[] {
   const texts: string[] = [];
 
+  pushEvidenceText(texts, invoice.comment);
+  pushEvidenceText(texts, invoice.invoiceComment);
+  pushEvidenceText(texts, invoice.deliveryComment);
+  pushEvidenceText(texts, invoice.yourReference);
+  pushEvidenceText(texts, invoice.ourReference);
+  pushEvidenceText(texts, invoice.reference);
+
   for (const line of invoice.orderLines ?? []) {
-    if (line.description) {
-      texts.push(line.description);
-    }
-    if (line.displayName) {
-      texts.push(line.displayName);
-    }
+    pushEvidenceText(texts, line.description);
+    pushEvidenceText(texts, line.displayName);
+    pushEvidenceText(texts, line.productName);
   }
 
   for (const order of invoice.orders ?? []) {
-    if (order.invoiceComment) {
-      texts.push(order.invoiceComment);
-    }
+    pushEvidenceText(texts, order.comment);
+    pushEvidenceText(texts, order.invoiceComment);
     for (const line of order.orderLines ?? []) {
-      if (line.description) {
-        texts.push(line.description);
-      }
-      if (line.displayName) {
-        texts.push(line.displayName);
-      }
+      pushEvidenceText(texts, line.description);
+      pushEvidenceText(texts, line.displayName);
+      pushEvidenceText(texts, line.productName);
     }
   }
 
@@ -370,15 +393,18 @@ function chooseIncomingPaymentType(
       const name = normalizeText(paymentType.name);
 
       if (debitNumber.startsWith("19")) {
-        score += 4;
+        score += 10;
       }
       if (paymentType.debitAccount?.isBankAccount) {
-        score += 3;
+        score += 5;
       }
       if (paymentType.debitAccount?.isInvoiceAccount) {
-        score += 2;
+        score += 3;
       }
       if (name.includes("bank")) {
+        score += 2;
+      }
+      if (name.includes("betalt")) {
         score += 1;
       }
       if (!creditNumber) {
@@ -387,13 +413,13 @@ function chooseIncomingPaymentType(
 
       return { paymentType, score };
     })
-    .sort((left, right) => right.score - left.score)[0]?.paymentType;
+    .sort((left, right) => right.score - left.score)[0];
 
-  if (!winner?.id) {
+  if (!winner?.paymentType.id || winner.score <= 0) {
     throw new Error("Tripletex did not return a usable incoming payment type.");
   }
 
-  return winner;
+  return winner.paymentType;
 }
 
 function requireOutstandingAmount(
@@ -486,6 +512,12 @@ function normalizeAccountNumber(
   return normalizeOrganizationNumber(value);
 }
 
+function pushEvidenceText(texts: string[], value: string | null | undefined): void {
+  if (value) {
+    texts.push(value);
+  }
+}
+
 function buildCustomerNameNotes(
   actualName: string | null | undefined,
   requestedName: string | undefined,
@@ -503,6 +535,18 @@ function buildCustomerNameNotes(
 function assertPositiveNumber(value: number, fieldName: string): void {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
+  }
+}
+
+function assertNonEmptyText(value: string, fieldName: string): void {
+  if (normalizeText(value) === "") {
+    throw new Error(`${fieldName} must be a non-empty string.`);
+  }
+}
+
+function assertNormalizedDigits(value: string, fieldName: string): void {
+  if (normalizeOrganizationNumber(value) === "") {
+    throw new Error(`${fieldName} must include at least one digit.`);
   }
 }
 
