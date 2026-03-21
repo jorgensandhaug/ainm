@@ -3354,3 +3354,47 @@ The model has three conceptual components:
 | learning_rate | 0.02 | Slow learning prevents overfitting with limited rounds |
 | probability_floor | 0.01 | Prevents infinite KL from zero-probability predictions |
 | subsample/colsample | 0.7 | Stochastic regularization for cross-round generalization |
+
+### 2026-03-21T20:48Z — GT-Evidence Model (training on ground truth distributions)
+
+- New approach: train LightGBM on ground truth probability distributions (the optimal target) rather than individual replay outcomes
+- Use evidence features from replays with data augmentation (vary evidence count per training example)
+- Entropy-weighted loss to focus on uncertain cells
+- Results:
+  - GT-evidence ev1 aug5: **78.16** (-1.23 vs champion, +1.90 vs evidence+settlements)
+  - GT-evidence ev5 aug5: **81.17** (+1.78 vs champion)
+  - GT-evidence ev15 aug5: **82.06** (+2.67 vs champion)
+  - GT-evidence ev1 aug10: 77.93 (more augmentation slightly worse)
+  - GT-evidence ev1 aug20: 78.01
+- Key finding: Training on ground truth with entropy weighting + evidence augmentation gives the best single-observation results
+
+### Other approaches tried and rejected
+- Markov transition teacher (50-step rollout): **32.89** — error compounds
+- Empirical conditional frequency tables: **64.49** — too coarse
+- Nearest-round prediction: **46.85** — too naive
+- Evidence+prior comparison features: **64.67** — overfits
+
+### 2026-03-21T21:00Z — Cross-Agent Research
+
+Read progress files from all 6 other agents. Key findings:
+
+**Agent 1 (score: 83.79)** — Best overall:
+- HazardTeacherV2 with ORIGINAL coefficients (no SVD reconstruction loss) → +3 points alone
+- Observation-frequency blending (temperature=20) → +0.5 points
+- Entropy-conditioned class weighting for observation likelihood
+- kNN + ridge posterior with particle refinement
+
+**Agent 6 (score: ~79.6 on dev5)**:
+- GEOMETRIC MEAN ensemble of HazardPosterior + QueryResidual
+- Key: log-probability space blending better matches KL scoring metric
+- Information complementarity: global regime + local evidence
+
+**Agent 5 (score: ~77.35)**:
+- Stacked low-rank greybox + query_residual
+- Exploration policy with repeats
+
+**Actionable insights for my models:**
+1. **Observation-frequency blending** — simple post-processing, should add +0.5 to any model
+2. **Geometric mean ensemble** — combine my evidence model with agent1/agent6's predictions
+3. **Entropy-weighted class importance** — already using this in GT-evidence, but could be stronger
+4. **Original coefficients** — agent1's biggest lever, but my approach doesn't use SVD at all
