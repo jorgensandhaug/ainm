@@ -40,6 +40,7 @@ Production and sandbox re-verification on 2026-03-21 showed:
 - the sandbox batch-create response still shows top-level `fullResultSize=0`, so verification must continue to trust `values[]`
 - a Nynorsk prompt asking for `Produksjon`, `Kvalitetskontroll`, and `HR` was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; short ASCII-only names like `HR` need no special handling
 - a Spanish prompt asking for `Utvikling`, `Kvalitetskontroll`, and `Markedsføring` was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), 1 call 0 errors; `ø` in `Markedsføring` preserved correctly; Spanish prompt language triggers no endpoint deviation
+- a Spanish prompt asking for `Lager`, `Økonomi`, and `Drift` (2d9b6947) was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), 1 call 0 errors; second Spanish confirmation with `Ø` in department name
 
 ## Minimal Safe Flow
 
