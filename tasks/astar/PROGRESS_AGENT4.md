@@ -3122,8 +3122,34 @@ To make the evidence model competitive in live rounds, we need either:
 3. Train the evidence model to be robust to single-observation noise
 4. Use the evidence model only for prior (no evidence features) and keep query_residual for online correction
 
+#### Mixed evidence training — improving robustness
+
+- Mixed training: train with randomly chosen evidence levels (1,3,5,10,15 replays)
+- Purpose: model learns to handle varying evidence quality
+- Results:
+  - Mixed train, serve_ev=1:  `score=72.35, kl=0.112` (+2.65 vs fixed ev1 at 69.70)
+  - Mixed train, serve_ev=15: `score=81.15, kl=0.071` (beats champion at 79.39)
+- Conclusion: mixed training significantly improves robustness to single-observation serving
+
+#### Complete results summary table
+
+| Model | Train Evidence | Serve Evidence | Score | KL |
+|-------|---------------|---------------|-------|-----|
+| Historical bucket prior | - | - | 66.32 | 0.142 |
+| GT-only LightGBM | - | - | 66.50 | 0.150 |
+| Replay LightGBM | - | - | 66.74 | 0.150 |
+| Evidence v2 fixed | ev1 | ev1 | 69.70 | 0.128 |
+| **Evidence mixed** | **mixed(1-15)** | **ev1** | **72.35** | **0.112** |
+| Evidence v2 fixed | ev3 | ev3 | 76.81 | 0.090 |
+| query_residual_v11 | - | online queries | **79.39** | 0.078 |
+| Evidence v2 fixed | ev5 | ev5 | 79.23 | 0.079 |
+| Evidence v2 fixed | ev10 | ev10 | 80.60 | 0.072 |
+| Evidence mixed | mixed(1-15) | ev15 | **81.15** | 0.071 |
+| Evidence v2 fixed | ev20 | ev20 | 82.50 | 0.064 |
+| **Evidence v2 fixed** | **ev15** | **ev15** | **83.06** | **0.062** |
+
 #### Next experiments to run
-1. Train with multi-replay evidence, serve with single evidence (train/serve mismatch)
-2. Ensemble evidence LGB + query_residual
-3. Use LightGBM prior as replacement for bucket prior in query_residual
-4. Explore overlapping viewport query policies for multi-observation coverage
+1. Use overlapping viewport query policy to get 2-3 observations per cell
+2. Ensemble evidence LGB with query_residual champion
+3. Investigate whether live online queries can provide enough evidence quality
+4. Integrate mixed-trained evidence model into live serving path
