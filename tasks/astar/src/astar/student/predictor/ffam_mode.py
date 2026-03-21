@@ -1842,11 +1842,14 @@ class FFAMModePredictor(BaseRoundPredictor):
         for seed_index in range(round_detail.seeds_count):
             prior = np.asarray(effective_prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             static_stack = _build_static_feature_stack(round_detail, features, seed_index)
+            effective_include_interactions = self.include_interactions or any(
+                n.startswith("ix_") for n in self.mode_feature_names
+            )
             design = _compose_mode_design_tensor(
                 static_stack,
                 prior,
                 probability_floor=self.probability_floor,
-                include_interactions=self.include_interactions,
+                include_interactions=effective_include_interactions,
             )
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)
