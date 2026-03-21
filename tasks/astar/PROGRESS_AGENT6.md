@@ -4165,12 +4165,28 @@
   - Both robustly beat supportx_v01 (76.23) by +1.17
   - **This is the new production-quality best model**
 
+- Second sweep results:
+  - k9_r3: **73.29** (NEW BEST on probe3)
+  - k7_r3_m80: 73.25
+  - k7_r3_m90: 73.21
+- Key finding: more neighbors keeps helping (k5→k7→k9 monotonic improvement on smoke)
+- Full 8-round validation running for k7_r3
+
 ### Current scoreboard on probe3:
-1. **hazard_posterior_v2 k7_r3: 73.25** (NEW BEST)
-2. hazard_posterior_v2 k5_r3_m90: 73.11
-3. hazard_posterior_v2 k5_r3: 73.05
-4. supportx_v01: 72.92
-5. baseline query_residual: 72.55
+1. **hazard_posterior_v2 k9_r3: 73.29** (NEW BEST)
+2. hazard_posterior_v2 k7_r3_m80: 73.25
+3. hazard_posterior_v2 k7_r3: 73.25
+4. hazard_posterior_v2 k7_r3_m90: 73.21
+5. hazard_posterior_v2 k5_r3_m90: 73.11
+6. hazard_posterior_v2 k5_r3: 73.05
+7. supportx_v01: 72.92
+8. baseline query_residual: 72.55
+
+### Current scoreboard on dev5:
+1. **hazard_posterior_v2 k7_r3: 77.40** (BEST, +1.17 vs supportx)
+2. hazard_posterior_v2 k5_r3: 77.39
+3. supportx_v01: 76.23
+4. baseline query_residual: 75.97
 
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
