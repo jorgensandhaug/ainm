@@ -3501,6 +3501,89 @@
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01`
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01`
 
+- Interaction-variant smoke results:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01_probe3_current/result.json`
+    - score `69.8697`
+    - weighted KL `0.127639`
+    - delta vs dyn control `-0.0482`
+    - KL delta `+0.000371`
+    - comparison artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01.json`
+    - read:
+      - least-bad interaction branch
+      - helped round 5 a little
+      - worsened round 6 enough to stay negative
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01_probe3_current/result.json`
+    - score `69.6561`
+    - weighted KL `0.128519`
+    - delta vs dyn control `-0.2617`
+    - KL delta `+0.001251`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01_probe3_current/result.json`
+    - score `69.6797`
+    - weighted KL `0.128539`
+    - delta vs dyn control `-0.2382`
+    - KL delta `+0.001271`
+
+- Interaction-variant read:
+  - dynamic-logit × regime interactions did not solve the family bottleneck
+  - prior-only interactions were near-neutral but still negative
+  - teacher-logit interaction blocks were clearly harmful
+  - so the problem is not just “missing local dynamic-class interaction terms” inside the same linear decoder scaffold
+
+- Found an already-landed but unbenchmarked decoder branch in this repo state:
+  - hypothesis:
+    - collapse-heavy rounds need direct correction of the collapse/rebuild quartet, not only `(settlement, port, ruin)`
+  - immutable models:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01`
+      - active classes `(0, 1, 3, 4)`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01`
+      - active classes `(0, 1, 2, 3, 4)`
+
+- Collapse/rebuild-quartet smoke results:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01_probe3_current/result.json`
+    - score `69.6591`
+    - weighted KL `0.128642`
+    - delta vs dyn control `-0.2587`
+    - KL delta `+0.001374`
+    - round scores:
+      - `83.0132, 76.1742, 49.7900`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_nonmountain_v01_probe3_current/result.json`
+    - score `69.6444`
+    - weighted KL `0.128982`
+    - delta vs dyn control `-0.2735`
+    - KL delta `+0.001714`
+    - round scores:
+      - `82.6765, 76.8386, 49.4181`
+
+- End-of-turn read after this full decoder sweep:
+  - new rejects:
+    - `priorx`
+    - `teachx`
+    - `priorteachx`
+    - `collapsequad`
+    - `nonmountain`
+  - these all confirm the same thing:
+    - small local linear decoder edits are not enough
+    - the current family bottleneck is more structural than:
+      - scalar gates
+      - simple active-class set changes
+      - small interaction augmentations
+  - best family model still:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+  - next family move should likely leave this exact linear decoder family and go to:
+    - a qualitatively richer terminal decoder
+    - or a more explicit yearly program / rollout-based teacher path
+
 ## 2026-03-21 12:4x UTC - collapse-class head expansion
 
 - Re-read handoff again around:
