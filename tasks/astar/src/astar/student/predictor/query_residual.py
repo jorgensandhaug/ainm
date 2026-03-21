@@ -36,6 +36,14 @@ LOG_FLOOR_DENOM = math.log(100.0)
 MAX_QUERY_BUDGET = 50.0
 DEFAULT_BUDGET_PREFIXES = (0, 5, 10, 20, 35, 50)
 DEFAULT_BLUR_SIGMAS = (1.5, 4.0)
+QUERY_RESIDUAL_ALIAS = "query_residual"
+QUERY_RESIDUAL_V7 = "query_residual_v7"
+QUERY_RESIDUAL_V8 = "query_residual_v8"
+QUERY_RESIDUAL_V9 = "query_residual_v9"
+QUERY_RESIDUAL_V10 = "query_residual_v10"
+CELL_SELECTION_TOP_ENTROPY = "top_entropy"
+CELL_SELECTION_STRATIFIED_ENTROPY = "stratified_entropy"
+CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY = "top_heavy_stratified_entropy"
 
 
 def _round_ids_with_analyses_and_replays(
@@ -353,12 +361,14 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     cells_per_seed: int = Field(ge=1)
     budget_prefixes: list[int]
     blur_sigmas: list[float]
+    cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     ridge_lambda: float = Field(ge=0.0)
     probability_floor: float = Field(gt=0.0, lt=1.0)
     temperature: float = Field(gt=0.0)
     prior_blend: float = Field(ge=0.0, le=1.0)
     signal_scale: float = Field(gt=0.0)
     min_delta_scale: float = Field(ge=0.0, le=1.0)
+    include_exact_local_residual: bool = False
     residual_class_scale: list[float]
     teacher_name: str
     teacher_feature_names: list[str]
@@ -459,6 +469,7 @@ def _derive_transcript_features_from_stats(
     per_seed_stats: dict[int, SeedTranscriptStats],
     *,
     blur_sigmas: tuple[float, float],
+    include_exact_local_residual: bool = False,
 ) -> TranscriptDerivedFeatures:
     residual_by_seed: dict[int, np.ndarray] = {}
     observed_mask_by_seed: dict[int, np.ndarray] = {}
@@ -583,16 +594,16 @@ def _derive_transcript_features_from_stats(
         blur_residual_large = _gaussian_blur(residual, blur_sigmas[1])
         blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])[..., None]
         blur_coverage_large = _gaussian_blur(observed_count_feature, blur_sigmas[1])[..., None]
-        local_evidence[seed_index] = np.concatenate(
-            [
-                observed_count_feature[..., None],
-                blur_residual_small,
-                blur_residual_large,
-                blur_coverage_small,
-                blur_coverage_large,
-            ],
-            axis=-1,
-        )
+        local_components = [
+            observed_count_feature[..., None],
+            blur_residual_small,
+            blur_residual_large,
+            blur_coverage_small,
+            blur_coverage_large,
+        ]
+        if include_exact_local_residual:
+            local_components.append(residual)
+        local_evidence[seed_index] = np.concatenate(local_components, axis=-1)
 
     global_summary = np.asarray(
         [
@@ -693,11 +704,16 @@ def _seed_summary_names() -> list[str]:
     return names
 
 
-def _local_evidence_names() -> list[str]:
+def _local_evidence_names(
+    *,
+    include_exact_local_residual: bool = False,
+) -> list[str]:
     names = ["local_observed_count"]
     names.extend([f"local_blur15_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"local_blur40_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend(["local_blur15_coverage", "local_blur40_coverage"])
+    if include_exact_local_residual:
+        names.extend([f"local_exact_resid_{class_name}" for class_name in CLASS_NAMES])
     return names
 
 
@@ -774,14 +790,17 @@ SEED_SUMMARY_INDEX = {name: index for index, name in enumerate(_seed_summary_nam
 REGIME_SUMMARY_INDEX = {name: index for index, name in enumerate(_regime_summary_names())}
 
 
-def _full_feature_names() -> list[str]:
+def _full_feature_names(
+    *,
+    include_exact_local_residual: bool = False,
+) -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend(_global_summary_names())
     names.extend(_seed_summary_names())
     names.extend(_regime_summary_names())
-    names.extend(_local_evidence_names())
+    names.extend(_local_evidence_names(include_exact_local_residual=include_exact_local_residual))
     names.extend(_regime_interaction_names())
     names.extend(_interaction_names())
     return names
@@ -947,10 +966,54 @@ def _select_training_cells(
     seed_index: int,
     *,
     cells_per_seed: int,
+    selection_strategy: str = CELL_SELECTION_TOP_ENTROPY,
 ) -> np.ndarray:
     entropy = np.asarray(entropy_map(ground_truth), dtype=np.float64).reshape(-1)
     order = np.argsort(entropy)[::-1]
-    selected = set(order[: min(cells_per_seed, len(order))].tolist())
+    target_count = min(cells_per_seed, len(order))
+
+    def _take_evenly(indices: np.ndarray, count: int) -> np.ndarray:
+        if count <= 0 or indices.size == 0:
+            return np.zeros(0, dtype=np.int64)
+        if indices.size <= count:
+            return np.asarray(indices, dtype=np.int64)
+        positions = np.linspace(0, indices.size - 1, num=count, dtype=np.int64)
+        return np.asarray(indices[positions], dtype=np.int64)
+
+    if selection_strategy == CELL_SELECTION_STRATIFIED_ENTROPY:
+        hi_count = max(1, int(round(target_count * 0.5)))
+        mid_count = max(0, int(round(target_count * 0.25)))
+        low_count = max(0, target_count - hi_count - mid_count)
+        third = max(1, len(order) // 3)
+        high_pool = order[:third]
+        mid_pool = order[third : min(2 * third, len(order))]
+        low_pool = order[min(2 * third, len(order)) :]
+        selected = set(_take_evenly(high_pool, hi_count).tolist())
+        selected.update(_take_evenly(mid_pool, mid_count).tolist())
+        selected.update(_take_evenly(low_pool, low_count).tolist())
+        if len(selected) < target_count:
+            for flat_index in order:
+                selected.add(int(flat_index))
+                if len(selected) >= target_count:
+                    break
+    elif selection_strategy == CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY:
+        hi_count = max(1, int(round(target_count * 0.75)))
+        mid_count = max(0, int(round(target_count * 0.15)))
+        low_count = max(0, target_count - hi_count - mid_count)
+        third = max(1, len(order) // 3)
+        high_pool = order[:third]
+        mid_pool = order[third : min(2 * third, len(order))]
+        low_pool = order[min(2 * third, len(order)) :]
+        selected = set(_take_evenly(high_pool, hi_count).tolist())
+        selected.update(_take_evenly(mid_pool, mid_count).tolist())
+        selected.update(_take_evenly(low_pool, low_count).tolist())
+        if len(selected) < target_count:
+            for flat_index in order:
+                selected.add(int(flat_index))
+                if len(selected) >= target_count:
+                    break
+    else:
+        selected = set(order[:target_count].tolist())
     width = ground_truth.shape[1]
     for settlement in round_detail.initial_states[seed_index].settlements:
         selected.add(settlement.y * width + settlement.x)
@@ -960,7 +1023,7 @@ def _select_training_cells(
 class QueryResidualPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "query_residual_v7"
+    name: str = QUERY_RESIDUAL_V7
     base_predictor: HistoricalBucketPriorPredictor
     teacher: HazardTeacher
     policy_name: str = "coverage"
@@ -969,12 +1032,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
     cells_per_seed: int = Field(default=256, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
+    cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
     ridge_lambda: float = Field(default=8.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     temperature: float = Field(default=1.15, gt=0.0)
     prior_blend: float = Field(default=0.35, ge=0.0, le=1.0)
     signal_scale: float = Field(default=0.12, gt=0.0)
     min_delta_scale: float = Field(default=0.4, ge=0.0, le=1.0)
+    include_exact_local_residual: bool = False
     residual_class_scale: np.ndarray = Field(
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
     )
@@ -1008,13 +1073,16 @@ class QueryResidualPredictor(BaseRoundPredictor):
         samples_per_round: int = 1,
         cells_per_seed: int = 256,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
+        blur_sigmas: Sequence[float] = DEFAULT_BLUR_SIGMAS,
+        cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY,
         ridge_lambda: float = 8.0,
-        model_name: str = "query_residual_v7",
+        model_name: str = QUERY_RESIDUAL_V7,
         probability_floor: float = 0.01,
         temperature: float = 1.15,
         prior_blend: float = 0.35,
         signal_scale: float = 0.12,
         min_delta_scale: float = 0.4,
+        include_exact_local_residual: bool = False,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
         teacher_blend: float = 0.12,
         teacher_locality_blend: bool = False,
@@ -1046,7 +1114,12 @@ class QueryResidualPredictor(BaseRoundPredictor):
         if not rows:
             raise ValueError("query_residual synthetic transcript dataset is empty for selected rounds")
 
-        feature_dim = len(_full_feature_names())
+        resolved_blur_sigmas = tuple(float(item) for item in blur_sigmas)
+        feature_dim = len(
+            _full_feature_names(
+                include_exact_local_residual=include_exact_local_residual,
+            ),
+        )
         xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
         xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
         training_episode_count = 0
@@ -1086,6 +1159,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
                         round_detail,
                         seed_index,
                         cells_per_seed=cells_per_seed,
+                        selection_strategy=cell_selection_strategy,
                     )
                 cached = {
                     "round_detail": round_detail,
@@ -1116,7 +1190,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     cached["features"],  # type: ignore[arg-type]
                     cached["prior_bundle"],  # type: ignore[arg-type]
                     _stats_from_observations(cached["round_detail"], observations),  # type: ignore[arg-type]
-                    blur_sigmas=DEFAULT_BLUR_SIGMAS,
+                    blur_sigmas=resolved_blur_sigmas,
+                    include_exact_local_residual=include_exact_local_residual,
                 )
                 training_episode_count += 1
                 training_prefixes.append(
@@ -1183,13 +1258,15 @@ class QueryResidualPredictor(BaseRoundPredictor):
             samples_per_round=samples_per_round,
             cells_per_seed=cells_per_seed,
             budget_prefixes=tuple(int(item) for item in budget_prefixes),
-            blur_sigmas=DEFAULT_BLUR_SIGMAS,
+            blur_sigmas=resolved_blur_sigmas,
+            cell_selection_strategy=cell_selection_strategy,
             ridge_lambda=ridge_lambda,
             probability_floor=probability_floor,
             temperature=temperature,
             prior_blend=prior_blend,
             signal_scale=signal_scale,
             min_delta_scale=min_delta_scale,
+            include_exact_local_residual=include_exact_local_residual,
             residual_class_scale=np.asarray(residual_class_scale, dtype=np.float64),
             teacher_blend=teacher_blend,
             teacher_locality_blend=teacher_locality_blend,
@@ -1199,7 +1276,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=beta_scale,
             training_episode_count=training_episode_count,
             sample_count=sample_count,
-            feature_names=tuple(_full_feature_names()),
+            feature_names=tuple(
+                _full_feature_names(
+                    include_exact_local_residual=include_exact_local_residual,
+                ),
+            ),
             intercept=np.asarray(solved[0], dtype=np.float64),
             coefficients=np.asarray(solved[1:], dtype=np.float64),
         )
@@ -1223,12 +1304,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
             cells_per_seed=checkpoint.cells_per_seed,
             budget_prefixes=tuple(checkpoint.budget_prefixes),
             blur_sigmas=tuple(checkpoint.blur_sigmas),  # type: ignore[arg-type]
+            cell_selection_strategy=checkpoint.cell_selection_strategy,
             ridge_lambda=checkpoint.ridge_lambda,
             probability_floor=checkpoint.probability_floor,
             temperature=checkpoint.temperature,
             prior_blend=checkpoint.prior_blend,
             signal_scale=checkpoint.signal_scale,
             min_delta_scale=checkpoint.min_delta_scale,
+            include_exact_local_residual=checkpoint.include_exact_local_residual,
             residual_class_scale=np.asarray(checkpoint.residual_class_scale, dtype=np.float64),
             teacher_blend=checkpoint.teacher_blend,
             teacher_locality_blend=checkpoint.teacher_locality_blend,
@@ -1255,12 +1338,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
             cells_per_seed=self.cells_per_seed,
             budget_prefixes=list(self.budget_prefixes),
             blur_sigmas=list(self.blur_sigmas),
+            cell_selection_strategy=self.cell_selection_strategy,
             ridge_lambda=self.ridge_lambda,
             probability_floor=self.probability_floor,
             temperature=self.temperature,
             prior_blend=self.prior_blend,
             signal_scale=self.signal_scale,
             min_delta_scale=self.min_delta_scale,
+            include_exact_local_residual=self.include_exact_local_residual,
             residual_class_scale=np.asarray(self.residual_class_scale, dtype=np.float64).tolist(),
             teacher_name=self.teacher.name,
             teacher_feature_names=list(self.teacher.feature_names),
@@ -1330,8 +1415,17 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     self.teacher_blend,
                 )
                 if self.teacher_locality_blend:
+                    local_coverage_index = _local_evidence_names(
+                        include_exact_local_residual=self.include_exact_local_residual,
+                    ).index("local_blur40_coverage")
                     local_coverage = np.clip(
-                        np.asarray(derived.local_evidence[seed_index][..., -1:], dtype=np.float64),
+                        np.asarray(
+                            derived.local_evidence[seed_index][
+                                ...,
+                                local_coverage_index : local_coverage_index + 1
+                            ],
+                            dtype=np.float64,
+                        ),
                         0.0,
                         1.0,
                     )
@@ -1420,6 +1514,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             self.base_predictor.build_prediction_bundle(round_detail, context.geometry_bundle),
             per_seed_stats,
             blur_sigmas=self.blur_sigmas,
+            include_exact_local_residual=self.include_exact_local_residual,
         )
         return self._predict_from_derived(round_detail, context.geometry_bundle, derived)
 
@@ -1449,8 +1544,16 @@ class QueryResidualPredictor(BaseRoundPredictor):
             self.base_predictor.build_prediction_bundle(round_detail, features),
             empty_stats,
             blur_sigmas=self.blur_sigmas,
+            include_exact_local_residual=self.include_exact_local_residual,
         )
         return self._predict_from_derived(round_detail, features, derived)
 
 
-__all__ = ["QueryResidualPredictor", "QueryResidualPredictorCheckpoint"]
+__all__ = [
+    "QUERY_RESIDUAL_V7",
+    "QUERY_RESIDUAL_V8",
+    "QUERY_RESIDUAL_V9",
+    "QUERY_RESIDUAL_V10",
+    "QueryResidualPredictor",
+    "QueryResidualPredictorCheckpoint",
+]

@@ -16,6 +16,10 @@ from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
+QUERY_RESIDUAL_V8 = "query_residual_v8"
+QUERY_RESIDUAL_V9 = "query_residual_v9"
+QUERY_RESIDUAL_V10 = "query_residual_v10"
+QUERY_RESIDUAL_V9_LOCALGATE_V001 = "query_residual_v9_locgate_v001"
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -159,6 +163,62 @@ def build_online_predictor(
             samples_per_round=samples_per_round,
             checkpoint_stem="query_residual_v7",
             model_name="query_residual_v7",
+        )
+    if normalized == QUERY_RESIDUAL_V8:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=QUERY_RESIDUAL_V8,
+            model_name=QUERY_RESIDUAL_V8,
+            fit_kwargs={
+                "cell_selection_strategy": "stratified_entropy",
+                "include_exact_local_residual": True,
+            },
+        )
+    if normalized == QUERY_RESIDUAL_V9:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=QUERY_RESIDUAL_V9,
+            model_name=QUERY_RESIDUAL_V9,
+            fit_kwargs={
+                "include_exact_local_residual": True,
+            },
+        )
+    if normalized == QUERY_RESIDUAL_V10:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=QUERY_RESIDUAL_V10,
+            model_name=QUERY_RESIDUAL_V10,
+            fit_kwargs={
+                "cell_selection_strategy": "top_heavy_stratified_entropy",
+                "include_exact_local_residual": True,
+            },
+        )
+    if normalized == QUERY_RESIDUAL_V9_LOCALGATE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=QUERY_RESIDUAL_V9_LOCALGATE_V001,
+            model_name=QUERY_RESIDUAL_V9_LOCALGATE_V001,
+            fit_kwargs={
+                "include_exact_local_residual": True,
+                "min_delta_scale": 0.0,
+                "teacher_locality_blend": True,
+            },
         )
     if normalized == SMH_RESID_LOCALGATE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

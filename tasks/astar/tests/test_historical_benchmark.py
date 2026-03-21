@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import polars as pl
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
@@ -134,6 +135,46 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
         assert round_result.samples_per_round == 2
         for seed_result in round_result.seed_results:
             assert seed_result.samples_per_round == 2
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "query_residual_v8",
+        "query_residual_v9",
+        "query_residual_v10",
+        "query_residual_v9_locgate_v001",
+    ],
+)
+def test_query_residual_variant_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+    model_name: str,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name=model_name,
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name=f"test_{model_name}_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 1
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
 
 
 def test_smh_resid_localgate_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:

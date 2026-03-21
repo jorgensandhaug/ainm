@@ -379,3 +379,102 @@
 1. Commit and push the promoted `smh_resid_z12_h0_covbase_locgate_v001 + exploration_v2` line plus supporting code/test/doc updates.
 2. Leave the large generated replay/episode cache churn unstaged unless specifically needed in a future follow-up.
 3. If continuing later, search for higher-leverage teacher-weight / gating variants rather than more policy churn, because policy is now the dominant settled gain.
+
+### 2026-03-21T09:35:00Z
+
+- Resumed after push on synced branch `agent2`; remote now matches local commit `33c0f2e`.
+- Confirmed current worktree still has only unstaged generated cache churn under:
+  - `data/artifacts/episodes/`
+  - `data/artifacts/replays/`
+  - `data/derived/replay_summaries/`
+  - partial synthetic dataset materializations
+- Inspected parallel local branch work before launching more blind benchmarks:
+  - `agent7` manifold / novelty-gated `query_residual_v8/v9` variants are already dominated by current `agent2` exploration line
+    - `agent7` full `v8 + coverage`: `73.0354`
+    - `agent7` full `v9 + coverage`: `73.4065`
+  - `agent3` exact-local-residual + entropy-stratification family remains interesting
+    - corrected full `query_residual_v8 + coverage`: `74.3226`
+    - still below current `agent2` best `74.4053`, but the mechanism directly targets the same pathological barren/static round family
+    - targeted 2-round holdout evidence from `agent3` suggests:
+      - `v8` strongly helps `f1dac9...`
+      - `v10` softens `36e581...` but gives back too much on `f1dac9...`
+- Decision:
+  - port only the minimal `agent3` mechanics needed to benchmark `query_residual_v8 + exploration_v2` in this branch
+  - skip `agent7` manifold variants for now because they are already clearly worse than the current branch champion under honest full-dev evaluation
+
+### 2026-03-21T09:49:00Z
+
+- Began the minimal `agent3` mechanic port on top of current `agent2` winner branch.
+- Patch scope:
+  - add `query_residual_v8/v9/v10` named variants to this branch
+  - add entropy-stratified cell selection for residual regression sampling
+  - add optional exact local residual channels
+  - keep current `agent2` `teacher_locality_blend` work, but fix its coverage-channel lookup so extra local channels cannot silently corrupt the gate
+  - expose the variants through online predictor dispatch, CLI model choices, and historical benchmark sample metadata
+  - add smoke coverage for the three new named variants in `tests/test_historical_benchmark.py`
+- Validation plan after patch:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py`
+  - `uv run --extra dev pytest tests/test_online_episode.py`
+  - then choose the best full benchmark candidate under `exploration_v2`
+
+### 2026-03-21T11:36:00Z
+
+- Completed the `agent3`-mechanic variant sweep under the promoted `exploration_v2` policy:
+  - hard 3-round screen (`36e581`, `8e839`, `f1dac9`):
+    - `smh_resid_z12_h0_covbase_locgate_v001`: `61.9581 / 0.164532`
+    - `query_residual_v8`: `62.3290 / 0.162720`
+    - `query_residual_v10`: `62.8964 / 0.159491`
+  - interpretation:
+    - `v10` clearly won the targeted screen by improving both `8e839...` and `f1dac9...`, with only a modest giveback on `36e581...`
+- Full 8-round leave-one-round-out follow-up results:
+  - `query_residual_v10 + exploration_v2`:
+    - `74.3810 / 0.101476`
+    - better weighted KL than current winner, but lower score because it gave back too much on easier rounds (`ae78003a`, `76909e29`, `71451d74`)
+  - `query_residual_v9 + exploration_v2`:
+    - `74.4773 / 0.101601`
+    - new best score in this checkout so far
+    - beats prior promoted `smh` line by `+0.0720` score and `-0.000380` weighted KL
+- New follow-up decision:
+  - expose and test one final stacked variant `query_residual_v9_locgate_v001`
+  - rationale:
+    - local teacher gating was already a small positive on top of `v7`
+    - the channel-index bug that would have broken this on exact-local-residual variants is now fixed
+    - this is the last obvious non-redundant combination before stopping the sweep
+
+### 2026-03-21T12:04:00Z
+
+- Validation after exposing `query_residual_v9_locgate_v001`:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `10 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` -> `1 passed`
+- Final full 8-round leave-one-round-out result for the stacked variant:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_locgate_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.4815`
+    - mean weighted KL: `0.101584`
+    - runtime: `1631.958s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321/result.json`
+- Comparison vs prior best `query_residual_v9 + exploration_v2`:
+  - score delta: `+0.004244`
+  - weighted KL delta: `-0.000016549`
+  - runtime delta: `+42.458s`
+  - only round `8e839974-b13b-407b-a5e7-fc749d877195` changed:
+    - score delta: `+0.033953`
+    - weighted KL delta: `-0.000132395`
+- Comparison vs previous promoted branch winner `smh_resid_z12_h0_covbase_locgate_v001 + exploration_v2`:
+  - score delta: `+0.076235`
+  - weighted KL delta: `-0.000397168`
+- Sweep conclusion for this turn:
+  - `query_residual_v8` helped the hard screen but did not earn a full promotion
+  - `query_residual_v10` improved weighted KL materially, but lost too much score on easier rounds
+  - `query_residual_v9` was the major win
+  - `query_residual_v9_locgate_v001` added the final small but real refinement on top
+
+## Current Best Known Local Line
+
+- Current best full local historical-online result in this checkout:
+  - experiment: `agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321`
+  - model: `query_residual_v9_locgate_v001`
+  - policy: `exploration_v2`
+  - mean score: `74.4815`
+  - mean weighted KL: `0.101584`
