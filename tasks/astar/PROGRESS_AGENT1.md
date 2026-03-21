@@ -1101,3 +1101,30 @@
     - session `80608`
   - rationale:
     - isolates model improvement from policy-specific posterior-blend gains
+- parallel policy branch implemented while `v7` runs:
+  - new direct posterior-information policy:
+    - `regime_probe_information_v1`
+  - files:
+    - `src/astar/policy/regime_probe.py`
+    - `src/astar/policy/interactive.py`
+    - `tests/test_exploration_policy.py`
+    - `tests/test_historical_benchmark.py`
+  - design:
+    - score candidate windows directly by posterior mutual-information proxy mass
+      derived from per-cell Jensen-Shannon / disagreement under current particles
+    - use only small motif/neighbor tie-breakers
+    - keep a separate repeat rule rather than the older additive/blend heuristic
+  - focused validation:
+    - `python3 -m compileall src/astar/policy/regime_probe.py src/astar/policy/interactive.py tests/test_exploration_policy.py tests/test_historical_benchmark.py`
+    - `uv run --with pytest python -m pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+    - result: `26 passed in 126.27s`
+- machine check before adding more top-level runs:
+  - `13:41 UTC`: load about `60.3 / 63.8 / 65.6`
+  - memory free about `873 GiB`
+  - decision:
+    - add `2` targeted proxy jobs only; do not widen further until first `v7` or policy result lands
+- launched information-policy proxy runs:
+  - `proxy5_hazard_v4_k5_r3_l32_m70_regime_probe_information_seed0to1`
+    - session `37158`
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_information_seed0to1`
+    - session `47026`

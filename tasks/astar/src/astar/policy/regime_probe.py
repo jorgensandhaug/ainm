@@ -119,6 +119,17 @@ def _viewport_peak(viewport: Viewport, value_map: np.ndarray) -> float:
     return float(np.max(window)) if window.size else 0.0
 
 
+def _viewport_sum(viewport: Viewport, value_map: np.ndarray) -> float:
+    window = np.asarray(
+        value_map[
+            viewport.y : viewport.y + viewport.h,
+            viewport.x : viewport.x + viewport.w,
+        ],
+        dtype=np.float64,
+    )
+    return float(np.sum(window)) if window.size else 0.0
+
+
 def _neighbor_bonus(
     viewport: Viewport,
     observations: list[LiveQueryObs],
@@ -609,4 +620,137 @@ class PosteriorBlendPolicy(PosteriorDisagreementPolicy):
         )
 
 
-__all__ = ["PosteriorBlendPolicy", "PosteriorDisagreementPolicy", "RegimeProbePolicy"]
+class PosteriorInformationPolicy(PosteriorDisagreementPolicy):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = "regime_probe_information_v1"
+    expand_information_weight: float = Field(default=1.0, ge=0.0)
+    expand_entropy_weight: float = Field(default=0.2, ge=0.0)
+    expand_motif_weight: float = Field(default=0.15, ge=0.0)
+    expand_neighbor_weight: float = Field(default=0.15, ge=0.0)
+    repeat_information_weight: float = Field(default=1.1, ge=0.0)
+    repeat_signal_weight: float = Field(default=0.4, ge=0.0)
+    repeat_decay_penalty: float = Field(default=0.8, gt=0.0)
+
+    def select(
+        self,
+        belief: TranscriptBeliefState,
+        budget_left: int,
+    ) -> ViewportQuery | None:
+        if budget_left <= 0:
+            return None
+
+        round_detail = belief.round_context.to_round_detail()
+        map_shape = MapShape(width=round_detail.map_width, height=round_detail.map_height)
+        viewports = tile_viewports(
+            map_shape,
+            TileSpec(width=self.viewport_w, height=self.viewport_h),
+        )
+        motif_rankings = {
+            seed_index: rank_seed_viewports(
+                round_detail,
+                seed_index,
+                viewports,
+                scorer=self.motif_scorer,
+            )
+            for seed_index in range(round_detail.seeds_count)
+        }
+        motif_scores: dict[tuple[int, int, int, int, int], float] = {}
+        for seed_index, ranked in motif_rankings.items():
+            denom = max(ranked[0].diagnostic_score, 1e-6) if ranked else 1.0
+            for item in ranked:
+                motif_scores[_viewport_key(seed_index, item.viewport)] = (
+                    float(item.diagnostic_score) / denom
+                )
+
+        observations_by_key: dict[tuple[int, int, int, int, int], list[LiveQueryObs]] = defaultdict(list)
+        observations_by_seed: dict[int, list[LiveQueryObs]] = defaultdict(list)
+        seed_query_counts = {seed_index: 0 for seed_index in range(round_detail.seeds_count)}
+        for observation in belief.observations:
+            observations_by_key[_viewport_key(observation.seed_index, observation.viewport)].append(observation)
+            observations_by_seed[observation.seed_index].append(observation)
+            seed_query_counts[observation.seed_index] += 1
+
+        min_seed_queries = min(seed_query_counts.values(), default=0)
+        candidate_seeds = {
+            seed_index
+            for seed_index, count in seed_query_counts.items()
+            if count == min_seed_queries
+        }
+        posterior_maps = self._posterior_maps(belief, candidate_seeds)
+        if not posterior_maps:
+            return super().select(belief, budget_left)
+
+        scored: list[tuple[float, int, int, int, int, int, str]] = []
+        for seed_index in range(round_detail.seeds_count):
+            if seed_index not in candidate_seeds:
+                continue
+            disagreement_map, predictive_entropy_map = posterior_maps[seed_index]
+            for viewport in viewports:
+                key = _viewport_key(seed_index, viewport)
+                repeat_count = len(observations_by_key.get(key, ()))
+                if repeat_count >= self.max_repeats_per_window:
+                    continue
+
+                motif_score = motif_scores.get(key, 0.0)
+                information_mass = _viewport_sum(viewport, disagreement_map)
+                entropy_mass = _viewport_sum(viewport, predictive_entropy_map)
+                neighbor_score = _neighbor_bonus(
+                    viewport,
+                    observations_by_seed.get(seed_index, []),
+                    map_width=round_detail.map_width,
+                    map_height=round_detail.map_height,
+                )
+                if repeat_count == 0:
+                    score = (
+                        self.expand_information_weight * information_mass
+                        + self.expand_entropy_weight * entropy_mass
+                        + self.expand_motif_weight * motif_score
+                        + self.expand_neighbor_weight * neighbor_score
+                    )
+                    tag = "regime_probe_information_expand"
+                else:
+                    repeat_signal = _window_repeat_signal(observations_by_key[key])
+                    score = (
+                        self.repeat_information_weight
+                        * information_mass
+                        / (1.0 + self.repeat_decay_penalty * float(repeat_count - 1))
+                        + self.repeat_signal_weight * repeat_signal
+                        + 0.05 * motif_score
+                    )
+                    tag = "regime_probe_information_repeat"
+                scored.append(
+                    (
+                        -score,
+                        repeat_count,
+                        seed_index,
+                        viewport.y,
+                        viewport.x,
+                        viewport.w * viewport.h,
+                        tag,
+                    ),
+                )
+
+        if not scored:
+            return None
+
+        best = min(scored)
+        _, _, seed_index, y, x, area, tag = best
+        viewport = next(
+            item
+            for item in viewports
+            if item.x == x and item.y == y and item.w * item.h == area
+        )
+        return ViewportQuery(
+            seed_index=seed_index,
+            viewport=viewport,
+            rationale=tag,
+        )
+
+
+__all__ = [
+    "PosteriorBlendPolicy",
+    "PosteriorDisagreementPolicy",
+    "PosteriorInformationPolicy",
+    "RegimeProbePolicy",
+]

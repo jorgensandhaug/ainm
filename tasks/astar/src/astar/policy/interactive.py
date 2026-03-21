@@ -8,6 +8,7 @@ from astar.observe.query_plan import QueryPlanItem
 from astar.policy.regime_probe import (
     PosteriorBlendPolicy,
     PosteriorDisagreementPolicy,
+    PosteriorInformationPolicy,
     RegimeProbePolicy,
 )
 from astar.policy.query_plan import QueryPlanPolicy
@@ -58,6 +59,8 @@ def build_interactive_policy(
         return PosteriorDisagreementPolicy(predictor=predictor)
     if normalized in {"regime_probe_posterior_blend", "regime_probe_posterior_blend_v1"}:
         return PosteriorBlendPolicy(predictor=predictor)
+    if normalized in {"regime_probe_information", "regime_probe_information_v1"}:
+        return PosteriorInformationPolicy(predictor=predictor)
     policy = build_named_policy(policy_name)
     return QueryPlanPolicyAdapter(policy=policy, name=policy.name)
 

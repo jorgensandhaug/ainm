@@ -480,6 +480,37 @@ def test_hazard_posterior_v4_regime_probe_posterior_blend_online_historical_benc
             assert "hazard_posterior_v4" in seed_result.model_name
 
 
+def test_hazard_posterior_v4_regime_probe_information_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="hazard_posterior_v4",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="regime_probe_information",
+        samples_per_round=2,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_hazard_posterior_v4_regime_probe_information_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "regime_probe_information_v1"
+    assert result.samples_per_round == 2
+    assert result.evaluated_seed_count == 2
+    for round_result in result.rounds:
+        for seed_result in round_result.seed_results:
+            assert "hazard_posterior_v4" in seed_result.model_name
+
+
 def test_hazard_posterior_v5_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
