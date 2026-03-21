@@ -361,6 +361,109 @@ Framework should accept unique query-residual family variant names directly so b
   - promote query-residual default policy from `exploration_v2` to `exploration_r3`
   - rerun touched tests
   - commit only intended code/tests + benchmark/comparison artifacts + progress log
+
+### 2026-03-21T06:25Z approx
+
+- Re-opened state after push:
+  - branch `agent7`
+  - head `388bcdf77ebb78d5590fa81e4e6e11881bcf692c`
+  - `br` still unavailable
+  - same unstaged replay/summary noise still present locally; still not to be committed unless intentionally selected
+- New search conclusion:
+  - repeat-budget search is exhausted enough for now
+  - next unexplored policy axis is repeat selection, not repeat count
+- Concrete structure gap in current policy:
+  - `exploration_r3` still draws from `top-1 viewport per seed`, then takes global top-3 from only those 5 candidates
+  - this hard-limits repeat allocation and forbids selecting a second/third strong viewport from the same seed even when global motif ranking says it should
+- Preliminary inspection on sensitive rounds:
+  - `global_top3` differs materially from current `per_seed_best_top3`, especially on rounds 3/7/8
+  - entropy-biased motif scoring also changes selected repeats on some rounds, especially round 8
+- Next implementation:
+  - extend policy to support candidate-pool mode:
+    - current `per_seed_best`
+    - new `global_top`
+  - add entropy-biased scorer preset
+  - benchmark at fixed budget `3` only, since that budget is current local winner
+  - use a stricter policy-sensitive probe next, likely including round 7 in addition to 3/6/8
+
+### 2026-03-21T06:40Z approx
+
+- Implemented next policy axis in [`src/astar/policy/coverage.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/coverage.py)
+  - new `selection_mode`
+    - `per_seed_best` = current behavior
+    - `global_top` = allow repeat allocation to reuse the same seed if its second/third viewport outrank other seeds globally
+- Extended registry in [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py)
+  - `exploration_r3_global`
+  - `exploration_r3_entropy`
+  - `exploration_r3_global_entropy`
+- Added coverage in [`tests/test_exploration_policy.py`](/home/jorge/agent7/tasks/astar/tests/test_exploration_policy.py)
+  - named policy field expectations
+  - synthetic `RoundDetail` behavior test proving `global_top` can spend both repeats on the same seed while `per_seed_best` cannot
+- Validation:
+  - `uv run --extra dev pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - passed: `20`
+- Validation improvement for next search:
+  - old probe `{3,6,8}` was useful for budget search
+  - new stricter probe should be `{3,6,7,8}` because latest full-dev diff showed round 7 also moves under policy changes
+  - this is a better filter for repeat-selection variants, not a looser one
+- Next runs:
+  - baseline `exploration_r3` on strict 4-round probe
+  - then compare `exploration_r3_global` and `exploration_r3_entropy`
+
+### 2026-03-21T07:35Z approx
+
+- Ran stricter policy-sensitive 4-round probe on:
+  - round 7 `36e581f1-73f8-453f-ab98-cbe3052b701b`
+  - round 3 `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - round 6 `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - round 8 `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Baseline current champ on this probe:
+  - [`exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_r3r6r7r8/result.json)
+  - mean score `62.7780`
+  - mean weighted KL `0.157689`
+- Candidate results:
+  - [`exploration_r3_global`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_global_r3r6r7r8/result.json)
+    - mean score `63.2365`
+    - mean weighted KL `0.155097`
+    - paired vs baseline: [`+0.4585`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_r3_global__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v7__run_pair=0c9b3ff25da8.json)
+    - CI95 `[-0.0482, 0.9480]`
+  - [`exploration_r3_entropy`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_entropy_r3r6r7r8/result.json)
+    - mean score `62.8628`
+    - mean weighted KL `0.157146`
+    - paired vs baseline: [`+0.0848`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_r3_entropy__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v7__run_pair=00e0ab60a0f3.json)
+    - weak / likely noise
+  - [`exploration_r3_global_entropy`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_global_entropy_r3r6r7r8/result.json)
+    - mean score `63.2204`
+    - mean weighted KL `0.155110`
+    - paired vs baseline: [`+0.4423`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_r3_global_entropy__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v7__run_pair=697219c4df34.json)
+    - essentially tied with global-only; head-to-head vs global: [`-0.0162`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3_global__candidate_policy=exploration_r3_global_entropy__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v7__run_pair=2b8cee7b9b98.json)
+- Interpretation:
+  - allowing global reuse of repeat slots looks directionally useful
+  - entropy reweighting adds little or nothing on top
+  - best next spend is full 8-round dev on `exploration_r3_global`
+
+### 2026-03-21T08:10Z approx
+
+- Full 8-round dev benchmark for [`exploration_r3_global`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration_r3_global/result.json):
+  - mean score `74.4170`
+  - mean weighted KL `0.102205`
+- Current champ remained:
+  - [`exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration_r3/result.json)
+  - mean score `74.6063`
+  - mean weighted KL `0.100831`
+- Full-dev paired compare:
+  - [`exploration_r3` -> `exploration_r3_global`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=exploration_r3__candidate_policy=exploration_r3_global__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v7__run_pair=ad3ff7312c0a.json)
+  - mean score delta `-0.1893`
+  - mean weighted KL delta `+0.001374`
+  - CI95 `[-0.5726, 0.1364]`
+- Why probe misled:
+  - `exploration_r3_global` improved rounds 7 and 6
+  - but collapsed round 3 enough on full dev (`56.7567 -> 53.7782`) to erase the probe gain
+  - round 8 stayed essentially flat on full dev, so the hoped-for compensation did not materialize
+- Current conclusion for this branch:
+  - `global_top` repeat reuse is a useful probe-time idea but not promotable as the default live/deploy policy
+  - entropy reweighting also not promotable
+  - keep `query_residual` default on `exploration_r3`
 - Validation:
   - `uv run --extra dev python -c "from astar.student.predictor.query_residual import QueryResidualPredictor; print(QueryResidualPredictor.__name__)"`
   - passed

@@ -3,9 +3,25 @@ from __future__ import annotations
 from astar.policy.coverage import CoverageThenReplicatePolicy
 from astar.policy.query_plan import QueryPlanPolicy
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
+from astar.features.motifs import ViewportMotifScorer
 
 DEFAULT_POLICY_NAME = "coverage"
 QUERY_RESIDUAL_DEFAULT_POLICY_NAME = "exploration_r3"
+
+
+def _entropy_bias_scorer() -> ViewportMotifScorer:
+    return ViewportMotifScorer(
+        settlement_weight=3.0,
+        settlement_pair_weight=1.5,
+        port_weight=1.0,
+        coastal_settlement_weight=1.0,
+        coastline_weight=3.0,
+        terrain_entropy_weight=5.0,
+        edge_density_weight=5.0,
+        forest_weight=0.5,
+        mountain_weight=0.5,
+        ocean_penalty_weight=1.0,
+    )
 
 
 def default_policy_name_for_model(model_name: str | None = None) -> str:
@@ -58,6 +74,28 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             name="exploration_r3",
             replicate_budget=3,
             probe_first=True,
+        )
+    if normalized == "exploration_r3_global":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_global",
+            replicate_budget=3,
+            probe_first=True,
+            selection_mode="global_top",
+        )
+    if normalized == "exploration_r3_entropy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_entropy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=_entropy_bias_scorer(),
+        )
+    if normalized == "exploration_r3_global_entropy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_global_entropy",
+            replicate_budget=3,
+            probe_first=True,
+            selection_mode="global_top",
+            motif_scorer=_entropy_bias_scorer(),
         )
     if normalized in {"exploration_r4", "exploration_v2_r4"}:
         return CoverageThenReplicatePolicy(
