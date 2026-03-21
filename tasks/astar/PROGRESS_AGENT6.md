@@ -4133,8 +4133,17 @@
   - `f1_hazard_posterior_v2_k5_r5_v01`: score `73.0480`, KL `0.107014`
   - `f1_hazard_posterior_v2_k3_r3_v01`: score `72.7596`, KL `0.108442`
 - **BEATS baseline query_residual (72.55) AND supportx_v01 (72.92) on probe3!**
-- Dev5 benchmark running for robustness confirmation
-- Next: iterate on this family with hyperparameter sweeps and dev5 validation
+- Dev5 result: score **77.3918**, KL `0.086344`
+  - **+1.16 above supportx_v01 on dev5 (76.23)**
+  - **+1.42 above baseline query_residual on dev5 (75.97)**
+  - This is a robust, significant improvement across both smoke and dev5
+- Variant sweep:
+  - k5_r3_m50 (more kNN weight): 72.94 on probe3 (slightly worse)
+  - k5_r3_l16 (lower ridge): 73.01 on probe3 (slightly worse)
+  - k5_r5 (higher rank): 73.05 on probe3 (identical to r3 - likely degenerate on smoke)
+  - k3_r3 (fewer neighbors): 72.76 on probe3 (worse)
+- Best configuration: k5_r3 with ridge_alpha=32, predicted_particle_weight=0.7
+- Next: more hyperparameter sweeps, dev5 for best variants, full-tier validation
 
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
