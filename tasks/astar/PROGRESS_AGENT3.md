@@ -2059,6 +2059,26 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_teacher_student.py::test_summary_bank_exact_local_evidence_posterior_uses_observed_counts tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip tests/test_historical_benchmark.py::test_teacher_student_blend_v24_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+223. Machine-wide health before blurred-local gate launch:
+   - snapshot:
+     - memory used: about `951 GiB`
+     - memory available: about `2.0 TiB`
+   - despite other-agent heavy sweeps, this left enough headroom for two more outer runs
+   - decision:
+     - launch only `v23` and `v24`
+     - keep `jobs=1`
+224. Fourth corrected-holdout outer wave launched:
+   - file-backed launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - models:
+     - `teacher_student_blend_v23`
+     - `teacher_student_blend_v24`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launch policy:
+     - `jobs=1` inside each model
+     - outer model parallelism only
 
 
 ## Open Questions
