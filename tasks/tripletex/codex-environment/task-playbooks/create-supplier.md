@@ -37,6 +37,7 @@ Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr/p
 - production 2026-03-21: English prompt `Oakwood Ltd` / `887507295` — 1 POST with mirrored email, 0 errors; 9th run on this standard path
 - production 2026-03-21: Norwegian prompt `Tindra AS` / `888286195` — 1 POST with mirrored email, 0 errors; 10th run on this standard path
 - production 2026-03-21: French prompt `Colline SARL` / `915612865` — 1 POST with mirrored email, 0 errors; 11th run on this standard path
+- production 2026-03-21: Portuguese prompt `Luz do Sol Lda` / `962006930` — 1 POST with mirrored email, 0 errors; 12th run on this standard path
 
 ## Minimal Flow
 
