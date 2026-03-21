@@ -1932,3 +1932,88 @@ Framework should accept unique query-residual family variant names directly so b
   - current fifth-family champ = `ffam_mode_v17`, `samples_per_round=2`
   - current overall local champ = `ffam_mode_v17`, `samples_per_round=2`, policy `exploration_r3`
   - promoted family alias `ffam_mode -> ffam_mode_v17` in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py)
+
+### 2026-03-21T11:55Z approx
+
+- Continued immediately after `v17` promotion; no pause on fifth-family search.
+- Re-checked machine health and other runs before allocating more work:
+  - load climbed to about `91.68 / 81.43 / 63.15`
+  - free memory still about `645 GiB`
+  - many other agents are saturating CPU with multi-process benchmark sweeps
+- Decision:
+  - keep local parallelism moderate
+  - use 4 concurrent probes, not a larger sweep
+- New hypothesis:
+  - `summary_input` alone is strong, but it likely leaves score on the table by discarding the existing motif/regime derived transcript features
+  - best posterior may be a fused transcript representation:
+    - `summary_v3`
+    - plus existing regime-input vector
+- Implemented new posterior input family in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - new `posterior_input_source = "combined_input"`
+  - posterior input = `summary_input || regime_input`
+  - evidence-only path still uses the existing regime-linear fallback posterior
+- Added new combined-input variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v21`
+  - `ffam_mode_v22`
+  - `ffam_mode_v23`
+  - `ffam_mode_v24`
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v21..v24`
+  - added checkpoint roundtrip for `v21`
+- Next:
+  - validate
+  - run 4 hard-gate probes for `v21..v24`
+
+### 2026-03-21T12:25Z approx
+
+- Validation for combined-input branch:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `77`
+- Hard-gate results for new combined-input family, policy `exploration_r3`, `samples_per_round=2`, rounds `{7,3,6,8}`:
+  - [`ffam_mode_v21`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v21_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `59.0466`
+    - mean weighted KL `0.188892`
+  - [`ffam_mode_v22`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v22_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `59.0510`
+    - mean weighted KL `0.188867`
+  - [`ffam_mode_v23`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v23_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `58.6675`
+    - mean weighted KL `0.190911`
+  - [`ffam_mode_v24`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v24_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `59.0455`
+    - mean weighted KL `0.188898`
+- Interpretation:
+  - concatenating `summary_v3 || regime_input` is not helping
+  - all combined-input variants are materially worse than summary-only `v17` hard-gate `62.3382`
+  - `cluster_count=3` does not rescue the branch
+  - current conclusion:
+    - summary-only posterior is better than combined summary+motif posterior in this family
+
+### 2026-03-21T12:35Z approx
+
+- Since combined-input failed, spent additional budget only on the current champ line `ffam_mode_v17`.
+- Full 8-round dev policy/sample sweep results:
+  - [`ffam_mode_v17`, `exploration_r4`, `samples_per_round=2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r4_s2/result.json)
+    - mean score `75.5060`
+    - mean weighted KL `0.095974`
+    - clearly worse than `exploration_r3`
+  - [`ffam_mode_v17`, `exploration_r3`, `samples_per_round=4`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s4/result.json)
+    - mean score `76.0551`
+    - mean weighted KL `0.093361`
+  - [`ffam_mode_v17`, `exploration_r3`, `samples_per_round=6`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s6/result.json)
+    - mean score `76.0324`
+    - mean weighted KL `0.093342`
+  - [`ffam_mode_v17`, `exploration_r3`, `samples_per_round=8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v17_exploration_r3_s8/result.json)
+    - mean score `76.0589`
+    - mean weighted KL `0.093184`
+- Interpretation:
+  - `exploration_r3` remains the right policy for `v17`
+  - more synthetic transcript samples do not beat the current champ
+  - best sample-count setting remains `samples_per_round=2`
+  - score curve is very flat above `2`, with all `s4/s6/s8` slightly below the `s2` champ `76.0892`
+- Current best remains:
+  - `ffam_mode_v17`
+  - policy `exploration_r3`
+  - `samples_per_round=2`
+  - mean score `76.0892`
+  - mean weighted KL `0.093167`

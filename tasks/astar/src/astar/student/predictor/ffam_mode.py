@@ -65,6 +65,10 @@ def _posterior_input_names(
 ) -> list[str]:
     if posterior_input_source == "summary_input":
         return _summary_input_names(seed_count=seed_count, variant=posterior_summary_variant)
+    if posterior_input_source == "combined_input":
+        return _summary_input_names(seed_count=seed_count, variant=posterior_summary_variant) + _regime_input_names(
+            regime_input_variant,
+        )
     return _regime_input_names(regime_input_variant)
 
 
@@ -91,6 +95,25 @@ def _posterior_input_vector_from_state(
                 for initial_state in round_detail.initial_states
             ),
         )
+    if posterior_input_source == "combined_input":
+        if observations is None:
+            return None
+        summary_vector = _summary_vector_from_observations(
+            tuple(observations),
+            seed_count=round_detail.seeds_count,
+            map_width=round_detail.map_width,
+            map_height=round_detail.map_height,
+            variant=posterior_summary_variant,
+            initial_grids=tuple(
+                np.asarray(initial_state.grid, dtype=np.int64)
+                for initial_state in round_detail.initial_states
+            ),
+        )
+        regime_vector = _regime_input_vector(
+            derived,
+            variant=regime_input_variant,
+        )
+        return np.concatenate([summary_vector, regime_vector], axis=0).astype(np.float64)
     return _regime_input_vector(
         derived,
         variant=regime_input_variant,

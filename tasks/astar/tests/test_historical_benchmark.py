@@ -142,6 +142,10 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_mode_v18",
         "ffam_mode_v19",
         "ffam_mode_v20",
+        "ffam_mode_v21",
+        "ffam_mode_v22",
+        "ffam_mode_v23",
+        "ffam_mode_v24",
         "ffam_operator_v1",
         "ffam_operator_v2",
         "ffam_operator_v3",
@@ -659,3 +663,27 @@ def test_ffam_mode_v17_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: P
     assert loaded.posterior_input_source == "summary_input"
     assert loaded.posterior_summary_variant == "v3"
     assert loaded.posterior_fallback_weights.shape == predictor.posterior_fallback_weights.shape
+
+
+def test_ffam_mode_v21_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMModePredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_mode_v21",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_mode_v21" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMModePredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_mode_v21"
+    assert loaded.posterior_input_source == "combined_input"
+    assert loaded.posterior_summary_variant == "v3"
+    assert loaded.posterior_input_names == predictor.posterior_input_names
