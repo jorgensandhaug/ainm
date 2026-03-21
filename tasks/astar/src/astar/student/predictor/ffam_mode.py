@@ -647,6 +647,7 @@ class FFAMModePredictorCheckpoint(BaseModel):
     include_interactions: bool = False
     operator_target: str = "logit_delta"
     entropy_weight_power: float = Field(default=1.0, ge=0.0)
+    spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -702,6 +703,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     include_interactions: bool = False
     operator_target: str = "logit_delta"
     entropy_weight_power: float = Field(default=1.0, ge=0.0)
+    spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -1098,6 +1100,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             include_interactions=config.include_interactions,
             operator_target=config.operator_target,
             entropy_weight_power=config.entropy_weight_power,
+            spatial_smooth_sigma=config.spatial_smooth_sigma,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_input_source=config.posterior_input_source,
@@ -1888,6 +1891,15 @@ class FFAMModePredictor(BaseRoundPredictor):
                 prediction = softmax_logits(_safe_log_probs(prediction, self.probability_floor) / self.temperature)
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
+            if self.spatial_smooth_sigma > 0:
+                from scipy.ndimage import gaussian_filter
+                smoothed = np.stack([
+                    gaussian_filter(prediction[..., c], sigma=self.spatial_smooth_sigma)
+                    for c in range(prediction.shape[-1])
+                ], axis=-1)
+                smoothed = np.clip(smoothed, self.probability_floor, 1.0)
+                smoothed = smoothed / np.sum(smoothed, axis=-1, keepdims=True)
+                prediction = smoothed
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
         return PredictionBundle(
             round_id=round_detail.id,
