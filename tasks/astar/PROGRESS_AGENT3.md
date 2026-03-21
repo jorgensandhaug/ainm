@@ -2079,6 +2079,27 @@
    - launch policy:
      - `jobs=1` inside each model
      - outer model parallelism only
+225. Iteration-speed hypothesis after item 224:
+   - `teacher_student_blend` still refit the same base prior and hazard teacher once per model variant
+   - that wastes compute because those components depend only on the training round scope, not on the student head variant
+   - goal:
+     - share base-prior and hazard-teacher checkpoints across variants with the same round scope
+226. Implemented shared-cache refactor for summary-bank variants:
+   - shared checkpoint names now key only on training round scope for:
+     - base prior
+     - hazard teacher
+   - model-specific checkpoints now only own the student state
+227. Bug exposed and fixed during item 226:
+   - `HazardTeacher.load_checkpoint()` previously discarded `coefficient_bank`
+   - that was harmless for online prediction but broke reusing a saved teacher for fitting coefficient-head students
+   - fixed by persisting and restoring:
+     - `regime_bank`
+     - `coefficient_bank`
+228. Validation for items 226-227:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip tests/test_historical_benchmark.py::test_teacher_student_blend_v24_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions

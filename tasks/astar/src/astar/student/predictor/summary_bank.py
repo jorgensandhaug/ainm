@@ -568,6 +568,20 @@ def _cached_model_name(
     )
 
 
+def _cached_shared_base_prior_name(
+    *,
+    round_ids: Sequence[str],
+) -> str:
+    return f"summary_bank_base_prior__rounds={_round_scope_token(round_ids)}"
+
+
+def _cached_shared_hazard_teacher_name(
+    *,
+    round_ids: Sequence[str],
+) -> str:
+    return f"summary_bank_hazard_teacher__rounds={_round_scope_token(round_ids)}"
+
+
 def _apply_exact_local_evidence_posterior(
     prediction: np.ndarray,
     seed_evidence: object,
@@ -898,7 +912,18 @@ def load_or_fit_named_summary_bank_predictor(
         ),
     )
     checkpoint_path = checkpoint_dir / "summary_bank_student.json"
-    base_checkpoint_path = checkpoint_dir / "base_prior.json"
+    base_checkpoint_path = (
+        paths.model_dir(
+            _cached_shared_base_prior_name(round_ids=selected_round_ids),
+        )
+        / "base_prior.json"
+    )
+    teacher_checkpoint_path = (
+        paths.model_dir(
+            _cached_shared_hazard_teacher_name(round_ids=selected_round_ids),
+        )
+        / "hazard_teacher.json"
+    )
     if checkpoint_path.exists() and base_checkpoint_path.exists():
         return SummaryBankRoundPredictor(
             name=spec.model_name,
@@ -917,20 +942,30 @@ def load_or_fit_named_summary_bank_predictor(
             local_blur_strength=spec.local_blur_strength,
         )
 
-    base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
-        paths,
-        round_ids=list(selected_round_ids),
-    )
-    replay_episodes = [
-        build_round_episode(paths, round_id)
-        for round_id in selected_round_ids
-    ]
-    teacher = HazardTeacher(name=f"{spec.model_name}_teacher").fit(
-        [episode for episode in replay_episodes if episode.replay_run_count > 0],
-    )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    base_predictor.save_checkpoint(base_checkpoint_path)
-    teacher_checkpoint_path = teacher.save_checkpoint(checkpoint_dir / "hazard_teacher.json")
+    base_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    teacher_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    if base_checkpoint_path.exists():
+        base_predictor = HistoricalBucketPriorPredictor.load_checkpoint(base_checkpoint_path)
+    else:
+        base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(selected_round_ids),
+        )
+        base_predictor.save_checkpoint(base_checkpoint_path)
+    if teacher_checkpoint_path.exists():
+        teacher = HazardTeacher.load_checkpoint(teacher_checkpoint_path)
+    else:
+        replay_episodes = [
+            build_round_episode(paths, round_id)
+            for round_id in selected_round_ids
+        ]
+        teacher = HazardTeacher(
+            name=_cached_shared_hazard_teacher_name(round_ids=selected_round_ids),
+        ).fit(
+            [episode for episode in replay_episodes if episode.replay_run_count > 0],
+        )
+        teacher.save_checkpoint(teacher_checkpoint_path)
     dataset = _load_or_build_synthetic_dataset(
         paths,
         policy_name=policy_name,

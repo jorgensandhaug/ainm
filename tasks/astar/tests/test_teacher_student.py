@@ -16,6 +16,7 @@ from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
 from tests.conftest import ROUND_ID
+from tests.test_historical_benchmark import _write_sample_analysis
 from tests.test_history_datasets import _write_replays_for_all_seeds
 
 
@@ -520,3 +521,42 @@ def test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells()
     assert np.allclose(updated[1, 1], prediction[1, 1])
     assert updated[1, 2, 2] > prediction[1, 2, 2]
     assert np.allclose(updated.sum(axis=-1), 1.0)
+
+
+def test_summary_bank_variants_share_base_prior_and_teacher_cache(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+
+    from astar.student.predictor.summary_bank import (
+        _cached_shared_base_prior_name,
+        _cached_shared_hazard_teacher_name,
+        load_or_fit_named_summary_bank_predictor,
+    )
+
+    predictor_a = load_or_fit_named_summary_bank_predictor(
+        sample_paths,
+        model_name="teacher_student_blend_v21",
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+    )
+    predictor_b = load_or_fit_named_summary_bank_predictor(
+        sample_paths,
+        model_name="teacher_student_blend_v23",
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+    )
+
+    shared_base_path = (
+        sample_paths.model_dir(_cached_shared_base_prior_name(round_ids=[ROUND_ID])) / "base_prior.json"
+    )
+    shared_teacher_path = (
+        sample_paths.model_dir(_cached_shared_hazard_teacher_name(round_ids=[ROUND_ID]))
+        / "hazard_teacher.json"
+    )
+
+    assert shared_base_path.exists()
+    assert shared_teacher_path.exists()
+    assert predictor_a.base_predictor.analyzed_seed_count == predictor_b.base_predictor.analyzed_seed_count
+    assert predictor_b.student.teacher.name == _cached_shared_hazard_teacher_name(round_ids=[ROUND_ID])

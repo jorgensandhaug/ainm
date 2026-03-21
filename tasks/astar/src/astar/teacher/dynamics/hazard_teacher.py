@@ -55,6 +55,8 @@ class HazardTeacherCheckpoint(BaseModel):
     coefficient_dim: int = Field(ge=1)
     regime_intercept: list[float]
     regime_weights: list[list[float]]
+    regime_bank: list[list[float]] = Field(default_factory=list)
+    coefficient_bank: list[list[float]] = Field(default_factory=list)
 
 
 class HazardTeacher(BaseModel):
@@ -124,6 +126,8 @@ class HazardTeacher(BaseModel):
             coefficient_dim=int(self.regime_intercept.shape[0]),
             regime_intercept=self.regime_intercept.tolist(),
             regime_weights=self.regime_weights.tolist(),
+            regime_bank=self.regime_bank.tolist(),
+            coefficient_bank=self.coefficient_bank.tolist(),
         )
 
     def save_checkpoint(self, path: Path) -> Path:
@@ -138,13 +142,23 @@ class HazardTeacher(BaseModel):
         regime_weights = np.asarray(checkpoint.regime_weights, dtype=np.float64)
         regime_dim = int(checkpoint.regime_dim)
         coefficient_dim = int(checkpoint.coefficient_dim)
+        regime_bank = (
+            np.asarray(checkpoint.regime_bank, dtype=np.float64)
+            if checkpoint.regime_bank
+            else np.zeros((0, regime_dim), dtype=np.float64)
+        )
+        coefficient_bank = (
+            np.asarray(checkpoint.coefficient_bank, dtype=np.float64)
+            if checkpoint.coefficient_bank
+            else np.zeros((0, coefficient_dim), dtype=np.float64)
+        )
         return cls(
             name=checkpoint.name,
             feature_names=list(checkpoint.feature_names),
             round_ids=tuple(checkpoint.round_ids),
             round_numbers=tuple(checkpoint.round_numbers),
-            regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
-            coefficient_bank=np.zeros((0, coefficient_dim), dtype=np.float64),
+            regime_bank=regime_bank,
+            coefficient_bank=coefficient_bank,
             regime_intercept=regime_intercept,
             regime_weights=regime_weights,
         )
