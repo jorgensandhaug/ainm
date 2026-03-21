@@ -451,6 +451,7 @@ def build_online_predictor(
             probability_floor=ensemble_spec.probability_floor,
             policy_name=policy_name or ensemble_spec.policy_name,
             blend_mode=ensemble_spec.blend_mode,
+            obs_blend_temperature=ensemble_spec.obs_blend_temperature,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

@@ -12,7 +12,7 @@ import numpy as np
 from pydantic import ConfigDict, Field
 
 from astar.core.prediction import PredictionBundle
-from astar.core.terrain import CLASS_COUNT
+from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.envs.types import RoundContext
 from astar.features.geometry import RoundFeatureBundle
 from astar.infra.api.dto import RoundDetail
@@ -33,6 +33,7 @@ class EnsemblePredictor(BaseRoundPredictor):
     component_weights: tuple[float, ...] = ()
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     blend_mode: str = "geometric"  # "geometric" or "arithmetic"
+    obs_blend_temperature: float = Field(default=0.0, ge=0.0)  # 0 = disabled
 
     @classmethod
     def fit_from_workspace(
@@ -46,6 +47,7 @@ class EnsemblePredictor(BaseRoundPredictor):
         probability_floor: float = 0.01,
         policy_name: str = "coverage",
         blend_mode: str = "geometric",
+        obs_blend_temperature: float = 0.0,
     ) -> EnsemblePredictor:
         if not model_names:
             raise ValueError("ensemble requires at least one component model")
@@ -75,6 +77,7 @@ class EnsemblePredictor(BaseRoundPredictor):
             component_weights=tuple(resolved_weights),
             probability_floor=probability_floor,
             blend_mode=blend_mode,
+            obs_blend_temperature=obs_blend_temperature,
         )
 
     def build_prediction_bundle_from_context(
@@ -100,7 +103,74 @@ class EnsemblePredictor(BaseRoundPredictor):
             component_predictions.append(pred)
 
         blended = self._blend_predictions(component_predictions, context.round_context.round_id)
+
+        # Observation-frequency blending (agent1 innovation)
+        if self.obs_blend_temperature > 0.0 and context.observations:
+            blended = self._apply_obs_frequency_blend(blended, context)
+
         return blended
+
+    def _apply_obs_frequency_blend(
+        self,
+        bundle: PredictionBundle,
+        context: LiveInferenceContext,
+    ) -> PredictionBundle:
+        """Blend in empirical class frequencies from directly observed cells."""
+        h = context.round_context.map_height
+        w = context.round_context.map_width
+        temperature = self.obs_blend_temperature
+
+        # Count observations per cell per seed
+        obs_counts: dict[int, np.ndarray] = {}  # seed -> (H, W) count
+        obs_class_sum: dict[int, np.ndarray] = {}  # seed -> (H, W, C) class counts
+
+        for obs in context.observations:
+            seed = obs.seed_index
+            if seed not in obs_counts:
+                obs_counts[seed] = np.zeros((h, w), dtype=np.float64)
+                obs_class_sum[seed] = np.zeros((h, w, CLASS_COUNT), dtype=np.float64)
+
+            vp = obs.viewport
+            grid = collapse_internal_grid(np.asarray(obs.grid, dtype=np.int64))
+            for dy in range(vp.h):
+                for dx in range(vp.w):
+                    cy, cx = vp.y + dy, vp.x + dx
+                    if 0 <= cy < h and 0 <= cx < w:
+                        obs_counts[seed][cy, cx] += 1.0
+                        cell_class = int(grid[dy, dx])
+                        if 0 <= cell_class < CLASS_COUNT:
+                            obs_class_sum[seed][cy, cx, cell_class] += 1.0
+
+        new_preds: dict[int, np.ndarray] = {}
+        for seed_index, model_pred in bundle.predictions_by_seed.items():
+            pred = np.asarray(model_pred, dtype=np.float64).copy()
+
+            if seed_index in obs_counts:
+                counts = obs_counts[seed_index]
+                class_sum = obs_class_sum[seed_index]
+
+                # For cells with observations: blend in empirical frequency
+                observed_mask = counts > 0
+                if np.any(observed_mask):
+                    # Empirical frequency
+                    empirical = class_sum / np.maximum(counts[..., None], 1.0)
+                    # Blend weight: N / (N + temperature)
+                    blend_weight = counts / (counts + temperature)
+                    # Apply blend only where observed
+                    for c in range(CLASS_COUNT):
+                        pred[..., c] = np.where(
+                            observed_mask,
+                            blend_weight * empirical[..., c] + (1.0 - blend_weight) * pred[..., c],
+                            pred[..., c],
+                        )
+
+            new_preds[seed_index] = apply_probability_floor(pred, self.probability_floor)
+
+        return PredictionBundle(
+            round_id=bundle.round_id,
+            model_name=bundle.model_name,
+            predictions_by_seed=new_preds,
+        )
 
     def _blend_predictions(
         self,

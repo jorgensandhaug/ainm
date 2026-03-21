@@ -14,6 +14,7 @@ class EnsembleModelSpec(BaseModel):
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     policy_name: str = "coverage"
     blend_mode: str = "geometric"
+    obs_blend_temperature: float = 0.0
 
 
 _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
@@ -239,6 +240,37 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.5, 0.5),
         probability_floor=0.0001,
+    ),
+    # OBSERVATION-FREQUENCY BLENDING (agent1 innovation) + low floor
+    "f1_ensemble_hv2f0001_sxf0001_50_obs20_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0001_sxf0001_50_obs20_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0001,
+        obs_blend_temperature=20.0,
+    ),
+    "f1_ensemble_hv2f0001_sxf0001_50_obs10_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0001_sxf0001_50_obs10_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0001,
+        obs_blend_temperature=10.0,
+    ),
+    "f1_ensemble_hv2f0003_sxf0003_50_obs20_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0003_sxf0003_50_obs20_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0003_v01",
+            "f1_student_query_residual_supportx_f0003_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0003,
+        obs_blend_temperature=20.0,
     ),
     # LOW PROBABILITY FLOOR VARIANTS (ensemble-only floor, components keep 0.01)
     "f1_ensemble_hv2_sx_50_f005_v01": EnsembleModelSpec(
