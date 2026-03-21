@@ -978,7 +978,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     residual_class_scale: np.ndarray = Field(
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
     )
-    teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
+    teacher_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     regime_intercept: np.ndarray = Field(
         default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
     )
@@ -1015,7 +1015,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         signal_scale: float = 0.12,
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
-        teacher_blend: float = 0.12,
+        teacher_blend: float = 0.0,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
     ) -> QueryResidualPredictor:
