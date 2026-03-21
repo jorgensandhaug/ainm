@@ -2560,17 +2560,37 @@ Framework should accept unique query-residual family variant names directly so b
   - 8.0 → 78.85, 4.0 → 79.13, 2.0 → 79.34, 1.0 → 79.46, 0.5 → 79.57
 - v93-v96 launched for final squeeze (posterior_ridge=0.25 etc)
 
+### 2026-03-21T16:00Z approx
+
+- v97-v100 full dev:
+  - v97 (ridge=0.1) = 79.81, **v98 (ridge=0.05) = 79.82** ← beat v93
+  - v99 (prior=0.015) = 79.73, v100 (op_lambda=2.0) = 79.69
+- v101-v104 full dev:
+  - **v104 (op_lambda=2.0 + ridge=0.05) = 79.87** ← NEW CHAMPION
+  - v103 (prior=0.015 + ridge=0.05) = 79.87 (tied)
+  - v101 (ridge=0.02) = 79.67, v102 (ridge=0.01) = 79.46 (overfitting!)
+- Posterior ridge lambda sweep now exhausted:
+  - Optimum near 0.05 (going to 0.02 or lower causes overfitting)
+  - Full trend: 8.0→78.85, 4.0→79.13, 2.0→79.34, 1.0→79.46, 0.5→79.57, 0.25→79.69, 0.1→79.81, 0.05→79.82, 0.02→79.67, 0.01→79.46
+- Final v104 per-round vs v44:
+  - Round 3: 64.1 → 77.5 (+13.4!!!)
+  - Round 7: 65.4 → 69.2 (+3.8)
+  - Round 8: 80.3 → 83.4 (+3.1)
+  - Round 6: 78.7 → 80.0 (+1.3)
+  - Givebacks: R1 -1.8, R2 -1.2, R5 -1.0, R4 -0.7
+
 ## Current Champion
 
 - best observed local full-dev system:
-  - model: `ffam_mode_v89`
+  - model: `ffam_mode_v104`
   - policy: `exploration_r3`
   - `samples_per_round=2`
-  - score: `79.5659`
+  - score: `79.8743`
+  - mean weighted KL: approx `0.079`
   - key config vs v44:
     - `projected_mode_dim=4` (was 3)
-    - `operator_ridge_lambda=4.0` (was 8.0)
-    - `posterior_ridge_lambda=0.5` (was 8.0)
+    - `operator_ridge_lambda=2.0` (was 8.0)
+    - `posterior_ridge_lambda=0.05` (was 8.0)
     - `prior_blend=0.02` (was 0.10)
     - `posterior_ood_prior_blend=0.10` (was 0.28)
     - `temperature=1.0` (was 1.02)
@@ -2586,4 +2606,7 @@ Framework should accept unique query-residual family variant names directly so b
 4. **Temperature=1.0 is optimal**: No temperature softening needed
 5. **More cells_per_seed hurts**: Increasing from 512 to 1024 dramatically worsened results
 6. **Cluster count=3 is neutral**: No improvement over 2 clusters
-7. **Total improvement vs v44**: 77.76 → 79.57 (+1.81 points, ~2.3% relative)
+7. **Total improvement vs v44**: 77.76 → 79.87 (+2.11 points, ~2.7% relative)
+8. **Posterior ridge sweep reveals dramatic overfitting**: default lambda=8.0 was massively over-regularized; optimum near 0.05 (160x reduction)
+9. **Operator ridge also over-regularized**: lambda 8.0 → 2.0 gives additional +0.05
+10. **Round 3 massive rescue**: The hardest round improved by +13.4 points - from 64.1 to 77.5
