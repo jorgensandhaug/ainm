@@ -145,7 +145,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `cbc:InvoiceTypeCode = 380`
   - `cbc:DocumentCurrencyCode = NOK`
   - `cac:AccountingSupplierParty` with endpoint id, legal entity, tax scheme, and postal address
-  - `cac:AccountingCustomerParty` with a stable buyer block; do not omit it just because the supplier is the scored entity
+  - `cac:AccountingCustomerParty` with a buyer block that MUST include `cac:PostalAddress` (EHF BR-10 rule); do not omit it just because the supplier is the scored entity
   - `cac:TaxTotal`
   - `cac:LegalMonetaryTotal`
   - one `cac:InvoiceLine` with item name, classified tax category, line extension amount, and price
@@ -188,6 +188,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - do NOT skip the booking step (step 5 `PUT sendToLedger=true`) — without it the voucher stays unbooked and the scorer returns 0%; every pre-2026-03-21 production run that omitted this step scored 0%
 - do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails because Tripletex clears postings before applying new ones
 - preserve the prompt description's exact casing — if the prompt says "kontortjenester" (lowercase), do NOT capitalize it to "Kontortjenester"; the description is stored exactly as sent and the scorer may do case-sensitive matching
+- do NOT omit `cac:PostalAddress` from the `AccountingCustomerParty` buyer block in the XML — EHF BR-10 validation requires it; the 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` wasted 1 API call (422) because the buyer block lacked PostalAddress; sandbox re-proof confirmed: without buyer PostalAddress → 422, with → 201
 
 ## VAT Rounding
 - Tripletex computes debit `amount` from `amountGross / (1 + vatPercent/100)` regardless of the `amount` value sent
@@ -417,3 +418,18 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - this is the 8th consecutive optimal 5-call production run with 0 errors using this standard
 - accounts confirmed across 8 consecutive runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
 - sandbox re-proof confirmed: account 6540 works identically to other accounts; 5 calls remains the true minimum; `account: { number: N }` still requires GET to resolve ID
+
+2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
+- used 6 calls, 1 error — suboptimal due to XML buyer block missing PostalAddress
+- Nynorsk-language prompt with PDF attachment, description "Nettverkstjenester"
+- PDF data fully extracted: address `Solveien 92, 8006 Bodø`, bank account `53239317029`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- first importDocument attempt failed with `422 ERROR [BR-10]-An Invoice shall contain the Buyer postal address (BG-8)` because XML `AccountingCustomerParty` lacked `cac:PostalAddress`
+- second importDocument attempt with buyer PostalAddress added succeeded → 201
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 60500/1.25=48400 net, 12100 VAT (no rounding)
+- voucher `609170496`, supplier `108434304`
+- this breaks the 8-run optimal streak due to the BR-10 XML validation error; the fix is to always include buyer PostalAddress in the XML template
+- sandbox re-proof confirmed: buyer block without PostalAddress → 422 (BR-10); with PostalAddress → 201; PartyTaxScheme is optional

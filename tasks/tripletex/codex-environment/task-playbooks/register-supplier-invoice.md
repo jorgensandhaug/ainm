@@ -197,9 +197,29 @@ The XML is not a dummy transport wrapper. It has to be structurally valid enough
 - a non-empty postal address and country
 
 ### Customer block requirements
-- keep a stable buyer block in the template
+- the buyer block MUST include `cac:PostalAddress` with at least `StreetName`, `CityName`, `PostalZone`, and `Country/IdentificationCode` — EHF BR-10 validation rejects the XML without it
+- `cac:PartyTaxScheme` is optional but harmless to include
+- use this exact minimal buyer block template:
+  ```xml
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="0192">999999999</cbc:EndpointID>
+      <cac:PostalAddress>
+        <cbc:StreetName>Testveien 1</cbc:StreetName>
+        <cbc:CityName>Oslo</cbc:CityName>
+        <cbc:PostalZone>0001</cbc:PostalZone>
+        <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Ditt firma</cbc:RegistrationName>
+        <cbc:CompanyID schemeID="0192">999999999</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  ```
 - do not omit the customer block just because the supplier is the scored entity
-- sandbox proof accepted a generic placeholder buyer, but that does not justify stripping the block down further
+- 2026-03-21 production run wasted 1 API call because the buyer block was missing `PostalAddress`, triggering `422 ERROR [BR-10]-An Invoice shall contain the Buyer postal address (BG-8)`
+- 2026-03-21 sandbox re-proof confirmed: without buyer PostalAddress → 422; with PostalAddress → 201
 
 ### Amount rules inside XML
 - XML line and totals use net amount
@@ -416,6 +436,17 @@ Proven outcome:
 - voucher `609159040`, supplier `108428564`
 - 8th consecutive optimal 5-call production run with 0 errors
 - accounts confirmed across 8 runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
+
+2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
+- used 6 calls, 1 error — suboptimal due to XML buyer block missing PostalAddress
+- Nynorsk-language prompt with PDF attachment, description "Nettverkstjenester"
+- PDF data: address `Solveien 92, 8006 Bodø`, bank account `53239317029`
+- supplier created with `postalAddress` and `bankAccountPresentation`
+- first importDocument attempt failed with `422 ERROR [BR-10]` because XML `AccountingCustomerParty` lacked `cac:PostalAddress`
+- second attempt with buyer PostalAddress succeeded → 201
+- voucher `609170496`, supplier `108434304`
+- this breaks the 8-run optimal streak; fix: always include buyer PostalAddress in XML template
+- sandbox re-proof: without buyer PostalAddress → 422 (BR-10); with → 201; PartyTaxScheme optional
 
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
