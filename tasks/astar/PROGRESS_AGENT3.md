@@ -4823,9 +4823,34 @@ Without entropy weights, the model tries equally hard to predict ocean cells (tr
 
 ---
 
+515. CatBoost results (same features as v5, different model):
+   - **CatBoost big (iter=1500, d8, lr=0.01): 85.29** (NEW ALL-TIME BEST! FIRST ABOVE 85!)
+   - CatBoost d10: 85.23
+   - CatBoost default: 85.05
+   - CatBoost l2=1.0: 84.91
+   - CatBoost d6: 84.77
+
+516. v6 results (XGBoost, stacking, per-class tuning):
+   - LGB no per-class: 84.74
+   - LGB 2ep: 84.69
+   - LGB per-class tuned: 84.23 (per-class tuning hurts!)
+   - XGBoost: 83.94
+   - XGBoost deep: 83.54
+   - Stacking: 81.64 (stacking hurts badly)
+
+517. Updated session trajectory:
+   - query_residual_v19: 76.89
+   - adaptive_ensemble_v17: 79.98 (+3.09)
+   - cellwise LGB v1: 82.38 (+5.49)
+   - cellwise LGB v3 2ep: 83.34 (+6.45)
+   - cellwise LGB v4 entropy: 84.81 (+7.92)
+   - cellwise LGB v5 heatmap: 84.94 (+8.05)
+   - **CatBoost big: 85.29 (+8.40)**
+
 ## Open Questions
 
-- Can we push past 85?
-- Need to wire best LGB into live pipeline for next round submission
+- Can CatBoost be pushed further with more iterations/depth?
+- Can we try AutoGluon (separate venv needed due to sklearn conflicts)?
+- Can we ensemble CatBoost + LGB for even better?
+- Need to wire CatBoost into live pipeline
 - Can we improve the query policy to get better evidence?
-- The hardest round (36e581f1) is still ~71 - can we do better there?
