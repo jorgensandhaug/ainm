@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
+
+RegimeInputVariant = Literal["base", "motif_v1"]
 
 
 class QueryResidualConfig(BaseModel):
@@ -31,9 +35,10 @@ class QueryResidualConfig(BaseModel):
     ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
     ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
     ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    regime_input_variant: RegimeInputVariant = "base"
 
 
-QUERY_RESIDUAL_DEFAULT_ALIAS = "query_residual_v7"
+QUERY_RESIDUAL_DEFAULT_ALIAS = "query_residual_v14"
 
 
 QUERY_RESIDUAL_CONFIGS: dict[str, QueryResidualConfig] = {
@@ -77,6 +82,26 @@ QUERY_RESIDUAL_CONFIGS: dict[str, QueryResidualConfig] = {
         ensemble_max_weight=0.45,
         ensemble_novelty_power=2.0,
         ensemble_signal_power=0.0,
+    ),
+    "query_residual_v12": QueryResidualConfig(
+        model_name="query_residual_v12",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        regime_input_variant="motif_v1",
+    ),
+    "query_residual_v13": QueryResidualConfig(
+        model_name="query_residual_v13",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_min=4.0,
+        beta_scale=12.0,
+    ),
+    "query_residual_v14": QueryResidualConfig(
+        model_name="query_residual_v14",
+        policy_name="coverage",
+        synthetic_dataset_version="v2",
+        beta_min=2.0,
+        beta_scale=8.0,
     ),
 }
 
@@ -127,6 +152,7 @@ __all__ = [
     "QUERY_RESIDUAL_CONFIGS",
     "QUERY_RESIDUAL_DEFAULT_ALIAS",
     "QueryResidualConfig",
+    "RegimeInputVariant",
     "available_query_residual_model_names",
     "is_query_residual_model_name",
     "query_residual_checkpoint_name",

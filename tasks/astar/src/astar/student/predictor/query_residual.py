@@ -30,6 +30,7 @@ from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor, softmax_logits
 from astar.student.predictor.query_residual_config import (
     QueryResidualConfig,
+    RegimeInputVariant,
     resolve_query_residual_config,
 )
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
@@ -40,6 +41,25 @@ LOG_FLOOR_DENOM = math.log(100.0)
 MAX_QUERY_BUDGET = 50.0
 DEFAULT_BUDGET_PREFIXES = (0, 5, 10, 20, 35, 50)
 DEFAULT_BLUR_SIGMAS = (1.5, 4.0)
+CLASS_INDEX = {name: index for index, name in enumerate(CLASS_NAMES)}
+REGIME_MOTIF_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("settlement_buildable", "settlement", "buildable"),
+    ("settlement_proximity", "settlement", "settlement_proximity"),
+    ("port_maritime_access", "port", "maritime_access"),
+    ("port_coast", "port", "coast"),
+    ("ruin_frontier", "ruin", "frontier_score"),
+    ("forest_density", "forest", "forest_density"),
+    ("mountain_density", "mountain", "mountain_density"),
+)
+REGIME_COVERAGE_FIELDS: tuple[str, ...] = (
+    "buildable",
+    "coast",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "forest_density",
+    "mountain_density",
+)
 
 
 def _round_ids_with_analyses_and_replays(
@@ -318,6 +338,10 @@ class TranscriptDerivedFeatures(BaseModel):
 
     global_summary: np.ndarray
     seed_summaries: dict[int, np.ndarray]
+    regime_global_summary: np.ndarray = Field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64),
+    )
+    regime_seed_summaries: dict[int, np.ndarray] = Field(default_factory=dict)
     local_evidence: dict[int, np.ndarray]
     exact_counts: dict[int, np.ndarray]
 
@@ -376,6 +400,8 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
     ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
     ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    regime_input_variant: RegimeInputVariant = "base"
+    regime_input_names: list[str] = Field(default_factory=list)
     manifold_round_ids: list[str] = Field(default_factory=list)
     manifold_regime_bank: list[list[float]] = Field(default_factory=list)
     manifold_regime_scale: list[float] = Field(default_factory=list)
@@ -462,6 +488,74 @@ def _masked_residual_mean(
     return np.sum(residual * mask[..., None], axis=(0, 1)) / count
 
 
+def _weighted_mean(
+    values: np.ndarray,
+    weights: np.ndarray,
+) -> float:
+    total_weight = float(np.sum(weights))
+    if total_weight <= 0.0:
+        return 0.0
+    return float(np.sum(values * weights) / total_weight)
+
+
+def _count_hhi(count_total: np.ndarray) -> float:
+    flattened = np.asarray(count_total, dtype=np.float64).reshape(-1)
+    total = float(np.sum(flattened))
+    if total <= 0.0:
+        return 0.0
+    shares = flattened / total
+    return float(np.sum(np.square(shares)))
+
+
+def _regime_aux_seed_names(variant: RegimeInputVariant) -> list[str]:
+    if variant == "base":
+        return []
+    names = [
+        "seed_repeat_cell_frac_ge2",
+        "seed_repeat_mass_share",
+        "seed_count_hhi",
+    ]
+    names.extend([f"seed_coverage_{name}" for name in REGIME_COVERAGE_FIELDS])
+    names.extend([f"seed_resid_{name}" for name, _, _ in REGIME_MOTIF_FIELDS])
+    return names
+
+
+def _regime_aux_global_names(variant: RegimeInputVariant) -> list[str]:
+    return [
+        name.replace("seed_", "global_", 1)
+        for name in _regime_aux_seed_names(variant)
+    ]
+
+
+def _regime_aux_seed_summary(
+    *,
+    count_total: np.ndarray,
+    blur_coverage_small: np.ndarray,
+    blur_residual_small: np.ndarray,
+    feature_maps: dict[str, np.ndarray],
+) -> np.ndarray:
+    total_mass = float(np.sum(count_total))
+    repeat_mass = float(np.sum(np.clip(count_total - 1.0, 0.0, None)))
+    features = [
+        float(np.mean(count_total >= 2.0)),
+        repeat_mass / max(total_mass, 1.0),
+        _count_hhi(count_total),
+    ]
+    coverage_map = np.asarray(blur_coverage_small, dtype=np.float64)
+    features.extend(
+        _weighted_mean(coverage_map, feature_maps[name])
+        for name in REGIME_COVERAGE_FIELDS
+    )
+    for _, class_name, feature_name in REGIME_MOTIF_FIELDS:
+        features.append(
+            _weighted_mean(
+                blur_residual_small[..., CLASS_INDEX[class_name]],
+                feature_maps[feature_name],
+            ),
+        )
+    return np.asarray(features, dtype=np.float64)
+
+
 def _derive_transcript_features_from_stats(
     round_detail: RoundDetail,
     features: RoundFeatureBundle,
@@ -475,6 +569,7 @@ def _derive_transcript_features_from_stats(
     exact_counts: dict[int, np.ndarray] = {}
     local_evidence: dict[int, np.ndarray] = {}
     seed_summaries: dict[int, np.ndarray] = {}
+    regime_seed_summaries: dict[int, np.ndarray] = {}
 
     total_queries = sum(stats.query_count for stats in per_seed_stats.values())
     total_observed_cells = 0.0
@@ -500,6 +595,15 @@ def _derive_transcript_features_from_stats(
     owner_count_values: list[float] = []
     owner_share_values: list[float] = []
     owner_hhi_values: list[float] = []
+    global_repeat_cells_ge2 = 0.0
+    global_total_cells = 0.0
+    global_repeat_mass = 0.0
+    global_total_count_mass = 0.0
+    global_count_square_mass = 0.0
+    global_coverage_sums = np.zeros(len(REGIME_COVERAGE_FIELDS), dtype=np.float64)
+    global_coverage_weights = np.zeros(len(REGIME_COVERAGE_FIELDS), dtype=np.float64)
+    global_motif_sums = np.zeros(len(REGIME_MOTIF_FIELDS), dtype=np.float64)
+    global_motif_weights = np.zeros(len(REGIME_MOTIF_FIELDS), dtype=np.float64)
 
     for seed_index in range(round_detail.seeds_count):
         stats = per_seed_stats[seed_index]
@@ -515,6 +619,19 @@ def _derive_transcript_features_from_stats(
         buildable_mask = np.asarray(seed_features.feature("buildable"), dtype=np.float64)
         nonbuildable_mask = 1.0 - buildable_mask
         settlement_proximity = np.asarray(seed_features.feature("settlement_proximity"), dtype=np.float64)
+        maritime_access = np.asarray(seed_features.feature("maritime_access"), dtype=np.float64)
+        frontier_score = np.asarray(seed_features.feature("frontier_score"), dtype=np.float64)
+        forest_density = np.asarray(seed_features.feature("forest_density"), dtype=np.float64)
+        mountain_density = np.asarray(seed_features.feature("mountain_density"), dtype=np.float64)
+        feature_maps = {
+            "buildable": buildable_mask,
+            "coast": coastal_mask,
+            "settlement_proximity": settlement_proximity,
+            "maritime_access": maritime_access,
+            "frontier_score": frontier_score,
+            "forest_density": forest_density,
+            "mountain_density": mountain_density,
+        }
         near_mask = (settlement_proximity >= 0.67).astype(np.float64)
         mid_mask = ((settlement_proximity >= 0.33) & (settlement_proximity < 0.67)).astype(np.float64)
         far_mask = (settlement_proximity < 0.33).astype(np.float64)
@@ -591,14 +708,37 @@ def _derive_transcript_features_from_stats(
         observed_count_feature = np.log1p(stats.count_total.astype(np.float64)) / np.log(6.0)
         blur_residual_small = _gaussian_blur(residual, blur_sigmas[0])
         blur_residual_large = _gaussian_blur(residual, blur_sigmas[1])
-        blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])[..., None]
+        blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])
         blur_coverage_large = _gaussian_blur(observed_count_feature, blur_sigmas[1])[..., None]
+        regime_seed_summaries[seed_index] = _regime_aux_seed_summary(
+            count_total=stats.count_total,
+            blur_coverage_small=blur_coverage_small,
+            blur_residual_small=blur_residual_small,
+            feature_maps=feature_maps,
+        )
+        global_repeat_cells_ge2 += float(np.sum(stats.count_total >= 2.0))
+        global_total_cells += float(stats.count_total.size)
+        global_repeat_mass += float(np.sum(np.clip(stats.count_total - 1.0, 0.0, None)))
+        global_total_count_mass += float(np.sum(stats.count_total))
+        global_count_square_mass += float(np.sum(np.square(stats.count_total)))
+        for feature_index, feature_name in enumerate(REGIME_COVERAGE_FIELDS):
+            feature_weight = feature_maps[feature_name]
+            global_coverage_sums[feature_index] += float(
+                np.sum(blur_coverage_small * feature_weight),
+            )
+            global_coverage_weights[feature_index] += float(np.sum(feature_weight))
+        for feature_index, (_, class_name, feature_name) in enumerate(REGIME_MOTIF_FIELDS):
+            feature_weight = feature_maps[feature_name]
+            global_motif_sums[feature_index] += float(
+                np.sum(blur_residual_small[..., CLASS_INDEX[class_name]] * feature_weight),
+            )
+            global_motif_weights[feature_index] += float(np.sum(feature_weight))
         local_evidence[seed_index] = np.concatenate(
             [
                 observed_count_feature[..., None],
                 blur_residual_small,
                 blur_residual_large,
-                blur_coverage_small,
+                blur_coverage_small[..., None],
                 blur_coverage_large,
             ],
             axis=-1,
@@ -626,9 +766,27 @@ def _derive_transcript_features_from_stats(
         ],
         dtype=np.float64,
     )
+    regime_global_summary = np.asarray(
+        [
+            global_repeat_cells_ge2 / max(global_total_cells, 1.0),
+            global_repeat_mass / max(global_total_count_mass, 1.0),
+            global_count_square_mass / max(global_total_count_mass**2, 1.0),
+            *(
+                global_coverage_sums[index] / max(global_coverage_weights[index], 1.0)
+                for index in range(len(REGIME_COVERAGE_FIELDS))
+            ),
+            *(
+                global_motif_sums[index] / max(global_motif_weights[index], 1.0)
+                for index in range(len(REGIME_MOTIF_FIELDS))
+            ),
+        ],
+        dtype=np.float64,
+    )
     return TranscriptDerivedFeatures(
         global_summary=global_summary,
         seed_summaries=seed_summaries,
+        regime_global_summary=regime_global_summary,
+        regime_seed_summaries=regime_seed_summaries,
         local_evidence=local_evidence,
         exact_counts=exact_counts,
     )
@@ -728,10 +886,17 @@ def _regime_summary_names() -> list[str]:
     ]
 
 
-def _regime_input_names() -> list[str]:
+def _regime_input_names(variant: RegimeInputVariant = "base") -> list[str]:
     names = [f"regime_in__{name}" for name in _global_summary_names()]
     names.extend([f"regime_in__seed_mean__{name}" for name in _seed_summary_names()])
     names.extend([f"regime_in__seed_std__{name}" for name in _seed_summary_names()])
+    names.extend([f"regime_in__{name}" for name in _regime_aux_global_names(variant)])
+    names.extend(
+        [f"regime_in__seed_mean__{name}" for name in _regime_aux_seed_names(variant)],
+    )
+    names.extend(
+        [f"regime_in__seed_std__{name}" for name in _regime_aux_seed_names(variant)],
+    )
     return names
 
 
@@ -878,15 +1043,32 @@ def _interaction_tensor(
     )
 
 
-def _regime_input_vector(derived: TranscriptDerivedFeatures) -> np.ndarray:
+def _regime_input_vector(
+    derived: TranscriptDerivedFeatures,
+    *,
+    variant: RegimeInputVariant = "base",
+) -> np.ndarray:
     ordered_seed_indexes = sorted(derived.seed_summaries)
     seed_stack = np.stack([derived.seed_summaries[seed_index] for seed_index in ordered_seed_indexes], axis=0)
+    components = [
+        np.asarray(derived.global_summary, dtype=np.float64),
+        np.mean(seed_stack, axis=0),
+        np.std(seed_stack, axis=0),
+    ]
+    if variant != "base":
+        aux_seed_stack = np.stack(
+            [derived.regime_seed_summaries[seed_index] for seed_index in ordered_seed_indexes],
+            axis=0,
+        )
+        components.extend(
+            [
+                np.asarray(derived.regime_global_summary, dtype=np.float64),
+                np.mean(aux_seed_stack, axis=0),
+                np.std(aux_seed_stack, axis=0),
+            ],
+        )
     return np.concatenate(
-        [
-            np.asarray(derived.global_summary, dtype=np.float64),
-            np.mean(seed_stack, axis=0),
-            np.std(seed_stack, axis=0),
-        ],
+        components,
         axis=0,
     ).astype(np.float64)
 
@@ -1007,6 +1189,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
     ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
     ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    regime_input_variant: RegimeInputVariant = "base"
     ensemble_partner: QueryResidualPredictor | None = None
     manifold_round_ids: tuple[str, ...] = ()
     manifold_regime_bank: np.ndarray = Field(
@@ -1076,6 +1259,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_blend=config.manifold_blend,
             manifold_novelty_power=config.manifold_novelty_power,
             novelty_prior_weight=config.novelty_prior_weight,
+            regime_input_variant=config.regime_input_variant,
         )
         if (
             config.ensemble_partner_model_name is None
@@ -1134,6 +1318,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         manifold_blend: float = 0.0,
         manifold_novelty_power: float = 0.0,
         novelty_prior_weight: float = 0.0,
+        regime_input_variant: RegimeInputVariant = "base",
     ) -> QueryResidualPredictor:
         selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
         if not selected_round_ids:
@@ -1237,7 +1422,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     ),
                 )
         regime_inputs = np.stack(
-            [_regime_input_vector(derived) for _, derived, _ in training_prefixes],
+            [
+                _regime_input_vector(derived, variant=regime_input_variant)
+                for _, derived, _ in training_prefixes
+            ],
             axis=0,
         )
         regime_targets = np.stack([target for _, _, target in training_prefixes], axis=0)
@@ -1255,7 +1443,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
 
         for cached, derived, _ in training_prefixes:
             predicted_regime = np.asarray(
-                regime_intercept + (_regime_input_vector(derived) @ regime_weights),
+                regime_intercept
+                + (
+                    _regime_input_vector(derived, variant=regime_input_variant)
+                    @ regime_weights
+                ),
                 dtype=np.float64,
             )
             predicted_regime = np.clip(predicted_regime, -0.25, 1.25)
@@ -1318,6 +1510,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             manifold_blend=manifold_blend,
             manifold_novelty_power=manifold_novelty_power,
             novelty_prior_weight=novelty_prior_weight,
+            regime_input_variant=regime_input_variant,
             manifold_round_ids=tuple(teacher.round_ids),
             manifold_regime_bank=manifold_regime_bank,
             manifold_regime_scale=manifold_regime_scale,
@@ -1374,6 +1567,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             ensemble_max_weight=checkpoint.ensemble_max_weight,
             ensemble_novelty_power=checkpoint.ensemble_novelty_power,
             ensemble_signal_power=checkpoint.ensemble_signal_power,
+            regime_input_variant=checkpoint.regime_input_variant,
             ensemble_partner=ensemble_partner,
             manifold_round_ids=tuple(checkpoint.manifold_round_ids),
             manifold_regime_bank=np.asarray(checkpoint.manifold_regime_bank, dtype=np.float64),
@@ -1430,6 +1624,8 @@ class QueryResidualPredictor(BaseRoundPredictor):
             ensemble_max_weight=self.ensemble_max_weight,
             ensemble_novelty_power=self.ensemble_novelty_power,
             ensemble_signal_power=self.ensemble_signal_power,
+            regime_input_variant=self.regime_input_variant,
+            regime_input_names=_regime_input_names(self.regime_input_variant),
             manifold_round_ids=list(self.manifold_round_ids),
             manifold_regime_bank=np.asarray(self.manifold_regime_bank, dtype=np.float64).tolist(),
             manifold_regime_scale=np.asarray(self.manifold_regime_scale, dtype=np.float64).tolist(),
@@ -1549,7 +1745,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
         derived: TranscriptDerivedFeatures,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
         raw_regime = np.asarray(
-            self.regime_intercept + (_regime_input_vector(derived) @ self.regime_weights),
+            self.regime_intercept
+            + (
+                _regime_input_vector(
+                    derived,
+                    variant=self.regime_input_variant,
+                )
+                @ self.regime_weights
+            ),
             dtype=np.float64,
         )
         raw_regime = np.clip(raw_regime, -0.25, 1.25)

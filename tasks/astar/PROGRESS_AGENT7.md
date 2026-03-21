@@ -637,3 +637,157 @@ Framework should accept unique query-residual family variant names directly so b
 - Highest-value remaining search areas now look like:
   - policy variants beyond fixed motif repeats
   - better regime-summary / posterior features under exploration policy
+
+### 2026-03-21T08:25Z approx
+
+- Resumed from pushed state after repeat-selection rejection.
+- Re-checked:
+  - branch/worktree state via `git status --short --branch`
+  - current handoff in [`instructions/agent7.md`](/home/jorge/agent7/tasks/astar/instructions/agent7.md)
+  - current family config in [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - current transcript/regime path in [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py)
+- Reconfirmed local tree still only has known artifact/cache noise outside code/test files; do not touch/revert that noise.
+- Current best hypothesis:
+  - stop spending search budget on repeat-budget/selection micro-variants
+  - next plausible gain is model-side regime-identification improvement under fixed champion policy `exploration_r3`
+  - current regime encoder only sees coarse pooled summaries plus seed mean/std
+  - it still ignores richer spatial transcript structure when inferring the regime vector
+- Candidate branch now active:
+  - add a new named `query_residual` variant only
+  - enrich regime-input features with transcript motif / spatial-evidence summaries rather than mutating `v7`
+  - validate first on stricter policy-sensitive probe rounds `7,3,6,8`
+  - only spend full 8-round dev if probe is honestly positive
+
+### 2026-03-21T08:45Z approx
+
+- Implemented new model variant scaffold:
+  - [`query_residual_v12`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `regime_input_variant="motif_v1"`
+- Added backward-compatible predictor/checkpoint plumbing in [`src/astar/student/predictor/query_residual.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual.py)
+  - regime-input dims can now vary by named variant without breaking older checkpoints
+  - added transcript motif summaries for regime inference:
+    - repeat concentration stats
+    - blur-coverage motif summaries
+    - blur-residual motif summaries aligned to buildable / coast / frontier / maritime / density maps
+- Added test coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+  - benchmark smoke now includes `query_residual_v12`
+  - new checkpoint roundtrip test for `v12`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `12`
+- Next:
+  - run strict 4-round probe for `query_residual_v12 + exploration_r3`
+  - compare directly against current champ model/policy on matched probe before any full-dev spend
+
+### 2026-03-21T08:55Z approx
+
+- Strict 4-round probe completed for [`query_residual_v12 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v12_exploration_r3_r3r6r7r8/result.json)
+  - rounds: `7,3,6,8`
+  - mean score `62.7619`
+  - mean weighted KL `0.157766`
+  - baseline champ probe [`query_residual_v7 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3_r3r6r7r8/result.json): `62.7780`
+- Direct paired comparison:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v12.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v12.json)
+  - mean score delta `-0.0161`
+  - mean weighted KL delta `+0.000077`
+  - win rate `0.500`, loss rate `0.500`
+  - CI95 `[-0.0611, 0.0346]`
+- Round read:
+  - tiny positives on rounds `7`, `3`, `6`
+  - slightly larger giveback on round `8`
+  - net effect basically zero / slightly negative
+- Conclusion:
+  - current motif-summary regime-input branch is not promotable
+  - do not spend full 8-round dev budget on `v12`
+- New hypothesis after rejection:
+  - current champion policy deliberately buys repeat evidence
+  - but exact observed cells are still blended with a large pseudo-count (`beta_min=8`, `beta_scale=24`)
+  - this likely under-trusts repeat-rich empirical cell counts
+  - next branch should tune exact-cell trust / beta schedule under fixed `exploration_r3`
+
+### 2026-03-21T09:15Z approx
+
+- Added exact-cell trust variants in [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `query_residual_v13`: `beta_min=4`, `beta_scale=12`
+  - `query_residual_v14`: `beta_min=2`, `beta_scale=8`
+- Added benchmark smoke + checkpoint coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `15`
+
+#### Probe result: `v13`
+
+- Strict 4-round probe [`agent7_probe_query_residual_v13_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v13_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.5037`
+  - mean weighted KL `0.153615`
+- Paired vs champ:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v13.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v13.json)
+  - mean score delta `+0.7257`
+  - mean weighted KL delta `-0.004074`
+  - win rate `0.950`
+  - CI95 `[0.5279, 0.9257]`
+- Read:
+  - positive on all four probe rounds
+  - strongest on round `7`
+
+#### Probe result: `v14`
+
+- Strict 4-round probe [`agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.9805`
+  - mean weighted KL `0.150899`
+- Paired vs champ:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v14.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v14.json)
+  - mean score delta `+1.2025`
+  - mean weighted KL delta `-0.006791`
+  - win rate `0.900`
+  - CI95 `[0.7740, 1.6391]`
+- Head-to-head vs `v13`:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v13__candidate=query_residual_v14.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v13__candidate=query_residual_v14.json)
+  - mean score delta `+0.4768`
+  - mean weighted KL delta `-0.002716`
+  - win rate `0.750`
+  - CI95 `[0.2274, 0.7119]`
+- Round read vs current champ:
+  - round `7`: `+2.3081`
+  - round `3`: `+1.3210`
+  - round `8`: `+1.3051`
+  - round `6`: `-0.1241`
+- Interpretation:
+  - lower beta is very likely the right direction under repeat-rich `exploration_r3`
+  - `v14` currently dominates `v13` on probe
+  - next honest step is full 8-round dev benchmark for `query_residual_v14 + exploration_r3`
+
+### 2026-03-21T09:50Z approx
+
+- Full 8-round dev benchmark completed for [`query_residual_v14 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v14_exploration_r3/result.json)
+  - mean score `74.7218`
+  - mean weighted KL `0.099821`
+  - previous champ [`query_residual_v7 + exploration_r3`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration_r3/result.json): `74.6063`
+  - net gain `+0.1155`
+- Full-dev paired comparison:
+  - [`historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v14.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_r3__budget=50__episode_seed=0__baseline=query_residual_v7__candidate=query_residual_v14.json)
+  - mean score delta `+0.1155`
+  - mean weighted KL delta `-0.001011`
+  - win rate `0.525`
+  - loss rate `0.475`
+  - CI95 `[-0.2348, 0.4370]`
+- Round-level read vs prior champ:
+  - strong gains: round `7` `+1.3193`, round `8` `+1.2232`, round `3` `+1.1414`
+  - mild/flat gains: round `5` `+0.1309`, round `4` `+0.0272`
+  - givebacks: round `6` `-1.4445`, round `2` `-1.2253`, round `1` `-0.2482`
+- Interpretation:
+  - probe signal mostly survived full-dev, but not at the same magnitude
+  - still the best observed local 8-round score so far
+  - exact-cell trust appears to trade some stable/high-score rounds for better rescue on harder rounds, and the aggregate trade is slightly positive
+
+## New Champion
+
+- best observed local full-dev system now:
+  - model: `query_residual_v14`
+  - policy: `exploration_r3`
+  - score: `74.7218`
+- Promoted default alias in [`src/astar/student/predictor/query_residual_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/query_residual_config.py)
+  - `QUERY_RESIDUAL_DEFAULT_ALIAS = "query_residual_v14"`
+- Validation after promotion:
+  - `uv run --extra dev pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - passed: `25`

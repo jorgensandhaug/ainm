@@ -105,7 +105,15 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
 
 @pytest.mark.parametrize(
     "model_name",
-    ["query_residual", "query_residual_v8", "query_residual_v10", "query_residual_v11"],
+    [
+        "query_residual",
+        "query_residual_v8",
+        "query_residual_v10",
+        "query_residual_v11",
+        "query_residual_v12",
+        "query_residual_v13",
+        "query_residual_v14",
+    ],
 )
 def test_query_residual_online_historical_benchmark_runs(
     sample_paths: RepoPaths,
@@ -266,3 +274,49 @@ def test_query_residual_v10_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_pa
     assert loaded.ensemble_partner.name == "query_residual_v9"
     assert loaded.ensemble_partner_model_name == "query_residual_v9"
     assert loaded.ensemble_max_weight > 0.0
+
+
+def test_query_residual_v12_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = QueryResidualPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="query_residual_v12",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "query_residual_v12" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "query_residual_v12"
+    assert loaded.regime_input_variant == "motif_v1"
+    assert loaded.regime_weights.shape == predictor.regime_weights.shape
+
+
+def test_query_residual_v13_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = QueryResidualPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="query_residual_v13",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "query_residual_v13" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = QueryResidualPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "query_residual_v13"
+    assert loaded.beta_min == 4.0
+    assert loaded.beta_scale == 12.0
