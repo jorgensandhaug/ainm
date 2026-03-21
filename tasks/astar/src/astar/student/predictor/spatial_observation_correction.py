@@ -77,6 +77,10 @@ SPATIAL_CORRECTION_V5 = "spatial_correction_v5"
 SPATIAL_CORRECTION_V6 = "spatial_correction_v6"
 SPATIAL_CORRECTION_V7 = "spatial_correction_v7"
 SPATIAL_CORRECTION_V8 = "spatial_correction_v8"
+SPATIAL_CORRECTION_V9 = "spatial_correction_v9"
+SPATIAL_CORRECTION_V10 = "spatial_correction_v10"
+SPATIAL_CORRECTION_V11 = "spatial_correction_v11"
+SPATIAL_CORRECTION_V12 = "spatial_correction_v12"
 
 SPATIAL_CORRECTION_MODEL_NAMES = frozenset({
     SPATIAL_CORRECTION_ALIAS,
@@ -88,6 +92,10 @@ SPATIAL_CORRECTION_MODEL_NAMES = frozenset({
     SPATIAL_CORRECTION_V6,
     SPATIAL_CORRECTION_V7,
     SPATIAL_CORRECTION_V8,
+    SPATIAL_CORRECTION_V9,
+    SPATIAL_CORRECTION_V10,
+    SPATIAL_CORRECTION_V11,
+    SPATIAL_CORRECTION_V12,
 })
 
 SPATIAL_CORRECTION_MODEL_CHOICE_LIST = [
@@ -100,6 +108,10 @@ SPATIAL_CORRECTION_MODEL_CHOICE_LIST = [
     SPATIAL_CORRECTION_V6,
     SPATIAL_CORRECTION_V7,
     SPATIAL_CORRECTION_V8,
+    SPATIAL_CORRECTION_V9,
+    SPATIAL_CORRECTION_V10,
+    SPATIAL_CORRECTION_V11,
+    SPATIAL_CORRECTION_V12,
 ]
 
 
@@ -115,6 +127,10 @@ class SpatialCorrectionVariantSpec(BaseModel):
     cross_seed_blend: float = Field(default=0.2, ge=0.0, le=1.0)
     prob_floor: float = Field(default=0.005, ge=0.0)
     activity_calibration: bool = True
+    regime_adaptive: bool = False  # If True, scale correction strength by detected regime
+    barren_threshold: float = Field(default=0.05, ge=0.0)  # below this build rate = barren
+    barren_strength_multiplier: float = Field(default=2.0, ge=0.0)  # multiply strength for barren
+    active_strength_multiplier: float = Field(default=0.3, ge=0.0)  # multiply strength for active
 
 
 def is_spatial_correction_model_name(model_name: str) -> bool:
@@ -212,6 +228,63 @@ def resolve_spatial_correction_variant_spec(
             observation_radius=7.0,
             cross_seed_blend=0.0,
             activity_calibration=True,
+        ),
+        # v9-v12: regime-adaptive variants that scale correction by detected activity level
+        SPATIAL_CORRECTION_V9: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V9,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=5.0,
+            correction_strength=0.15,
+            observation_radius=8.0,
+            cross_seed_blend=0.05,
+            activity_calibration=True,
+            regime_adaptive=True,
+            barren_threshold=0.05,
+            barren_strength_multiplier=2.5,
+            active_strength_multiplier=0.2,
+        ),
+        SPATIAL_CORRECTION_V10: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V10,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=4.0,
+            correction_strength=0.12,
+            observation_radius=7.0,
+            cross_seed_blend=0.05,
+            activity_calibration=True,
+            regime_adaptive=True,
+            barren_threshold=0.03,
+            barren_strength_multiplier=3.0,
+            active_strength_multiplier=0.15,
+        ),
+        SPATIAL_CORRECTION_V11: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V11,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=5.0,
+            correction_strength=0.20,
+            observation_radius=8.0,
+            cross_seed_blend=0.08,
+            activity_calibration=True,
+            regime_adaptive=True,
+            barren_threshold=0.04,
+            barren_strength_multiplier=2.0,
+            active_strength_multiplier=0.25,
+        ),
+        SPATIAL_CORRECTION_V12: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V12,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=6.0,
+            correction_strength=0.10,
+            observation_radius=10.0,
+            cross_seed_blend=0.05,
+            activity_calibration=True,
+            regime_adaptive=True,
+            barren_threshold=0.05,
+            barren_strength_multiplier=3.5,
+            active_strength_multiplier=0.1,
         ),
     }
     resolved_name = normalized if normalized != SPATIAL_CORRECTION_ALIAS else SPATIAL_CORRECTION_V1
@@ -475,6 +548,15 @@ class SpatialCorrectionPredictor(BaseModel):
         H, W, C = base_pred.shape
         corrected = base_pred.copy()
         strength = self.spec.correction_strength
+
+        # Regime-adaptive: scale strength based on detected activity level
+        if self.spec.regime_adaptive:
+            global_build_rate = global_stats.get("global_build_rate", 0.1)
+            if global_build_rate < self.spec.barren_threshold:
+                strength *= self.spec.barren_strength_multiplier
+            else:
+                strength *= self.spec.active_strength_multiplier
+            strength = min(strength, 0.8)  # cap
 
         # Activity calibration: scale settlement/port/ruin predictions based on observed activity
         if self.spec.activity_calibration:
