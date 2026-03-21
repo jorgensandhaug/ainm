@@ -149,6 +149,13 @@
   - implication:
     - stronger particle observation likelihood weighting is not monotone-helpful
     - `q4` is the current proxy leader and the best finished posterior-blend setting in this family
+- Replay-derived entropy-conditioned class weighting materially improves the `v7` posterior family on proxy-5:
+  - `hazard_posterior_v8_k5_r3_l32_m70_q8 + regime_probe_v1`: `78.4582`, weighted KL `0.082918`
+  - prior proxy leader `hazard_posterior_v7_k5_r3_l32_m70_q4 + regime_probe_posterior_blend_v1`: `77.2677`, weighted KL `0.088458`
+  - delta: `+1.1905` score, `-0.005541` weighted KL
+  - implication:
+    - entropy-conditioned class weighting is not a tiny calibration tweak; it is a large proxy gain
+    - `v8` deserves immediate broad promotion
 
 ## Strongly Supported Hypotheses
 
@@ -167,6 +174,7 @@
 - The right fast validation set matters almost as much as the model changes themselves; a broad-proxy subset derived from finished full results is materially safer than the old hard-3 shortcut.
 - Particle-refined posterior inference is now a real broad-set win, not just a hard-slice or proxy curiosity.
 - Replay-derived posterior calibration strength is a real tuning axis inside `v7`; more observation weight is not automatically better.
+- Score-aware class weighting inside the particle observation likelihood is now a real high-value axis, not just cleanup.
 
 ## Rejected / Weak Hypotheses
 
@@ -222,4 +230,5 @@
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
 - The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?
 - If mixture-structured round variation is real but v5 fails, is the missing ingredient block-structured mechanism decomposition rather than a single global prototype mixture?
-- Does `hazard_posterior_v8` beat the new `v7` broad/proxy leaders by making the particle observation likelihood explicitly class-aware under the entropy-weighted KL objective?
+- Does `hazard_posterior_v8` preserve its strong proxy gain on the full 8-round multi-seed benchmark?
+- Does the new inducing-point attention transcript encoder in `hazard_posterior_v9` beat `v8`, or is class-aware refinement more important than richer transcript pooling right now?

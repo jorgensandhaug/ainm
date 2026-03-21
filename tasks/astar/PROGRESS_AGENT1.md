@@ -1255,3 +1255,84 @@
   - action:
     - keep the single reduced-width `v8` proxy alive
     - do not launch any more top-level jobs until this result lands or load drops materially
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
+- resumed commit: `43035d86`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- `br` check at resume: unavailable (`command not found`)
+- mandatory rereads completed again before work:
+  - full `instructions/agent1.md`
+- live machine snapshot at resume:
+  - `14:16 UTC`: load about `786.9 / 400.6 / 206.5`
+  - memory free about `1.0 TiB`
+  - external saturation was dominated by `ainm` validation plus other-agent sweeps, not agent1
+- first action:
+  - polled running `v8` proxy instead of widening immediately
+  - while waiting, implemented the next handoff-aligned student-posterior axis:
+    - `hazard_posterior_v9`
+    - inducing-point attention transcript encoder on top of the strong `v7` teacher path
+    - this is the cheap deterministic version of the handoff’s Set-Transformer / richer transcript-encoder axis
+- new implementation completed:
+  - files:
+    - `src/astar/student/posterior/deepset_student.py`
+    - `src/astar/student/predictor/hazard_posterior_v9.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/workflows/historical_benchmark.py`
+    - `tests/test_historical_benchmark.py`
+  - initial regression:
+    - helper insertion accidentally split `_seed_transcript_vector`
+    - broke all posterior-family historical-benchmark tests
+  - fix:
+    - restored the full transcript-summary path
+    - reran validation successfully
+- focused validation after the `v9` fix:
+  - `python3 -m compileall src/astar/student/posterior/deepset_student.py src/astar/student/predictor/hazard_posterior_v9.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+  - result: `23 passed in 77.53s`
+- `v8` proxy result finished during this work:
+  - `proxy5_hazard_v8_k5_r3_l32_m70_q8_regime_probe_seed0to1`
+  - score: `78.4582`
+  - weighted KL: `0.082918`
+  - runtime: `585.419s`
+  - comparisons:
+    - vs prior proxy leader `proxy5_hazard_v7_k5_r3_l32_m70_q4_regime_probe_posterior_blend_seed0to1`
+      - score delta: `+1.1905`
+      - weighted KL delta: `-0.005541`
+    - vs prior `v7 + regime_probe` control on same proxy:
+      - score delta: `+1.5344`
+      - weighted KL delta: `-0.006891`
+  - conclusion:
+    - replay-derived entropy-conditioned class weighting is a strong proxy improvement
+    - `v8 + regime_probe_v1` is the new proxy leader
+- machine state after `v8` finished:
+  - `14:25 UTC`: load about `46.1 / 161.7 / 182.9`
+  - memory free about `1.3 TiB`
+  - interpretation:
+    - 1-minute load had dropped enough to reopen controlled parallelism
+    - memory remained abundant
+- new experiment batch launched immediately:
+  - broad promotion:
+    - `dev_hazard_v8_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+    - session `44253`
+    - `jobs=4`
+  - new posterior-family proxy probes:
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u6_regime_probe_seed0to1`
+      - session `16776`
+      - `jobs=2`
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u10_regime_probe_seed0to1`
+      - session `48876`
+      - `jobs=2`
+  - launch rationale:
+    - `v8` earned immediate broad promotion by winning proxy strongly
+    - `v9` should be tested as the next transcript-encoder axis while the machine has spare short-term CPU headroom
+- machine check right after the launch batch:
+  - `14:26 UTC`: load about `43.3 / 139.7 / 174.0`
+  - memory free about `1.3 TiB`
+  - agent1 active top-level runs: exactly `3`
+  - total agent1 worker budget from this batch: `8` processes
+  - decision:
+    - acceptable under current headroom
+    - do not widen further until one of these results lands
