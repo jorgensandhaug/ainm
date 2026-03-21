@@ -111,6 +111,17 @@
   - `python3 -m compileall src/astar/history/summaries/manifold.py src/astar/workflows/factorize_round_summaries.py src/astar/cli_output.py src/astar/cli.py tests/test_history_manifold.py`
   - `uv run --with pytest python -m pytest tests/test_history_manifold.py -q`
   - result: `2 passed`
+- first hard-3 v5 results completed:
+  - `probe_hazard_v5_k5_c3_r1_regime_probe_3rounds_seed0to1`: `76.4959`, KL `0.092663`
+  - `probe_hazard_v5_k5_c3_r2_regime_probe_3rounds_seed0to1`: `76.4959`, KL `0.092663`
+  - `probe_hazard_v5_k5_c2_r2_regime_probe_3rounds_seed0to1`: `76.4959`, KL `0.092663`
+- interpretation of the identical hard-3 result:
+  - this slice trains on only 2 rounds per fold
+  - the requested v5 configurations therefore collapse to the same effective teacher family after rank/prototype capping
+  - hard-3 is not informative for selecting within v5; proxy-5 is the real selector for this family
+- extra proxy-5 expansion launched after that realization:
+  - session `20593`: `proxy5_hazard_v5_k5_c4_r1_regime_probe_seed0to1`
+  - session `85699`: `proxy5_hazard_v5_k5_c3_r0_regime_probe_seed0to1`
 
 ### Session Continuation
 
