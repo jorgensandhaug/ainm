@@ -2731,6 +2731,16 @@ All of these have been systematically swept and are near-optimal:
 - MLP (hidden=32, steps=500), bandwidth (1.1), neighbors (24)
 - class_scale (all 1.0), delta_clip (4+), interaction features (+0.11)
 - cells_per_seed (512), samples_per_round (2), multi-seed ensemble (neutral)
+- Bucket prior floor=0.01 is CORRECT (lowering it to 0.0003 hurts -0.21 to -0.45!)
+  - The prior's spread provides useful regularization for the operator
+
+### 2026-03-21T19:00Z approx
+
+- Tested fixed bucket prior floor (0.0003 instead of 0.01):
+  - v157 with low prior floor: 86.70 vs 86.91 → **-0.21** (WORSE!)
+  - v143 with low prior floor: 85.69 vs 86.14 → **-0.45** (WORSE!)
+  - v152 with low prior floor: 85.92 vs 86.25 → **-0.33** (WORSE!)
+  - Reverted immediately. The bucket prior's 0.01 floor provides useful regularization.
 
 ### 2026-03-21T18:30Z approx
 
