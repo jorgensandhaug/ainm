@@ -1263,6 +1263,19 @@ def test_round_transcript_residual_memory_round_vector_includes_cross_seed_state
     assert np.max(np.abs(vector)) > 0.0
 
 
+def test_round_transcript_factor_residual_ridge_reconstruction_sane() -> None:
+    from astar.student.predictor.transcript_sequence_factor_residual import _ridge_weights
+
+    features = np.asarray([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], dtype=np.float64)
+    targets = np.asarray([[2.0, 1.0], [3.0, -1.0], [5.0, 0.0]], dtype=np.float64)
+
+    weights = _ridge_weights(features, targets, ridge_lambda=1e-6)
+    preds = features @ weights
+
+    assert weights.shape == (2, 2)
+    assert np.allclose(preds, targets, atol=1e-3)
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

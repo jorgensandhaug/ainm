@@ -3984,6 +3984,35 @@
      - only `4` variants live
      - `jobs=1` each
      - kept conservative because the shared machine already has transcript-memory, transcript-residual-memory, transcript-sequence-residual-memory, and transcript-sequence-factor-residual waves active
+445. New hypothesis branch started while all current radical families still build/cache:
+   - family:
+     - `round_transcript_factor_residual`
+   - hypothesis:
+     - whole-round nearest-neighbor retrieval may still be too brittle and variance-heavy
+     - fit a parametric low-rank operator from whole-round ordered transcript state to a joint residual bundle across all seeds
+     - this keeps the cross-seed coupling idea from item 441, but replaces bundle copying with shared residual modes
+   - objective:
+     - test whether a compact round-level residual manifold generalizes better than round-level memory lookup
+446. Implemented + validated `round_transcript_factor_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_transcript_factor_residual.py`
+   - reproducible models:
+     - `round_transcript_factor_residual`
+     - `round_transcript_factor_residual_v1`
+     - `round_transcript_factor_residual_v2`
+     - `round_transcript_factor_residual_v3`
+     - `round_transcript_factor_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, last `4` queries, factor rank `12`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, last `8` queries, factor rank `24`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - whole-round ordered transcript state -> ridge regression -> low-rank joint residual coefficients -> reconstructed residual bundle across all seeds
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_transcript_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_transcript_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_transcript_factor_residual_ridge_reconstruction_sane tests/test_historical_benchmark.py::test_round_transcript_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

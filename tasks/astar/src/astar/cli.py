@@ -81,6 +81,9 @@ from astar.student.predictor.transcript_sequence_factor_residual import (
 from astar.student.predictor.round_transcript_residual_memory import (
     ROUND_TRANSCRIPT_RESIDUAL_MEMORY_MODEL_CHOICE_LIST,
 )
+from astar.student.predictor.round_transcript_factor_residual import (
+    ROUND_TRANSCRIPT_FACTOR_RESIDUAL_MODEL_CHOICE_LIST,
+)
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -125,6 +128,7 @@ ONLINE_MODEL_CHOICES = [
     *TRANSCRIPT_SEQUENCE_RESIDUAL_MEMORY_MODEL_CHOICE_LIST,
     *TRANSCRIPT_SEQUENCE_FACTOR_RESIDUAL_MODEL_CHOICE_LIST,
     *ROUND_TRANSCRIPT_RESIDUAL_MEMORY_MODEL_CHOICE_LIST,
+    *ROUND_TRANSCRIPT_FACTOR_RESIDUAL_MODEL_CHOICE_LIST,
     *sorted(QUERY_RESIDUAL_MODEL_NAMES, key=_model_choice_sort_key),
 ]
 PRIOR_AND_ONLINE_MODEL_CHOICES = [
