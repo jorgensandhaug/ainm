@@ -10,7 +10,7 @@
 - prompt directly gives name and price
 - prompt directly gives the product number when one is required
 - product is a standard outgoing-sales product
-- localized excluding-VAT wording such as Portuguese `sem IVA` or Spanish `sin IVA` still clearly maps to the excluding-VAT price field
+- localized excluding-VAT wording such as Portuguese `sem IVA`, Spanish `sin IVA`, or German `ohne MwSt.` still clearly maps to the excluding-VAT price field
 - task does not require advanced product setup
 
 ## Do Not Use This Standard If
