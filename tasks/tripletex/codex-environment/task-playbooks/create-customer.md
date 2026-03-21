@@ -54,6 +54,8 @@ This was verified in sandbox:
 - re-verified on 2026-03-21 in persistent sandbox with unique payload `Nordlys Reflection b2cb8ce1 AS`, `post-reflection-b2cb8ce1@nordlys.no`, `999828211`, and `postalAddress` `Parkveien 45`, `5003`, `Bergen`; the same single `POST /customer` returned customer `id=108442597`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-21 in production for the Portuguese-language prompt `Floresta Lda`, `893475656`, `post@floresta.no`, and `Kirkegata 132, 7010 Trondheim`; one `POST /customer` returned customer `id=108442473`, 1 call 0 errors
 - re-verified on 2026-03-21 in persistent sandbox with unique payload `Floresta Reflection b3fb95fd Lda`, `post-reflection-b3fb95fd@floresta.no`, `999395956`, and `postalAddress` `Kirkegata 132`, `7010`, `Trondheim`; the same single `POST /customer` returned customer `id=108442707`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-21 in production for the German-language prompt `Bergwerk GmbH`, `946768693`, `post@bergwerk.no`, and `Solveien 5, 3015 Drammen`; one `POST /customer` returned customer `id=108442567`, preserved all scored fields including postal address, 1 call 0 errors
+- re-verified on 2026-03-21 in persistent sandbox with unique payload `Bergwerk Reflection 4665a70c GmbH`, `post-reflection-4665a70c@bergwerk.no`, `999466570`, and `postalAddress` `Solveien 5`, `3015`, `Drammen`; the same single `POST /customer` returned customer `id=108442922`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 
 ## Minimal Flow
 
