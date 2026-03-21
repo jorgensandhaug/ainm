@@ -51,12 +51,15 @@ MAX_QUERY_BUDGET = 50.0
 MAX_VIEWPORT_AREA = 15.0 * 15.0
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN = "gbx_transcript_regime_knn_terminal_mapknn_v1"
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA = "gbx_transcript_regime_knn_terminal_mapknn_delta_v1"
+GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT = "gbx_transcript_regime_knn_terminal_mapknn_repeat_v1"
+GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA = "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta_v1"
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPLLR = "gbx_transcript_regime_knn_terminal_mapllr_v1"
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPPRIOR = "gbx_transcript_regime_knn_terminal_mapprior_v1"
 GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN = "gbx_transcript_manifold_terminal_mapknn_v1"
 GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA = "gbx_transcript_manifold_terminal_mapknn_delta_v1"
 GBX_ROUNDBANK_TERMINAL_MAPKNN = "gbx_roundbank_terminal_mapknn_v1"
 GBX_RIDGE_TERMINAL_MAPKNN = "gbx_ridge_terminal_mapknn_v1"
+GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN = "gbx_querylaw_roundbank_terminal_mapknn_v1"
 
 _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
     "gbx_transcript_regime_knn_terminal_mapknn": (
@@ -82,6 +85,34 @@ _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
     ),
     GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA: (
         GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    "gbx_transcript_regime_knn_terminal_mapknn_repeat": (
+        GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT: (
+        GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta": (
+        GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA: (
+        GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA,
         GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
         "map_summary_knn",
         5,
@@ -171,6 +202,20 @@ _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
         5,
         5,
     ),
+    "gbx_querylaw_roundbank_terminal_mapknn": (
+        GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN: (
+        GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
 }
 
 _ROUNDBANK_MODEL_NAMES = {
@@ -183,6 +228,11 @@ _RIDGE_MODEL_NAMES = {
     GBX_RIDGE_TERMINAL_MAPKNN,
 }
 
+_QUERYLAW_MODEL_NAMES = {
+    "gbx_querylaw_roundbank_terminal_mapknn",
+    GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN,
+}
+
 _MANIFOLD_MODEL_NAMES = {
     "gbx_transcript_manifold_terminal_mapknn",
     GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN,
@@ -193,8 +243,20 @@ _MANIFOLD_MODEL_NAMES = {
 _DELTA_FEATURE_MODEL_NAMES = {
     "gbx_transcript_regime_knn_terminal_mapknn_delta",
     GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA,
+    "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta",
+    GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA,
     "gbx_transcript_manifold_terminal_mapknn_delta",
     GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA,
+}
+
+_REPEAT_FEATURE_MODEL_NAMES = {
+    "gbx_transcript_regime_knn_terminal_mapknn_repeat",
+    GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT,
+}
+
+_REPEAT_DELTA_FEATURE_MODEL_NAMES = {
+    "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta",
+    GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA,
 }
 
 
@@ -208,6 +270,10 @@ def is_gbx_transcript_regime_roundbank_model_name(model_name: str) -> bool:
 
 def is_gbx_transcript_regime_ridge_model_name(model_name: str) -> bool:
     return model_name.strip().lower() in _RIDGE_MODEL_NAMES
+
+
+def is_gbx_transcript_regime_querylaw_model_name(model_name: str) -> bool:
+    return model_name.strip().lower() in _QUERYLAW_MODEL_NAMES
 
 
 def is_gbx_transcript_regime_manifold_model_name(model_name: str) -> bool:
@@ -556,7 +622,14 @@ def _safe_fraction(numerator: float, denominator: float) -> float:
 
 
 def _transcript_feature_variant(model_name: str) -> str:
-    return "delta" if model_name.strip().lower() in _DELTA_FEATURE_MODEL_NAMES else "base"
+    normalized = model_name.strip().lower()
+    if normalized in _REPEAT_DELTA_FEATURE_MODEL_NAMES:
+        return "repeat_delta"
+    if normalized in _REPEAT_FEATURE_MODEL_NAMES:
+        return "repeat"
+    if normalized in _DELTA_FEATURE_MODEL_NAMES:
+        return "delta"
+    return "base"
 
 
 def _seed_summary_feature_names(seed_index: int, *, feature_variant: str = "base") -> list[str]:
@@ -577,7 +650,7 @@ def _seed_summary_feature_names(seed_index: int, *, feature_variant: str = "base
         f"{prefix}_mean_wealth",
         f"{prefix}_mean_defense",
     ]
-    if feature_variant == "delta":
+    if feature_variant in {"delta", "repeat_delta"}:
         names.extend(
             [
                 f"{prefix}_mean_query_center_x",
@@ -587,6 +660,30 @@ def _seed_summary_feature_names(seed_index: int, *, feature_variant: str = "base
                 f"{prefix}_changed_frac",
                 *[f"{prefix}_initial_query_class_freq_{class_index}" for class_index in range(6)],
                 *[f"{prefix}_delta_query_class_freq_{class_index}" for class_index in range(6)],
+            ],
+        )
+    if feature_variant in {"repeat", "repeat_delta"}:
+        names.extend(
+            [
+                f"{prefix}_repeat_query_frac",
+                f"{prefix}_mean_repeat_group_size_frac",
+                f"{prefix}_max_repeat_group_size_frac",
+                *[f"{prefix}_repeat_class_std_mean_{class_index}" for class_index in range(6)],
+                *[f"{prefix}_repeat_class_std_max_{class_index}" for class_index in range(6)],
+                f"{prefix}_repeat_changed_frac_std_mean",
+                f"{prefix}_repeat_changed_frac_std_max",
+                f"{prefix}_repeat_settlement_density_std_mean",
+                f"{prefix}_repeat_settlement_density_std_max",
+                f"{prefix}_repeat_alive_frac_std_mean",
+                f"{prefix}_repeat_alive_frac_std_max",
+                f"{prefix}_repeat_port_frac_std_mean",
+                f"{prefix}_repeat_port_frac_std_max",
+                f"{prefix}_repeat_owner_diversity_std_mean",
+                f"{prefix}_repeat_owner_diversity_std_max",
+                f"{prefix}_repeat_population_std_mean",
+                f"{prefix}_repeat_food_std_mean",
+                f"{prefix}_repeat_wealth_std_mean",
+                f"{prefix}_repeat_defense_std_mean",
             ],
         )
     return names
@@ -637,7 +734,12 @@ def _build_seed_summary_vector(
         0.0 if seed_evidence.mean_wealth is None else float(seed_evidence.mean_wealth),
         0.0 if seed_evidence.mean_defense is None else float(seed_evidence.mean_defense),
     ]
-    if feature_variant == "delta":
+    initial_grid = None
+    if feature_variant in {"delta", "repeat_delta", "repeat"}:
+        initial_grid = collapse_internal_grid(
+            np.asarray(round_detail.initial_states[seed_index].grid, dtype=np.int64),
+        )
+    if feature_variant in {"delta", "repeat_delta"}:
         initial_grid = collapse_internal_grid(
             np.asarray(round_detail.initial_states[seed_index].grid, dtype=np.int64),
         )
@@ -673,6 +775,107 @@ def _build_seed_summary_vector(
                 *delta_frequencies.tolist(),
             ],
         )
+    if feature_variant in {"repeat", "repeat_delta"}:
+        grouped: dict[tuple[int, int, int, int], list[LiveQueryObs]] = {}
+        for observation in observations:
+            viewport = observation.viewport
+            key = (viewport.x, viewport.y, viewport.w, viewport.h)
+            grouped.setdefault(key, []).append(observation)
+        repeated_groups = [group for group in grouped.values() if len(group) > 1]
+        repeated_query_count = sum(len(group) for group in repeated_groups)
+        repeat_group_sizes = np.asarray([len(group) for group in repeated_groups], dtype=np.float64)
+        class_std_means: list[np.ndarray] = []
+        changed_std_values: list[float] = []
+        settlement_density_stds: list[float] = []
+        alive_frac_stds: list[float] = []
+        port_frac_stds: list[float] = []
+        owner_diversity_stds: list[float] = []
+        population_stds: list[float] = []
+        food_stds: list[float] = []
+        wealth_stds: list[float] = []
+        defense_stds: list[float] = []
+        for group in repeated_groups:
+            group_class_frequencies: list[np.ndarray] = []
+            changed_fracs: list[float] = []
+            settlement_densities: list[float] = []
+            alive_fracs: list[float] = []
+            port_fracs: list[float] = []
+            owner_diversities: list[float] = []
+            populations: list[float] = []
+            foods: list[float] = []
+            wealths: list[float] = []
+            defenses: list[float] = []
+            for observation in group:
+                collapsed_observed = collapse_internal_grid(np.asarray(observation.grid, dtype=np.int64))
+                bincount = np.bincount(collapsed_observed.reshape(-1), minlength=6).astype(np.float64)
+                total = float(np.sum(bincount))
+                group_class_frequencies.append(
+                    bincount / total if total > 0.0 else np.zeros(6, dtype=np.float64),
+                )
+                viewport = observation.viewport
+                area = float(viewport.w * viewport.h)
+                initial_patch = initial_grid[
+                    viewport.y:(viewport.y + viewport.h),
+                    viewport.x:(viewport.x + viewport.w),
+                ]
+                changed_fracs.append(_safe_fraction(float(np.sum(initial_patch != collapsed_observed)), area))
+                settlements = list(observation.settlements)
+                settlement_count = float(len(settlements))
+                settlement_densities.append(_safe_fraction(settlement_count, area))
+                alive_fracs.append(_safe_fraction(sum(1 for item in settlements if item.alive), settlement_count))
+                port_fracs.append(_safe_fraction(sum(1 for item in settlements if item.has_port), settlement_count))
+                owner_ids = [item.owner_id for item in settlements if item.owner_id is not None]
+                owner_diversities.append(_safe_fraction(len(set(owner_ids)), settlement_count))
+                populations.extend(
+                    float(item.population) for item in settlements if item.population is not None
+                )
+                foods.extend(float(item.food) for item in settlements if item.food is not None)
+                wealths.extend(float(item.wealth) for item in settlements if item.wealth is not None)
+                defenses.extend(float(item.defense) for item in settlements if item.defense is not None)
+            class_std = np.std(np.stack(group_class_frequencies, axis=0), axis=0)
+            class_std_means.append(np.asarray(class_std, dtype=np.float64))
+            changed_std_values.append(float(np.std(np.asarray(changed_fracs, dtype=np.float64))))
+            settlement_density_stds.append(float(np.std(np.asarray(settlement_densities, dtype=np.float64))))
+            alive_frac_stds.append(float(np.std(np.asarray(alive_fracs, dtype=np.float64))))
+            port_frac_stds.append(float(np.std(np.asarray(port_fracs, dtype=np.float64))))
+            owner_diversity_stds.append(float(np.std(np.asarray(owner_diversities, dtype=np.float64))))
+            population_stds.append(float(np.std(np.asarray(populations, dtype=np.float64))) if populations else 0.0)
+            food_stds.append(float(np.std(np.asarray(foods, dtype=np.float64))) if foods else 0.0)
+            wealth_stds.append(float(np.std(np.asarray(wealths, dtype=np.float64))) if wealths else 0.0)
+            defense_stds.append(float(np.std(np.asarray(defenses, dtype=np.float64))) if defenses else 0.0)
+        mean_class_std = (
+            np.mean(np.stack(class_std_means, axis=0), axis=0)
+            if class_std_means
+            else np.zeros(6, dtype=np.float64)
+        )
+        max_class_std = (
+            np.max(np.stack(class_std_means, axis=0), axis=0)
+            if class_std_means
+            else np.zeros(6, dtype=np.float64)
+        )
+        components.extend(
+            [
+                _safe_fraction(float(repeated_query_count), float(max(seed_evidence.query_count, 1))),
+                _safe_fraction(float(np.mean(repeat_group_sizes)) if repeat_group_sizes.size else 0.0, MAX_QUERY_BUDGET),
+                _safe_fraction(float(np.max(repeat_group_sizes)) if repeat_group_sizes.size else 0.0, MAX_QUERY_BUDGET),
+                *mean_class_std.tolist(),
+                *max_class_std.tolist(),
+                _safe_mean(changed_std_values),
+                float(np.max(np.asarray(changed_std_values, dtype=np.float64))) if changed_std_values else 0.0,
+                _safe_mean(settlement_density_stds),
+                float(np.max(np.asarray(settlement_density_stds, dtype=np.float64))) if settlement_density_stds else 0.0,
+                _safe_mean(alive_frac_stds),
+                float(np.max(np.asarray(alive_frac_stds, dtype=np.float64))) if alive_frac_stds else 0.0,
+                _safe_mean(port_frac_stds),
+                float(np.max(np.asarray(port_frac_stds, dtype=np.float64))) if port_frac_stds else 0.0,
+                _safe_mean(owner_diversity_stds),
+                float(np.max(np.asarray(owner_diversity_stds, dtype=np.float64))) if owner_diversity_stds else 0.0,
+                _safe_mean(population_stds),
+                _safe_mean(food_stds),
+                _safe_mean(wealth_stds),
+                _safe_mean(defense_stds),
+            ],
+        )
     return np.asarray(components, dtype=np.float64)
 
 
@@ -698,6 +901,90 @@ def _build_transcript_summary_vector(
             ),
         )
     return np.concatenate(components, axis=0)
+
+
+def _query_slot_feature_names() -> list[str]:
+    return [
+        "seed_index_frac",
+        "viewport_center_x",
+        "viewport_center_y",
+        "viewport_area_frac",
+        *[f"initial_class_freq_{class_index}" for class_index in range(6)],
+        *[f"observed_class_freq_{class_index}" for class_index in range(6)],
+        *[f"delta_class_freq_{class_index}" for class_index in range(6)],
+        "changed_frac",
+        "settlement_density",
+        "alive_frac",
+        "port_frac",
+        "owner_diversity",
+        "mean_population",
+        "mean_food",
+        "mean_wealth",
+        "mean_defense",
+    ]
+
+
+def _query_slot_feature_vector(
+    round_detail: RoundDetail,
+    observation: LiveQueryObs,
+) -> np.ndarray:
+    viewport = observation.viewport
+    area = float(viewport.w * viewport.h)
+    initial_grid = collapse_internal_grid(
+        np.asarray(round_detail.initial_states[observation.seed_index].grid, dtype=np.int64),
+    )
+    initial_patch = initial_grid[
+        viewport.y:(viewport.y + viewport.h),
+        viewport.x:(viewport.x + viewport.w),
+    ]
+    observed_grid = collapse_internal_grid(np.asarray(observation.grid, dtype=np.int64))
+    initial_counts = np.bincount(initial_patch.reshape(-1), minlength=6).astype(np.float64)
+    observed_counts = np.bincount(observed_grid.reshape(-1), minlength=6).astype(np.float64)
+    initial_total = float(np.sum(initial_counts))
+    observed_total = float(np.sum(observed_counts))
+    initial_freq = initial_counts / initial_total if initial_total > 0.0 else np.zeros(6, dtype=np.float64)
+    observed_freq = observed_counts / observed_total if observed_total > 0.0 else np.zeros(6, dtype=np.float64)
+    settlements = list(observation.settlements)
+    settlement_count = float(len(settlements))
+    populations = [float(item.population) for item in settlements if item.population is not None]
+    foods = [float(item.food) for item in settlements if item.food is not None]
+    wealths = [float(item.wealth) for item in settlements if item.wealth is not None]
+    defenses = [float(item.defense) for item in settlements if item.defense is not None]
+    owner_ids = [item.owner_id for item in settlements if item.owner_id is not None]
+    return np.asarray(
+        [
+            _safe_fraction(float(observation.seed_index), max(round_detail.seeds_count - 1, 1)),
+            _safe_fraction(float(viewport.x + (0.5 * viewport.w)), float(round_detail.map_width)),
+            _safe_fraction(float(viewport.y + (0.5 * viewport.h)), float(round_detail.map_height)),
+            _safe_fraction(area, MAX_VIEWPORT_AREA),
+            *initial_freq.tolist(),
+            *observed_freq.tolist(),
+            *(observed_freq - initial_freq).tolist(),
+            _safe_fraction(float(np.sum(initial_patch != observed_grid)), area),
+            _safe_fraction(settlement_count, area),
+            _safe_fraction(sum(1 for item in settlements if item.alive), settlement_count),
+            _safe_fraction(sum(1 for item in settlements if item.has_port), settlement_count),
+            _safe_fraction(len(set(owner_ids)), settlement_count),
+            float(np.mean(populations)) if populations else 0.0,
+            float(np.mean(foods)) if foods else 0.0,
+            float(np.mean(wealths)) if wealths else 0.0,
+            float(np.mean(defenses)) if defenses else 0.0,
+        ],
+        dtype=np.float64,
+    )
+
+
+def _build_query_slot_feature_matrix(
+    round_detail: RoundDetail,
+    observations: Sequence[LiveQueryObs],
+) -> np.ndarray:
+    feature_names = _query_slot_feature_names()
+    if not observations:
+        return np.zeros((0, len(feature_names)), dtype=np.float64)
+    return np.stack(
+        [_query_slot_feature_vector(round_detail, observation) for observation in observations],
+        axis=0,
+    )
 
 
 def _clip_regime(regime: np.ndarray) -> np.ndarray:
@@ -1655,15 +1942,296 @@ class GreyBoxTranscriptRegimeManifoldPredictor(GreyBoxTranscriptRegimeKNNPredict
         )
 
 
+class GreyBoxQueryLawRoundBankCheckpoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    dataset_name: str
+    policy_name: str
+    samples_per_round: int = Field(ge=1)
+    checkpoint_npz_path: str
+    terminal_checkpoint_path: str
+    terminal_model_name: str
+    training_round_ids: list[str]
+    round_ids_by_bank: list[str]
+    feature_names: list[str]
+    sample_count: int = Field(ge=0)
+    round_count: int = Field(ge=1)
+    query_slot_count: int = Field(ge=0)
+    feature_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)
+    posterior_temperature: float = Field(gt=0.0)
+    feature_scale_floor: float = Field(gt=0.0)
+
+
+class GreyBoxQueryLawRoundBankPredictor(GreyBoxTranscriptRegimeKNNPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN
+    round_ids_by_bank: tuple[str, ...] = ()
+    query_slot_count: int = Field(default=0, ge=0)
+    round_query_feature_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0, 1), dtype=np.float64))
+    round_query_feature_scale_bank: np.ndarray = Field(default_factory=lambda: np.ones((0, 0, 1), dtype=np.float64))
+    round_residual_regime_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    posterior_temperature: float = Field(default=1.0, gt=0.0)
+    feature_scale_floor: float = Field(default=0.05, gt=0.0)
+
+    @classmethod
+    def fit_from_workspace(
+        cls,
+        paths: WorkspacePaths,
+        *,
+        round_ids: Sequence[str] | None = None,
+        policy_name: str = "coverage",
+        samples_per_round: int = 4,
+        model_name: str = GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN,
+    ) -> GreyBoxQueryLawRoundBankPredictor:
+        (
+            checkpoint_model_name,
+            terminal_checkpoint_model_name,
+            map_posterior_mode,
+            map_neighbor_count,
+            resolved_samples_per_round,
+        ) = resolve_gbx_transcript_regime_training_spec(
+            model_name,
+            samples_per_round=samples_per_round,
+        )
+        dataset_policy_name, resolved_policy_name = resolve_gbx_transcript_regime_policy_names(policy_name)
+        selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
+        index_path = _ensure_synthetic_dataset(
+            paths,
+            policy_name=dataset_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            round_ids=selected_round_ids,
+        )
+        terminal_checkpoint_path = gbx_terminal_scoped_checkpoint_path(
+            paths,
+            round_ids=selected_round_ids,
+            model_name=terminal_checkpoint_model_name,
+        )
+        terminal_teacher = _load_or_fit_terminal_teacher(
+            paths,
+            round_ids=selected_round_ids,
+            terminal_checkpoint_model_name=terminal_checkpoint_model_name,
+            serving_model_name=terminal_checkpoint_model_name,
+            map_posterior_mode=map_posterior_mode,
+            map_neighbor_count=map_neighbor_count,
+        )
+
+        index_table = pl.read_parquet(index_path, columns=["round_id", "episode_path"])
+        round_detail_cache: dict[str, RoundDetail] = {}
+        map_prior_cache: dict[str, np.ndarray] = {}
+        feature_bank_by_round: dict[str, list[np.ndarray]] = {round_id: [] for round_id in selected_round_ids}
+        residual_bank_by_round: dict[str, list[np.ndarray]] = {round_id: [] for round_id in selected_round_ids}
+        feature_names = _query_slot_feature_names()
+        query_slot_count: int | None = None
+        regime_dim: int | None = None
+        sample_count = 0
+        for row in index_table.iter_rows(named=True):
+            round_id = str(row["round_id"])
+            if round_id not in round_detail_cache:
+                round_detail = read_round_record(paths, round_id).round
+                round_detail_cache[round_id] = round_detail
+                round_context = build_round_context_from_detail(round_detail)
+                map_prior_cache[round_id] = terminal_teacher.map_regime_prior(round_context.seeds)
+            round_detail = round_detail_cache[round_id]
+            artifact_path = resolve_synthetic_episode_path(index_path, str(row["episode_path"]))
+            artifact = load_synthetic_episode(artifact_path)
+            feature_matrix = _build_query_slot_feature_matrix(round_detail, artifact.observations)
+            if query_slot_count is None:
+                query_slot_count = int(feature_matrix.shape[0])
+            elif int(feature_matrix.shape[0]) != query_slot_count:
+                raise ValueError(
+                    f"querylaw requires fixed query counts; got {feature_matrix.shape[0]} vs {query_slot_count}",
+                )
+            round_prior = np.asarray(map_prior_cache[round_id], dtype=np.float64)
+            residual = np.asarray(artifact.regime_vector, dtype=np.float64) - round_prior
+            feature_bank_by_round[round_id].append(feature_matrix)
+            residual_bank_by_round[round_id].append(np.asarray(residual, dtype=np.float64))
+            sample_count += 1
+            regime_dim = int(residual.shape[0])
+        if query_slot_count is None or regime_dim is None:
+            raise ValueError("querylaw model did not yield any synthetic episodes")
+
+        round_ids_by_bank = tuple(selected_round_ids)
+        round_query_feature_bank: list[np.ndarray] = []
+        round_query_variance_bank: list[np.ndarray] = []
+        round_residual_regime_bank: list[np.ndarray] = []
+        for round_id in round_ids_by_bank:
+            round_features = feature_bank_by_round.get(round_id, [])
+            if not round_features:
+                raise ValueError(f"querylaw training bank missing round_id={round_id}")
+            round_feature_tensor = np.stack(round_features, axis=0)
+            round_query_feature_bank.append(np.mean(round_feature_tensor, axis=0))
+            round_query_variance_bank.append(np.var(round_feature_tensor, axis=0))
+            round_residual_regime_bank.append(
+                np.mean(np.stack(residual_bank_by_round[round_id], axis=0), axis=0),
+            )
+        variance_bank = np.stack(round_query_variance_bank, axis=0)
+        pooled_variance = np.mean(variance_bank, axis=0)
+        scale_floor = 0.05
+        shrunk_variance = 0.5 * variance_bank + 0.5 * pooled_variance[None, :, :]
+        round_query_feature_scale_bank = np.sqrt(np.maximum(shrunk_variance, scale_floor**2))
+        return cls(
+            name=checkpoint_model_name,
+            dataset_name=index_path.parent.name,
+            policy_name=resolved_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            training_round_ids=tuple(selected_round_ids),
+            terminal_checkpoint_path=str(terminal_checkpoint_path),
+            feature_names=tuple(feature_names),
+            standardized_feature_bank=np.zeros((0, len(feature_names)), dtype=np.float64),
+            residual_regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            feature_mean=np.zeros(len(feature_names), dtype=np.float64),
+            feature_scale=np.ones(len(feature_names), dtype=np.float64),
+            k_neighbors=5,
+            terminal_teacher=terminal_teacher,
+            round_ids_by_bank=round_ids_by_bank,
+            query_slot_count=query_slot_count,
+            round_query_feature_bank=np.stack(round_query_feature_bank, axis=0),
+            round_query_feature_scale_bank=np.asarray(round_query_feature_scale_bank, dtype=np.float64),
+            round_residual_regime_bank=np.stack(round_residual_regime_bank, axis=0),
+            posterior_temperature=1.0,
+            feature_scale_floor=scale_floor,
+        )
+
+    def checkpoint(
+        self,
+        checkpoint_npz_path: Path,
+        terminal_checkpoint_path: Path,
+    ) -> GreyBoxQueryLawRoundBankCheckpoint:
+        return GreyBoxQueryLawRoundBankCheckpoint(
+            name=self.name,
+            dataset_name=self.dataset_name,
+            policy_name=self.policy_name,
+            samples_per_round=self.samples_per_round,
+            checkpoint_npz_path=str(checkpoint_npz_path),
+            terminal_checkpoint_path=str(terminal_checkpoint_path),
+            terminal_model_name=self.terminal_teacher.name,
+            training_round_ids=list(self.training_round_ids),
+            round_ids_by_bank=list(self.round_ids_by_bank),
+            feature_names=list(self.feature_names),
+            sample_count=int(len(self.round_ids_by_bank) * self.samples_per_round),
+            round_count=int(self.round_query_feature_bank.shape[0]),
+            query_slot_count=self.query_slot_count,
+            feature_dim=int(self.round_query_feature_bank.shape[-1]),
+            regime_dim=int(self.round_residual_regime_bank.shape[-1]),
+            posterior_temperature=self.posterior_temperature,
+            feature_scale_floor=self.feature_scale_floor,
+        )
+
+    def save_checkpoint(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        npz_path = path.parent / "bank.npz"
+        np.savez_compressed(
+            npz_path,
+            round_query_feature_bank=self.round_query_feature_bank,
+            round_query_feature_scale_bank=self.round_query_feature_scale_bank,
+            round_residual_regime_bank=self.round_residual_regime_bank,
+        )
+        checkpoint = self.checkpoint(npz_path, Path(self.terminal_checkpoint_path))
+        path.write_text(json.dumps(to_jsonable(checkpoint), indent=2), encoding="utf-8")
+        return path
+
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> GreyBoxQueryLawRoundBankPredictor:
+        checkpoint = GreyBoxQueryLawRoundBankCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        arrays = np.load(checkpoint.checkpoint_npz_path)
+        terminal_teacher = GreyBoxTerminalTeacher.load_checkpoint(Path(checkpoint.terminal_checkpoint_path))
+        regime_dim = int(np.asarray(arrays["round_residual_regime_bank"], dtype=np.float64).shape[-1])
+        feature_dim = int(np.asarray(arrays["round_query_feature_bank"], dtype=np.float64).shape[-1])
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            policy_name=checkpoint.policy_name,
+            samples_per_round=checkpoint.samples_per_round,
+            training_round_ids=tuple(checkpoint.training_round_ids),
+            terminal_checkpoint_path=checkpoint.terminal_checkpoint_path,
+            feature_names=tuple(checkpoint.feature_names),
+            standardized_feature_bank=np.zeros((0, feature_dim), dtype=np.float64),
+            residual_regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            feature_mean=np.zeros(feature_dim, dtype=np.float64),
+            feature_scale=np.ones(feature_dim, dtype=np.float64),
+            k_neighbors=5,
+            terminal_teacher=terminal_teacher,
+            round_ids_by_bank=tuple(checkpoint.round_ids_by_bank),
+            query_slot_count=checkpoint.query_slot_count,
+            round_query_feature_bank=np.asarray(arrays["round_query_feature_bank"], dtype=np.float64),
+            round_query_feature_scale_bank=np.asarray(arrays["round_query_feature_scale_bank"], dtype=np.float64),
+            round_residual_regime_bank=np.asarray(arrays["round_residual_regime_bank"], dtype=np.float64),
+            posterior_temperature=checkpoint.posterior_temperature,
+            feature_scale_floor=checkpoint.feature_scale_floor,
+        )
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        current_map_prior = self.terminal_teacher.map_regime_prior(context.round_context.seeds)
+        round_count = int(self.round_residual_regime_bank.shape[0])
+        if round_count == 0:
+            return RegimePosteriorState(mean=np.asarray(current_map_prior, dtype=np.float64))
+        query_features = _build_query_slot_feature_matrix(
+            context.round_context.to_round_detail(),
+            context.observations,
+        )
+        observed_count = min(int(query_features.shape[0]), self.query_slot_count)
+        if observed_count <= 0:
+            weights = np.full(round_count, 1.0 / float(round_count), dtype=np.float64)
+            residual_mean = np.tensordot(weights, self.round_residual_regime_bank, axes=(0, 0))
+            posterior_mean = _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual_mean)
+            particles = tuple(
+                _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual)
+                for residual in self.round_residual_regime_bank
+            )
+            return RegimePosteriorState(
+                mean=posterior_mean,
+                particles=particles,
+                weights=weights,
+            )
+        delta = (
+            query_features[None, :observed_count, :]
+            - self.round_query_feature_bank[:, :observed_count, :]
+        )
+        scale = np.clip(
+            self.round_query_feature_scale_bank[:, :observed_count, :],
+            self.feature_scale_floor,
+            None,
+        )
+        distances = 0.5 * (
+            np.square(delta / scale) + (2.0 * np.log(scale))
+        )
+        distances = np.mean(distances, axis=(1, 2))
+        shifted = distances - float(np.min(distances))
+        weights = np.exp(-shifted / self.posterior_temperature)
+        weights = weights / np.sum(weights)
+        order = np.argsort(distances)
+        ordered_weights = np.asarray(weights[order], dtype=np.float64)
+        ordered_residuals = np.asarray(self.round_residual_regime_bank[order], dtype=np.float64)
+        residual_mean = np.tensordot(ordered_weights, ordered_residuals, axes=(0, 0))
+        posterior_mean = _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual_mean)
+        particles = tuple(
+            _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual)
+            for residual in ordered_residuals
+        )
+        return RegimePosteriorState(
+            mean=posterior_mean,
+            particles=particles,
+            weights=ordered_weights,
+        )
+
+
 __all__ = [
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA",
+    "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT",
+    "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_REPEAT_DELTA",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPLLR",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPPRIOR",
     "GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN",
     "GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA",
     "GBX_ROUNDBANK_TERMINAL_MAPKNN",
     "GBX_RIDGE_TERMINAL_MAPKNN",
+    "GBX_QUERYLAW_ROUNDBANK_TERMINAL_MAPKNN",
+    "GreyBoxQueryLawRoundBankCheckpoint",
+    "GreyBoxQueryLawRoundBankPredictor",
     "GreyBoxTranscriptRegimeCheckpoint",
     "GreyBoxTranscriptRegimeKNNPredictor",
     "GreyBoxTranscriptRegimeManifoldCheckpoint",
@@ -1675,6 +2243,7 @@ __all__ = [
     "gbx_transcript_regime_scoped_checkpoint_path",
     "is_gbx_transcript_regime_manifold_model_name",
     "is_gbx_transcript_regime_model_name",
+    "is_gbx_transcript_regime_querylaw_model_name",
     "is_gbx_transcript_regime_roundbank_model_name",
     "is_gbx_transcript_regime_ridge_model_name",
     "resolve_gbx_transcript_regime_policy_names",

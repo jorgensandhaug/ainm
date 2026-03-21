@@ -21,6 +21,7 @@ from astar.student.predictor.gbx_map_prior import (
     GreyBoxMapOnlyBucketPredictor,
 )
 from astar.student.predictor.gbx_transcript_regime import (
+    GreyBoxQueryLawRoundBankPredictor,
     GreyBoxTranscriptRegimeManifoldPredictor,
     GreyBoxTranscriptRegimeRoundBankPredictor,
     GreyBoxTranscriptRegimeRidgePredictor,
@@ -28,6 +29,7 @@ from astar.student.predictor.gbx_transcript_regime import (
     gbx_transcript_regime_scoped_checkpoint_path,
     is_gbx_transcript_regime_manifold_model_name,
     is_gbx_transcript_regime_model_name,
+    is_gbx_transcript_regime_querylaw_model_name,
     is_gbx_transcript_regime_ridge_model_name,
     is_gbx_transcript_regime_roundbank_model_name,
     resolve_gbx_transcript_regime_policy_names,
@@ -219,6 +221,30 @@ _GBX_TRANSCRIPT_REGIME_BLEND_SPECS: dict[str, tuple[str, str, float, str]] = {
         0.20,
         "uniform",
     ),
+    "gbx_maponly_transcriptrepeat_mapknn_blend20": (
+        "gbx_maponly_transcriptrepeat_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_repeat",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptrepeat_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptrepeat_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_repeat",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptrepeatdelta_mapknn_blend20": (
+        "gbx_maponly_transcriptrepeatdelta_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptrepeatdelta_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptrepeatdelta_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_repeat_delta",
+        0.20,
+        "uniform",
+    ),
     "gbx_maponly_transcriptmanifold_mapknn_blend20": (
         "gbx_maponly_transcriptmanifold_mapknn_blend20_v1",
         "gbx_transcript_manifold_terminal_mapknn",
@@ -288,6 +314,18 @@ _GBX_TRANSCRIPT_REGIME_BLEND_SPECS: dict[str, tuple[str, str, float, str]] = {
     "gbx_maponly_ridge_mapknn_blend20_v1": (
         "gbx_maponly_ridge_mapknn_blend20_v1",
         "gbx_ridge_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_querylaw_roundbank_mapknn_blend20": (
+        "gbx_maponly_querylaw_roundbank_mapknn_blend20_v1",
+        "gbx_querylaw_roundbank_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_querylaw_roundbank_mapknn_blend20_v1": (
+        "gbx_maponly_querylaw_roundbank_mapknn_blend20_v1",
+        "gbx_querylaw_roundbank_terminal_mapknn",
         0.20,
         "uniform",
     ),
@@ -434,7 +472,7 @@ class GreyBoxTranscriptRegimeBlendPredictor(BaseRoundPredictor):
     gate_mode: str = "uniform"
     probability_floor: float = 1e-4
     map_prior_predictor: GreyBoxMapOnlyBucketPredictor
-    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor
+    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor | GreyBoxQueryLawRoundBankPredictor
 
     def _transcript_predictions_with_confidence(self, context) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
         posterior = self.transcript_predictor.infer_regime(context)
@@ -543,7 +581,7 @@ class GreyBoxTranscriptEnsembleBlendPredictor(BaseRoundPredictor):
     probability_floor: float = 1e-4
     map_prior_predictor: GreyBoxMapOnlyBucketPredictor
     transcript_predictors: tuple[
-        GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor,
+        GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor | GreyBoxQueryLawRoundBankPredictor,
         ...,
     ]
     transcript_weights: tuple[float, ...]
@@ -777,6 +815,15 @@ def build_online_predictor(
                     samples_per_round=resolved_samples_per_round,
                     model_name=checkpoint_model_name,
                 )
+            if is_gbx_transcript_regime_querylaw_model_name(normalized):
+                predictor_loader = GreyBoxQueryLawRoundBankPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxQueryLawRoundBankPredictor.fit_from_workspace(
+                    workspace_paths,
+                    round_ids=list(historical_round_ids),
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
             if is_gbx_transcript_regime_manifold_model_name(normalized):
                 predictor_loader = GreyBoxTranscriptRegimeManifoldPredictor.load_checkpoint
                 predictor_builder = lambda: GreyBoxTranscriptRegimeManifoldPredictor.fit_from_workspace(
@@ -814,6 +861,14 @@ def build_online_predictor(
             if is_gbx_transcript_regime_ridge_model_name(normalized):
                 predictor_loader = GreyBoxTranscriptRegimeRidgePredictor.load_checkpoint
                 predictor_builder = lambda: GreyBoxTranscriptRegimeRidgePredictor.fit_from_workspace(
+                    workspace_paths,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
+            if is_gbx_transcript_regime_querylaw_model_name(normalized):
+                predictor_loader = GreyBoxQueryLawRoundBankPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxQueryLawRoundBankPredictor.fit_from_workspace(
                     workspace_paths,
                     policy_name=resolved_policy_name,
                     samples_per_round=resolved_samples_per_round,

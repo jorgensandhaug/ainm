@@ -2621,3 +2621,193 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - Verification after the follow-up ensemble patch:
   - `uv run pytest tests/test_historical_benchmark.py -q`
   - result: `42 passed in 62.86s`
+
+### 2026-03-21T13:26Z
+
+- Re-read the family handoff in `instructions/agent4.md`, plus repo-level facts in `README.md` and canonical challenge facts in `docs/game_facts.md`, before continuing new-model work.
+- Checked local task tracker requirement from `AGENTS.md`:
+  - `br list`
+  - result: command missing on this machine (`br: command not found`)
+- Checked machine health before launching more work so parallelism stays cooperative with other agents:
+  - time:
+    - `2026-03-21 13:26:05 UTC`
+  - load:
+    - `99.20 109.64 75.29`
+  - memory:
+    - `1.3 TiB used`
+    - `1.3 TiB free`
+    - `1.6 TiB available`
+  - notable other jobs:
+    - `scripts/verify_behavioral_fingerprint.py` consuming very high CPU
+    - active agent6/agent7/agent5 benchmark and test jobs
+  - operational decision:
+    - keep this turn's benchmark fanout at moderate `--jobs 6`, not maximal
+- Started a new repeat-aware transcript branch to use within-viewport stochasticity from repeated legal queries, matching the handoff's emphasis on live inference over a small regime signal rather than only mean transcript summaries.
+- Code changes in progress:
+  - `src/astar/student/predictor/gbx_transcript_regime.py`
+    - added canonical models:
+      - `gbx_transcript_regime_knn_terminal_mapknn_repeat_v1`
+      - `gbx_transcript_regime_knn_terminal_mapknn_repeat_delta_v1`
+    - extended transcript feature variants from `{base, delta}` to:
+      - `base`
+      - `delta`
+      - `repeat`
+      - `repeat_delta`
+    - added repeat-aware seed-summary features built from groups of identical queried viewports:
+      - repeated query fraction
+      - mean/max repeat group size
+      - per-class within-group frequency std mean/max
+      - within-group std summaries for:
+        - changed fraction vs initial patch
+        - settlement density
+        - alive fraction
+        - port fraction
+        - owner diversity
+        - population
+        - food
+        - wealth
+        - defense
+  - `src/astar/student/predictor/interactive.py`
+    - added blend aliases:
+      - `gbx_maponly_transcriptrepeat_mapknn_blend20`
+      - `gbx_maponly_transcriptrepeatdelta_mapknn_blend20`
+  - `src/astar/cli.py`
+    - exposed the new repeat and repeat-delta model names through CLI model choices
+  - `tests/test_historical_benchmark.py`
+    - added online historical benchmark smoke test for the repeat model
+    - added blend-construction tests for the repeat and repeat-delta map-only blends
+- Verification completed before any expensive benchmark fanout:
+  - `python3 -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/cli.py`
+  - result: passed
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_transcript_regime_knn_terminal_mapknn_repeat_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_transcriptrepeat_blends_build -q`
+  - result: `2 passed in 1.96s`
+- Next immediate step:
+  - run replay-backed `online_interactive` coverage benchmarks for:
+    - pure repeat
+    - maponly + repeat blend20
+    - pure repeat-delta
+    - maponly + repeat-delta blend20
+  - compare directly against current champion `gbx_maponly_transcriptregime_mapknn_blend20`
+
+### 2026-03-21T13:49Z
+
+- Completed the repeat-aware branch evaluation and extracted the key policy/mechanics fact:
+  - `coverage` has `replicate_budget=0`
+  - therefore it never emits repeated viewports
+  - consequence:
+    - the newly added repeat-aware summary features are effectively dormant under the current best policy
+- Full repeat-branch replay-backed results on the standard coverage benchmark:
+  - setup:
+    - `mode=online_interactive`
+    - `policy=coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seeds=0,1,2`
+    - `rounds=8`
+    - `evaluated_seeds=120`
+  - pure repeat:
+    - `gbx_transcript_regime_knn_terminal_mapknn_repeat`
+    - `43.0191 / 0.308876`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_transcript_regime_knn_terminal_mapknn_repeat_cov_seed02_jobs6_v1/report.md`
+  - pure repeat-delta:
+    - `gbx_transcript_regime_knn_terminal_mapknn_repeat_delta`
+    - `43.1367 / 0.309774`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_transcript_regime_knn_terminal_mapknn_repeat_delta_cov_seed02_jobs6_v1/report.md`
+  - blended repeat:
+    - `gbx_maponly_transcriptrepeat_mapknn_blend20`
+    - `68.0423 / 0.133045`
+    - effectively tied the existing coverage champion because repeat features had no live activation under coverage
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptrepeat_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+  - blended repeat-delta:
+    - `gbx_maponly_transcriptrepeatdelta_mapknn_blend20`
+    - `68.0169 / 0.133171`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptrepeatdelta_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+- Fair repeat-policy evaluation after fixing the policy mismatch:
+  - `exploration_v2` baseline:
+    - `gbx_maponly_transcriptregime_mapknn_blend20`
+    - `67.8147 / 0.134328`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_mapknn_blend20_expl_seed02_jobs6_v2/report.md`
+  - `exploration_v2` repeat blend:
+    - `gbx_maponly_transcriptrepeat_mapknn_blend20`
+    - `65.7490 / 0.146541`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptrepeat_mapknn_blend20_expl_seed02_jobs6_v1/report.md`
+  - `exploration_focus_v1` baseline:
+    - `gbx_maponly_transcriptregime_mapknn_blend20`
+    - `66.0162 / 0.144932`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_mapknn_blend20_focus_seed02_jobs6_v1/report.md`
+  - `exploration_focus_v1` repeat blend:
+    - `gbx_maponly_transcriptrepeat_mapknn_blend20`
+    - `66.1483 / 0.144265`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptrepeat_mapknn_blend20_focus_seed02_jobs6_v1/report.md`
+- Scientific read from those runs:
+  - repeat-aware summary features are not enough
+  - under `exploration_v2` they are actively harmful
+  - under `exploration_focus_v1` they give only a tiny gain over a much weaker policy family
+  - therefore this repeat-summary branch is exhausted as a serious candidate
+- Pivoted to a new handoff-aligned branch: a per-query synthetic-likelihood student instead of another global summary vector.
+  - new model:
+    - `gbx_querylaw_roundbank_terminal_mapknn_v1`
+  - new blend:
+    - `gbx_maponly_querylaw_roundbank_mapknn_blend20_v1`
+  - implementation idea:
+    - use the full ordered query sequence from synthetic replay-backed episodes
+    - for each query slot, estimate per-round mean/variance over observable patch features across stochastic reruns
+    - infer live round weights with slotwise Gaussian-like likelihood on the observed transcript
+    - combine those round weights with the existing terminal teacher / map prior pipeline
+  - code touched:
+    - `src/astar/student/predictor/gbx_transcript_regime.py`
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `tests/test_historical_benchmark.py`
+- Verification for the new query-law branch:
+  - `python3 -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - result: passed
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_querylaw_roundbank_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_querylaw_roundbank_mapknn_blend20_builds -q`
+  - result: `2 passed in 2.35s`
+- Next immediate step:
+  - benchmark the new query-law model and blend under `coverage`, which is the strongest current policy family and where ordered query-slot likelihood is most structurally well-defined
+
+### 2026-03-21T13:58Z
+
+- First full replay-backed coverage benchmark for the new query-law branch completed.
+- Setup:
+  - `mode=online_interactive`
+  - `policy=coverage`
+  - `samples_per_round=4`
+  - `budget=50`
+  - `episode_seeds=0,1,2`
+  - `rounds=8`
+  - `evaluated_seeds=120`
+- Pure query-law roundbank is not competitive:
+  - `gbx_querylaw_roundbank_terminal_mapknn`
+  - `43.5021 / 0.313525`
+  - report:
+    - `data/artifacts/benchmarks/dev_gbx_querylaw_roundbank_terminal_mapknn_cov_seed02_jobs6_v1/report.md`
+- Blended query-law roundbank is real but still below the current champion:
+  - `gbx_maponly_querylaw_roundbank_mapknn_blend20`
+  - `67.2305 / 0.137172`
+  - report:
+    - `data/artifacts/benchmarks/dev_gbx_maponly_querylaw_roundbank_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+- Comparative read:
+  - query-law blend beats the map-only historical prior baseline `66.0233 / 0.148488`
+  - but it stays below the current family champion `gbx_maponly_transcriptregime_mapknn_blend20` at `68.0423 / 0.133045`
+  - gap to champion:
+    - roughly `-0.8118` score
+    - roughly `+0.004127` weighted KL
+- Scientific read:
+  - per-query slot likelihood carries real information
+  - but the current Gaussian mean/variance surrogate is too crude as a standalone student
+  - the branch likely needs either:
+    - better calibration / gating / lower blend weight, or
+    - a richer local likelihood than diagonal Gaussian slot features
+- Verification after adding the branch:
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+  - result: `46 passed in 39.81s`
