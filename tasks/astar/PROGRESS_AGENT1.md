@@ -181,6 +181,18 @@
     - `hazard_posterior_v6_k5_b1_l16_m50`
     - `hazard_posterior_v6_k5_b2_l16_m50`
     - `hazard_posterior_v6_k5_b2_l32_m70`
+- commit/push completed immediately after the patch:
+  - commit: `c6a23f2b`
+  - pushed to `origin/agent1`
+- proxy-5 v6 benchmark batch launched with `jobs=3` per run:
+  - session `40298`: `proxy5_hazard_v6_k5_b1_l16_m50_regime_probe_seed0to1`
+  - session `56481`: `proxy5_hazard_v6_k5_b2_l16_m50_regime_probe_seed0to1`
+  - session `64961`: `proxy5_hazard_v6_k5_b2_l32_m70_regime_probe_seed0to1`
+- launch rationale:
+  - proxy-5 is the only selector currently trusted for family ranking
+  - `b1` tests the compact 4-dim block latent
+  - `b2` tests the 8-dim block latent
+  - `b2 l32/m70` tests whether stronger posterior shrinkage matters more for the new structured latent
 
 ### Session Continuation
 
