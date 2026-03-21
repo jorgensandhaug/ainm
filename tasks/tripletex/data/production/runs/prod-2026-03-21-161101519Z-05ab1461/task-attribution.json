@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-161101519Z-05ab1461",
+  "request_id": "db24251e",
+  "prompt_raw": "We sent an invoice for 2052 EUR to Northwave Ltd (org no. 883808568) when the exchange rate was 10.97 NOK/EUR. The customer has now paid, but the rate is 10.01 NOK/EUR. Register the payment and post the exchange rate difference (disagio) to the correct account.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T16:14:15Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T16:11:01.584Z",
+  "after_captured_at": "2026-03-21T16:14:46.357Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T16:14:46.358Z"
+}

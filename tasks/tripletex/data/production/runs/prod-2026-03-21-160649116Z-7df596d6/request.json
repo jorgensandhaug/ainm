@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une facture pour le client Cascade SARL (nº org. 875483811) avec trois lignes de produit : Heures de conseil (5679) à 10950 NOK avec 25 % TVA, Maintenance (9191) à 13750 NOK avec 15 % TVA (alimentaire), et Rapport d'analyse (5577) à 16400 NOK avec 0 % TVA (exonéré).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "VDAYE9JwN6K-wWOhjKCExQsbQDpjyMKCDb13Pq-F_LE"
+  }
+}
