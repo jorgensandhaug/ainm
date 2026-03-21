@@ -76,9 +76,11 @@
 - for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`
 - embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload
 - embed `costs[]` directly on the same `POST /travelExpense` payload
-- **NON-EXISTENT FIELDS — do not use:**
+- **NON-EXISTENT FIELDS AND DANGEROUS FIELDS — do not use:**
   - `costs[].description` does NOT exist — use `costs[].comments` for cost text; sending `description` causes 422 `Feltet eksisterer ikke i objektet`
   - `perDiemCompensations[].isDayTrip` does NOT exist — `isDayTrip` belongs on `travelDetails` only; sending it on perDiemCompensations causes 422 `Feltet eksisterer ikke i objektet`
+  - `costs[].currency` — do NOT include; NOK is the default; if included without `factor` field, causes 422 `costs.currency.factor: Må være minimum 1`; omitting currency entirely is safe and avoids this trap
+  - `costs[].category` — unnecessary string field; `costCategory` (the object ref) is what matters; `category` is silently ignored but adds no value
 - for each embedded cost in NOK, send both `amountCurrencyIncVat` and `amountNOKInclVAT`
 - do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ "id": 0 }` avoided later non-VAT-company delivery failure
 - preserve prompt text exactly in `title`, `travelDetails.purpose`, `travelDetails.detailedJourneyDescription`, and `costs[].comments`
@@ -108,6 +110,7 @@
 - if `POST /travelExpense` fails on `perDiemCompensations.location: Kan ikke være null`, add `location` (destination city string) to every perDiemCompensation row
 - if `PUT /travelExpense/:deliver` fails on `travelDetails.destination: Feltet må fylles ut`, the create was incomplete; recreate with `travelDetails.destination` set to the trip destination city
 - if `POST /travelExpense` fails on any field with `Feltet eksisterer ikke i objektet`, the field name is wrong — check for `description` (use `comments`), `isDayTrip` on perDiemCompensations (use on travelDetails), or other non-existent fields
+- if `POST /travelExpense` fails on `costs.currency.factor: Må være minimum 1`, remove the `currency` field from all cost rows — NOK is the default and requires no explicit currency object
 - if `POST /travelExpense` fails on `costs.amountCurrencyIncVat`, add `amountCurrencyIncVat` on every embedded cost row
 - if `POST /travelExpense` fails with `Kun kostnader kan registreres uten kompensasjon etter satser.`, set `travelDetails.isCompensationFromRates=true`
 - if `PUT /travelExpense/:deliver` fails on `travelDetails.departureFrom`, the create-only path was incomplete; do not keep treating the `OPEN` expense as final
