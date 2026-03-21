@@ -22,14 +22,15 @@
     "14": "14.set-fixed-price-milestone.v1",
     "19": "19.onboard-employee-from-contract.v1",
     "20": "20.register-supplier-invoice-pdf.v1",
-    "21": "21.not-implemented.v1",
-    "22": "22.not-implemented.v1",
+    "21": "21.correct-ledger-errors.v1",
+    "22": "22.receipt-expense-booking.v1",
     "23": "23.not-implemented.v1",
+    "24": "24.correct-ledger-errors.v1",
     "25": "25.overdue-reminder-fee.v1",
     "26": "26.not-implemented.v1",
     "27": "27.not-implemented.v1",
     "28": "28.cost-analysis-projects.v1",
-    "29": "29.not-implemented.v1",
+    "29": "29.full-project-lifecycle.v1",
     "30": "30.not-implemented.v1"
   }
 }

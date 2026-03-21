@@ -60,7 +60,7 @@
 | `19` | Unknown task type | Unknown task type for `tx_task_id 19`. |
 | `20` | Unknown task type | Unknown task type for `tx_task_id 20`. |
 | `21` | Unknown task type | Unknown task type for `tx_task_id 21`. |
-| `22` | Unknown task type | Unknown task type for `tx_task_id 22`. |
+| `22` | Register receipt expense voucher | Book one receipt-backed expense voucher to a named department, balance it against bank account 1920, and upload the receipt. |
 | `23` | Unknown task type | Unknown task type for `tx_task_id 23`. |
 | `25` | Unknown task type | Unknown task type for `tx_task_id 25`. |
 | `26` | Unknown task type | Unknown task type for `tx_task_id 26`. |

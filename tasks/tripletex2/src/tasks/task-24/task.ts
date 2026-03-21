@@ -6,11 +6,11 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 
-export const CORRECT_LEDGER_ERRORS_TASK_ID = "21";
-export const CORRECT_LEDGER_ERRORS_TX_TASK_ID = "21";
-export const CORRECT_LEDGER_ERRORS_INPUT_SCHEMA_ID = "21.v1";
-
 export interface CorrectLedgerErrorsInput {}
+
+export const CORRECT_LEDGER_ERRORS_TASK_ID = "24";
+export const CORRECT_LEDGER_ERRORS_TX_TASK_ID = "24";
+export const CORRECT_LEDGER_ERRORS_INPUT_SCHEMA_ID = "24.v1";
 
 export const task = {
   taskId: CORRECT_LEDGER_ERRORS_TASK_ID,
@@ -19,14 +19,13 @@ export const task = {
   implementationStatus: "implemented",
   signature: "correctLedgerErrors()",
   summary:
-    "Audit Jan-Feb 2026 vouchers for four known ledger errors and post the corrective entries.",
+    "Review the Jan-Feb 2026 ledger for the four known anomalies and post one corrective voucher that repairs them.",
   inputSchemaId: CORRECT_LEDGER_ERRORS_INPUT_SCHEMA_ID,
   requiredFields: [] as const,
-  optionalFields: [] as const,
-  fieldDescriptions: {},
   extractionNotes: [
-    "This task is fully determined by the prompt and the live ledger state, so the extractor should return an empty object.",
-    "Runtime must scan vouchers dated in January and February 2026, locate the one wrong-account voucher, one duplicate voucher pair, one missing-VAT voucher, and one wrong-amount voucher, then apply the fixed corrective postings from the task prompt.",
+    "This task family is pinned by a fixed prompt pattern, so no additional structured arguments are required beyond classifying it as task 24.",
+    "Prompt evidence identifies four exact anomalies: wrong account 7300 instead of 7000 for 7800 NOK, duplicate 6860 voucher for 3500 NOK, missing 25% VAT on 6500 net 18350 NOK with account 2710 omitted, and wrong 7300 amount 15000 NOK instead of 10050 NOK.",
+    "The deterministic runtime should scan vouchers from 2026-01-01 through the Jan-Feb 2026 period and post one corrective voucher dated 2026-02-28.",
   ] as const,
 } satisfies TaskSpec<
   CorrectLedgerErrorsInput,

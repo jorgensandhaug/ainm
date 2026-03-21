@@ -14,7 +14,7 @@ import {
 } from "./tasks";
 
 test("task registrations seed every canonical task id exactly once", () => {
-  assert.equal(CANONICAL_TASK_REGISTRY.length, 29);
+  assert.equal(CANONICAL_TASK_REGISTRY.length, 30);
   assert.deepEqual(
     taskRegistrations.map((registration) => registration.task.taskId),
     CANONICAL_TASK_REGISTRY.map((task) => task.taskId),
@@ -49,6 +49,7 @@ test("task registrations seed every canonical task id exactly once", () => {
       "21",
       "22",
       "23",
+      "24",
       "25",
       "26",
       "27",
@@ -114,12 +115,12 @@ test("task 19 now loads the contract-onboarding strategy", async () => {
   );
 });
 
-test("tier 3 task stubs still load the pinned not-implemented strategy", async () => {
+test("task 21 now loads the deterministic ledger-correction strategy", async () => {
   const taskModule = await loadTaskModule("21");
-  assert.equal(taskModule.task.taskName, "Unknown task 21");
+  assert.equal(taskModule.task.taskName, "Correct ledger errors");
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["21.not-implemented.v1"],
+    ["21.correct-ledger-errors.v1"],
   );
 });
 

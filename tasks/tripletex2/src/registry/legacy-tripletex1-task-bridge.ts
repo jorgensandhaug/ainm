@@ -247,10 +247,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "22",
     txTaskId: "22",
-    taskSlug: "unknown-task-22",
-    taskName: "Unknown task 22",
+    taskSlug: "register-receipt-expense-voucher",
+    taskName: "Register receipt expense voucher",
     summary:
-      "Tier 3 placeholder for tx_task_id 22 with no checked-in prompt examples yet.",
+      "Book one receipt-backed expense voucher to the requested department, balance it against bank account 1920, and upload the source receipt.",
     legacyTripletex1TaskIds: ["22"],
   },
   {
@@ -261,6 +261,15 @@ export const CANONICAL_TASK_REGISTRY = [
     summary:
       "Tier 3 placeholder for tx_task_id 23 with no checked-in prompt examples yet.",
     legacyTripletex1TaskIds: ["23"],
+  },
+  {
+    taskId: "24",
+    txTaskId: "24",
+    taskSlug: "correct-ledger-errors",
+    taskName: "Correct ledger errors",
+    summary:
+      "Review Jan-Feb 2026 vouchers for four known bookkeeping errors and post corrective entries.",
+    legacyTripletex1TaskIds: ["24"],
   },
   {
     taskId: "25",

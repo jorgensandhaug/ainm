@@ -35,6 +35,7 @@ import { taskRegistration as unknownTask20 } from "../tasks/task-20/task";
 import { taskRegistration as unknownTask21 } from "../tasks/task-21/task";
 import { taskRegistration as unknownTask22 } from "../tasks/task-22/task";
 import { taskRegistration as unknownTask23 } from "../tasks/task-23/task";
+import { taskRegistration as correctLedgerErrorsTask } from "../tasks/task-24/task";
 import { taskRegistration as unknownTask25 } from "../tasks/task-25/task";
 import { taskRegistration as unknownTask26 } from "../tasks/task-26/task";
 import { taskRegistration as unknownTask27 } from "../tasks/task-27/task";
@@ -66,6 +67,7 @@ const registeredTaskRegistrations = [
   unknownTask21,
   unknownTask22,
   unknownTask23,
+  correctLedgerErrorsTask,
   unknownTask25,
   unknownTask26,
   unknownTask27,
