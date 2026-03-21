@@ -115,3 +115,9 @@ POST /ledger/voucher?sendToLedger=true
   - new pitfall identified: reclassification 7140→7100 requires different vatTypes (12 vs 0) on each side
   - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's locked vatType at no extra cost
   - sandbox verified: mixed vatType reclassification (vatType 12 on reversal, vatType 0 on target) succeeds; same vatType 12 on both → 422
+- Seventh run (db732541): achieved ideal 3 calls, 0 errors on all 4 correction types
+  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, had 2710=2820 → Case B), wrong amount 6590 (13150→11650, vatType 1)
+  - first production confirmation of cross-vatType reclassification (7140 vatType 12 → 7100 locked vatType 0), previously only sandbox-verified
+  - Case B correctly applied: vatShortfall=705, expenseNetShortfall=2820, totalShortfall=3525
+  - third consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct
+  - confirms: the 3-call path with vatType(id) in account lookup, direct 2710 posting for Case B, and description keyword cascade for duplicate detection is stable across 7 production runs (4 of which achieved optimal 3 calls)

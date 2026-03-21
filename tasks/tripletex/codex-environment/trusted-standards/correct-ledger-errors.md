@@ -232,6 +232,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - **new pitfall identified**: 7140 (vatType 12) → 7100 (locked to vatType 0) reclassification requires different vatTypes on each side; blindly copying orignal vatType to target → 422
   - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's default/locked vatType; use this for target-side vatType in reclassification
   - the 3-call minimum remains proven; adding `vatType(id)` to account lookup adds no extra calls
+- production run 2026-03-21 (correct-ledger-errors, seventh run — db732541):
+  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, had 2710=2820 → Case B), wrong amount 6590 (13150→11650, vatType 1)
+  - **first production confirmation of cross-vatType reclassification**: 7140 (vatType 12) reversed with vatType 12, 7100 posted with vatType 0 from account lookup — auto-generated 2710 -241.07 on reversal, no auto-VAT on target; the 6th run had the same shape but was blocked by expired token
+  - Case B correctly applied: existing2710=2820, vatShortfall=705, expenseNetShortfall=2820, totalShortfall=3525; posted 2710 +705, 6500 +2820 (vatType=0), 2400 -3525 with supplier
+  - duplicate found via description keyword cascade (primary)
+  - account 6590 has default vatType 1 (not locked)
+  - third consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
 - sandbox verified 2026-03-21: `account: { number: ... }` in POST /ledger/voucher body does NOT work — Tripletex requires `account: { id: ... }`; `account: { number: 6300, name: "Leie lokale" }` → 422 (`Feltet må fylles ut`); this confirms **3 calls is the proven minimum** — the GET /ledger/account step cannot be eliminated
 - sandbox verified 2026-03-21: reclassification between accounts with different vatType locks — vatType 12 on 7140 (reversal) + vatType 0 on 7100 (target) succeeds; vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`); vatType 0 on both succeeds but creates incorrect accounting if original had vatType 12 (leaves residual balance on 7140)
