@@ -106,6 +106,15 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - after fixture setup, the update-needed branch again measured exactly `5` calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - after the fixture already held the target fixed price, the skip-`PUT /project` branch again measured exactly `4` calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
   - both proof invoices returned `amountExcludingVatCurrency=118312.5`, so no follow-up verification read or manager re-resolution belongs in the minimum scored path once the project-first read already proves the state
+- exact production reflection on 2026-03-21 for `Elvdal AS` / `834214261` / `ERP-implementering` / `marit.kvamme@example.org` / `429500` / `33%` resolved the bank-account strategy for the update-needed branch:
+  - the run used the optimistic update-needed path and hit `422` on the first `PUT /order/:invoice` due to missing bank account; total: `8` calls including a `422` error
+  - the proactive hedge would have been `7` calls with zero errors
+  - combined with `Sjøbris AS` (also `422` on optimistic) versus `Tindra AS` (proactive hedge wasted 1 call on configured account), production evidence now shows 2/3 update-needed runs had missing bank accounts
+  - the optimistic failure is double-penalized (extra call + `422` error), so the proactive hedge is strictly better in expectation
+  - the default for the update-needed branch is now PROACTIVE HEDGE: always `GET /ledger/account` between `POST /order` and `PUT /order/:invoice`
+  - the milestone arithmetic `429500 * 0.33 = 141735` was exact (no decimals) and accepted directly
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=141735` and `amountCurrencyOutstanding=177168.75`
+- persistent-sandbox verification on 2026-03-21 re-confirmed the proactive hedge path with a configured bank account measured `6` calls for the update-needed branch
 
 ## Minimal Safe Flow
 
@@ -160,17 +169,21 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - `deliveryDate`
      - one embedded `orderLines[]` entry for the partial amount
    - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
-10. Invoice the order without sending it
+10. On the update-needed branch only (step 6 required `PUT /project`), proactively check the company bank account before attempting the invoice write:
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using a valid unique 11-digit number
+   - on the skip-`PUT /project` branch (step 6 was skipped), do NOT add this proactive check
+11. Invoice the order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-11. Only if the invoice write fails with the company-bank-account validation, or earlier calls in the same run already proved that prerequisite is missing, repair that prerequisite and retry the same order once
+12. If the invoice write still fails with the company-bank-account validation (should not happen if step 10 was followed), repair and retry once
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
    - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
    - retry `PUT /order/{id}/:invoice?...` on the same order
-11.5. On the exact update-needed project-first branch, choose the bank-account strategy intentionally
-   - optimistic branch: `5` calls when the invoice account is already configured, `8` when the company bank account is missing and the run has to recover after the failed invoice write
-   - proactive hedge branch: `6` calls when the invoice account is already configured, `7` when the company bank account is missing
-   - because same-day production proved both states for this exact task family, there is still no universal winner; only spend the proactive `/ledger/account` read when the fresh-account evidence makes the missing-company-bank-account branch more likely
+12.5. Bank-account strategy summary:
+   - update-needed branch: proactive hedge is the DEFAULT; `6` calls when configured, `7` when missing, `0` errors either way
+   - skip-`PUT /project` branch: optimistic is the DEFAULT; `4` calls, bank-account issues have never occurred on this branch in production
+   - do NOT use the old optimistic `5/8` path on the update-needed branch; production evidence (2/3 missing bank accounts) plus the double penalty (extra call + `422` error) makes it strictly worse in expectation
 12. Verify from the write response first
    - reuse the invoice totals from `response.value`
 13. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
@@ -233,9 +246,9 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
   6. `POST /project` if missing, otherwise `PUT /project/{id}` when a real project mutation is still required
   7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
   8. `POST /order` with one embedded partial-billing line
-  9. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
-- only add `/ledger/account` between steps 8 and 9 when earlier evidence in the same run already proves the company invoice bank account is missing
-- on the exact update-needed branch, do not sleepwalk into either bank-account strategy; decide between optimistic `5/8` and proactive `6/7` from run evidence
+  9. on the update-needed branch (step 6 required `PUT /project`): `GET /ledger/account?isBankAccount=true&fields=*` and fix `bankAccountNumber` if empty
+  10. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+- on the update-needed branch, always add proactive `GET /ledger/account` between `POST /order` and `PUT /order/:invoice`; this is the default since production evidence (2/3 missing bank accounts + double penalty for `422`) makes it strictly better in expectation
 - on the exact skip-`PUT /project` branch, do not chase a fictional `3`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
 - if the project-first read already finds the exact project, exact existing manager, and the target fixed price, this shape saves three API calls versus always doing customer-first plus employee-first lookup plus unconditional `PUT /project`
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
@@ -278,8 +291,8 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order
 - Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- Do not insert a default `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice` just because the account is fresh; the 2026-03-20 `Tindra AS` production run lost the efficiency point on that exact wasted preflight when account `1920` already had a valid `bankAccountNumber`
-- Do not ignore the explicit `5/8` versus `6/7` tradeoff on the exact update-needed branch; if the run looks like the first outgoing invoice on a genuinely fresh account, a deliberate `/ledger/account` hedge may be cheaper than reactive recovery, but it is still wasted on already-configured accounts
+- On the update-needed branch, DO insert `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/:invoice` as a proactive check; production evidence (2/3 update-needed runs had missing bank accounts) plus the double penalty of a failed `422` (extra call + error) makes the proactive hedge the better default; only the skip-`PUT /project` branch should remain optimistic
+- Do not use the old optimistic `5/8` path on the update-needed branch; the `ERP-implementering` (2026-03-21) and `Sjøbris AS` (2026-03-20) production runs both hit the `422` bank-account error, costing an extra call and error penalty each time
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
 - Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste and can be the difference between `2.96` and the task ceiling
 - Do not try to collapse the skip-`PUT /project` branch to `3` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
