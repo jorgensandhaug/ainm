@@ -155,3 +155,17 @@ def test_cli_accepts_round_heatmap_residual_memory_historical_benchmark_model() 
     )
 
     assert args.model == "round_heatmap_residual_memory_v2"
+
+
+def test_cli_accepts_round_heatmap_prototype_residual_historical_benchmark_model() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "round_heatmap_prototype_residual_v2",
+        ],
+    )
+
+    assert args.model == "round_heatmap_prototype_residual_v2"

@@ -1349,6 +1349,25 @@ def test_round_heatmap_residual_memory_variant_alias_resolves() -> None:
     assert spec.k_neighbors == 3
 
 
+def test_round_heatmap_prototype_residual_kmeans_returns_centers() -> None:
+    from astar.student.predictor.round_heatmap_prototype_residual import _run_kmeans
+
+    features = np.asarray(
+        [
+            [0.0, 0.0],
+            [0.1, 0.1],
+            [4.0, 4.0],
+            [4.2, 4.1],
+        ],
+        dtype=np.float64,
+    )
+    centers, assignments = _run_kmeans(features, k=2)
+
+    assert centers.shape == (2, 2)
+    assert assignments.shape == (4,)
+    assert len(set(assignments.tolist())) == 2
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
