@@ -3700,3 +3700,100 @@
     - `f1_summary_rate_lawbank_rates_teacher_v01`
     - `f1_summary_rate_lawbank_collapse_portsplit_teacher_v01`
     - `f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01`
+
+- Smoke results on current probe3 (`r4,r5,r6`):
+  - `f1_summary_rate_lawbank_rates_teacher_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_lawbank_rates_teacher_v01_probe3_current/result.json`
+    - score `67.4569`
+    - weighted KL `0.140407`
+    - wall `7:43.53`
+    - max RSS `18.11 GB`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_lawbank_collapse_portsplit_teacher_v01_probe3_current/result.json`
+    - score `67.4569`
+    - weighted KL `0.140407`
+    - wall `7:36.01`
+    - max RSS `17.80 GB`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01_probe3_current/result.json`
+    - score `67.4678`
+    - weighted KL `0.140359`
+    - wall `7:32.84`
+    - max RSS `17.57 GB`
+
+- Paired compares vs current family control `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`:
+  - `f1_summary_rate_lawbank_rates_teacher_v01`
+    - compare:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_lawbank_rates_teacher_v01.json`
+    - score delta `-2.4610`
+    - KL delta `+0.013139`
+    - win rate `0.067`
+    - CI95 `[-3.3298, -1.7208]`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_v01`
+    - compare:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_lawbank_collapse_portsplit_teacher_v01.json`
+    - score delta `-2.4610`
+    - KL delta `+0.013139`
+    - win rate `0.067`
+    - CI95 `[-3.3298, -1.7208]`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01`
+    - compare:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01.json`
+    - score delta `-2.4501`
+    - KL delta `+0.013092`
+    - win rate `0.067`
+    - CI95 `[-3.3222, -1.7248]`
+
+- Important structural read:
+  - the non-stress law-bank variants exactly matched old `f1_summary_roundlaw_decoder_teacher_v01` smoke metrics
+  - with only 2 training rounds per fold, rate-conditioned full-law blending collapses back to the old poor full-law branch
+  - so this specific “full law bank keyed by rate latent” idea is dead on current smoke
+  - but the failure is still informative:
+    - full-law retrieval is too coarse
+    - the surviving family signal still appears to live in decoder residuals around the current dyn control, not in replacing it wholesale
+
+- Next branch:
+  - build a residual-law bank on top of `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+  - i.e. keep the strong global dyn control and only blend round-specific residual law heads in latent-rate space
+
+## 2026-03-21 13:3x UTC - residual law-bank on top of dyn control
+
+- New post-rejection hypothesis:
+  - full-law retrieval is too coarse and collapses to the old weak round-law decoder
+  - but the current best branch likely still leaves structured round-specific residual error after the global dyn decoder fires
+  - so:
+    - keep `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01` as the control model
+    - train per-round residual law heads against `log(truth) - log(control_prediction_exact)`
+    - infer the same low-dim latent online
+    - blend only the residual heads in rate space
+
+- New code landed:
+  - `src/astar/student/predictor/summary_rate_residual_lawbank.py`
+  - `src/astar/student/predictor/summary_rate_residual_lawbank_specs.py`
+  - wiring:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+  - tests:
+    - `tests/test_summary_rate_residual_lawbank_predictor.py`
+
+- First immutable residual-law models:
+  - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01`
+    - residual active set `(1,2,3)`
+  - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01`
+    - residual active set `(0,1,3,4)`
+
+- Focused validation:
+  - `uv run python -m compileall src/astar/student/predictor/summary_rate_residual_lawbank.py src/astar/student/predictor/summary_rate_residual_lawbank_specs.py src/astar/student/predictor/interactive.py src/astar/cli.py src/astar/workflows/historical_benchmark.py`
+  - `uv run pytest tests/test_summary_rate_residual_lawbank_predictor.py tests/test_summary_rate_lawbank_predictor.py tests/test_summary_rate_decoder_predictor.py -q`
+  - result:
+    - `11 passed in 30.88s`
+
+- Immediate next action:
+  - commit/push runnable residual-lawbank branch
+  - run 2 parallel current-smoke benchmarks:
+    - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_dyn_v01`
+    - `f1_summary_rate_residual_lawbank_collapse_portsplit_teacher_collapsequad_v01`
