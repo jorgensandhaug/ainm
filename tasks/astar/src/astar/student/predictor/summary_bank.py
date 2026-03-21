@@ -61,6 +61,8 @@ SUMMARY_BANK_STUDENT_V21 = "teacher_student_blend_v21"
 SUMMARY_BANK_STUDENT_V22 = "teacher_student_blend_v22"
 SUMMARY_BANK_STUDENT_V23 = "teacher_student_blend_v23"
 SUMMARY_BANK_STUDENT_V24 = "teacher_student_blend_v24"
+SUMMARY_BANK_STUDENT_V25 = "teacher_student_blend_v25"
+SUMMARY_BANK_STUDENT_V26 = "teacher_student_blend_v26"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
@@ -92,6 +94,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V22,
         SUMMARY_BANK_STUDENT_V23,
         SUMMARY_BANK_STUDENT_V24,
+        SUMMARY_BANK_STUDENT_V25,
+        SUMMARY_BANK_STUDENT_V26,
     },
 )
 
@@ -117,6 +121,7 @@ class SummaryBankVariantSpec(BaseModel):
     use_local_blur_evidence: bool = False
     local_blur_sigma: float = Field(default=1.0, gt=0.0)
     local_blur_strength: float = Field(default=0.0, ge=0.0)
+    local_blur_use_geometry_gate: bool = False
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -164,6 +169,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V22: 8,
         SUMMARY_BANK_STUDENT_V23: 4,
         SUMMARY_BANK_STUDENT_V24: 8,
+        SUMMARY_BANK_STUDENT_V25: 4,
+        SUMMARY_BANK_STUDENT_V26: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -216,6 +223,54 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v23 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V24 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v24 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V25 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v25 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V26 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v26 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V26:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.85,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+            use_local_blur_evidence=True,
+            local_blur_sigma=2.0,
+            local_blur_strength=1.5,
+            local_blur_use_geometry_gate=True,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V25:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.78,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_confidence_gate=True,
+            teacher_weight_mode=TEACHER_WEIGHT_MODE_SEED_ADAPTIVE,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+            use_local_blur_evidence=True,
+            local_blur_sigma=2.0,
+            local_blur_strength=1.5,
+            local_blur_use_geometry_gate=True,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V24:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -640,6 +695,7 @@ def _apply_local_blur_evidence_update(
     *,
     sigma: float,
     strength: float,
+    spatial_gate: np.ndarray | None = None,
 ) -> np.ndarray:
     updated = np.asarray(prediction, dtype=np.float64).copy()
     count_tensor = np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64)
@@ -655,8 +711,13 @@ def _apply_local_blur_evidence_update(
     observed_strength = np.log1p(count_total) / np.log(6.0)
     blurred_residual = _gaussian_blur(residual, sigma)
     blurred_coverage = _gaussian_blur(observed_strength, sigma)[..., None]
+    gate = (
+        np.ones(count_total.shape, dtype=np.float64)
+        if spatial_gate is None
+        else np.asarray(spatial_gate, dtype=np.float64)
+    )
     logits = np.log(np.clip(updated, 1e-9, 1.0)) + (
-        strength * blurred_residual * blurred_coverage * (~observed_mask)[..., None]
+        strength * blurred_residual * blurred_coverage * gate[..., None] * (~observed_mask)[..., None]
     )
     updated = np.asarray(softmax_logits(logits), dtype=np.float64)
     updated[observed_mask] = prediction[observed_mask]
@@ -742,6 +803,33 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     use_local_blur_evidence: bool = False
     local_blur_sigma: float = Field(default=1.0, gt=0.0)
     local_blur_strength: float = Field(default=0.0, ge=0.0)
+    local_blur_use_geometry_gate: bool = False
+
+    def _local_blur_spatial_gate(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+    ) -> np.ndarray:
+        seed_features = context.geometry_bundle.per_seed[seed_index]
+        land = (seed_features.feature("land") > 0.5).astype(np.float64)
+        buildable = (seed_features.feature("buildable") > 0.5).astype(np.float64)
+        frontier = (seed_features.feature("frontier_score") >= 0.5).astype(np.float64)
+        coast = (seed_features.feature("coast") > 0.5).astype(np.float64)
+        maritime = (seed_features.feature("maritime_access") >= 0.5).astype(np.float64)
+        return np.asarray(
+            land
+            * np.clip(
+                0.20
+                + (0.35 * buildable)
+                + (0.20 * frontier)
+                + (0.15 * coast)
+                + (0.10 * maritime),
+                0.0,
+                1.0,
+            ),
+            dtype=np.float64,
+        )
 
     def _teacher_weight_for_seed(
         self,
@@ -860,6 +948,11 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
                     context.evidence_bundle.per_seed[seed.seed_index],
                     sigma=self.local_blur_sigma,
                     strength=self.local_blur_strength,
+                    spatial_gate=(
+                        self._local_blur_spatial_gate(context, seed_index=seed.seed_index)
+                        if self.local_blur_use_geometry_gate
+                        else None
+                    ),
                 )
             if self.use_exact_local_evidence:
                 prediction = _apply_exact_local_evidence_posterior(
@@ -940,6 +1033,7 @@ def load_or_fit_named_summary_bank_predictor(
             use_local_blur_evidence=spec.use_local_blur_evidence,
             local_blur_sigma=spec.local_blur_sigma,
             local_blur_strength=spec.local_blur_strength,
+            local_blur_use_geometry_gate=spec.local_blur_use_geometry_gate,
         )
 
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -1002,6 +1096,7 @@ def load_or_fit_named_summary_bank_predictor(
         use_local_blur_evidence=spec.use_local_blur_evidence,
         local_blur_sigma=spec.local_blur_sigma,
         local_blur_strength=spec.local_blur_strength,
+        local_blur_use_geometry_gate=spec.local_blur_use_geometry_gate,
     )
 
 
@@ -1031,6 +1126,8 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V22",
     "SUMMARY_BANK_STUDENT_V23",
     "SUMMARY_BANK_STUDENT_V24",
+    "SUMMARY_BANK_STUDENT_V25",
+    "SUMMARY_BANK_STUDENT_V26",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",

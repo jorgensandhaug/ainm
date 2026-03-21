@@ -2100,6 +2100,27 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_teacher_student.py::test_summary_bank_student_temporal_coefficient_residual_checkpoint_roundtrip tests/test_historical_benchmark.py::test_teacher_student_blend_v24_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+229. New hypothesis after item 228:
+   - blurred local evidence is useful, but unconstrained diffusion can still leak signal into geometrically implausible cells
+   - test geometry-gated blur:
+     - allow diffusion only on land with stronger weight on buildable/frontier/coastal/maritime cells
+230. Implemented geometry-gated blur variants:
+   - new variants:
+     - `teacher_student_blend_v25`
+     - `teacher_student_blend_v26`
+   - they keep:
+     - temporal summary encoder
+     - coefficient-residual student head
+     - seed-adaptive teacher weighting
+     - confidence gate
+     - exact observed-cell posterior update
+     - blurred local residual diffusion
+   - added a direct unit test that a zeroed spatial gate suppresses the blur update entirely
+231. Validation for item 230:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_spatial_gate tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_historical_benchmark.py::test_teacher_student_blend_v26_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions

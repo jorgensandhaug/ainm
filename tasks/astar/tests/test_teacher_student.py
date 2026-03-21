@@ -523,6 +523,41 @@ def test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells()
     assert np.allclose(updated.sum(axis=-1), 1.0)
 
 
+def test_summary_bank_local_blur_evidence_respects_spatial_gate() -> None:
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.summary_bank import _apply_local_blur_evidence_update
+
+    prediction = np.full((3, 3, 6), 1.0 / 6.0, dtype=np.float64)
+    count_tensor = np.zeros((3, 3, 6), dtype=np.int64)
+    count_tensor[1, 1, 2] = 4
+    observed_class_counts = np.sum(count_tensor, axis=(0, 1))
+    observed_class_frequencies = observed_class_counts.astype(np.float64) / float(
+        np.sum(observed_class_counts),
+    )
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=4,
+        repeated_window_groups=0,
+        coverage_counts=np.asarray([[0, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.int64),
+        observed_class_counts=observed_class_counts,
+        observed_class_frequencies=observed_class_frequencies,
+        observed_class_count_tensor=count_tensor,
+    )
+    blocked_gate = np.zeros((3, 3), dtype=np.float64)
+    blocked_gate[1, 1] = 1.0
+
+    updated = _apply_local_blur_evidence_update(
+        prediction,
+        seed_evidence,
+        sigma=1.0,
+        strength=2.0,
+        spatial_gate=blocked_gate,
+    )
+
+    assert np.allclose(updated, prediction)
+
+
 def test_summary_bank_variants_share_base_prior_and_teacher_cache(
     sample_paths: RepoPaths,
 ) -> None:
