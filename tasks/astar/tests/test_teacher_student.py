@@ -622,6 +622,47 @@ def test_summary_bank_exact_local_evidence_posterior_uses_observed_counts() -> N
     assert np.allclose(posterior[1, 1], prediction[1, 1])
 
 
+def test_summary_bank_exact_local_evidence_count_pivot_reduces_prior_shrinkage() -> None:
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.summary_bank import _apply_exact_local_evidence_posterior
+
+    prediction = np.full((1, 1, 6), 1.0 / 6.0, dtype=np.float64)
+    count_tensor = np.zeros((1, 1, 6), dtype=np.int64)
+    count_tensor[0, 0, 2] = 12
+    count_tensor[0, 0, 1] = 4
+    observed_class_counts = np.sum(count_tensor, axis=(0, 1))
+    observed_class_frequencies = observed_class_counts.astype(np.float64) / float(
+        np.sum(observed_class_counts),
+    )
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=16,
+        repeated_window_groups=0,
+        coverage_counts=np.asarray([[1]], dtype=np.int64),
+        observed_class_counts=observed_class_counts,
+        observed_class_frequencies=observed_class_frequencies,
+        observed_class_count_tensor=count_tensor,
+    )
+
+    fixed_beta = _apply_exact_local_evidence_posterior(
+        prediction,
+        seed_evidence,
+        beta_min=2.0,
+        beta_scale=8.0,
+    )
+    count_adaptive = _apply_exact_local_evidence_posterior(
+        prediction,
+        seed_evidence,
+        beta_min=2.0,
+        beta_scale=8.0,
+        count_pivot=4.0,
+    )
+
+    assert count_adaptive[0, 0, 2] > fixed_beta[0, 0, 2]
+    assert count_adaptive[0, 0, 1] > fixed_beta[0, 0, 1]
+
+
 def test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells() -> None:
     from astar.observe.evidence import SeedEvidenceBundle
     from astar.student.predictor.summary_bank import _apply_local_blur_evidence_update

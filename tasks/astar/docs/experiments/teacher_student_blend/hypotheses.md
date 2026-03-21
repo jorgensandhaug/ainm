@@ -29,6 +29,8 @@
 - `v61` / `v62`: test the opposite direction too, in case the current posterior update is already slightly overreacting and needs stronger prior retention
 - `v63` / `v64`: `v59/v60` say the win keeps moving toward more aggressive local evidence, so test a stronger step in that same direction
 - `v65` / `v66`: also test an extreme near-count-dominated posterior in case the best regime is to trust observed-cell evidence almost completely
+- `v67` / `v68`: keep the winning `v59/v60` beta schedule, but reduce prior pseudocount when a queried cell has many direct observations
+- `v69` / `v70`: test a gentler version of the same count-adaptive exact-local-evidence idea
 
 ## Evaluation Rule
 

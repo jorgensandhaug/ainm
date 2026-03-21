@@ -104,6 +104,10 @@ SUMMARY_BANK_STUDENT_V63 = "teacher_student_blend_v63"
 SUMMARY_BANK_STUDENT_V64 = "teacher_student_blend_v64"
 SUMMARY_BANK_STUDENT_V65 = "teacher_student_blend_v65"
 SUMMARY_BANK_STUDENT_V66 = "teacher_student_blend_v66"
+SUMMARY_BANK_STUDENT_V67 = "teacher_student_blend_v67"
+SUMMARY_BANK_STUDENT_V68 = "teacher_student_blend_v68"
+SUMMARY_BANK_STUDENT_V69 = "teacher_student_blend_v69"
+SUMMARY_BANK_STUDENT_V70 = "teacher_student_blend_v70"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
@@ -177,6 +181,10 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V64,
         SUMMARY_BANK_STUDENT_V65,
         SUMMARY_BANK_STUDENT_V66,
+        SUMMARY_BANK_STUDENT_V67,
+        SUMMARY_BANK_STUDENT_V68,
+        SUMMARY_BANK_STUDENT_V69,
+        SUMMARY_BANK_STUDENT_V70,
     },
 )
 
@@ -199,6 +207,7 @@ class SummaryBankVariantSpec(BaseModel):
     use_exact_local_evidence: bool = False
     local_evidence_beta_min: float = Field(default=0.0, ge=0.0)
     local_evidence_beta_scale: float = Field(default=0.0, ge=0.0)
+    local_evidence_count_pivot: float = Field(default=0.0, ge=0.0)
     use_local_blur_evidence: bool = False
     local_blur_sigma: float = Field(default=1.0, gt=0.0)
     local_blur_strength: float = Field(default=0.0, ge=0.0)
@@ -294,6 +303,10 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V64: 4,
         SUMMARY_BANK_STUDENT_V65: 4,
         SUMMARY_BANK_STUDENT_V66: 4,
+        SUMMARY_BANK_STUDENT_V67: 4,
+        SUMMARY_BANK_STUDENT_V68: 4,
+        SUMMARY_BANK_STUDENT_V69: 4,
+        SUMMARY_BANK_STUDENT_V70: 4,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -430,6 +443,82 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v65 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V66 and effective_samples_per_round != 4:
         raise ValueError("teacher_student_blend_v66 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V67 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v67 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V68 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v68 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V69 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v69 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V70 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v70 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V70:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            local_evidence_count_pivot=8.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V69:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            local_evidence_count_pivot=8.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V68:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            local_evidence_count_pivot=4.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V67:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            local_evidence_count_pivot=4.0,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V66:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -1466,6 +1555,7 @@ def _apply_exact_local_evidence_posterior(
     *,
     beta_min: float,
     beta_scale: float,
+    count_pivot: float = 0.0,
 ) -> np.ndarray:
     posterior = np.asarray(prediction, dtype=np.float64).copy()
     count_tensor = np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64)
@@ -1477,6 +1567,8 @@ def _apply_exact_local_evidence_posterior(
     prior_entropy = -np.sum(clipped * np.log(clipped), axis=-1, dtype=np.float64)
     normalized_entropy = prior_entropy / np.log(float(posterior.shape[-1]))
     beta = beta_min + (beta_scale * (1.0 - normalized_entropy))
+    if count_pivot > 0.0:
+        beta = beta * np.sqrt(count_pivot / (count_pivot + count_total))
     posterior[observed_mask] = (
         count_tensor[observed_mask]
         + (beta[observed_mask, None] * posterior[observed_mask])
@@ -1634,6 +1726,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     use_exact_local_evidence: bool = False
     local_evidence_beta_min: float = Field(default=0.0, ge=0.0)
     local_evidence_beta_scale: float = Field(default=0.0, ge=0.0)
+    local_evidence_count_pivot: float = Field(default=0.0, ge=0.0)
     use_local_blur_evidence: bool = False
     local_blur_sigma: float = Field(default=1.0, gt=0.0)
     local_blur_strength: float = Field(default=0.0, ge=0.0)
@@ -1796,6 +1889,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
                     context.evidence_bundle.per_seed[seed.seed_index],
                     beta_min=self.local_evidence_beta_min,
                     beta_scale=self.local_evidence_beta_scale,
+                    count_pivot=self.local_evidence_count_pivot,
                 )
             predictions_by_seed[seed.seed_index] = prediction
         return PredictionBundle(
@@ -1866,6 +1960,7 @@ def load_or_fit_named_summary_bank_predictor(
             use_exact_local_evidence=spec.use_exact_local_evidence,
             local_evidence_beta_min=spec.local_evidence_beta_min,
             local_evidence_beta_scale=spec.local_evidence_beta_scale,
+            local_evidence_count_pivot=spec.local_evidence_count_pivot,
             use_local_blur_evidence=spec.use_local_blur_evidence,
             local_blur_sigma=spec.local_blur_sigma,
             local_blur_strength=spec.local_blur_strength,
@@ -1931,6 +2026,7 @@ def load_or_fit_named_summary_bank_predictor(
         use_exact_local_evidence=spec.use_exact_local_evidence,
         local_evidence_beta_min=spec.local_evidence_beta_min,
         local_evidence_beta_scale=spec.local_evidence_beta_scale,
+        local_evidence_count_pivot=spec.local_evidence_count_pivot,
         use_local_blur_evidence=spec.use_local_blur_evidence,
         local_blur_sigma=spec.local_blur_sigma,
         local_blur_strength=spec.local_blur_strength,

@@ -2864,6 +2864,50 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v64_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v66_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+316. More-aggressive exact-local-evidence results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v63`
+     - `teacher_student_blend_v64`
+     - `teacher_student_blend_v65`
+     - `teacher_student_blend_v66`
+   - aggregate results:
+     - `v63`: mean score `63.9776`, mean weighted KL `0.149871`
+     - `v64`: mean score `63.9308`, mean weighted KL `0.150145`
+     - `v65`: mean score `52.7031`, mean weighted KL `0.219189`
+     - `v66`: mean score `52.6574`, mean weighted KL `0.219560`
+317. Read from item 316:
+   - pushing beta below `v59/v60` helped relative to `v51/v52`, but overshot the optimum
+   - `v63/v64` are clearly behind `v59/v60`
+   - the near-count-dominated extreme (`v65/v66`) is catastrophic and should not be revisited
+318. New hypothesis after item 317:
+   - the win is not from globally lower beta alone
+   - queried cells with more direct observations should shrink less than lightly observed cells
+   - next probe:
+     - keep the strong `v59/v60` beta schedule, but make prior pseudocount shrink with local observed-count total
+319. Implemented count-adaptive exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v67`
+     - `teacher_student_blend_v68`
+     - `teacher_student_blend_v69`
+     - `teacher_student_blend_v70`
+   - mapping:
+     - `v67` = `v59` backbone + count-adaptive local evidence, `count_pivot=4`
+     - `v68` = `v60` backbone + count-adaptive local evidence, `count_pivot=4`
+     - `v69` = `v59` backbone + count-adaptive local evidence, `count_pivot=8`
+     - `v70` = `v60` backbone + count-adaptive local evidence, `count_pivot=8`
+   - implementation detail:
+     - exact-local-evidence beta is now scaled by `sqrt(count_pivot / (count_pivot + count_total))` when a variant enables count adaptation
+320. Validation for item 319:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_exact_local_evidence_count_pivot_reduces_prior_shrinkage tests/test_historical_benchmark.py::test_teacher_student_blend_v68_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v70_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `4 passed`
+321. Machine/queue state before launching item 319:
+   - no full corrected LOO artifact has landed yet for `v51`, `v52`, `v59`, or `v60`
+   - machine snapshot:
+     - about `1.2 TiB` used
+     - about `1.7 TiB` available
+   - unified exec slots are crowded, so next launches should move to detached `tmux` sessions instead of more long-lived unified exec sessions
 
 
 ## Open Questions

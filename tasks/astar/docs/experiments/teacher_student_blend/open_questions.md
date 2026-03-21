@@ -16,5 +16,7 @@
 - After exact-local-evidence fixes observed cells, does seed-adaptive/confidence-gated teacher weighting still improve the unobserved-cell blend?
 - Is the winning exact-local-evidence branch under-shrunk or over-shrunk relative to the current `beta_min=4`, `beta_scale=12` setting?
 - Does the `v59/v60` improvement continue if exact-local-evidence shrinkage is pushed even lower than `beta_min=2`, `beta_scale=8`?
+- Is the right next step after `v59/v60` count-adaptive shrinkage rather than another global beta reduction?
+- What count-pivot best trades off single-window noise vs. heavily observed-cell calibration?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?
