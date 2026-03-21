@@ -105,6 +105,7 @@ from astar.student.predictor.summary_roundlaw_decoder_specs import (
 )
 from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.student.predictor.terminal_retrieval_specs import supported_terminal_retrieval_model_names
+from astar.student.predictor.mlp_decoder_specs import supported_mlp_decoder_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -174,6 +175,7 @@ def build_parser() -> argparse.ArgumentParser:
         *supported_summary_roundlaw_decoder_model_names(),
         *supported_summary_bank_model_names(),
         *supported_terminal_retrieval_model_names(),
+        *supported_mlp_decoder_model_names(),
         *supported_query_residual_model_names(),
     ]
     historical_models = [

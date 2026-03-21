@@ -82,6 +82,11 @@ from astar.student.predictor.terminal_retrieval_specs import (
     resolve_terminal_retrieval_model_spec,
     supported_terminal_retrieval_model_names,
 )
+from astar.student.predictor.mlp_decoder import MLPDecoderPredictor
+from astar.student.predictor.mlp_decoder_specs import (
+    resolve_mlp_decoder_model_spec,
+    supported_mlp_decoder_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -396,6 +401,28 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    mlp_decoder_spec = resolve_mlp_decoder_model_spec(normalized)
+    if mlp_decoder_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = MLPDecoderPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=mlp_decoder_spec.budget,
+            samples_per_round=mlp_decoder_spec.samples_per_round,
+            k_neighbors=mlp_decoder_spec.k_neighbors,
+            model_name=mlp_decoder_spec.model_name,
+            probability_floor=mlp_decoder_spec.probability_floor,
+            hidden_dim=mlp_decoder_spec.hidden_dim,
+            lr=mlp_decoder_spec.lr,
+            epochs=mlp_decoder_spec.epochs,
+            weight_decay=mlp_decoder_spec.weight_decay,
+            summary_feature_variant=mlp_decoder_spec.summary_feature_variant,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     terminal_retrieval_spec = resolve_terminal_retrieval_model_spec(normalized)
     if terminal_retrieval_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -529,4 +556,5 @@ __all__ = [
     "supported_summary_roundlaw_decoder_model_names",
     "supported_summary_bank_model_names",
     "supported_terminal_retrieval_model_names",
+    "supported_mlp_decoder_model_names",
 ]
