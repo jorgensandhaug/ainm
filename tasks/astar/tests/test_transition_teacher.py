@@ -8,7 +8,10 @@ from astar.history.replay.events import (
     extract_graph_snapshot_rows,
     extract_settlement_event_rows,
 )
-from astar.teacher.dynamics.transition_teacher import GreyBoxTransitionTeacher
+from astar.teacher.dynamics.transition_teacher import (
+    GreyBoxTransitionTeacher,
+    gbx_transition_scoped_checkpoint_path,
+)
 from tests.conftest import ROUND_ID
 from tests.test_history_datasets import _write_replays_for_all_seeds
 
@@ -41,3 +44,32 @@ def test_gbx_transition_teacher_terminal_tensor_is_valid(sample_paths) -> None:
     assert np.all(np.isfinite(terminal))
     assert np.all(terminal >= 0.0)
     assert np.allclose(np.sum(terminal, axis=-1), 1.0, atol=1e-6)
+
+
+def test_gbx_transition_teacher_map_posterior_is_valid(sample_paths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = GreyBoxTransitionTeacher(name="gbx_transition_teacher_test").fit([episode])
+
+    posterior = teacher.map_posterior(episode.seeds)
+
+    assert posterior.particles is not None
+    assert posterior.weights is not None
+    assert len(posterior.particles) >= 1
+    assert np.isclose(float(np.sum(posterior.weights)), 1.0)
+    assert posterior.mean.shape == teacher.regime_bank[0].shape
+
+
+def test_gbx_transition_teacher_checkpoint_roundtrip(sample_paths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = GreyBoxTransitionTeacher(name="gbx_transition_teacher_test").fit([episode])
+    checkpoint_path = gbx_transition_scoped_checkpoint_path(sample_paths, round_ids=[ROUND_ID])
+    teacher.save_checkpoint(checkpoint_path)
+
+    restored = GreyBoxTransitionTeacher.load_checkpoint(checkpoint_path)
+
+    assert restored.map_feature_names == teacher.map_feature_names
+    assert restored.selected_rank == teacher.selected_rank
+    assert restored.horizon == teacher.horizon
+    assert np.allclose(restored.map_intercept, teacher.map_intercept)

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import math
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +15,7 @@ from astar.core.trajectory import ReplayRun
 from astar.history.episodes.models import RoundEpisode
 from astar.history.replay.events import build_transition_feature_stack, local_class_ratio_stack
 from astar.history.summaries.round_coefficients import round_regime_summary_vector, seed_feature_dict, seed_feature_names
+from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.student.predictor.calibrate import apply_probability_floor, softmax_logits
 from astar.teacher.decoder.base import SeedLike
@@ -19,6 +23,20 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 
 GBX_TRANSITION_TEACHER_MODEL = "gbx_transition_teacher_v1"
+GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL = "gbx_transition_teacher_mapprior_v1"
+
+
+def gbx_transition_scoped_checkpoint_path(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str],
+) -> Path:
+    normalized = sorted(set(round_ids))
+    digest = hashlib.sha1(",".join(normalized).encode("utf-8")).hexdigest()[:10]
+    checkpoint_dir = paths.model_dir(
+        f"{GBX_TRANSITION_TEACHER_MODEL}__rounds=n={len(normalized)}__sha1={digest}",
+    )
+    return checkpoint_dir / "checkpoint.json"
 
 
 def _fit_linear_map(
@@ -93,6 +111,71 @@ def _initial_one_hot(grid: np.ndarray) -> np.ndarray:
     return result
 
 
+def _seed_map_summary_names() -> list[str]:
+    names = [f"initial_class_mass_{class_index}" for class_index in range(CLASS_COUNT)]
+    names.extend(
+        [
+            "buildable_mean",
+            "coast_mean",
+            "frontier_mean",
+            "settlement_proximity_mean",
+            "coastal_exposure_mean",
+            "maritime_access_mean",
+            "forest_density_mean",
+            "mountain_density_mean",
+            "settlement_count",
+            "port_count",
+        ],
+    )
+    return names
+
+
+def _seed_map_summary_vector(seed: SeedLike) -> np.ndarray:
+    collapsed = collapse_internal_grid(np.asarray(seed.initial_state.grid, dtype=np.int64))
+    class_mass = np.bincount(
+        collapsed.reshape(-1),
+        minlength=CLASS_COUNT,
+    ).astype(np.float64)
+    class_mass = class_mass / float(np.sum(class_mass))
+    feature_dict = seed_feature_dict(seed.initial_state)
+    settlements = tuple(seed.initial_state.settlements)
+    port_count = sum(1 for item in settlements if item.has_port)
+    return np.asarray(
+        [
+            *class_mass.tolist(),
+            float(np.mean(feature_dict["buildable"])),
+            float(np.mean(feature_dict["coast"])),
+            float(np.mean(feature_dict["frontier_score"])),
+            float(np.mean(feature_dict["settlement_proximity"])),
+            float(np.mean(feature_dict["coastal_exposure"])),
+            float(np.mean(feature_dict["maritime_access"])),
+            float(np.mean(feature_dict["forest_density"])),
+            float(np.mean(feature_dict["mountain_density"])),
+            float(len(settlements)),
+            float(port_count),
+        ],
+        dtype=np.float64,
+    )
+
+
+def _round_map_summary_names() -> list[str]:
+    seed_names = _seed_map_summary_names()
+    names = [f"map_mean__{name}" for name in seed_names]
+    names.extend(f"map_std__{name}" for name in seed_names)
+    return names
+
+
+def _round_map_summary_vector(seeds: Sequence[SeedLike]) -> np.ndarray:
+    seed_vectors = np.stack([_seed_map_summary_vector(seed) for seed in seeds], axis=0)
+    return np.concatenate(
+        [
+            np.mean(seed_vectors, axis=0),
+            np.std(seed_vectors, axis=0),
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
 class RoundTransitionCoefficients(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -123,6 +206,11 @@ class GreyBoxTransitionTeacherCheckpoint(BaseModel):
     rank_scores: list[float] = Field(default_factory=list)
     rank_selection: str = "loo_reconstruction_mse"
     selected_rank: int = Field(default=1, ge=1)
+    map_feature_names: list[str] = Field(default_factory=list)
+    map_intercept: list[float] = Field(default_factory=list)
+    map_weights: list[list[float]] = Field(default_factory=list)
+    map_neighbor_count: int = Field(default=3, ge=1)
+    map_distance_floor: float = Field(default=1e-3, gt=0.0)
     probability_floor: float = Field(gt=0.0, lt=1.0)
     horizon: int = Field(ge=1)
 
@@ -144,6 +232,11 @@ class GreyBoxTransitionTeacher(BaseModel):
     rank_scores: tuple[float, ...] = ()
     rank_selection: str = "loo_reconstruction_mse"
     selected_rank: int = Field(default=1, ge=1)
+    map_feature_names: tuple[str, ...] = ()
+    map_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(12, dtype=np.float64))
+    map_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 12), dtype=np.float64))
+    map_neighbor_count: int = Field(default=3, ge=1)
+    map_distance_floor: float = Field(default=1e-3, gt=0.0)
     probability_floor: float = Field(default=1e-3, gt=0.0, lt=1.0)
     horizon: int = Field(default=50, ge=1)
     replay_bank_round_ids: tuple[str, ...] = ()
@@ -213,6 +306,10 @@ class GreyBoxTransitionTeacher(BaseModel):
             for episode in replay_episodes
         ]
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
+        map_bank = np.stack(
+            [_round_map_summary_vector(tuple(episode.seeds)) for episode in replay_episodes],
+            axis=0,
+        )
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
         if rank_selection == "direct_coefficients":
             regime_intercept, regime_weights = _fit_linear_map(
@@ -240,6 +337,11 @@ class GreyBoxTransitionTeacher(BaseModel):
                 coordinates,
                 ridge_alpha=ridge_alpha,
             )
+        map_intercept, map_weights = _fit_linear_map(
+            map_bank,
+            regime_bank,
+            ridge_alpha=ridge_alpha,
+        )
 
         replay_bank_round_ids: list[str] = []
         replay_bank_seed_indexes: list[int] = []
@@ -267,6 +369,9 @@ class GreyBoxTransitionTeacher(BaseModel):
                 "rank_scores": tuple(rank_scores),
                 "rank_selection": rank_selection,
                 "selected_rank": selected_rank,
+                "map_feature_names": tuple(_round_map_summary_names()),
+                "map_intercept": map_intercept,
+                "map_weights": map_weights,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -287,6 +392,11 @@ class GreyBoxTransitionTeacher(BaseModel):
             rank_scores=list(self.rank_scores),
             rank_selection=self.rank_selection,
             selected_rank=self.selected_rank,
+            map_feature_names=list(self.map_feature_names),
+            map_intercept=self.map_intercept.tolist(),
+            map_weights=self.map_weights.tolist(),
+            map_neighbor_count=self.map_neighbor_count,
+            map_distance_floor=self.map_distance_floor,
             probability_floor=self.probability_floor,
             horizon=self.horizon,
         )
@@ -312,6 +422,11 @@ class GreyBoxTransitionTeacher(BaseModel):
             rank_scores=tuple(checkpoint.rank_scores),
             rank_selection=checkpoint.rank_selection,
             selected_rank=checkpoint.selected_rank,
+            map_feature_names=tuple(checkpoint.map_feature_names),
+            map_intercept=np.asarray(checkpoint.map_intercept, dtype=np.float64),
+            map_weights=np.asarray(checkpoint.map_weights, dtype=np.float64),
+            map_neighbor_count=checkpoint.map_neighbor_count,
+            map_distance_floor=checkpoint.map_distance_floor,
             probability_floor=checkpoint.probability_floor,
             horizon=checkpoint.horizon,
         )
@@ -338,26 +453,53 @@ class GreyBoxTransitionTeacher(BaseModel):
         )
         return intercept, coefficients
 
+    def map_regime_prior(self, seeds: Sequence[SeedLike]) -> np.ndarray:
+        if self.map_weights.size == 0:
+            if self.regime_bank.size == 0:
+                return np.zeros(12, dtype=np.float64)
+            return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
+        map_vector = _round_map_summary_vector(seeds)
+        regime = np.asarray(self.map_intercept + (map_vector @ self.map_weights), dtype=np.float64)
+        return np.clip(regime, -0.25, 1.25)
+
+    def map_posterior(self, seeds: Sequence[SeedLike]) -> RegimePosteriorState:
+        prior_regime = self.map_regime_prior(seeds)
+        if self.regime_bank.size == 0:
+            return RegimePosteriorState(mean=prior_regime)
+        distances = np.linalg.norm(self.regime_bank - prior_regime[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.map_neighbor_count, len(distances))]
+        selected_particles = tuple(np.asarray(self.regime_bank[index], dtype=np.float64) for index in order)
+        weights = 1.0 / np.clip(distances[order], self.map_distance_floor, None)
+        weights = weights / np.sum(weights)
+        mean = np.tensordot(weights, np.stack(selected_particles, axis=0), axes=(0, 0))
+        return RegimePosteriorState(
+            mean=np.asarray(mean, dtype=np.float64),
+            particles=selected_particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
+
     def _transition_tensor(
         self,
-        initial_state: object,
+        static_stack: np.ndarray,
         current_probs: np.ndarray,
         intercept: np.ndarray,
         coefficients: np.ndarray,
     ) -> np.ndarray:
-        initial_world = initial_state
-        static_features = seed_feature_dict(initial_world)
-        static_names = seed_feature_names()
-        static_stack = np.stack([static_features[name] for name in static_names], axis=0).astype(np.float64)
         _, local_ratio_stack = local_class_ratio_stack(np.argmax(current_probs, axis=-1))
+        static_feature_count = len(seed_feature_names())
+        current_class_coef = coefficients[static_feature_count : static_feature_count + CLASS_COUNT]
+        local_ratio_coef = coefficients[static_feature_count + CLASS_COUNT :]
+        base_scores = (
+            intercept[None, None, :]
+            + np.tensordot(static_stack, coefficients[:static_feature_count], axes=(0, 0))
+            + np.tensordot(local_ratio_stack, local_ratio_coef, axes=(0, 0))
+        )
         height, width, _ = current_probs.shape
         transition = np.zeros((CLASS_COUNT, height, width, CLASS_COUNT), dtype=np.float64)
         for current_class in range(CLASS_COUNT):
-            current_onehot = np.zeros((CLASS_COUNT, height, width), dtype=np.float64)
-            current_onehot[current_class] = 1.0
-            design = np.concatenate([static_stack, current_onehot, local_ratio_stack], axis=0)
-            scores = intercept[None, None, :] + np.tensordot(design, coefficients, axes=(0, 0))
-            transition[current_class] = softmax_logits(scores)
+            transition[current_class] = softmax_logits(
+                base_scores + current_class_coef[current_class][None, None, :],
+            )
         return transition
 
     def _nearest_seed_bank_indexes(self, regime: np.ndarray, seed_index: int) -> list[int]:
@@ -418,10 +560,12 @@ class GreyBoxTransitionTeacher(BaseModel):
         intercept, coefficients = self._split_coefficients(coefficient_vector)
         current_probs = _initial_one_hot(np.asarray(seed.initial_state.grid, dtype=np.int64))
         static_features = seed_feature_dict(seed.initial_state)
+        static_names = seed_feature_names()
+        static_stack = np.stack([static_features[name] for name in static_names], axis=0).astype(np.float64)
         ocean_mask = static_features["initial_ocean"] > 0.5
         mountain_mask = static_features["initial_mountain"] > 0.5
         for _ in range(self.horizon):
-            transition = self._transition_tensor(seed.initial_state, current_probs, intercept, coefficients)
+            transition = self._transition_tensor(static_stack, current_probs, intercept, coefficients)
             next_probs = np.sum(current_probs[:, :, :, None] * np.transpose(transition, (1, 2, 0, 3)), axis=2)
             next_probs[ocean_mask] = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
             next_probs[mountain_mask] = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
@@ -451,7 +595,9 @@ class GreyBoxTransitionTeacher(BaseModel):
 
 __all__ = [
     "GBX_TRANSITION_TEACHER_MODEL",
+    "GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL",
     "GreyBoxTransitionTeacher",
     "GreyBoxTransitionTeacherCheckpoint",
     "RoundTransitionCoefficients",
+    "gbx_transition_scoped_checkpoint_path",
 ]

@@ -1420,3 +1420,36 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - they are:
     - runtime cost of transition-teacher held-out fits
     - model quality of the first local-transition decoder
+
+### 2026-03-21T10:43Z
+
+- Extended the first grey-box teacher into a stronger prior variant:
+  - new model alias:
+    - `gbx_transition_teacher_mapprior_v1`
+  - files:
+    - `src/astar/teacher/dynamics/transition_teacher.py`
+    - `src/astar/workflows/model_eval.py`
+    - `src/astar/cli.py`
+    - `tests/test_transition_teacher.py`
+    - `tests/test_historical_benchmark.py`
+- Main additions:
+  - map-only round summary features from the five visible seed maps
+  - ridge map-summary -> regime prediction
+  - nearest-neighbor regime particle posterior around that map prior
+  - scoped checkpoint caching keyed by training-round set
+  - rollout speedup by precomputing static feature stacks once per seed
+- Why this matters:
+  - handoff requires map-only prior baseline before more complex online student work
+  - cached fits remove repeated retraining cost from held-out replay benchmarks
+  - map-conditioned prior is a scientifically cleaner prior than uniform training-round averaging
+- Verification:
+  - `uv run python -m py_compile src/astar/cli.py src/astar/teacher/dynamics/transition_teacher.py src/astar/workflows/model_eval.py tests/test_historical_benchmark.py tests/test_transition_teacher.py`
+    - passed
+  - `uv run pytest tests/test_transition_teacher.py tests/test_historical_benchmark.py -q`
+    - `18 passed in 24.00s`
+- Next:
+  - commit + push this mapprior/cache patch
+  - restart grey-box benchmarks on the cached path
+  - run heavier parallel held-out probes for:
+    - `gbx_transition_teacher`
+    - `gbx_transition_teacher_mapprior`

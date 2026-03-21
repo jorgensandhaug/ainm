@@ -33,7 +33,9 @@ from astar.student.predictor.static_semantic import (
 )
 from astar.teacher.dynamics.transition_teacher import (
     GBX_TRANSITION_TEACHER_MODEL,
+    GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
     GreyBoxTransitionTeacher,
+    gbx_transition_scoped_checkpoint_path,
 )
 from astar.teacher.regime.base import RegimePosteriorState
 from astar.workflows.results import HistoricalBenchmarkCellIssue, HistoricalBenchmarkSeedResult
@@ -230,17 +232,34 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized in {"gbx_transition_teacher", GBX_TRANSITION_TEACHER_MODEL}:
-        replay_episodes = [
-            build_round_episode(paths, training_round_id)
-            for training_round_id in training_round_ids
-        ]
-        teacher = GreyBoxTransitionTeacher(
-            name=GBX_TRANSITION_TEACHER_MODEL,
-        ).fit(
-            [episode for episode in replay_episodes if episode.replay_run_count > 0],
+    if normalized in {
+        "gbx_transition_teacher",
+        GBX_TRANSITION_TEACHER_MODEL,
+        "gbx_transition_teacher_mapprior",
+        GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL,
+    }:
+        checkpoint_path = gbx_transition_scoped_checkpoint_path(
+            paths,
+            round_ids=training_round_ids,
         )
-        if teacher.regime_bank.size > 0:
+        if checkpoint_path.exists():
+            teacher = GreyBoxTransitionTeacher.load_checkpoint(checkpoint_path)
+        else:
+            replay_episodes = [
+                build_round_episode(paths, training_round_id)
+                for training_round_id in training_round_ids
+            ]
+            teacher = GreyBoxTransitionTeacher(
+                name=GBX_TRANSITION_TEACHER_MODEL,
+            ).fit(
+                [episode for episode in replay_episodes if episode.replay_run_count > 0],
+            )
+            teacher.save_checkpoint(checkpoint_path)
+        round_context = build_round_context_from_detail(round_detail)
+        if normalized in {"gbx_transition_teacher_mapprior", GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL}:
+            teacher = teacher.model_copy(update={"name": GBX_TRANSITION_TEACHER_MAPPRIOR_MODEL})
+            posterior = teacher.map_posterior(round_context.seeds)
+        elif teacher.regime_bank.size > 0:
             regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)
             posterior = RegimePosteriorState(
                 mean=np.asarray(np.mean(teacher.regime_bank, axis=0), dtype=np.float64),
@@ -249,7 +268,6 @@ def _build_prediction_bundle(
             )
         else:
             posterior = RegimePosteriorState(mean=np.zeros(12, dtype=np.float64))
-        round_context = build_round_context_from_detail(round_detail)
         predictions_by_seed = {
             seed.seed_index: teacher.posterior_predictive(seed, posterior)
             for seed in round_context.seeds
