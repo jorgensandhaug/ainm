@@ -171,6 +171,7 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
 - Do not add a `GET /customer`; the overdue-invoice locate read already gives the needed `customer.id`
 - Do not add a follow-up invoice read after the payment if the payment write response already proves the new remaining outstanding amount
 - Do not use `(await r.json()).value` for list endpoints; always handle both `values` (list) and `value` (single object) response shapes to avoid crashing and wasting a retry API call
+- Do not put order lines at the top level of the invoice payload (`orderLines: [...]` with `orders: []`); this fails `422 orders: Listen kan ikke være tom.`; the correct structure is `orders: [{ customer, orderDate, deliveryDate, orderLines: [...] }]` — the order line goes inside an order object within the `orders` array; this trap was hit in production run `ba977073` (German prompt, fee `40`) and sandbox-verified on `2026-03-21`
 
 ## Verification Shape
 
@@ -243,3 +244,10 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `37451308`
   - remaining outstanding `30000`
 - the `6`-call path is now confirmed across 7 production runs; no lower-call path exists
+- production run `prod-2026-03-21-222433471Z-ba977073` hit the `orders: []` + top-level `orderLines` trap on fee-invoice POST, requiring 7 calls (1 wasted 422):
+  - overdue invoice `#1` (`id=2147645103`), customer `108441398`, outstanding `36875`, due `2026-02-07`
+  - voucher `#1` (`id=609186182`), fee `40`
+  - first `POST /invoice` with `orders: [], orderLines: [...]` failed `422 orders: Listen kan ikke være tom.`
+  - fix-up used correct `orders: [{ customer, orderDate, deliveryDate, orderLines: [...] }]` structure
+  - fee invoice `#4` (`id=2147645318`, amount `40`), payment type `37539606`, outstanding reduced to `31875`
+  - the `6`-call path would have been achieved if the agent had used the correct invoice payload structure from the start; the trusted standard and playbook now document this pitfall explicitly

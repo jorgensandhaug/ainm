@@ -47,7 +47,7 @@
   - `currency: { "id": 1 }`
   - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount
   - explicit `row: 1` on the first posting and `row: 2` on the second posting; omitting `row` defaults to row 0 which is system-generated, causing `422 Posteringene på rad 0 (guiRow 0) er systemgenererte` — sandbox-verified as consistent, not account-specific
-- on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount
+- on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount using `orders[].orderLines[]` — the order line goes **inside** an order object within the `orders` array, not as a top-level `orderLines` field on the invoice; the invoice must include `orders[{ customer, orderDate, deliveryDate, orderLines: [...] }]`; using `orders: []` with top-level `orderLines: [...]` fails `422 orders: Listen kan ikke være tom.` — sandbox-verified on `2026-03-21` and hit in production run `ba977073`
 - omit `vatType` on the order line; the API defaults to vatType id=0 ("Ingen avgiftsbehandling", 0%) which is correct for a no-VAT reminder fee and produces the correct invoice amount
 - do not use `/invoice/{id}/:createReminder` for this exact task shape:
   - the fee amount there is account-configured, not prompt-controlled
@@ -180,3 +180,12 @@
   - payment type `37451308`
   - payment reduced outstanding to `30000`
   - 7th production confirmation of the `6`-call path; no new language or fee amount combination but re-confirms `es`+`60` stability
+- production proof on `2026-03-21` (`prod-2026-03-21-222433471Z-ba977073`) hit the `orders: []` + top-level `orderLines` trap on fee-invoice POST, requiring 7 calls (1 wasted 422):
+  - overdue invoice `#1` (`id=2147645103`), customer `108441398`, outstanding `36875`, due `2026-02-07`
+  - voucher `#1` (`id=609186182`), accounts 1500 (id=475220342) / 3400 (id=475220538), fee `40`
+  - first `POST /invoice` with `orders: [], orderLines: [...]` failed `422 orders: Listen kan ikke være tom.`; fix-up used correct `orders: [{ customer, orderDate, deliveryDate, orderLines: [...] }]` structure
+  - fee invoice `#4` (`id=2147645318`, amount `40`)
+  - payment type `37539606`
+  - payment reduced outstanding from `36875` to `31875`
+  - **fix**: the Payload Rules section now explicitly documents the `orders[].orderLines[]` structure requirement to prevent this trap
+- persistent sandbox re-proof on `2026-03-21` confirmed: `POST /invoice` with `orders: [], orderLines: [...]` fails `422 orders: Listen kan ikke være tom.`; same payload with `orders: [{ orderLines: [...] }]` succeeds `201` with `amountCurrency=40`
