@@ -13,6 +13,8 @@ from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
 from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -127,6 +129,8 @@ def run_historical_benchmark(
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
+    if mode == "prior_only" and (is_ffam_model_name(model_name) or is_ffam_operator_model_name(model_name)):
+        raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
     if mode not in {"prior_only", "online_interactive"}:

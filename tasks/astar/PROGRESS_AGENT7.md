@@ -259,6 +259,130 @@ Framework should accept unique query-residual family variant names directly so b
   - historical benchmark parametrization now includes `query_residual_v10`
   - added explicit nested checkpoint roundtrip test for `v10`
 
+### 2026-03-21T08:30Z approx
+
+- User redirected mission explicitly away from treating `query_residual` as the main line.
+  - instruction interpreted as: treat `query_residual` only as incumbent benchmark to beat
+  - primary work must now be fifth-family new development from [`instructions/agent7.md`](/home/jorge/agent7/tasks/astar/instructions/agent7.md)
+- Re-read handoff and re-centered on its target stack:
+  - tiny cross-round regime manifold
+  - shared decoder `(map, beta) -> tensor`
+  - transcript posterior `transcript -> beta`
+  - heavy parallel experimentation allowed, but parallelism should adapt to machine load / other agents
+- Re-checked machine health before large sweeps.
+  - earlier snapshot: `384` CPUs, about `2.8 TiB` available RAM, low overall pressure
+  - later snapshot before operator runs: load about `107`, about `1.6 TiB` available RAM
+  - other agents had several heavy benchmark / test jobs active, especially agent5 and agent6
+  - decision: still use parallelism aggressively, but cap this wave to `3` operator probes instead of `6`
+
+### 2026-03-21T08:45Z approx
+
+- Pushed beyond retrieval-only FFAM line.
+- Landed new retrieval-family infra in:
+  - [`src/astar/student/predictor/ffam_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_config.py)
+  - [`src/astar/student/predictor/ffam_retrieval.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_retrieval.py)
+  - [`src/astar/history/datasets/synthetic_live.py`](/home/jorge/agent7/tasks/astar/src/astar/history/datasets/synthetic_live.py)
+  - [`src/astar/student/posterior/deepset_student.py`](/home/jorge/agent7/tasks/astar/src/astar/student/posterior/deepset_student.py)
+  - [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- New FFAM retrieval variants explored:
+  - `ffam_retrieval_v4`: map-conditioned summary `v3`, regime target
+  - `ffam_retrieval_v5`: coefficient target
+  - `ffam_retrieval_v6`: coefficient target variant
+  - `ffam_retrieval_v7`: coefficient target + `global_ridge`
+  - `ffam_retrieval_v8`: regime target + `global_ridge`
+- Important correctness fix:
+  - FFAM synthetic-live cache naming/build now keys on actual training split semantics, not only broad replay scope
+  - this removed a real risk of silently reusing wrong train-split caches for LORO experiments
+- Validation:
+  - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - passed: `35`
+
+### 2026-03-21T09:05Z approx
+
+- Ran hard-gate fifth-family probe on hardest live rounds `{3,6,7,8}` with `policy=exploration_r3`, `samples_per_round=2`.
+- Baseline incumbent:
+  - [`data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json)
+  - mean score `63.9805`
+- FFAM retrieval results:
+  - `ffam_retrieval_v3`: `48.6524`
+  - `ffam_retrieval_v4`: `41.8252`
+  - `ffam_retrieval_v5`: `41.7670`
+  - `ffam_retrieval_v6`: `39.9918`
+  - `ffam_retrieval_v7`: `35.9863`
+  - `ffam_retrieval_v8`: `36.3688`
+- Conclusion:
+  - current pure `HazardTeacher` decoder family is not competitive on hard live rounds
+  - stronger transcript summaries did not rescue it
+  - coefficient-target and ridge-posterior variants made it worse
+  - next branch must attack decoder capacity / operator representation, not just posterior smoothing
+- Committed + pushed this negative-but-important result:
+  - `e43168d` `ffam: add map-conditioned retrieval variants`
+  - `468dd09` `ffam: log hard-gate decoder failure`
+
+### 2026-03-21T09:30Z approx
+
+- Started genuinely new fifth-family branch: operator-manifold decoder family.
+- New local files:
+  - [`src/astar/student/predictor/ffam_operator.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_operator.py)
+  - [`src/astar/student/predictor/ffam_operator_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_operator_config.py)
+- Integration/plumbing edits:
+  - [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py)
+  - [`src/astar/cli.py`](/home/jorge/agent7/tasks/astar/src/astar/cli.py)
+  - [`src/astar/workflows/model_eval.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/model_eval.py)
+  - [`src/astar/workflows/historical_benchmark.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/historical_benchmark.py)
+  - [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- Family shape:
+  - estimate one residual decoder/operator per historical round from analysis records
+  - concatenate round operator parameters with hazard regime vector
+  - factorize cross-round bank into tiny SVD manifold coordinates
+  - fit transcript posterior from rich query-residual-style transcript summaries to manifold coords
+  - reconstruct operator + regime online, then decode final tensor from `(map, beta)` via learned residual operator on top of bucket prior
+- Current named variants:
+  - `ffam_operator_v1`
+  - `ffam_operator_v2`
+  - `ffam_operator_v3`
+- Validation after integration:
+  - `uv run --extra dev pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+  - passed: `39`
+- Active probe wave from isolated roots:
+  - `ffam_operator_v1` on hard gate `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_operator_v2` on hard gate `{3,6,7,8}`, `samples_per_round=2`
+  - `ffam_operator_v3` on hard gate `{3,6,7,8}`, `samples_per_round=2`
+- Immediate decision rule:
+  - if operator line is still far below incumbent hard-gate score, iterate decoder safety / manifold posterior design before any full-dev spend
+  - only run full 8-round benchmark if hard-gate signal is at least directionally real
+
+### 2026-03-21T09:50Z approx
+
+- Re-audited handoff after first operator implementation.
+  - key miss vs recommended stack:
+    - recommended `q = 3` first
+    - recommended local-linear posterior on low-rank transcript metric
+    - recommended particle/retrieval fallback
+    - recommended OOD shrinkage toward baseline
+  - first operator variants `v1..v3` were still too global on posterior side
+- Added handoff-aligned posterior/operator variants in:
+  - [`src/astar/student/predictor/ffam_operator.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_operator.py)
+  - [`src/astar/student/predictor/ffam_operator_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_operator_config.py)
+  - [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- New operator variants:
+  - `ffam_operator_v4`
+    - `q = 3`
+    - local-linear posterior in PCA metric space
+    - retrieval blend fallback
+    - OOD-triggered extra prior shrinkage
+  - `ffam_operator_v5`
+    - same family with stronger locality / fallback / shrinkage
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `40`
+- Active probe set now:
+  - `v1`, `v2`, `v3`, `v4`, `v5`
+  - all on hard gate `{3,6,7,8}` with `policy=exploration_r3`, `samples_per_round=2`
+- Current intention:
+  - promote only if any operator variant materially closes the large gap to incumbent hard-gate score `63.9805`
+  - if none do, conclude current linear-operator family still underfits and move to stronger decoder/mixed-decoder branch
+
 ### 2026-03-21T04:05Z approx
 
 - Re-read current policy code and benchmark artifacts before new edits.

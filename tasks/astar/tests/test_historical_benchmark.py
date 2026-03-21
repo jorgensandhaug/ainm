@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.student.predictor.ffam_operator import FFAMOperatorPredictor
 from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
@@ -115,6 +116,11 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_retrieval_v6",
         "ffam_retrieval_v7",
         "ffam_retrieval_v8",
+        "ffam_operator_v1",
+        "ffam_operator_v2",
+        "ffam_operator_v3",
+        "ffam_operator_v4",
+        "ffam_operator_v5",
         "query_residual",
         "query_residual_v8",
         "query_residual_v10",
@@ -452,3 +458,51 @@ def test_ffam_retrieval_v7_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_pat
     assert loaded.target_kind == "coefficients"
     assert loaded.inference_mode == "global_ridge"
     assert loaded.projected_regime_dim == 4
+
+
+def test_ffam_operator_v2_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMOperatorPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_operator_v2",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_operator_v2" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMOperatorPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_operator_v2"
+    assert loaded.projected_operator_dim == 6
+    assert loaded.regime_input_variant == "motif_v1"
+
+
+def test_ffam_operator_v4_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMOperatorPredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_operator_v4",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_operator_v4" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMOperatorPredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_operator_v4"
+    assert loaded.projected_operator_dim == 3
+    assert loaded.posterior_method == "local_linear"
+    assert loaded.posterior_neighbor_count == 12
+    assert loaded.posterior_ood_prior_blend > 0.0
