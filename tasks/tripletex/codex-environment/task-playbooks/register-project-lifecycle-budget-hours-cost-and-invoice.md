@@ -59,6 +59,16 @@ Production run for `ERP Implementation Silveroak` on 2026-03-21 scored `0/1` (ti
 - sandbox also confirmed that `employments[].startDate` is required when `employments[]` is included (for division linkage); omitting it fails with `422 employments.startDate: Kan ikke være null.`
 - sandbox also required `dateOfBirth` on employee creation, though fresh production accounts may not; include a placeholder `"1985-01-15"` defensively
 
+Production run for `Cloud-Migration Eichenhof` on 2026-03-21 was incomplete because:
+- `GET /division?count=1&fields=*` returned an empty array (no divisions in the account)
+- the script unconditionally included `division: { id: undefined }` in the employment payload
+- `POST /employee` failed with `422 employments.division.name: Feltet kan ikke være tomt.` because Tripletex interprets the presence of the `division` key as an attempt to create a new division
+- after recovery from the division error, `POST /timesheet/entry/list` returned a transient `409` but succeeded on immediate retry
+- the bank-account repair step used `bankAccountNumber: "12345678901"` (not MOD11-valid) and failed `422`; the correct value is `"12345678903"`
+- the invoice was never created because the agent stopped after the bank-account error
+- total calls: 16 (13 success + 3 errors), task incomplete
+- the correct path would have been 14-15 calls with 0 errors by: (a) conditionally omitting `division` when no division exists, (b) using `"12345678903"` for the bank-account repair
+
 ## Minimal Safe Flow
 
 The optimized path uses batch timesheet creation and proactive department/division/bank-account reads:
@@ -97,7 +107,7 @@ Previous non-batched order-first path was `15-22` calls depending on extra looku
 - **Employment startDate**: when including `employments[]` (needed for division linkage), always include `startDate` in each entry; omitting it causes `422 employments.startDate: Kan ikke være null.`
 - **Employee dateOfBirth**: include a placeholder `dateOfBirth` (e.g. `"1985-01-15"`) defensively; some accounts require it even when the prompt does not provide birth dates
 - **Project startDate**: must be on or before the earliest planned timesheet entry date; set it to the run date or use timesheet dates >= project startDate
-- **Department + Division**: for this multi-employee task shape, always read department and division proactively before the first `POST /employee`; if no department exists, create one with `POST /department`
+- **Department + Division**: for this multi-employee task shape, always read department and division proactively before the first `POST /employee`; if no department exists, create one with `POST /department`; if no division exists (empty array from `GET /division`), omit `division` entirely from the employment object — do NOT send `division: { id: undefined }` or `division: null`, because Tripletex interprets the presence of the `division` key as creating a new division and fails with `422 employments.division.name: Feltet kan ikke være tomt.`
 - **Timesheet dates**: all timesheet entry dates must be >= project `startDate`; use consecutive dates starting from the project start date, max 24 hours per entry per employee per date
 - **Batch timesheet**: use `POST /timesheet/entry/list` with an array of all entries for all employees; this is 1 API call regardless of entry count
 - **Lifecycle invoice**: on this exact family, prefer direct `POST /invoice?sendToCustomer=false` with embedded `orders[]`; do not default to `POST /order` -> `PUT /order/{id}/:invoice`
@@ -108,10 +118,13 @@ Previous non-batched order-first path was `15-22` calls depending on extra looku
 
 - If no department exists in `GET /department?isInactive=false&count=1&fields=*`:
   - `POST /department` with `{ "name": "Avdeling" }` (+1 call)
-- If `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
-  - `GET /ledger/account?isBankAccount=true&fields=*` (already done proactively in step 7)
-  - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
-  - retry the same `PUT /order/{id}/:invoice?...` once
+- If no division exists in `GET /division?count=1&fields=*` (empty array):
+  - omit `division` from all `employments[]` objects in `POST /employee` payloads
+  - do not send `division: { id: undefined }` or `division: null`; this causes `422 employments.division.name: Feltet kan ikke være tomt.`
+- If the chosen invoice bank account lacks `bankAccountNumber`:
+  - `PUT /ledger/account/{id}` with `{ "bankAccountNumber": "12345678903" }` (known MOD11-valid)
+  - do not use arbitrary 11-digit numbers like `"12345678901"`; they fail `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer`
+  - retry the same direct `POST /invoice` payload once
 - If the newly created employee does not appear in `GET /employee?...assignableProjectManagers=true` or `POST /project` still rejects that employee with the project-manager-access validation:
   - do not guess a hidden project-manager-access toggle
   - do not fall back to plain `GET /employee?email=...` and blindly try the write
@@ -130,6 +143,20 @@ Employee for lifecycle flow (POST /employee):
   "userType": "NO_ACCESS",
   "department": { "id": 12345 },
   "employments": [{ "startDate": "2026-03-21", "division": { "id": 67890 } }]
+}
+```
+
+When `GET /division` returned empty, omit `division` from the employment:
+
+```json
+{
+  "firstName": "Henry",
+  "lastName": "Harris",
+  "email": "henry.harris@example.org",
+  "dateOfBirth": "1985-01-15",
+  "userType": "NO_ACCESS",
+  "department": { "id": 12345 },
+  "employments": [{ "startDate": "2026-03-21" }]
 }
 ```
 
@@ -222,3 +249,5 @@ Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
 - Do not omit root `invoiceDueDate` on the direct lifecycle-invoice branch
 - Do not recreate the invoice prerequisites after a bank-account validation failure; repair the existing bank account and retry the same direct invoice payload once
 - Do not spend verification reads by default after `POST /project/projectActivity`, `POST /project/orderline`, `POST /timesheet/entry/list`, or direct `POST /invoice` when the write response already proves the scored side effects
+- Do not send `division: { id: undefined }` or `division: null` in employee payloads when `GET /division` returned empty; Tripletex treats the presence of the `division` key as a create-division intent and fails `422 employments.division.name: Feltet kan ikke være tomt.`; conditionally build the employment object and only include `division` when a valid division id exists
+- Do not use arbitrary 11-digit bank account numbers for the bank-account repair step; Norwegian bank accounts require a valid MOD11 check digit; always use the proven value `"12345678903"`; the 2026-03-21 production run `Cloud-Migration Eichenhof` used `"12345678901"` and failed `422`, leaving the invoice uncreated

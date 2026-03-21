@@ -47,7 +47,8 @@
   - always include `dateOfBirth`
   - always include `employments[].startDate`
   - include `department.id`
-  - include `employments[].division.id`
+  - include `employments[].division.id` only when `GET /division` returned a usable row; if the division read returned an empty array, omit `division` entirely from the employment object — sending `division: { id: undefined }` causes `422 employments.division.name: Feltet kan ikke være tomt.` because Tripletex interprets the presence of the `division` key as an attempt to create a new division
+  - the 2026-03-21 production run `Cloud-Migration Eichenhof` hit this exact trap: `GET /division?count=1&fields=*` returned an empty array, the script unconditionally included `division: { id: undefined }`, and the first `POST /employee` failed with `422`
 - project create:
   - include `name`
   - include `startDate`
@@ -118,8 +119,11 @@
 ## Known Recovery Branches
 - if no department exists on the initial read:
   - `POST /department` once with a minimal name payload
+- if no division exists on the initial read:
+  - omit `division` from all `employments[]` objects; do not send `division: { id: undefined }` or `division: null`
 - if the chosen invoice bank account lacks `bankAccountNumber`:
-  - `PUT /ledger/account/{id}` with a valid `bankAccountNumber`
+  - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (known MOD11-valid Norwegian account number)
+  - do not use arbitrary 11-digit numbers; `"12345678901"` fails `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer` because Norwegian bank account numbers require a valid MOD11 check digit
   - retry the same direct invoice payload once
 - if the prompt later proves that exact project-manager identity is scored:
   - do not force this standard; that branch is outside the proven lower-call path until public evidence proves a safe access-grant write
@@ -135,3 +139,8 @@
 - that same sandbox re-proof showed the direct invoice write returned `amountExcludingVatCurrency=262850` and `projectInvoiceDetails.length=1`
 - a same-session sandbox control without root `invoiceDueDate` failed `422 invoiceDueDate: Kan ikke være null.`
 - the 2026-03-21 production run `Cloud-Migration Brückentor` then re-confirmed the line-shape pitfall from the other direction: `POST /order` with line-level `project` failed `422 field "project" does not exist in object`, so even the older order-first branch needed that correction
+- the 2026-03-21 production run `Cloud-Migration Eichenhof` exposed two additional pitfalls:
+  - `GET /division?count=1&fields=*` can return an empty array in some production accounts; unconditionally including `division: { id: undefined }` on the employee payload caused `422 employments.division.name: Feltet kan ikke være tomt.` and wasted the first `POST /employee` call
+  - using `bankAccountNumber: "12345678901"` on the bank-account repair step failed `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer`; the correct known-valid value is `"12345678903"` (MOD11-valid)
+  - the run also hit a transient `409` on `POST /timesheet/entry/list` during its second script execution despite all entries having unique (employee, date, activity, project) tuples; the same batch succeeded on immediate retry, suggesting a transient server-side conflict rather than a payload shape error
+  - same-day persistent-sandbox re-proof confirmed the full 14-call path succeeds when division is conditionally omitted and bank-account repair uses `"12345678903"`
