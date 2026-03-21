@@ -13,6 +13,7 @@ class EnsembleModelSpec(BaseModel):
     component_weights: tuple[float, ...]
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     policy_name: str = "coverage"
+    blend_mode: str = "geometric"
 
 
 _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
@@ -114,6 +115,53 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
             "f1_student_query_residual_supportx_v01",
         ),
         component_weights=(0.4, 0.6),
+    ),
+    # Arithmetic mean variants
+    "f1_ensemble_hv2_sx_50_arith_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_arith_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        blend_mode="arithmetic",
+    ),
+    "f1_ensemble_hv2_qr_50_arith_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_qr_50_arith_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "query_residual",
+        ),
+        component_weights=(0.5, 0.5),
+        blend_mode="arithmetic",
+    ),
+    # 3-component with bucket prior as regularizer
+    "f1_ensemble_hv2_sx_bp_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_bp_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+            "historical_bucket_prior",
+        ),
+        component_weights=(0.45, 0.45, 0.10),
+    ),
+    # k5 hazard 45% + supportx 55%
+    "f1_ensemble_hv2_sx_45_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_45_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.45, 0.55),
+    ),
+    # k5 hazard 55% + supportx 45%
+    "f1_ensemble_hv2_sx_55_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_55_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.55, 0.45),
     ),
 }
 

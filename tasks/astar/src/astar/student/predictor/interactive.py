@@ -427,6 +427,7 @@ def build_online_predictor(
             model_name=ensemble_spec.model_name,
             probability_floor=ensemble_spec.probability_floor,
             policy_name=policy_name or ensemble_spec.policy_name,
+            blend_mode=ensemble_spec.blend_mode,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

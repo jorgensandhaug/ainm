@@ -32,6 +32,7 @@ class EnsemblePredictor(BaseRoundPredictor):
     components: tuple[object, ...] = ()  # RoundPredictorAdapter objects (avoided import for circular dep)
     component_weights: tuple[float, ...] = ()
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    blend_mode: str = "geometric"  # "geometric" or "arithmetic"
 
     @classmethod
     def fit_from_workspace(
@@ -44,6 +45,7 @@ class EnsemblePredictor(BaseRoundPredictor):
         model_name: str = "f1_ensemble_v01",
         probability_floor: float = 0.01,
         policy_name: str = "coverage",
+        blend_mode: str = "geometric",
     ) -> EnsemblePredictor:
         if not model_names:
             raise ValueError("ensemble requires at least one component model")
@@ -72,6 +74,7 @@ class EnsemblePredictor(BaseRoundPredictor):
             components=tuple(components),
             component_weights=tuple(resolved_weights),
             probability_floor=probability_floor,
+            blend_mode=blend_mode,
         )
 
     def build_prediction_bundle_from_context(
@@ -96,33 +99,56 @@ class EnsemblePredictor(BaseRoundPredictor):
                 )
             component_predictions.append(pred)
 
-        # Geometric mean in probability space
+        blended = self._blend_predictions(component_predictions, context.round_context.round_id)
+        return blended
+
+    def _blend_predictions(
+        self,
+        component_predictions: list[PredictionBundle],
+        round_id: str,
+    ) -> PredictionBundle:
         seed_indices = set()
         for pred in component_predictions:
             seed_indices.update(pred.predictions_by_seed.keys())
 
         blended: dict[int, np.ndarray] = {}
         for seed_index in sorted(seed_indices):
-            log_accum = None
-            for j, pred in enumerate(component_predictions):
-                if seed_index not in pred.predictions_by_seed:
-                    continue
-                probs = np.asarray(pred.predictions_by_seed[seed_index], dtype=np.float64)
-                log_probs = np.log(np.maximum(probs, 1e-12))
-                if log_accum is None:
-                    log_accum = self.component_weights[j] * log_probs
-                else:
-                    log_accum += self.component_weights[j] * log_probs
-
-            if log_accum is not None:
-                # Convert back to probabilities via softmax normalization
-                shifted = log_accum - np.max(log_accum, axis=-1, keepdims=True)
-                exp_probs = np.exp(shifted)
-                normalized = exp_probs / np.sum(exp_probs, axis=-1, keepdims=True)
-                blended[seed_index] = apply_probability_floor(normalized, self.probability_floor)
+            if self.blend_mode == "arithmetic":
+                # Arithmetic mean in probability space
+                accum = None
+                for j, pred in enumerate(component_predictions):
+                    if seed_index not in pred.predictions_by_seed:
+                        continue
+                    probs = np.asarray(pred.predictions_by_seed[seed_index], dtype=np.float64)
+                    if accum is None:
+                        accum = self.component_weights[j] * probs
+                    else:
+                        accum += self.component_weights[j] * probs
+                if accum is not None:
+                    # Renormalize
+                    sums = np.sum(accum, axis=-1, keepdims=True)
+                    normalized = accum / np.maximum(sums, 1e-12)
+                    blended[seed_index] = apply_probability_floor(normalized, self.probability_floor)
+            else:
+                # Geometric mean in log-probability space
+                log_accum = None
+                for j, pred in enumerate(component_predictions):
+                    if seed_index not in pred.predictions_by_seed:
+                        continue
+                    probs = np.asarray(pred.predictions_by_seed[seed_index], dtype=np.float64)
+                    log_probs = np.log(np.maximum(probs, 1e-12))
+                    if log_accum is None:
+                        log_accum = self.component_weights[j] * log_probs
+                    else:
+                        log_accum += self.component_weights[j] * log_probs
+                if log_accum is not None:
+                    shifted = log_accum - np.max(log_accum, axis=-1, keepdims=True)
+                    exp_probs = np.exp(shifted)
+                    normalized = exp_probs / np.sum(exp_probs, axis=-1, keepdims=True)
+                    blended[seed_index] = apply_probability_floor(normalized, self.probability_floor)
 
         return PredictionBundle(
-            round_id=context.round_context.round_id,
+            round_id=round_id,
             model_name=self.name,
             predictions_by_seed=blended,
         )
@@ -142,32 +168,4 @@ class EnsemblePredictor(BaseRoundPredictor):
                 evidence,
             )
             component_predictions.append(pred)
-
-        seed_indices = set()
-        for pred in component_predictions:
-            seed_indices.update(pred.predictions_by_seed.keys())
-
-        blended: dict[int, np.ndarray] = {}
-        for seed_index in sorted(seed_indices):
-            log_accum = None
-            for j, pred in enumerate(component_predictions):
-                if seed_index not in pred.predictions_by_seed:
-                    continue
-                probs = np.asarray(pred.predictions_by_seed[seed_index], dtype=np.float64)
-                log_probs = np.log(np.maximum(probs, 1e-12))
-                if log_accum is None:
-                    log_accum = self.component_weights[j] * log_probs
-                else:
-                    log_accum += self.component_weights[j] * log_probs
-
-            if log_accum is not None:
-                shifted = log_accum - np.max(log_accum, axis=-1, keepdims=True)
-                exp_probs = np.exp(shifted)
-                normalized = exp_probs / np.sum(exp_probs, axis=-1, keepdims=True)
-                blended[seed_index] = apply_probability_floor(normalized, self.probability_floor)
-
-        return PredictionBundle(
-            round_id=round_detail.id,
-            model_name=self.name,
-            predictions_by_seed=blended,
-        )
+        return self._blend_predictions(component_predictions, round_detail.id)
