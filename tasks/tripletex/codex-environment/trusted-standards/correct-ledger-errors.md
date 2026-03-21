@@ -203,4 +203,13 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - the script ignored the trusted standard's own Case B guidance and used the simpler but wrong expense+vatType=1 pattern
   - `dateTo=2026-03-01` was correctly used (exclusive, includes all of Feb)
   - sandbox confirms: duplikat-labeled vouchers may be the ONLY entry on that account+amount (no original to pair with), so signature grouping alone is insufficient
+- production run 2026-03-21 (correct-ledger-errors, fourth run — 397faff2):
+  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, had 2710=2290 → Case B), wrong amount 6300 (8200→5800, vatType 0)
+  - Case B correctly applied: original 6540 gross=11450 net=9160 2710=2290; posted 2710 +572.50, 6540 +2290 (vatType=0), 2400 -2862.50 with supplier
+  - vatType correctly copied: 1 for 6500 reclassification (auto-generated ±1470 on 2710 cancel out), 0 for 7100 dup and 6300 wrong-amount
+  - duplicate found via description keyword cascade ("duplikat" in voucher description), no signature grouping needed
+  - counterpart accounts (1920 bank, 2400 supplier with ID) all from voucher response nested expansion
+  - `dateTo=2026-03-01` correctly used (exclusive)
+  - this is the first run to correctly use Case B direct-2710 posting in production and achieve 3 calls with 0 errors on all 4 correction types
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers

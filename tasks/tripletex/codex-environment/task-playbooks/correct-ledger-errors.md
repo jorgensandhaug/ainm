@@ -96,3 +96,9 @@ POST /ledger/voucher?sendToLedger=true
   - **Check 3 failure**: used expense 4500 +3625 with vatType=1, Tripletex auto-generated 2710 +725; scorer rejected this
   - correct approach for Case B: 2710 +725 (vat_shortfall), 4500 +2900 (expense_net_shortfall, vatType=0), 2400 -3625 with supplier
   - this confirms: NEVER use expense + vatType=1 for missing VAT, even in Case B
+- Fourth run (397faff2): achieved ideal 3 calls, 0 errors on all 4 correction types
+  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, had 2710=2290 → Case B), wrong amount 6300 (8200→5800, vatType 0)
+  - Case B correctly applied with direct 2710 posting: 2710 +572.50, 6540 +2290 (vatType=0), 2400 -2862.50 with supplier
+  - first production run to correctly use Case B direct-2710 posting and pass all 4 correction types
+  - duplicate detected via description keyword cascade (no signature grouping needed)
+  - confirms: the 3-call path is stable and production-proven across 4 different error configurations
