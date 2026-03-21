@@ -872,24 +872,61 @@
    - promotion decision:
      - run full corrected LOO for `query_residual_v17` immediately
 102. `query_residual_v17` full corrected LOO status at end of this turn:
-   - full run command launched:
+   - initial full run command launched:
      - `uv run astar run-historical-benchmark --model query_residual_v17 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v17_full_corrected`
-   - run was intentionally interrupted to avoid leaving an orphan long-running process at turn end
-   - cached fold checkpoints already completed for `6/8` held-out folds:
+   - first pass was intentionally interrupted to avoid leaving an orphan long-running process at turn end
+   - cached fold checkpoints completed before resume:
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=7bc2d3ff56/checkpoint.json`
      - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=ecfd58da91/checkpoint.json`
-   - rerunning the exact same command should resume from those cached folds rather than restart from zero
-103. Current verified leaderboard after this turn:
+   - rerunning the exact same command resumed from those cached folds rather than restart from zero
+103. Full corrected `query_residual_v17` LOO benchmark complete:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v17_full_corrected/result.json`
+   - result:
+     - mean score `76.1526`
+     - mean weighted KL `0.092429`
+     - official weighted mean score `75.8777`
+     - official weighted mean weighted-KL `0.093612`
+     - round mean score std `7.1450`
+     - round mean weighted-KL std `0.032463`
+     - worst round:
+       - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+       - mean score `64.0725`
+       - mean weighted KL `0.148504`
+     - resumed runtime `569.558s`
+104. Interpretation of item 103:
+   - `query_residual_v17` is the new best verified full local model here
+   - versus prior full leader `query_residual_v16`:
+     - mean score `75.4866 -> 76.1526` (`+0.6659`)
+     - mean weighted KL `0.095799 -> 0.092429` (`-0.003370`)
+     - official weighted mean score `75.2037 -> 75.8777` (`+0.6740`)
+     - official weighted mean weighted-KL `0.097000 -> 0.093612` (`-0.003388`)
+   - worst-round robustness improved again:
+     - worst round remained `f1dac9...`
+     - worst-round score improved `61.0810 -> 64.0725`
+105. Paired historical comparison vs prior full leader:
+   - artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v16__candidate=query_residual_v17.json`
+   - report:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v16__candidate=query_residual_v17.md`
+   - result:
+     - mean score delta `+0.6659`
+     - mean weighted KL delta `-0.003370`
+     - win rate `0.750`
+     - loss rate `0.250`
+     - tie rate `0.000`
+     - score-delta CI95 `[0.3818, 1.0002]`
+106. Current verified leaderboard after this turn:
    - best fully verified model:
-     - `query_residual_v16`
-   - best unverified but highly promising next branch:
      - `query_residual_v17`
-     - targeted holdout score `64.8429` vs `v16` targeted `62.9365`
-     - full corrected LOO still pending completion
+   - previous best:
+     - `query_residual_v16`
+   - both improvements came from continuing the prior-blend de-anchoring sweep:
+     - `0.35 -> 0.25 -> 0.15`
 
 ## Open Questions
 
