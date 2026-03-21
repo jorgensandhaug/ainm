@@ -28,15 +28,17 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 
 ## Frontier Memory
 
-Write the current frontier here in compact form:
+- Strongest known current hypothesis: full CSV reconciliation must book **all** bank-statement rows, including non-invoice lines such as interest, tax withholding, and bank-fee rows.
+- Legacy production ceiling: all examined attributed runs plateau at `0.6 / 6`, with `Check 2` passing and `Check 1` failing while using the same 11-call invoice-focused flow.
+- Imported legacy evidence worth preserving: the repeated ceiling strongly suggests the old trusted-standard rule to skip non-invoice rows is the structural bottleneck.
+- Current call frontier: the important open question is correctness, not just call count. A worthwhile challenger should preserve roughly the same call class unless a split-voucher design is proven necessary.
+- Anti-patterns / dead ends to avoid:
+  - skipping non-invoice CSV rows by default
+  - assuming the invoice-only path is sufficient just because it has zero API errors
+  - promoting account-number guesses without sandbox verification
+  - assuming the current main implementation and the agent-branch implementation are identical without comparison
 
-- strongest known branch
-- score / correctness ceiling
-- call-budget frontier
-- imported legacy evidence worth preserving
-- anti-patterns / dead ends to avoid
-
-If no frontier is justified, say so explicitly and record why.
+See also: `research/frontier-import/task-23.md`.
 
 ## Next Improving-Agent Update Checklist
 
