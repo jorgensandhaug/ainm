@@ -93,6 +93,8 @@
 - Nynorsk prompt language (`nn`) follows the same rules as Bokmål (`nb`): `eksklusiv MVA` → taxed 25% branch, `Nettverksteneste` preserved as-is in the order line description
 - do not confuse description-only invoice tasks (where the prompt gives only a service description like "Systemutvikling" without product numbers) with the order-based `create-order-invoice-and-register-payment` flow; description-only lines work perfectly with `POST /invoice` using `orders[].orderLines[]` with `description`, `count`, `unitPriceExcludingVatCurrency`, and resolved `vatType` — no product creation or product lookup is needed; sandbox readback confirmed `product: null` on the resulting order line
 - when the Norwegian prompt says "kunden" (the customer, with definite article), the customer already exists; use `GET /customer?organizationNumber=...&fields=*` to resolve, not `POST /customer`; "en kunde" (a customer, indefinite) would imply creating
+- the same definite-article heuristic applies in English: "the customer Brightstone Ltd" or "invoice to the customer X" implies the customer already exists; use `GET /customer?organizationNumber=...&fields=*` instead of `POST /customer`
+- when the prompt says "create and send" an invoice, always match this standard (`create-and-send-customer-invoice.md`), not the create-only standard (`create-customer-invoice.md`); matching the wrong standard wastes agent time even if the final flow is similar
 - the 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` used the wrong flow entirely — the agent selected the order-based standard (`create-order-invoice-and-register-payment`) instead of this standard, then created an unnecessary product and used `POST /order` + `PUT /order/:invoice` instead of direct `POST /invoice`; that cost 8 calls instead of the optimal 6 (with bank repair); the correct path was: `GET /customer` → `GET /ledger/vatType` (25%) → `POST /invoice` (422 bank account) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry
 
 ## OpenAPI / Sandbox Status
@@ -146,3 +148,14 @@
   - readback via `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*)))` showed `product: null`, `description: "Systemutvikling"`, correct price and VAT
   - this proves no `POST /product` or `GET /product` is needed for description-only invoice tasks; `POST /invoice` handles product-less lines natively
   - the 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` should have used this exact standard but instead used the order-based flow and spent 8 calls (2 wasted on product search/creation + wrong flow choice); the optimal was 6 calls: `GET /customer` → `GET /ledger/vatType` → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry; the production invoice returned `amountExcludingVatCurrency=28900`, `amountCurrency=36125` (25% VAT)
+- existing-customer direct-line create-and-send confirmed in production on 2026-03-21:
+  - the production run for `Brightstone Ltd` / `894181273` / `Cloud Storage` / `14150` / `excluding VAT` (English prompt, existing customer) succeeded with optimal 6 API calls and 0 avoidable errors
+  - `GET /customer?organizationNumber=894181273&fields=*` resolved the existing customer (id=108328570, name=Brightstone Ltd)
+  - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` resolved the outgoing VAT (id=3, 25%)
+  - `POST /invoice?sendToCustomer=true` hit the known bank-account validation (422)
+  - bank-account repair: `GET /ledger/account?isBankAccount=true&fields=*` → `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` → retry `POST /invoice?sendToCustomer=true` succeeded (201)
+  - final invoice: id=2147643106, invoiceNumber=1, `amountExcludingVatCurrency=14150`, `amountCurrency=17687.5` (14150 × 1.25)
+  - this is the first production confirmation of the existing-customer direct-line create-and-send variant with bank-account repair; the existing-customer branch (3 core + 3 repair = 6 calls) matches the optimal new-customer + repair shape
+  - the prompt "the customer Brightstone Ltd" with English definite article correctly triggered `GET /customer` instead of `POST /customer`
+  - persistent sandbox re-verification on 2026-03-21 confirmed the same create-and-send mechanics with `sendToCustomer=true` on the existing customer; sandbox only has 0% VAT so the exact 25% taxed outcome was not reproducible there
+  - sandbox also re-confirmed that omitting `vatType` on a direct line creates 0% VAT (amountCurrency == amountExcludingVatCurrency), proving the VAT lookup is essential for the taxed branch
