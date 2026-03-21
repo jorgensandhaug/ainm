@@ -3218,8 +3218,117 @@ For LIVE with overlapping viewports:
 3. For future work: explore overlapping viewport policy + evidence model
 4. For ensemble: combine evidence model with query_residual for potential gains
 
+#### Phase D: Markov transition teacher — NEGATIVE RESULT
+- Built per-cell Markov transition model from full 51-frame replay trajectories
+- Used LightGBM multiclass classifier for P(next_class | current_class, neighborhood, year)
+- Monte Carlo rollout (20 paths × 50 years) to get final distributions
+- Result: **score=32.89** — catastrophically bad
+- Error compounds over 50 transition steps; cross-round variation dominates
+- Conclusion: 50-step rollout dynamics are fundamentally fragile for this problem
+
+#### Phase C: Empirical conditional frequency tables — MODERATE
+- Non-parametric: for each (initial_class, sett_neighbor, coastal) bucket → empirical year-50 distribution
+- Result: **score=64.49** — too coarse (only 56-58 unique keys)
+- Notable: round 8e8399 gets 86.13 when dynamics match
+
 #### Next experiments to run
 1. Wire evidence model into live serving path with online query observations
 2. Test overlapping viewport query policy for multi-observation coverage
 3. Build ensemble of evidence model + query_residual
 4. Add settlement-level features from online queries to evidence model
+
+---
+
+## DETAILED MODEL EXPLANATION: Current Best Model Family
+
+### Model: Evidence-Augmented Cellwise LightGBM (gbx_cellwise_evidence_lgb_v2)
+
+#### What is this model?
+
+A per-cell probability prediction model that uses gradient-boosted decision trees (LightGBM) to predict the 6-class probability distribution for each cell on the 40x40 map. Unlike the existing linear ridge regression approach (query_residual), this model captures **nonlinear interactions** between features.
+
+#### Architecture Overview
+
+The model has three conceptual components:
+
+**Component 1: Static Map Feature Extractor (~60 features per cell)**
+- Input: initial terrain grid (40x40) + settlement positions
+- Features:
+  - Terrain identity: 6 one-hot features for current cell class
+  - Binary masks: land, sea, mountain, buildable, coast, forest (6 features)
+  - Settlement/port indicator maps (2 features)
+  - Neighborhood composition at multiple scales (radii 1,2,3,5): counts of forest, mountain, settlement, port, coast, buildable, land neighbors (7x4 = 28 features)
+  - Distance features: normalized distance to nearest settlement, port, coast (4 features)
+  - Map-level statistics: settlement count, port count, land/forest/coast/mountain fractions (6 features replicated per cell)
+  - Position features: y/x, center distance, edge distance (4 features)
+  - Local terrain heterogeneity at radii 1,2 (2 features)
+  - Settlement density at radii 4,7 (2 features)
+- Why: These features capture the spatial structure determining cell dynamics — cells near settlements behave differently from isolated cells, coastal cells can become ports, forest density affects reclamation.
+
+**Component 2: Evidence Feature Extractor (~40 features per cell)**
+- Input: observed year-50 grids from 1-15 replay runs + observation mask
+- Features:
+  - Observation indicator (1 feature)
+  - Evidence quality: number of replays / 20 (1 feature)
+  - Averaged observed class frequencies per cell (6 features, zero for unobserved)
+  - Observed class entropy (1 feature)
+  - Neighborhood evidence at radii 1,2,3: observation counts + class fractions (~21 features)
+  - Settlement statistics: population, food, wealth, defense, alive, port maps (7 features)
+  - Wider neighborhood settlement features (4 features)
+- Why: Spatial propagation — a cell's final class correlates with neighbors' classes. Encoding what was observed in the neighborhood gives unobserved cells indirect evidence.
+
+**Component 3: LightGBM Per-Class Regressors**
+- 6 independent LGBMRegressor models, one per output class
+- Each takes concatenated (static + evidence) features → predicts class probability
+- Hyperparameters:
+  - n_estimators=800: enough trees for complex patterns, 50 transitions × rich features
+  - max_depth=8: captures 8-way feature interactions
+  - learning_rate=0.02: slow learning for better generalization
+  - min_child_samples=50: prevents overfitting to rare cell configurations
+  - subsample=0.7, colsample_bytree=0.7: stochastic regularization
+  - num_leaves=63: moderate tree complexity
+- Why per-class regression: Better calibrated than softmax multiclass (empirically: multiclass scored 58.32 vs per-class 66.74)
+
+#### Training
+
+- **Data source**: replay year-50 outcomes (not ground truth probability distributions)
+- **Training pairs**: (evidence_replays, target_replay) where evidence comes from N replays and target is a different replay
+- **Mixed evidence training** (optional): randomly choose 1-15 evidence replays during training for robustness
+- **Training volume**: ~168K cells per fold (ev15) or ~450K cells per fold (mixed)
+- **Loss**: MSE between predicted probability and one-hot target class
+- **Why replay data**: 2366 replays = 59x more data than 40 ground truth tensors. Training on individual stochastic outcomes lets the model implicitly learn the full distribution.
+
+#### Inference Pipeline
+
+1. Compute static map features (60 features)
+2. Compute evidence features from observations (~40 features)
+3. Concatenate → 100 features per cell × 1600 cells = 160K feature evaluations
+4. Run through 6 LightGBM regressors → 6 raw probabilities per cell
+5. Clip to [0,1], normalize, apply floor (0.01), re-normalize
+6. Output: (40, 40, 6) probability tensor
+
+#### Why This Works
+
+1. **Spatial propagation**: Neighborhood evidence features diffuse observed information to unobserved cells
+2. **Nonlinear interactions**: LightGBM captures complex conditional patterns (e.g., "buildable + near settlement + observed neighbor is ruin → high forest probability")
+3. **Evidence quality awareness**: evidence count feature lets model calibrate trust in observations vs prior
+4. **Cross-round robustness**: Training on replays from multiple rounds generalizes across round parameters
+
+#### Limitations
+
+1. **Single-observation gap**: With 1 observation per cell (live scenario), scores 72.35 vs champion 79.39
+2. **No global regime inference**: Doesn't infer round-law parameters from settlement statistics like query_residual does
+3. **Not yet in live serving**: Standalone script, not formal benchmark infrastructure
+4. **Training cost**: ~50-70 seconds per fold
+
+#### Key Parameters and Their Rationale
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| evidence_replays | 15 (best) | Optimal tradeoff between evidence quality and training data size |
+| max_replays_per_seed | 58 (all) | Use all available replay data |
+| n_estimators | 800 | Complex prediction task needs many trees |
+| max_depth | 8 | Captures terrain × neighborhood × evidence interactions |
+| learning_rate | 0.02 | Slow learning prevents overfitting with limited rounds |
+| probability_floor | 0.01 | Prevents infinite KL from zero-probability predictions |
+| subsample/colsample | 0.7 | Stochastic regularization for cross-round generalization |
