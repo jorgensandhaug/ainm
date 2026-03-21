@@ -98,7 +98,7 @@ export type RegisterTravelExpenseTaskUnderstandingResult = TaskUnderstandingResu
   typeof REGISTER_TRAVEL_EXPENSE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RegisterTravelExpenseTaskModule> {
-  const { strategy } = await import("./strategies/not-implemented");
+  const { strategy } = await import("./strategies/create-and-deliver-travel-expense");
   return {
     task,
     strategies: [strategy],
