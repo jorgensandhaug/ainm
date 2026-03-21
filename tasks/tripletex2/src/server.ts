@@ -479,6 +479,9 @@ async function handleInternalClassifyResultRequest(
 }
 
 function authorizeRequest(request: Request, bearerToken: string): string | undefined {
+  if (!bearerToken) {
+    return undefined; // Auth disabled when no API_KEY is set
+  }
   const authorization = request.headers.get("authorization");
   if (!authorization) {
     return "Missing Authorization header.";

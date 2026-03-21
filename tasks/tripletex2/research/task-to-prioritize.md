@@ -1,0 +1,1 @@
+11,12 og 13 are very difficult. THey deal with file uploads etc.

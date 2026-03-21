@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-21T16:09:39.693Z",
+  "createdAt": "2026-03-21T16:09:39.689Z",
+  "requestId": "req-http-concurrency-1",
+  "runId": "sandbox-2026-03-21T16-09-39-689Z-19cc876f",
+  "taskId": "08",
+  "runtimeStatus": "completed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/runs/2026-03-21/run-sandbox-2026-03-21T16-09-39-689Z-19cc876f.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/ainm/runs/2026-03-21/run-sandbox-2026-03-21T16-09-39-689Z-19cc876f.trace.json"
+  ]
+}

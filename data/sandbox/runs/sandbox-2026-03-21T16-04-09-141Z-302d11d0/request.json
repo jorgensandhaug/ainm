@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-request.v1",
+  "createdAt": "2026-03-21T16:04:09.141Z",
+  "mode": "sandbox",
+  "requestId": "req-http-concurrency-1",
+  "runId": "sandbox-2026-03-21T16-04-09-141Z-302d11d0",
+  "request": {
+    "prompt": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "files": [],
+    "tripletexCredentials": {
+      "baseUrl": "https://example.invalid",
+      "credentialSource": "fixture"
+    }
+  }
+}
