@@ -182,6 +182,43 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.5, 0.5),
     ),
+    # LOW PROBABILITY FLOOR VARIANTS (agent7 insight: floor=0.01 is massively over-conservative)
+    "f1_ensemble_hv2_sx_50_f005_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_f005_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.005,
+    ),
+    "f1_ensemble_hv2_sx_50_f003_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_f003_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.003,
+    ),
+    "f1_ensemble_hv2_sx_50_f001_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_f001_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.001,
+    ),
+    "f1_ensemble_hv2_sx_50_f0003_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_f0003_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0003,
+    ),
     # 3-model: hazard k5 + supportx + plain qr
     "f1_ensemble_hv2_sx_qr_v01": EnsembleModelSpec(
         model_name="f1_ensemble_hv2_sx_qr_v01",
