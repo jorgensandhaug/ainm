@@ -23,6 +23,9 @@ QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V9_LOCALGATE_V001 = "query_residual_v9_locgate_v001"
 QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001 = "query_residual_v9_v10_adaptive025_v001"
+QUERY_RESIDUAL_V9_V10_BUILTFREQGATE_V001 = "query_residual_v9_v10_builtfreqgate_v001"
+QUERY_RESIDUAL_V9_V10_BUILTFREQGATEWIDE_V001 = "query_residual_v9_v10_builtfreqgatewide_v001"
+QUERY_RESIDUAL_V9_V10_BUILTFREQGATEXWIDE_V001 = "query_residual_v9_v10_builtfreqgatexwide_v001"
 QUERY_RESIDUAL_V9_V10_BLEND025_V001 = "query_residual_v9_v10_blend025_v001"
 
 
@@ -152,7 +155,12 @@ class AdaptiveEntropyDisagreementBlendPredictor(BaseRoundPredictor):
         self,
         left_predictions: np.ndarray,
         right_predictions: np.ndarray,
+        *,
+        target_right_weight: float | None = None,
     ) -> np.ndarray:
+        resolved_target_right_weight = (
+            self.target_right_weight if target_right_weight is None else float(target_right_weight)
+        )
         mean_predictions = 0.5 * (left_predictions + right_predictions)
         entropy = -np.sum(mean_predictions * np.log(np.maximum(mean_predictions, 1e-12)), axis=-1) / np.log(
             mean_predictions.shape[-1],
@@ -161,23 +169,29 @@ class AdaptiveEntropyDisagreementBlendPredictor(BaseRoundPredictor):
         raw_weight = entropy * disagreement
         raw_mean = float(np.mean(raw_weight))
         if raw_mean <= 1e-12:
-            return np.full(raw_weight.shape, self.target_right_weight, dtype=np.float64)
+            return np.full(raw_weight.shape, resolved_target_right_weight, dtype=np.float64)
         scaled_weight = raw_weight / raw_mean
         if self.weight_exponent != 1.0:
             scaled_weight = np.power(np.maximum(scaled_weight, 0.0), self.weight_exponent)
-        right_weight = self.target_right_weight * scaled_weight
+        right_weight = resolved_target_right_weight * scaled_weight
         return np.clip(right_weight, self.min_right_weight, self.max_right_weight)
 
     def _blend_bundles(
         self,
         left_bundle: PredictionBundle,
         right_bundle: PredictionBundle,
+        *,
+        target_right_weight: float | None = None,
     ) -> PredictionBundle:
         predictions_by_seed = {}
         for seed_index in left_bundle.predictions_by_seed:
             left_predictions = np.asarray(left_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             right_predictions = np.asarray(right_bundle.predictions_by_seed[seed_index], dtype=np.float64)
-            right_weight = self._adaptive_right_weight(left_predictions, right_predictions)
+            right_weight = self._adaptive_right_weight(
+                left_predictions,
+                right_predictions,
+                target_right_weight=target_right_weight,
+            )
             predictions_by_seed[seed_index] = _blend_prediction_arrays(
                 left_predictions,
                 right_predictions,
@@ -206,6 +220,72 @@ class AdaptiveEntropyDisagreementBlendPredictor(BaseRoundPredictor):
         left_bundle = self.left_predictor.build_prediction_bundle(round_detail, features, evidence)
         right_bundle = self.right_predictor.build_prediction_bundle(round_detail, features, evidence)
         return self._blend_bundles(left_bundle, right_bundle)
+
+
+class BuiltFrequencyAdaptiveBlendPredictor(AdaptiveEntropyDisagreementBlendPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    built_frequency_intercept: float
+    built_frequency_slope: float
+    min_round_target_right_weight: float
+    max_round_target_right_weight: float
+    name: str = "built_frequency_adaptive_blend_v1"
+
+    def _round_target_right_weight_from_evidence(
+        self,
+        evidence_bundle,
+    ) -> float:
+        built_frequencies: list[float] = []
+        for seed_evidence in evidence_bundle.per_seed.values():
+            observed_class_frequencies = np.asarray(
+                seed_evidence.observed_class_frequencies,
+                dtype=np.float64,
+            )
+            built_frequencies.append(float(np.sum(observed_class_frequencies[1:4])))
+        if not built_frequencies:
+            return self.target_right_weight
+        round_built_frequency = float(np.mean(built_frequencies))
+        round_target_right_weight = (
+            self.built_frequency_intercept
+            + (self.built_frequency_slope * round_built_frequency)
+        )
+        return float(
+            np.clip(
+                round_target_right_weight,
+                self.min_round_target_right_weight,
+                self.max_round_target_right_weight,
+            ),
+        )
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        left_bundle = self.left_predictor.build_prediction_bundle_from_context(context)
+        right_bundle = self.right_predictor.build_prediction_bundle_from_context(context)
+        return self._blend_bundles(
+            left_bundle,
+            right_bundle,
+            target_right_weight=self._round_target_right_weight_from_evidence(context.evidence_bundle),
+        )
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        left_bundle = self.left_predictor.build_prediction_bundle(round_detail, features, evidence)
+        right_bundle = self.right_predictor.build_prediction_bundle(round_detail, features, evidence)
+        return self._blend_bundles(
+            left_bundle,
+            right_bundle,
+            target_right_weight=(
+                self.target_right_weight
+                if evidence is None
+                else self._round_target_right_weight_from_evidence(evidence)
+            ),
+        )
 
 
 def _query_residual_checkpoint_dir_name(
@@ -388,6 +468,43 @@ def _build_query_residual_v9_v10_adaptive025_adapter(
     )
 
 
+def _build_query_residual_v9_v10_builtfreqgate_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    built_frequency_intercept: float,
+    built_frequency_slope: float,
+    min_round_target_right_weight: float,
+    max_round_target_right_weight: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_query_residual_v9_v10_blend_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    predictor = BuiltFrequencyAdaptiveBlendPredictor(
+        left_predictor=left_predictor,
+        right_predictor=right_predictor,
+        target_right_weight=0.25,
+        min_right_weight=0.05,
+        max_right_weight=0.45,
+        weight_exponent=1.0,
+        built_frequency_intercept=built_frequency_intercept,
+        built_frequency_slope=built_frequency_slope,
+        min_round_target_right_weight=min_round_target_right_weight,
+        max_round_target_right_weight=max_round_target_right_weight,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
@@ -508,6 +625,45 @@ def build_online_predictor(
             blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001,
             target_right_weight=0.25,
             weight_exponent=1.0,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_BUILTFREQGATE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_BUILTFREQGATE_V001,
+            built_frequency_intercept=0.35,
+            built_frequency_slope=-0.8,
+            min_round_target_right_weight=0.15,
+            max_round_target_right_weight=0.35,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_BUILTFREQGATEWIDE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_BUILTFREQGATEWIDE_V001,
+            built_frequency_intercept=0.38,
+            built_frequency_slope=-1.0,
+            min_round_target_right_weight=0.10,
+            max_round_target_right_weight=0.40,
+        )
+    if normalized == QUERY_RESIDUAL_V9_V10_BUILTFREQGATEXWIDE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_query_residual_v9_v10_builtfreqgate_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=QUERY_RESIDUAL_V9_V10_BUILTFREQGATEXWIDE_V001,
+            built_frequency_intercept=0.40,
+            built_frequency_slope=-1.2,
+            min_round_target_right_weight=0.05,
+            max_round_target_right_weight=0.45,
         )
     if normalized == SMH_RESID_LOCALGATE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

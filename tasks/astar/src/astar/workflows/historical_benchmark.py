@@ -113,6 +113,9 @@ def run_historical_benchmark(
         "query_residual_v10",
         "query_residual_v9_locgate_v001",
         "query_residual_v9_v10_adaptive025_v001",
+        "query_residual_v9_v10_builtfreqgate_v001",
+        "query_residual_v9_v10_builtfreqgatewide_v001",
+        "query_residual_v9_v10_builtfreqgatexwide_v001",
         "query_residual_v9_v10_blend025_v001",
         "smh_resid_z12_h0_covbase_locgate_v001",
     }
