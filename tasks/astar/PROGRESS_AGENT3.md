@@ -2377,6 +2377,35 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_bank_residual_confidence_shrinks_far_neighbor_residual tests/test_historical_benchmark.py::test_teacher_student_blend_v36_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_teacher_student_blend_v38_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+257. Machine-wide health check before launching item 255:
+   - snapshot:
+     - memory used: about `719 GiB`
+     - memory available: about `2.2 TiB`
+   - largest workers remained manageable relative to box size:
+     - branch-local corrected-holdout jobs were about `27-36 GiB` RSS each
+     - several agent1 workers were about `19-31 GiB` RSS
+   - decision:
+     - safe to add a larger outer wave
+     - keep every new run at `jobs=1`
+258. Eighth corrected-holdout outer wave launched from pushed commit `48e9ad9`:
+   - models:
+     - `teacher_student_blend_v35`
+     - `teacher_student_blend_v36`
+     - `teacher_student_blend_v37`
+     - `teacher_student_blend_v38`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - sessions:
+     - `v35`: `9637`
+     - `v36`: `60994`
+     - `v37`: `58851`
+     - `v38`: `9329`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
 
 
 ## Open Questions
