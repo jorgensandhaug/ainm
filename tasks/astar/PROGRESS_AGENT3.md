@@ -4675,10 +4675,37 @@
    - cellwise LGB v3 (2 episodes) = **83.34** (CURRENT BEST)
    - Total improvement: **+6.45 points** over starting baseline
 
+511. Cellwise LGB v4 results (with new feature types):
+   - **v4_1ep_ulf: 84.81** (NEW ALL-TIME LIVE BEST!)
+   - v4_1ep: 84.78
+   - v4_cs: 84.78 (cross-seed only)
+   - v4_1ep_mt: 84.72 (more trees)
+   - v4_deep: 84.71
+   - v4_1ep_d8: 84.71 (deeper)
+   - v4_full: 84.68
+   - v4_1ep_f001: 84.62
+   - v4_3ep: 84.54
+   - v4_sp: 84.54 (settlement proximity only)
+   - v4_noew_ulf: 83.60 (no entropy weights - clearly worse!)
+   - v4_noew: 83.52
+
+512. Key findings from v4:
+   - **Entropy-weighted training is CRITICAL**: +1.2 points (83.5 -> 84.7)
+   - Cross-seed evidence features help
+   - Settlement proximity from evidence helps
+   - Ultra-low floor (0.0001) gives marginal gains
+   - 1 episode is optimal with richer features
+
+513. Complete session improvement trajectory:
+   - query_residual_v19: 76.89 (starting point)
+   - adaptive_ensemble_v17: 79.98 (+3.09)
+   - cellwise LGB v1: 82.38 (+5.49)
+   - cellwise LGB v3 2ep: 83.34 (+6.45)
+   - **cellwise LGB v4 1ep: 84.81 (+7.92)**
+
 ## Open Questions
 
-- How to improve settlement/port/ruin prediction specifically?
-- How to fix query policy to use all 50 queries?
-- Should we design a smarter query policy that targets dynamic cells?
-- Need to wire live LGB into the run-live-online pipeline for next live round
-- Can we push past 84?
+- Can we push past 85?
+- Need to wire v4 LGB into live pipeline for next round submission
+- Can we improve the query policy to get better evidence?
+- The hardest round (36e581f1) is still ~70 - can we do better there?
