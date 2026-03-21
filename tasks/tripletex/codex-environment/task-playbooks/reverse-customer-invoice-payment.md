@@ -189,6 +189,15 @@ Observed production confirmation on 2026-03-21:
 - the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
 - this is the eleventh overall production confirmation of the 2-call path and the first French-prompt confirmation for the reversal task shape
 
+Observed production confirmation on 2026-03-22:
+- exact prompt shape `customer.organizationNumber=858237033` + `amountExcludingVatCurrency=25500` + line text `Consulting Hours` (English prompt)
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=858237033&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=1` (single invoice for this customer)
+  - invoice `2147575092` with `amountCurrency=31875` and `amountExcludingVatCurrency=25500`
+  - one `PUT /ledger/voucher/608892431/:reverse?date=2026-03-22` produced reverse voucher `609218201`
+- the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
+- this is the twelfth overall production confirmation of the 2-call path and the first English-prompt confirmation; 12 consecutive optimal runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
