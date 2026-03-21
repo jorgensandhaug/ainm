@@ -120,6 +120,12 @@ Do not use for:
   - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=36350` / `amountCurrency=43625`
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - this is the first production run achieving the optimal 6-call path (3 core + 3 bank-account repair) for the exact-number existing-product create-only invoice shape with bank-account validation
+- the 2026-03-21 production run for `Havbris AS` / `924693576` / products `Opplæring (3296)` + `Skylagring (6620)` + `Analyserapport (8441)` / VAT `25%` + `15% næringsmiddel` + `0% avgiftsfri` (Norwegian prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=924693576&fields=*` -> `GET /product?number=3296,6620,8441&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - fourth production confirmation of the comma-separated `number=X,Y,Z` product query approach; returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=26000` / `amountCurrency=28377.5`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - third production run achieving the optimal 6-call path (3 core + 3 bank-account repair)
 
 ## Minimal Flow
 
