@@ -99,7 +99,9 @@ def test_record_replay_writes_expected_file(sample_paths: RepoPaths) -> None:
     assert record.response.frames[-1].grid[1][1] == 3
 
 
-def test_harvest_replays_is_resumable_and_round_robins(sample_paths: RepoPaths) -> None:
+def test_harvest_replays_is_resumable_and_prioritizes_lowest_count_targets(
+    sample_paths: RepoPaths,
+) -> None:
     client = FakeReplayClient(sample_paths)
 
     existing = record_replay(
@@ -126,11 +128,11 @@ def test_harvest_replays_is_resumable_and_round_robins(sample_paths: RepoPaths) 
 
     summaries = {(item.round_id, item.seed_index): item for item in result.seed_summaries}
     assert summaries[(ROUND_ID, 0)].existing_before == 1
-    assert summaries[(ROUND_ID, 0)].captured == 1
-    assert summaries[(ROUND_ID, 0)].total_after == 2
+    assert summaries[(ROUND_ID, 0)].captured == 0
+    assert summaries[(ROUND_ID, 0)].total_after == 1
     assert summaries[(ROUND_ID, 1)].captured == 1
     assert summaries[(ROUND_ID, 2)].captured == 1
-    assert summaries[(ROUND_ID, 3)].captured == 0
+    assert summaries[(ROUND_ID, 3)].captured == 1
     assert summaries[(ROUND_ID, 4)].captured == 0
 
 

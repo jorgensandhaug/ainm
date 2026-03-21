@@ -52,14 +52,9 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 ## OpenAPI / Sandbox Status
 - `/department` and `/department/list` verified in `./openapi.json`
 - sandbox-proven for one-call single and one-call batch create
-- sandbox re-verified on 2026-03-20: batch create returned correct `values[]` with `fullResultSize=0`
-- sandbox re-verified on 2026-03-20 with `Lager`, `Økonomi`, `Drift`-shaped names: one `POST /department/list` preserved the exact Unicode names in `values[]`
-- sandbox re-verified on 2026-03-20 with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2`: one `POST /department/list` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
-- production re-confirmed on 2026-03-20 with a German three-department prompt: one `POST /department/list` created all requested departments with no prerequisite reads
-- production re-confirmed on 2026-03-20 with a Spanish three-department prompt for `Lager`, `Økonomi`, and `Drift`: one `POST /department/list` created all requested departments with no prerequisite reads
-- production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `HR`, `Salg`, and `Økonomi`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
-- production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `Lager`, `Regnskap`, and `Kvalitetskontroll`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
-- production re-confirmed on 2026-03-21 with a Norwegian three-department prompt for `Utvikling`, `Drift`, and `HR`: one `POST /department/list`, 201, perfect score (7/7, normalized 2), zero errors
-- production re-confirmed on 2026-03-21 with a Portuguese three-department prompt for `IT`, `Kvalitetskontroll`, and `Regnskap`: one `POST /department/list`, 201, zero reads, zero errors
-- sandbox re-verified on 2026-03-21: batch create still returns `fullResultSize=0` with correct `values[]`
-- sandbox re-verified on 2026-03-21 with `IT Reflection 20260321-134807`, `Kvalitetskontroll Reflection 20260321-134807`, and `Regnskap Reflection 20260321-134807`: one `POST /department/list` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
+- batch create returns `fullResultSize=0` with correct `values[]`; verify from `values[]`, not metadata
+- Unicode department names survive batch write unchanged
+- production-proven across German, Spanish, Norwegian, Portuguese, and mixed-language prompts (2026-03-20 and 2026-03-21)
+- all production runs scored 7/7 (normalized 2) with one `POST /department/list`, zero reads, zero errors
+- production re-confirmed on 2026-03-21 with a German three-department prompt for `Logistikk`, `Salg`, and `Drift`: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
+- sandbox re-verified on 2026-03-21 with `Logistikk Reflection 20260321-171405`, `Salg Reflection 20260321-171405`, and `Drift Reflection 20260321-171405`: one `POST /department/list`, 201, correct `values[]`

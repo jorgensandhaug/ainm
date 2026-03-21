@@ -18,6 +18,7 @@ type RunSummary = {
   correctness: string;
   fileCount: number | null;
   idlePane: boolean;
+  paneDead: boolean;
   phase: string;
   reflectionStatus: string;
   runId: string;
@@ -113,6 +114,7 @@ function compactStatus(status: string) {
   if (status === "skipped") return "skip";
   if (status === "missing") return "miss";
   if (status === "pending") return "pend";
+  if (status === "dead") return "dead";
   return status.slice(0, 4);
 }
 
@@ -123,8 +125,8 @@ function compactRunLabel(runId: string, phase: string) {
 }
 
 function isLiveRow(row: RunSummary) {
+  if (row.paneDead) return false;
   return (
-    (row.active && !row.idlePane) ||
     row.solveStatus === "running" ||
     row.reflectionStatus === "running" ||
     row.reflectionStatus === "launched" ||
@@ -134,7 +136,7 @@ function isLiveRow(row: RunSummary) {
 
 function statusColor(status: string) {
   if (status === "running" || status === "completed") return "green";
-  if (status === "timed_out" || status === "missing") return "red";
+  if (status === "timed_out" || status === "missing" || status === "dead") return "red";
   if (status === "launched" || status === "pending") return "cyan";
   if (status === "skipped" || status === "exited") return "gray";
   return "yellow";
@@ -207,6 +209,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
       correctness: "-",
       fileCount: null,
       idlePane: window.paneCommand === "zsh" && !window.paneDead,
+      paneDead: window.paneDead,
       phase: meta.phase,
       reflectionStatus: "-",
       runId: meta.runId,
@@ -252,6 +255,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
           : "-",
     fileCount: Array.isArray(manifest?.attachments) ? manifest.attachments.length : null,
     idlePane: window.paneCommand === "zsh" && !window.paneDead,
+    paneDead: window.paneDead,
     phase: meta.phase,
     reflectionStatus: typeof reflectionStatus?.status === "string" ? reflectionStatus.status : "-",
     runId: meta.runId,
@@ -280,13 +284,21 @@ function sortRows(rows: RunSummary[]) {
   });
 }
 
+function effectiveStatus(fileStatus: string, paneDead: boolean) {
+  if (!paneDead) return fileStatus;
+  if (fileStatus === "running" || fileStatus === "pending") return "dead";
+  return fileStatus;
+}
+
 function rowMarkup(row: RunSummary) {
   const attr = attrLabel(row.attributionStatus);
+  const mainStatus = effectiveStatus(row.solveStatus, row.paneDead);
+  const postStatus = effectiveStatus(row.reflectionStatus, row.paneDead);
   const cells = [
     formatCell(String(row.windowIndex), 3),
     formatCell(row.phase === "solve" ? "S" : row.phase === "reflect" ? "R" : "$", 1),
-    markup(formatCell(compactStatus(row.solveStatus), 4), statusColor(row.solveStatus)),
-    markup(formatCell(compactStatus(row.reflectionStatus), 4), statusColor(row.reflectionStatus)),
+    markup(formatCell(compactStatus(mainStatus), 4), statusColor(mainStatus)),
+    markup(formatCell(compactStatus(postStatus), 4), statusColor(postStatus)),
     markup(formatCell(row.correctness.replace("%", ""), 5), scoreColor(row.correctness)),
     formatCell(row.runScore, 5),
     formatCell(row.taskId, 4),

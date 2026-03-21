@@ -1,0 +1,8 @@
+{
+  "prompt": "Sett fastpris 429500 kr på prosjektet \"ERP-implementering\" for Elvdal AS (org.nr 834214261). Prosjektleiar er Marit Kvamme (marit.kvamme@example.org). Fakturer kunden for 33 % av fastprisen som ei delbetaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "-rHVrOGpPem22gl0PCjJW3VneJCtP3U__e1mFKOoJW4"
+  }
+}

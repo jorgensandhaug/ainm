@@ -24,11 +24,16 @@ from astar.workflows.sync_round import sync_round
 
 @dataclass(slots=True)
 class _ReplayTarget:
+    order_index: int
     round_id: str
     seed_index: int
     existing_before: int
     remaining: int
     captured: int = 0
+
+    @property
+    def current_total(self) -> int:
+        return self.existing_before + self.captured
 
 
 def _count_existing_replays(paths: WorkspacePaths, round_id: str, seed_index: int) -> int:
@@ -44,6 +49,13 @@ def _inter_replay_delay_seconds(min_seconds: float, max_seconds: float) -> float
     if min_seconds == max_seconds:
         return min_seconds
     return random.uniform(min_seconds, max_seconds)
+
+
+def _select_next_replay_target(targets: list[_ReplayTarget]) -> _ReplayTarget | None:
+    eligible_targets = [target for target in targets if target.remaining > 0]
+    if not eligible_targets:
+        return None
+    return min(eligible_targets, key=lambda target: (target.current_total, target.order_index))
 
 
 def fetch_replay(
@@ -122,6 +134,7 @@ def harvest_replays(
     targets: list[_ReplayTarget] = []
     existing_replays = 0
     ordered_round_ids: list[str] = []
+    target_order_index = 0
 
     for round_summary in round_summaries:
         ordered_round_ids.append(round_summary.id)
@@ -142,85 +155,82 @@ def harvest_replays(
             existing_replays += existing_before
             targets.append(
                 _ReplayTarget(
+                    order_index=target_order_index,
                     round_id=round_summary.id,
                     seed_index=seed_index,
                     existing_before=existing_before,
                     remaining=max(samples_per_seed - existing_before, 0),
                 ),
             )
+            target_order_index += 1
 
     captured_replays = 0
     rate_limit_cooldowns = 0
 
-    while any(target.remaining > 0 for target in targets):
+    while True:
         if max_new_replays is not None and captured_replays >= max_new_replays:
             break
 
-        rate_limited = False
-        for target in targets:
-            if target.remaining <= 0:
-                continue
-            if max_new_replays is not None and captured_replays >= max_new_replays:
-                break
+        target = _select_next_replay_target(targets)
+        if target is None:
+            break
 
-            try:
-                replay_result = fetch_replay(
-                    paths,
-                    client,
-                    ReplayRequest(round_id=target.round_id, seed_index=target.seed_index),
-                )
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code != 429:
-                    raise
-                rate_limit_cooldowns += 1
-                rate_limited = True
-                if progress is not None:
-                    progress(
-                        " ".join(
-                            [
-                                "rate-limited",
-                                f"round={target.round_id}",
-                                f"seed={target.seed_index}",
-                                f"cooldown_seconds={cooldown_seconds:.1f}",
-                            ],
-                        ),
-                    )
-                break
-
-            target.remaining -= 1
-            target.captured += 1
-            captured_replays += 1
+        try:
+            replay_result = fetch_replay(
+                paths,
+                client,
+                ReplayRequest(round_id=target.round_id, seed_index=target.seed_index),
+            )
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 429:
+                raise
+            rate_limit_cooldowns += 1
             if progress is not None:
                 progress(
                     " ".join(
                         [
-                            "captured-replay",
-                            f"round={replay_result.round_id}",
-                            f"seed={replay_result.seed_index}",
-                            f"sim_seed={replay_result.sim_seed}",
-                            f"frames={replay_result.frame_count}",
-                            f"saved={replay_result.path}",
-                            f"new_total={captured_replays}",
+                            "rate-limited",
+                            f"round={target.round_id}",
+                            f"seed={target.seed_index}",
+                            f"cooldown_seconds={cooldown_seconds:.1f}",
                         ],
                     ),
                 )
+            if cooldown_seconds > 0.0:
+                time.sleep(cooldown_seconds)
+            continue
 
-            if max_new_replays is not None and captured_replays >= max_new_replays:
-                continue
-            if not any(next_target.remaining > 0 for next_target in targets):
-                continue
-
-            delay_seconds = _inter_replay_delay_seconds(
-                random_delay_min_seconds,
-                random_delay_max_seconds,
+        target.remaining -= 1
+        target.captured += 1
+        captured_replays += 1
+        if progress is not None:
+            progress(
+                " ".join(
+                    [
+                        "captured-replay",
+                        f"round={replay_result.round_id}",
+                        f"seed={replay_result.seed_index}",
+                        f"sim_seed={replay_result.sim_seed}",
+                        f"frames={replay_result.frame_count}",
+                        f"saved={replay_result.path}",
+                        f"new_total={captured_replays}",
+                    ],
+                ),
             )
-            if delay_seconds > 0.0:
-                if progress is not None:
-                    progress(f"sleeping-next-replay seconds={delay_seconds:.1f}")
-                time.sleep(delay_seconds)
 
-        if rate_limited and cooldown_seconds > 0.0:
-            time.sleep(cooldown_seconds)
+        if max_new_replays is not None and captured_replays >= max_new_replays:
+            break
+        if _select_next_replay_target(targets) is None:
+            continue
+
+        delay_seconds = _inter_replay_delay_seconds(
+            random_delay_min_seconds,
+            random_delay_max_seconds,
+        )
+        if delay_seconds > 0.0:
+            if progress is not None:
+                progress(f"sleeping-next-replay seconds={delay_seconds:.1f}")
+            time.sleep(delay_seconds)
 
     seed_summaries = [
         ReplayHarvestSeedSummary(

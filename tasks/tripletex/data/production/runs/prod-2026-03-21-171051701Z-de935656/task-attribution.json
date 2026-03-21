@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-171051701Z-de935656",
+  "request_id": "08697048",
+  "prompt_raw": "En av kundene dine har en forfalt faktura. Finn den forfalte fakturaen og bokfor et purregebyr pa 50 kr. Debet kundefordringer (1500), kredit purregebyr (3400). Opprett også en faktura for purregebyret til kunden og send den. Registrer i tillegg en delbetaling på 5000 kr på den forfalte fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T17:11:54Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T17:10:56.401Z",
+  "after_captured_at": "2026-03-21T17:12:25.326Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "25",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T17:12:25.329Z"
+}

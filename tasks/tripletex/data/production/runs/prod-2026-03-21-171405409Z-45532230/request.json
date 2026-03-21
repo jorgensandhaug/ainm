@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie drei Abteilungen in Tripletex: \"Logistikk\", \"Salg\" und \"Drift\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "eoUAsMmG9LVdN90YXo9CRsoXzMDvJkpqynue3iavdm8"
+  }
+}

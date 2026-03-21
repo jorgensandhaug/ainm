@@ -60,6 +60,7 @@ Sandbox investigation confirmed:
 - Signature grouping alone is insufficient for duplicate detection
 - The description keyword "duplikat" is the most reliable primary detector
 - Direct 2710 postings (Case B) are required for scorer acceptance of "other branch" missing VAT corrections
+- **Case B proof (sandbox voucher 609034546)**: Setup 4500 gross=14500 vatType=1 → net=11600, 2710=2900. Correction: 2710 +725, 4500 +2900 (vatType=0), 1920 -3625. Final state: 4500 net=14500 ✓, 2710 VAT=3625 ✓, counterpart=-18125 ✓. No auto-generated lines.
 
 ## 6. Playbook Changes
 
@@ -72,9 +73,9 @@ Sandbox investigation confirmed:
 
 ## 7. Commit
 
-- **Hash**: `63fe2f98`
-- **Message**: `tripletex playbook: correct-ledger-errors score reflection — Check 3 failed expense+vatType=1`
-- **Files**: `trusted-standards/correct-ledger-errors.md`
+- **Hash**: `63fe2f98` — `tripletex playbook: correct-ledger-errors score reflection — Check 3 failed expense+vatType=1`
+- **Hash**: `0a109e05` — `tripletex playbook: duplicate detection cascade — description keyword as PRIMARY detector`
+- **Files**: `trusted-standards/correct-ledger-errors.md`, `task-playbooks/correct-ledger-errors.md`
 
 ## 8. Reusable Heuristics
 

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-164504782Z-e93a67ba",
+  "request_id": "e6749c21",
+  "prompt_raw": "Kunden Polaris AS (org.nr 896571559) har en utestående faktura på 15200 kr eksklusiv MVA for \"Datarådgivning\". Registrer full betaling på denne fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T16:46:08Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T16:45:04.849Z",
+  "after_captured_at": "2026-03-21T16:46:40.530Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "07",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T16:46:40.531Z"
+}
