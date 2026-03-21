@@ -36,6 +36,7 @@ def train_summary_bank_student(
         policy_name=policy_name,
         samples_per_round=samples_per_round,
         dataset_name=dataset_name,
+        regime_encoder=teacher,
     )
     student = SummaryBankStudent.fit_from_dataset(
         dataset,

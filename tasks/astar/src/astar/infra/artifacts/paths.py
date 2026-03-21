@@ -44,6 +44,7 @@ class WorkspacePaths(BaseModel):
             self.derived_dir / "query_log",
             self.derived_dir / "cell_observations",
             self.derived_dir / "settlement_observations",
+            self.derived_dir / "replay_events",
             self.derived_dir / "replay_summaries",
             self.derived_dir / "features",
             self.derived_dir / "evidence",
@@ -98,6 +99,42 @@ class WorkspacePaths(BaseModel):
 
     def replay_summary_path(self, round_id: str, seed_index: int) -> Path:
         return self.replay_summary_dir(round_id) / f"seed_index={seed_index}.npz"
+
+    def replay_event_dir(self, round_id: str) -> Path:
+        return self.derived_dir / "replay_events" / f"round_id={round_id}"
+
+    def replay_cell_event_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__cell.parquet"
+
+    def replay_settlement_event_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__settlement.parquet"
+
+    def replay_site_transition_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__site_transition.npz"
+
+    def replay_site_opportunity_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__site_opportunity.parquet"
+
+    def replay_settlement_measurement_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__settlement_measurement.parquet"
+
+    def replay_live_settlement_transition_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__live_settlement.parquet"
+
+    def replay_ruin_transition_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__ruin.parquet"
+
+    def replay_pairwise_candidate_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__pairwise.parquet"
+
+    def replay_owner_year_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__owner_year.parquet"
+
+    def replay_year_shock_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__year_shock.parquet"
+
+    def replay_macro_trajectory_path(self, round_id: str, seed_index: int) -> Path:
+        return self.replay_event_dir(round_id) / f"seed_index={seed_index}__macro.parquet"
 
     def feature_tensor_path(self, round_id: str, seed_index: int) -> Path:
         return self.feature_dir(round_id) / f"seed_index={seed_index}.npz"

@@ -72,6 +72,101 @@ See also:
 - stronger no-leakage enforcement by dataset/type boundary
 - full model lineage catalog
 
+## Near-Term Execution Roadmap
+
+Current priority order. This is the implementation sequence until the first event-driven teacher/student stack lands.
+
+### Phase 0. Measurement And Inspectability
+
+- [ ] one canonical offline scorecard:
+  - same-round heldout
+  - leave-one-round-out
+  - synthetic-live benchmark
+- [ ] one canonical per-stage report surface:
+  - markdown/json artifacts first
+  - dashboard views second
+- [ ] every new artifact builder must emit:
+  - counts
+  - sample rows
+  - invariant failures
+  - source paths
+
+Human verification standard:
+
+- round is the independent eval unit
+- no metric without a report
+- no report without sampled raw examples
+
+### Phase 1. Replay Transition / Event Tables
+
+- [ ] persist replay-derived event tables per round/seed:
+  - sparse cell transitions
+  - settlement transition rows
+- [ ] derive first typed events:
+  - build
+  - ruin
+  - rebuild
+  - ruin to forest reclaim
+  - birth
+  - collapse
+  - port gain/loss
+  - owner flip
+  - settlement resource deltas
+- [ ] add invariant tests and audit reports
+
+Why first:
+
+- current replay summaries are too lossy
+- later round-law fitting and teacher heads need inspectable supervised labels
+
+### Phase 2. Per-Round Law Fits
+
+- [ ] fit small per-round hazard/regression summaries from replay event tables
+- [ ] replace coarse ad hoc round summary vectors with fitted event-driven summaries
+- [ ] record uncertainty / sample counts per round summary
+- [ ] keep models small and interpretable
+
+Human verification standard:
+
+- same-round heldout fit must work before any cross-round compression
+- coefficients and plots must line up with replay intuition
+
+### Phase 3. Cross-Round Regime Compression
+
+- [ ] factorize fitted round summaries
+- [ ] produce rank vs reconstruction diagnostics
+- [ ] default to tiny latent regime unless heldout results force expansion
+
+Human verification standard:
+
+- leave-one-round-out reconstruction
+- nearest-round sanity
+- stable leading axes across reruns / subsets
+
+### Phase 4. Student-Safe Observation Schema
+
+- [ ] upgrade online evidence from flat aggregate summaries to query-set elements
+- [ ] preserve settlement marks and viewport geometry per query
+- [ ] build synthetic-live datasets against that schema
+
+Human verification standard:
+
+- posterior should visibly contract as more queries arrive
+- query transcript inspector should show exactly what the student used
+
+### Phase 5. Teacher V2
+
+- [ ] move from regime-to-terminal decoder toward event-conditioned teacher heads
+- [ ] keep round modulation tiny
+- [ ] keep live serving path unchanged until offline heldout wins are real
+
+Human verification standard:
+
+- one-step transition quality
+- rollout realism
+- final tensor quality
+- all on heldout rounds, not mixed-round random splits
+
 ## Non-Negotiable Boundaries
 
 ### Information Regimes

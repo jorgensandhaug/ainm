@@ -35,6 +35,8 @@ class SeedLearningArrays(BaseModel):
     replay_port_hit_rate: np.ndarray | None = None
     replay_ruin_hit_rate: np.ndarray | None = None
     replay_coefficient_vector: np.ndarray | None = None
+    replay_event_summary_names: list[str] | None = None
+    replay_event_summary_vector: np.ndarray | None = None
     submitted_prediction: np.ndarray | None = None
     ground_truth: np.ndarray | None = None
 
@@ -88,6 +90,8 @@ class RoundLearningEpisode(BaseModel):
                 replay_port_hit_rate=item.replay_port_hit_rate,
                 replay_ruin_hit_rate=item.replay_ruin_hit_rate,
                 replay_coefficient_vector=item.replay_coefficient_vector,
+                replay_event_summary_names=item.replay_event_summary_names,
+                replay_event_summary_vector=item.replay_event_summary_vector,
                 submitted_prediction=item.submitted_prediction,
                 ground_truth=item.ground_truth,
             )
@@ -175,6 +179,16 @@ def load_round_learning_episode(
             replay_coefficient_vector=(
                 np.asarray(replay_payload["coefficient_vector"], dtype=np.float64)
                 if replay_payload is not None
+                else None
+            ),
+            replay_event_summary_names=(
+                [str(name) for name in replay_payload["event_summary_names"].tolist()]
+                if replay_payload is not None and "event_summary_names" in replay_payload
+                else None
+            ),
+            replay_event_summary_vector=(
+                np.asarray(replay_payload["event_summary_vector"], dtype=np.float64)
+                if replay_payload is not None and "event_summary_vector" in replay_payload
                 else None
             ),
             submitted_prediction=submitted_prediction,

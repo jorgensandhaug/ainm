@@ -19,6 +19,7 @@ from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import QueryPlanPolicyAdapter, build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
+from astar.teacher.regime.base import RegimeEncoder
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.online_episode import run_online_episode
 
@@ -90,6 +91,7 @@ def build_synthetic_live_dataset(
     round_ids: list[str] | None = None,
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
+    regime_encoder: RegimeEncoder | None = None,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -147,7 +149,11 @@ def build_synthetic_live_dataset(
                 round_number=int(episode_run.round_context.round_number or -1),
                 sample_index=sample_index,
                 policy_name=policy.name,
-                regime_vector=round_regime_summary_vector(round_episode),
+                regime_vector=(
+                    regime_encoder.encode_round(round_episode)
+                    if regime_encoder is not None
+                    else round_regime_summary_vector(round_episode)
+                ),
                 observations=observations,
                 target_sources=target_sources,
                 target_paths=target_paths,

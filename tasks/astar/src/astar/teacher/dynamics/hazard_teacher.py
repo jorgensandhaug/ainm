@@ -7,13 +7,23 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
+from astar.features.geometry import SeedFeatureBundle, compute_static_feature_dict
 from astar.history.episodes.models import RoundEpisode
+from astar.history.summaries.dynamic_law import (
+    DynamicLawProbeLibrary,
+    build_dynamic_law_probe_library,
+    fit_round_dynamic_law_summary,
+)
+from astar.history.summaries.measurements import (
+    ReplayMeasurementBundle,
+    build_replay_measurement_bundle,
+)
 from astar.history.summaries.round_coefficients import (
     fit_round_semimechanistic_coefficients,
-    round_regime_summary_vector,
     seed_feature_dict,
     seed_feature_matrix,
 )
+from astar.infra.api.dto import InitialSettlement
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
@@ -44,6 +54,56 @@ def _sigmoid(values: np.ndarray) -> np.ndarray:
     )
 
 
+def _seed_feature_bundle(episode: RoundEpisode, seed_index: int) -> SeedFeatureBundle:
+    seed = next(seed for seed in episode.seeds if seed.seed_index == seed_index)
+    grid = np.asarray(seed.initial_state.grid, dtype=np.int64)
+    settlements = [
+        InitialSettlement(
+            x=item.x,
+            y=item.y,
+            has_port=item.has_port,
+            alive=item.alive,
+        )
+        for item in seed.initial_state.settlements
+    ]
+    return SeedFeatureBundle(
+        round_id=episode.metadata.round_id,
+        seed_index=seed.seed_index,
+        height=episode.metadata.map_height,
+        width=episode.metadata.map_width,
+        features=compute_static_feature_dict(grid, settlements),
+    )
+
+
+def _episode_measurement_bundles(episode: RoundEpisode) -> list[ReplayMeasurementBundle]:
+    bundles: list[ReplayMeasurementBundle] = []
+    for seed in episode.seeds:
+        if not seed.replay_runs:
+            continue
+        bundles.append(
+            build_replay_measurement_bundle(
+                np.asarray(seed.initial_state.grid, dtype=np.int64),
+                _seed_feature_bundle(episode, seed.seed_index),
+                list(seed.replay_runs),
+            )
+        )
+    return bundles
+
+
+def _stored_probe_library(teacher: HazardTeacher) -> DynamicLawProbeLibrary:
+    return DynamicLawProbeLibrary(
+        site_feature_names=teacher.site_probe_feature_names,
+        settlement_feature_names=teacher.settlement_probe_feature_names,
+        pairwise_feature_names=teacher.pairwise_probe_feature_names,
+        site_probe_names=teacher.site_probe_names,
+        site_probe_matrix=teacher.site_probe_matrix,
+        settlement_probe_names=teacher.settlement_probe_names,
+        settlement_probe_matrix=teacher.settlement_probe_matrix,
+        pairwise_probe_names=teacher.pairwise_probe_names,
+        pairwise_probe_matrix=teacher.pairwise_probe_matrix,
+    )
+
+
 class HazardTeacherCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -53,6 +113,7 @@ class HazardTeacherCheckpoint(BaseModel):
     round_numbers: list[int]
     regime_dim: int = Field(ge=1)
     coefficient_dim: int = Field(ge=1)
+    regime_summary_names: list[str]
     regime_intercept: list[float]
     regime_weights: list[list[float]]
 
@@ -62,12 +123,26 @@ class HazardTeacher(BaseModel):
 
     name: str = "hazard_teacher_v1"
     feature_names: list[str] = Field(default_factory=list)
+    regime_summary_names: tuple[str, ...] = ()
     round_ids: tuple[str, ...] = ()
     round_numbers: tuple[int, ...] = ()
-    regime_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 12), dtype=np.float64))
+    regime_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     coefficient_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    site_probe_names: tuple[str, ...] = ()
+    site_probe_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
+    settlement_probe_names: tuple[str, ...] = ()
+    settlement_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    pairwise_probe_names: tuple[str, ...] = ()
+    pairwise_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    site_probe_feature_names: tuple[str, ...] = ()
+    settlement_probe_feature_names: tuple[str, ...] = ()
+    pairwise_probe_feature_names: tuple[str, ...] = ()
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
@@ -80,8 +155,44 @@ class HazardTeacher(BaseModel):
         coefficient_rows = [
             fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
         ]
-        regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
+
+        measurement_bundles_by_episode = [
+            _episode_measurement_bundles(episode) for episode in replay_episodes
+        ]
+        site_frames = [
+            bundle.site_opportunities
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
+        settlement_frames = [
+            bundle.settlement_measurements
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
+        pairwise_frames = [
+            bundle.pairwise_candidates
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
+        probe_library = build_dynamic_law_probe_library(
+            site_frames,
+            settlement_frames,
+            pairwise_frames,
+        )
+        regime_summary_names: list[str] | None = None
+        regime_bank_rows: list[np.ndarray] = []
+        for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
+            law = fit_round_dynamic_law_summary(
+                round_id=episode.metadata.round_id,
+                round_number=int(episode.metadata.round_number or -1),
+                bundles=bundles,
+            )
+            names, vector = law.probe_summary(probe_library)
+            if regime_summary_names is None:
+                regime_summary_names = names
+            regime_bank_rows.append(vector)
+        regime_bank = np.stack(regime_bank_rows, axis=0)
         regime_intercept, regime_weights = _fit_linear_map(
             regime_bank,
             coefficient_bank,
@@ -102,12 +213,22 @@ class HazardTeacher(BaseModel):
         return self.model_copy(
             update={
                 "feature_names": coefficient_rows[0].feature_names,
+                "regime_summary_names": tuple(regime_summary_names or ()),
                 "round_ids": tuple(row.round_id for row in coefficient_rows),
                 "round_numbers": tuple(row.round_number for row in coefficient_rows),
                 "regime_bank": regime_bank,
                 "coefficient_bank": coefficient_bank,
                 "regime_intercept": regime_intercept,
                 "regime_weights": regime_weights,
+                "site_probe_names": tuple(probe_library.site_probe_names),
+                "site_probe_matrix": probe_library.site_probe_matrix,
+                "settlement_probe_names": tuple(probe_library.settlement_probe_names),
+                "settlement_probe_matrix": probe_library.settlement_probe_matrix,
+                "pairwise_probe_names": tuple(probe_library.pairwise_probe_names),
+                "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
+                "site_probe_feature_names": tuple(probe_library.site_feature_names),
+                "settlement_probe_feature_names": tuple(probe_library.settlement_feature_names),
+                "pairwise_probe_feature_names": tuple(probe_library.pairwise_feature_names),
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -122,6 +243,7 @@ class HazardTeacher(BaseModel):
             round_numbers=list(self.round_numbers),
             regime_dim=int(self.regime_weights.shape[0]),
             coefficient_dim=int(self.regime_intercept.shape[0]),
+            regime_summary_names=list(self.regime_summary_names),
             regime_intercept=self.regime_intercept.tolist(),
             regime_weights=self.regime_weights.tolist(),
         )
@@ -132,7 +254,24 @@ class HazardTeacher(BaseModel):
         return path
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
-        return round_regime_summary_vector(episode)
+        if (
+            self.site_probe_matrix.size == 0
+            or self.settlement_probe_matrix.size == 0
+            or self.pairwise_probe_matrix.size == 0
+        ):
+            raise ValueError("hazard teacher has no dynamic-law probe library")
+        bundles = _episode_measurement_bundles(episode)
+        if not bundles:
+            raise ValueError(
+                f"round {episode.metadata.round_id} has no replay measurements to encode"
+            )
+        law = fit_round_dynamic_law_summary(
+            round_id=episode.metadata.round_id,
+            round_number=int(episode.metadata.round_number or -1),
+            bundles=bundles,
+        )
+        _, vector = law.probe_summary(_stored_probe_library(self))
+        return vector
 
     def _coefficients_from_regime(self, regime: np.ndarray) -> np.ndarray:
         regime_array = np.asarray(regime, dtype=np.float64)

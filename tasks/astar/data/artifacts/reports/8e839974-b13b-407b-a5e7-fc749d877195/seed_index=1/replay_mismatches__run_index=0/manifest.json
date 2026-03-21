@@ -1,0 +1,45 @@
+{
+  "report_key": "replay_mismatches",
+  "title": "Replay Mismatch Audit Round 8e839974-b13b-407b-a5e7-fc749d877195 Seed 1",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/report.md",
+  "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+  "seed_index": 1,
+  "metadata": {
+    "replay_run_id": "7eda6fe4951e467090cb592e2a30a75f",
+    "replay_run_index": 0,
+    "frame_count": 51,
+    "total_mismatch_count": 84,
+    "ruin_without_collapse_count": 84,
+    "rebuild_without_settlement_count": 0,
+    "mismatch_rows_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/mismatch_rows.parquet",
+    "mismatch_breakdown_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/mismatch_breakdown.parquet",
+    "source_path": "/home/jorge/ainm/tasks/astar/data/raw/replays/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/20260320T104302.277304Z__sim_seed=702241945__capture_id=7eda6fe4951e467090cb592e2a30a75f.json",
+    "rerun_command": "uv run astar visualize-replay-mismatches --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --seed-index 1 --replay-run-index 0 --max-examples-per-kind 3"
+  },
+  "figures": [
+    {
+      "key": "mismatch_timeline",
+      "title": "Replay mismatch timeline",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/mismatch_timeline.png",
+      "description": "Counts of unmatched ruin/rebuild cell transitions by yearly step."
+    },
+    {
+      "key": "ruin_without_collapse__step_3__x_35__y_4",
+      "title": "ruin_without_collapse at step 3 (35, 4)",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/ruin_without_collapse__step_3__x_35__y_4.png",
+      "description": "Focused replay transition with mismatch cell highlighted in red."
+    },
+    {
+      "key": "ruin_without_collapse__step_3__x_9__y_9",
+      "title": "ruin_without_collapse at step 3 (9, 9)",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/ruin_without_collapse__step_3__x_9__y_9.png",
+      "description": "Focused replay transition with mismatch cell highlighted in red."
+    },
+    {
+      "key": "ruin_without_collapse__step_3__x_26__y_11",
+      "title": "ruin_without_collapse at step 3 (26, 11)",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_mismatches__run_index=0/ruin_without_collapse__step_3__x_26__y_11.png",
+      "description": "Focused replay transition with mismatch cell highlighted in red."
+    }
+  ]
+}

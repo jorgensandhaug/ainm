@@ -54,11 +54,9 @@ def normalize_distances(distances: np.ndarray) -> np.ndarray:
     finite_mask = distances >= 0
     if not bool(np.any(finite_mask)):
         return np.ones(distances.shape, dtype=np.float64)
+
     max_distance = int(distances[finite_mask].max())
-    if max_distance == 0:
-        normalized = np.zeros(distances.shape, dtype=np.float64)
-        normalized[~finite_mask] = 1.0
-        return normalized
+    denominator = float(max(1, max_distance + 1))
     normalized = np.ones(distances.shape, dtype=np.float64)
-    normalized[finite_mask] = distances[finite_mask].astype(np.float64) / float(max_distance)
+    normalized[finite_mask] = distances[finite_mask].astype(np.float64) / denominator
     return normalized

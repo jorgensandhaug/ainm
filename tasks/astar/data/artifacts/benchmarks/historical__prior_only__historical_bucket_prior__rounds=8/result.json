@@ -2,6 +2,9 @@
   "benchmark_name": "historical__prior_only__historical_bucket_prior__rounds=8",
   "model_name": "historical_bucket_prior",
   "mode": "prior_only",
+  "policy_name": null,
+  "budget": null,
+  "episode_seed": null,
   "round_ids": [
     "36e581f1-73f8-453f-ab98-cbe3052b701b",
     "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -23,9 +26,16 @@
     {
       "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
       "round_number": 7,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 53.868069028993354,
       "mean_weighted_kl": 0.20649514102195393,
+      "evaluation_seconds": 0.5085469840000769,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
@@ -36,6 +46,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 50.88968270593375,
           "weighted_kl": 0.2251699934356301,
           "mean_prediction_entropy": 0.6701184437301699,
@@ -72,6 +86,7 @@
           "full_bucket_count_p10": 81.0,
           "full_bucket_count_p50": 849.0,
           "full_bucket_count_p90": 2850.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 14,
@@ -164,8 +179,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
@@ -176,6 +191,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 53.13438552950246,
           "weighted_kl": 0.21078196851898967,
           "mean_prediction_entropy": 0.6956333871638131,
@@ -212,6 +231,7 @@
           "full_bucket_count_p10": 28.0,
           "full_bucket_count_p50": 709.0,
           "full_bucket_count_p90": 2850.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 4,
@@ -304,8 +324,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
@@ -316,6 +336,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 56.119427024477844,
           "weighted_kl": 0.19256271354450094,
           "mean_prediction_entropy": 0.6928396704371705,
@@ -352,6 +376,7 @@
           "full_bucket_count_p10": 81.0,
           "full_bucket_count_p50": 852.0,
           "full_bucket_count_p90": 2850.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 31,
@@ -444,8 +469,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
@@ -456,6 +481,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 52.44778601045035,
           "weighted_kl": 0.21511735448919753,
           "mean_prediction_entropy": 0.6883686469017953,
@@ -492,6 +521,7 @@
           "full_bucket_count_p10": 63.0,
           "full_bucket_count_p50": 849.0,
           "full_bucket_count_p90": 2850.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 37,
@@ -584,8 +614,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
@@ -596,6 +626,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 56.749063874602335,
           "weighted_kl": 0.18884367512145145,
           "mean_prediction_entropy": 0.689120960360489,
@@ -632,6 +666,7 @@
           "full_bucket_count_p10": 30.0,
           "full_bucket_count_p50": 653.0,
           "full_bucket_count_p90": 2850.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 6,
@@ -724,17 +759,24 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/36e581f1-73f8-453f-ab98-cbe3052b701b/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
       "round_number": 1,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 76.20068093572418,
       "mean_weighted_kl": 0.09080659038217945,
+      "evaluation_seconds": 0.4388032779997957,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -745,6 +787,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 75.24210123114135,
           "weighted_kl": 0.09481975163218412,
           "mean_prediction_entropy": 0.5786527202144094,
@@ -781,6 +827,7 @@
           "full_bucket_count_p10": 58.0,
           "full_bucket_count_p50": 821.0,
           "full_bucket_count_p90": 2362.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 2,
@@ -873,8 +920,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -885,6 +932,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 77.0163503001251,
           "weighted_kl": 0.08705081503853979,
           "mean_prediction_entropy": 0.6498711772643007,
@@ -921,6 +972,7 @@
           "full_bucket_count_p10": 40.900000000000006,
           "full_bucket_count_p50": 747.0,
           "full_bucket_count_p90": 2829.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 4,
@@ -1013,8 +1065,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -1025,6 +1077,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 75.96815066313192,
           "weighted_kl": 0.09161866791939138,
           "mean_prediction_entropy": 0.6120829528454894,
@@ -1061,6 +1117,7 @@
           "full_bucket_count_p10": 62.900000000000006,
           "full_bucket_count_p50": 821.0,
           "full_bucket_count_p90": 2829.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 11,
@@ -1153,8 +1210,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -1165,6 +1222,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 80.53606105074724,
           "weighted_kl": 0.07215504616862901,
           "mean_prediction_entropy": 0.6848801105657717,
@@ -1201,6 +1262,7 @@
           "full_bucket_count_p10": 77.0,
           "full_bucket_count_p50": 843.0,
           "full_bucket_count_p90": 2829.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 37,
@@ -1293,8 +1355,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
@@ -1305,6 +1367,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 72.24074143347529,
           "weighted_kl": 0.10838867115215292,
           "mean_prediction_entropy": 0.5766907892935198,
@@ -1341,6 +1407,7 @@
           "full_bucket_count_p10": 41.0,
           "full_bucket_count_p50": 725.0,
           "full_bucket_count_p90": 2829.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 37,
@@ -1433,17 +1500,24 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
       "round_number": 2,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 75.04814017341657,
       "mean_weighted_kl": 0.09574864277670211,
+      "evaluation_seconds": 0.4441245399998479,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
@@ -1454,6 +1528,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 73.05810770876512,
           "weighted_kl": 0.10463835515534231,
           "mean_prediction_entropy": 0.6265225779237164,
@@ -1490,6 +1568,7 @@
           "full_bucket_count_p10": 27.0,
           "full_bucket_count_p50": 279.0,
           "full_bucket_count_p90": 977.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 22,
@@ -1582,8 +1661,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
@@ -1594,6 +1673,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 77.78729028277405,
           "weighted_kl": 0.08373071070790657,
           "mean_prediction_entropy": 0.6643597827988519,
@@ -1630,6 +1713,7 @@
           "full_bucket_count_p10": 58.0,
           "full_bucket_count_p50": 765.0,
           "full_bucket_count_p90": 2864.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 4,
@@ -1722,8 +1806,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
@@ -1734,6 +1818,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 74.76719545456551,
           "weighted_kl": 0.09693032021545676,
           "mean_prediction_entropy": 0.63177452854632,
@@ -1770,6 +1858,7 @@
           "full_bucket_count_p10": 56.0,
           "full_bucket_count_p50": 765.0,
           "full_bucket_count_p90": 2864.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 36,
@@ -1862,8 +1951,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
@@ -1874,6 +1963,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 74.93500654006611,
           "weighted_kl": 0.09618300920487156,
           "mean_prediction_entropy": 0.6541114553873623,
@@ -1910,6 +2003,7 @@
           "full_bucket_count_p10": 29.0,
           "full_bucket_count_p50": 538.0,
           "full_bucket_count_p90": 2864.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 20,
@@ -2002,8 +2096,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
@@ -2014,6 +2108,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 74.69310088091208,
           "weighted_kl": 0.09726081859993332,
           "mean_prediction_entropy": 0.6604555671230024,
@@ -2050,6 +2148,7 @@
           "full_bucket_count_p10": 26.0,
           "full_bucket_count_p50": 267.0,
           "full_bucket_count_p90": 2864.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 4,
@@ -2142,17 +2241,24 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
       "round_number": 4,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 86.89924907711077,
       "mean_weighted_kl": 0.046812248163963364,
+      "evaluation_seconds": 0.5213840289998188,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
@@ -2163,6 +2269,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 86.06824354307395,
           "weighted_kl": 0.05000989161402875,
           "mean_prediction_entropy": 0.6798945262919693,
@@ -2199,6 +2309,7 @@
           "full_bucket_count_p10": 39.0,
           "full_bucket_count_p50": 719.0,
           "full_bucket_count_p90": 2396.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 14,
@@ -2291,8 +2402,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
@@ -2303,6 +2414,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 87.05668887179864,
           "weighted_kl": 0.0462035611008621,
           "mean_prediction_entropy": 0.6952807875662116,
@@ -2339,6 +2454,7 @@
           "full_bucket_count_p10": 75.0,
           "full_bucket_count_p50": 838.0,
           "full_bucket_count_p90": 2396.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 24,
@@ -2431,8 +2547,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
@@ -2443,6 +2559,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 87.29586961846468,
           "weighted_kl": 0.04528901225502497,
           "mean_prediction_entropy": 0.6320714739280673,
@@ -2479,6 +2599,7 @@
           "full_bucket_count_p10": 41.0,
           "full_bucket_count_p50": 690.0,
           "full_bucket_count_p90": 2858.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 9,
@@ -2571,8 +2692,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
@@ -2583,6 +2704,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 87.41880108600213,
           "weighted_kl": 0.044819937020039884,
           "mean_prediction_entropy": 0.6331575856928059,
@@ -2619,6 +2744,7 @@
           "full_bucket_count_p10": 36.0,
           "full_bucket_count_p50": 595.0,
           "full_bucket_count_p90": 2858.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 32,
@@ -2711,8 +2837,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
@@ -2723,6 +2849,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 86.65664226621445,
           "weighted_kl": 0.04773883882986114,
           "mean_prediction_entropy": 0.7055783371938577,
@@ -2759,6 +2889,7 @@
           "full_bucket_count_p10": 51.80000000000001,
           "full_bucket_count_p50": 838.0,
           "full_bucket_count_p90": 2396.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 38,
@@ -2851,17 +2982,24 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
       "round_number": 6,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 51.6398998603003,
       "mean_weighted_kl": 0.22068965872965682,
+      "evaluation_seconds": 0.4391267330001938,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
@@ -2872,6 +3010,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 52.721173993902745,
           "weighted_kl": 0.21338434252288696,
           "mean_prediction_entropy": 0.6003391746358949,
@@ -2908,6 +3050,7 @@
           "full_bucket_count_p10": 109.0,
           "full_bucket_count_p50": 951.0,
           "full_bucket_count_p90": 2894.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 36,
@@ -3000,8 +3143,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
@@ -3012,6 +3155,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 48.77699386420238,
           "weighted_kl": 0.23930380716647232,
           "mean_prediction_entropy": 0.6023813337008674,
@@ -3048,6 +3195,7 @@
           "full_bucket_count_p10": 17.0,
           "full_bucket_count_p50": 224.0,
           "full_bucket_count_p90": 2894.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 3,
@@ -3140,8 +3288,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
@@ -3152,6 +3300,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 54.893175288424935,
           "weighted_kl": 0.1999270522953978,
           "mean_prediction_entropy": 0.6456641563598126,
@@ -3188,6 +3340,7 @@
           "full_bucket_count_p10": 75.0,
           "full_bucket_count_p50": 895.0,
           "full_bucket_count_p90": 2894.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 36,
@@ -3280,8 +3433,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
@@ -3292,6 +3445,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 53.204859605709245,
           "weighted_kl": 0.21034014928010125,
           "mean_prediction_entropy": 0.6316516836380563,
@@ -3328,6 +3485,7 @@
           "full_bucket_count_p10": 73.9,
           "full_bucket_count_p50": 919.0,
           "full_bucket_count_p90": 2499.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 2,
@@ -3420,8 +3578,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
@@ -3432,6 +3590,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 48.60329654926219,
           "weighted_kl": 0.24049294238342572,
           "mean_prediction_entropy": 0.6112632723952014,
@@ -3468,6 +3630,7 @@
           "full_bucket_count_p10": 31.0,
           "full_bucket_count_p50": 227.0,
           "full_bucket_count_p90": 2894.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 13,
@@ -3560,17 +3723,24 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
       "round_number": 8,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 65.86231771326563,
       "mean_weighted_kl": 0.13930440305025332,
+      "evaluation_seconds": 0.4394078840000475,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
@@ -3581,6 +3751,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 66.89828162501111,
           "weighted_kl": 0.133998968302863,
           "mean_prediction_entropy": 0.7166220245382583,
@@ -3617,6 +3791,7 @@
           "full_bucket_count_p10": 41.0,
           "full_bucket_count_p50": 727.0,
           "full_bucket_count_p90": 2824.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 32,
@@ -3709,8 +3884,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
@@ -3721,6 +3896,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 63.7373967565819,
           "weighted_kl": 0.15013290647677968,
           "mean_prediction_entropy": 0.6534358042449766,
@@ -3757,6 +3936,7 @@
           "full_bucket_count_p10": 70.70000000000002,
           "full_bucket_count_p50": 905.0,
           "full_bucket_count_p90": 2824.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 27,
@@ -3849,8 +4029,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
@@ -3861,6 +4041,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 67.96039212111222,
           "weighted_kl": 0.12874837310667123,
           "mean_prediction_entropy": 0.7075492875662054,
@@ -3897,6 +4081,7 @@
           "full_bucket_count_p10": 88.20000000000005,
           "full_bucket_count_p50": 861.0,
           "full_bucket_count_p90": 2824.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 31,
@@ -3989,8 +4174,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
@@ -4001,6 +4186,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 66.55792415681768,
           "weighted_kl": 0.13569919250309712,
           "mean_prediction_entropy": 0.6411351266614667,
@@ -4037,6 +4226,7 @@
           "full_bucket_count_p10": 54.0,
           "full_bucket_count_p50": 751.0,
           "full_bucket_count_p90": 2824.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 27,
@@ -4129,8 +4319,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
@@ -4141,6 +4331,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 64.15759390680519,
           "weighted_kl": 0.14794257486185564,
           "mean_prediction_entropy": 0.714876243420949,
@@ -4177,6 +4371,7 @@
           "full_bucket_count_p10": 24.0,
           "full_bucket_count_p50": 313.0,
           "full_bucket_count_p90": 2824.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 14,
@@ -4269,17 +4464,24 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/c5cdf100-a876-4fb7-b5d8-757162c97989/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
       "round_number": 3,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 39.59329942799805,
       "mean_weighted_kl": 0.3096161428121326,
+      "evaluation_seconds": 0.4848996419996183,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
@@ -4290,6 +4492,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 42.6612937768511,
           "weighted_kl": 0.28395938192370657,
           "mean_prediction_entropy": 0.6468112084803884,
@@ -4326,6 +4532,7 @@
           "full_bucket_count_p10": 29.0,
           "full_bucket_count_p50": 573.0,
           "full_bucket_count_p90": 2841.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 29,
@@ -4364,7 +4571,7 @@
               "ground_truth_class_name": "empty"
             },
             {
-              "x": 14,
+              "x": 15,
               "y": 20,
               "kl": 0.4283191699624284,
               "predicted_class_index": 4,
@@ -4373,7 +4580,7 @@
               "ground_truth_class_name": "forest"
             },
             {
-              "x": 15,
+              "x": 14,
               "y": 20,
               "kl": 0.4283191699624284,
               "predicted_class_index": 4,
@@ -4418,8 +4625,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
@@ -4430,6 +4637,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 37.41792750373734,
           "weighted_kl": 0.327673417132338,
           "mean_prediction_entropy": 0.8086099367672698,
@@ -4466,6 +4677,7 @@
           "full_bucket_count_p10": 27.0,
           "full_bucket_count_p50": 220.0,
           "full_bucket_count_p90": 2841.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 7,
@@ -4477,8 +4689,8 @@
               "ground_truth_class_name": "empty"
             },
             {
-              "x": 19,
-              "y": 33,
+              "x": 26,
+              "y": 31,
               "kl": 0.5363936356427866,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4486,8 +4698,8 @@
               "ground_truth_class_name": "forest"
             },
             {
-              "x": 26,
-              "y": 31,
+              "x": 19,
+              "y": 33,
               "kl": 0.5363936356427866,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4558,8 +4770,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
@@ -4570,6 +4782,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 40.57056048043877,
           "weighted_kl": 0.3007091645733376,
           "mean_prediction_entropy": 0.6557617628455753,
@@ -4606,6 +4822,7 @@
           "full_bucket_count_p10": 50.900000000000006,
           "full_bucket_count_p50": 801.0,
           "full_bucket_count_p90": 2841.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 28,
@@ -4644,8 +4861,8 @@
               "ground_truth_class_name": "empty"
             },
             {
-              "x": 19,
-              "y": 2,
+              "x": 7,
+              "y": 4,
               "kl": 0.4283191699624284,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4653,8 +4870,8 @@
               "ground_truth_class_name": "forest"
             },
             {
-              "x": 7,
-              "y": 4,
+              "x": 19,
+              "y": 2,
               "kl": 0.4283191699624284,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4698,8 +4915,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
@@ -4710,6 +4927,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 41.74653264483976,
           "weighted_kl": 0.2911845961877013,
           "mean_prediction_entropy": 0.633140956060609,
@@ -4746,6 +4967,7 @@
           "full_bucket_count_p10": 44.0,
           "full_bucket_count_p50": 801.0,
           "full_bucket_count_p90": 2841.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 2,
@@ -4838,8 +5060,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
@@ -4850,6 +5072,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 35.570182734123264,
           "weighted_kl": 0.34455415424357966,
           "mean_prediction_entropy": 0.7876487689077197,
@@ -4886,6 +5112,7 @@
           "full_bucket_count_p10": 27.0,
           "full_bucket_count_p50": 278.0,
           "full_bucket_count_p90": 2841.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 32,
@@ -4951,8 +5178,8 @@
               "ground_truth_class_name": "empty"
             },
             {
-              "x": 13,
-              "y": 20,
+              "x": 35,
+              "y": 29,
               "kl": 0.512491124530376,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4960,8 +5187,8 @@
               "ground_truth_class_name": "forest"
             },
             {
-              "x": 35,
-              "y": 29,
+              "x": 13,
+              "y": 20,
               "kl": 0.512491124530376,
               "predicted_class_index": 4,
               "predicted_class_name": "forest",
@@ -4978,17 +5205,24 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     },
     {
       "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
       "round_number": 5,
+      "policy_name": null,
+      "budget": null,
+      "episode_seed": null,
+      "executed_queries": 0,
       "evaluated_seed_count": 5,
+      "visualized_seed_count": 0,
       "mean_score": 79.07498060223523,
       "mean_weighted_kl": 0.07842957133374058,
+      "evaluation_seconds": 0.4387032380000164,
+      "visualization_seconds": 0.0,
       "seed_results": [
         {
           "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
@@ -4999,6 +5233,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 75.90009663710467,
           "weighted_kl": 0.09191740945706083,
           "mean_prediction_entropy": 0.7223590719229327,
@@ -5035,6 +5273,7 @@
           "full_bucket_count_p10": 34.0,
           "full_bucket_count_p50": 308.0,
           "full_bucket_count_p90": 2825.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 16,
@@ -5127,8 +5366,8 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=0/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=0/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
@@ -5139,6 +5378,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 76.13784317924701,
           "weighted_kl": 0.09087492082466818,
           "mean_prediction_entropy": 0.636656984471415,
@@ -5175,6 +5418,7 @@
           "full_bucket_count_p10": 67.0,
           "full_bucket_count_p50": 868.0,
           "full_bucket_count_p90": 2406.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 1,
@@ -5267,8 +5511,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=1/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=1/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
@@ -5279,6 +5523,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 80.76842546076716,
           "weighted_kl": 0.0711946902778349,
           "mean_prediction_entropy": 0.6958010450246617,
@@ -5315,6 +5563,7 @@
           "full_bucket_count_p10": 97.0,
           "full_bucket_count_p50": 868.0,
           "full_bucket_count_p90": 2825.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 3,
@@ -5407,8 +5656,8 @@
               "ground_truth_class_name": "empty"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=2/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=2/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
@@ -5419,6 +5668,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 80.72617577993468,
           "weighted_kl": 0.07136910139941129,
           "mean_prediction_entropy": 0.6782630643187387,
@@ -5455,6 +5708,7 @@
           "full_bucket_count_p10": 57.900000000000006,
           "full_bucket_count_p50": 739.0,
           "full_bucket_count_p90": 2825.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 27,
@@ -5547,8 +5801,8 @@
               "ground_truth_class_name": "settlement"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=3/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=3/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         },
         {
           "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
@@ -5559,6 +5813,10 @@
           "training_round_count": 7,
           "training_analyzed_seed_count": 35,
           "training_cell_count": 56000,
+          "policy_name": null,
+          "budget": null,
+          "episode_seed": null,
+          "executed_queries": 0,
           "score": 81.84236195412265,
           "weighted_kl": 0.06679173470972773,
           "mean_prediction_entropy": 0.6818690108788136,
@@ -5595,6 +5853,7 @@
           "full_bucket_count_p10": 49.0,
           "full_bucket_count_p50": 739.0,
           "full_bucket_count_p90": 2825.0,
+          "visualization_seconds": null,
           "top_kl_cells": [
             {
               "x": 37,
@@ -5687,17 +5946,21 @@
               "ground_truth_class_name": "forest"
             }
           ],
-          "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=4/historical_bucket_prior_v1/report.md",
-          "manifest_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/visualizations/fd3c92ff-3178-4dc9-8d9b-acf389b3982b/seed_index=4/historical_bucket_prior_v1/manifest.json"
+          "report_path": null,
+          "manifest_path": null
         }
       ]
     }
   ],
   "evaluated_seed_count": 40,
-  "visualization_policy": "all",
-  "visualized_seed_count": 40,
-  "artifact_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/result.json",
-  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/report.md",
-  "summary_jsonl_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/summary.jsonl",
-  "summary_csv_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/summary.csv"
+  "visualization_policy": "none",
+  "visualized_seed_count": 0,
+  "evaluation_seconds": 3.7149963279994154,
+  "visualization_seconds": 0.0,
+  "artifact_write_seconds": 0.01263721599980272,
+  "total_runtime_seconds": 3.7321029690001524,
+  "artifact_path": "/home/jorge/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/result.json",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/report.md",
+  "summary_jsonl_path": "/home/jorge/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/summary.jsonl",
+  "summary_csv_path": "/home/jorge/ainm/tasks/astar/data/artifacts/benchmarks/historical__prior_only__historical_bucket_prior__rounds=8/summary.csv"
 }

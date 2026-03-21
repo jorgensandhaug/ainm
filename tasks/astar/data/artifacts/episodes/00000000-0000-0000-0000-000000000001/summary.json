@@ -1,66 +1,145 @@
 {
   "round_id": "00000000-0000-0000-0000-000000000001",
   "round_number": 1,
-  "summary_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/summary.json",
-  "report_path": "/home/jorge/repos/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/report.md",
-  "replay_report_path": null,
+  "summary_path": "/home/jorge/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/summary.json",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/episodes/00000000-0000-0000-0000-000000000001/report.md",
+  "replay_report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/replays/00000000-0000-0000-0000-000000000001/report.md",
   "feature_names": [
     "buildable",
     "coast",
     "coast_distance",
+    "coast_distance_decay_2",
+    "coast_distance_decay_4",
+    "coast_distance_decay_8",
+    "coast_distance_steps",
+    "coast_distance_steps_log1p",
+    "coast_distance_unreachable",
     "coastal_exposure",
     "forest_density",
     "frontier_score",
     "land",
     "land_distance_to_settlement",
+    "land_distance_to_settlement_decay_2",
+    "land_distance_to_settlement_decay_4",
+    "land_distance_to_settlement_decay_8",
+    "land_distance_to_settlement_steps",
+    "land_distance_to_settlement_steps_log1p",
+    "land_distance_to_settlement_unreachable",
     "maritime_access",
     "mountain_density",
     "sea_distance_to_port",
+    "sea_distance_to_port_decay_2",
+    "sea_distance_to_port_decay_4",
+    "sea_distance_to_port_decay_8",
+    "sea_distance_to_port_steps",
+    "sea_distance_to_port_steps_log1p",
+    "sea_distance_to_port_unreachable",
     "settlement_basin_gap",
+    "settlement_basin_gap_decay_2",
+    "settlement_basin_gap_decay_4",
+    "settlement_basin_gap_decay_8",
+    "settlement_basin_gap_steps",
+    "settlement_basin_gap_steps_log1p",
+    "settlement_basin_gap_unreachable",
     "settlement_proximity"
   ],
   "per_seed": [
     {
       "seed_index": 0,
-      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
-      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
-      "replay_summary_path": null,
-      "replay_run_count": 0,
+      "feature_path": "/home/jorge/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "evidence_path": "/home/jorge/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "replay_summary_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=00000000-0000-0000-0000-000000000001/seed_index=0.npz",
+      "replay_cell_events_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__cell.parquet",
+      "replay_settlement_events_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__settlement.parquet",
+      "replay_site_transition_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__site_transition.npz",
+      "replay_site_opportunities_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__site_opportunity.parquet",
+      "replay_settlement_measurements_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__settlement_measurement.parquet",
+      "replay_live_settlement_transitions_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__live_settlement.parquet",
+      "replay_ruin_transitions_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__ruin.parquet",
+      "replay_pairwise_candidates_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__pairwise.parquet",
+      "replay_owner_years_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__owner_year.parquet",
+      "replay_year_shocks_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__year_shock.parquet",
+      "replay_macro_trajectories_path": "/home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=00000000-0000-0000-0000-000000000001/seed_index=0__macro.parquet",
+      "replay_run_count": 1,
       "has_prediction": true,
       "has_analysis": false
     },
     {
       "seed_index": 1,
-      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
-      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
+      "feature_path": "/home/jorge/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
+      "evidence_path": "/home/jorge/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=1.npz",
       "replay_summary_path": null,
+      "replay_cell_events_path": null,
+      "replay_settlement_events_path": null,
+      "replay_site_transition_path": null,
+      "replay_site_opportunities_path": null,
+      "replay_settlement_measurements_path": null,
+      "replay_live_settlement_transitions_path": null,
+      "replay_ruin_transitions_path": null,
+      "replay_pairwise_candidates_path": null,
+      "replay_owner_years_path": null,
+      "replay_year_shocks_path": null,
+      "replay_macro_trajectories_path": null,
       "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
     {
       "seed_index": 2,
-      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
-      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
+      "feature_path": "/home/jorge/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
+      "evidence_path": "/home/jorge/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=2.npz",
       "replay_summary_path": null,
+      "replay_cell_events_path": null,
+      "replay_settlement_events_path": null,
+      "replay_site_transition_path": null,
+      "replay_site_opportunities_path": null,
+      "replay_settlement_measurements_path": null,
+      "replay_live_settlement_transitions_path": null,
+      "replay_ruin_transitions_path": null,
+      "replay_pairwise_candidates_path": null,
+      "replay_owner_years_path": null,
+      "replay_year_shocks_path": null,
+      "replay_macro_trajectories_path": null,
       "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
     {
       "seed_index": 3,
-      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
-      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
+      "feature_path": "/home/jorge/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
+      "evidence_path": "/home/jorge/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=3.npz",
       "replay_summary_path": null,
+      "replay_cell_events_path": null,
+      "replay_settlement_events_path": null,
+      "replay_site_transition_path": null,
+      "replay_site_opportunities_path": null,
+      "replay_settlement_measurements_path": null,
+      "replay_live_settlement_transitions_path": null,
+      "replay_ruin_transitions_path": null,
+      "replay_pairwise_candidates_path": null,
+      "replay_owner_years_path": null,
+      "replay_year_shocks_path": null,
+      "replay_macro_trajectories_path": null,
       "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
     },
     {
       "seed_index": 4,
-      "feature_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
-      "evidence_path": "/home/jorge/repos/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
+      "feature_path": "/home/jorge/ainm/tasks/astar/data/derived/features/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
+      "evidence_path": "/home/jorge/ainm/tasks/astar/data/derived/evidence/round_id=00000000-0000-0000-0000-000000000001/seed_index=4.npz",
       "replay_summary_path": null,
+      "replay_cell_events_path": null,
+      "replay_settlement_events_path": null,
+      "replay_site_transition_path": null,
+      "replay_site_opportunities_path": null,
+      "replay_settlement_measurements_path": null,
+      "replay_live_settlement_transitions_path": null,
+      "replay_ruin_transitions_path": null,
+      "replay_pairwise_candidates_path": null,
+      "replay_owner_years_path": null,
+      "replay_year_shocks_path": null,
+      "replay_macro_trajectories_path": null,
       "replay_run_count": 0,
       "has_prediction": true,
       "has_analysis": false
@@ -76,8 +155,8 @@
       "repeated_window_groups": 1,
       "submission_count": 5,
       "analysis_count": 0,
-      "replay_run_count": 0,
-      "replay_seed_count": 0,
+      "replay_run_count": 1,
+      "replay_seed_count": 1,
       "replay_summary_count": 0
     },
     "per_seed": [
@@ -121,6 +200,608 @@
     "mean_ground_truth_entropy": null,
     "score_by_seed": {}
   },
-  "replay_round_summary": null,
+  "replay_round_summary": {
+    "round_id": "00000000-0000-0000-0000-000000000001",
+    "round_number": 1,
+    "replay_seed_count": 1,
+    "replay_run_count": 1,
+    "seed_summaries": [
+      {
+        "round_id": "00000000-0000-0000-0000-000000000001",
+        "seed_index": 0,
+        "replay_run_count": 1,
+        "build_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "port_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "ruin_hazard_by_step": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ],
+        "build_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "port_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "ruin_hit_rate": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "built_hit_rate_mean": 0.06060606060606061,
+        "coastal_built_hit_rate_mean": 0.0,
+        "inland_built_hit_rate_mean": 0.15384615384615385,
+        "port_hit_rate_mean": 0.030303030303030304,
+        "ruin_hit_rate_mean": 0.0,
+        "owner_flip_mean": 0.0,
+        "coefficient_vector": [
+          0.06060606060606061,
+          0.0,
+          0.15384615384615385,
+          0.030303030303030304,
+          0.0,
+          0.0,
+          0.015625,
+          0.015625,
+          0.0,
+          1.0,
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "mean_alive_curve": [
+      1.0
+    ],
+    "mean_port_curve": [
+      1.0
+    ],
+    "mean_ruin_curve": [
+      0.0
+    ],
+    "coefficient_matrix": [
+      [
+        0.06060606060606061,
+        0.0,
+        0.15384615384615385,
+        0.030303030303030304,
+        0.0,
+        0.0,
+        0.015625,
+        0.015625,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    ],
+    "coefficient_mean": [
+      0.06060606060606061,
+      0.0,
+      0.15384615384615385,
+      0.030303030303030304,
+      0.0,
+      0.0,
+      0.015625,
+      0.015625,
+      0.0,
+      1.0,
+      1.0,
+      0.0
+    ]
+  },
+  "replay_measurement_summary": {
+    "round_id": "00000000-0000-0000-0000-000000000001",
+    "round_number": 1,
+    "replay_seed_count": 1,
+    "replay_run_count": 1,
+    "frame_transition_count": 0,
+    "site_transition_count": 0,
+    "site_opportunity_count": 0,
+    "settlement_measurement_count": 0,
+    "live_settlement_transition_count": 0,
+    "ruin_transition_count": 0,
+    "pairwise_candidate_count": 0,
+    "owner_year_count": 0,
+    "year_shock_count": 0,
+    "macro_trajectory_count": 0,
+    "seed_summaries": [
+      {
+        "round_id": "00000000-0000-0000-0000-000000000001",
+        "seed_index": 0,
+        "replay_run_count": 1,
+        "frame_transition_count": 0,
+        "site_transition_count": 0,
+        "site_opportunity_count": 0,
+        "settlement_measurement_count": 0,
+        "live_settlement_transition_count": 0,
+        "ruin_transition_count": 0,
+        "pairwise_candidate_count": 0,
+        "owner_year_count": 0,
+        "year_shock_count": 0,
+        "macro_trajectory_count": 0
+      }
+    ]
+  },
   "backtest_result": null
 }

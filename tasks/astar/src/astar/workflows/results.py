@@ -13,7 +13,9 @@ from astar.eval.diagnostics import RoundEpisodeDiagnostics
 from astar.eval.science import ScienceRoundReport
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
+from astar.history.summaries.event_summary import ReplayEventRoundSummary
 from astar.history.summaries.hazards import ReplayHazardRoundSummary
+from astar.history.summaries.measurements import ReplayMeasurementRoundSummary
 
 
 class SyncRoundResult(BaseModel):
@@ -138,6 +140,17 @@ class MaterializedSeedArtifacts(BaseModel):
     feature_path: Path
     evidence_path: Path
     replay_summary_path: Path | None = None
+    replay_cell_events_path: Path | None = None
+    replay_settlement_events_path: Path | None = None
+    replay_site_transition_path: Path | None = None
+    replay_site_opportunities_path: Path | None = None
+    replay_settlement_measurements_path: Path | None = None
+    replay_live_settlement_transitions_path: Path | None = None
+    replay_ruin_transitions_path: Path | None = None
+    replay_pairwise_candidates_path: Path | None = None
+    replay_owner_years_path: Path | None = None
+    replay_year_shocks_path: Path | None = None
+    replay_macro_trajectories_path: Path | None = None
     replay_run_count: int = Field(default=0, ge=0)
     has_prediction: bool
     has_analysis: bool
@@ -155,6 +168,7 @@ class MaterializeEpisodeResult(BaseModel):
     per_seed: list[MaterializedSeedArtifacts]
     diagnostics: RoundEpisodeDiagnostics
     replay_round_summary: ReplayHazardRoundSummary | None = None
+    replay_measurement_summary: ReplayMeasurementRoundSummary | None = None
     backtest_result: BacktestRoundResult | None = None
 
 
@@ -181,9 +195,22 @@ class SummarizeReplaysResult(BaseModel):
     replay_run_count: int = Field(ge=0)
     replay_seed_count: int = Field(ge=0)
     summary_paths: list[Path]
+    cell_event_paths: list[Path]
+    settlement_event_paths: list[Path]
+    site_transition_paths: list[Path]
+    site_opportunity_paths: list[Path]
+    settlement_measurement_paths: list[Path]
+    live_settlement_transition_paths: list[Path]
+    ruin_transition_paths: list[Path]
+    pairwise_candidate_paths: list[Path]
+    owner_year_paths: list[Path]
+    year_shock_paths: list[Path]
+    macro_trajectory_paths: list[Path]
     round_summary_path: Path
     report_path: Path
     hazard_summary: ReplayHazardRoundSummary
+    event_summary: ReplayEventRoundSummary
+    measurement_summary: ReplayMeasurementRoundSummary
 
 
 class TrainHazardTeacherResult(BaseModel):
