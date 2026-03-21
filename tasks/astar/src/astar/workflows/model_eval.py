@@ -23,6 +23,7 @@ from astar.student.predictor.gbx_map_prior import (
     GBX_PRIOR_MAPONLY_BUCKET_MODEL,
     GreyBoxMapOnlyBucketPredictor,
 )
+from astar.student.predictor.calibrate import apply_probability_floor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import (
@@ -58,6 +59,8 @@ from astar.teacher.dynamics.transition_teacher import (
     save_round_transition_coefficients,
 )
 from astar.teacher.dynamics.terminal_teacher import (
+    GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+    GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
     GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
     GBX_TERMINAL_REGIME_TEACHER_MODEL,
     GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
@@ -219,6 +222,69 @@ def _build_prediction_bundle(
     round_detail = read_round_record(paths, round_id).round
     normalized = model_name.strip().lower()
 
+    ensemble_specs = {
+        "gbx_maponly_terminal_mapprior_blend10": ("gbx_terminal_regime_teacher_mapprior", 0.10, "uniform"),
+        "gbx_maponly_terminal_mapprior_blend20": ("gbx_terminal_regime_teacher_mapprior", 0.20, "uniform"),
+        "gbx_maponly_terminal_mapknn_blend10": ("gbx_terminal_regime_mapknn_teacher", 0.10, "uniform"),
+        "gbx_maponly_terminal_mapknn_blend20": ("gbx_terminal_regime_mapknn_teacher", 0.20, "uniform"),
+        "gbx_maponly_terminal_mapknn_entropyblend25": ("gbx_terminal_regime_mapknn_teacher", 0.25, "entropy"),
+        "gbx_maponly_terminal_mapknn_entropyblend50": ("gbx_terminal_regime_mapknn_teacher", 0.50, "entropy"),
+        "gbx_maponly_terminal_mapknn_dynblend50": ("gbx_terminal_regime_mapknn_teacher", 0.50, "dynamic_subspace"),
+        "gbx_maponly_terminal_mapknn_dynblend100": ("gbx_terminal_regime_mapknn_teacher", 1.00, "dynamic_subspace"),
+    }
+    if normalized in ensemble_specs:
+        terminal_model_name, teacher_weight, gate_mode = ensemble_specs[normalized]
+        base_predictor = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+        )
+        base_bundle = base_predictor.build_prediction_bundle(round_detail, None)
+        terminal_bundle, _, training_analyzed_seed_count, training_cell_count = _build_prediction_bundle(
+            paths,
+            round_id,
+            terminal_model_name,
+            training_round_ids=training_round_ids,
+            samples_per_round=samples_per_round,
+        )
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed_index in sorted(base_bundle.predictions_by_seed):
+            base_prediction = np.asarray(base_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            terminal_prediction = np.asarray(terminal_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            if gate_mode == "uniform":
+                blend_weight: float | np.ndarray = teacher_weight
+                blended = ((1.0 - blend_weight) * base_prediction) + (blend_weight * terminal_prediction)
+            elif gate_mode == "entropy":
+                blend_weight = (
+                    teacher_weight
+                    * (entropy_map(base_prediction) / np.log(base_prediction.shape[-1]))
+                )[:, :, None]
+                blended = ((1.0 - blend_weight) * base_prediction) + (blend_weight * terminal_prediction)
+            else:
+                base_dynamic = np.asarray(base_prediction[:, :, 1:5], dtype=np.float64)
+                teacher_dynamic = np.asarray(terminal_prediction[:, :, 1:5], dtype=np.float64)
+                dynamic_mass = np.sum(base_dynamic, axis=-1, keepdims=True)
+                teacher_dynamic_mass = np.sum(teacher_dynamic, axis=-1, keepdims=True)
+                teacher_dynamic_share = np.divide(
+                    teacher_dynamic,
+                    np.clip(teacher_dynamic_mass, 1e-12, None),
+                    out=np.full_like(teacher_dynamic, 0.25),
+                    where=teacher_dynamic_mass > 1e-12,
+                )
+                target_dynamic = dynamic_mass * teacher_dynamic_share
+                blended = np.asarray(base_prediction, dtype=np.float64).copy()
+                blended[:, :, 1:5] = ((1.0 - teacher_weight) * base_dynamic) + (teacher_weight * target_dynamic)
+            predictions_by_seed[seed_index] = apply_probability_floor(blended, 1e-4)
+        return (
+            PredictionBundle(
+                round_id=round_id,
+                model_name=f"{normalized}_v1",
+                predictions_by_seed=predictions_by_seed,
+            ),
+            {},
+            training_analyzed_seed_count,
+            training_cell_count,
+        )
+
     if normalized == "static_semantic":
         config = default_static_semantic_config()
         predictions_by_seed = {
@@ -329,6 +395,10 @@ def _build_prediction_bundle(
         GBX_TERMINAL_REGIME_TEACHER_MODEL,
         "gbx_terminal_regime_teacher_mapprior",
         GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+        "gbx_terminal_regime_mapknn_teacher",
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "gbx_terminal_regime_mapllr_teacher",
+        GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
         "gbx_terminal_regime_residual_teacher",
         GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
         "gbx_terminal_regime_residual_teacher_mapprior",
@@ -339,44 +409,88 @@ def _build_prediction_bundle(
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 False,
+                "regime_space_knn",
+                3,
             ),
             GBX_TERMINAL_REGIME_TEACHER_MODEL: (
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 False,
+                "regime_space_knn",
+                3,
             ),
             "gbx_terminal_regime_teacher_mapprior": (
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
                 False,
+                "regime_space_knn",
+                3,
             ),
             GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL: (
                 GBX_TERMINAL_REGIME_TEACHER_MODEL,
                 GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
                 False,
+                "regime_space_knn",
+                3,
+            ),
+            "gbx_terminal_regime_mapknn_teacher": (
+                GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+                False,
+                "map_summary_knn",
+                5,
+            ),
+            GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL: (
+                GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+                False,
+                "map_summary_knn",
+                5,
+            ),
+            "gbx_terminal_regime_mapllr_teacher": (
+                GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
+                False,
+                "map_summary_local_linear",
+                5,
+            ),
+            GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL: (
+                GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
+                False,
+                "map_summary_local_linear",
+                5,
             ),
             "gbx_terminal_regime_residual_teacher": (
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 True,
+                "regime_space_knn",
+                3,
             ),
             GBX_TERMINAL_RESIDUAL_TEACHER_MODEL: (
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 True,
+                "regime_space_knn",
+                3,
             ),
             "gbx_terminal_regime_residual_teacher_mapprior": (
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
                 True,
+                "regime_space_knn",
+                3,
             ),
             GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL: (
                 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
                 GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
                 True,
+                "regime_space_knn",
+                3,
             ),
         }
-        checkpoint_model_name, serving_model_name, use_base_residual = terminal_variant_specs[normalized]
+        checkpoint_model_name, serving_model_name, use_base_residual, map_posterior_mode, map_neighbor_count = terminal_variant_specs[normalized]
         checkpoint_path = gbx_terminal_scoped_checkpoint_path(
             paths,
             round_ids=training_round_ids,
@@ -438,10 +552,18 @@ def _build_prediction_bundle(
             )
             teacher.save_checkpoint(checkpoint_path)
         round_context = build_round_context_from_detail(round_detail)
-        teacher = teacher.model_copy(update={"name": serving_model_name})
+        teacher = teacher.model_copy(
+            update={
+                "name": serving_model_name,
+                "map_posterior_mode": map_posterior_mode,
+                "map_neighbor_count": map_neighbor_count,
+            },
+        )
         if serving_model_name in {
             GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
             GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
+            GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+            GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
         }:
             posterior = teacher.map_posterior(round_context.seeds)
         elif teacher.regime_bank.size > 0:

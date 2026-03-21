@@ -1765,3 +1765,231 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - Current agent4 reading:
   - do not spend more time on rollout transition variants unless a new decoder idea appears
   - next science target should be better map-summary -> round-law inference for the direct terminal family
+
+### 2026-03-21T13:38Z
+
+- Added two new direct-terminal serving variants aimed at the actual weak point:
+  - `gbx_terminal_regime_mapknn_teacher_v1`
+    - uses map-summary nearest neighbors directly as the regime posterior particle set
+    - avoids the crude global linear `map_summary -> regime` map at serving time
+  - `gbx_terminal_regime_mapllr_teacher_v1`
+    - uses local linear regression from nearby map summaries to the regime mean
+    - still keeps the same historical neighbor particles for posterior averaging
+- Main code changes:
+  - `src/astar/teacher/dynamics/terminal_teacher.py`
+    - stores training `map_bank`
+    - persists `map_posterior_mode`
+    - supports `regime_space_knn`, `map_summary_knn`, `map_summary_local_linear`
+  - `src/astar/workflows/model_eval.py`
+    - benchmark/model wiring for the two new terminal variants
+    - serving-time neighbor count override set to `5` for both new modes
+  - `src/astar/cli.py`
+    - exposed the new model names in visual + historical benchmark CLI choices
+  - tests:
+    - `tests/test_terminal_teacher.py`
+    - `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run pytest tests/test_terminal_teacher.py tests/test_historical_benchmark.py -q`
+  - result: `27 passed in 44.10s`
+- Next immediate step:
+  - benchmark `mapknn` vs `mapllr` on the same 3 hard replay-backed rounds before expanding to full 8-round runs
+
+### 2026-03-21T13:44Z
+
+- Ran a direct offline LOO science probe on the 8 replay+analysis rounds to compare map-summary inference rules for the terminal family.
+- Result:
+  - old global linear map:
+    - `map_summary -> regime` LOO MSE: `0.01248`
+    - `map_summary -> coefficient_vector` LOO MSE: `0.11168`
+  - direct map-summary kNN:
+    - `k=2`: regime `0.00707`, coeff `0.05005`
+    - `k=4`: regime `0.00645`, coeff `0.04924`
+    - `k=5`: regime `0.00650`, coeff `0.04752`
+    - `k=6`: regime `0.00689`, coeff `0.04718`
+- Interpretation:
+  - local map-summary neighbors are dramatically better than the old global linear map for held-out round-law recovery
+  - this strongly justifies the new `mapknn` serving branch
+  - `mapllr` is still worth one probe, but it is no longer the main candidate
+- Launched benchmark probes:
+  - `tmp_gbx_terminal_regime_mapknn_teacher_probe3_jobs3_v1`
+  - `tmp_gbx_terminal_regime_mapllr_teacher_probe3_jobs3_v1`
+
+### 2026-03-21T13:52Z
+
+- The 3-round probe result for the new serving modes was effectively inconclusive:
+  - `tmp_gbx_terminal_regime_mapknn_teacher_probe3_jobs3_v1`
+    - mean score `27.5629`
+    - mean weighted KL `0.752910`
+  - `tmp_gbx_terminal_regime_mapllr_teacher_probe3_jobs3_v1`
+    - mean score `27.5629`
+    - mean weighted KL `0.752910`
+- Why inconclusive:
+  - each held-out fold in that 3-round benchmark only has `2` support rounds
+  - with so little support, the old regime-space posterior and the new map-summary local variants collapse toward nearly the same behavior
+- Extra local-linear science check on full 8-round LOO:
+  - `map_summary local_linear -> regime`:
+    - `k=2`: `0.00708`
+    - `k=3`: `0.01811`
+    - `k=4`: `0.01559`
+    - `k=5`: `0.01709`
+    - `k=6`: `0.01985`
+- Interpretation:
+  - if local-linear helps at all, it likely needs a very tight neighborhood (`k=2`)
+  - current `mapknn` remains the strongest evidence-backed branch
+- Launched the real held-out test across all analyzed rounds in parallel:
+  - `dev_gbx_terminal_regime_teacher_mapprior_jobs8_v1`
+  - `dev_gbx_terminal_regime_mapknn_teacher_jobs8_v1`
+  - `dev_gbx_terminal_regime_mapllr_teacher_jobs8_v1`
+- Runtime check after launch:
+  - each benchmark has 8 live multiprocessing workers
+  - machine still has abundant RAM headroom; no throttling needed
+
+### 2026-03-21T14:00Z
+
+- Added the first explicit ensemble/calibration branch from the handoff:
+  - convex blend of `gbx_prior_maponly_bucket` with the terminal family
+- New benchmarkable variants:
+  - `gbx_maponly_terminal_mapprior_blend10`
+  - `gbx_maponly_terminal_mapprior_blend20`
+  - `gbx_maponly_terminal_mapknn_blend10`
+  - `gbx_maponly_terminal_mapknn_blend20`
+- Main code changes:
+  - `src/astar/workflows/model_eval.py`
+    - added recursive bundle blending helper logic inside model selection
+    - current blend weights are terminal-teacher weights `0.10` and `0.20`
+  - `src/astar/cli.py`
+    - exposed the new blend model names
+  - `tests/test_historical_benchmark.py`
+    - added smoke test for `gbx_maponly_terminal_mapknn_blend10`
+- Verification:
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_maponly_terminal_mapknn_blend10_historical_benchmark_runs -q`
+  - result: `1 passed in 2.74s`
+- Launched additional full 8-round held-out runs in parallel:
+  - `dev_gbx_maponly_terminal_mapknn_blend10_jobs8_v1`
+  - `dev_gbx_maponly_terminal_mapknn_blend20_jobs8_v1`
+
+### 2026-03-21T14:11Z
+
+- Full 8-round held-out terminal-family results are now in:
+  - old direct mapprior terminal:
+    - `dev_gbx_terminal_regime_teacher_mapprior_jobs8_v1`
+    - mean score `41.1294`
+    - mean weighted KL `0.335720`
+  - new map-summary local terminal:
+    - `dev_gbx_terminal_regime_mapknn_teacher_jobs8_v1`
+    - mean score `43.3332`
+    - mean weighted KL `0.320569`
+  - local-linear variant:
+    - `dev_gbx_terminal_regime_mapllr_teacher_jobs8_v1`
+    - mean score `43.3332`
+    - mean weighted KL `0.320569`
+- Paired comparison:
+  - baseline `gbx_terminal_regime_teacher_mapprior`
+  - candidate `gbx_terminal_regime_mapknn_teacher`
+  - artifact:
+    - `data/artifacts/comparisons/historical__mode=prior_only__baseline=gbx_terminal_regime_teacher_mapprior__candidate=gbx_terminal_regime_mapknn_teacher.md`
+  - delta:
+    - score `+2.2038`
+    - weighted KL `-0.015151`
+    - win rate `0.875`
+  - caveat:
+    - the candidate loses heavily on round `36e581f1-73f8-453f-ab98-cbe3052b701b`
+    - the gain comes from strong wins on several other rounds, especially `71451d74-...`
+- Interpretation:
+  - better map-summary posterior inference clearly matters
+  - but the pure terminal family is still far below the stronger map-only prior family
+
+### 2026-03-21T14:14Z
+
+- Full 8-round uniform ensemble results:
+  - `dev_gbx_maponly_terminal_mapknn_blend10_jobs8_v1`
+    - mean score `65.8403`
+    - mean weighted KL `0.145416`
+  - `dev_gbx_maponly_terminal_mapknn_blend20_jobs8_v1`
+    - mean score `64.8240`
+    - mean weighted KL `0.152532`
+- Comparison vs existing map-only prior baseline `dev_gbx_prior_maponly_bucket_prior1_jobs8`:
+  - baseline map-only:
+    - mean score `66.3208`
+    - mean weighted KL `0.141605`
+  - paired compare for `blend10`:
+    - score delta `-0.4806`
+    - weighted KL delta `+0.003812`
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=prior_only__baseline=gbx_prior_maponly_bucket__candidate=gbx_maponly_terminal_mapknn_blend10.md`
+  - `blend20` is clearly worse than `blend10` on mean metrics alone
+- Compare-tool caveat:
+  - second paired compare for `blend20` hit a DuckDB catalog lock:
+    - `_duckdb.IOException` on `data/catalog.duckdb`
+  - this is a catalog logging conflict, not a benchmark correctness issue
+- Interpretation:
+  - uniform blending is not enough
+  - next best idea is entropy-gated selective blending so the terminal model only influences uncertain cells
+
+### 2026-03-21T14:15Z
+
+- Added and launched the next selective ensemble branch:
+  - new models:
+    - `gbx_maponly_terminal_mapknn_entropyblend25`
+    - `gbx_maponly_terminal_mapknn_entropyblend50`
+  - mechanism:
+    - terminal weight is scaled per-cell by normalized entropy of the map-only prior
+  - verification:
+    - `uv run pytest tests/test_historical_benchmark.py::test_gbx_maponly_terminal_mapknn_entropyblend25_historical_benchmark_runs -q`
+    - result: `1 passed in 2.09s`
+  - active full 8-round runs:
+    - `dev_gbx_maponly_terminal_mapknn_entropyblend25_jobs8_v1`
+    - `dev_gbx_maponly_terminal_mapknn_entropyblend50_jobs8_v1`
+
+### 2026-03-21T14:21Z
+
+- Entropy-gated whole-distribution blends finished:
+  - `dev_gbx_maponly_terminal_mapknn_entropyblend25_jobs8_v1`
+    - mean score `65.8443`
+    - mean weighted KL `0.145533`
+  - `dev_gbx_maponly_terminal_mapknn_entropyblend50_jobs8_v1`
+    - mean score `64.3333`
+    - mean weighted KL `0.155457`
+- Interpretation:
+  - entropy gating does not materially improve on uniform `blend10`
+  - larger entropy-gated terminal weight is clearly harmful
+  - whole-distribution blending now looks exhausted for this terminal branch
+
+### 2026-03-21T14:23Z
+
+- Added a more surgical ensemble variant:
+  - keep the map-only prior's total dynamic mass
+  - use the terminal teacher only to redistribute that mass among classes `settlement/port/ruin/forest`
+- New models:
+  - `gbx_maponly_terminal_mapknn_dynblend50`
+  - `gbx_maponly_terminal_mapknn_dynblend100`
+- Verification:
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_maponly_terminal_mapknn_dynblend50_historical_benchmark_runs -q`
+  - result: `1 passed in 1.14s`
+- Active full 8-round held-out runs:
+  - `dev_gbx_maponly_terminal_mapknn_dynblend50_jobs8_v1`
+  - `dev_gbx_maponly_terminal_mapknn_dynblend100_jobs8_v1`
+
+### 2026-03-21T14:27Z
+
+- Dynamic-subspace blend results are in:
+  - `dev_gbx_maponly_terminal_mapknn_dynblend50_jobs8_v1`
+    - mean score `64.0344`
+    - mean weighted KL `0.155575`
+  - `dev_gbx_maponly_terminal_mapknn_dynblend100_jobs8_v1`
+    - mean score `53.1484`
+    - mean weighted KL `0.226181`
+- Combined conclusion for the terminal-ensemble sweep:
+  - pure terminal improved materially with map-summary local serving
+    - best pure terminal: `43.3332 / 0.320569`
+  - but every ensemble attempt still lost to the strong map-only prior baseline
+    - map-only baseline remains `66.3208 / 0.141605`
+  - variants tested and rejected:
+    - uniform blend `10%`, `20%`
+    - entropy-gated blend `25%`, `50%`
+    - dynamic-subspace blend `50%`, `100%`
+- Current scientific read:
+  - the terminal teacher does carry some real round-law information
+  - but its calibration/composition errors are too large for simple ensembling tricks to turn it into the best prior
+  - this terminal-family branch is now reasonably exhausted for cheap next-step variants
+  - next productive branch should move away from terminal-only correction and back toward a different grey-box teacher/student design

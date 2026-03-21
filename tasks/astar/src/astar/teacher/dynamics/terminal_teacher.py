@@ -26,6 +26,8 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 GBX_TERMINAL_REGIME_TEACHER_MODEL = "gbx_terminal_regime_teacher_v1"
 GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL = "gbx_terminal_regime_teacher_mapprior_v1"
+GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL = "gbx_terminal_regime_mapknn_teacher_v1"
+GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL = "gbx_terminal_regime_mapllr_teacher_v1"
 GBX_TERMINAL_RESIDUAL_TEACHER_MODEL = "gbx_terminal_regime_residual_teacher_v1"
 GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL = "gbx_terminal_regime_residual_teacher_mapprior_v1"
 
@@ -218,10 +220,13 @@ class GreyBoxTerminalTeacherCheckpoint(BaseModel):
     rank_selection: str = "loo_reconstruction_mse"
     selected_rank: int = Field(default=1, ge=1)
     map_feature_names: list[str] = Field(default_factory=list)
+    map_bank: list[list[float]] = Field(default_factory=list)
     map_intercept: list[float] = Field(default_factory=list)
     map_weights: list[list[float]] = Field(default_factory=list)
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
+    map_posterior_mode: str = "regime_space_knn"
+    map_local_linear_ridge_alpha: float = Field(default=1.0, gt=0.0)
     probability_floor: float = Field(gt=0.0, lt=1.0)
     use_base_residual: bool = False
 
@@ -244,10 +249,13 @@ class GreyBoxTerminalTeacher(BaseModel):
     rank_selection: str = "loo_reconstruction_mse"
     selected_rank: int = Field(default=1, ge=1)
     map_feature_names: tuple[str, ...] = ()
+    map_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
     map_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(12, dtype=np.float64))
     map_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 12), dtype=np.float64))
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
+    map_posterior_mode: str = "regime_space_knn"
+    map_local_linear_ridge_alpha: float = Field(default=1.0, gt=0.0)
     probability_floor: float = Field(default=1e-4, gt=0.0, lt=1.0)
     use_base_residual: bool = False
 
@@ -372,8 +380,11 @@ class GreyBoxTerminalTeacher(BaseModel):
                 "rank_selection": rank_selection,
                 "selected_rank": selected_rank,
                 "map_feature_names": tuple(round_map_summary_names()),
+                "map_bank": map_bank,
                 "map_intercept": map_intercept,
                 "map_weights": map_weights,
+                "map_posterior_mode": self.map_posterior_mode,
+                "map_local_linear_ridge_alpha": self.map_local_linear_ridge_alpha,
                 "use_base_residual": self.use_base_residual,
             },
         )
@@ -393,10 +404,13 @@ class GreyBoxTerminalTeacher(BaseModel):
             rank_selection=self.rank_selection,
             selected_rank=self.selected_rank,
             map_feature_names=list(self.map_feature_names),
+            map_bank=np.asarray(self.map_bank, dtype=np.float64).tolist(),
             map_intercept=self.map_intercept.tolist(),
             map_weights=self.map_weights.tolist(),
             map_neighbor_count=self.map_neighbor_count,
             map_distance_floor=self.map_distance_floor,
+            map_posterior_mode=self.map_posterior_mode,
+            map_local_linear_ridge_alpha=self.map_local_linear_ridge_alpha,
             probability_floor=self.probability_floor,
             use_base_residual=self.use_base_residual,
         )
@@ -423,10 +437,13 @@ class GreyBoxTerminalTeacher(BaseModel):
             rank_selection=checkpoint.rank_selection,
             selected_rank=checkpoint.selected_rank,
             map_feature_names=tuple(checkpoint.map_feature_names),
+            map_bank=np.asarray(checkpoint.map_bank, dtype=np.float64),
             map_intercept=np.asarray(checkpoint.map_intercept, dtype=np.float64),
             map_weights=np.asarray(checkpoint.map_weights, dtype=np.float64),
             map_neighbor_count=checkpoint.map_neighbor_count,
             map_distance_floor=checkpoint.map_distance_floor,
+            map_posterior_mode=checkpoint.map_posterior_mode,
+            map_local_linear_ridge_alpha=checkpoint.map_local_linear_ridge_alpha,
             probability_floor=checkpoint.probability_floor,
             use_base_residual=checkpoint.use_base_residual,
         )
@@ -450,19 +467,63 @@ class GreyBoxTerminalTeacher(BaseModel):
         coefficients = np.asarray(coefficient_vector[CLASS_COUNT:].reshape(feature_dim, CLASS_COUNT), dtype=np.float64)
         return intercept, coefficients
 
+    def _clip_regime(self, regime: np.ndarray) -> np.ndarray:
+        return np.clip(np.asarray(regime, dtype=np.float64), -0.25, 1.25)
+
+    def _map_neighbor_indexes(self, seeds: Sequence[SeedLike]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        target = round_map_summary_vector(seeds)
+        if self.map_bank.size == 0:
+            return target, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+        distances = np.linalg.norm(self.map_bank - target[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.map_neighbor_count, len(distances))]
+        return target, np.asarray(order, dtype=np.int64), np.asarray(distances[order], dtype=np.float64)
+
     def map_regime_prior(self, seeds: Sequence[SeedLike]) -> np.ndarray:
+        if self.map_posterior_mode == "map_summary_knn":
+            if self.regime_bank.size == 0:
+                return np.zeros(12, dtype=np.float64)
+            _, order, distances = self._map_neighbor_indexes(seeds)
+            if order.size == 0:
+                return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
+            weights = 1.0 / np.clip(distances, self.map_distance_floor, None)
+            weights = weights / np.sum(weights)
+            return self._clip_regime(np.tensordot(weights, self.regime_bank[order], axes=(0, 0)))
+        if self.map_posterior_mode == "map_summary_local_linear":
+            if self.regime_bank.size == 0:
+                return np.zeros(12, dtype=np.float64)
+            target, order, _ = self._map_neighbor_indexes(seeds)
+            if order.size == 0:
+                return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
+            intercept, weights = _fit_linear_map(
+                self.map_bank[order],
+                self.regime_bank[order],
+                ridge_alpha=self.map_local_linear_ridge_alpha,
+            )
+            return self._clip_regime(intercept + target @ weights)
         if self.map_weights.size == 0:
             if self.regime_bank.size == 0:
                 return np.zeros(12, dtype=np.float64)
             return np.asarray(np.mean(self.regime_bank, axis=0), dtype=np.float64)
         map_vector = round_map_summary_vector(seeds)
         regime = np.asarray(self.map_intercept + (map_vector @ self.map_weights), dtype=np.float64)
-        return np.clip(regime, -0.25, 1.25)
+        return self._clip_regime(regime)
 
     def map_posterior(self, seeds: Sequence[SeedLike]) -> RegimePosteriorState:
         prior_regime = self.map_regime_prior(seeds)
         if self.regime_bank.size == 0:
             return RegimePosteriorState(mean=prior_regime)
+        if self.map_posterior_mode in {"map_summary_knn", "map_summary_local_linear"}:
+            _, order, distances = self._map_neighbor_indexes(seeds)
+            if order.size == 0:
+                return RegimePosteriorState(mean=prior_regime)
+            selected_particles = tuple(np.asarray(self.regime_bank[index], dtype=np.float64) for index in order)
+            weights = 1.0 / np.clip(distances, self.map_distance_floor, None)
+            weights = weights / np.sum(weights)
+            return RegimePosteriorState(
+                mean=np.asarray(prior_regime, dtype=np.float64),
+                particles=selected_particles,
+                weights=np.asarray(weights, dtype=np.float64),
+            )
         distances = np.linalg.norm(self.regime_bank - prior_regime[None, :], axis=1)
         order = np.argsort(distances)[: min(self.map_neighbor_count, len(distances))]
         selected_particles = tuple(np.asarray(self.regime_bank[index], dtype=np.float64) for index in order)
@@ -524,6 +585,8 @@ class GreyBoxTerminalTeacher(BaseModel):
 __all__ = [
     "GBX_TERMINAL_REGIME_TEACHER_MODEL",
     "GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL",
+    "GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL",
+    "GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL",
     "GBX_TERMINAL_RESIDUAL_TEACHER_MODEL",
     "GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL",
     "GreyBoxTerminalTeacher",

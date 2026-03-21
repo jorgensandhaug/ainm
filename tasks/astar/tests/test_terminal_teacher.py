@@ -7,6 +7,8 @@ from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.store import read_round_record
 from astar.student.predictor.gbx_map_prior import GreyBoxMapOnlyBucketPredictor
 from astar.teacher.dynamics.terminal_teacher import (
+    GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+    GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL,
     GBX_TERMINAL_REGIME_TEACHER_MODEL,
     GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
     GreyBoxTerminalTeacher,
@@ -85,3 +87,26 @@ def test_gbx_terminal_residual_teacher_terminal_tensor_is_valid(sample_paths) ->
     assert np.all(np.isfinite(terminal))
     assert np.all(terminal >= 0.0)
     assert np.allclose(np.sum(terminal, axis=-1), 1.0, atol=1e-6)
+
+
+def test_gbx_terminal_map_summary_posterior_modes_are_valid(sample_paths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    episode = build_round_episode(sample_paths, ROUND_ID)
+    round_detail = read_round_record(sample_paths, ROUND_ID).round
+    round_context = build_round_context_from_detail(round_detail)
+
+    for model_name, posterior_mode in [
+        (GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL, "map_summary_knn"),
+        (GBX_TERMINAL_REGIME_MAPLLR_TEACHER_MODEL, "map_summary_local_linear"),
+    ]:
+        teacher = GreyBoxTerminalTeacher(
+            name=model_name,
+            map_posterior_mode=posterior_mode,
+        ).fit([episode])
+        posterior = teacher.map_posterior(round_context.seeds)
+        terminal = teacher.posterior_predictive(episode.seeds[0], posterior)
+        assert terminal.shape[-1] == 6
+        assert np.all(np.isfinite(terminal))
+        assert np.all(terminal >= 0.0)
+        assert np.allclose(np.sum(terminal, axis=-1), 1.0, atol=1e-6)
