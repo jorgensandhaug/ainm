@@ -21,6 +21,13 @@ The task has a hard 300s budget. **Three production runs have scored 0 due to ti
 
 ## Production Run Results (2026-03-21)
 
+### German run (655f6c99, 11 calls, 0 errors) — SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
+- 5 reads fired in parallel (OLD path, no `/ledger/accountingPeriod`), 5 customer payments (1 partial: Müller GmbH 12593.75 of 25187.50), 3 supplier payments + 2 Skattetrekk (Inn 393.31 + Ut 301.90) combined into 1 voucher (10 postings)
+- Ran the pre-Step-6 trusted standard — did NOT create bank reconciliation
+- **8th consecutive run scoring 0.6 without bank reconciliation confirms this is the sole remaining blocker**
+- CSV: Weber GmbH, Meyer GmbH, Schneider GmbH, Müller GmbH (2 invoices); suppliers: Becker GmbH, Schneider GmbH, Meyer GmbH
+- First German-prompt confirmation of this task shape
+
 ### Portuguese run 2 (5c02a044, 11 calls, 0 errors) — SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
 - 6 reads fired in parallel (added `/ledger/accountingPeriod`), 5 customer payments (1 partial: Costa Lda 11300 of 28250), 3 supplier payments + 3 non-invoice lines combined into 1 voucher (12 postings)
 - **Scored 0.6 despite including ALL non-invoice lines** — disproves the theory that Check 1 fails due to skipped non-invoice lines
@@ -225,7 +232,7 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **BANK RECONCILIATION REQUIRED**: All 7 completed runs without bank reconciliation scored 0.6/6 (Check 1 always failed). Must create a closed bank reconciliation via `POST /bank/reconciliation` with `isClosed: true` after all payments/postings. `bankAccountClosingBalanceCurrency` must match actual account 1920 balance. If proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10).
+- **BANK RECONCILIATION REQUIRED**: All 8 completed runs without bank reconciliation scored 0.6/6 (Check 1 always failed). Must create a closed bank reconciliation via `POST /bank/reconciliation` with `isClosed: true` after all payments/postings. `bankAccountClosingBalanceCurrency` must match actual account 1920 balance (read from balance sheet AFTER all postings). If proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10).
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)
