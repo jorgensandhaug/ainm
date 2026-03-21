@@ -68,15 +68,18 @@ Row numbering starts at 1 (row 0 is system-reserved). Voucher date = earliest pa
 ## Proven production results
 
 - English run 4: 11 calls, 0 errors, 5 customer (1 partial) + 3 supplier combined into 1 voucher
-- Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
 - Nynorsk run 2 (c76bbef3): 11 calls, 0 errors, 5 customer (all full) + 3 supplier combined into 1 voucher — optimal
+- Portuguese run (d1297531): 11 calls, 0 errors, 5 customer (1 partial: Sousa Lda 5675 of 14187.50) + 3 supplier combined into 1 voucher — optimal
+- Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
 
 ## Critical pitfalls
 
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes `400`
+- For customer invoices use `amountCurrencyOutstanding` (both `amountOutstanding` and `amountCurrencyOutstanding` exist on `InvoiceDTO`; the latter is correct for foreign currency)
 - Do NOT fire per-supplier `/supplierInvoice` queries — one broad query decides the path
 - Do NOT create separate vouchers per supplier payment — combine into one
 - Do NOT split into multiple scripts or debug passes
-- Non-invoice lines (Bankgebyr, Skattetrekk, Renteinntekter) must be skipped
+- Non-invoice lines (Bankgebyr, Skattetrekk, Renteinntekter) must be skipped — even if they appear in the `Inn` column (e.g. Bankgebyr refund)
 - After paying a customer invoice, update local outstanding tracker before matching the next line
+- Prompts may be in Portuguese, Nynorsk, French, German, Spanish, English — CSV column headers are always Norwegian (Dato, Forklaring, Inn, Ut, Saldo)

@@ -33,6 +33,13 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 - names: Neset AS, Eide AS, Lunde AS, Stølsvik AS, Haugen AS (customers); Lunde AS, Neset AS, Stølsvik AS (suppliers)
 - confirms trusted standard is correct for Nynorsk task variant
 
+### Portuguese run (d1297531, 11 calls, 0 errors) — OPTIMAL
+- 5 reads fired in parallel, 5 customer payments (4 full + 1 partial: Sousa Lda 5675 of 14187.50), 3 supplier payments combined into 1 voucher
+- CSV had non-invoice lines (Renteinntekter, Skattetrekk, Bankgebyr) correctly skipped
+- customers: Oliveira Lda (2 invoices), Silva Lda, Ferreira Lda, Sousa Lda; suppliers: Martins Lda, Pereira Lda, Costa Lda
+- confirms trusted standard is correct for Portuguese task variant
+- Bankgebyr appeared in Inn column (positive 1956.88 — likely refund) — correctly skipped as non-invoice
+
 ### Earlier Nynorsk run 1 (task 23, 13 calls, 0 errors)
 - same shape but 3 separate supplier vouchers instead of 1 combined → wasted 2 calls
 
