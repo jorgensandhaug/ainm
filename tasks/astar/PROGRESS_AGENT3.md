@@ -4354,6 +4354,28 @@
      - `uv run python -m py_compile src/astar/student/predictor/settlement_state_field_blend.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_settlement_state_field_blend_historical_benchmark_model tests/test_teacher_student.py::test_settlement_state_field_blend_variant_alias_resolves tests/test_historical_benchmark.py::test_settlement_state_field_blend_v2_online_historical_benchmark_defaults_to_samples_4 -q`
    - validation result:
      - `3 passed`
+475. Git checkpoint created + pushed for item 474:
+   - commit:
+     - `88c986e0`
+   - message:
+     - `agent3: add settlement state field blend family`
+476. Launch state for `settlement_state_field_blend`:
+   - machine headroom before launch:
+     - available memory about `1.2 TiB`
+   - observed shared-box pressure:
+     - several other-agent workers above `100 GiB` RSS
+     - `teacher_student_blend_v59` full corrected LOO still live with `4` heavy local workers
+   - corrected targeted-holdout gate sessions started:
+     - `agent3_sstate_v1_gate`
+     - `agent3_sstate_v2_gate`
+     - `agent3_sstate_v3_gate`
+     - `agent3_sstate_v4_gate`
+   - command family:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model settlement_state_field_blend_vX --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_settlement_state_field_blend_vX_targeted_holdout_2rounds_corrected --jobs 1`
+   - launch policy:
+     - only `4` variants live in this new wave
+     - `jobs=1` each
+     - no extra stacking beyond this bounded launch because the shared host still had large foreign jobs active
 
 
 ## Open Questions
