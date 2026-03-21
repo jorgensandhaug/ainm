@@ -38,7 +38,7 @@ The task typically says "reverser forskuddsbetalte kostnader på konto 1700" wit
 Include the contra account in the initial account lookup.
 If the task explicitly names a different expense contra, use that instead.
 
-**INVESTIGATION (2026-03-21)**: Checks 4+5 failed in ALL 8 year-end runs. Run 5 posted disposition with DR 8960 / CR 2050 — checks 4+5 STILL failed. The correct accounts are **8800 "Årsresultat" / 2050** (not 8960). Account 8800 is the standard forenklet årsoppgjør result transfer account.
+**RESOLVED (2026-03-21, run 6 — 18f7ba9d)**: Checks 4+5 failed in runs 1–5 due to missing or wrong disposition accounts (8960/2050). Run 6 used **8800/2050** and scored **6/6 checks ALL PASSED** (8/8 raw). Loss scenario confirmed: tax=0, disposition DR 2050 / CR 8800.
 
 ## Account Existence
 
@@ -166,7 +166,7 @@ Sandbox-verified (2026-03-21): 8800/2050 returns 201. Account 8800 exists in def
 - **Separate vouchers**: The task says "eget bilag" for each depreciation. Do not combine multiple depreciations into one voucher.
 - **No batch voucher POST**: `/ledger/voucher/list` is PUT-only (batch update). Each voucher must be created individually with `POST /ledger/voucher`.
 - **Tax rounding**: Use `Math.round(...)` (integer/nearest krone) for the final tax amount. This is standard in Norwegian tax accounting.
-- **Do NOT use 8960 for disposition**: Account 8960 is for detailed year-end closings. Forenklet årsoppgjør must use **8800 "Årsresultat"**. Proven in run 5: 8960/2050 fails checks 4+5.
+- **Do NOT use 8960 for disposition**: Account 8960 is for detailed year-end closings. Forenklet årsoppgjør must use **8800 "Årsresultat"**. Run 5 (8960/2050) failed checks 4+5; run 6 (8800/2050) passed all 6 checks.
 
 ## Production Verification (2026-03-21, run 1)
 - Task: 2025 year-end closing with 3 assets (Kontormaskiner 222900/10yr, Inventar 254250/8yr, IT-utstyr 207900/6yr), 78250 prepaid reversal (1700→6300), 22% tax (8700→2920)
@@ -219,6 +219,13 @@ Sandbox-verified (2026-03-21): 8800/2050 returns 201. Account 8800 exists in def
 - Score: 6/10, checks 1-3 + 6 passed, checks 4-5 STILL FAILED
 - **Proves**: wrong disposition accounts (8960 instead of 8800) cause checks 4+5 to fail. Next run: use 8800/2050.
 
+## Production Verification (2026-03-21, run 6 — Spanish prompt, 8800/2050, LOSS) ★ FIRST 6/6
+- Task: 2025 year-end closing, 3 assets (Kjøretøy 249600/10yr, IT-utstyr 292050/9yr, Kontormaskiner 354500/7yr), 45950 prepaid, 22% tax
+- Depreciation: 24960.00 + 32450.00 + 50642.86 = 108052.86
+- preTaxProfit: -411169.73 (LOSS), tax: 0, disposition: DR 2050 / CR 8800 (411169.73)
+- 8 calls, 0 errors, **6/6 checks ALL PASSED** (8/8 raw)
+- Confirms: 8800/2050 is the correct disposition pair, loss scenario works
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `POST /ledger/voucher` with `row: 1` / `row: 2` succeeded for balanced two-line depreciation entries
@@ -232,3 +239,4 @@ Sandbox-verified (2026-03-21): 8800/2050 returns 201. Account 8800 exists in def
   - `POST /ledger/voucher/list` returns 400 (Method Not Allowed) — batch voucher creation is not supported
   - Full flow: 2 GETs + 1 POST (create missing) + 5 POSTs (vouchers) = 8 calls with missing accounts
   - `account: { number, name }` without `id` on voucher postings → `422` — account IDs always required
+  - Combined 4-line voucher (tax + disposition) returns 201 — possible optimization for profit scenarios (untested in production)
