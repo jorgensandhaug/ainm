@@ -2928,6 +2928,44 @@
    - machine snapshot remained healthy:
      - about `1.2 TiB` used
      - about `1.7 TiB` available
+324. Count-adaptive exact-local-evidence results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v67`
+     - `teacher_student_blend_v68`
+     - `teacher_student_blend_v69`
+     - `teacher_student_blend_v70`
+   - aggregate results:
+     - `v67`: mean score `65.3996`, mean weighted KL `0.142170`
+     - `v68`: mean score `65.3540`, mean weighted KL `0.142420`
+     - `v69`: mean score `65.4438`, mean weighted KL `0.141927`
+     - `v70`: mean score `65.3980`, mean weighted KL `0.142176`
+325. Read from item 324:
+   - count-adaptive local evidence is effectively neutral on top of `v59/v60`
+   - `v69` came back very close, but still below `v59`
+   - the next likely bottleneck is no longer queried-cell posterior shrinkage
+   - the remaining error should mostly be how strongly and where the summary-bank student overrides the base prior on unobserved cells
+326. New hypothesis after item 325:
+   - seed-adaptive student mixing may still help on the `v59/v60` backbone if the confidence gate is removed
+   - the earlier `v55-v58` failure may have been dominated by the confidence gate, not by seed-adaptive weighting itself
+   - next probe:
+     - add seed-adaptive weighting without confidence gating, with and without the near-neutral count-adaptive local-evidence tweak
+327. Implemented seed-adaptive/no-confidence exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v71`
+     - `teacher_student_blend_v72`
+     - `teacher_student_blend_v73`
+     - `teacher_student_blend_v74`
+   - mapping:
+     - `v71` = `v59` backbone + `teacher_weight_mode=seed_adaptive`
+     - `v72` = `v60` backbone + `teacher_weight_mode=seed_adaptive`
+     - `v73` = `v69` backbone + `teacher_weight_mode=seed_adaptive`
+     - `v74` = `v70` backbone + `teacher_weight_mode=seed_adaptive`
+   - all four explicitly keep `use_confidence_gate=False`
+328. Validation for item 327:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v72_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v74_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

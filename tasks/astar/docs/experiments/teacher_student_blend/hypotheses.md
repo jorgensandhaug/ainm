@@ -31,6 +31,8 @@
 - `v65` / `v66`: also test an extreme near-count-dominated posterior in case the best regime is to trust observed-cell evidence almost completely
 - `v67` / `v68`: keep the winning `v59/v60` beta schedule, but reduce prior pseudocount when a queried cell has many direct observations
 - `v69` / `v70`: test a gentler version of the same count-adaptive exact-local-evidence idea
+- `v71` / `v72`: test seed-adaptive student mixing on the winning exact-local-evidence line, but without the confidence gate that likely caused `v55-v58` to fail
+- `v73` / `v74`: see whether the near-neutral count-adaptive local-evidence tweak becomes useful once paired with seed-adaptive mixing and no confidence gate
 
 ## Evaluation Rule
 

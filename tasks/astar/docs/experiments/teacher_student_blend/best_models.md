@@ -6,6 +6,10 @@ Current finished corrected-holdout ranking:
 
 - `teacher_student_blend_v59`: mean score `65.4649`, mean weighted KL `0.141802`
 - `teacher_student_blend_v60`: mean score `65.4188`, mean weighted KL `0.142051`
+- `teacher_student_blend_v69`: mean score `65.4438`, mean weighted KL `0.141927`
+- `teacher_student_blend_v67`: mean score `65.3996`, mean weighted KL `0.142170`
+- `teacher_student_blend_v70`: mean score `65.3980`, mean weighted KL `0.142176`
+- `teacher_student_blend_v68`: mean score `65.3540`, mean weighted KL `0.142420`
 - `teacher_student_blend_v51`: mean score `65.0719`, mean weighted KL `0.143762`
 - `teacher_student_blend_v52`: mean score `65.0268`, mean weighted KL `0.144004`
 - `teacher_student_blend_v61`: mean score `64.5530`, mean weighted KL `0.146440`
@@ -38,7 +42,8 @@ Current read:
 - the exact-local-evidence win kept moving in the same direction: lower shrinkage beat `v51/v52` again
 - pushing the same beta schedule further down (`v63/v64`) was still decent but clearly worse than `v59/v60`
 - making the posterior almost count-dominated (`v65/v66`) collapsed badly
-- next branch is count-adaptive exact local evidence on top of `v59/v60`, not lower global beta
+- count-adaptive exact local evidence (`v67-v70`) came back almost neutral; `v69` was close but still did not beat `v59`
+- next branch is seed-adaptive student mixing without the confidence gate, because the remaining error should mainly be unobserved-cell blending
 - `v59` beats `v45` by `+4.1279` score and `-0.021885` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
@@ -68,13 +73,13 @@ Active queue now includes:
 - full LOO live: `teacher_student_blend_v59`
 - full LOO live: `teacher_student_blend_v60`
 - next promotion target is `teacher_student_blend_v59`
-- newest corrected-gate branch is `teacher_student_blend_v67` through `teacher_student_blend_v70`
+- newest corrected-gate branch is `teacher_student_blend_v71` through `teacher_student_blend_v74`
 
 Pending corrected-gate results:
 
-- `teacher_student_blend_v67`
-- `teacher_student_blend_v68`
-- `teacher_student_blend_v69`
-- `teacher_student_blend_v70`
+- `teacher_student_blend_v71`
+- `teacher_student_blend_v72`
+- `teacher_student_blend_v73`
+- `teacher_student_blend_v74`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.
