@@ -103,3 +103,6 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
 - 2nd production run `3a21d463` on `2026-03-21` (Spanish prompt) confirmed the identical 3-call path:
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
   - confirms the standard handles non-English prompts without any extra API calls
+- 3rd production run `1c76136a` on `2026-03-21` (Portuguese prompt) confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
+  - 3 consecutive optimal runs across 3 languages (English, Spanish, Portuguese) confirm this standard is stable

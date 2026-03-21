@@ -15,18 +15,18 @@ Do not use for:
 
 ## Verified Findings
 
-Production run `3a21d463` on 2026-03-21 (latest, Spanish prompt) achieved:
+Production run `1c76136a` on 2026-03-21 (latest, Portuguese prompt) achieved:
 - **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
 - used `POST /project/list` with inline `projectActivities` per project for batch create
 - top 3 accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
 
-Earlier production run on 2026-03-21 achieved:
-- **3 calls, 0 errors, correct result** — same path, different run
-- used `POST /project/list` with inline `projectActivities` per project for batch create
+Production run `3a21d463` on 2026-03-21 (Spanish prompt) achieved:
+- **3 calls, 0 errors, correct result** — same path, same accounts
 
-Earliest production run on 2026-03-21 achieved:
-- 6 calls, 0 errors, correct result
-- used `POST /project/list` + 3 separate `POST /project/projectActivity` calls (now known to be unnecessary)
+Earlier production runs on 2026-03-21 achieved:
+- **3 calls, 0 errors** (2nd run) and 6 calls, 0 errors (1st run, before inline activities were discovered)
+
+3 consecutive optimal runs across English, Spanish, and Portuguese prompts confirm this standard is stable and language-independent.
 
 Persistent-sandbox verification on 2026-03-21 showed:
 - `POST /project/list` with inline `projectActivities` array per project successfully creates both the project and its activity in a single batch call
