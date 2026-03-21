@@ -214,6 +214,9 @@ def test_smh_resid_localgate_online_historical_benchmark_runs(sample_paths: Repo
     "model_name",
     [
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
+        "smh_coeffbank_z0_h0_covmarkpostw06_v001",
+        "smh_coeffbank_z0_h0_covmarkpostw12_v001",
+        "smh_coeffbank_z0_h0_covmarkpostw24_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_resid_v001",
         "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend020_v001",
         "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001",

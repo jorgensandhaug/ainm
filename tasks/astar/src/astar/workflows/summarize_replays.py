@@ -128,7 +128,7 @@ def summarize_round_replays(
     report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
 
     catalog = CatalogDB(paths.catalog_path)
-    catalog.log_event(
+    catalog.try_log_event(
         CatalogEvent(
             event_kind="replay_summary_built",
             round_id=round_id,

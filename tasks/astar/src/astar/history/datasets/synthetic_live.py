@@ -209,7 +209,7 @@ def build_synthetic_live_dataset(
         "index_path": str(index_path),
     }
     summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")
-    CatalogDB(paths.catalog_path).log_event(
+    CatalogDB(paths.catalog_path).try_log_event(
         CatalogEvent(
             event_kind="synthetic_episode_built",
             status="ok",

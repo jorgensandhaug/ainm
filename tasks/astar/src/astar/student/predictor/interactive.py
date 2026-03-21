@@ -65,6 +65,9 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001 = (
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001"
 )
+SMH_COEFFBANK_Z0_H0_COVMARKPOSTW06_V001 = "smh_coeffbank_z0_h0_covmarkpostw06_v001"
+SMH_COEFFBANK_Z0_H0_COVMARKPOSTW12_V001 = "smh_coeffbank_z0_h0_covmarkpostw12_v001"
+SMH_COEFFBANK_Z0_H0_COVMARKPOSTW24_V001 = "smh_coeffbank_z0_h0_covmarkpostw24_v001"
 SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001 = "smh_knn5_z12_h0_covsum_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBASE_V001 = "smh_knn5_z12_h0_covaug_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBANK_V001 = "smh_knn5_z12_h0_covaug_calbank_v001"
@@ -828,13 +831,33 @@ def _load_or_fit_smh_coeffbank_predictor(
     model_name: str,
     class_weights: Sequence[float] | None = None,
     posterior_temperature: float = 1.0,
+    policy_name: str | None = None,
+    samples_per_round: int | None = None,
+    summary_variant: str | None = None,
+    summary_weight: float = 0.0,
 ) -> SemimechCoefficientBankPredictor:
-    checkpoint_dir = workspace_paths.model_dir(
-        _smh_checkpoint_dir_name(
+    resolved_policy_name = (policy_name or "coverage").strip().lower()
+    resolved_samples_per_round = 1 if samples_per_round is None else samples_per_round
+    if summary_variant is not None and summary_weight > 0.0:
+        checkpoint_dir_name = _query_residual_checkpoint_dir_name(
+            checkpoint_stem,
+            policy_name=resolved_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            historical_round_ids=historical_round_ids,
+        )
+        dataset_name = _query_residual_checkpoint_dir_name(
+            f"{checkpoint_stem}__synthetic_live",
+            policy_name=resolved_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            historical_round_ids=historical_round_ids,
+        )
+    else:
+        checkpoint_dir_name = _smh_checkpoint_dir_name(
             checkpoint_stem,
             historical_round_ids=historical_round_ids,
-        ),
-    )
+        )
+        dataset_name = None
+    checkpoint_dir = workspace_paths.model_dir(checkpoint_dir_name)
     checkpoint_path = checkpoint_dir / "smh_coeffbank_predictor.json"
     if checkpoint_path.exists():
         return SemimechCoefficientBankPredictor.load_checkpoint(checkpoint_path)
@@ -844,6 +867,11 @@ def _load_or_fit_smh_coeffbank_predictor(
         model_name=model_name,
         class_weights=None if class_weights is None else list(class_weights),
         posterior_temperature=posterior_temperature,
+        summary_variant=summary_variant,
+        summary_weight=summary_weight,
+        policy_name=resolved_policy_name,
+        samples_per_round=resolved_samples_per_round,
+        dataset_name=dataset_name,
     )
     predictor.save_checkpoint(checkpoint_dir)
     return predictor
@@ -857,6 +885,10 @@ def _build_smh_coeffbank_adapter(
     model_name: str,
     class_weights: Sequence[float] | None = None,
     posterior_temperature: float = 1.0,
+    policy_name: str | None = None,
+    samples_per_round: int | None = None,
+    summary_variant: str | None = None,
+    summary_weight: float = 0.0,
 ) -> RoundPredictorAdapter:
     predictor = _load_or_fit_smh_coeffbank_predictor(
         workspace_paths,
@@ -865,6 +897,10 @@ def _build_smh_coeffbank_adapter(
         model_name=model_name,
         class_weights=class_weights,
         posterior_temperature=posterior_temperature,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+        summary_variant=summary_variant,
+        summary_weight=summary_weight,
     )
     return RoundPredictorAdapter(
         predictor=predictor,
@@ -1297,6 +1333,42 @@ def build_online_predictor(
             historical_round_ids=historical_round_ids,
             checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
             model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVMARKPOSTW06_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_coeffbank_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW06_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW06_V001,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            summary_variant="covmark",
+            summary_weight=6.0,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVMARKPOSTW12_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_coeffbank_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW12_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW12_V001,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            summary_variant="covmark",
+            summary_weight=12.0,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVMARKPOSTW24_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_coeffbank_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW24_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVMARKPOSTW24_V001,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            summary_variant="covmark",
+            summary_weight=24.0,
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

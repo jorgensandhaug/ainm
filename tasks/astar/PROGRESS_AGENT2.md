@@ -1465,3 +1465,28 @@
 - In-progress validation state at this point:
   - residual temp variant registry lines removed from the code surface
   - next step is test/benchmark verification of the new standalone family only
+
+### 2026-03-21T22:30:00Z
+
+- Re-read the semimechanistic handoff again with focus on:
+  - continuous settlement-mark dynamics
+  - tiny round-latent / posterior model
+  - legal online evidence use beyond raw cell classes
+- Read back the current standalone `smh_*` code path and identified the main structural gap:
+  - `smh_coeffbank*` posterior still only scores observed cell classes
+  - it ignores most of the legal query payload:
+    - mean population
+    - mean food
+    - mean wealth
+    - mean defense
+    - transcript-level coverage / repeat structure
+- New branch opened now:
+  - add a semh-native evidence-summary posterior to `smh_coeffbank*`
+  - use synthetic-live transcript distributions per historical round law as a round-posterior term
+  - keep it standalone semh:
+    - no `query_residual`
+    - no dependence on historical-bucket outer blend for the core model
+- Planned immediate sweep after code lands:
+  - `covmark` summary posterior variants with a small weight bracket
+  - Tier-2 path4 coverage screen first
+  - promote only if the new standalone line beats current standalone semh best `hbexact_calresid_blend045`

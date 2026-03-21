@@ -34,7 +34,7 @@ from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.round import BaseRoundPredictor
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 
-SummaryVariant = Literal["covsum", "covaug"]
+SummaryVariant = Literal["covsum", "covaug", "covmark"]
 LatentKind = Literal["regime", "manifold"]
 
 
@@ -100,6 +100,26 @@ def _seed_covaug_components(
     ]
 
 
+def _seed_covmark_components(seed_evidence: SeedEvidenceBundle) -> list[float]:
+    observed_frequencies = np.asarray(seed_evidence.observed_class_frequencies, dtype=np.float64)
+    built_frequency = float(np.sum(observed_frequencies[1:4]))
+    return [
+        float(seed_evidence.query_count),
+        float(np.mean(seed_evidence.coverage_counts > 0)),
+        _safe_ratio(
+            float(seed_evidence.repeated_window_groups),
+            float(max(seed_evidence.query_count, 1)),
+        ),
+        built_frequency,
+        _safe_ratio(float(observed_frequencies[2]), built_frequency),
+        _safe_ratio(float(observed_frequencies[3]), built_frequency),
+        _safe_optional(seed_evidence.mean_population),
+        _safe_optional(seed_evidence.mean_food),
+        _safe_optional(seed_evidence.mean_wealth),
+        _safe_optional(seed_evidence.mean_defense),
+    ]
+
+
 def _summary_vector_from_round_detail(
     round_detail: RoundDetail,
     evidence_bundle: RoundEvidenceBundle,
@@ -116,8 +136,61 @@ def _summary_vector_from_round_detail(
         if summary_variant == "covaug":
             components.extend(_seed_covaug_components(initial_state, seed_evidence))
             continue
+        if summary_variant == "covmark":
+            components.extend(_seed_covmark_components(seed_evidence))
+            continue
         raise ValueError(f"unsupported summary variant: {summary_variant}")
     return np.asarray(components, dtype=np.float64)
+
+
+def _fit_round_summary_statistics(
+    paths: WorkspacePaths,
+    *,
+    index_path: Path,
+    round_ids: list[str],
+    summary_variant: SummaryVariant,
+) -> tuple[np.ndarray, np.ndarray]:
+    round_detail_cache: dict[str, RoundDetail] = {}
+    rows_by_round: dict[str, list[np.ndarray]] = {round_id: [] for round_id in round_ids}
+    index_table = pl.read_parquet(index_path)
+    for path_value, round_id in zip(
+        index_table["episode_path"].to_list(),
+        index_table["round_id"].to_list(),
+        strict=True,
+    ):
+        resolved_round_id = str(round_id)
+        if resolved_round_id not in rows_by_round:
+            continue
+        artifact_path = resolve_synthetic_episode_path(index_path, Path(str(path_value)))
+        artifact = load_synthetic_episode(artifact_path)
+        round_detail = round_detail_cache.get(resolved_round_id)
+        if round_detail is None:
+            round_detail = read_round_record(paths, resolved_round_id).round
+            round_detail_cache[resolved_round_id] = round_detail
+        evidence_bundle = build_round_evidence_from_observations(round_detail, artifact.observations)
+        rows_by_round[resolved_round_id].append(
+            _summary_vector_from_round_detail(
+                round_detail,
+                evidence_bundle,
+                summary_variant=summary_variant,
+            ),
+        )
+    first_nonempty = next((rows[0] for rows in rows_by_round.values() if rows), None)
+    if first_nonempty is None:
+        raise ValueError("summary-aware smh coeffbank synthetic dataset produced no summary rows")
+    summary_dim = int(first_nonempty.shape[0])
+    mean_rows: list[np.ndarray] = []
+    scale_rows: list[np.ndarray] = []
+    for round_id in round_ids:
+        round_rows = rows_by_round[round_id]
+        if not round_rows:
+            mean_rows.append(np.zeros(summary_dim, dtype=np.float64))
+            scale_rows.append(np.ones(summary_dim, dtype=np.float64))
+            continue
+        stacked = np.stack(round_rows, axis=0).astype(np.float64)
+        mean_rows.append(np.mean(stacked, axis=0))
+        scale_rows.append(np.clip(np.std(stacked, axis=0), 0.05, None))
+    return np.stack(mean_rows, axis=0), np.stack(scale_rows, axis=0)
 
 
 def _seed_target_tensor(learning_episode: RoundLearningEpisode, seed_index: int) -> np.ndarray:
@@ -163,6 +236,9 @@ class SemimechCoefficientBankPredictorCheckpoint(BaseModel):
     class_weights: list[float]
     posterior_temperature: float = Field(gt=0.0)
     prediction_floor: float = Field(default=0.01, ge=0.0, lt=1.0)
+    summary_variant: SummaryVariant | None = None
+    summary_weight: float = Field(default=0.0, ge=0.0)
+    summary_dim: int = Field(default=0, ge=0)
 
 
 class SemimechKnnPredictor(BaseRoundPredictor):
@@ -553,6 +629,10 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
     class_weights: np.ndarray = Field(default_factory=lambda: np.ones(CLASS_COUNT, dtype=np.float64))
     posterior_temperature: float = Field(default=1.0, gt=0.0)
     prediction_floor: float = Field(default=0.01, ge=0.0, lt=1.0)
+    summary_variant: SummaryVariant | None = None
+    summary_weight: float = Field(default=0.0, ge=0.0)
+    summary_mean_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
+    summary_scale_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
     candidate_tensor_cache: dict[str, np.ndarray] = Field(default_factory=dict, exclude=True)
 
     @classmethod
@@ -565,6 +645,11 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
         class_weights: list[float] | np.ndarray | None = None,
         posterior_temperature: float = 1.0,
         prediction_floor: float = 0.01,
+        summary_variant: SummaryVariant | None = None,
+        summary_weight: float = 0.0,
+        policy_name: str = "coverage",
+        samples_per_round: int = 1,
+        dataset_name: str | None = None,
     ) -> SemimechCoefficientBankPredictor:
         selected_round_ids = round_ids or sorted(
             round_dir.name
@@ -588,6 +673,27 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
             raise ValueError(
                 f"expected class weights shape {(CLASS_COUNT,)}, got {resolved_class_weights.shape!r}",
             )
+        summary_mean_matrix = np.zeros((0, 0), dtype=np.float64)
+        summary_scale_matrix = np.zeros((0, 0), dtype=np.float64)
+        if summary_variant is not None and summary_weight > 0.0:
+            resolved_dataset_name = dataset_name or (
+                f"{model_name}__synthetic_live__policy={policy_name}__samples={samples_per_round}"
+            )
+            dataset = build_synthetic_live_dataset(
+                paths,
+                policy_name=policy_name,
+                round_ids=[row.round_id for row in coefficient_rows],
+                samples_per_round=samples_per_round,
+                dataset_name=resolved_dataset_name,
+            )
+            if dataset.index_path is None:
+                raise ValueError("summary-aware smh coeffbank requires a synthetic-live dataset index")
+            summary_mean_matrix, summary_scale_matrix = _fit_round_summary_statistics(
+                paths,
+                index_path=dataset.index_path,
+                round_ids=[row.round_id for row in coefficient_rows],
+                summary_variant=summary_variant,
+            )
         return cls(
             name=model_name,
             round_ids=tuple(row.round_id for row in coefficient_rows),
@@ -600,6 +706,10 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
             class_weights=resolved_class_weights,
             posterior_temperature=posterior_temperature,
             prediction_floor=prediction_floor,
+            summary_variant=summary_variant,
+            summary_weight=summary_weight,
+            summary_mean_matrix=summary_mean_matrix,
+            summary_scale_matrix=summary_scale_matrix,
         )
 
     def checkpoint(self, checkpoint_npz_path: Path) -> SemimechCoefficientBankPredictorCheckpoint:
@@ -614,13 +724,21 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
             class_weights=self.class_weights.astype(np.float64).tolist(),
             posterior_temperature=self.posterior_temperature,
             prediction_floor=self.prediction_floor,
+            summary_variant=self.summary_variant,
+            summary_weight=self.summary_weight,
+            summary_dim=int(self.summary_mean_matrix.shape[1]) if self.summary_mean_matrix.ndim == 2 else 0,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path) -> Path:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         npz_path = checkpoint_dir / "smh_coeffbank_predictor.npz"
         json_path = checkpoint_dir / "smh_coeffbank_predictor.json"
-        np.savez_compressed(npz_path, coefficient_bank=self.coefficient_bank)
+        np.savez_compressed(
+            npz_path,
+            coefficient_bank=self.coefficient_bank,
+            summary_mean_matrix=self.summary_mean_matrix,
+            summary_scale_matrix=self.summary_scale_matrix,
+        )
         json_path.write_text(
             json.dumps(to_jsonable(self.checkpoint(npz_path)), indent=2),
             encoding="utf-8",
@@ -632,6 +750,16 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
         payload = json.loads(path.read_text(encoding="utf-8"))
         checkpoint = SemimechCoefficientBankPredictorCheckpoint.model_validate(payload)
         arrays = np.load(Path(checkpoint.checkpoint_npz_path))
+        summary_mean_matrix = (
+            np.asarray(arrays["summary_mean_matrix"], dtype=np.float64)
+            if "summary_mean_matrix" in arrays.files
+            else np.zeros((0, 0), dtype=np.float64)
+        )
+        summary_scale_matrix = (
+            np.asarray(arrays["summary_scale_matrix"], dtype=np.float64)
+            if "summary_scale_matrix" in arrays.files
+            else np.zeros((0, 0), dtype=np.float64)
+        )
         return cls(
             name=checkpoint.name,
             round_ids=tuple(checkpoint.round_ids),
@@ -641,6 +769,10 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
             class_weights=np.asarray(checkpoint.class_weights, dtype=np.float64),
             posterior_temperature=checkpoint.posterior_temperature,
             prediction_floor=checkpoint.prediction_floor,
+            summary_variant=checkpoint.summary_variant,
+            summary_weight=checkpoint.summary_weight,
+            summary_mean_matrix=summary_mean_matrix,
+            summary_scale_matrix=summary_scale_matrix,
         )
 
     def _decoder(self) -> HazardTeacher:
@@ -695,12 +827,52 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
         class_weights = self.class_weights[flat_classes][None, :]
         return np.sum(class_weights * np.log(np.clip(chosen, self.prediction_floor, 1.0)), axis=1)
 
+    def _summary_log_likelihood(
+        self,
+        context: LiveInferenceContext,
+    ) -> np.ndarray:
+        if (
+            self.summary_variant is None
+            or self.summary_weight <= 0.0
+            or self.summary_mean_matrix.size == 0
+            or self.summary_scale_matrix.size == 0
+        ):
+            return np.zeros(self.coefficient_bank.shape[0], dtype=np.float64)
+        round_detail = context.round_context.to_round_detail()
+        summary_vector = _summary_vector_from_round_detail(
+            round_detail,
+            context.evidence_bundle,
+            summary_variant=self.summary_variant,
+        )
+        if summary_vector.shape[0] != self.summary_mean_matrix.shape[1]:
+            raise ValueError(
+                "summary-aware smh coeffbank dimension mismatch: "
+                f"expected {self.summary_mean_matrix.shape[1]}, got {summary_vector.shape[0]}",
+            )
+        scaled_delta = (summary_vector[None, :] - self.summary_mean_matrix) / np.clip(
+            self.summary_scale_matrix,
+            0.05,
+            None,
+        )
+        scaled_delta = np.clip(scaled_delta, -6.0, 6.0)
+        query_fraction = min(max(context.evidence_bundle.total_queries, 0) / 50.0, 1.0)
+        if query_fraction <= 0.0:
+            return np.zeros(self.coefficient_bank.shape[0], dtype=np.float64)
+        return (
+            self.summary_weight
+            * query_fraction
+            * (-0.5 * np.mean(np.square(scaled_delta), axis=1))
+        )
+
     def _posterior_weights(
         self,
         candidate_seed_tensors: np.ndarray,
         observations: tuple[LiveQueryObs, ...],
+        summary_log_likelihood: np.ndarray | None = None,
     ) -> np.ndarray:
         log_weights = np.zeros(candidate_seed_tensors.shape[0], dtype=np.float64)
+        if summary_log_likelihood is not None:
+            log_weights += np.asarray(summary_log_likelihood, dtype=np.float64)
         for observation in observations:
             log_weights += self._observation_log_likelihood(candidate_seed_tensors, observation)
         if self.posterior_temperature != 1.0:
@@ -731,7 +903,12 @@ class SemimechCoefficientBankPredictor(BaseRoundPredictor):
         context: LiveInferenceContext,
     ) -> PredictionBundle:
         candidate_seed_tensors = self._candidate_seed_tensors(context.round_context)
-        posterior_weights = self._posterior_weights(candidate_seed_tensors, context.observations)
+        summary_log_likelihood = self._summary_log_likelihood(context)
+        posterior_weights = self._posterior_weights(
+            candidate_seed_tensors,
+            context.observations,
+            summary_log_likelihood=summary_log_likelihood,
+        )
         bundle = self._mix_predictions(candidate_seed_tensors, posterior_weights)
         return bundle.model_copy(update={"round_id": context.round_context.round_id})
 

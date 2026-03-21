@@ -208,7 +208,7 @@ def materialize_round_episode(
     result.report_path.write_text("\n".join(report_lines).strip() + "\n", encoding="utf-8")
 
     catalog = CatalogDB(paths.catalog_path)
-    catalog.log_event(
+    catalog.try_log_event(
         CatalogEvent(
             event_kind="episode_materialized",
             round_id=round_id,

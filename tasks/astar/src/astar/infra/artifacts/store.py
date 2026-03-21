@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC
+import os
 from pathlib import Path
+import time
+import zipfile
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -186,13 +189,26 @@ def save_analysis_tensor(
 
 def save_named_arrays(path: Path, arrays: Mapping[str, np.ndarray]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(file=path, **dict(arrays))  # type: ignore[arg-type]
+    temp_path = path.with_name(
+        f"{path.name}.tmp.{os.getpid()}.{time.time_ns()}",
+    )
+    np.savez_compressed(file=temp_path, **dict(arrays))  # type: ignore[arg-type]
+    temp_path.replace(path)
     return path
 
 
 def load_named_arrays(path: Path) -> dict[str, np.ndarray]:
-    with np.load(path) as payload:
-        return {name: np.asarray(payload[name]) for name in payload.files}
+    last_error: Exception | None = None
+    for delay_seconds in (0.0, 0.02, 0.05, 0.1, 0.2, 0.4, 0.8):
+        if delay_seconds > 0.0:
+            time.sleep(delay_seconds)
+        try:
+            with np.load(path) as payload:
+                return {name: np.asarray(payload[name]) for name in payload.files}
+        except (FileNotFoundError, zipfile.BadZipFile) as exc:
+            last_error = exc
+    assert last_error is not None
+    raise last_error
 
 
 __all__ = [

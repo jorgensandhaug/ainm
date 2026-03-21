@@ -68,7 +68,7 @@ def ingest_replays(
                 replay_paths=[Path(run.source_path) for run in runs],
             ),
         )
-        catalog.log_event(
+        catalog.try_log_event(
             CatalogEvent(
                 event_kind="replay_runs_ingested",
                 round_id=handle.round_id,
