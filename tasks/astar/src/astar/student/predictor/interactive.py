@@ -344,6 +344,7 @@ def build_online_predictor(
             reclaim_scale=summary_rate_rollout_spec.reclaim_scale,
             ruin_fade_scale=summary_rate_rollout_spec.ruin_fade_scale,
             prior_blend=summary_rate_rollout_spec.prior_blend,
+            rollout_variant=summary_rate_rollout_spec.rollout_variant,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

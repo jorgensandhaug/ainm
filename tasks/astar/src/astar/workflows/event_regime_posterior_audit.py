@@ -32,6 +32,7 @@ SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
     "collapse_timing_stress",
     "birth_collapse_timing_stress",
     "collapse_terminal_shock",
+    "birth_collapse_terminal_shock",
 )
 
 def _weighted_positive_rate(frame: pl.DataFrame) -> pl.DataFrame:
@@ -287,7 +288,13 @@ def _round_target_frame(
     event_ledger_dir = paths.dataset_dir(event_ledger_dataset_name)
     event_ledger_path = event_ledger_dir / "events.parquet"
     if (
-        target_family in {"collapse_timing_stress", "birth_collapse_timing_stress", "collapse_terminal_shock"}
+        target_family
+        in {
+            "collapse_timing_stress",
+            "birth_collapse_timing_stress",
+            "collapse_terminal_shock",
+            "birth_collapse_terminal_shock",
+        }
         and not event_ledger_path.exists()
     ):
         build_replay_event_ledger_dataset(
@@ -390,7 +397,13 @@ def _round_target_frame(
             "collapse_logit_nonport",
             "collapse_pos_port_share_logit",
         )
-    if target_family in {"collapse_timing_stress", "birth_collapse_timing_stress", "collapse_terminal_shock"}:
+    collapse_terminal: pl.DataFrame | None = None
+    if target_family in {
+        "collapse_timing_stress",
+        "birth_collapse_timing_stress",
+        "collapse_terminal_shock",
+        "birth_collapse_terminal_shock",
+    }:
         collapse_timing = pl.scan_parquet(event_ledger_path).filter(
             pl.col("event_type") == "collapse",
         ).group_by("round_id").agg(
@@ -421,9 +434,9 @@ def _round_target_frame(
                 "collapse_defense_before_mean",
                 "collapse_population_before_mean",
             )
-        if target_family == "collapse_terminal_shock":
+        if target_family in {"collapse_terminal_shock", "birth_collapse_terminal_shock"}:
             terminal_slice = _analysis_terminal_slice_frame(paths, round_ids=collapse_stress["round_id"].to_list())
-            return collapse_stress.join(terminal_slice, on="round_id", how="inner").sort("round_id").select(
+            collapse_terminal = collapse_stress.join(terminal_slice, on="round_id", how="inner").sort("round_id").select(
                 "round_id",
                 "collapse_logit_rate",
                 "collapse_port_gap_logit",
@@ -435,6 +448,8 @@ def _round_target_frame(
                 "port_coast_mean",
                 "live_buildable_mean",
             )
+            if target_family == "collapse_terminal_shock":
+                return collapse_terminal
 
     if not birth_dir.joinpath("riskset.parquet").exists():
         build_hazard_riskset_dataset(
@@ -503,6 +518,22 @@ def _round_target_frame(
             "collapse_food_before_mean",
             "collapse_defense_before_mean",
             "collapse_population_before_mean",
+        )
+    if target_family == "birth_collapse_terminal_shock":
+        if collapse_terminal is None:
+            raise ValueError("birth_collapse_terminal_shock requires collapse terminal targets")
+        return birth.join(collapse_terminal, on="round_id", how="inner").sort("round_id").select(
+            "round_id",
+            "birth_logit_rate",
+            "collapse_logit_rate",
+            "collapse_port_gap_logit",
+            "collapse_food_gap_z",
+            "collapse_defense_gap_z",
+            "collapse_timing_skew",
+            "ruin_buildable_mean",
+            "ruin_coast_mean",
+            "port_coast_mean",
+            "live_buildable_mean",
         )
     return birth.join(collapse, on="round_id", how="inner").sort("round_id").select(
         "round_id",

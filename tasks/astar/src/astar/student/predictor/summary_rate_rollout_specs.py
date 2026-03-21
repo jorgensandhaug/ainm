@@ -22,6 +22,7 @@ class SummaryRateRolloutModelSpec(BaseModel):
     reclaim_scale: float = Field(default=0.08, ge=0.0)
     ruin_fade_scale: float = Field(default=0.02, ge=0.0)
     prior_blend: float = Field(default=0.35, ge=0.0, le=1.0)
+    rollout_variant: str = "basic"
 
 
 SUMMARY_RATE_ROLLOUT_MODEL_SPECS = (
@@ -34,6 +35,36 @@ SUMMARY_RATE_ROLLOUT_MODEL_SPECS = (
         request_names=("f1_summary_rate_rollout_birthcollapse_blend_v01",),
         model_name="f1_summary_rate_rollout_birthcollapse_blend_v01",
         prior_blend=0.35,
+    ),
+    SummaryRateRolloutModelSpec(
+        request_names=("f1_summary_rate_rollout_birthcollapse_terminal_v01",),
+        model_name="f1_summary_rate_rollout_birthcollapse_terminal_v01",
+        target_family="birth_collapse_terminal_shock",
+        summary_feature_variant="stress_v1",
+        prior_blend=0.0,
+    ),
+    SummaryRateRolloutModelSpec(
+        request_names=("f1_summary_rate_rollout_birthcollapse_terminal_blend_v01",),
+        model_name="f1_summary_rate_rollout_birthcollapse_terminal_blend_v01",
+        target_family="birth_collapse_terminal_shock",
+        summary_feature_variant="stress_v1",
+        prior_blend=0.15,
+    ),
+    SummaryRateRolloutModelSpec(
+        request_names=("f1_summary_rate_rollout_birthcollapse_terminal_state_v01",),
+        model_name="f1_summary_rate_rollout_birthcollapse_terminal_state_v01",
+        target_family="birth_collapse_terminal_shock",
+        summary_feature_variant="stress_v1",
+        prior_blend=0.0,
+        rollout_variant="stateful_hidden",
+    ),
+    SummaryRateRolloutModelSpec(
+        request_names=("f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01",),
+        model_name="f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01",
+        target_family="birth_collapse_terminal_shock",
+        summary_feature_variant="stress_v1",
+        prior_blend=0.15,
+        rollout_variant="stateful_hidden",
     ),
 )
 

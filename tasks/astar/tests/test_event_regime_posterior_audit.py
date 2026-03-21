@@ -240,3 +240,45 @@ def test_event_regime_posterior_audit_supports_collapse_terminal_shock_family(
         "port_coast_mean",
         "live_buildable_mean",
     ]
+
+
+def test_event_regime_posterior_audit_supports_birth_collapse_terminal_shock_family(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID_2, seed_index=0)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_birth_collapse_terminal_shock_test",
+        audit_name="event_regime_posterior_birth_collapse_terminal_shock_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        birth_dataset_name="birth_riskset_regime_posterior_birth_collapse_terminal_shock_test",
+        collapse_dataset_name="collapse_riskset_regime_posterior_birth_collapse_terminal_shock_test",
+        target_family="birth_collapse_terminal_shock",
+    )
+
+    assert result.target_family == "birth_collapse_terminal_shock"
+    assert result.target_names == [
+        "birth_logit_rate",
+        "collapse_logit_rate",
+        "collapse_port_gap_logit",
+        "collapse_food_gap_z",
+        "collapse_defense_gap_z",
+        "collapse_timing_skew",
+        "ruin_buildable_mean",
+        "ruin_coast_mean",
+        "port_coast_mean",
+        "live_buildable_mean",
+    ]

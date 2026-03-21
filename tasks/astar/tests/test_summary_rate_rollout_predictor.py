@@ -76,6 +76,20 @@ def test_build_online_predictor_supports_summary_rate_rollout_models(sample_path
     )
     assert blend_adapter.name == "f1_summary_rate_rollout_birthcollapse_blend_v01"
 
+    terminal_adapter = build_online_predictor(
+        "f1_summary_rate_rollout_birthcollapse_terminal_blend_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+    assert terminal_adapter.name == "f1_summary_rate_rollout_birthcollapse_terminal_blend_v01"
+
+    terminal_state_adapter = build_online_predictor(
+        "f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+    assert terminal_state_adapter.name == "f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01"
+
 
 def test_cli_parser_accepts_summary_rate_rollout_models() -> None:
     parser = build_parser()
@@ -90,3 +104,25 @@ def test_cli_parser_accepts_summary_rate_rollout_models() -> None:
         ],
     )
     assert parsed.model == "f1_summary_rate_rollout_birthcollapse_blend_v01"
+
+    parsed_terminal = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_rollout_birthcollapse_terminal_blend_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_terminal.model == "f1_summary_rate_rollout_birthcollapse_terminal_blend_v01"
+
+    parsed_terminal_state = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert parsed_terminal_state.model == "f1_summary_rate_rollout_birthcollapse_terminal_state_blend_v01"

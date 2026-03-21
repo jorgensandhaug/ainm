@@ -59,6 +59,13 @@ def _local_mean(field: np.ndarray) -> np.ndarray:
     return total / 9.0
 
 
+def _masked_mean(values: np.ndarray, mask: np.ndarray) -> float:
+    selected = np.asarray(values, dtype=np.float64)[np.asarray(mask, dtype=bool)]
+    if selected.size == 0:
+        return 0.0
+    return float(np.mean(selected))
+
+
 def _initial_tensor(grid: np.ndarray) -> np.ndarray:
     collapsed = np.asarray(collapse_internal_grid(np.asarray(grid, dtype=np.int64)), dtype=np.int64)
     probs = np.zeros(collapsed.shape + (6,), dtype=np.float64)
@@ -87,6 +94,7 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
     reclaim_scale: float = Field(default=0.08, ge=0.0)
     ruin_fade_scale: float = Field(default=0.02, ge=0.0)
     prior_blend: float = Field(default=0.35, ge=0.0, le=1.0)
+    rollout_variant: str = "basic"
 
     @classmethod
     def fit_from_workspace(
@@ -113,6 +121,7 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
         reclaim_scale: float = 0.08,
         ruin_fade_scale: float = 0.02,
         prior_blend: float = 0.35,
+        rollout_variant: str = "basic",
     ) -> SummaryRateRolloutPredictor:
         selected_round_ids = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected_round_ids) < 2:
@@ -200,6 +209,7 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
             reclaim_scale=reclaim_scale,
             ruin_fade_scale=ruin_fade_scale,
             prior_blend=prior_blend,
+            rollout_variant=rollout_variant,
         )
 
     def infer_rate_vector(self, evidence: RoundEvidenceBundle | None) -> np.ndarray:
@@ -230,6 +240,13 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
         features: RoundFeatureBundle,
         rate_vector: np.ndarray,
     ) -> np.ndarray:
+        if self.rollout_variant == "stateful_hidden":
+            return self._rollout_seed_stateful(
+                seed_index,
+                grid,
+                features,
+                rate_vector,
+            )
         probs = _initial_tensor(grid)
         seed_features = features.per_seed[seed_index]
         buildable = np.asarray(seed_features.feature("buildable"), dtype=np.float64)
@@ -243,11 +260,46 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
         rate = self._rate_dict(rate_vector)
         birth_logit = float(rate.get("birth_logit_rate", -4.5))
         collapse_logit = float(rate.get("collapse_logit_rate", -3.5))
-        collapse_port_logit = float(rate.get("collapse_logit_port", collapse_logit))
-        collapse_nonport_logit = float(rate.get("collapse_logit_nonport", collapse_logit))
+        collapse_port_gap_logit = float(rate.get("collapse_port_gap_logit", 0.0))
+        collapse_port_logit = float(
+            rate.get("collapse_logit_port", collapse_logit + 0.5 * collapse_port_gap_logit),
+        )
+        collapse_nonport_logit = float(
+            rate.get("collapse_logit_nonport", collapse_logit - 0.5 * collapse_port_gap_logit),
+        )
         port_share_logit = float(rate.get("collapse_pos_port_share_logit", 0.0))
+        collapse_food_gap_z = float(rate.get("collapse_food_gap_z", 0.0))
+        collapse_defense_gap_z = float(rate.get("collapse_defense_gap_z", 0.0))
+        collapse_timing_skew = float(rate.get("collapse_timing_skew", 0.0))
+        target_ruin_buildable = float(rate.get("ruin_buildable_mean", 0.0))
+        target_ruin_coast = float(rate.get("ruin_coast_mean", target_ruin_buildable))
+        target_port_coast = float(rate.get("port_coast_mean", 0.0))
+        target_live_buildable = float(rate.get("live_buildable_mean", 0.0))
+        has_terminal_controls = all(
+            name in rate
+            for name in (
+                "ruin_buildable_mean",
+                "ruin_coast_mean",
+                "port_coast_mean",
+                "live_buildable_mean",
+            )
+        )
+        buildable_mask = buildable > 0.5
+        coastal_buildable_mask = buildable_mask & (coast > 0.5)
+        stress = np.zeros_like(buildable, dtype=np.float64)
+        fragility = float(
+            _sigmoid(
+                np.asarray(
+                    0.9 * collapse_food_gap_z
+                    - 0.6 * collapse_defense_gap_z
+                    + 0.4 * collapse_logit
+                    + 0.25 * collapse_port_gap_logit,
+                    dtype=np.float64,
+                ),
+            )[()],
+        )
 
-        for _ in range(self.rollout_years):
+        for year_index in range(self.rollout_years):
             empty = np.asarray(probs[:, :, 0], dtype=np.float64)
             settlement = np.asarray(probs[:, :, 1], dtype=np.float64)
             port = np.asarray(probs[:, :, 2], dtype=np.float64)
@@ -260,6 +312,80 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
             port_neigh = _local_mean(port)
             ruin_neigh = _local_mean(ruin)
             forest_neigh = _local_mean(forest)
+            live_scale = self.birth_scale
+            port_scale = self.port_scale
+            collapse_scale = self.collapse_scale
+            rebuild_scale = self.rebuild_scale
+            reclaim_scale = self.reclaim_scale
+
+            if has_terminal_controls:
+                current_live_buildable = _masked_mean(live, buildable_mask)
+                current_ruin_buildable = _masked_mean(ruin, buildable_mask)
+                current_ruin_coast = _masked_mean(ruin, coastal_buildable_mask)
+                current_port_coast = _masked_mean(port, coastal_buildable_mask)
+                live_gap = target_live_buildable - current_live_buildable
+                ruin_gap = target_ruin_buildable - current_ruin_buildable
+                ruin_coast_gap = target_ruin_coast - current_ruin_coast
+                port_coast_gap = target_port_coast - current_port_coast
+                year_phase = (year_index + 0.5) / float(self.rollout_years)
+                timing_drive = _sigmoid(
+                    np.asarray(
+                        2.0 * collapse_timing_skew * (0.5 - year_phase),
+                        dtype=np.float64,
+                    ),
+                )[()]
+                stress = np.clip(
+                    0.82 * stress
+                    + (0.20 + 0.80 * fragility * timing_drive)
+                    * (
+                        0.80 * ruin_neigh
+                        + 0.55 * live_neigh
+                        + 0.25 * (1.0 - frontier)
+                        + 0.20 * (1.0 - maritime)
+                    )
+                    + 0.25 * max(0.0, -live_gap)
+                    + 0.20 * max(0.0, ruin_gap)
+                    - 0.18 * forest_neigh,
+                    0.0,
+                    2.5,
+                )
+                live_scale = float(
+                    np.clip(
+                        self.birth_scale * np.exp(1.8 * live_gap - 0.9 * ruin_gap),
+                        0.01,
+                        0.35,
+                    ),
+                )
+                port_scale = float(
+                    np.clip(
+                        self.port_scale * np.exp(1.7 * port_coast_gap),
+                        0.01,
+                        0.25,
+                    ),
+                )
+                collapse_scale = float(
+                    np.clip(
+                        self.collapse_scale
+                        * np.exp(-2.0 * live_gap + 1.8 * ruin_gap + 0.8 * ruin_coast_gap),
+                        0.02,
+                        0.45,
+                    ),
+                )
+                rebuild_scale = float(
+                    np.clip(
+                        self.rebuild_scale
+                        * np.exp(1.1 * live_gap - 1.8 * ruin_gap - 0.6 * ruin_coast_gap),
+                        0.01,
+                        0.35,
+                    ),
+                )
+                reclaim_scale = float(
+                    np.clip(
+                        self.reclaim_scale * np.exp(1.0 * max(0.0, ruin_gap)),
+                        0.01,
+                        0.20,
+                    ),
+                )
 
             birth_base = _sigmoid(
                 birth_logit
@@ -270,8 +396,9 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 0.4 * maritime
                 - 1.0 * forest_density
                 - 0.6 * ruin_neigh
+                - 1.1 * stress
             )
-            birth_mass = empty * buildable * np.clip(self.birth_scale * birth_base, 0.0, 0.35)
+            birth_mass = empty * buildable * np.clip(live_scale * birth_base, 0.0, 0.35)
             port_birth_share = _sigmoid(
                 -2.2
                 + 2.8 * coast
@@ -288,8 +415,9 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 1.4 * maritime
                 + 1.8 * port_neigh
                 + 0.4 * live_neigh
+                - 0.5 * stress
             )
-            portize_mass = settlement * np.clip(self.port_scale * portize_base, 0.0, 0.25)
+            portize_mass = settlement * np.clip(port_scale * portize_base, 0.0, 0.25)
 
             collapse_set_base = _sigmoid(
                 collapse_nonport_logit
@@ -299,6 +427,7 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 0.7 * (1.0 - frontier)
                 + 0.5 * (1.0 - maritime)
                 - 0.3 * forest_neigh
+                + 2.8 * stress
             )
             collapse_port_base = _sigmoid(
                 collapse_port_logit
@@ -307,9 +436,10 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 0.6 * live_neigh
                 + 0.8 * (1.0 - maritime)
                 - 0.3 * forest_neigh
+                + 2.5 * stress
             )
-            settlement_collapse = settlement * np.clip(self.collapse_scale * collapse_set_base, 0.0, 0.4)
-            port_collapse = port * np.clip(self.collapse_scale * collapse_port_base, 0.0, 0.4)
+            settlement_collapse = settlement * np.clip(collapse_scale * collapse_set_base, 0.0, 0.4)
+            port_collapse = port * np.clip(collapse_scale * collapse_port_base, 0.0, 0.4)
 
             rebuild_base = _sigmoid(
                 -2.9
@@ -317,8 +447,9 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 1.0 * settlement_proximity
                 + 0.8 * frontier
                 + 0.5 * ruin_neigh
+                - 1.4 * stress
             )
-            rebuild_mass = ruin * np.clip(self.rebuild_scale * rebuild_base, 0.0, 0.35)
+            rebuild_mass = ruin * np.clip(rebuild_scale * rebuild_base, 0.0, 0.35)
             rebuild_port_share = _sigmoid(
                 -2.3
                 + 2.8 * coast
@@ -335,8 +466,9 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
                 + 2.7 * forest_neigh
                 + 0.4 * mountain_density
                 - 1.4 * live_neigh
+                + 0.4 * stress
             )
-            ruin_to_forest = ruin_remaining * np.clip(self.reclaim_scale * reclaim_base, 0.0, 0.25)
+            ruin_to_forest = ruin_remaining * np.clip(reclaim_scale * reclaim_base, 0.0, 0.25)
             ruin_remaining = np.clip(ruin_remaining - ruin_to_forest, 0.0, 1.0)
             ruin_to_empty = ruin_remaining * np.clip(self.ruin_fade_scale, 0.0, 0.1)
 
@@ -346,6 +478,299 @@ class SummaryRateRolloutPredictor(BaseRoundPredictor):
             next_ruin = ruin + settlement_collapse + port_collapse - rebuild_mass - ruin_to_forest - ruin_to_empty
             next_forest = forest + ruin_to_forest
             next_mountain = mountain
+
+            probs = np.stack(
+                [
+                    np.clip(next_empty, 0.0, 1.0),
+                    np.clip(next_settlement, 0.0, 1.0),
+                    np.clip(next_port, 0.0, 1.0),
+                    np.clip(next_ruin, 0.0, 1.0),
+                    np.clip(next_forest, 0.0, 1.0),
+                    np.clip(next_mountain, 0.0, 1.0),
+                ],
+                axis=-1,
+            )
+            sums = np.clip(np.sum(probs, axis=-1, keepdims=True), 1.0e-6, None)
+            probs = probs / sums
+            probs[:, :, 5] = mountain
+            movable = np.clip(1.0 - mountain, 1.0e-6, 1.0)
+            probs[:, :, :5] = probs[:, :, :5] / np.sum(probs[:, :, :5], axis=-1, keepdims=True).clip(1.0e-6, None)
+            probs[:, :, :5] *= movable[:, :, None]
+            probs[:, :, 5] = mountain
+
+        return probs
+
+    def _rollout_seed_stateful(
+        self,
+        seed_index: int,
+        grid: np.ndarray,
+        features: RoundFeatureBundle,
+        rate_vector: np.ndarray,
+    ) -> np.ndarray:
+        probs = _initial_tensor(grid)
+        seed_features = features.per_seed[seed_index]
+        buildable = np.asarray(seed_features.feature("buildable"), dtype=np.float64)
+        coast = np.asarray(seed_features.feature("coast"), dtype=np.float64)
+        frontier = np.asarray(seed_features.feature("frontier_score"), dtype=np.float64)
+        settlement_proximity = np.asarray(seed_features.feature("settlement_proximity"), dtype=np.float64)
+        maritime = np.asarray(seed_features.feature("maritime_access"), dtype=np.float64)
+        forest_density = np.asarray(seed_features.feature("forest_density"), dtype=np.float64)
+        mountain_density = np.asarray(seed_features.feature("mountain_density"), dtype=np.float64)
+        buildable_mask = buildable > 0.5
+        coastal_buildable_mask = buildable_mask & (coast > 0.5)
+
+        rate = self._rate_dict(rate_vector)
+        birth_logit = float(rate.get("birth_logit_rate", -4.5))
+        collapse_logit = float(rate.get("collapse_logit_rate", -3.5))
+        collapse_port_gap_logit = float(rate.get("collapse_port_gap_logit", 0.0))
+        collapse_port_logit = collapse_logit + 0.5 * collapse_port_gap_logit
+        collapse_nonport_logit = collapse_logit - 0.5 * collapse_port_gap_logit
+        collapse_food_gap_z = float(rate.get("collapse_food_gap_z", 0.0))
+        collapse_defense_gap_z = float(rate.get("collapse_defense_gap_z", 0.0))
+        collapse_timing_skew = float(rate.get("collapse_timing_skew", 0.0))
+        target_ruin_buildable = float(rate.get("ruin_buildable_mean", 0.0))
+        target_ruin_coast = float(rate.get("ruin_coast_mean", target_ruin_buildable))
+        target_port_coast = float(rate.get("port_coast_mean", 0.0))
+        target_live_buildable = float(rate.get("live_buildable_mean", 0.0))
+
+        live0 = np.asarray(probs[:, :, 1] + probs[:, :, 2], dtype=np.float64)
+        population = live0 * (0.45 + 0.30 * settlement_proximity + 0.15 * frontier)
+        food = live0 * (0.55 + 0.20 * forest_density + 0.12 * frontier + 0.10 * maritime)
+        wealth = live0 * (0.40 + 0.28 * maritime + 0.14 * coast + 0.10 * frontier)
+        defense = live0 * (0.42 + 0.20 * mountain_density + 0.10 * coast)
+        stress = np.zeros_like(buildable, dtype=np.float64)
+        fragility = float(
+            _sigmoid(
+                np.asarray(
+                    0.9 * collapse_food_gap_z
+                    - 0.7 * collapse_defense_gap_z
+                    + 0.4 * collapse_logit,
+                    dtype=np.float64,
+                ),
+            )[()],
+        )
+
+        for year_index in range(self.rollout_years):
+            empty = np.asarray(probs[:, :, 0], dtype=np.float64)
+            settlement = np.asarray(probs[:, :, 1], dtype=np.float64)
+            port = np.asarray(probs[:, :, 2], dtype=np.float64)
+            ruin = np.asarray(probs[:, :, 3], dtype=np.float64)
+            forest = np.asarray(probs[:, :, 4], dtype=np.float64)
+            mountain = np.asarray(probs[:, :, 5], dtype=np.float64)
+
+            live = settlement + port
+            live_neigh = _local_mean(live)
+            port_neigh = _local_mean(port)
+            ruin_neigh = _local_mean(ruin)
+            forest_neigh = _local_mean(forest)
+
+            current_live_buildable = _masked_mean(live, buildable_mask)
+            current_ruin_buildable = _masked_mean(ruin, buildable_mask)
+            current_ruin_coast = _masked_mean(ruin, coastal_buildable_mask)
+            current_port_coast = _masked_mean(port, coastal_buildable_mask)
+            live_gap = target_live_buildable - current_live_buildable
+            ruin_gap = target_ruin_buildable - current_ruin_buildable
+            ruin_coast_gap = target_ruin_coast - current_ruin_coast
+            port_coast_gap = target_port_coast - current_port_coast
+
+            year_phase = (year_index + 0.5) / float(self.rollout_years)
+            timing_drive = float(
+                _sigmoid(
+                    np.asarray(
+                        2.1 * collapse_timing_skew * (0.5 - year_phase),
+                        dtype=np.float64,
+                    ),
+                )[()],
+            )
+            winter_shock = 0.10 + 0.16 * fragility * timing_drive
+            food_deficit = np.maximum(-food, 0.0)
+            prosperity = np.clip(0.55 * food + 0.35 * wealth + 0.18 * population - 0.60 * stress, -2.0, 2.0)
+
+            food = np.clip(
+                0.78 * food
+                + live * (
+                    0.14
+                    + 0.14 * forest_neigh
+                    + 0.10 * frontier
+                    + 0.06 * maritime
+                    + 0.04 * port_neigh
+                )
+                - live * (0.12 + 0.18 * population + winter_shock),
+                -1.5,
+                2.5,
+            )
+            wealth = np.clip(
+                0.84 * wealth
+                + live * (0.05 + 0.12 * maritime + 0.10 * port_neigh + 0.05 * live_neigh)
+                - 0.05 * stress,
+                -1.0,
+                2.5,
+            )
+            defense = np.clip(
+                0.86 * defense
+                + live * (0.05 + 0.10 * wealth + 0.06 * mountain_density + 0.04 * coast)
+                - 0.04 * stress,
+                -1.0,
+                2.5,
+            )
+            population = np.clip(
+                0.88 * population
+                + live * (0.04 + 0.10 * np.maximum(food, 0.0) + 0.05 * wealth),
+                0.0,
+                2.5,
+            )
+            stress = np.clip(
+                0.82 * stress
+                + 1.00 * food_deficit
+                + 0.45 * ruin_neigh
+                + 0.15 * np.maximum(-defense, 0.0)
+                + 0.10 * np.maximum(-wealth, 0.0)
+                + 0.10 * max(0.0, ruin_gap)
+                - 0.10 * forest_neigh,
+                0.0,
+                3.0,
+            )
+
+            birth_scale = float(
+                np.clip(
+                    self.birth_scale * np.exp(1.4 * live_gap - 0.6 * ruin_gap),
+                    0.01,
+                    0.35,
+                ),
+            )
+            port_scale = float(
+                np.clip(
+                    self.port_scale * np.exp(1.5 * port_coast_gap),
+                    0.01,
+                    0.25,
+                ),
+            )
+            collapse_scale = float(
+                np.clip(
+                    self.collapse_scale
+                    * np.exp(-1.6 * live_gap + 1.5 * ruin_gap + 0.6 * ruin_coast_gap),
+                    0.02,
+                    0.45,
+                ),
+            )
+            rebuild_scale = float(
+                np.clip(
+                    self.rebuild_scale
+                    * np.exp(0.9 * live_gap - 1.6 * ruin_gap - 0.5 * ruin_coast_gap),
+                    0.01,
+                    0.35,
+                ),
+            )
+            reclaim_scale = float(
+                np.clip(
+                    self.reclaim_scale * np.exp(0.8 * max(0.0, ruin_gap)),
+                    0.01,
+                    0.20,
+                ),
+            )
+
+            birth_base = _sigmoid(
+                birth_logit
+                - 2.2
+                + 2.6 * prosperity
+                + 1.6 * live_neigh
+                + 0.7 * maritime
+                + 0.5 * frontier
+                - 0.8 * forest_density
+                - 0.9 * stress
+            )
+            birth_mass = empty * buildable * np.clip(birth_scale * birth_base, 0.0, 0.35)
+            port_birth_share = _sigmoid(
+                -2.4
+                + 2.9 * coast
+                + 1.9 * maritime
+                + 1.5 * port_neigh
+                + 2.5 * port_coast_gap
+            )
+            birth_port = birth_mass * np.clip(port_birth_share, 0.0, 1.0)
+            birth_settlement = birth_mass - birth_port
+
+            portize_base = _sigmoid(
+                -2.7
+                + 2.8 * coast
+                + 1.5 * maritime
+                + 1.6 * port_neigh
+                + 0.8 * wealth
+                - 0.5 * stress
+            )
+            portize_mass = settlement * np.clip(port_scale * portize_base, 0.0, 0.25)
+
+            collapse_set_base = _sigmoid(
+                collapse_nonport_logit
+                - 2.9
+                + 2.4 * stress
+                + 1.2 * food_deficit
+                + 0.6 * ruin_neigh
+                + 0.4 * np.maximum(-defense, 0.0)
+                - 0.2 * wealth
+            )
+            collapse_port_base = _sigmoid(
+                collapse_port_logit
+                - 3.0
+                + 2.2 * stress
+                + 1.1 * food_deficit
+                + 0.5 * ruin_neigh
+                + 0.3 * np.maximum(-defense, 0.0)
+                + 0.2 * (1.0 - maritime)
+            )
+            settlement_collapse = settlement * np.clip(collapse_scale * collapse_set_base, 0.0, 0.45)
+            port_collapse = port * np.clip(collapse_scale * collapse_port_base, 0.0, 0.45)
+
+            rebuild_base = _sigmoid(
+                -3.1
+                + 2.2 * prosperity
+                + 2.6 * live_neigh
+                + 0.7 * settlement_proximity
+                - 1.5 * stress
+            )
+            rebuild_mass = ruin * np.clip(rebuild_scale * rebuild_base, 0.0, 0.35)
+            rebuild_port_share = _sigmoid(
+                -2.5
+                + 2.8 * coast
+                + 1.6 * maritime
+                + 1.5 * port_neigh
+                + 2.3 * port_coast_gap
+            )
+            rebuild_port = rebuild_mass * np.clip(rebuild_port_share, 0.0, 1.0)
+            rebuild_settlement = rebuild_mass - rebuild_port
+
+            ruin_remaining = np.clip(ruin - rebuild_mass, 0.0, 1.0)
+            reclaim_base = _sigmoid(
+                -2.7
+                + 2.5 * forest_neigh
+                + 0.4 * mountain_density
+                - 1.2 * live_neigh
+                + 0.3 * stress
+            )
+            ruin_to_forest = ruin_remaining * np.clip(reclaim_scale * reclaim_base, 0.0, 0.25)
+            ruin_remaining = np.clip(ruin_remaining - ruin_to_forest, 0.0, 1.0)
+            ruin_to_empty = ruin_remaining * np.clip(self.ruin_fade_scale, 0.0, 0.1)
+
+            next_empty = empty - birth_mass + ruin_to_empty
+            next_settlement = settlement + birth_settlement + rebuild_settlement - portize_mass - settlement_collapse
+            next_port = port + birth_port + rebuild_port + portize_mass - port_collapse
+            next_ruin = ruin + settlement_collapse + port_collapse - rebuild_mass - ruin_to_forest - ruin_to_empty
+            next_forest = forest + ruin_to_forest
+            next_mountain = mountain
+
+            surviving_live = np.clip((settlement - settlement_collapse) + (port - port_collapse), 0.0, 1.0)
+            newcomer_live = birth_mass + rebuild_mass
+            next_live = np.clip(next_settlement + next_port, 0.0, 1.0)
+            denominator = np.clip(next_live, 1.0e-6, None)
+            population = ((population * surviving_live) + newcomer_live * (0.35 + 0.20 * settlement_proximity)) / denominator
+            food = ((np.maximum(food, 0.0) * surviving_live) + newcomer_live * (0.30 + 0.10 * frontier)) / denominator
+            wealth = ((np.maximum(wealth, 0.0) * surviving_live) + newcomer_live * (0.22 + 0.12 * maritime)) / denominator
+            defense = ((np.maximum(defense, 0.0) * surviving_live) + newcomer_live * (0.24 + 0.10 * mountain_density)) / denominator
+            stress = np.clip((stress * surviving_live + ruin * stress + 0.25 * newcomer_live) / np.clip(surviving_live + ruin + newcomer_live, 1.0e-6, None), 0.0, 3.0)
+            population = np.where(next_live > 1.0e-5, np.clip(population, 0.0, 2.5), 0.0)
+            food = np.where(next_live > 1.0e-5, np.clip(food, -1.0, 2.5), 0.0)
+            wealth = np.where(next_live > 1.0e-5, np.clip(wealth, -1.0, 2.5), 0.0)
+            defense = np.where(next_live > 1.0e-5, np.clip(defense, -1.0, 2.5), 0.0)
 
             probs = np.stack(
                 [
