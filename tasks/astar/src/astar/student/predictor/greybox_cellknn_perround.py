@@ -181,30 +181,31 @@ class GreyboxCellKnnPerRoundPredictor(BaseRoundPredictor):
         self,
         observed_counts: np.ndarray,
         observed_total: np.ndarray,
+        test_features: np.ndarray | None = None,
     ) -> dict[str, float]:
-        """Bayesian posterior over training rounds from observed cells."""
+        """Compute round posterior by comparing each round's kNN PREDICTION
+        against observations, not raw terminal probs at same positions.
+
+        This is correct because maps differ between rounds — comparing terminal
+        probs at same (y,x) positions is meaningless.
+        """
         unique_rounds = sorted(set(self.bank_round_ids))
         observed_mask = observed_total > 0
 
-        if not np.any(observed_mask):
+        if not np.any(observed_mask) or test_features is None:
             n = len(unique_rounds)
             return {r: 1.0 / n for r in unique_rounds}
 
         obs_cells = observed_counts[observed_mask]  # (N_obs, 6)
         round_log_likes: dict[str, float] = {}
-        round_seed_counts: dict[str, int] = {}
 
-        for bank_idx in range(len(self.bank_round_ids)):
-            rid = self.bank_round_ids[bank_idx]
-            train_probs = np.maximum(self.bank_terminal_probs[bank_idx][observed_mask], 1e-8)
-            ll = float(np.sum(obs_cells * np.log(train_probs)))
-            round_log_likes[rid] = round_log_likes.get(rid, 0.0) + ll
-            round_seed_counts[rid] = round_seed_counts.get(rid, 0) + 1
-
-        # Average across seeds per round
-        for rid in round_log_likes:
-            if round_seed_counts.get(rid, 1) > 1:
-                round_log_likes[rid] /= round_seed_counts[rid]
+        for round_id in unique_rounds:
+            # Build kNN prediction from this round and evaluate at observed cells
+            round_pred = self._knn_predict_from_round(test_features, round_id)
+            pred_at_obs = np.maximum(round_pred[observed_mask], 1e-8)
+            # Multinomial log-likelihood of observed counts under round's prediction
+            ll = float(np.sum(obs_cells * np.log(pred_at_obs)))
+            round_log_likes[round_id] = ll
 
         # Scale and softmax
         ll_arr = np.array([round_log_likes[r] for r in unique_rounds])
@@ -222,14 +223,18 @@ class GreyboxCellKnnPerRoundPredictor(BaseRoundPredictor):
         round_weights: dict[str, float],
         observed_counts: np.ndarray | None = None,
         observed_total: np.ndarray | None = None,
+        precomputed_features: np.ndarray | None = None,
     ) -> np.ndarray:
         """Predict by averaging per-round kNN predictions weighted by round posterior."""
-        initial_state = round_detail.initial_states[seed_index]
-        test_features = _cell_features(
-            initial_state.grid,
-            list(initial_state.settlements),
-            None,
-        )
+        if precomputed_features is not None:
+            test_features = precomputed_features
+        else:
+            initial_state = round_detail.initial_states[seed_index]
+            test_features = _cell_features(
+                initial_state.grid,
+                list(initial_state.settlements),
+                None,
+            )
         height, width = test_features.shape[:2]
         unique_rounds = sorted(set(self.bank_round_ids))
 
@@ -311,13 +316,29 @@ class GreyboxCellKnnPerRoundPredictor(BaseRoundPredictor):
             global_obs_counts += counts
             global_obs_total += total
 
-        round_weights = self._compute_round_weights(global_obs_counts, global_obs_total)
+        # Use first seed's features for round weight computation
+        first_initial_state = round_detail.initial_states[0]
+        first_features = _cell_features(
+            first_initial_state.grid,
+            list(first_initial_state.settlements),
+            None,
+        )
+        round_weights = self._compute_round_weights(
+            global_obs_counts, global_obs_total, test_features=first_features,
+        )
 
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
+            initial_state = round_detail.initial_states[seed_index]
+            seed_feats = _cell_features(
+                initial_state.grid,
+                list(initial_state.settlements),
+                None,
+            )
             knn_pred = self._predict_seed(
                 round_detail, seed_index, round_weights,
                 per_seed_counts[seed_index], per_seed_total[seed_index],
+                precomputed_features=seed_feats,
             )
             prior = np.asarray(prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             prediction = (1.0 - self.prior_blend) * knn_pred + self.prior_blend * prior
@@ -354,13 +375,29 @@ class GreyboxCellKnnPerRoundPredictor(BaseRoundPredictor):
             global_obs_counts += counts
             global_obs_total += total
 
-        round_weights = self._compute_round_weights(global_obs_counts, global_obs_total)
+        # Use first seed for round weight computation
+        first_initial_state = round_detail.initial_states[0]
+        first_features = _cell_features(
+            first_initial_state.grid,
+            list(first_initial_state.settlements),
+            None,
+        )
+        round_weights = self._compute_round_weights(
+            global_obs_counts, global_obs_total, test_features=first_features,
+        )
 
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
+            initial_state = round_detail.initial_states[seed_index]
+            seed_feats = _cell_features(
+                initial_state.grid,
+                list(initial_state.settlements),
+                None,
+            )
             knn_pred = self._predict_seed(
                 round_detail, seed_index, round_weights,
                 per_seed_counts[seed_index], per_seed_total[seed_index],
+                precomputed_features=seed_feats,
             )
             prior = np.asarray(prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             prediction = (1.0 - self.prior_blend) * knn_pred + self.prior_blend * prior

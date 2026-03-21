@@ -2465,3 +2465,44 @@
   - `agent5_obsval_ensemble_coverage_probe3_v01` — ensemble with coverage policy
   - `agent5_obsval_ensemble_explr3_probe3_v01` — ensemble with exploration_r3 policy
   - `agent5_cellknn_coverage_full8_v01` — full 8-round cellknn evaluation
+
+### 2026-03-21T15:25:00Z
+
+- Full 8-round cellknn results (pooled version):
+  - mean score `63.50`
+  - f1dac score `57.09` — **collapsed from 76.59 in 3-round probe to 57 in full 8**
+  - root cause: with 7 training rounds, cells from dissimilar rounds dilute the kNN signal
+  - confirmed: cellknn with 2 training rounds → 76.59 on f1dac; with 7 → 57.09
+
+- Observation-validated ensemble results:
+  - `coverage`: mean `65.58` — too much cellknn weight on 36e581
+  - `exploration_r3`: mean `67.20` — same problem
+  - rejected: observation-match weighting is too noisy to discriminate models
+
+- Implemented `greybox_cellknn_perround_v01`:
+  - file: `src/astar/student/predictor/greybox_cellknn_perround.py`
+  - fixes: builds SEPARATE kNN per training round, averages with round posterior weights
+  - result: mean `71.90` (explr3), f1dac `64.82` — better but still below existing best
+  - also fixed bug: round weights now computed from kNN predictions, not raw position-level terminal probs
+
+- **KEY RESULT — Stacked QR+CellKNN predictor:**
+  - file: `src/astar/student/predictor/greybox_stacked_v01.py`
+  - design: blends query_residual and cellknn_perround in logit space with configurable weight
+  - `stacked_explr3_full8_v01` (weight=0.50):
+    - mean score `75.12` — **essentially tied with existing best 75.19**
+    - f1dac `66.95` — **+9.55 points vs existing best's 57.40**
+    - 36e581 `64.20` — -2.0 vs existing
+    - trades small losses on easy rounds for massive f1dac gain
+
+- Comparison table (exploration_r3, full 8 rounds):
+
+  | Model | Mean | f1dac | 36e581 | Best round |
+  |-------|------|-------|--------|------------|
+  | existing best | 75.19 | 57.40 | 66.20 | 86.17 |
+  | stacked w50 | 75.12 | **66.95** | 64.20 | 83.13 |
+
+- Current weight sweep running:
+  - `greybox_stacked_w15` (weight=0.15)
+  - `greybox_stacked_w25` (weight=0.25)
+  - `greybox_stacked_w35` (weight=0.35)
+  - purpose: find optimal blend weight that preserves easy-round strength while keeping f1dac improvement

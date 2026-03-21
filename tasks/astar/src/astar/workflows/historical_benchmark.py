@@ -195,8 +195,9 @@ def run_historical_benchmark(
         "greybox_roundmatch",
         "greybox_obsval_ensemble",
     }
-    resolved_samples_per_round = samples_per_round if normalized_model_name in transcript_models else None
-    if normalized_model_name in transcript_models and len(selected_round_ids) < 2:
+    is_transcript_model = normalized_model_name in transcript_models or normalized_model_name.startswith("greybox_stacked")
+    resolved_samples_per_round = samples_per_round if is_transcript_model else None
+    if is_transcript_model and len(selected_round_ids) < 2:
         raise ValueError(f"{normalized_model_name} requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")

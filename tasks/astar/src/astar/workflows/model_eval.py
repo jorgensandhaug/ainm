@@ -498,12 +498,21 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
-    if normalized == "greybox_stacked":
+    if normalized.startswith("greybox_stacked"):
+        weight = 0.5
+        if "_w" in normalized:
+            try:
+                w_str = normalized.split("_w")[-1]
+                weight = int(w_str) / 100.0
+            except (ValueError, IndexError):
+                pass
         predictor = GreyboxStackedPredictor.fit_from_workspace(
             paths,
             round_ids=list(training_round_ids),
             policy_name=policy_name or "coverage",
             samples_per_round=samples_per_round or 1,
+            cellknn_feature_weight=weight,
+            model_name=normalized,
         )
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (
@@ -670,33 +679,34 @@ def evaluate_model_on_round(
             )
         )
         resolved_policy_name = None
+        _norm_model = model_name.strip().lower()
+        _transcript_set = {
+            "query_residual",
+            "greybox_regime_ridge",
+            "greybox_regime_knn",
+            "greybox_hazard_lowrank",
+            "greybox_hazard_phasefactored",
+            "greybox_hazard_clusteredmanifold",
+            "greybox_hazard_clusteredbayes",
+            *bayesfamily_model_names(),
+            "greybox_student_joint",
+            "greybox_student_joint_repeataware",
+            "greybox_student_joint_repeataware_v01",
+            "greybox_coefficient_knn",
+            "greybox_hybrid_lowrank_coefficientknn",
+            "greybox_hazard_mixture",
+            "greybox_hybrid_lowrank_queryres",
+            "greybox_hybrid_lowrank_queryres_w45",
+            "greybox_gated_hybrid",
+            "greybox_cellknn",
+            "greybox_cellknn_perround",
+            "greybox_stacked",
+            "greybox_roundmatch",
+            "greybox_obsval_ensemble",
+        }
         resolved_samples_per_round = (
             samples_per_round
-            if model_name.strip().lower()
-            in {
-                "query_residual",
-                "greybox_regime_ridge",
-                "greybox_regime_knn",
-                "greybox_hazard_lowrank",
-                "greybox_hazard_phasefactored",
-                "greybox_hazard_clusteredmanifold",
-                "greybox_hazard_clusteredbayes",
-                *bayesfamily_model_names(),
-                "greybox_student_joint",
-                "greybox_student_joint_repeataware",
-                "greybox_student_joint_repeataware_v01",
-                "greybox_coefficient_knn",
-                "greybox_hybrid_lowrank_coefficientknn",
-                "greybox_hazard_mixture",
-                "greybox_hybrid_lowrank_queryres",
-                "greybox_hybrid_lowrank_queryres_w45",
-                "greybox_gated_hybrid",
-                "greybox_cellknn",
-                "greybox_cellknn_perround",
-                "greybox_stacked",
-                "greybox_roundmatch",
-                "greybox_obsval_ensemble",
-            }
+            if _norm_model in _transcript_set or _norm_model.startswith("greybox_stacked")
             else None
         )
         resolved_budget = None

@@ -341,13 +341,23 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
-    if normalized == "greybox_stacked":
+    if normalized.startswith("greybox_stacked"):
         workspace_paths = paths or WorkspacePaths.from_root(".")
+        # Parse weight from model name: greybox_stacked_w25 -> 0.25
+        weight = 0.5  # default
+        if "_w" in normalized:
+            try:
+                w_str = normalized.split("_w")[-1]
+                weight = int(w_str) / 100.0
+            except (ValueError, IndexError):
+                pass
         predictor = GreyboxStackedPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=(policy_name or "coverage").strip().lower(),
             samples_per_round=samples_per_round,
+            cellknn_feature_weight=weight,
+            model_name=normalized,
         )
         return RoundPredictorAdapter(
             predictor=predictor,
