@@ -190,7 +190,7 @@ def save_analysis_tensor(
 def save_named_arrays(path: Path, arrays: Mapping[str, np.ndarray]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_name(
-        f"{path.name}.tmp.{os.getpid()}.{time.time_ns()}",
+        f"{path.stem}.tmp.{os.getpid()}.{time.time_ns()}{path.suffix}",
     )
     np.savez_compressed(file=temp_path, **dict(arrays))  # type: ignore[arg-type]
     temp_path.replace(path)
