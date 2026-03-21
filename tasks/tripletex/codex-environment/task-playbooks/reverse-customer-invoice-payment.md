@@ -134,6 +134,15 @@ Observed production confirmation on 2026-03-21:
 - the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
 - note: the script's local filter used wrong field names `amountExVat` / `amountExVatCurrency` instead of the correct `amountExcludingVatCurrency` / `amountExcludingVat`, but since only 1 invoice existed for that org number, the mismatch was harmless; always use the correct field names to avoid silent filter failures when multiple invoices exist
 
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=896496468` + `amountExcludingVatCurrency=17200` + line text `Skylagring`
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=896496468&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=2` (two invoices for same customer)
+  - local filter on `amountExcludingVatCurrency === 17200` correctly isolated the target invoice
+  - one `PUT /ledger/voucher/608886670/:reverse?date=2026-03-21` produced reverse voucher `609061798`
+- this is the first production run where the multi-invoice local filter was exercised; previous runs for this org returned 1 invoice
+- the script used correct field names (`amountExcludingVatCurrency`) and the fallback matcher accepted the `type=null` payment posting
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
