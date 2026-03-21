@@ -624,6 +624,217 @@ def test_gbx_maponly_transcriptregime_mapknn_blend50_online_historical_benchmark
     assert predictor.predictor.transcript_weight == 0.5
 
 
+def test_gbx_maponly_transcriptregime_mapknn_confblend20_builds(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_maponly_transcriptregime_mapknn_confblend20",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_maponly_transcriptregime_mapknn_confblend20_v1"
+    assert predictor.predictor.transcript_weight == 0.2
+    assert predictor.predictor.gate_mode == "confidence"
+
+
+def test_gbx_roundbank_terminal_mapknn_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_roundbank_terminal_mapknn",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_gbx_roundbank_terminal_mapknn_online",
+    )
+
+    predictor = build_online_predictor(
+        "gbx_roundbank_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.rounds[0].seed_results[0].model_name == "gbx_roundbank_terminal_mapknn_v1"
+    assert predictor.name == "gbx_roundbank_terminal_mapknn_v1"
+
+
+def test_gbx_maponly_roundbank_mapknn_blend20_builds(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_maponly_roundbank_mapknn_blend20",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_maponly_roundbank_mapknn_blend20_v1"
+    assert predictor.predictor.transcript_weight == 0.2
+
+
+def test_gbx_ridge_terminal_mapknn_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_ridge_terminal_mapknn",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_gbx_ridge_terminal_mapknn_online",
+    )
+
+    predictor = build_online_predictor(
+        "gbx_ridge_terminal_mapknn",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.rounds[0].seed_results[0].model_name == "gbx_ridge_terminal_mapknn_v1"
+    assert predictor.name == "gbx_ridge_terminal_mapknn_v1"
+
+
+def test_gbx_maponly_ridge_mapknn_blend20_builds(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_maponly_ridge_mapknn_blend20",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_maponly_ridge_mapknn_blend20_v1"
+    assert predictor.predictor.transcript_weight == 0.2
+
+
+def test_gbx_transcript_regime_knn_terminal_mapknn_delta_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="gbx_transcript_regime_knn_terminal_mapknn_delta",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_gbx_transcript_regime_knn_terminal_mapknn_delta_online",
+    )
+
+    predictor = build_online_predictor(
+        "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.rounds[0].seed_results[0].model_name == "gbx_transcript_regime_knn_terminal_mapknn_delta_v1"
+    assert predictor.name == "gbx_transcript_regime_knn_terminal_mapknn_delta_v1"
+
+
+def test_gbx_maponly_transcriptdelta_mapknn_blend20_builds(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_maponly_transcriptdelta_mapknn_blend20",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_maponly_transcriptdelta_mapknn_blend20_v1"
+    assert predictor.predictor.transcript_weight == 0.2
+
+
+def test_gbx_maponly_transcriptdual_mapknn_blend20_builds(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = build_online_predictor(
+        "gbx_maponly_transcriptdual_mapknn_blend20",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+    )
+
+    assert predictor.name == "gbx_maponly_transcriptdual_mapknn_blend20_v1"
+    assert tuple(predictor.predictor.transcript_weights) == (0.1, 0.1)
+
+
 def test_gbx_maponly_transcriptregime_alt_blends_build(
     sample_paths: RepoPaths,
 ) -> None:

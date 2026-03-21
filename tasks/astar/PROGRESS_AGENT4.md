@@ -259,6 +259,211 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 
 ### 2026-03-21T00:23Z
 
+### 2026-03-21T12:30Z
+
+- Re-read `README.md`, `docs/game_facts.md`, `instructions/agent4.md`, `AGENTS.md` before continuing new family work.
+- Re-checked machine health before launching more jobs:
+  - load about `54 / 62 / 68`
+  - available memory about `1.8 TiB`
+  - many other agents already saturating CPU
+- Parallelism decision:
+  - keep local benchmark jobs moderate (`jobs=6`) because CPU is contested
+  - memory is not the bottleneck right now
+- `br list`: still unavailable, `br: command not found`
+
+### 2026-03-21T12:38Z
+
+- Finished pending `samples_per_round` sweep for `gbx_maponly_transcriptregime_mapknn_blend20` under `coverage`, episode seeds `0,1,2`.
+- Results:
+  - baseline best existing `samples=4`:
+    - `dev_gbx_maponly_transcriptregime_mapknn_blend20_cov_seed02_jobs8_v1`
+    - score `68.042288`
+    - weighted KL `0.133045`
+  - `samples=8`:
+    - `dev_gbx_maponly_transcriptregime_mapknn_blend20_cov_seed02_s8_jobs6_v1`
+    - score `66.3372`
+    - weighted KL `0.142833`
+  - `samples=16`:
+    - `dev_gbx_maponly_transcriptregime_mapknn_blend20_cov_seed02_s16_jobs6_v1`
+    - score `66.3566`
+    - weighted KL `0.142734`
+- Interpretation:
+  - adding more synthetic transcript samples per round strongly hurts held-out online score
+  - current sample-level KNN student is unstable to larger sample banks
+
+### 2026-03-21T12:43Z
+
+- Finished negative gating sweep for current transcript-blend family:
+  - `gbx_maponly_transcriptregime_mapknn_confblend20`:
+    - score `68.0152`
+    - weighted KL `0.133175`
+    - basically flat/slightly worse than uniform `blend20`
+  - `gbx_maponly_transcriptregime_mapknn_confentropy20`:
+    - score `67.4221`
+    - weighted KL `0.136014`
+    - clearly worse
+- Conclusion:
+  - local confidence gating does not fix the sample-level KNN issue
+
+### 2026-03-21T12:49Z
+
+- Ran synthetic-bank geometry analysis on existing `coverage`, `samples=4/8/16` transcript checkpoints.
+- Key finding:
+  - per-round standardized transcript centroids separate perfectly inside every 7-round training fold:
+    - centroid round-classification accuracy `1.0`
+  - sample-level 5-NN round classification is lower:
+    - about `0.879` for `samples=4`
+    - about `0.906` for `samples=8`
+    - about `0.990` for `samples=16`
+  - mean within-round distance stays much smaller than between-round distance:
+    - within about `4.5`
+    - between about `12.0`
+- New hypothesis:
+  - transcript features do carry strong round-law signal
+  - failure is likely from sample-level neighbor noise / bad local averaging, not lack of signal
+  - next branch: implement a round-posterior / roundbank student over the replay manifold instead of sample-level KNN
+
+### 2026-03-21T13:00Z
+
+- Implemented new round-level transcript student branch:
+  - new model `gbx_roundbank_terminal_mapknn_v1`
+  - new blend aliases:
+    - `gbx_maponly_roundbank_mapknn_blend10`
+    - `gbx_maponly_roundbank_mapknn_blend20`
+- Design:
+  - reuse existing synthetic transcript dataset + terminal teacher
+  - replace sample-level transcript KNN posterior with round-level centroid posterior
+  - build one centroid / shrunk diagonal scale per training round
+  - infer posterior weights over training rounds from transcript summary distance
+  - decode through existing terminal teacher
+- Touched:
+  - `src/astar/student/predictor/gbx_transcript_regime.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Targeted validation passed:
+  - `py_compile` on touched files
+  - `4` targeted pytest cases passed, including roundbank historical smoke
+
+### 2026-03-21T13:03Z
+
+- Launched parallel full 8-round replay-backed benchmarks for the new branch:
+  - `dev_gbx_roundbank_terminal_mapknn_cov_seed02_jobs6_v1`
+  - `dev_gbx_maponly_roundbank_mapknn_blend10_cov_seed02_jobs6_v1`
+  - `dev_gbx_maponly_roundbank_mapknn_blend20_cov_seed02_jobs6_v1`
+  - `dev_gbx_maponly_roundbank_mapknn_blend20_cov_seed02_s8_jobs6_v1`
+- Reason for this sweep:
+  - establish whether round-level posterior alone helps
+  - test whether map-prior blending still helps
+  - test whether roundbank fixes the `samples=8` collapse seen in sample-level KNN
+
+### 2026-03-21T13:20Z
+
+- Roundbank branch results, all on `coverage`, episode seeds `0,1,2`, full 8-round online historical benchmark:
+  - pure `gbx_roundbank_terminal_mapknn`:
+    - `42.6254`
+    - weighted KL `0.319965`
+  - `gbx_maponly_roundbank_mapknn_blend10`:
+    - `67.0848`
+    - weighted KL `0.137810`
+  - `gbx_maponly_roundbank_mapknn_blend20`:
+    - `67.3106`
+    - weighted KL `0.137132`
+  - `gbx_maponly_roundbank_mapknn_blend20`, `samples=8`:
+    - `65.8288`
+    - weighted KL `0.145917`
+- Conclusion:
+  - round-centroid posterior is not competitive with current champion
+  - it also does **not** fix the `samples_per_round=8` collapse
+
+### 2026-03-21T13:32Z
+
+- Implemented and benchmarked transcript-to-regime ridge branch:
+  - new model `gbx_ridge_terminal_mapknn_v1`
+  - new blends:
+    - `gbx_maponly_ridge_mapknn_blend10`
+    - `gbx_maponly_ridge_mapknn_blend20`
+- Results, same benchmark slice:
+  - pure `gbx_ridge_terminal_mapknn`:
+    - `41.5470`
+    - weighted KL `0.325316`
+  - `gbx_maponly_ridge_mapknn_blend10`:
+    - `67.3681`
+    - weighted KL `0.136281`
+  - `gbx_maponly_ridge_mapknn_blend20`:
+    - `67.7778`
+    - weighted KL `0.134627`
+  - `gbx_maponly_ridge_mapknn_blend20`, `samples=8`:
+    - `65.9715`
+    - weighted KL `0.145058`
+- Conclusion:
+  - ridge posterior is better than roundbank
+  - still below current champion
+  - still does not fix the `samples=8` collapse
+
+### 2026-03-21T13:47Z
+
+- Found an obvious transcript-representation gap:
+  - previous transcript summary mostly ignored query location and ignored change relative to known initial map
+- Implemented delta-aware transcript features:
+  - query center mean/std
+  - queried-window initial class frequencies
+  - observed-minus-initial class deltas
+  - queried changed-cell fraction
+- New model:
+  - `gbx_transcript_regime_knn_terminal_mapknn_delta_v1`
+- New blends:
+  - `gbx_maponly_transcriptdelta_mapknn_blend10`
+  - `gbx_maponly_transcriptdelta_mapknn_blend20`
+- Results, same benchmark slice:
+  - pure delta transcript model:
+    - `43.1367`
+    - weighted KL `0.309774`
+  - delta blend10:
+    - `67.5306`
+    - weighted KL `0.135321`
+  - delta blend20:
+    - `68.0169`
+    - weighted KL `0.133171`
+  - delta blend20, `samples=8`:
+    - `66.2836`
+    - weighted KL `0.143170`
+- Interpretation:
+  - delta-aware features are the best new branch this turn
+  - they nearly tie the current champion but do not beat it
+  - they also fail to fix the `samples=8` collapse
+
+### 2026-03-21T13:58Z
+
+- Implemented one ensemble/calibration branch from handoff:
+  - `gbx_maponly_transcriptdual_mapknn_blend20`
+  - equal-weight combination of:
+    - base transcript KNN mapknn
+    - delta-aware transcript KNN mapknn
+- Result:
+  - `68.0310`
+  - weighted KL `0.133101`
+- Interpretation:
+  - ensemble is also near-tie only
+  - still slightly below current champion
+
+### 2026-03-21T14:00Z
+
+- Current champion remains unchanged:
+  - `gbx_maponly_transcriptregime_mapknn_blend20`
+  - `68.042288`
+  - weighted KL `0.133045`
+- Best new branch from this turn:
+  - `gbx_maponly_transcriptdelta_mapknn_blend20`
+  - `68.0169`
+  - weighted KL `0.133171`
+- Gap vs champion:
+  - score about `-0.0254`
+  - weighted KL about `+0.000126`
+- Broad verification after all edits:
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+  - `39 passed`
+
 - Paired benchmark comparison vs old artifact:
   - mean score delta `+0.3048`
   - mean weighted KL delta `-0.003554`

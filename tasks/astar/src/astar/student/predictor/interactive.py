@@ -9,6 +9,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 from astar.core.prediction import PredictionBundle
+from astar.core.score import entropy_map
 from astar.core.trajectory import LiveQueryObs
 from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
@@ -20,9 +21,13 @@ from astar.student.predictor.gbx_map_prior import (
     GreyBoxMapOnlyBucketPredictor,
 )
 from astar.student.predictor.gbx_transcript_regime import (
+    GreyBoxTranscriptRegimeRoundBankPredictor,
+    GreyBoxTranscriptRegimeRidgePredictor,
     GreyBoxTranscriptRegimeKNNPredictor,
     gbx_transcript_regime_scoped_checkpoint_path,
     is_gbx_transcript_regime_model_name,
+    is_gbx_transcript_regime_ridge_model_name,
+    is_gbx_transcript_regime_roundbank_model_name,
     resolve_gbx_transcript_regime_policy_names,
     resolve_gbx_transcript_regime_training_spec,
 )
@@ -43,106 +48,241 @@ _COVTRAIN_QUERY_RESIDUAL_MODELS = {
     "query_residual_v11_covtrain_p0_b624_t100",
 }
 
-_GBX_TRANSCRIPT_REGIME_BLEND_SPECS: dict[str, tuple[str, str, float]] = {
+_GBX_TRANSCRIPT_REGIME_BLEND_SPECS: dict[str, tuple[str, str, float, str]] = {
     "gbx_maponly_transcriptregime_mapknn_blend05": (
         "gbx_maponly_transcriptregime_mapknn_blend05_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.05,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend05_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend05_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.05,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend10": (
         "gbx_maponly_transcriptregime_mapknn_blend10_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.10,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend10_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend10_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.10,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend15": (
         "gbx_maponly_transcriptregime_mapknn_blend15_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.15,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend15_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend15_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.15,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend20": (
         "gbx_maponly_transcriptregime_mapknn_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.20,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend20_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.20,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend30": (
         "gbx_maponly_transcriptregime_mapknn_blend30_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.30,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend30_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend30_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.30,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend40": (
         "gbx_maponly_transcriptregime_mapknn_blend40_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.40,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend40_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend40_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.40,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend50": (
         "gbx_maponly_transcriptregime_mapknn_blend50_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.50,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend50_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend50_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.50,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend60": (
         "gbx_maponly_transcriptregime_mapknn_blend60_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.60,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapknn_blend60_v1": (
         "gbx_maponly_transcriptregime_mapknn_blend60_v1",
         "gbx_transcript_regime_knn_terminal_mapknn",
         0.60,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptregime_mapknn_confblend20": (
+        "gbx_maponly_transcriptregime_mapknn_confblend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        0.20,
+        "confidence",
+    ),
+    "gbx_maponly_transcriptregime_mapknn_confblend20_v1": (
+        "gbx_maponly_transcriptregime_mapknn_confblend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        0.20,
+        "confidence",
+    ),
+    "gbx_maponly_transcriptregime_mapknn_confentropy20": (
+        "gbx_maponly_transcriptregime_mapknn_confentropy20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        0.20,
+        "confidence_entropy",
+    ),
+    "gbx_maponly_transcriptregime_mapknn_confentropy20_v1": (
+        "gbx_maponly_transcriptregime_mapknn_confentropy20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn",
+        0.20,
+        "confidence_entropy",
     ),
     "gbx_maponly_transcriptregime_mapllr_blend20": (
         "gbx_maponly_transcriptregime_mapllr_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapllr",
         0.20,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapllr_blend20_v1": (
         "gbx_maponly_transcriptregime_mapllr_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapllr",
         0.20,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapprior_blend20": (
         "gbx_maponly_transcriptregime_mapprior_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapprior",
         0.20,
+        "uniform",
     ),
     "gbx_maponly_transcriptregime_mapprior_blend20_v1": (
         "gbx_maponly_transcriptregime_mapprior_blend20_v1",
         "gbx_transcript_regime_knn_terminal_mapprior",
         0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptdelta_mapknn_blend10": (
+        "gbx_maponly_transcriptdelta_mapknn_blend10_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptdelta_mapknn_blend10_v1": (
+        "gbx_maponly_transcriptdelta_mapknn_blend10_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptdelta_mapknn_blend20": (
+        "gbx_maponly_transcriptdelta_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptdelta_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptdelta_mapknn_blend20_v1",
+        "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_roundbank_mapknn_blend10": (
+        "gbx_maponly_roundbank_mapknn_blend10_v1",
+        "gbx_roundbank_terminal_mapknn",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_roundbank_mapknn_blend10_v1": (
+        "gbx_maponly_roundbank_mapknn_blend10_v1",
+        "gbx_roundbank_terminal_mapknn",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_roundbank_mapknn_blend20": (
+        "gbx_maponly_roundbank_mapknn_blend20_v1",
+        "gbx_roundbank_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_roundbank_mapknn_blend20_v1": (
+        "gbx_maponly_roundbank_mapknn_blend20_v1",
+        "gbx_roundbank_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_ridge_mapknn_blend10": (
+        "gbx_maponly_ridge_mapknn_blend10_v1",
+        "gbx_ridge_terminal_mapknn",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_ridge_mapknn_blend10_v1": (
+        "gbx_maponly_ridge_mapknn_blend10_v1",
+        "gbx_ridge_terminal_mapknn",
+        0.10,
+        "uniform",
+    ),
+    "gbx_maponly_ridge_mapknn_blend20": (
+        "gbx_maponly_ridge_mapknn_blend20_v1",
+        "gbx_ridge_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_ridge_mapknn_blend20_v1": (
+        "gbx_maponly_ridge_mapknn_blend20_v1",
+        "gbx_ridge_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+}
+
+_GBX_TRANSCRIPT_ENSEMBLE_BLEND_SPECS: dict[str, tuple[str, tuple[str, ...], tuple[float, ...]]] = {
+    "gbx_maponly_transcriptdual_mapknn_blend20": (
+        "gbx_maponly_transcriptdual_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        ),
+        (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptdual_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptdual_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_regime_knn_terminal_mapknn_delta",
+        ),
+        (0.10, 0.10),
     ),
 }
 
@@ -151,11 +291,24 @@ def is_gbx_transcript_regime_blend_model_name(model_name: str) -> bool:
     return model_name.strip().lower() in _GBX_TRANSCRIPT_REGIME_BLEND_SPECS
 
 
-def resolve_gbx_transcript_regime_blend_spec(model_name: str) -> tuple[str, str, float]:
+def is_gbx_transcript_ensemble_blend_model_name(model_name: str) -> bool:
+    return model_name.strip().lower() in _GBX_TRANSCRIPT_ENSEMBLE_BLEND_SPECS
+
+
+def resolve_gbx_transcript_regime_blend_spec(model_name: str) -> tuple[str, str, float, str]:
     normalized = model_name.strip().lower()
     if normalized not in _GBX_TRANSCRIPT_REGIME_BLEND_SPECS:
         raise ValueError(f"unsupported gbx transcript blend model: {model_name}")
     return _GBX_TRANSCRIPT_REGIME_BLEND_SPECS[normalized]
+
+
+def resolve_gbx_transcript_ensemble_blend_spec(
+    model_name: str,
+) -> tuple[str, tuple[str, ...], tuple[float, ...]]:
+    normalized = model_name.strip().lower()
+    if normalized not in _GBX_TRANSCRIPT_ENSEMBLE_BLEND_SPECS:
+        raise ValueError(f"unsupported gbx transcript ensemble blend model: {model_name}")
+    return _GBX_TRANSCRIPT_ENSEMBLE_BLEND_SPECS[normalized]
 
 
 def _load_or_fit_locked_checkpoint(
@@ -202,28 +355,77 @@ class GreyBoxTranscriptRegimeBlendPredictor(BaseRoundPredictor):
 
     name: str
     transcript_weight: float
+    gate_mode: str = "uniform"
     probability_floor: float = 1e-4
     map_prior_predictor: GreyBoxMapOnlyBucketPredictor
-    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor
+    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor
+
+    def _transcript_predictions_with_confidence(self, context) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
+        posterior = self.transcript_predictor.infer_regime(context)
+        confidence_by_seed: dict[int, np.ndarray] = {}
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        normalized_weights = None
+        if posterior.weights is not None:
+            normalized_weights = np.asarray(posterior.weights, dtype=np.float64)
+            normalized_weights = normalized_weights / np.sum(normalized_weights)
+        for seed in context.round_context.seeds:
+            if posterior.particles is not None and normalized_weights is not None:
+                particle_predictions = np.stack(
+                    [
+                        self.transcript_predictor.terminal_teacher.terminal_tensor(seed, particle)
+                        for particle in posterior.particles
+                    ],
+                    axis=0,
+                )
+                transcript_prediction = np.tensordot(normalized_weights, particle_predictions, axes=(0, 0))
+                weighted_tvd = np.tensordot(
+                    normalized_weights,
+                    0.5 * np.sum(np.abs(particle_predictions - transcript_prediction[None, ...]), axis=-1),
+                    axes=(0, 0),
+                )
+                confidence_by_seed[seed.seed_index] = 1.0 - np.clip(weighted_tvd, 0.0, 1.0)
+            else:
+                transcript_prediction = self.transcript_predictor.terminal_teacher.posterior_predictive(seed, posterior)
+                confidence_by_seed[seed.seed_index] = np.ones(transcript_prediction.shape[:2], dtype=np.float64)
+            predictions_by_seed[seed.seed_index] = np.asarray(transcript_prediction, dtype=np.float64)
+        return predictions_by_seed, confidence_by_seed
+
+    def _blend_weight_map(
+        self,
+        base_prediction: np.ndarray,
+        transcript_confidence: np.ndarray,
+    ) -> float | np.ndarray:
+        if self.gate_mode == "uniform":
+            return self.transcript_weight
+        confidence = np.asarray(transcript_confidence, dtype=np.float64)[:, :, None]
+        if self.gate_mode == "confidence":
+            return self.transcript_weight * confidence
+        if self.gate_mode == "confidence_entropy":
+            entropy_weight = (
+                entropy_map(np.asarray(base_prediction, dtype=np.float64)) / np.log(base_prediction.shape[-1])
+            )[:, :, None]
+            return self.transcript_weight * confidence * entropy_weight
+        raise ValueError(f"unsupported transcript blend gate_mode: {self.gate_mode}")
 
     def _blend_predictions(
         self,
         base_prediction: np.ndarray,
         transcript_prediction: np.ndarray,
+        transcript_confidence: np.ndarray,
     ) -> np.ndarray:
-        blended = ((1.0 - self.transcript_weight) * base_prediction) + (
-            self.transcript_weight * transcript_prediction
-        )
+        blend_weight = self._blend_weight_map(base_prediction, transcript_confidence)
+        blended = ((1.0 - blend_weight) * base_prediction) + (blend_weight * transcript_prediction)
         return apply_probability_floor(blended, self.probability_floor)
 
     def build_prediction_bundle_from_context(self, context) -> PredictionBundle:
         round_detail = context.round_context.to_round_detail()
         base_bundle = self.map_prior_predictor.build_prediction_bundle(round_detail, None)
-        transcript_bundle = self.transcript_predictor.build_prediction_bundle_from_context(context)
+        transcript_predictions_by_seed, confidence_by_seed = self._transcript_predictions_with_confidence(context)
         predictions_by_seed = {
             seed_index: self._blend_predictions(
                 np.asarray(base_bundle.predictions_by_seed[seed_index], dtype=np.float64),
-                np.asarray(transcript_bundle.predictions_by_seed[seed_index], dtype=np.float64),
+                transcript_predictions_by_seed[seed_index],
+                confidence_by_seed[seed_index],
             )
             for seed_index in sorted(base_bundle.predictions_by_seed)
         }
@@ -241,11 +443,13 @@ class GreyBoxTranscriptRegimeBlendPredictor(BaseRoundPredictor):
     ) -> PredictionBundle:
         del features, evidence
         base_bundle = self.map_prior_predictor.build_prediction_bundle(round_detail, None)
-        transcript_bundle = self.transcript_predictor.build_prediction_bundle(round_detail, None)
+        context = round_context_to_live_inference_context(build_round_context_from_detail(round_detail), ())
+        transcript_predictions_by_seed, confidence_by_seed = self._transcript_predictions_with_confidence(context)
         predictions_by_seed = {
             seed_index: self._blend_predictions(
                 np.asarray(base_bundle.predictions_by_seed[seed_index], dtype=np.float64),
-                np.asarray(transcript_bundle.predictions_by_seed[seed_index], dtype=np.float64),
+                transcript_predictions_by_seed[seed_index],
+                confidence_by_seed[seed_index],
             )
             for seed_index in sorted(base_bundle.predictions_by_seed)
         }
@@ -254,6 +458,54 @@ class GreyBoxTranscriptRegimeBlendPredictor(BaseRoundPredictor):
             model_name=self.name,
             predictions_by_seed=predictions_by_seed,
         )
+
+
+class GreyBoxTranscriptEnsembleBlendPredictor(BaseRoundPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str
+    probability_floor: float = 1e-4
+    map_prior_predictor: GreyBoxMapOnlyBucketPredictor
+    transcript_predictors: tuple[
+        GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor,
+        ...,
+    ]
+    transcript_weights: tuple[float, ...]
+
+    def build_prediction_bundle_from_context(self, context) -> PredictionBundle:
+        round_detail = context.round_context.to_round_detail()
+        base_bundle = self.map_prior_predictor.build_prediction_bundle(round_detail, None)
+        transcript_bundles = [
+            predictor.build_prediction_bundle_from_context(context)
+            for predictor in self.transcript_predictors
+        ]
+        base_weight = 1.0 - float(np.sum(np.asarray(self.transcript_weights, dtype=np.float64)))
+        predictions_by_seed = {
+            seed_index: apply_probability_floor(
+                (base_weight * np.asarray(base_bundle.predictions_by_seed[seed_index], dtype=np.float64))
+                + sum(
+                    float(weight) * np.asarray(bundle.predictions_by_seed[seed_index], dtype=np.float64)
+                    for weight, bundle in zip(self.transcript_weights, transcript_bundles, strict=True)
+                ),
+                self.probability_floor,
+            )
+            for seed_index in sorted(base_bundle.predictions_by_seed)
+        }
+        return PredictionBundle(
+            round_id=context.round_context.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        del features, evidence
+        context = round_context_to_live_inference_context(build_round_context_from_detail(round_detail), ())
+        return self.build_prediction_bundle_from_context(context)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -346,9 +598,36 @@ def build_online_predictor(
             predictor=gbx_prior,
             name=gbx_prior.name,
         )
+    if is_gbx_transcript_ensemble_blend_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_name, transcript_model_names, transcript_weights = resolve_gbx_transcript_ensemble_blend_spec(normalized)
+        gbx_prior = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        transcript_adapters = [
+            build_online_predictor(
+                transcript_model_name,
+                paths=workspace_paths,
+                historical_round_ids=historical_round_ids,
+                policy_name=policy_name,
+                samples_per_round=samples_per_round,
+            )
+            for transcript_model_name in transcript_model_names
+        ]
+        predictor = GreyBoxTranscriptEnsembleBlendPredictor(
+            name=resolved_name,
+            map_prior_predictor=gbx_prior,
+            transcript_predictors=tuple(adapter.predictor for adapter in transcript_adapters),
+            transcript_weights=tuple(float(weight) for weight in transcript_weights),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     if is_gbx_transcript_regime_blend_model_name(normalized):
         workspace_paths = paths or WorkspacePaths.from_root(".")
-        resolved_name, transcript_model_name, transcript_weight = (
+        resolved_name, transcript_model_name, transcript_weight, gate_mode = (
             resolve_gbx_transcript_regime_blend_spec(normalized)
         )
         gbx_prior = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
@@ -365,6 +644,7 @@ def build_online_predictor(
         predictor = GreyBoxTranscriptRegimeBlendPredictor(
             name=resolved_name,
             transcript_weight=transcript_weight,
+            gate_mode=gate_mode,
             map_prior_predictor=gbx_prior,
             transcript_predictor=transcript_adapter.predictor,
         )
@@ -395,31 +675,69 @@ def build_online_predictor(
                 policy_name=resolved_policy_name,
                 samples_per_round=resolved_samples_per_round,
             )
-            predictor = _load_or_fit_locked_checkpoint(
-                checkpoint_path,
-                loader=GreyBoxTranscriptRegimeKNNPredictor.load_checkpoint,
-                builder=lambda: GreyBoxTranscriptRegimeKNNPredictor.fit_from_workspace(
+            predictor_loader = GreyBoxTranscriptRegimeKNNPredictor.load_checkpoint
+            predictor_builder = lambda: GreyBoxTranscriptRegimeKNNPredictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=resolved_samples_per_round,
+                model_name=checkpoint_model_name,
+            )
+            if is_gbx_transcript_regime_roundbank_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeRoundBankPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeRoundBankPredictor.fit_from_workspace(
                     workspace_paths,
                     round_ids=list(historical_round_ids),
                     policy_name=resolved_policy_name,
                     samples_per_round=resolved_samples_per_round,
                     model_name=checkpoint_model_name,
-                ),
+                )
+            if is_gbx_transcript_regime_ridge_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeRidgePredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeRidgePredictor.fit_from_workspace(
+                    workspace_paths,
+                    round_ids=list(historical_round_ids),
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
+            predictor = _load_or_fit_locked_checkpoint(
+                checkpoint_path,
+                loader=predictor_loader,
+                builder=predictor_builder,
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
                 f"{checkpoint_model_name}__policy={resolved_policy_name}__samples={resolved_samples_per_round}",
             )
             checkpoint_path = checkpoint_dir / "checkpoint.json"
-            predictor = _load_or_fit_locked_checkpoint(
-                checkpoint_path,
-                loader=GreyBoxTranscriptRegimeKNNPredictor.load_checkpoint,
-                builder=lambda: GreyBoxTranscriptRegimeKNNPredictor.fit_from_workspace(
+            predictor_loader = GreyBoxTranscriptRegimeKNNPredictor.load_checkpoint
+            predictor_builder = lambda: GreyBoxTranscriptRegimeKNNPredictor.fit_from_workspace(
+                workspace_paths,
+                policy_name=resolved_policy_name,
+                samples_per_round=resolved_samples_per_round,
+                model_name=checkpoint_model_name,
+            )
+            if is_gbx_transcript_regime_roundbank_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeRoundBankPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeRoundBankPredictor.fit_from_workspace(
                     workspace_paths,
                     policy_name=resolved_policy_name,
                     samples_per_round=resolved_samples_per_round,
                     model_name=checkpoint_model_name,
-                ),
+                )
+            if is_gbx_transcript_regime_ridge_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeRidgePredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeRidgePredictor.fit_from_workspace(
+                    workspace_paths,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
+            predictor = _load_or_fit_locked_checkpoint(
+                checkpoint_path,
+                loader=predictor_loader,
+                builder=predictor_builder,
             )
         return RoundPredictorAdapter(
             predictor=predictor,
