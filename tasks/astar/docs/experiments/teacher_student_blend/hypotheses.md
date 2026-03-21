@@ -19,6 +19,8 @@
 - `v41` / `v42`: continue that direction to `samples=1` to test whether lower within-round synthetic variance helps held-out-round generalization
 - `v43` / `v44`: residual KNN may still be over-smoothing across mismatched rounds; test `k=3` on the strongest temporal backbones
 - `v45` / `v46`: push the same idea to `k=1` to test whether a single nearest replay regime is better than a blended residual
+- `v47` / `v48`: if `k=1` is better because cross-round residual blending is the main overfit source, combine it with `samples=2` to cut synthetic within-round variance at the same time
+- `v49` / `v50`: push the same combined branch to `samples=1` to test whether the strongest line is simply nearest-neighbor residuals plus minimal synthetic duplication
 
 ## Evaluation Rule
 

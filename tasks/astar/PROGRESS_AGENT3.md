@@ -2525,6 +2525,51 @@
      - `36881`
    - reason:
      - `v15` remains the only other finished corrected-gate branch close enough to `v13` to merit full LOO
+272. Polled the tenth corrected-holdout wave after the sessions ended:
+   - finished corrected-gate artifacts landed for:
+     - `teacher_student_blend_v43`
+     - `teacher_student_blend_v44`
+     - `teacher_student_blend_v45`
+     - `teacher_student_blend_v46`
+   - aggregate results:
+     - `v43`: mean score `61.3197`, mean weighted KL `0.163789`
+     - `v44`: mean score `61.2635`, mean weighted KL `0.164118`
+     - `v45`: mean score `61.3370`, mean weighted KL `0.163687`
+     - `v46`: mean score `61.2813`, mean weighted KL `0.164013`
+273. Read from item 272:
+   - lowering `k` helped slightly on both strong backbones
+   - current finished corrected-gate leader is now `teacher_student_blend_v45`
+   - margin over prior gate leader `v13` is tiny but positive:
+     - score delta: `+0.0126`
+     - weighted-KL delta: `-0.000075`
+274. Polling also exposed a process-management failure in the prior launch method:
+   - the first launched low-sample jobs `v39-v42` did not leave final benchmark artifacts
+   - the first launched full promotion runs for `v13` and `v15` also did not leave final benchmark artifacts
+   - root cause:
+     - those long jobs were launched through interactive sessions rather than detached background processes with explicit logs
+   - correction from here:
+     - future long runs will be launched detached and logged explicitly
+275. New hypothesis after item 273:
+   - the small gain from `k=1` suggests cross-round residual averaging is hurting more than helping
+   - if that is true, combining `k=1` with lower `samples_per_round` should stack two anti-noise changes:
+     - less residual smoothing across mismatched rounds
+     - less synthetic within-round duplication noise
+276. Implemented the combined low-`k`, low-sample branch:
+   - new variants:
+     - `teacher_student_blend_v47`
+     - `teacher_student_blend_v48`
+     - `teacher_student_blend_v49`
+     - `teacher_student_blend_v50`
+   - mapping:
+     - `v47` = `v45` backbone with `samples_per_round=2`
+     - `v48` = `v46` backbone with `samples_per_round=2`
+     - `v49` = `v45` backbone with `samples_per_round=1`
+     - `v50` = `v46` backbone with `samples_per_round=1`
+277. Validation for item 276:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v48_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_teacher_student_blend_v50_online_historical_benchmark_defaults_to_samples_1 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
