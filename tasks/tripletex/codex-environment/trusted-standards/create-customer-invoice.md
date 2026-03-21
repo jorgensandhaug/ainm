@@ -114,3 +114,13 @@
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - this is the first production run achieving the theoretical 3-call minimum for the exact-number existing-product create-only invoice shape with mixed VAT
   - persistent sandbox re-proof on 2026-03-21 with analog products `2109`, `1175`, `9974` and comma-separated query confirmed the same 3-call path; invoice returned `amountExcludingVatCurrency=45050` (sandbox 0% only, so `amountCurrency=45050`); readback confirmed all products linked with correct numbers, descriptions, and unit prices
+- the 2026-03-21 production run for `Montanha Lda` / `869972401` / products `Sessão de formação (7733)` + `Licença de software (6106)` + `Manutenção (1351)` / VAT `25%` + `15% food` + `0% exempt` (Portuguese prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=869972401&fields=*` resolved the customer in one call
+  - `GET /product?number=7733,6106,1351&fields=*` (comma-separated, OR semantics) resolved all 3 products in one call — second production confirmation of the comma-separated `number` query approach
+  - products carried correct `vatType.id` values: `3` (25%), `31` (15%), `6` (0%); reusing them on the invoice lines with explicit `vatType: { id: product.vatType.id }` produced correct totals
+  - `POST /invoice?sendToCustomer=false` hit the known bank-account validation (`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`)
+  - bank-account repair: `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` -> retry `POST /invoice?sendToCustomer=false` succeeded
+  - final invoice: `amountExcludingVatCurrency=36350` / `amountCurrency=43625`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - this is the first production run achieving the optimal 6-call path (3 core + 3 bank-account repair) for the exact-number existing-product create-only invoice shape with bank-account validation
+  - persistent sandbox re-proof on 2026-03-21 confirmed the product-linked invoice with same amounts (`amountExcludingVatCurrency=36350`) in sandbox (0% VAT only, so `amountCurrency=36350`)

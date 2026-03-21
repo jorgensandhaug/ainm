@@ -99,6 +99,16 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - the `GET /municipality` call was unnecessary — sandbox proof later confirmed `POST /division` with hardcoded `municipality: { id: 1 }` succeeds; optimal count for this branch is 7 calls
 - sandbox proof on 2026-03-21 confirmed `POST /division` with hardcoded `municipality: { id: 1 }` creates a valid division without a prior `GET /municipality` read; municipality id `1` exists in every tested account
 - sandbox proof on 2026-03-21 re-confirmed the underconfigured-employee repair-first branch with existing division succeeds in 6 calls with verified payslip `grossAmount=48500` = `41750` + `6750`
+- production run on 2026-03-21 for `Fernando López` / `fernando.lopez@example.org` / `37850` + `9200` (ab1efdb0) exposed critical voucher creation issues:
+  - voucherType ids are NOT stable across accounts — hardcoded `9744848` failed with `422 Ugyldig bilagstype`; correct id for that account was `8145240`
+  - postings WITHOUT explicit `row` field fail with `422 Posteringene på rad 0 er systemgenererte` — Lønnsbilag reserves guiRow 0 for system-generated content
+  - with `row: 1, 2, 3` and dynamically resolved voucherType, voucher creation succeeded
+  - 4 avoidable 422 errors from hardcoded voucherType + missing row fields
+  - optimal path for the no-division underconfigured branch with voucher: 11 calls (was 16 with errors)
+- sandbox proof on 2026-03-21 confirmed:
+  - `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` returns exact match in one call
+  - `GET /ledger/account?number=5000,1920&count=10&fields=*` returns both accounts in one call (saves 1 call vs two separate lookups)
+  - salary/type + voucherType + accounts can be parallelized with `Promise.all`, halving wall-clock time
 
 ## Minimal Safe Flow
 
@@ -131,10 +141,10 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - if that division read returns zero rows and the prompt does not explicitly allow manual vouchers, create a division:
      - `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (leading `9`, weights `[3,2,7,6,5,4,3,2]`, check digit), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call, do NOT use the company's own org number
      - then continue to step 7 with the newly created division id
-6. Resolve salary types with one read once the employee is payroll-ready already or the repair branch is still feasible
-   - `GET /salary/type?count=1000&fields=*`
-   - exact-match the needed type names locally, typically `Fastlønn` and `Bonus`
-   - treat that read as both the salary-type lookup and the wage-feature probe; only investigate `/salary/settings` or `/company/salesmodules` after a live `403`
+6. Resolve salary types, voucher type, and accounts — these 3 reads are independent and SHOULD be parallelized with `Promise.all`:
+   - `GET /salary/type?count=1000&fields=*` — exact-match `Fastlønn` and `Bonus` locally; treat as wage-feature probe; only investigate `/salary/settings` after a live `403`
+   - `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` — resolve account-specific Lønnsbilag voucherType id; do NOT hardcode ids (they vary across accounts)
+   - `GET /ledger/account?number=5000,1920&count=10&fields=*` — resolve both accounts in a single call (comma-separated)
 7. If the employee still lacks payroll prerequisites and the missing state is only the standard underconfigured branch, repair once
    - reuse the division from step `5` (either the existing one or the newly created one); otherwise resolve one now with `GET /division?count=1&fields=*`
    - if `dateOfBirth` is missing, `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
@@ -155,8 +165,8 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - `monthlySalary: <base salary from prompt>`
      - `annualSalary: <base salary * 12>`
    - if `GET /division?count=1&fields=*` returns zero rows and the prompt explicitly allows manual vouchers, switch directly to:
-     - `GET /ledger/account?number=5000,1920&fields=*`
-     - `POST /ledger/voucher` with `voucherType=null` and a balanced two-line gross-salary booking on `5000` and `1920`
+     - `GET /ledger/account?number=5000,1920&count=10&fields=*` (combined single call)
+     - `POST /ledger/voucher` with `voucherType: null` and a balanced two-line gross-salary booking on `5000` and `1920`; postings MUST include explicit `row` field starting from 1
 -8. Create the payroll transaction
    - `POST /salary/transaction?generateTaxDeduction=true` — ALWAYS use generateTaxDeduction=true; without it the payslip has no Skattetrekk spec
    - include:
@@ -167,15 +177,16 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - one `payslips[]` entry for the target employee
      - embedded manual `specifications[]` entries for the requested salary lines
 8a. Create a booked salary voucher (Lønnsbilag) for the ledger entries — the salary transaction only creates a draft payslip with no ledger postings
-   - `GET /ledger/account?number=5000&count=1&fields=*` to resolve account 5000 (Lønn til ansatte)
-   - `GET /ledger/account?number=1920&count=1&fields=*` to resolve account 1920 (Bankinnskudd)
+   - voucherType and account ids should already be resolved from step 6 (parallel reads)
    - `POST /ledger/voucher?sendToLedger=true` with:
-     - `voucherType: { id: 9744848 }` (Lønnsbilag — stable across all tested instances)
+     - `voucherType: { id: <resolved Lønnsbilag id> }` — do NOT hardcode; ids vary across accounts
      - `date: <payroll date>`
      - `description: "Lønn <month> <year> - Fastlønn <amount> + Bonus <amount>"`
-     - one debit posting per salary line on account 5000
-     - one credit posting on account 1920 for the negative gross total
-   - sandbox proof 2026-03-21: this creates a booked voucher (number > 0) with correct postings
+     - CRITICAL: every posting MUST include explicit `row` field starting from 1 (e.g. `row: 1`, `row: 2`, `row: 3`); without `row`, Lønnsbilag reserves guiRow 0 for system-generated content → `422`
+     - one debit posting per salary line on account 5000, each with its own `row` value
+     - one credit posting on account 1920 for the negative gross total, with the next `row` value
+   - production proof 2026-03-21 (ab1efdb0): without `row` field, 4 consecutive 422 errors; with `row: 1, 2, 3`, succeeded immediately
+   - sandbox proof 2026-03-21: with `row` → voucher number=387; without `row` → `422 systemgenererte`
 8b. Reuse the write response first
    - keep the returned transaction id
    - the salary transaction POST 201 proves the payslip was created; the voucher POST proves the ledger entries exist; do not add verification GETs by default
@@ -235,34 +246,39 @@ Replace the ids and amounts with the task-specific values.
   - identifies one existing employee by email
   - asks to run payroll for one month
   - gives a base salary and one bonus amount
-- the winning flow is usually:
+- the winning flow for payroll-ready employees (7 calls):
   1. `GET /employee?email=...&count=10&fields=*`
-  2. if that employee read keeps the employments too sparse to judge the payroll period, `GET /employee/employment?employeeId=...&count=20&fields=*`
-  3. `GET /salary/type?count=1000&fields=*`
-  4. `POST /salary/transaction`
-- for the exact task-12-like branch where the first employee read shows `dateOfBirth=null` and `employments=[]`, the repair-first path is:
+  2. (conditional) `GET /employee/employment?employeeId=...&count=20&fields=*` if employments too sparse
+  3-5. parallel `Promise.all`: `GET /salary/type` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
+  6. `POST /salary/transaction?generateTaxDeduction=true`
+  7. `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with `row: 1, 2, 3`
+- for the underconfigured branch with existing division (10 calls):
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*`
   3. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
   4. `POST /employee/employment`
-  5. `GET /salary/type?count=1000&fields=*`
-  6. `POST /salary/transaction`
-- for the exact no-division branch without manual-voucher fallback (7 calls, sandbox-confirmed 2026-03-21):
+  5. `POST /employee/employment/details`
+  6-8. parallel `Promise.all`: `GET /salary/type` + `GET /ledger/voucherType?name=Lønnsbilag` + `GET /ledger/account?number=5000,1920`
+  9. `POST /salary/transaction?generateTaxDeduction=true`
+  10. `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with `row: 1, 2, 3`
+- for the no-division branch without manual-voucher fallback (11 calls):
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*` → zero rows
-  3. `POST /division` with `name: "Hovudavdeling"`, generated valid Norwegian 9-digit org number (weights `[3,2,7,6,5,4,3,2]`, leading `9`), `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call, do NOT use the company's own org number
+  3. `POST /division` with `name: "Hovudavdeling"`, generated valid org number, `startDate`, `municipalityDate`, `municipality: { id: 1 }`
   4. `PUT /employee/{id}` with placeholder `dateOfBirth: "1990-01-01"`
-  5. `POST /employee/employment` with new `division.id`, first day of payroll month, `isMainEmployer: true`, `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-  6. `GET /salary/type?count=1000&fields=*`
-  7. `POST /salary/transaction`
+  5. `POST /employee/employment`
+  6. `POST /employee/employment/details`
+  7-9. parallel `Promise.all`: `GET /salary/type` + `GET /ledger/voucherType?name=Lønnsbilag` + `GET /ledger/account?number=5000,1920`
+  10. `POST /salary/transaction?generateTaxDeduction=true`
+  11. `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with `row: 1, 2, 3`
   - do NOT add verification GETs — POST 201 proves the state
-- for the exact fallback-permitted no-division branch, the lower-call path is:
+- for the exact fallback-permitted no-division branch (4 calls):
   1. `GET /employee?email=...&count=10&fields=*`
   2. `GET /division?count=1&fields=*`
-  3. if that division read returns zero usable rows, `GET /ledger/account?number=5000,1920&fields=*`
-  4. `POST /ledger/voucher`
-- do not add verification GETs by default; `POST /salary/transaction` response is always sparse (no amounts), but POST 201 already proves the payroll was created with the exact amounts sent
-- only branch into feature/module investigation after a live `403`, not just because the employee is underconfigured
+  3. `GET /ledger/account?number=5000,1920&count=10&fields=*`
+  4. `POST /ledger/voucher` with `voucherType: null`, postings with `row: 1, 2`
+- do not add verification GETs by default; POST 201 already proves the state
+- only branch into feature/module investigation after a live `403`
 
 ## Payroll Prerequisite Trap
 
@@ -306,7 +322,11 @@ Replace the ids and amounts with the task-specific values.
 - Do not guess a business/sub-entity setup just because payroll validation mentions `virksomhet`
 - ALWAYS add `POST /employee/employment/details` after employment creation; 15+ production runs WITHOUT it scored 0/8; `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored
 - ALWAYS use `?generateTaxDeduction=true` on `POST /salary/transaction`; without it the payslip lacks a Skattetrekk specification
-- ALWAYS create a Lønnsbilag voucher (`POST /ledger/voucher?sendToLedger=true` with `voucherType: { id: 9744848 }`) after the salary transaction; the salary transaction creates only a draft payslip with no ledger entries, empty compilation, and number=0
+- ALWAYS create a Lønnsbilag voucher (`POST /ledger/voucher?sendToLedger=true`) after the salary transaction; the salary transaction creates only a draft payslip with no ledger entries, empty compilation, and number=0
+- Do NOT hardcode voucherType ids (e.g. `9744848`) — they vary across accounts; always resolve via `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*`; production run ab1efdb0 wasted 4 calls because of hardcoded id mismatch
+- ALWAYS include explicit `row` field (starting from 1) on every posting in `POST /ledger/voucher` when using Lønnsbilag voucherType — without `row`, postings default to guiRow 0 which is system-reserved, causing `422 systemgenererte`; this is universal across all accounts
+- Use `GET /ledger/account?number=5000,1920&count=10&fields=*` (comma-separated) to resolve both accounts in one call instead of two
+- Parallelize independent reads with `Promise.all`: salary/type + voucherType + accounts can all run concurrently
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
 - When the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed

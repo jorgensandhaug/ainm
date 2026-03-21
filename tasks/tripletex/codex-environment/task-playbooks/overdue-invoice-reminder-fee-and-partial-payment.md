@@ -215,10 +215,17 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - fee invoice `#4` (`id=2147613830`, amount `50`)
   - payment type `36723119`
   - remaining outstanding `11250`
-- the `6`-call path is confirmed optimal across 3 production runs and multiple sandbox proofs; no lower-call path exists
+- the `6`-call path is confirmed optimal across 5 production runs and multiple sandbox proofs; no lower-call path exists
 - production run `prod-2026-03-21-184424564Z-d022ee19` hit the `row 0 systemgenererte` trap on voucher POST without explicit `row`, wasting 1 call (7 total):
   - overdue invoice `#1` (`id=2147625691`), customer `108395937`, outstanding `19687.5`
   - voucher POST without `row` failed `422`; retry with `row: 1` and `row: 2` succeeded as voucher `#1` (`id=609094799`)
   - fee invoice `#4` (`id=2147625942`, amount `70`), payment type `36850274`, outstanding reduced to `14687.5`
   - sandbox re-proof confirmed `row` omission always fails — it is not account-specific
   - **critical fix**: always include `row: 1` and `row: 2` on voucher postings
+- production run `prod-2026-03-21-203931462Z-00a15d2d` matched the trusted `6`-call path exactly for a French prompt with fee `50`, 0 errors:
+  - overdue invoice `#2` (`id=2147635863`), customer `108419715`, outstanding `29375`
+  - voucher `#1` (`id=609142150`)
+  - fee invoice `#4` (`id=2147635928`, amount `50`)
+  - payment type `37216892`
+  - remaining outstanding `24375`
+- the `6`-call path is now confirmed across 5 production runs (`pt`, `de`, `es`, `nb`, `fr`) and multiple sandbox proofs; no lower-call path exists

@@ -1,0 +1,8 @@
+{
+  "prompt": "Wir haben Fehler im Hauptbuch für Januar und Februar 2026 entdeckt. Überprüfen Sie alle Belege und finden Sie die 4 Fehler: eine Buchung auf das falsche Konto (Konto 6340 statt 6390, Betrag 3050 NOK), ein doppelter Beleg (Konto 6860, Betrag 1650 NOK), eine fehlende MwSt.-Zeile (Konto 4500, Betrag ohne MwSt. 22900 NOK, fehlende MwSt. auf Konto 2710), und ein falscher Betrag (Konto 6860, 24450 NOK gebucht statt 10850 NOK). Korrigieren Sie alle Fehler mit entsprechenden Korrekturbuchungen.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "HIsrHBuH0J2SExiuVphsDc17KD5mRkdFDJlhMx5CBD4"
+  }
+}

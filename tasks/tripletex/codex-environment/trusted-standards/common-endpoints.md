@@ -401,12 +401,15 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - **GET query param pitfall**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
   - **GET query param pitfall**: `customerOrganizationNumber`, `customerOrgNumber`, and `currency` are NOT valid query params — they are silently ignored; the only valid customer filter is `customerId` (internal ID); always filter locally after `currency(*)` / `customer(*)` expansion
   - **GET expansion pitfall**: `fields=*` without `currency(*)` returns `currency` as a sparse link stub without `code`; always use `fields=*,currency(*)` when currency matters
+  - **GET expansion pitfall**: `fields=*` without `customer(*)` returns `customer` as a sparse link without `name` or `organizationNumber`; without `orderLines(*)` returns `orderLines` as ID-only references without `description`; for invoice payment locate, always use `fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))`
+  - **GET query param pitfall**: `invoiceStatus` is NOT a valid query param and is silently ignored; filter locally by positive `amountCurrencyOutstanding` instead
 - `/invoice/{id}`
   - `GET` read
 - `/invoice/{id}/:createCreditNote`
   - `PUT` create full credit note for an existing outgoing invoice
 - `/invoice/{id}/:payment`
   - `PUT` register payment
+  - **critical**: `paymentDate`, `paymentTypeId`, `paidAmount` (and optional `paidAmountCurrency`) are all **query parameters**, NOT a JSON request body; sending them as JSON body causes `422` with all fields reported as null
 - `/invoice/{id}/:send`
   - `PUT` send
 - `/invoice/paymentType`
@@ -718,6 +721,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /ledger/posting` (not openPost) requires `dateFrom` and `dateTo` (not `date`)
   - `dateTo` on `/ledger/posting` is also exclusive (same as `/ledger/voucher` and `/balanceSheet`); for full-month coverage always use first-of-next-month
   - production 2026-03-21 task 23 wasted 2 calls with `422` because `dateFrom`/`dateTo` were sent instead of `date` on the `openPost` variant
+
+## Ledger Voucher Type
+- `/ledger/voucherType`
+  - `GET` search — supports `?name=<exact name>&count=1&fields=*` filter for targeted lookup (e.g. `?name=Lønnsbilag`)
+  - voucherType ids are **account-specific** — do NOT hardcode them; always resolve by name
+  - production proof 2026-03-21: hardcoded Lønnsbilag id `9744848` (from sandbox) failed with `422 Ugyldig bilagstype` in production where the id was `8145240`
 
 ## Ledger Voucher
 - `/ledger/voucher`

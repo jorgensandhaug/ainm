@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer 28 timar for Bjørn Kvamme (bjrn.kvamme@example.org) på aktiviteten \"Analyse\" i prosjektet \"Datamigrering\" for Fjelltopp AS (org.nr 986191127). Timesats: 1200 kr/t. Generer ein prosjektfaktura til kunden basert på dei registrerte timane.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "JEITSuKv8LRFeWzdbziTDaVzkzIk8t4V4haqodowfNI"
+  }
+}

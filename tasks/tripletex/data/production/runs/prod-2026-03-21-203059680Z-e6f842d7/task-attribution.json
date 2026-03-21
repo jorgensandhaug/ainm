@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-203059680Z-e6f842d7",
+  "request_id": "476399ab",
+  "prompt_raw": "Crie uma fatura para o cliente Montanha Lda (org. nº 869972401) com três linhas de produto: Sessão de formação (7733) a 22950 NOK com 25 % IVA, Licença de software (6106) a 10250 NOK com 15 % IVA (alimentos), e Manutenção (1351) a 3150 NOK com 0 % IVA (isento).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:32:28Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:30:59.917Z",
+  "after_captured_at": "2026-03-21T20:32:59.481Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "09",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:32:59.483Z"
+}

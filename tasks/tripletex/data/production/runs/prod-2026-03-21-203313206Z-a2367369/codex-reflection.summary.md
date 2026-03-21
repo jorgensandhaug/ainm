@@ -1,0 +1,1 @@
+Score reflection written. Key findings: task 19, correctness 0.9091 (20/22), Check 10 failed — same check also failed in the 9th production run (STYRK 3313). Efficiency was optimal at 3 calls/0 errors. The gap is a systematic correctness issue, likely a missing field (possibly default standard worktime) rather than an API inefficiency.

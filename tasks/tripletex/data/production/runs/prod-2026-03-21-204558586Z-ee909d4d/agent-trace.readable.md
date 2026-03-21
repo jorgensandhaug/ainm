@@ -1,0 +1,656 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 3bb849a4-20a8-41b8-a42d-ae8308d6b598
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/3bb849a4-20a8-41b8-a42d-ae8308d6b598.jsonl
+- completed: true
+- assistant_messages: 1
+- tool_calls: 7
+- tool_results: 7
+
+## 2026-03-21T20:45:59.298Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7140 usada em vez de 7100, valor 2250 NOK), um voucher duplicado (conta 7000, valor 4400 NOK), uma linha de IVA em falta (conta 6500, valor sem IVA 14100 NOK falta IVA na conta 2710), e um valor incorreto (conta 6590, 13150 NOK registado em vez de 11650 NOK). Corrija todos os erros com lançamentos corretivos.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+94Mppa0ZUN1qjO2795r9pJe7kRuFcZl1NM0GdyJuxj0
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+## 2026-03-21T20:46:05.443Z tool_call
+tool: Read
+call_id: toolu_vrtx_01MkDqn9hzKDXAQAwxfzsVra
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md"
+}
+```
+
+## 2026-03-21T20:46:05.447Z tool_call
+tool: Glob
+call_id: toolu_vrtx_0135BrHVmsooxxM5HdXkY268
+
+```json
+{
+  "pattern": "trusted-standards/*.md",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-21T20:46:05.448Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01XvUJ6Zkaf9WrTkn3RVXLBE
+
+```json
+{
+  "pattern": "task-playbooks/*.md",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-21T20:46:05.455Z tool_result
+tool: Glob
+call_id: toolu_vrtx_0135BrHVmsooxxM5HdXkY268
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project-activity-with-budget.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/README.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/onboard-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-order-invoice-and-register-payment.md
+```
+
+## 2026-03-21T20:46:05.457Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01XvUJ6Zkaf9WrTkn3RVXLBE
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/onboard-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-customer-invoice-payment.md
+```
+
+## 2026-03-21T20:46:06.528Z tool_result
+tool: Read
+call_id: toolu_vrtx_01MkDqn9hzKDXAQAwxfzsVra
+
+```text
+File content (28970 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-21T20:46:10.069Z tool_call
+tool: Read
+call_id: toolu_vrtx_01K1SjnRhhUq62CpH5tcQmTC
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/correct-ledger-errors.md"
+}
+```
+
+## 2026-03-21T20:46:10.070Z tool_call
+tool: Read
+call_id: toolu_vrtx_018hNcganvxMRwkhzzgG5hAz
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/correct-ledger-errors.md"
+}
+```
+
+## 2026-03-21T20:46:11.192Z tool_result
+tool: Read
+call_id: toolu_vrtx_01K1SjnRhhUq62CpH5tcQmTC
+
+```text
+     1→# Correct Ledger Errors (Review + Corrective Entries)
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- the prompt describes specific errors discovered in the general ledger for a date range
+    10→- errors include some or all of: wrong account posting, duplicate voucher, missing VAT line, incorrect amount
+    11→- prompt gives exact account numbers, amounts, and the nature of each error
+    12→- correction is via new journal entries (écritures correctives / korreksjonsbilag)
+    13→
+    14→## Do Not Use This Standard If
+    15→- the task is a month-end or year-end closing (use the closing-specific playbooks instead)
+    16→- the task requires creating new entities (customers, suppliers, projects) before corrections
+    17→- the errors are in supplier invoices or customer invoices that need credit notes (use the credit note standard instead)
+    18→
+    19→## Standard Flow (3 calls — combined corrective voucher)
+    20→1. `GET /ledger/account?number=<all-error-accounts>,<correction-target-accounts>&fields=id,number,vatType(id)`
+    21→2. `GET /ledger/voucher?dateFrom=<period-start>&dateTo=<first-of-month-after-period-end>&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000` — dateTo is EXCLUSIVE, so for Jan-Feb use `dateTo=2026-03-01`
+    22→3. `POST /ledger/voucher?sendToLedger=true` — single combined voucher with all correction lines
+    23→4. verify from the write response
+    24→5. stop
+    25→
+    26→## Critical: Nested Field Expansion
+    27→- `fields=*` on `/ledger/voucher` returns postings as sparse link stubs (`{id, url}`) — account numbers are NOT included
+    28→- `fields=*` on `/ledger/posting` also returns account as sparse stub (`{id, url}`)
+    29→- to get account numbers inline, use explicit nested expansion: `postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)`
+    30→- sandbox-verified 2026-03-21: `account(id,number)` returns `{ id: 424191132, number: 6540 }` inline
+    31→- also expand `supplier(id)` because corrections on account 2400 (Leverandørgjeld) require the supplier ID
+    32→
+    33→## Step Details
+    34→
+    35→### Step 1: Account Lookup
+    36→```
+    37→GET /ledger/account?number=<all-needed>&fields=id,number,vatType(id)
+    38→```
+    39→Include ALL accounts mentioned in the prompt — both the erroneous accounts AND the correction target accounts (e.g., 6860 if the prompt says 6540 was used instead of 6860).
+    40→
+    41→Include `vatType(id)` to detect each account's default/locked vatType. This is critical for reclassification: if the wrong account and correct account have different vatType locks, the correction lines must use different vatTypes on each side (see Reclassification section).
+    42→
+    43→Pre-resolving all account IDs avoids a second GET later, since correction-target accounts (like 6860) typically don't appear in any existing posting.
+    44→
+    45→### Step 2: Voucher Discovery with Nested Expansion
+    46→```
+    47→GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000
+    48→```
+    49→**CRITICAL: `dateTo` is exclusive** ("To and excluding"). Sandbox-verified 2026-03-21: the error message explicitly says `'To and excluding'`. To include all of February, use `dateTo=2026-03-01`, NOT `dateTo=2026-02-28`. For Jan+Feb, use `dateFrom=2026-01-01&dateTo=2026-03-01`.
+    50→From this response:
+    51→- identify wrong-account and incorrect-amount vouchers by matching the stated account number plus the prompt amount on that account
+    52→- **identify the duplicate** using this priority order:
+    53→  1. **PRIMARY: description keyword** — scan all vouchers on the prompt account for description containing "duplikat" (or "duplicate") with the prompt amount; this is the most reliable detector because the test environment often has only the duplicate voucher (not the original), making signature grouping fail
+    54→  2. **SECONDARY: signature grouping** — group vouchers on the prompt account into normalized posting signatures and select the repeated signature; the prompt amount confirms the group
+    55→  3. **TERTIARY: single-entry fallback** — if only one voucher matches the prompt account + amount and no signature duplicate exists, that single entry IS the duplicate to reverse
+    56→  - **CRITICAL**: do NOT rely solely on signature grouping — production run 0607a659 proved that a "Kontorrekvisita duplikat" voucher on 7100/2000 was the ONLY 7100/2000 entry, so signature grouping found zero duplicates and the script crashed twice, wasting 4 API calls
+    57→- also use description keywords: "feil" (error), "uten MVA" (without VAT)
+    58→- extract the counterpart (contra) account **ID** and any supplier ID from the original postings — the nested expansion provides `account.id` for all counterpart accounts, so no second account lookup is needed for counterparts
+    59→- the counterpart posting is the opposite-signed posting that is NOT the prompt account and NOT account 2710
+    60→- **extract the `vatType.id` from each original expense posting** — use this exact vatType on correction lines instead of assuming vatType 1; some 7xxx accounts (e.g., 7100) are locked to vatType 0 and will 422 if forced to vatType 1
+    61→- for the missing VAT case, check whether the original voucher has a `2710` posting to distinguish "exact branch" (no 2710 at all) from "other branch" (2710 exists but VAT is too low)
+    62→
+    63→### Step 3: Combined Corrective Voucher
+    64→One `POST /ledger/voucher?sendToLedger=true` with all correction lines in a single voucher.
+    65→
+    66→Use the last day of the error period (or today) as the voucher date.
+    67→
+    68→#### Wrong Account (reclassification)
+    69→```
+    70→{ row: N, account: { id: <wrongAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: ompostering fra <wrong>" },
+    71→{ row: N+1, account: { id: <correctAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, vatType: { id: <targetAcctVatTypeId> }, description: "Korreksjon: ompostering til <correct>" },
+    72→```
+    73→- **reversal line**: copy `vatType` from the original posting — this properly reverses the original VAT effect (including any auto-generated 2710 lines)
+    74→- **target line**: use the target account's `vatType.id` from the Step 1 account lookup — this respects the target account's vatType lock
+    75→- **CRITICAL: source and target accounts may have different vatType locks**. Sandbox-verified 2026-03-21: account 7140 (Reisekostnad) has default vatType 12, account 7100 (Bilgodtgjørelse oppgavepliktig) is locked to vatType 0. Using vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`). Using vatType 12 on 7140 and vatType 0 on 7100 → success.
+    76→- if source and target accounts share the same vatType, using the same vatType on both is correct (auto-generated 2710 lines cancel out)
+    77→- do NOT hardcode `vatType: { id: 1 }` — always read from original posting + account lookup
+    78→- net effect: expense moves from wrong account to correct account
+    79→
+    80→#### Duplicate Reversal
+    81→```
+    82→{ row: N, account: { id: <expenseAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: reversering duplikat" },
+    83→{ row: N+1, account: { id: <counterpartAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, description: "Korreksjon: reversering duplikat" },
+    84→```
+    85→- **copy the `vatType` from the original expense posting** for the reversal line
+    86→- alternative: use `PUT /ledger/voucher/{id}/:reverse?date=YYYY-MM-DD` which auto-reverses all lines — but this uses a separate API call; the combined voucher approach saves calls
+    87→- if the counterpart posting had vatType=0 (no VAT on bank), omit vatType on the counterpart line
+    88→
+    89→#### Missing VAT
+    90→**CRITICAL**: NEVER use expense-account-plus-`vatType: { id: 1 }` as a VAT correction mechanism. The auto-generated 2710 amount from vatType=1 will not match what the scorer expects. The 2026-03-21 production run (task 24, Check 3) failed exactly because of this — the agent posted `6500 +6187.5 gross, vatType=1`, which auto-generated only `2710 +1237.5`, and the scorer rejected it.
+    91→
+    92→**Always use direct 2710 postings for VAT corrections.** Two sub-cases:
+    93→
+    94→##### Case A: No `2710` posting exists in the original voucher
+    95→The full VAT is missing. Post `net_amount * 0.25` directly on 2710:
+    96→```
+    97→{ row: N, account: { id: <vatAcctId_2710> }, amountGross: <net_amount * 0.25>, amountGrossCurrency: <net_amount * 0.25>, description: "Korreksjon: manglende MVA" },
+    98→{ row: N+1, account: { id: <counterpartAcctId> }, amountGross: -<net_amount * 0.25>, amountGrossCurrency: -<net_amount * 0.25>, supplier: { id: <supplierId> }, description: "Korreksjon: manglende MVA" },
+    99→```
+   100→- example: prompt says `6500`, `18350 excl. VAT`, missing `2710` → add `2710 +4587.5` and counterpart `-4587.5`
+   101→
+   102→##### Case B: `2710` posting exists but VAT is too low (net was booked as gross)
+   103→When `net_amount` (excl. VAT) was booked as gross (VAT-inclusive), the original 2710 is `net_amount - net_amount/1.25` which is too low. The correct VAT is `net_amount * 0.25`. Post the shortfall directly on 2710:
+   104→```
+   105→{ row: N, account: { id: <vatAcctId_2710> }, amountGross: <vat_shortfall>, amountGrossCurrency: <vat_shortfall>, description: "Korreksjon: manglende MVA" },
+   106→{ row: N+1, account: { id: <expenseAcctId> }, amountGross: <expense_net_shortfall>, amountGrossCurrency: <expense_net_shortfall>, vatType: { id: 0 }, description: "Korreksjon: manglende MVA" },
+   107→{ row: N+2, account: { id: <counterpartAcctId> }, amountGross: -<total_shortfall>, amountGrossCurrency: -<total_shortfall>, supplier: { id: <supplierId> }, description: "Korreksjon: manglende MVA" },
+   108→```
+   109→Where:
+   110→- `correct_vat = net_amount * 0.25`
+   111→- `vat_shortfall = correct_vat - existing_2710_amount`
+   112→- `expense_net_shortfall = net_amount - existing_expense_net`
+   113→- `total_shortfall = vat_shortfall + expense_net_shortfall`
+   114→
+   115→Example: prompt `6500`, `24750 excl. VAT`, original has 2710=4950, expense net=19800:
+   116→- `correct_vat = 24750 * 0.25 = 6187.5`
+   117→- `vat_shortfall = 6187.5 - 4950 = 1237.5`
+   118→- `expense_net_shortfall = 24750 - 19800 = 4950`
+   119→- `total_shortfall = 1237.5 + 4950 = 6187.5`
+   120→- Post: `2710 +1237.5`, `6500 +4950 (vatType=0)`, `2400 -6187.5`
+   121→
+   122→**Common rules for both cases:**
+   123→- if counterpart is account `2400`, include `supplier: { id: ... }`
+   124→- use `vatType: { id: 0 }` on any expense-account correction line to prevent auto-VAT generation
+   125→- do NOT use `vatType: { id: 1 }` on any line — it creates auto-generated 2710 postings that confuse scoring
+   126→
+   127→#### Incorrect Amount
+   128→```
+   129→{ row: N, account: { id: <expenseAcctId> }, amountGross: -<difference>, amountGrossCurrency: -<difference>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: feil beløp" },
+   130→{ row: N+1, account: { id: <counterpartAcctId> }, amountGross: <difference>, amountGrossCurrency: <difference>, description: "Korreksjon: feil beløp" },
+   131→```
+   132→- difference = posted_gross - correct_gross (e.g., 10750 - 5500 = 5250)
+   133→- **copy the `vatType` from the original posting** — do NOT hardcode vatType 1; accounts like 7100 are locked to vatType 0
+   134→- if original had vatType 1, Tripletex auto-adjusts both net and VAT proportionally
+   135→- if original had vatType 0, the gross IS the net and no VAT adjustment is needed
+   136→
+   137→## Reuse From Write Response
+   138→- from `POST /ledger/voucher`:
+   139→  - `value.id`, `value.number`
+   140→  - returned postings with amounts, including auto-generated VAT lines on 2710
+   141→
+   142→## Verification
+   143→- default verification is zero extra calls after the voucher write
+   144→- the write response proves: voucher id, posting accounts, net/gross amounts, and auto-generated VAT lines
+   145→- do not add a follow-up `GET /balanceSheet` or `GET /ledger/posting` — scoring is based on actual ledger postings which are already created
+   146→
+   147→## Alternative: Separate Vouchers (6 calls)
+   148→If the scorer requires separate corrective vouchers per error, use:
+   149→1. `GET /ledger/account?number=...&fields=id,number` (1 call)
+   150→2. `GET /ledger/voucher` with nested expansion (1 call)
+   151→3. `PUT /ledger/voucher/{id}/:reverse?date=...` for duplicate (1 call)
+   152→4-6. `POST /ledger/voucher` for each remaining error (3 calls)
+   153→
+   154→Total: 6 calls. Use this path only if the combined approach was proven wrong by scoring.
+   155→
+   156→## Known Recovery Branches
+   157→- if `GET /ledger/account` does not return a needed account number, the account does not exist; create it with `POST /ledger/account { number: <num>, name: "<name>" }` before the voucher write
+   158→- if `POST /ledger/voucher` fails with `422 postings.supplier.id` on a 2400 posting, extract the supplier ID from the original voucher's 2400 posting using the nested expansion `supplier(id)`
+   159→- if `POST /ledger/voucher` fails with `422 postings.vatType.id` saying an account is locked to mva-kode N, re-submit with `vatType: { id: N }` on that account's lines — but this wastes a call; always check each account's `vatType.id` from the Step 1 lookup to avoid this
+   160→- if `PUT /ledger/voucher/{id}/:reverse` fails (e.g., voucher type not reversible), fall back to a manual corrective POST that reverses all lines
+   161→
+   162→## Script Robustness: Avoid Crash-Induced Wasted Calls
+   163→- Every error detection (wrong account, duplicate, missing VAT, incorrect amount) MUST have null safety
+   164→- After the detection loop, verify all 4 error variables are non-null before building correction lines
+   165→- If any error is not found, log a clear error message and try alternative detection strategies BEFORE crashing
+   166→- The duplicate detection cascade MUST be: description keyword → signature grouping → single-entry fallback → error
+   167→- Production run 0607a659 crashed twice due to null `dupPosting`, wasting 4 of 7 total calls
+   168→- The script should succeed on the FIRST execution attempt — every re-execution doubles the GET count
+   169→
+   170→## OpenAPI / Sandbox Status
+   171→- persistent sandbox verified 2026-03-21:
+   172→  - nested field expansion `account(id,number)` on voucher postings returns inline account data
+   173→  - `supplier(id)` expansion returns supplier ID inline on postings
+   174→  - combined 8-line corrective voucher with all 4 error corrections succeeded in a single POST
+   175→  - exact correction path stayed `3` calls after discovery: `GET /ledger/account` -> `GET /ledger/voucher` with nested expansion -> `POST /ledger/voucher` combined correction
+   176→  - 6-call path (2 GETs + 1 PUT reverse + 3 POSTs) also verified
+   177→  - `PUT /ledger/voucher/{id}/:reverse?date=2026-02-28` returned 200 with reversal voucher
+   178→  - posting to 2400 without supplier.id → 422 (`Leverandør mangler.`)
+   179→  - vatType=1 on both sides of reclassification auto-generates matching VAT lines that cancel out
+   180→  - exact no-`2710` missing-VAT proof on `6500 18350 excl. VAT` succeeded with direct `2710 +4587.5` and counterpart `-4587.5`
+   181→  - the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` was proven wrong for that exact shape: Tripletex created only `2710 +917.5` and `6500 amount=3670`, which understates VAT and overstates expense
+   182→- production run 2026-03-21 (correct-ledger-errors, first run):
+   183→  - account 7100 (Bilgodtgjørelse oppgavepliktig) is locked to vatType 0; using vatType 1 → 422 (`Kontoen 7100 er låst til mva-kode 0`)
+   184→  - accounts 7000 and 7300 accept both vatType 0 and 1 (default vatType 1, but vatType 0 also works)
+   185→  - counterpart account IDs (1920, 2400) were available from the voucher response's nested `account(id,number)` expansion — a second `GET /ledger/account` for counterparts was unnecessary
+   186→  - missing VAT case: the 6500/24750 voucher already had a 2710 posting (4950) → "other branch" applied, not "exact branch"
+   187→  - run used 6 calls instead of ideal 3 due to: 1 redundant debug GET, 1 unnecessary account lookup, 1 avoidable 422
+   188→- production run 2026-03-21 (correct-ledger-errors, second run — 0f4ba20a):
+   189→  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+   190→  - errors: 6340→6390 (2300, vatType 1), dup 6860 (3150, vatType 1), missing VAT 4300 (16550 excl, had 2710 → "other branch"), wrong amount 6300 (17800→8900, vatType 0)
+   191→  - vatType correctly copied from originals: vatType 1 for 6340/6860/4300, vatType 0 for 6300
+   192→  - "other branch" correctly detected (original 4300 voucher had 2710 posting) — but correction used 4137.5 gross on 4300 with vatType 1, which auto-generated 827.5 on 2710; **this likely failed Check 3** (same anti-pattern as 0607a659); should have used direct 2710 posting per Case B
+   193→  - supplier.id correctly included for 2400 counterpart in missing VAT correction
+   194→  - counterpart account IDs (1920, 2400) all came from voucher response nested expansion — no second account lookup needed
+   195→  - **latent bug**: used `dateTo=2026-02-28` instead of `dateTo=2026-03-01`; succeeded only because all error vouchers were dated before Feb 28; `dateTo` is exclusive so Feb 28 vouchers would have been missed
+   196→- production run 2026-03-21 (correct-ledger-errors, third run — 0607a659):
+   197→  - errors: 6540→6860 (4800, vatType 1), dup 7100 (2000, vatType 0), missing VAT 4500 (14500 excl, had 2710 → "other branch"), wrong amount 7100 (21650→17900, vatType 0)
+   198→  - **script crashed twice due to duplicate detection failure**, wasting 4 API calls (2 GET pairs)
+   199→  - root cause: only ONE voucher had 7100/2000 (desc="Kontorrekvisita duplikat"); signature grouping requires 2+ matching entries to identify a duplicate, so it found nothing; `dupPosting` was null → TypeError
+   200→  - fix: use description keyword "duplikat" as PRIMARY detector, with signature grouping and single-entry fallback as secondary/tertiary
+   201→  - after fix: third execution succeeded with 3 calls (GET accounts + GET vouchers + POST correction), 0 errors
+   202→  - total calls: 7 (2+2+3 across 3 script executions), 4 wasted from crashes
+   203→  - 3/4 corrections passed, **Check 3 (missing VAT) failed** — scored 2.25/6 (correctness 0.75)
+   204→  - **Check 3 root cause**: used expense 4500 +3625 with vatType=1 ("other branch"), which auto-generated 2710 +725; scorer rejected this — requires direct 2710 posting per Case B in trusted standard
+   205→  - correct approach: 2710 +725 (vat_shortfall), 4500 +2900 (expense_shortfall, vatType=0), 2400 -3625 with supplier
+   206→  - the script ignored the trusted standard's own Case B guidance and used the simpler but wrong expense+vatType=1 pattern
+   207→  - `dateTo=2026-03-01` was correctly used (exclusive, includes all of Feb)
+   208→  - sandbox confirms: duplikat-labeled vouchers may be the ONLY entry on that account+amount (no original to pair with), so signature grouping alone is insufficient
+   209→- production run 2026-03-21 (correct-ledger-errors, fourth run — 397faff2):
+   210→  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+   211→  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, had 2710=2290 → Case B), wrong amount 6300 (8200→5800, vatType 0)
+   212→  - Case B correctly applied: original 6540 gross=11450 net=9160 2710=2290; posted 2710 +572.50, 6540 +2290 (vatType=0), 2400 -2862.50 with supplier
+   213→  - vatType correctly copied: 1 for 6500 reclassification (auto-generated ±1470 on 2710 cancel out), 0 for 7100 dup and 6300 wrong-amount
+   214→  - duplicate found via description keyword cascade ("duplikat" in voucher description), no signature grouping needed
+   215→  - counterpart accounts (1920 bank, 2400 supplier with ID) all from voucher response nested expansion
+   216→  - `dateTo=2026-03-01` correctly used (exclusive)
+   217→  - this is the first run to correctly use Case B direct-2710 posting in production and achieve 3 calls with 0 errors on all 4 correction types
+   218→- production run 2026-03-21 (correct-ledger-errors, fifth run — 7fed6a02):
+   219→  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+   220→  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, had 2710=1070 → Case B), wrong amount 7100 (8550→6750, vatType 0)
+   221→  - Case B correctly applied: existing 2710=1070, vatShortfall=267.5, expenseNetShortfall=1070, totalShortfall=1337.5; posted 2710 +267.5, 7300 +1070 (vatType=0), 2400 -1337.5 with supplier
+   222→  - vatType correctly copied: 1 for 6340/6390 reclassification, 0 for 6300 dup and 7100 wrong-amount
+   223→  - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
+   224→  - counterpart accounts: 1920 (bank) for reclassification/dup/wrong-amount, 2400 (supplier ID 108392217) for missing VAT
+   225→  - `dateTo=2026-03-01` correctly used (exclusive)
+   226→  - second consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct with Case B
+   227→- production run 2026-03-21 (correct-ledger-errors, sixth run — 49332405):
+   228→  - errors: 7140→7100 (7500), dup 6540 (1000), missing VAT 4500 (21500 excl), wrong amount 6860 (17250→6000)
+   229→  - **run blocked**: proxy token expired/invalid (`403 Invalid or expired proxy token`), 1 wasted call
+   230→  - script was correctly written following 3-call path: account lookup (with `vatType(id)` expansion), voucher discovery, combined correction POST
+   231→  - script correctly handled all 4 correction types including Case A/B missing VAT branching, duplicate detection cascade, and vatType copying
+   232→  - **new pitfall identified**: 7140 (vatType 12) → 7100 (locked to vatType 0) reclassification requires different vatTypes on each side; blindly copying orignal vatType to target → 422
+   233→  - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's default/locked vatType; use this for target-side vatType in reclassification
+   234→  - the 3-call minimum remains proven; adding `vatType(id)` to account lookup adds no extra calls
+   235→- production run 2026-03-21 (correct-ledger-errors, seventh run — db732541):
+   236→  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+   237→  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, had 2710=2820 → Case B), wrong amount 6590 (13150→11650, vatType 1)
+   238→  - **first production confirmation of cross-vatType reclassification**: 7140 (vatType 12) reversed with vatType 12, 7100 posted with vatType 0 from account lookup — auto-generated 2710 -241.07 on reversal, no auto-VAT on target; the 6th run had the same shape but was blocked by expired token
+   239→  - Case B correctly applied: existing2710=2820, vatShortfall=705, expenseNetShortfall=2820, totalShortfall=3525; posted 2710 +705, 6500 +2820 (vatType=0), 2400 -3525 with supplier
+   240→  - duplicate found via description keyword cascade (primary)
+   241→  - account 6590 has default vatType 1 (not locked)
+   242→  - third consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct
+   243→- sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
+   244→- sandbox verified 2026-03-21: `account: { number: ... }` in POST /ledger/voucher body does NOT work — Tripletex requires `account: { id: ... }`; `account: { number: 6300, name: "Leie lokale" }` → 422 (`Feltet må fylles ut`); this confirms **3 calls is the proven minimum** — the GET /ledger/account step cannot be eliminated
+   245→- sandbox verified 2026-03-21: reclassification between accounts with different vatType locks — vatType 12 on 7140 (reversal) + vatType 0 on 7100 (target) succeeds; vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`); vatType 0 on both succeeds but creates incorrect accounting if original had vatType 12 (leaves residual balance on 7140)
+   246→
+```
+
+## 2026-03-21T20:46:11.243Z tool_result
+tool: Read
+call_id: toolu_vrtx_018hNcganvxMRwkhzzgG5hAz
+
+```text
+     1→# Correct Ledger Errors (General Ledger Review + Correction Vouchers)
+     2→
+     3→## Task Shape
+     4→The prompt describes discovered errors in the general ledger for a specific date range and asks you to create correction vouchers. Errors typically include:
+     5→- Wrong account posting
+     6→- Duplicate voucher
+     7→- Missing VAT line
+     8→- Incorrect amount
+     9→
+    10→The prompt gives exact account numbers, amounts, and the nature of each error.
+    11→
+    12→## Proven Minimum Path: 3 API Calls
+    13→
+    14→### Call 1: Resolve all needed account IDs
+    15→```
+    16→GET /ledger/account?number=<all-prompt-accounts-and-target-accounts>&fields=id,number,vatType(id)
+    17→```
+    18→Include every account mentioned in the prompt, including correction targets that may not appear in the bad vouchers yet.
+    19→Include `vatType(id)` to detect each account's default/locked vatType — needed for reclassification when source and target accounts have different vatType locks.
+    20→
+    21→### Call 2: Discover vouchers with nested posting expansion
+    22→```
+    23→GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000
+    24→```
+    25→**CRITICAL**: `fields=*` alone returns posting accounts as sparse link stubs. Use the explicit nested expansion above.
+    26→
+    27→**CRITICAL: `dateTo` is exclusive** ("To and excluding"). Sandbox-verified: Tripletex error message explicitly says `'To and excluding'`. To include all of February, use `dateTo=2026-03-01`, NOT `dateTo=2026-02-28`. For a Jan+Feb range, use `dateFrom=2026-01-01&dateTo=2026-03-01`.
+    28→
+    29→From this response:
+    30→- Identify wrong-account and incorrect-amount vouchers by matching the prompt account number plus prompt amount on that account.
+    31→- **Identify the duplicate** using this priority order:
+    32→  1. **PRIMARY: description keyword** — scan vouchers on the prompt account for description containing "duplikat"/"duplicate" with the prompt amount; most reliable because test environments may have only the duplicate (not the original)
+    33→  2. **SECONDARY: signature grouping** — group vouchers on the prompt account into normalized posting signatures and pick the repeated signature; choose the later voucher ID as the duplicate copy
+    34→  3. **TERTIARY: single-entry fallback** — if only one voucher matches prompt account + amount, that single entry IS the duplicate to reverse
+    35→  - **WARNING**: signature grouping alone caused 2 script crashes in production (0607a659), wasting 4 calls, because the duplicate was the ONLY entry on that account+amount
+    36→- For missing VAT, first check whether the original voucher has no `2710` posting at all or has a too-low existing VAT pattern (net booked as gross).
+    37→- Record the opposite-signed counterpart posting **ID** (from `account.id` in the nested expansion) and any `supplier.id` from the original voucher. Counterpart account IDs do NOT need a second `GET /ledger/account` — they come from the voucher response.
+    38→- **Record the `vatType.id` from each original expense posting** and copy it to the correction lines. Do not assume vatType 1 — accounts like 7100 are locked to vatType 0 and will 422 if forced to vatType 1.
+    39→
+    40→### Call 3: Post one combined corrective voucher
+    41→```
+    42→POST /ledger/voucher?sendToLedger=true
+    43→{
+    44→  date: "<run-date>",
+    45→  description: "Korreksjonsbilag <period>",
+    46→  postings: [
+    47→    { row: 1, account: { id: <wrongAccountId> }, amountGross: -<wrongAmount>, amountGrossCurrency: -<wrongAmount> },
+    48→    { row: 2, account: { id: <correctAccountId> }, amountGross: <wrongAmount>, amountGrossCurrency: <wrongAmount> },
+    49→    { row: 3, account: { id: <duplicateExpenseId> }, amountGross: -<duplicateAmount>, amountGrossCurrency: -<duplicateAmount> },
+    50→    { row: 4, account: { id: <duplicateCounterpartId> }, amountGross: <duplicateAmount>, amountGrossCurrency: <duplicateAmount> },
+    51→    { row: 5, account: { id: <missingVatAccountId> }, amountGross: <vatAmount>, amountGrossCurrency: <vatAmount> },
+    52→    { row: 6, account: { id: <missingVatCounterpartId> }, amountGross: -<vatAmount>, amountGrossCurrency: -<vatAmount> },
+    53→    { row: 7, account: { id: <incorrectExpenseId> }, amountGross: -<difference>, amountGrossCurrency: -<difference> },
+    54→    { row: 8, account: { id: <incorrectCounterpartId> }, amountGross: <difference>, amountGrossCurrency: <difference> }
+    55→  ]
+    56→}
+    57→```
+    58→- **Missing VAT: ALWAYS post directly on 2710** — NEVER use expense + `vatType: { id: 1 }`. The auto-generated 2710 amount from vatType=1 will not match what the scorer expects. Production runs confirmed this across multiple tasks.
+    59→  - **Case A (no `2710` exists)**: post full `net * 0.25` directly on 2710, counterpart for same amount.
+    60→  - **Case B (`2710` exists but too low)**: post 3 lines — `2710 +vat_shortfall`, expense `+expense_net_shortfall` with `vatType: { id: 0 }`, counterpart `-total_shortfall`. Where: `vat_shortfall = net*0.25 - existing_2710`, `expense_net_shortfall = net - existing_net`, `total_shortfall = vat_shortfall + expense_net_shortfall`. Production run 0607a659 used expense+vatType=1 for Case B and Check 3 failed.
+    61→- **Reclassification vatType**: use the original posting's vatType on the reversal line, and the target account's `vatType.id` (from Call 1 account lookup) on the target line. If source and target have different vatType locks, they MUST use different vatTypes — blindly copying the original's vatType to both causes 422. Sandbox-verified: 7140 (vatType 12) → 7100 (locked vatType 0) fails with vatType 12 on both.
+    62→- Copy `vatType` from original postings on duplicate reversal and incorrect-amount correction lines. Do NOT hardcode vatType 1.
+    63→- If any correction touches account `2400`, include `supplier: { id: ... }` from the original voucher.
+    64→- Use the write response as default verification.
+    65→
+    66→## Critical Pitfalls
+    67→1. **`fields=*` does NOT expand nested objects**: On `/ledger/posting` and `/ledger/voucher`, `fields=*` returns nested objects (account, vatType, voucher) as sparse link stubs. Always use explicit nested expansion on voucher discovery.
+    68→2. **Account IDs required**: `POST /ledger/voucher` with `account: { number: 7000 }` fails with `422 postings.account.name: Kan ikke være null.` — always resolve account IDs first.
+    69→3. **Row values required**: All postings MUST have explicit `row: 1`, `row: 2`, etc. Row 0 is system-reserved.
+    70→4. **`dateTo` is exclusive**: `dateTo=2026-03-01` means up to and excluding March 1st (i.e., includes all of February).
+    71→5. **Duplicate detection cascade**: Use description keyword "duplikat" as PRIMARY detector, then signature grouping, then single-entry fallback. Do NOT rely solely on signature grouping — production run 0607a659 proved that the duplicate can be the ONLY entry on that account+amount (no original to pair with), causing 2 script crashes and 4 wasted calls.
+    72→6. **NEVER use expense + vatType=1 for ANY missing VAT correction**: Whether Case A (no 2710) or Case B (2710 exists but too low), always post directly on 2710. The expense+vatType=1 approach creates auto-generated 2710 amounts that don't match scorer expectations. Production run 0607a659 Check 3 failed because of this.
+    73→7. **Account 2400 requires supplier**: Postings on account 2400 (Leverandørgjeld) require `supplier: { id: ... }`. If the original error voucher used 2400 as contra, the correction voucher on 2400 also needs the supplier reference from the original posting.
+    74→8. **vatType-locked accounts cause 422**: Some accounts are locked to a specific vatType (e.g., 7100 is locked to vatType 0, 7140 defaults to vatType 12). For reclassification, use the original posting's vatType on the reversal line and the target account's `vatType.id` from the account lookup on the target line. Blindly copying one vatType to both sides → 422 if the accounts have different locks. Include `vatType(id)` in the `GET /ledger/account` fields to detect locks upfront (no extra call needed).
+    75→9. **Do NOT make a second `GET /ledger/account` for counterpart IDs**: The voucher response's nested `account(id,number)` expansion already provides all counterpart account IDs. Only the initial `GET /ledger/account` is needed — for correction-target accounts not present in any voucher posting (e.g., the correct account in a reclassification).
+    76→
+    77→## Sandbox Proof
+    78→- 2026-03-21 persistent sandbox confirmed the exact 3-call correction flow after setup:
+    79→  1. `GET /ledger/account?number=7300,7000,6860,6500,2710&fields=id,number`
+    80→  2. `GET /ledger/voucher?dateFrom=2026-01-01&dateTo=2026-03-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000`
+    81→  3. `POST /ledger/voucher?sendToLedger=true`
+    82→- The combined correction voucher succeeded as voucher `608960780` with all 8 corrective lines.
+    83→- The exact no-`2710` missing-VAT branch succeeded with direct `2710 +4587.5` and counterpart `-4587.5`.
+    84→- The alternative `6500 +4587.5` plus `vatType: { id: 1 }` branch was explicitly tested on voucher `608960784` and proved wrong for this prompt shape because it created only `2710 +917.5` and `6500 amount=3670`.
+    85→
+    86→## Production Run Learnings (2026-03-21)
+    87→- First run used 6 calls instead of ideal 3: 1 redundant debug GET, 1 unnecessary account lookup, 1 avoidable 422 on vatType
+    88→- Account 7100 is locked to vatType 0 — vatType 1 triggers `422 Kontoen 7100 er låst til mva-kode 0`
+    89→- Counterpart account IDs (1920, 2400) were already available from the voucher response; the second `GET /ledger/account` was wasteful
+    90→- The missing VAT voucher (6500/24750) already had a 2710 posting (4950) → "other branch" applied; the script initially tried "exact branch" detection and crashed
+    91→- Fix: always read the original posting's `vatType.id` and check for existing 2710 postings before choosing the correction branch
+    92→- Second run (0f4ba20a) achieved ideal 3 calls, 0 errors: correctly copied vatType from originals, correctly detected "other branch" for missing VAT, included supplier.id for 2400
+    93→- **Latent bug in second run**: used `dateTo=2026-02-28` (exclusive → excludes Feb 28); succeeded only because all errors were dated before Feb 28. Always use first-of-next-month (e.g., `dateTo=2026-03-01` for Jan-Feb).
+    94→- Third run (0607a659): scored 2.25/6 (correctness 0.75) — 3/4 corrections correct, Check 3 (missing VAT) failed
+    95→  - script crashed twice due to duplicate detection failure, wasting 4 of 7 total calls (2 GET pairs)
+    96→  - duplicate root cause: only 1 voucher had 7100/2000 (desc="Kontorrekvisita duplikat"); signature grouping needs 2+ entries
+    97→  - duplicate fix: use description keyword "duplikat" as PRIMARY detector, signature grouping SECONDARY, single-entry TERTIARY
+    98→  - **Check 3 failure**: used expense 4500 +3625 with vatType=1, Tripletex auto-generated 2710 +725; scorer rejected this
+    99→  - correct approach for Case B: 2710 +725 (vat_shortfall), 4500 +2900 (expense_net_shortfall, vatType=0), 2400 -3625 with supplier
+   100→  - this confirms: NEVER use expense + vatType=1 for missing VAT, even in Case B
+   101→- Fourth run (397faff2): achieved ideal 3 calls, 0 errors on all 4 correction types
+   102→  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, had 2710=2290 → Case B), wrong amount 6300 (8200→5800, vatType 0)
+   103→  - Case B correctly applied with direct 2710 posting: 2710 +572.50, 6540 +2290 (vatType=0), 2400 -2862.50 with supplier
+   104→  - first production run to correctly use Case B direct-2710 posting and pass all 4 correction types
+   105→  - duplicate detected via description keyword cascade (no signature grouping needed)
+   106→  - confirms: the 3-call path is stable and production-proven across 4 different error configurations
+   107→- Fifth run (7fed6a02): achieved ideal 3 calls, 0 errors on all 4 correction types
+   108→  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, had 2710=1070 → Case B), wrong amount 7100 (8550→6750, vatType 0)
+   109→  - Case B correctly applied: 2710 +267.5 (vat_shortfall), 7300 +1070 (expense_net_shortfall, vatType=0), 2400 -1337.5 with supplier
+   110→  - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
+   111→  - second consecutive run to achieve 3 calls, 0 errors, all 4 corrections correct with Case B
+   112→  - sandbox confirmed `account: { number: ... }` does NOT work in POST — `account: { id: ... }` is required, proving 3 calls is the minimum
+   113→- Sixth run (49332405): blocked by expired proxy token (403), 1 wasted call
+   114→  - script was correctly written following proven 3-call path with all improvements from prior runs
+   115→  - new pitfall identified: reclassification 7140→7100 requires different vatTypes (12 vs 0) on each side
+   116→  - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's locked vatType at no extra cost
+   117→  - sandbox verified: mixed vatType reclassification (vatType 12 on reversal, vatType 0 on target) succeeds; same vatType 12 on both → 422
+   118→- Seventh run (db732541): achieved ideal 3 calls, 0 errors on all 4 correction types
+   119→  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, had 2710=2820 → Case B), wrong amount 6590 (13150→11650, vatType 1)
+   120→  - first production confirmation of cross-vatType reclassification (7140 vatType 12 → 7100 locked vatType 0), previously only sandbox-verified
+   121→  - Case B correctly applied: vatShortfall=705, expenseNetShortfall=2820, totalShortfall=3525
+   122→  - third consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct
+   123→  - confirms: the 3-call path with vatType(id) in account lookup, direct 2710 posting for Case B, and description keyword cascade for duplicate detection is stable across 7 production runs (4 of which achieved optimal 3 calls)
+   124→
+```
+
+## 2026-03-21T20:47:28.372Z tool_call
+tool: Write
+call_id: toolu_vrtx_01Syo5NeLWoRTdXwRd2VeCVz
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/scripts/correct-ledger-errors.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"94Mppa0ZUN1qjO2795r9pJe7kRuFcZl1NM0GdyJuxj0\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\nconst H = { Authorization: AUTH, \"Content-Type\": \"application/json\" };\n\nlet callCount = 0;\nasync function api(method: string, path: string, body?: any) {\n  callCount++;\n  const url = `${BASE}${path}`;\n  console.log(`[Call ${callCount}] ${method} ${url}`);\n  const res = await fetch(url, {\n    method,\n    headers: H,\n    body: body ? JSON.stringify(body) : undefined,\n  });\n  const text = await res.text();\n  if (!res.ok) {\n    console.error(`HTTP ${res.status}: ${text}`);\n    throw new Error(`HTTP ${res.status}`);\n  }\n  return JSON.parse(text);\n}\n\n// Task errors:\n// 1. Wrong account: 7140 used instead of 7100, amount 2250\n// 2. Duplicate: account 7000, amount 4400\n// 3. Missing VAT: account 6500, excl VAT 14100, missing VAT on 2710\n// 4. Wrong amount: account 6590, 13150 recorded instead of 11650\n\n// Call 1: Get all account IDs + vatType\nconst acctNumbers = [7140, 7100, 7000, 6500, 2710, 6590];\nconst acctData = await api(\n  \"GET\",\n  `/ledger/account?number=${acctNumbers.join(\",\")}&fields=id,number,vatType(id)`\n);\nconst acctMap: Record<number, { id: number; vatTypeId: number }> = {};\nfor (const a of acctData.values) {\n  acctMap[a.number] = { id: a.id, vatTypeId: a.vatType?.id ?? 0 };\n}\nconsole.log(\"Account map:\", JSON.stringify(acctMap));\n\n// Verify all accounts found\nfor (const n of acctNumbers) {\n  if (!acctMap[n]) throw new Error(`Account ${n} not found`);\n}\n\n// Call 2: Get all vouchers Jan-Feb 2026 with nested expansion\nconst voucherData = await api(\n  \"GET\",\n  `/ledger/voucher?dateFrom=2026-01-01&dateTo=2026-03-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000`\n);\nconst vouchers = voucherData.values;\nconsole.log(`Found ${vouchers.length} vouchers`);\n\n// --- Error 1: Wrong account 7140 → 7100, amount 2250 ---\nlet wrongAcctVoucher: any = null;\nlet wrongAcctPosting: any = null;\nlet wrongAcctCounterpart: any = null;\n\nfor (const v of vouchers) {\n  for (const p of v.postings || []) {\n    if (p.account?.number === 7140 && Math.abs(p.amountGross) === 2250) {\n      wrongAcctVoucher = v;\n      wrongAcctPosting = p;\n      break;\n    }\n  }\n  if (wrongAcctPosting) break;\n}\nif (!wrongAcctPosting) throw new Error(\"Wrong-account error not found (7140/2250)\");\n\n// Find counterpart (opposite-signed, not 7140, not 2710)\nfor (const p of wrongAcctVoucher.postings || []) {\n  if (p.account?.number !== 7140 && p.account?.number !== 2710) {\n    wrongAcctCounterpart = p;\n  }\n}\nconsole.log(`Wrong account: voucher ${wrongAcctVoucher.id}, posting gross=${wrongAcctPosting.amountGross}, vatType=${wrongAcctPosting.vatType?.id}, counterpart acct=${wrongAcctCounterpart?.account?.number}`);\n\n// --- Error 2: Duplicate on account 7000, amount 4400 ---\nlet dupPosting: any = null;\nlet dupVoucher: any = null;\nlet dupCounterpart: any = null;\n\n// PRIMARY: description keyword \"duplikat\"\nfor (const v of vouchers) {\n  const desc = (v.description || \"\").toLowerCase();\n  if (desc.includes(\"duplikat\") || desc.includes(\"duplicate\")) {\n    for (const p of v.postings || []) {\n      if (p.account?.number === 7000 && Math.abs(p.amountGross) === 4400) {\n        dupPosting = p;\n        dupVoucher = v;\n        break;\n      }\n    }\n  }\n  if (dupPosting) break;\n}\n\n// SECONDARY: signature grouping\nif (!dupPosting) {\n  const candidates: any[] = [];\n  for (const v of vouchers) {\n    for (const p of v.postings || []) {\n      if (p.account?.number === 7000 && Math.abs(p.amountGross) === 4400) {\n        candidates.push({ voucher: v, posting: p });\n      }\n    }\n  }\n  if (candidates.length >= 2) {\n    // Pick the later one as duplicate\n    dupPosting = candidates[candidates.length - 1].posting;\n    dupVoucher = candidates[candidates.length - 1].voucher;\n  }\n}\n\n// TERTIARY: single-entry fallback\nif (!dupPosting) {\n  for (const v of vouchers) {\n    for (const p of v.postings || []) {\n      if (p.account?.number === 7000 && Math.abs(p.amountGross) === 4400) {\n        dupPosting = p;\n        dupVoucher = v;\n        break;\n      }\n    }\n    if (dupPosting) break;\n  }\n}\n\nif (!dupPosting) throw new Error(\"Duplicate error not found (7000/4400)\");\n\n// Find counterpart for duplicate (not 7000, not 2710)\nfor (const p of dupVoucher.postings || []) {\n  if (p.account?.number !== 7000 && p.account?.number !== 2710) {\n    dupCounterpart = p;\n  }\n}\nconsole.log(`Duplicate: voucher ${dupVoucher.id}, posting gross=${dupPosting.amountGross}, vatType=${dupPosting.vatType?.id}, counterpart acct=${dupCounterpart?.account?.number}`);\n\n// --- Error 3: Missing VAT on 6500, excl VAT 14100, missing on 2710 ---\nlet missingVatVoucher: any = null;\nlet missingVatPosting: any = null;\nlet missingVatCounterpart: any = null;\nlet existing2710Amount = 0;\nlet hasCaseB = false;\n\nfor (const v of vouchers) {\n  let has6500 = false;\n  let posting6500: any = null;\n  let has2710 = false;\n  let amount2710 = 0;\n\n  for (const p of v.postings || []) {\n    if (p.account?.number === 6500) {\n      // Check if this voucher is related to the 14100 excl VAT amount\n      // The gross could be 14100 (if booked without VAT) or 17625 (if properly incl VAT)\n      has6500 = true;\n      posting6500 = p;\n    }\n    if (p.account?.number === 2710) {\n      has2710 = true;\n      amount2710 = p.amountGross || p.amount || 0;\n    }\n  }\n\n  if (has6500 && posting6500) {\n    // Check if this is the missing VAT voucher\n    // Net amount should relate to 14100: if booked as gross with VAT, net=14100*0.8=11280 and gross=14100\n    // Or if booked correctly gross=17625 and net=14100\n    // The prompt says \"valor sem IVA 14100 NOK\" = amount without VAT = 14100\n    // So net should be 14100. If VAT is missing, gross might equal net (14100) or gross might be 14100 with wrong VAT calc\n\n    // Look for a 6500 posting where the amounts make sense for 14100 excl VAT\n    const gross = Math.abs(posting6500.amountGross);\n    const net = Math.abs(posting6500.amount);\n\n    // If properly posted with VAT: gross=17625, net=14100\n    // If posted without VAT: gross=14100, net=14100\n    // If net booked as gross (Case B): gross=14100, net=11280, 2710=2820\n\n    if (net === 14100 || gross === 14100) {\n      missingVatVoucher = v;\n      missingVatPosting = posting6500;\n      if (has2710) {\n        hasCaseB = true;\n        existing2710Amount = Math.abs(amount2710);\n      }\n      break;\n    }\n  }\n}\n\nif (!missingVatPosting) throw new Error(\"Missing VAT error not found (6500/14100)\");\n\n// Find counterpart for missing VAT (not 6500, not 2710)\nfor (const p of missingVatVoucher.postings || []) {\n  if (p.account?.number !== 6500 && p.account?.number !== 2710) {\n    missingVatCounterpart = p;\n  }\n}\n\nconsole.log(`Missing VAT: voucher ${missingVatVoucher.id}, 6500 gross=${missingVatPosting.amountGross}, net=${missingVatPosting.amount}, has2710=${hasCaseB}, existing2710=${existing2710Amount}, counterpart acct=${missingVatCounterpart?.account?.number}`);\n\n// --- Error 4: Wrong amount on 6590, 13150 recorded instead of 11650 ---\nlet wrongAmtVoucher: any = null;\nlet wrongAmtPosting: any = null;\nlet wrongAmtCounterpart: any = null;\n\nfor (const v of vouchers) {\n  for (const p of v.postings || []) {\n    if (p.account?.number === 6590 && Math.abs(p.amountGross) === 13150) {\n      wrongAmtVoucher = v;\n      wrongAmtPosting = p;\n      break;\n    }\n  }\n  if (wrongAmtPosting) break;\n}\n\nif (!wrongAmtPosting) throw new Error(\"Wrong-amount error not found (6590/13150)\");\n\n// Find counterpart (not 6590, not 2710)\nfor (const p of wrongAmtVoucher.postings || []) {\n  if (p.account?.number !== 6590 && p.account?.number !== 2710) {\n    wrongAmtCounterpart = p;\n  }\n}\nconsole.log(`Wrong amount: voucher ${wrongAmtVoucher.id}, posting gross=${wrongAmtPosting.amountGross}, vatType=${wrongAmtPosting.vatType?.id}, counterpart acct=${wrongAmtCounterpart?.account?.number}`);\n\n// === Build combined corrective voucher ===\nconst postings: any[] = [];\nlet row = 1;\n\n// --- Correction 1: Wrong account 7140→7100 (reclassification) ---\n// Reversal on 7140 with original vatType, target on 7100 with 7100's vatType\nconst origVatType7140 = wrongAcctPosting.vatType?.id ?? 0;\nconst targetVatType7100 = acctMap[7100].vatTypeId;\nconst wrongGross = Math.abs(wrongAcctPosting.amountGross);\n\npostings.push({\n  row: row++,\n  account: { id: acctMap[7140].id },\n  amountGross: -wrongGross,\n  amountGrossCurrency: -wrongGross,\n  vatType: { id: origVatType7140 },\n  description: \"Korreksjon: ompostering fra 7140\",\n});\npostings.push({\n  row: row++,\n  account: { id: acctMap[7100].id },\n  amountGross: wrongGross,\n  amountGrossCurrency: wrongGross,\n  vatType: { id: targetVatType7100 },\n  description: \"Korreksjon: ompostering til 7100\",\n});\n\n// --- Correction 2: Duplicate reversal on 7000 ---\nconst dupGross = Math.abs(dupPosting.amountGross);\nconst dupVatType = dupPosting.vatType?.id ?? 0;\n\npostings.push({\n  row: row++,\n  account: { id: acctMap[7000].id },\n  amountGross: -dupGross,\n  amountGrossCurrency: -dupGross,\n  vatType: { id: dupVatType },\n  description: \"Korreksjon: reversering duplikat\",\n});\npostings.push({\n  row: row++,\n  account: { id: dupCounterpart.account.id },\n  amountGross: dupGross,\n  amountGrossCurrency: dupGross,\n  description: \"Korreksjon: reversering duplikat\",\n});\n\n// --- Correction 3: Missing VAT on 6500 (14100 excl VAT) ---\n// From the 7th production run (db732541) with same params: Case B with existing 2710=2820\n// correct_vat = 14100 * 0.25 = 3525\n// vat_shortfall = 3525 - existing2710\n// expense_net_shortfall = 14100 - existing_net_on_6500\n// total_shortfall = vat_shortfall + expense_net_shortfall\n\nconst correctVat = 14100 * 0.25; // 3525\nconst existingNet = Math.abs(missingVatPosting.amount);\nconst existingGross6500 = Math.abs(missingVatPosting.amountGross);\n\nif (hasCaseB) {\n  // Case B: 2710 exists but too low\n  const vatShortfall = correctVat - existing2710Amount;\n  const expenseNetShortfall = 14100 - existingNet;\n  const totalShortfall = vatShortfall + expenseNetShortfall;\n\n  console.log(`Case B: correctVat=${correctVat}, existing2710=${existing2710Amount}, vatShortfall=${vatShortfall}, existingNet=${existingNet}, expenseNetShortfall=${expenseNetShortfall}, totalShortfall=${totalShortfall}`);\n\n  postings.push({\n    row: row++,\n    account: { id: acctMap[2710].id },\n    amountGross: vatShortfall,\n    amountGrossCurrency: vatShortfall,\n    description: \"Korreksjon: manglende MVA\",\n  });\n  postings.push({\n    row: row++,\n    account: { id: acctMap[6500].id },\n    amountGross: expenseNetShortfall,\n    amountGrossCurrency: expenseNetShortfall,\n    vatType: { id: 0 },\n    description: \"Korreksjon: manglende MVA\",\n  });\n\n  // Counterpart (likely 2400 with supplier)\n  const counterpartAcctId = missingVatCounterpart.account.id;\n  const supplierId = missingVatCounterpart.supplier?.id;\n  const counterpartLine: any = {\n    row: row++,\n    account: { id: counterpartAcctId },\n    amountGross: -totalShortfall,\n    amountGrossCurrency: -totalShortfall,\n    description: \"Korreksjon: manglende MVA\",\n  };\n  if (supplierId) counterpartLine.supplier = { id: supplierId };\n  postings.push(counterpartLine);\n} else {\n  // Case A: No 2710 at all — post full VAT directly\n  const vatAmount = correctVat; // 3525\n  postings.push({\n    row: row++,\n    account: { id: acctMap[2710].id },\n    amountGross: vatAmount,\n    amountGrossCurrency: vatAmount,\n    description: \"Korreksjon: manglende MVA\",\n  });\n\n  const counterpartAcctId = missingVatCounterpart.account.id;\n  const supplierId = missingVatCounterpart.supplier?.id;\n  const counterpartLine: any = {\n    row: row++,\n    account: { id: counterpartAcctId },\n    amountGross: -vatAmount,\n    amountGrossCurrency: -vatAmount,\n    description: \"Korreksjon: manglende MVA\",\n  };\n  if (supplierId) counterpartLine.supplier = { id: supplierId };\n  postings.push(counterpartLine);\n}\n\n// --- Correction 4: Wrong amount on 6590 (13150→11650) ---\nconst amtDiff = 13150 - 11650; // 1500\nconst wrongAmtVatType = wrongAmtPosting.vatType?.id ?? 0;\n\npostings.push({\n  row: row++,\n  account: { id: acctMap[6590].id },\n  amountGross: -amtDiff,\n  amountGrossCurrency: -amtDiff,\n  vatType: { id: wrongAmtVatType },\n  description: \"Korreksjon: feil beløp\",\n});\npostings.push({\n  row: row++,\n  account: { id: wrongAmtCounterpart.account.id },\n  amountGross: amtDiff,\n  amountGrossCurrency: amtDiff,\n  description: \"Korreksjon: feil beløp\",\n});\n\nconsole.log(`\\nPosting ${postings.length} correction lines:`);\nfor (const p of postings) {\n  console.log(`  row ${p.row}: acct ${p.account.id}, gross=${p.amountGross}, vatType=${p.vatType?.id ?? \"none\"}, supplier=${p.supplier?.id ?? \"none\"}, desc=\"${p.description}\"`);\n}\n\n// Call 3: Post combined corrective voucher\nconst voucherBody = {\n  date: \"2026-02-28\",\n  description: \"Korreksjonsbilag januar-februar 2026\",\n  postings,\n};\n\nconst result = await api(\"POST\", \"/ledger/voucher?sendToLedger=true\", voucherBody);\nconsole.log(`\\nCorrective voucher created: id=${result.value.id}, number=${result.value.number}`);\nconsole.log(`Total API calls: ${callCount}`);\n\n// Log returned postings for verification\nfor (const p of result.value.postings || []) {\n  console.log(`  Posted: acct=${p.account?.id} (${p.account?.number}), gross=${p.amountGross}, net=${p.amount}, vatType=${p.vatType?.id}`);\n}\n"
+}
+```
+
+## 2026-03-21T20:47:28.423Z tool_result
+tool: Write
+call_id: toolu_vrtx_01Syo5NeLWoRTdXwRd2VeCVz
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/scripts/correct-ledger-errors.ts
+```
+
+## 2026-03-21T20:47:32.640Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01ApVG425SkXZyGEY662YQTm
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/scripts && bun run correct-ledger-errors.ts 2>&1",
+  "description": "Run ledger correction script",
+  "timeout": 60000
+}
+```
+
+## 2026-03-21T20:47:34.104Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01ApVG425SkXZyGEY662YQTm
+
+```text
+[Call 1] GET https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2/ledger/account?number=7140,7100,7000,6500,2710,6590&fields=id,number,vatType(id)
+Account map: {"2710":{"id":471952875,"vatTypeId":0},"6500":{"id":471953060,"vatTypeId":1},"6590":{"id":471953070,"vatTypeId":1},"7000":{"id":471953090,"vatTypeId":1},"7100":{"id":471953095,"vatTypeId":0},"7140":{"id":471953097,"vatTypeId":12}}
+[Call 2] GET https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2/ledger/voucher?dateFrom=2026-01-01&dateTo=2026-03-01&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000
+Found 30 vouchers
+Wrong account: voucher 609144577, posting gross=2250, vatType=12, counterpart acct=2712
+Duplicate: voucher 609144583, posting gross=4400, vatType=1, counterpart acct=1920
+Missing VAT: voucher 609144589, 6500 gross=14100, net=11280, has2710=true, existing2710=2820, counterpart acct=2400
+Wrong amount: voucher 609144595, posting gross=13150, vatType=1, counterpart acct=1920
+Case B: correctVat=3525, existing2710=2820, vatShortfall=705, existingNet=11280, expenseNetShortfall=2820, totalShortfall=3525
+
+Posting 9 correction lines:
+  row 1: acct 471953097, gross=-2250, vatType=12, supplier=none, desc="Korreksjon: ompostering fra 7140"
+  row 2: acct 471953095, gross=2250, vatType=0, supplier=none, desc="Korreksjon: ompostering til 7100"
+  row 3: acct 471953090, gross=-4400, vatType=1, supplier=none, desc="Korreksjon: reversering duplikat"
+  row 4: acct 471952794, gross=4400, vatType=none, supplier=none, desc="Korreksjon: reversering duplikat"
+  row 5: acct 471952875, gross=705, vatType=none, supplier=none, desc="Korreksjon: manglende MVA"
+  row 6: acct 471953060, gross=2820, vatType=0, supplier=none, desc="Korreksjon: manglende MVA"
+  row 7: acct 471952853, gross=-3525, vatType=none, supplier=108421009, desc="Korreksjon: manglende MVA"
+  row 8: acct 471953070, gross=-1500, vatType=1, supplier=none, desc="Korreksjon: feil beløp"
+  row 9: acct 471952794, gross=1500, vatType=none, supplier=none, desc="Korreksjon: feil beløp"
+[Call 3] POST https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2/ledger/voucher?sendToLedger=true
+
+Corrective voucher created: id=609145154, number=31
+Total API calls: 3
+  Posted: acct=471953070 (undefined), gross=-1500, net=-1200, vatType=1
+  Posted: acct=471952794 (undefined), gross=1500, net=1500, vatType=0
+  Posted: acct=471952875 (undefined), gross=-300, net=-300, vatType=0
+  Posted: acct=471952875 (undefined), gross=705, net=705, vatType=0
+  Posted: acct=471953060 (undefined), gross=2820, net=2820, vatType=0
+  Posted: acct=471952853 (undefined), gross=-3525, net=-3525, vatType=0
+  Posted: acct=471953097 (undefined), gross=-2250, net=-2008.93, vatType=12
+  Posted: acct=471952877 (undefined), gross=-241.07, net=-241.07, vatType=0
+  Posted: acct=471953095 (undefined), gross=2250, net=2250, vatType=0
+  Posted: acct=471953090 (undefined), gross=-4400, net=-3520, vatType=1
+  Posted: acct=471952794 (undefined), gross=4400, net=4400, vatType=0
+  Posted: acct=471952875 (undefined), gross=-880, net=-880, vatType=0
+```
+
+## 2026-03-21T20:47:43.606Z assistant_message
+Done. 3 API calls, 0 errors.
+
+- **Voucher 609145154** created with all 4 corrections:
+  1. **Wrong account 7140→7100** (2250): reversed with vatType 12, reposted with vatType 0 (cross-vatType reclassification)
+  2. **Duplicate 7000** (4400): reversed with vatType 1, counterpart 1920
+  3. **Missing VAT 6500** (14100 excl): Case B — 2710 +705, 6500 +2820 (vatType 0), 2400 -3525 with supplier
+  4. **Wrong amount 6590** (13150→11650): -1500 with vatType 1, counterpart 1920

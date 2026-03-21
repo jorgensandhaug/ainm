@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-204558586Z-ee909d4d",
+  "request_id": "3932eb96",
+  "prompt_raw": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7140 usada em vez de 7100, valor 2250 NOK), um voucher duplicado (conta 7000, valor 4400 NOK), uma linha de IVA em falta (conta 6500, valor sem IVA 14100 NOK falta IVA na conta 2710), e um valor incorreto (conta 6590, 13150 NOK registado em vez de 11650 NOK). Corrija todos os erros com lançamentos corretivos.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:47:43Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:45:58.649Z",
+  "after_captured_at": "2026-03-21T20:48:14.591Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "24",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:48:14.592Z"
+}

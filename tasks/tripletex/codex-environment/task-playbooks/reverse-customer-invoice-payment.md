@@ -143,6 +143,25 @@ Observed production confirmation on 2026-03-21:
 - this is the first production run where the multi-invoice local filter was exercised; previous runs for this org returned 1 invoice
 - the script used correct field names (`amountExcludingVatCurrency`) and the fallback matcher accepted the `type=null` payment posting
 
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=888412972` + `amountExcludingVatCurrency=35800` + line text `Diseño web` (Spanish prompt)
+- this is the same prompt shape that wasted a call on 2026-03-20 due to the matcher rejecting the payment posting when `account` was null
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=888412972&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=2` (two invoices for same customer)
+  - local filter on `amountExcludingVatCurrency === 35800` correctly isolated invoice `2147570315` (amountCurrency=44750)
+  - one `PUT /ledger/voucher/608889112/:reverse?date=2026-03-21` produced reverse voucher `609140250`
+- this confirms the 2026-03-20 matcher bug fix is working: the fallback matcher accepted the `type=null` payment posting without requiring `account.number`
+- this is the third production confirmation of the multi-invoice local filter path
+
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=910318144` + `amountExcludingVatCurrency=19250` + line text `Almacenamiento en la nube` (Spanish prompt)
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=910318144&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=1` (single invoice for this customer)
+  - invoice `2147570785` with `amountCurrency=24062.5` and `amountExcludingVatCurrency=19250`
+  - one `PUT /ledger/voucher/608889441/:reverse?date=2026-03-21` produced reverse voucher `609147189`
+- the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
+- this is the eighth overall production confirmation of the 2-call path
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`

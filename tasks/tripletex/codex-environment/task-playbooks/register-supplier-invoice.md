@@ -394,6 +394,18 @@ Proven outcome:
 - 6th consecutive optimal 5-call production run with 0 errors
 - languages confirmed across consecutive optimal runs: en, es, pt, de, fr — standard is language-independent
 
+2026-03-21 production run for `Nordlicht GmbH` / `871162069` / `INV-2026-7611` / `44562` / `6300` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- German-language prompt with PDF, description "Nettverkstjenester"
+- PDF data fully extracted: address `Nygata 53, 9008 Tromsø`, bank account `28390913577`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=35650, gross=44562 (35650×1.25=44562.5) → Tripletex stored net=35649.6, VAT=8912.4
+- voucher `609134450`, supplier `108416207`
+- 7th consecutive optimal 5-call production run with 0 errors
+- sandbox finding: `importDocument` auto-creates supplier from XML data but with empty address and no bank — explicit `POST /supplier` remains required for PDF tasks with scored address/bank fields
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:

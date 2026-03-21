@@ -46,7 +46,8 @@
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
 - if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
 - if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
-- for the combined invoice-and-payment write, use one valid incoming `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`
+- **CRITICAL payment-type pitfall**: payment type objects from `GET /invoice/paymentType` do NOT have an `isIncoming` field; the returned keys are `id`, `version`, `url`, `description`, `displayName`, `debitAccount`, `creditAccount`, `vatType`, `sequence`, `customer`, `supplier`, `currencyId`, `currencyCode` — do NOT filter by `pt.isIncoming === true` as it will always find nothing and block the run; just use the first available payment type (any of them work for the combined invoice-and-payment write)
+- for the combined invoice-and-payment write, use one valid `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`
 - `paidAmount=0` is not a valid shortcut here; live validation treats it as missing
 - for ordinary NOK runs, `paidAmount=0.01` is a proven safe seed that lets Tripletex calculate the remaining full payment automatically
 
@@ -91,6 +92,15 @@
 - the `/ledger/account` bank-account hedge must stay conditional, not canonical; on accounts where the company bank account is already configured, it would waste a sixth call
 - production confirmation on 2026-03-21 for Portuguese prompt `Solmar Lda` / `867069526` / `Sessão de formação (4466)` / `Licença de software (3717)` / prices `35600` + `3250`:
   - used `count=1000` product lookup (pre-comma-separated era), 5 calls, 0 errors, outstanding=0
+- production confirmation on 2026-03-21 for English prompt `Ridgepoint Ltd` / `997470311` / `Maintenance (6293)` + `Software License (5849)` / prices `21700` + `2250`:
+  - used comma-separated `number=6293,5849` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of the comma-separated product lookup path on this task shape
+- production confirmation on 2026-03-21 for Nynorsk prompt `Strandvik AS` / `911845016` / `Skylagring (7865)` + `Datarådgjeving (3949)` / prices `38500` + `18500`:
+  - used comma-separated `number=7865,3949` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - **wasted 1 extra call** (6 total instead of 5): first script correctly fetched customer, products, and paymentTypes but then filtered by nonexistent `pt.isIncoming === true` and aborted; debug script re-fetched paymentTypes; second script reused hardcoded IDs for order+invoice
+  - the fix: payment type objects have no `isIncoming` field — just use `pts[0]` (the first available payment type)
+  - sandbox re-verified on 2026-03-21 that both "Kontant" and "Betalt til bank" work as `paymentTypeId` for the combined invoice-and-payment write
+  - confirms the canonical 5-call path would have succeeded if the agent had not filtered by a nonexistent field
 
 ## Product Lookup Strategy
 - **primary**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call

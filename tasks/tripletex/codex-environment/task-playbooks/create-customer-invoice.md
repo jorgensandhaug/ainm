@@ -110,6 +110,12 @@ Do not use for:
   - no bank-account repair needed, no `/ledger/vatType` call needed
   - this is the first production run achieving the theoretical 3-call minimum for the mixed-VAT exact-number existing-product create-only invoice shape
   - persistent sandbox re-proof on 2026-03-21 with comma-separated query and analog products confirmed the same 3-call path
+- the 2026-03-21 production run for `Montanha Lda` / `869972401` / products `Sessão de formação (7733)` + `Licença de software (6106)` + `Manutenção (1351)` / VAT `25%` + `15% food` + `0% exempt` (Portuguese prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=869972401&fields=*` -> `GET /product?number=7733,6106,1351&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - second production confirmation of the comma-separated `number=X,Y,Z` product query approach (OR semantics); returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=36350` / `amountCurrency=43625`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - this is the first production run achieving the optimal 6-call path (3 core + 3 bank-account repair) for the exact-number existing-product create-only invoice shape with bank-account validation
 
 ## Minimal Flow
 

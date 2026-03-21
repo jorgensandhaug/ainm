@@ -49,8 +49,8 @@ For EUR invoices, the `:payment` endpoint auto-books FX gain (8060) and loss (81
 - Fix: ONLY create manual agio vouchers for NOK invoices where the auto-mechanism cannot work
 
 ### Trap 8: Voucher `account: { number }` without ID (422 error)
-`POST /ledger/voucher` requires `account: { id: ... }`. Using `account: { number: 1920 }` or `account: { number: 1920, name: "Bankinnskudd" }` → 422 ("Internt felt (account): Feltet må fylles ut"). The `GET /ledger/account` call cannot be skipped in the NOK fallback path.
-- Fix: always resolve account IDs via `GET /ledger/account?number=1920,8060&fields=id,number` before creating vouchers
+`POST /ledger/voucher` requires `account: { id: ... }`. Using `account: { number: 1920 }` or `account: { number: 1920, name: "Bankinnskudd" }` → 422 ("Internt felt (account): Feltet må fylles ut"). The agio/disagio account ID must be resolved via `GET /ledger/account`.
+- Fix: resolve agio/disagio account via `GET /ledger/account?number=8060&fields=id,number` (or `8160` for disagio); reuse paymentType `debitAccount.id` for the bank account
 
 ## Minimal Flow (3 calls)
 
@@ -77,7 +77,7 @@ Script pattern:
 2. If found → FX payment (paidAmount = outstanding × rate, paidAmountCurrency = outstanding) — 3 calls
 3. If NOT found → match NOK invoice by `amountExcludingVat`:
    a. Register simple payment (paidAmount = amountOutstanding)
-   b. Look up account IDs: `GET /ledger/account?number=1920,8060&fields=id,number`
+   b. Look up agio/disagio account ID: `GET /ledger/account?number=8060&fields=id,number` (or `8160` for disagio) — reuse paymentType `debitAccount.id` for bank account
    c. Create manual agio voucher: `POST /ledger/voucher?sendToLedger=true` with `row: 1`+
    d. FX amount = promptEurAmount × |settlementRate − originalRate| (always positive) — 5 calls total
 4. ALWAYS register a payment AND book agio. Never exit without paying.
@@ -87,15 +87,16 @@ Script pattern:
 If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - Register simple payment: `paidAmount = amountOutstanding`, no `paidAmountCurrency`
 - Then create a manual agio voucher with `POST /ledger/voucher?sendToLedger=true`:
-  - Debit 1920 (bank) for the agio amount
-  - Credit 8060 (agio) for the agio amount (negative amountGross)
+  - Bank account: reuse `debitAccount.id` from the paymentType resolved in Call 2 (no hardcoded 1920)
+  - Agio/disagio account: resolve via `GET /ledger/account?number=8060` (or `8160`)
   - Use `row: 1` and `row: 2` — NEVER row 0 (system-reserved, causes 422)
   - Use `vatType: { id: 0 }` on both postings
   - FX amount = promptEurAmount × |settlementRate − originalRate| (always positive)
 - Do NOT apply FX logic on the `:payment` call — Tripletex ignores FX params on NOK invoices
-- For disagio (settlement rate < original rate): debit 8160 (+fxAmount), credit 1920 (−fxAmount)
-- For agio (settlement rate > original rate): debit 1920 (+fxAmount), credit 8060 (−fxAmount)
-- The account IDs must be resolved via `GET /ledger/account?number=1920,8060` — `account: { number: ... }` does NOT work in voucher body
+- For disagio (settlement rate < original rate): debit 8160 (+fxAmount), credit bank (−fxAmount)
+- For agio (settlement rate > original rate): debit bank (+fxAmount), credit 8060 (−fxAmount)
+- The agio/disagio account ID must be resolved via `GET /ledger/account` — `account: { number: ... }` does NOT work in voucher body
+- The bank account ID is already available from the paymentType's `debitAccount.id` — no separate lookup needed
 
 ## Canonical Call Count
 
@@ -129,10 +130,13 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - `amount === amountCurrency` → invoice is NOK, not foreign currency — use manual agio voucher
 - Manual `POST /ledger/voucher` on EUR invoice → corrupts state (auto-booked by `:payment`)
 - Manual `POST /ledger/voucher` on NOK invoice → REQUIRED for agio, use `row: 1`+ (row 0 → 422)
-- `account: { number: ... }` in voucher body → 422; must use `account: { id: ... }` from GET /ledger/account — `account: { number, name }` also fails with "Internt felt (account): Feltet må fylles ut"
+- `account: { number: ... }` in voucher body → 422; must use `account: { id: ... }` — `account: { number, name }` also fails with "Internt felt (account): Feltet må fylles ut"
+- Bank account for voucher: reuse paymentType `debitAccount.id` instead of separate lookup — saves hardcoding 1920 and is more correct
 - Prompt amount is typically ex-VAT → multiply by 1.25 for full outstanding
 
 ## Production Confirmations
+- prod-2026-03-21-203449125Z-847457b2: NOK fallback, 5 calls, 0 errors — Fossekraft AS / 928230651 / 2716 EUR, rate 10.11→9.33, disagio 2118.48 NOK on 8160 (1st full-score NOK-fallback disagio run)
+- prod-2026-03-21-201703889Z-3386d6a5: NOK fallback, 5 calls, 0 errors — Elvdal AS / 964825114 / 10781 EUR, rate 11.03→11.41, agio 4096.78 NOK on 8060 (2nd full-score NOK-fallback agio run)
 - prod-2026-03-21-200502800Z-86050544: NOK fallback, 5 calls, 0 errors — Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83, agio 12301 NOK on 8060 (first full-score NOK-fallback run)
 
 ## Production Failures

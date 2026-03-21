@@ -123,6 +123,15 @@ Exact-match tasks should now prefer the trusted standard:
     - this is strictly better than `count=1000` for targeted lookups
   - also confirmed `productNumber` is NOT a valid field in ProductDTO `fields` filter (returns 400)
   - `number=X&number=Y` (repeated query params) uses non-OR semantics and only returns first value — do not confuse with comma-separated format
+- production run on 2026-03-21 for English prompt `Ridgepoint Ltd` / `997470311` / `Maintenance (6293)` + `Software License (5849)` / prices `21700` + `2250`:
+  - used comma-separated `number=6293,5849` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of the comma-separated product lookup on this exact task shape
+  - confirms the canonical 5-call path is stable across English and Portuguese prompts with comma-separated `number` filter
+- production run on 2026-03-21 for Nynorsk prompt `Strandvik AS` / `911845016` / `Skylagring (7865)` + `Datarådgjeving (3949)` / prices `38500` + `18500`:
+  - used comma-separated `number=7865,3949` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed
+  - wasted 1 call (6 total): first script filtered paymentTypes by nonexistent `pt.isIncoming === true` and aborted; a debug call re-fetched paymentTypes; second script succeeded with hardcoded IDs
+  - root cause: payment type objects have no `isIncoming` field — just use `pts[0]`
+  - sandbox confirmed both "Kontant" and "Betalt til bank" work for the combined write
 
 ## Minimal Flow
 
@@ -139,10 +148,9 @@ Exact-match tasks should now prefer the trusted standard:
    - if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by `number` response field
    - do not rely on the `productNumber` field since it is often null/undefined in fresh accounts; `productNumber` is not even a valid ProductDTO `fields` value (returns 400)
    - do not use `number=X&number=Y` (repeated query params) — this uses non-OR semantics and only returns the first value
-4. Resolve one usable incoming payment type
+4. Resolve one usable payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-   - prefer a bank-style incoming payment type whose debit account is `19xx`
-   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account
+   - just use the first available payment type — do NOT filter by `isIncoming` (that field does not exist)
    - do not reject the candidate just because `creditAccount` is `null`
 5. Create the order with embedded lines
    - `POST /order`
@@ -245,9 +253,10 @@ Exact-match tasks should now prefer the trusted standard:
 
 ## Payment Rules
 
-- For `GET /invoice/paymentType`, normalize account numbers before prefix checks
-- Prefer a `19xx` debit account that is also flagged as `isBankAccount=true` or `isInvoiceAccount=true`
-- Do not require a `15xx` `creditAccount`; the correct incoming payment type may return `creditAccount=null`
+- **CRITICAL**: payment type objects from `GET /invoice/paymentType` do NOT have an `isIncoming` field; do NOT filter by `pt.isIncoming === true` — it will always find nothing and block the run
+- The available keys are: `id`, `version`, `url`, `description`, `displayName`, `debitAccount`, `creditAccount`, `vatType`, `sequence`, `customer`, `supplier`, `currencyId`, `currencyCode`
+- Just use the first available payment type (`pts[0]`) — both "Kontant" and "Betalt til bank" work for the combined invoice-and-payment write
+- Do not require a `15xx` `creditAccount`; the correct payment type may return `creditAccount=null`
 - For the lower-call exact-match path, pay during `PUT /order/{id}/:invoice` instead of using a separate `PUT /invoice/{id}/:payment`
 - Use the same resolved incoming `paymentTypeId` as both `paymentTypeId` and `paymentTypeIdRestAmount`
 - Seed `paidAmount` with the smallest positive amount accepted for the invoice currency; `0.01` is proven for ordinary NOK runs

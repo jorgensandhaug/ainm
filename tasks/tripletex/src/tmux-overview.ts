@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 
 type TmuxWindow = {
   active: boolean;
+  dead: boolean;
   index: number;
   name: string;
 };
@@ -14,6 +15,7 @@ type RunSummary = {
   attributionStatus: string;
   bestScore: string;
   correctness: string;
+  dead: boolean;
   fileCount: number | null;
   phase: string;
   reflectionStatus: string;
@@ -123,6 +125,7 @@ function compactRunLabel(runId: string, phase: string) {
 }
 
 function isLiveRow(row: RunSummary) {
+  if (row.dead) return false;
   if (row.phase === "solve") return row.solveStatus === "running";
   if (row.phase === "reflect") return row.runtimeStatus === "running";
   if (row.phase === "score") return row.scoreStatus === "launched" && row.runtimeStatus === "running";
@@ -170,7 +173,7 @@ async function loadWindows() {
     "-t",
     sessionName,
     "-F",
-    "#{window_index}\t#{window_name}\t#{window_active}",
+    "#{window_index}\t#{window_name}\t#{window_active}\t#{pane_dead}",
   ]);
   if (result.code !== 0) {
     throw new Error(result.stderr || "tmux list-windows failed");
@@ -180,9 +183,10 @@ async function loadWindows() {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [index, name, active] = line.split("\t");
+      const [index, name, active, dead] = line.split("\t");
       return {
         active: active === "1",
+        dead: dead === "1",
         index: Number(index),
         name: name ?? "",
       } satisfies TmuxWindow;
@@ -200,6 +204,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
       attributionStatus: "-",
       bestScore: "-",
       correctness: "-",
+      dead: window.dead,
       fileCount: null,
       phase: meta.phase,
       reflectionStatus: "-",
@@ -250,6 +255,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
         : typeof taskAttribution?.status === "string"
           ? taskAttribution.status
           : "-",
+    dead: window.dead,
     bestScore: typeof best === "number" && typeof max === "number" ? `${formatScoreValue(best)}/${max}` : "-",
     correctness:
       typeof submissionScore?.correctness === "number"

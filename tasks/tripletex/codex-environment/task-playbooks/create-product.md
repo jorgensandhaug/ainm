@@ -48,6 +48,13 @@ Fresh-account production verification on 2026-03-21 also showed:
 - 2 calls, 0 errors, confirming the 2-call path is consistently optimal for explicit 0% VAT tasks
 - Portuguese `sem IVA` wording correctly maps to `priceExcludingVatCurrency` without needing any special handling
 
+Fresh-account production verification on 2026-03-21 also showed:
+- an exact standard-25% product-create task (`Datenberatung` / `7855` / `41550 NOK ohne MwSt.`) succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=51937.5` and `vatType.id=3`
+- 1 call, 0 errors, minimal-call execution
+- German `ohne MwSt.` wording correctly maps to `priceExcludingVatCurrency` without needing any special handling
+- 7th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape across languages: de/en/es/pt/fr
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
@@ -182,6 +189,7 @@ Use `number` for the product number. Include `vatType` only on the non-shortcut 
 - Do not treat Portuguese `sem IVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 - Do not treat Spanish `sin IVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 - Do not treat French `hors TVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
+- Do not treat German `ohne MwSt.` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 
 ## Avoidable Mistakes
 

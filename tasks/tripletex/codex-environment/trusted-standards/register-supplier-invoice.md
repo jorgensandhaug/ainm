@@ -183,6 +183,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
 - do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
 - do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
+- do NOT rely on `importDocument` auto-creating the supplier to skip `POST /supplier` — while import does auto-create a supplier from XML org number data, the auto-created supplier has empty address fields and no bank account, so scored fields from the PDF are lost; explicit `POST /supplier` first remains required for PDF tasks
 - when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4; also confirmed: net=24750, gross=30937 → stored net=24749.6, VAT=6187.4
 - do NOT skip the booking step (step 5 `PUT sendToLedger=true`) — without it the voucher stays unbooked and the scorer returns 0%; every pre-2026-03-21 production run that omitted this step scored 0%
 - do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails because Tripletex clears postings before applying new ones
@@ -385,3 +386,18 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - voucher `609130518`, supplier `108414532`
 - this is the 6th consecutive optimal 5-call production run with 0 errors using this standard
 - sandbox re-proof confirmed: combined postings+sendToLedger=true still fails with 422; 5 calls remains the true minimum
+
+2026-03-21 production run for `Nordlicht GmbH` / `871162069` / `INV-2026-7611` / `44562` / `6300` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- German-language prompt with PDF, description "Nettverkstjenester"
+- PDF data fully extracted: address `Nygata 53, 9008 Tromsø`, bank account `28390913577`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=35650, gross=44562 (35650×1.25=44562.5) → Tripletex stored net=35649.6, VAT=8912.4
+- voucher `609134450`, supplier `108416207`
+- this is the 7th consecutive optimal 5-call production run with 0 errors using this standard
+- languages confirmed across 7 consecutive optimal runs: en, es, pt, de, fr — standard is fully language-independent
+- sandbox re-proof confirmed: `importDocument` auto-creates a supplier from XML org number but with empty address fields and no bank account — NOT useful for PDF tasks where address/bank are scored; explicit `POST /supplier` first remains required

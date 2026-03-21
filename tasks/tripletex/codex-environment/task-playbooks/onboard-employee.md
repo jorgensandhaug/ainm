@@ -61,11 +61,13 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Regnskapssjef | `regnskapssjef` | `4679` | `1231115` |
 | HR-rådgiver | `personalrådgiver` | `4169` | `2512149` |
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
+| Regnskapsfører / 3313 | `regnskapsfører` | `4672` | `3432101` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
 For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and skip the occupation-code GET.
+For the exact STYRK-only `3313` contract shape, also use hardcoded id `4672` directly — STYRK-08 3313 (Regnskapsmedarbeidere og bokholdere) maps to STYRK-98 3432 (Regnskapsførere), and REGNSKAPSFØRER (id 4672, code 3432101) is the primary occupation in that group.
 
 ### Compound Job Titles with "Senior" Prefix
 - `nameNO=seniorutvikler` returns 0 results — this compound title does not exist in Tripletex
@@ -211,3 +213,16 @@ Run 2026-03-21 (HR-rådgiver offer letter, Nynorsk prompt, 100% employment, HR d
 - hardcoding HR-rådgiver → id 4169 saves 1 call, reducing optimal flow from 5 to 4 calls
 - sandbox verified: `nameNO=HR-rådgiver` returns 0 results, `nameNO=rådgiver` returns 10+ results without PERSONALRÅDGIVER in first 10
 - this is the minimum-call floor for the HR-rådgiver + standard-worktime shape: 4 calls
+
+Run 2026-03-21 (STYRK 4110 contract, Portuguese prompt, 80% employment, no standard worktime): 3 calls, 0 errors
+- first production use of hardcoded STYRK 4110 → id 2951 (KONTORMEDARBEIDER) mapping
+- GET /division (0 rows, fresh account) → POST /department → POST /employee
+- this is the minimum-call floor for the hardcoded-occupation-code + no-standard-worktime shape: 3 calls
+
+Run 2026-03-21 (STYRK 3313 contract, Portuguese prompt, 100% employment, no standard worktime): 4 calls, 0 errors, scored 18/22 (2/15 checks failed)
+- used dynamic `nameNO=regnskapsfører` lookup — returned 4 results, correctly picked exact match REGNSKAPSFØRER (id 4672, code 3432101)
+- STYRK-08 3313 maps to STYRK-98 3432; `code=3313` search returns only transport-related codes (no accounting codes contain "3313" as a substring)
+- GET /division (0 rows) → POST /department → GET /occupationCode → POST /employee
+- 2 failed checks (10, 13) — root cause uncertain; all visible fields verified correct in sandbox readback
+- standard worktime was not set because the contract did not mention it; this may account for 1 failed check
+- hardcoding STYRK 3313 → id 4672 saves 1 call, reducing optimal flow from 4 to 3 calls for this contract shape

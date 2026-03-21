@@ -190,6 +190,7 @@ Authentication:
 - `/ledger/accountingDimensionValue`, `/ledger/accountingDimensionValue/{id}`, `/ledger/accountingDimensionValue/list`, and `/ledger/accountingDimensionValue/search` — free-dimension value create/search/read/update/delete/batch-update
 - `/ledger/posting` and `/ledger/posting/openPost` — ledger postings search/read plus open customer/supplier postings lookup
 - `/ledger/paymentTypeOut` — outgoing payment-type lookup for supplier-payment flows
+- `/ledger/voucherType` — voucher-type search; voucherType ids are account-specific, always resolve by name (e.g. `?name=Lønnsbilag&count=1&fields=*`)
 - `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
 - `/timesheet/entry`, `/timesheet/entry/{id}`, and `/timesheet/entry/list` — timesheet entry create/search/read/update/delete/batch-create/batch-update; `POST /timesheet/entry/list` accepts an array for multi-employee batch timesheet creation
 - `/activity/>forTimeSheet` — resolve available timesheet activities for a project+employee+date

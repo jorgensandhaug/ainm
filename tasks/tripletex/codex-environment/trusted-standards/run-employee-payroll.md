@@ -77,12 +77,12 @@
   - parallel `Promise.all`: `GET /salary/type?count=1000&fields=*` + `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
   - `POST /salary/transaction?generateTaxDeduction=true`
   - `POST /ledger/voucher?sendToLedger=true` with resolved voucherType id, postings with explicit `row: 1, 2, 3`
-- explicit-fallback no-division branch (only when prompt explicitly allows manual vouchers):
+- explicit-fallback no-division branch (only when prompt explicitly allows manual vouchers, 4 calls):
   - `GET /employee?email=...&count=10&fields=*`
   - if that read shows one exact employee with `dateOfBirth=null` and `employments=[]`, do `GET /division?count=1&fields=*`
   - if that division read returns zero usable rows and the prompt explicitly allows manual vouchers, skip `GET /salary/type`
-  - `GET /ledger/account?number=5000,1920&fields=*`
-  - `POST /ledger/voucher` with one positive posting on account `5000` and one negative balancing posting on `1920` for the gross salary cost
+  - `GET /ledger/account?number=5000,1920&count=10&fields=*` (combined single call)
+  - `POST /ledger/voucher` with `voucherType: null`, one positive posting on account `5000` and one negative balancing posting on `1920` for the gross salary cost; postings MUST include explicit `row` field starting from 1
 - use `GET /salary/type` as both the salary-type lookup and the wage-feature probe; if that read fails with a live `403`, only then investigate `/salary/settings` or `/company/salesmodules`
 - ALWAYS add `POST /employee/employment/details` after `POST /employee/employment` in the repair branch; this sets `monthlySalary`, `remunerationType`, and other fields the scorer requires; the 2026-03-20 sandbox proof that succeeded "without it" only proved API-level success — all 15+ production runs using that path scored 0/8
 

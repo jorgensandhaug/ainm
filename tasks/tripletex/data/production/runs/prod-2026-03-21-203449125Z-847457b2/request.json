@@ -1,0 +1,8 @@
+{
+  "prompt": "Me sende ein faktura på 2716 EUR til Fossekraft AS (org.nr 928230651) då kursen var 10.11 NOK/EUR. Kunden har no betalt, men kursen er 9.33 NOK/EUR. Registrer betalinga og bokfør valutadifferansen (disagio) på rett konto.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "s290s3JF3GMvBWp-CJ7jRqST_x6WbRPOCboKeM9feOk"
+  }
+}
