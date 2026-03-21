@@ -31,6 +31,7 @@ Current read:
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
 - exact local evidence on the strong `k=1` line improved both held-out rounds sharply
+- adding seed-adaptive/confidence gating to that line failed immediately (`v55/v56` fell to about `57.24`)
 - multiscale temporal summaries lost on both global and spatial-dynamic backbones
 - geometry-gated / class-weighted local blur branch also lost badly (`v25/v27/v28`)
 
@@ -57,12 +58,16 @@ Active queue now includes:
 - `teacher_student_blend_v56`
 - `teacher_student_blend_v57`
 - `teacher_student_blend_v58`
+- `teacher_student_blend_v59`
+- `teacher_student_blend_v60`
+- `teacher_student_blend_v61`
+- `teacher_student_blend_v62`
 - full LOO live: `teacher_student_blend_v13`
 - full LOO live: `teacher_student_blend_v15`
 - full LOO live: `teacher_student_blend_v45`
 - full LOO live: `teacher_student_blend_v51`
 - full LOO live: `teacher_student_blend_v52`
 - next promotion target is `teacher_student_blend_v51`
-- newest corrected-gate branch is `teacher_student_blend_v55` through `teacher_student_blend_v58`
+- newest corrected-gate branch is `teacher_student_blend_v59` through `teacher_student_blend_v62`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

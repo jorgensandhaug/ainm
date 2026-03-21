@@ -25,6 +25,8 @@
 - `v53` / `v54`: if that exact-local-evidence gain is real, stack it with the lower-sample `k=1` line instead of only testing it at `samples=4`
 - `v55` / `v56`: exact observed-cell updates solved queried-cell calibration, but unobserved cells may still benefit from seed-adaptive teacher weighting and confidence gating on the same `k=1` backbone
 - `v57` / `v58`: test that same gated teacher-blend idea on the lower-sample exact-local-evidence line instead of assuming the `samples=4` optimum transfers
+- `v59` / `v60`: exact-local-evidence is now the clear winning mechanism, so tune its empirical-Bayes shrinkage more aggressively toward observed counts
+- `v61` / `v62`: test the opposite direction too, in case the current posterior update is already slightly overreacting and needs stronger prior retention
 
 ## Evaluation Rule
 

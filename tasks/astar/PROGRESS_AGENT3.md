@@ -2754,6 +2754,36 @@
      - `v51` full corrected LOO
      - `v52` full corrected LOO
      - `v45` full corrected LOO as the previous-family baseline
+300. The first gated exact-local-evidence results landed quickly:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v55`
+     - `teacher_student_blend_v56`
+   - aggregate results:
+     - `v55`: mean score `57.2510`, mean weighted KL `0.188449`
+     - `v56`: mean score `57.2306`, mean weighted KL `0.188566`
+301. Read from item 300:
+   - seed-adaptive teacher weighting plus confidence gating is harmful on top of the exact-local-evidence `k=1` line
+   - the failure is large enough that the branch is rejected immediately for the `samples=4` case
+302. New hypothesis after item 301:
+   - the exact-local-evidence posterior itself is now the dominant winning mechanism
+   - next decisive test:
+     - tune the empirical-Bayes shrinkage around the current winning setting instead of changing the teacher-blend logic again
+303. Implemented exact-local-evidence beta-tuning variants:
+   - new variants:
+     - `teacher_student_blend_v59`
+     - `teacher_student_blend_v60`
+     - `teacher_student_blend_v61`
+     - `teacher_student_blend_v62`
+   - mapping:
+     - `v59` = `v51` with more aggressive local evidence (`beta_min=2`, `beta_scale=8`)
+     - `v60` = `v52` with more aggressive local evidence (`beta_min=2`, `beta_scale=8`)
+     - `v61` = `v51` with more conservative local evidence (`beta_min=6`, `beta_scale=16`)
+     - `v62` = `v52` with more conservative local evidence (`beta_min=6`, `beta_scale=16`)
+304. Validation for item 303:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v60_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v62_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
