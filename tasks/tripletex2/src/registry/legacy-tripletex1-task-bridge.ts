@@ -229,10 +229,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "20",
     txTaskId: "20",
-    taskSlug: "unknown-task-20",
-    taskName: "Unknown task 20",
+    taskSlug: "register-supplier-invoice-pdf",
+    taskName: "Register supplier invoice with PDF attachment",
     summary:
-      "Tier 3 placeholder for tx_task_id 20 with no checked-in prompt examples yet.",
+      "Register an incoming supplier invoice from a PDF attachment and attach the PDF to the created voucher.",
     legacyTripletex1TaskIds: ["20"],
   },
   {

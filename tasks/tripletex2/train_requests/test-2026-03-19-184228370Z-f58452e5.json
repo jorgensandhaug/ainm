@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a customer named Acme Test AS with email post@acmetest.no and organization number 999888777.",
-  "files": [],
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

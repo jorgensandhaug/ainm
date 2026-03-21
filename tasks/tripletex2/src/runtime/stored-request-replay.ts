@@ -184,6 +184,7 @@ export async function loadStoredCompetitionRequestFixture(
     files: (raw.files ?? []).map((file) => ({
       fileName: file.filename,
       textContent: Buffer.from(file.content_base64, "base64").toString("utf8"),
+      contentBase64: file.content_base64,
       mediaType: file.mime_type,
     })),
     tripletex_credentials: {

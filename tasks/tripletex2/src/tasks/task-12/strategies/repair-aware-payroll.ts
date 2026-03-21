@@ -34,8 +34,16 @@ interface EmploymentSummary {
   division?: {
     id?: number | null;
   } | null;
-  employmentDetails?: unknown[];
-  latestSalary?: unknown;
+  employmentDetails?: EmploymentDetailSummary[];
+  latestSalary?: EmploymentDetailSummary | null;
+}
+
+interface EmploymentDetailSummary {
+  id?: number;
+  date?: string | null;
+  employmentType?: string | null;
+  employmentForm?: string | null;
+  remunerationType?: string | null;
 }
 
 interface DivisionSummary {
@@ -328,8 +336,158 @@ export const strategy = {
     );
 
     if (!employment) {
-      throw new Error(
-        `Employee ${normalizedEmployeeEmail} does not have a payroll-ready employment covering ${payrollPeriod.payrollMonth}.`,
+      const activeEmployment = pickActiveEmployment(
+        employmentResponse.values ?? [],
+        payrollPeriod,
+      );
+      if (activeEmployment) {
+        throw new Error(
+          `Employee ${normalizedEmployeeEmail} has an active employment covering ${payrollPeriod.payrollMonth}, but it lacks payroll-ready employment details.`,
+        );
+      }
+
+      const divisionResponse = await ctx.tripletex.get<ListResponse<DivisionSummary>>(
+        "/division",
+        {
+          query: {
+            count: 1,
+            fields: "*",
+          },
+        },
+      );
+      const division = pickUsableDivision(divisionResponse.values ?? []);
+
+      if (!division) {
+        if (!input.allowManualVoucherFallback) {
+          throw new Error(
+            `Employee ${normalizedEmployeeEmail} does not have an active payroll-ready employment covering ${payrollPeriod.payrollMonth}, and this account has no reusable division to repair that state.`,
+          );
+        }
+
+        const accountResponse = await ctx.tripletex.get<ListResponse<AccountSummary>>(
+          "/ledger/account",
+          {
+            query: {
+              number: "5000,1920",
+              fields: "*",
+            },
+          },
+        );
+        const salaryCostAccount = pickExactAccount(
+          accountResponse.values ?? [],
+          5000,
+        );
+        const bankAccount = pickExactAccount(accountResponse.values ?? [], 1920);
+
+        const voucherResponse = await ctx.tripletex.post<ResponseWrapper<VoucherSummary>>(
+          "/ledger/voucher",
+          {
+            body: {
+              date: payrollPeriod.transactionDate,
+              description: buildVoucherDescription(payrollPeriod),
+              voucherType: null,
+              postings: [
+                {
+                  row: 1,
+                  date: payrollPeriod.transactionDate,
+                  description: buildVoucherDescription(payrollPeriod),
+                  account: { id: salaryCostAccount.id },
+                  amount: totalGross,
+                  amountCurrency: totalGross,
+                  amountGross: totalGross,
+                  amountGrossCurrency: totalGross,
+                },
+                {
+                  row: 2,
+                  date: payrollPeriod.transactionDate,
+                  description: buildVoucherDescription(payrollPeriod),
+                  account: { id: bankAccount.id },
+                  amount: -totalGross,
+                  amountCurrency: -totalGross,
+                  amountGross: -totalGross,
+                  amountGrossCurrency: -totalGross,
+                },
+              ],
+            },
+          },
+        );
+
+        const voucherId = requireId(voucherResponse.value?.id, "voucher");
+        notes.push(
+          `Manual voucher fallback was used because employee ${normalizedEmployeeEmail} had no active payroll-ready employment for ${payrollPeriod.payrollMonth} and /division returned no reusable division.`,
+        );
+
+        assertVoucherMatches(
+          voucherResponse.value,
+          salaryCostAccount.id,
+          bankAccount.id,
+          totalGross,
+        );
+
+        return {
+          createdEntityIds: {
+            employeeId: employee.id,
+            salaryCostAccountId: salaryCostAccount.id,
+            bankAccountId: bankAccount.id,
+            voucherId,
+          },
+          notes,
+          verification: {
+            branch: "manual-voucher-fallback",
+            payrollMonth: payrollPeriod.payrollMonth,
+            grossAmount: totalGross,
+            voucherNumber: voucherResponse.value?.number,
+          },
+        };
+      }
+
+      if (!employee.dateOfBirth) {
+        await ctx.tripletex.put<ResponseWrapper<EmployeeSummary>>(
+          `/employee/${employee.id}`,
+          {
+            body: {
+              dateOfBirth: "1990-01-01",
+            },
+          },
+        );
+        notes.push(
+          `Employee ${normalizedEmployeeEmail} was repaired with placeholder dateOfBirth 1990-01-01 before payroll.`,
+        );
+      }
+
+      const repairedEmploymentResponse = await ctx.tripletex.post<
+        ResponseWrapper<EmploymentSummary>
+      >("/employee/employment", {
+        body: {
+          employee: { id: employee.id },
+          division: { id: division.id },
+          startDate: payrollPeriod.startDate,
+          isMainEmployer: true,
+          taxDeductionCode: "loennFraHovedarbeidsgiver",
+        },
+      });
+
+      const repairedEmploymentId = requireId(
+        repairedEmploymentResponse.value?.id,
+        "employment",
+      );
+
+      notes.push(
+        `Employee ${normalizedEmployeeEmail} had no active payroll-ready employment for ${payrollPeriod.payrollMonth}, so the strategy created a payroll employment before running salary.`,
+      );
+
+      return await runPayroll(
+        ctx,
+        input,
+        payrollPeriod,
+        employee,
+        notes,
+        totalGross,
+        {
+          repaired: true,
+          divisionId: division.id,
+          employmentId: repairedEmploymentId,
+        },
       );
     }
 
@@ -758,7 +916,7 @@ function isUnderconfiguredEmployee(employee: EmployeeSummary): boolean {
   return !employee.dateOfBirth && (employee.employments ?? []).length === 0;
 }
 
-function pickDecisiveEmployment(
+function pickActiveEmployment(
   employments: readonly EmploymentSummary[],
   payrollPeriod: PayrollPeriod,
 ): EmploymentSummary | undefined {
@@ -767,6 +925,43 @@ function pickDecisiveEmployment(
       coversPayrollPeriod(employment, payrollPeriod) &&
       typeof employment.division?.id === "number",
   );
+}
+
+function pickDecisiveEmployment(
+  employments: readonly EmploymentSummary[],
+  payrollPeriod: PayrollPeriod,
+): EmploymentSummary | undefined {
+  return employments.find(
+    (employment) =>
+      coversPayrollPeriod(employment, payrollPeriod) &&
+      typeof employment.division?.id === "number" &&
+      hasPayrollDetails(employment, payrollPeriod),
+  );
+}
+
+function hasPayrollDetails(
+  employment: EmploymentSummary,
+  payrollPeriod: PayrollPeriod,
+): boolean {
+  if (employment.latestSalary) {
+    return true;
+  }
+
+  return (employment.employmentDetails ?? []).some((detail) => {
+    if (!detail) {
+      return false;
+    }
+
+    if (detail.date && detail.date > payrollPeriod.endDate) {
+      return false;
+    }
+
+    return Boolean(
+      detail.employmentType ||
+      detail.employmentForm ||
+      detail.remunerationType,
+    );
+  });
 }
 
 function coversPayrollPeriod(

@@ -21,6 +21,7 @@ interface ProductSummary {
   name?: string;
   number?: string;
   productNumber?: string;
+  vatType?: VatTypeSummary | null;
 }
 
 interface VatTypeSummary {
@@ -58,18 +59,18 @@ export const strategy = {
   taskId: CREATE_CUSTOMER_INVOICE_TASK_ID,
   name: "Create customer invoice",
   summary:
-    "Resolves the existing customer, resolves referenced products with a direct product-number branch plus catalog fallback, maps outgoing VAT types, creates the invoice without sending it, and repairs the company bank account only if that validation branch is triggered.",
+    "Resolves the existing customer, resolves referenced products with a direct product-number branch plus catalog fallback, prefers reusable product VAT ids before any outgoing VAT lookup, creates the invoice without sending it, and repairs the company bank account only if that validation branch is triggered.",
   hypothesis:
-    "The highest-confidence create-only flow is customer lookup, product resolution, outgoing VAT lookup, then POST /invoice?sendToCustomer=false, with bank-account repair held behind the known invoice validation failure.",
+    "The best create-only flow is customer lookup, product resolution, then POST /invoice?sendToCustomer=false when the resolved products already expose reusable VAT ids, with /ledger/vatType reserved for lines that still need an explicit outgoing VAT mapping and bank-account repair held behind the known invoice validation failure.",
   expectedCallProfile: {
-    targetCalls: 4,
+    targetCalls: 3,
     maxCalls: 7,
   },
   stepOutline: [
     "API call 1: GET /customer by organization number to resolve the existing customer ID.",
     "API call 2: resolve products either via direct productNumber query or, if incomplete, a single product catalog read.",
-    "API call 3: GET /ledger/vatType for the invoice date to map the requested VAT percentages.",
-    "API call 4: POST /invoice?sendToCustomer=false with orderLines under orders[].",
+    "API call 3: when the resolved products do not already provide reusable VAT ids for the line payload, GET /ledger/vatType for the invoice date to map the requested VAT percentages.",
+    "Final write: POST /invoice?sendToCustomer=false with orderLines under orders[].",
     "Conditional repair: if invoice creation fails with the known company bank account validation, GET /ledger/account, PUT the chosen bank account, and retry the same invoice write once.",
   ],
   status: "draft",
@@ -102,7 +103,12 @@ export const strategy = {
     );
 
     const resolvedProducts = await resolveProducts(ctx, input.lines);
-    const vatTypes = await resolveVatTypes(ctx, invoiceDate, input.lines);
+    const vatTypes = await resolveVatTypesIfNeeded(
+      ctx,
+      invoiceDate,
+      input.lines,
+      resolvedProducts,
+    );
     const invoicePayload = buildInvoicePayload(
       customer.id,
       invoiceDate,
@@ -216,14 +222,22 @@ async function resolveProducts(
   return catalogMatches;
 }
 
-async function resolveVatTypes(
+async function resolveVatTypesIfNeeded(
   ctx: StrategyContext,
   invoiceDate: string,
   lines: readonly CreateCustomerInvoiceLineInput[],
+  products: ReadonlyMap<number, ProductSummary>,
 ): Promise<Map<number, VatTypeSummary>> {
+  if (!needsExplicitVatLookup(lines, products)) {
+    return new Map<number, VatTypeSummary>();
+  }
+
   const requestedPercentages = uniqueNumbers(
     lines.map((line) => normalizeVatPercentage(line.vatRatePercent)),
   );
+  if (requestedPercentages.length === 0) {
+    return new Map<number, VatTypeSummary>();
+  }
 
   const vatResponse = await ctx.tripletex.get<ListResponse<VatTypeSummary>>(
     "/ledger/vatType",
@@ -250,11 +264,6 @@ async function resolveVatTypes(
     mapping.set(percentage, vatType);
   }
 
-  if (requestedPercentages.length === 0) {
-    const defaultVatType = chooseDefaultOutgoingVatType(vatTypes);
-    mapping.set(defaultVatTypePercentage(defaultVatType), defaultVatType);
-  }
-
   return mapping;
 }
 
@@ -278,17 +287,28 @@ function buildInvoicePayload(
         orderLines: lines.map((line, index) => {
           const resolvedProduct = products.get(index);
           const vatPercentage = normalizeVatPercentage(line.vatRatePercent);
-          const fallbackVatType = chooseDefaultVatType(vatTypes);
-          const vatType =
-            (vatPercentage !== undefined ? vatTypes.get(vatPercentage) : undefined) ??
-            fallbackVatType;
+          const vatTypeId =
+            (vatPercentage !== undefined ? vatTypes.get(vatPercentage)?.id : undefined) ??
+            resolvedProductVatTypeId(resolvedProduct);
+
+          if (vatPercentage !== undefined && vatTypeId === undefined) {
+            throw new Error(
+              `Could not resolve Tripletex VAT type ${vatPercentage}% for lines[${index}].`,
+            );
+          }
+
+          if (vatPercentage === undefined && vatTypeId === undefined) {
+            throw new Error(
+              `lines[${index}] must include vatRatePercent or reference a product with a reusable vatType.id.`,
+            );
+          }
 
           return {
             ...(resolvedProduct ? { product: { id: resolvedProduct.id } } : {}),
             description: line.description,
             count: line.quantity,
             unitPriceExcludingVatCurrency: line.unitPriceExcludingVatNok,
-            ...(vatType ? { vatType: { id: vatType.id } } : {}),
+            ...(vatTypeId !== undefined ? { vatType: { id: vatTypeId } } : {}),
           };
         }),
       },
@@ -469,46 +489,6 @@ function pickCustomer(
   );
 }
 
-function chooseDefaultOutgoingVatType(
-  vatTypes: readonly VatTypeSummary[],
-): VatTypeSummary {
-  if (vatTypes.length === 0) {
-    throw new Error("Tripletex did not return any outgoing VAT types.");
-  }
-
-  return (
-    vatTypes.find(
-      (vatType) => normalizeVatPercentage(vatType.percentage) === 25,
-    ) ??
-    [...vatTypes].sort(
-      (left, right) =>
-        Number(right.percentage ?? 0) - Number(left.percentage ?? 0),
-    )[0]
-  );
-}
-
-function chooseDefaultVatType(
-  vatTypes: ReadonlyMap<number, VatTypeSummary>,
-): VatTypeSummary | undefined {
-  if (vatTypes.size === 0) {
-    return undefined;
-  }
-
-  const exact25 = vatTypes.get(25);
-  if (exact25) {
-    return exact25;
-  }
-
-  return [...vatTypes.values()].sort(
-    (left, right) =>
-      Number(right.percentage ?? 0) - Number(left.percentage ?? 0),
-  )[0];
-}
-
-function defaultVatTypePercentage(vatType: VatTypeSummary): number {
-  return normalizeVatPercentage(vatType.percentage) ?? 25;
-}
-
 function assertInvoiceLines(
   lines: readonly CreateCustomerInvoiceLineInput[],
 ): void {
@@ -591,6 +571,38 @@ function normalizeVatPercentage(value: number | undefined): number | undefined {
 
 function uniqueNumbers(values: readonly (number | undefined)[]): number[] {
   return [...new Set(values.filter((value): value is number => value !== undefined))];
+}
+
+function needsExplicitVatLookup(
+  lines: readonly CreateCustomerInvoiceLineInput[],
+  products: ReadonlyMap<number, ProductSummary>,
+): boolean {
+  return lines.some((line, index) => {
+    const explicitVatPercentage = normalizeVatPercentage(line.vatRatePercent);
+    if (explicitVatPercentage === undefined) {
+      return false;
+    }
+
+    const resolvedProduct = products.get(index);
+    const resolvedVatTypeId = resolvedProductVatTypeId(resolvedProduct);
+    if (resolvedVatTypeId === undefined) {
+      return true;
+    }
+
+    const resolvedVatPercentage = normalizeVatPercentage(
+      resolvedProduct?.vatType?.percentage,
+    );
+    return (
+      resolvedVatPercentage !== undefined &&
+      resolvedVatPercentage !== explicitVatPercentage
+    );
+  });
+}
+
+function resolvedProductVatTypeId(
+  product: ProductSummary | undefined,
+): number | undefined {
+  return typeof product?.vatType?.id === "number" ? product.vatType.id : undefined;
 }
 
 function sameText(left: string, right: string): boolean {

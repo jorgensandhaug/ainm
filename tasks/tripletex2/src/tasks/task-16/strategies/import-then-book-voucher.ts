@@ -85,6 +85,9 @@ export const strategy = {
     ctx: StrategyContext,
     input: RegisterSupplierInvoiceInput,
   ): Promise<StrategyResult> {
+    assertNonEmptyText(input.supplierName, "supplierName");
+    assertNonEmptyText(input.invoiceNumber, "invoiceNumber");
+    assertNonEmptyText(input.lineDescription, "lineDescription");
     assertPositiveAmount(input.grossAmountNok, "grossAmountNok");
     assertPositiveAmount(input.vatRatePercent, "vatRatePercent");
 
@@ -98,6 +101,7 @@ export const strategy = {
     const normalizedOrgNumber = normalizeOrganizationNumber(
       input.organizationNumber,
     );
+    assertNonEmptyText(normalizedOrgNumber, "organizationNumber");
 
     const supplier = input.supplierAlreadyExists
       ? await resolveExistingSupplierFirst(ctx, input, normalizedOrgNumber)
@@ -172,6 +176,10 @@ export const strategy = {
       importResponse.values ?? [],
     );
     const voucherId = requireId(importedVoucher.id, "imported voucher id");
+    const importedVoucherVersion = requireNumber(
+      importedVoucher.version,
+      "imported voucher version",
+    );
 
     const updateResponse = await ctx.tripletex.put<ResponseWrapper<VoucherSummary>>(
       `/ledger/voucher/${voucherId}`,
@@ -180,7 +188,7 @@ export const strategy = {
           sendToLedger: false,
         },
         body: {
-          version: importedVoucher.version,
+          version: importedVoucherVersion,
           postings: [
             {
               row: 1,
@@ -262,6 +270,14 @@ async function createSupplierFirst(
   input: RegisterSupplierInvoiceInput,
   organizationNumber: string,
 ): Promise<{ id: number; ledgerAccountId: number; created: boolean }> {
+  return createSupplierWithRecovery(ctx, input, organizationNumber);
+}
+
+async function createSupplierWithRecovery(
+  ctx: StrategyContext,
+  input: RegisterSupplierInvoiceInput,
+  organizationNumber: string,
+): Promise<{ id: number; ledgerAccountId: number; created: boolean }> {
   try {
     const response = await ctx.tripletex.post<ResponseWrapper<SupplierSummary>>(
       "/supplier",
@@ -294,17 +310,7 @@ async function resolveExistingSupplierFirst(
 ): Promise<{ id: number; ledgerAccountId: number; created: boolean }> {
   const candidates = await lookupSupplierCandidates(ctx, organizationNumber);
   if (candidates.length === 0) {
-    const created = await ctx.tripletex.post<ResponseWrapper<SupplierSummary>>(
-      "/supplier",
-      {
-        body: {
-          name: input.supplierName,
-          organizationNumber,
-        },
-      },
-    );
-
-    return unwrapSupplier(created.value, true);
+    return createSupplierWithRecovery(ctx, input, organizationNumber);
   }
 
   const exact = pickExactSupplierMatch(
@@ -617,7 +623,19 @@ function buildInvoiceXml(input: {
 }
 
 function looksLikeDuplicateSupplierError(error: unknown): boolean {
-  return isTripletexHttpError(error) && (error.status === 409 || error.status === 422);
+  if (!isTripletexHttpError(error)) {
+    return false;
+  }
+
+  if (error.status === 409) {
+    return true;
+  }
+
+  if (error.status !== 422) {
+    return false;
+  }
+
+  return hasDuplicateSupplierMessage(error.message);
 }
 
 function isTripletexHttpError(error: unknown): error is TripletexHttpError {
@@ -634,11 +652,27 @@ function requireId(
   value: number | undefined | null,
   label: string,
 ): number {
+  return requireNumber(value, label);
+}
+
+function requireNumber(
+  value: number | undefined | null,
+  label: string,
+): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new Error(`Tripletex did not return ${label}.`);
   }
 
   return value;
+}
+
+function hasDuplicateSupplierMessage(message: string): boolean {
+  const normalizedMessage = message.trim().toLowerCase();
+  return (
+    normalizedMessage.includes("already exists") ||
+    normalizedMessage.includes("finnes allerede") ||
+    normalizedMessage.includes("duplicate")
+  );
 }
 
 function sameText(left: string | undefined, right: string | undefined): boolean {
@@ -677,6 +711,12 @@ function xmlEscape(value: string): string {
 
 function normalizeOrganizationNumber(value: string | undefined): string {
   return (value ?? "").replace(/\s+/g, "");
+}
+
+function assertNonEmptyText(value: string, fieldName: string): void {
+  if (value.trim().length === 0) {
+    throw new Error(`${fieldName} must be a non-empty string.`);
+  }
 }
 
 function assertPositiveAmount(value: number, fieldName: string): void {

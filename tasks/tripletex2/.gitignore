@@ -4,6 +4,9 @@
 # Mutable per-run staging (request snapshots, result pointers)
 data/
 
+# Canonical run artifacts (written by solve-pipeline, consumed by nothing)
+runs/
+
 # Scratch space for strategy comparison experiments
 tmp/
 
