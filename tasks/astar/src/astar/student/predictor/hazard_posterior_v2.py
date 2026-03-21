@@ -121,14 +121,27 @@ def _ensure_synthetic_dataset(
     try:
         return load_synthetic_live_dataset_ref(paths, dataset_name)
     except FileNotFoundError:
-        return build_synthetic_live_dataset(
+        # Build without regime_vectors_by_round (our version doesn't support it)
+        result = build_synthetic_live_dataset(
             paths,
             policy_name=policy_name,
             round_ids=list(round_ids),
             samples_per_round=samples_per_round,
             dataset_name=dataset_name,
-            regime_vectors_by_round=regime_vectors_by_round,
-            reuse_existing=True,
+        )
+        # Convert to SyntheticEpisodeDatasetRef
+        return SyntheticEpisodeDatasetRef(
+            dataset_name=dataset_name,
+            dataset_kind="synthetic_live",
+            dataset_dir=result.dataset_dir if hasattr(result, 'dataset_dir') else paths.dataset_dir(dataset_name),
+            summary_path=result.summary_path if hasattr(result, 'summary_path') else paths.dataset_dir(dataset_name) / "summary.json",
+            index_path=result.index_path,
+            row_count=result.row_count if hasattr(result, 'row_count') else 0,
+            round_count=result.round_count if hasattr(result, 'round_count') else len(round_ids),
+            policy_name=policy_name,
+            episode_count=result.row_count if hasattr(result, 'row_count') else 0,
+            total_query_count=result.total_query_count if hasattr(result, 'total_query_count') else 0,
+            samples_per_round=samples_per_round,
         )
 
 

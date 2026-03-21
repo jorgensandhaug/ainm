@@ -46,6 +46,32 @@ class SyntheticEpisodeArtifact(BaseModel):
     target_paths: dict[int, Path]
 
 
+def load_synthetic_live_dataset_ref(
+    paths: WorkspacePaths,
+    dataset_name: str,
+) -> SyntheticEpisodeDatasetRef:
+    """Load a reference to an existing synthetic episode dataset."""
+    dataset_dir = paths.dataset_dir(dataset_name)
+    summary_path = dataset_dir / "summary.json"
+    index_path = dataset_dir / "index.parquet"
+    if not summary_path.exists() or not index_path.exists():
+        raise FileNotFoundError(dataset_name)
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    return SyntheticEpisodeDatasetRef(
+        dataset_name=dataset_name,
+        dataset_kind="synthetic_live",
+        dataset_dir=dataset_dir,
+        summary_path=summary_path,
+        index_path=index_path,
+        row_count=summary.get("row_count", 0),
+        round_count=summary.get("round_count", 0),
+        policy_name=summary.get("policy_name", "coverage"),
+        episode_count=summary.get("row_count", 0),
+        total_query_count=summary.get("total_query_count", 0),
+        samples_per_round=summary.get("samples_per_round", 1),
+    )
+
+
 def _has_materialized_round_artifacts(
     paths: WorkspacePaths,
     round_id: str,
