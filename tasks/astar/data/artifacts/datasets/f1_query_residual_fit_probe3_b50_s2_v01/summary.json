@@ -1,0 +1,16 @@
+{
+  "dataset_name": "f1_query_residual_fit_probe3_b50_s2_v01",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "coverage",
+  "budget": 50,
+  "episode_count": 6,
+  "samples_per_round": 2,
+  "total_query_count": 270,
+  "round_count": 3,
+  "round_ids": [
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad"
+  ],
+  "index_path": "/home/jorge/agent6/tasks/astar/data/artifacts/datasets/f1_query_residual_fit_probe3_b50_s2_v01/index.parquet"
+}

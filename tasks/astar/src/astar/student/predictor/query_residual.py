@@ -435,6 +435,11 @@ class SeedTranscriptStats(BaseModel):
     owner_count: float = Field(default=0.0, ge=0.0)
     largest_owner_share: float = Field(default=0.0, ge=0.0, le=1.0)
     owner_hhi: float = Field(default=0.0, ge=0.0, le=1.0)
+    local_state_count: np.ndarray
+    local_population_map: np.ndarray
+    local_food_map: np.ndarray
+    local_defense_map: np.ndarray
+    local_distress_map: np.ndarray
 
 
 class TranscriptDerivedFeatures(BaseModel):
@@ -492,6 +497,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     beta_scale: float = Field(ge=0.0)
     training_episode_count: int = Field(ge=0)
     sample_count: int = Field(ge=0)
+    feature_variant: str = "v1"
     feature_names: list[str]
     coefficients: list[list[float]]
     intercept: list[float]
@@ -500,6 +506,8 @@ class QueryResidualPredictorCheckpoint(BaseModel):
 
 def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscriptStats:
     count_tensor = np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64)
+    height, width = count_tensor.shape[:2]
+    zero_map = np.zeros((height, width), dtype=np.float64)
     return SeedTranscriptStats(
         query_count=seed_evidence.query_count,
         count_tensor=count_tensor,
@@ -521,6 +529,11 @@ def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscri
         owner_count=0.0,
         largest_owner_share=0.0,
         owner_hhi=0.0,
+        local_state_count=zero_map,
+        local_population_map=zero_map,
+        local_food_map=zero_map,
+        local_defense_map=zero_map,
+        local_distress_map=zero_map,
     )
 
 
@@ -536,6 +549,34 @@ def _stats_from_observations(
     for seed_index in range(round_detail.seeds_count):
         seed_observations = grouped.get(seed_index, [])
         seed_evidence = evidence.per_seed[seed_index]
+        height = round_detail.map_height
+        width = round_detail.map_width
+        local_state_count = np.zeros((height, width), dtype=np.float64)
+        local_population_sum = np.zeros((height, width), dtype=np.float64)
+        local_food_sum = np.zeros((height, width), dtype=np.float64)
+        local_defense_sum = np.zeros((height, width), dtype=np.float64)
+        local_distress_sum = np.zeros((height, width), dtype=np.float64)
+        for observation in seed_observations:
+            for settlement in observation.settlements:
+                local_state_count[settlement.y, settlement.x] += 1.0
+                local_population_sum[settlement.y, settlement.x] += _normalize_population(
+                    settlement.population,
+                )
+                local_food_sum[settlement.y, settlement.x] += _normalize_food(settlement.food)
+                local_defense_sum[settlement.y, settlement.x] += _normalize_defense(
+                    settlement.defense,
+                )
+                local_distress_sum[settlement.y, settlement.x] += float(
+                    (
+                        settlement.food is not None
+                        and _normalize_food(settlement.food) <= 0.35
+                    )
+                    or (
+                        settlement.defense is not None
+                        and _normalize_defense(settlement.defense) <= 0.35
+                    ),
+                )
+        local_denom = np.where(local_state_count > 0.0, local_state_count, 1.0)
         owner_count, largest_owner_share, owner_hhi = _owner_summary(seed_observations)
         (
             mean_population,
@@ -577,6 +618,11 @@ def _stats_from_observations(
             owner_count=owner_count,
             largest_owner_share=largest_owner_share,
             owner_hhi=owner_hhi,
+            local_state_count=local_state_count,
+            local_population_map=local_population_sum / local_denom,
+            local_food_map=local_food_sum / local_denom,
+            local_defense_map=local_defense_sum / local_denom,
+            local_distress_map=local_distress_sum / local_denom,
         )
     return stats
 
@@ -770,6 +816,14 @@ def _derive_transcript_features_from_stats(
         blur_residual_large = _gaussian_blur(residual, blur_sigmas[1])
         blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])[..., None]
         blur_coverage_large = _gaussian_blur(observed_count_feature, blur_sigmas[1])[..., None]
+        blur_population_small = _gaussian_blur(stats.local_population_map, blur_sigmas[0])[..., None]
+        blur_population_large = _gaussian_blur(stats.local_population_map, blur_sigmas[1])[..., None]
+        blur_food_small = _gaussian_blur(stats.local_food_map, blur_sigmas[0])[..., None]
+        blur_food_large = _gaussian_blur(stats.local_food_map, blur_sigmas[1])[..., None]
+        blur_defense_small = _gaussian_blur(stats.local_defense_map, blur_sigmas[0])[..., None]
+        blur_defense_large = _gaussian_blur(stats.local_defense_map, blur_sigmas[1])[..., None]
+        blur_distress_small = _gaussian_blur(stats.local_distress_map, blur_sigmas[0])[..., None]
+        blur_distress_large = _gaussian_blur(stats.local_distress_map, blur_sigmas[1])[..., None]
         local_evidence[seed_index] = np.concatenate(
             [
                 observed_count_feature[..., None],
@@ -777,6 +831,18 @@ def _derive_transcript_features_from_stats(
                 blur_residual_large,
                 blur_coverage_small,
                 blur_coverage_large,
+                stats.local_population_map[..., None],
+                stats.local_food_map[..., None],
+                stats.local_defense_map[..., None],
+                stats.local_distress_map[..., None],
+                blur_population_small,
+                blur_population_large,
+                blur_food_small,
+                blur_food_large,
+                blur_defense_small,
+                blur_defense_large,
+                blur_distress_small,
+                blur_distress_large,
             ],
             axis=-1,
         )
@@ -910,11 +976,30 @@ def _seed_summary_names() -> list[str]:
     return names
 
 
-def _local_evidence_names() -> list[str]:
+def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
+    normalized = None if feature_variant is None else feature_variant.strip().lower()
     names = ["local_observed_count"]
     names.extend([f"local_blur15_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend([f"local_blur40_resid_{class_name}" for class_name in CLASS_NAMES])
     names.extend(["local_blur15_coverage", "local_blur40_coverage"])
+    if normalized in {"v1", "v2_state", "v3_state_tails"}:
+        return names
+    names.extend(
+        [
+            "local_population",
+            "local_food",
+            "local_defense",
+            "local_distress",
+            "local_blur15_population",
+            "local_blur40_population",
+            "local_blur15_food",
+            "local_blur40_food",
+            "local_blur15_defense",
+            "local_blur40_defense",
+            "local_blur15_distress",
+            "local_blur40_distress",
+        ],
+    )
     return names
 
 
@@ -947,6 +1032,8 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
         return (state_global_len, state_seed_len)
     if normalized == "v3_state_tails":
         return (len(_global_summary_names()), len(_seed_summary_names()))
+    if normalized == "v4_localstate":
+        return (state_global_len, state_seed_len)
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
 
@@ -1018,6 +1105,19 @@ def _full_feature_names(feature_variant: str) -> list[str]:
     names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
     names.extend(global_names)
     names.extend(seed_names)
+    names.extend(_regime_summary_names())
+    names.extend(_local_evidence_names(feature_variant))
+    names.extend(_regime_interaction_names())
+    names.extend(_interaction_names())
+    return names
+
+
+def _master_feature_names() -> list[str]:
+    names = _static_feature_names()
+    names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
+    names.extend([f"teacher_logit_{class_name}" for class_name in CLASS_NAMES])
+    names.extend(_global_summary_names())
+    names.extend(_seed_summary_names())
     names.extend(_regime_summary_names())
     names.extend(_local_evidence_names())
     names.extend(_regime_interaction_names())
@@ -1186,7 +1286,7 @@ def _compose_design_tensor(
         regime_interaction,
         interaction,
     ]
-    master_feature_names = tuple(_full_feature_names("v3_state_tails"))
+    master_feature_names = tuple(_master_feature_names())
     master_design = np.concatenate(blocks, axis=-1)
     if selected_feature_names is None:
         return master_design
@@ -1239,12 +1339,16 @@ class QueryResidualPredictor(BaseRoundPredictor):
         default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
     )
     regime_weights: np.ndarray = Field(
-        default_factory=lambda: np.zeros((len(_regime_input_names()), len(_regime_summary_names())), dtype=np.float64),
+        default_factory=lambda: np.zeros(
+            (len(_regime_input_names("v1")), len(_regime_summary_names())),
+            dtype=np.float64,
+        ),
     )
     beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
     training_episode_count: int = Field(default=0, ge=0)
     sample_count: int = Field(default=0, ge=0)
+    feature_variant: str = "v1"
     feature_names: tuple[str, ...] = tuple(_full_feature_names("v1"))
     coefficients: np.ndarray = Field(
         default_factory=lambda: np.zeros((len(_full_feature_names("v1")), CLASS_COUNT), dtype=np.float64),
@@ -1460,6 +1564,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=beta_scale,
             training_episode_count=training_episode_count,
             sample_count=sample_count,
+            feature_variant=feature_variant,
             feature_names=selected_feature_names,
             intercept=np.asarray(solved[0], dtype=np.float64),
             coefficients=np.asarray(solved[1:], dtype=np.float64),
@@ -1498,6 +1603,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=checkpoint.beta_scale,
             training_episode_count=checkpoint.training_episode_count,
             sample_count=checkpoint.sample_count,
+            feature_variant=checkpoint.feature_variant,
             feature_names=tuple(checkpoint.feature_names),
             coefficients=np.asarray(checkpoint.coefficients, dtype=np.float64),
             intercept=np.asarray(checkpoint.intercept, dtype=np.float64),
@@ -1533,6 +1639,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             beta_scale=self.beta_scale,
             training_episode_count=self.training_episode_count,
             sample_count=self.sample_count,
+            feature_variant=self.feature_variant,
             feature_names=list(self.feature_names),
             coefficients=np.asarray(self.coefficients, dtype=np.float64).tolist(),
             intercept=np.asarray(self.intercept, dtype=np.float64).tolist(),
@@ -1605,15 +1712,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             + (
                 _regime_input_vector(
                     derived,
-                    feature_variant=(
-                        "v1"
-                        if len(self.feature_names) == len(_full_feature_names("v1"))
-                        else (
-                            "v2_state"
-                            if len(self.feature_names) == len(_full_feature_names("v2_state"))
-                            else "v3_state_tails"
-                        )
-                    ),
+                    feature_variant=self.feature_variant,
                 )
                 @ self.regime_weights
             ),
@@ -1703,6 +1802,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     query_count=0,
                     count_tensor=np.zeros((round_detail.map_height, round_detail.map_width, CLASS_COUNT), dtype=np.float64),
                     count_total=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
+                    local_state_count=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
+                    local_population_map=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
+                    local_food_map=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
+                    local_defense_map=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
+                    local_distress_map=np.zeros((round_detail.map_height, round_detail.map_width), dtype=np.float64),
                 )
                 for seed_index in range(round_detail.seeds_count)
             }

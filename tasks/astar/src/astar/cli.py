@@ -32,6 +32,7 @@ from astar.cli_output import (
     render_paired_benchmark_comparison,
     render_query_plan_run,
     render_query_plan_summary,
+    render_query_residual_fit_audit,
     render_recorded_replay,
     render_recorded_simulation,
     render_round_dynamics_lowrank_audit,
@@ -92,6 +93,7 @@ from astar.workflows.live_online import run_live_online_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.markov_sufficiency import run_markov_sufficiency_audit
 from astar.workflows.hazard_glm import run_hazard_glm_audit, supported_hazard_glm_events
+from astar.workflows.query_residual_fit_audit import run_query_residual_fit_audit
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
 from astar.workflows.results import QueryPlanSummary
 from astar.workflows.round_report import build_round_report
@@ -295,6 +297,22 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_transcript_audit_parser.add_argument("--policy", default="coverage")
     synthetic_transcript_audit_parser.add_argument("--samples-per-round", type=int, default=2)
     synthetic_transcript_audit_parser.add_argument("--budget", type=int, default=50)
+
+    query_residual_fit_audit_parser = subparsers.add_parser("run-query-residual-fit-audit")
+    query_residual_fit_audit_parser.add_argument(
+        "--model",
+        choices=supported_query_residual_model_names(),
+        required=True,
+    )
+    query_residual_fit_audit_parser.add_argument("--round-id", action="append", default=None)
+    query_residual_fit_audit_parser.add_argument(
+        "--dataset-name",
+        default="f1_query_residual_fit_audit_coverage_b50_s2_v01",
+    )
+    query_residual_fit_audit_parser.add_argument("--name", default="f1_query_residual_fit_audit_v01")
+    query_residual_fit_audit_parser.add_argument("--policy", default="coverage")
+    query_residual_fit_audit_parser.add_argument("--samples-per-round", type=int, default=2)
+    query_residual_fit_audit_parser.add_argument("--budget", type=int, default=50)
 
     birth_hazard_glm_parser = subparsers.add_parser("run-birth-hazard-glm-audit")
     birth_hazard_glm_parser.add_argument("--dataset-name", default="f1_birth_riskset_nr8_v1")
@@ -649,6 +667,20 @@ def _main() -> int:
             budget=args.budget,
         )
         _emit(args.json, result, render_synthetic_transcript_audit(result))
+        return 0
+
+    if args.command == "run-query-residual-fit-audit":
+        result = run_query_residual_fit_audit(
+            paths,
+            model_name=args.model,
+            round_ids=args.round_id,
+            dataset_name=args.dataset_name,
+            audit_name=args.name,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+            budget=args.budget,
+        )
+        _emit(args.json, result, render_query_residual_fit_audit(result))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":

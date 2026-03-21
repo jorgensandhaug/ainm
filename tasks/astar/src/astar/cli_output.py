@@ -26,6 +26,7 @@ from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesRes
 from astar.workflows.event_regime_posterior_audit import EventRegimePosteriorAuditResult
 from astar.workflows.hazard_glm import HazardGlmAuditResult
 from astar.workflows.live_online import LiveOnlineRunResult
+from astar.workflows.query_residual_fit_audit import QueryResidualFitAuditResult
 from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
 from astar.workflows.synthetic_transcript_audit import SyntheticTranscriptAuditResult
 from astar.workflows.results import (
@@ -396,6 +397,30 @@ def render_synthetic_transcript_audit(result: SyntheticTranscriptAuditResult) ->
         f"episodes: {result.episode_count}",
         f"evaluated_seed_count: {result.evaluated_seed_count}",
         f"aggregation: {result.aggregation_mode}",
+        f"aggregate_score: {result.aggregate_score:.6f}",
+        f"aggregate_weighted_kl: {result.aggregate_weighted_kl:.6f}",
+        f"report: {result.report_path}",
+        f"artifact: {result.artifact_path}",
+    ]
+    return "\n".join(lines)
+
+
+def render_query_residual_fit_audit(result: QueryResidualFitAuditResult) -> str:
+    lines = [
+        f"query-residual-fit-audit {result.audit_name}",
+        f"model: {result.model_name}",
+        f"dataset: {result.dataset_name}",
+        f"policy: {result.policy_name}",
+        f"budget: {result.budget}",
+        f"samples_per_round: {result.samples_per_round}",
+        f"rounds: {result.round_count}",
+        f"episodes: {result.episode_count}",
+        f"evaluated_seed_count: {result.evaluated_seed_count}",
+        f"aggregation: {result.aggregation_mode}",
+        f"aggregate_regime_mae: {result.aggregate_regime_mae:.6f}",
+        f"aggregate_regime_mse: {result.aggregate_regime_mse:.6f}",
+        f"aggregate_raw_delta_rmse: {result.aggregate_raw_delta_rmse:.6f}",
+        f"aggregate_served_delta_rmse: {result.aggregate_served_delta_rmse:.6f}",
         f"aggregate_score: {result.aggregate_score:.6f}",
         f"aggregate_weighted_kl: {result.aggregate_weighted_kl:.6f}",
         f"report: {result.report_path}",

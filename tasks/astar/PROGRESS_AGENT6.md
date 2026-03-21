@@ -1260,3 +1260,153 @@
   - next best path remains:
     - exploit the cheaper warm-fit loop for new `query_residual` branches, or
     - add a within-fit residual/regime diagnostic now that the repeated sub-fit cost is lower
+- Next warmed-loop model branch started:
+  - hypothesis:
+    - the missing `query_residual` signal is more likely in localized settlement-state evidence than in more global hand-picked summary scalars
+    - queried settlement `population / food / defense` should matter spatially for collapse / ruin / port neighborhoods, but current local evidence only uses class-count residual blurs
+  - planned variant:
+    - add local blurred settlement-state maps to the `query_residual` feature library
+    - keep older variants backward-compatible via the existing feature slicing path
+  - target first model name:
+    - `f1_student_query_residual_localstate_v01`
+- Implemented `f1_student_query_residual_localstate_v01`:
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/student/predictor/query_residual_specs.py`
+    - `tests/test_query_residual_feature_variants.py`
+  - change:
+    - added a new backward-compatible `v4_localstate` feature variant
+    - new local evidence block includes per-cell queried settlement-state maps:
+      - local normalized `population`
+      - local normalized `food`
+      - local normalized `defense`
+      - local distress rate
+      - plus small/large Gaussian blurs of each
+    - older variants still slice from the shared master feature tensor
+- Validation after landing `v4_localstate` support:
+  - `uv run pytest tests/test_query_residual_feature_variants.py tests/test_query_residual_cache.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `14 passed`
+- Real smoke benchmark for `f1_student_query_residual_localstate_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_localstate_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_localstate_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_localstate_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_localstate_v01.json`
+  - result:
+    - mean score `71.9062`
+    - weighted KL `0.110417`
+    - benchmark runtime `225.073s`
+    - `/usr/bin/time -v` wall `3:56.63`
+    - max RSS about `13.86 GB`
+  - paired compare vs `query_residual_v7`:
+    - mean score delta `-1.1965`
+    - weighted KL delta `+0.005633`
+    - win rate `0.000`
+    - loss rate `1.000`
+    - CI95 `[-1.4709, -0.9099]`
+- `localstate` branch conclusion:
+  - clear reject
+  - richer local queried settlement-state maps are worse than the simpler baseline
+  - useful surviving asset:
+    - the feature-variant infra remains good
+  - scientific read:
+    - the weak point is not lack of raw local queried settlement-state maps
+    - more hand-added settlement scalar/map blocks are now low-priority
+  - next best path:
+    - add a direct held-out residual/regime audit for `query_residual`
+    - use it to screen feature changes before more smoke benchmarks
+- New validation branch started:
+  - goal:
+    - add a `query_residual`-specific held-out fit audit that measures:
+      - regime error
+      - raw residual fit error
+      - served residual fit error
+      - final score / weighted KL on the same synthetic transcript episodes
+    - keep the existing historical smoke benchmark as the ground-truth decision layer
+    - use the new audit as an additive diagnostic, not a replacement
+- Implemented `query_residual` held-out fit audit:
+  - code:
+    - `src/astar/workflows/query_residual_fit_audit.py`
+    - `src/astar/cli.py`
+    - `src/astar/cli_output.py`
+    - `tests/test_query_residual_fit_audit.py`
+    - `.gitignore`
+  - command:
+    - `uv run astar run-query-residual-fit-audit --model <query_residual_model> ...`
+  - audit outputs:
+    - equal-round mean over held-out episode means
+    - aggregate + per-round:
+      - regime MAE / MSE against replay teacher regime vectors
+      - weighted raw-delta RMSE against `log(truth) - log(prior)`
+      - weighted served-delta RMSE after the actual serving scaling/clipping path
+      - final mean score / weighted KL
+  - cache hygiene:
+    - added ignore for reproducible shared subfit cache:
+      - `data/artifacts/models/query_residual_shared/`
+- Regression coverage for the new audit:
+  - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_feature_variants.py tests/test_query_residual_cache.py tests/test_synthetic_transcript_audit.py -q`
+  - result:
+    - `6 passed`
+- Real audit calibration on the standard 3-round smoke slice:
+  - shared dataset:
+    - `data/artifacts/datasets/f1_query_residual_fit_probe3_b50_s2_v01/summary.json`
+  - baseline audit:
+    - name:
+      - `f1_query_residual_fit_query_residual_probe3_b50s2_v01`
+    - report:
+      - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_query_residual_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `72.519350`
+      - weighted KL `0.107541`
+      - regime MAE `0.066033`
+      - regime MSE `0.009956`
+      - raw-delta RMSE `0.581314`
+      - served-delta RMSE `0.563757`
+      - first cold run wall `1:50.64`
+      - max RSS about `4.88 GB`
+  - `state_v01` audit:
+    - name:
+      - `f1_query_residual_fit_f1_student_query_residual_state_v01_probe3_b50s2_v01`
+    - report:
+      - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_f1_student_query_residual_state_v01_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `72.190724`
+      - weighted KL `0.109060`
+      - regime MAE `0.066319`
+      - regime MSE `0.010029`
+      - raw-delta RMSE `0.593276`
+      - served-delta RMSE `0.572677`
+      - warm rerun wall `0:39.97`
+      - max RSS about `0.32 GB`
+  - `localstate_v01` audit:
+    - name:
+      - `f1_query_residual_fit_f1_student_query_residual_localstate_v01_probe3_b50s2_v01`
+    - report:
+      - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_f1_student_query_residual_localstate_v01_probe3_b50s2_v01/report.md`
+    - result:
+      - aggregate score `71.970726`
+      - weighted KL `0.110121`
+      - regime MAE `0.066319`
+      - regime MSE `0.010029`
+      - raw-delta RMSE `0.596008`
+      - served-delta RMSE `0.574466`
+      - warm rerun wall `0:40.32`
+      - max RSS about `0.29 GB`
+- Query-residual fit-audit conclusion:
+  - calibrated ordering on known models:
+    - baseline `>` state `>` localstate
+  - important read:
+    - regime error barely changes between `state_v01` and `localstate_v01`
+    - the degradation is mainly in residual fit (`raw_delta_rmse`, `served_delta_rmse`)
+  - this is exactly the kind of diagnostic separation the smoke benchmark does not expose directly
+  - current operational value:
+    - good as an additive screen for future `query_residual` variants
+    - not a replacement for smoke benchmark decisions
+  - next best path:
+    - use this audit before any further feature-library sweeps
+    - prioritize changes that improve residual fit without worsening regime error
+- Broader validation after landing the new audit + localstate reject logging:
+  - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `25 passed`
