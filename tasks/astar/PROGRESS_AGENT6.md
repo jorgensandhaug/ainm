@@ -4201,6 +4201,11 @@
 - ensemble hv2+qr 30/70: 74.75
 - Geometric mean blending in log-probability space works extraordinarily well
 - The two model families capture complementary information
+- Fine-grained sweep:
+  - 50/50 is optimal: 75.19
+  - 60/40: 75.11
+  - 40/60: 75.07
+  - Triple with cell_type_transfer (40/40/20): 74.76 (dilutes signal)
 
 ### Current scoreboard on probe3:
 1. **ENSEMBLE hv2+qr 50/50: 75.19** (MASSIVE NEW BEST)
