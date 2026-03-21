@@ -2723,7 +2723,39 @@
   - Adaptive weighting hurts because the weight adjustment is unreliable with few training rounds
   - Richer cell features (19 vs 13) make no difference
 
-- **Current absolute best model: `greybox_stacked_expansion_w35` at 77.35**
+### 2026-03-21T21:30:00Z
+
+- **MASSIVE BREAKTHROUGH: Calibration fix from Agent4 review → 80.24 (+5.05!)**
+
+- Applied Agent4's calibration parameters to QR:
+  - `temperature`: 1.15 → 1.0 (no softening, +2.44 points alone)
+  - `prior_blend`: 0.35 → 0.0 (trust learned corrections fully, +2.18 points)
+  - `beta_min`: 8.0 → 6.0 (lower exact-cell shrinkage)
+
+- **NEW ABSOLUTE BEST: Pure QR recalibrated → 80.24**
+
+  | Round | Old Best (77.35) | **New Best (80.24)** | Delta |
+  |-------|---------|-------------------|-------|
+  | 36e581 | 68.24 | **69.47** | +1.23 |
+  | 71451d | 80.66 | **82.56** | +1.90 |
+  | 76909e | 81.86 | **85.65** | +3.79 |
+  | 8e8399 | 84.78 | **86.74** | +1.96 |
+  | ae7800 | 75.57 | **81.18** | +5.61 |
+  | c5cdf | 79.10 | 78.50 | -0.60 |
+  | f1dac | 68.85 | **78.12** | +9.27 |
+  | fd3c92 | 79.76 | 79.73 | -0.03 |
+  | **Mean** | **77.35** | **80.24** | **+2.89** |
+
+- The calibration fix alone improved f1dac from 68.85 to 78.12 (+9.27!)
+- The expansion stacking now HURTS with proper calibration (80.01 < 80.24)
+- This means the expansion-conditioned model was compensating for QR's miscalibration
+
+- Agent1 comparison: their best model `hazard_posterior_v15` scores 83.89
+  - They use particle-refined posterior, entropy-weighted class reweighting
+  - Key: using original round coefficients instead of SVD reconstruction
+  - Policy: regime_probe_v1 instead of exploration_r3
+
+- **Current absolute best model: `query_residual` recalibrated (t=1.0, p=0.0, b=6/24) at 80.24**
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
