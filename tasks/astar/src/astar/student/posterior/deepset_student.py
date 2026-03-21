@@ -412,6 +412,7 @@ class SummaryBankStudentCheckpoint(BaseModel):
     ridge_alpha: float = Field(default=1.0, gt=0.0)
     coefficient_dim: int = Field(default=0, ge=0)
     neighbor_distance_scale: float = Field(default=1.0, gt=0.0)
+    residual_confidence_power: float = Field(default=0.0, ge=0.0)
 
 
 class SummaryBankStudent(BaseModel):
@@ -434,6 +435,7 @@ class SummaryBankStudent(BaseModel):
     coefficient_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 0), dtype=np.float64))
     coefficient_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
     neighbor_distance_scale: float = Field(default=1.0, gt=0.0)
+    residual_confidence_power: float = Field(default=0.0, ge=0.0)
     teacher: HazardTeacher
 
     @classmethod
@@ -447,6 +449,7 @@ class SummaryBankStudent(BaseModel):
         normalize_summary: bool = False,
         inference_head: str = SUMMARY_HEAD_KNN,
         ridge_alpha: float = 1.0,
+        residual_confidence_power: float = 0.0,
     ) -> SummaryBankStudent:
         if summary_encoder not in SUMMARY_ENCODERS:
             raise ValueError(f"unsupported summary encoder: {summary_encoder}")
@@ -542,6 +545,7 @@ class SummaryBankStudent(BaseModel):
             coefficient_weights=coefficient_weights,
             coefficient_vectors=coefficient_vectors,
             neighbor_distance_scale=neighbor_distance_scale,
+            residual_confidence_power=residual_confidence_power,
             teacher=teacher,
         )
 
@@ -565,6 +569,7 @@ class SummaryBankStudent(BaseModel):
             ridge_alpha=self.ridge_alpha,
             coefficient_dim=int(self.coefficient_intercept.shape[0]),
             neighbor_distance_scale=self.neighbor_distance_scale,
+            residual_confidence_power=self.residual_confidence_power,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
@@ -655,6 +660,7 @@ class SummaryBankStudent(BaseModel):
             coefficient_weights=coefficient_weights,
             coefficient_vectors=coefficient_vectors,
             neighbor_distance_scale=checkpoint.neighbor_distance_scale,
+            residual_confidence_power=checkpoint.residual_confidence_power,
             teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
         )
 
@@ -696,6 +702,13 @@ class SummaryBankStudent(BaseModel):
             self.coefficient_vectors[order] - fitted_neighbor_coefficients,
             axes=(0, 0),
         )
+        if self.residual_confidence_power > 0.0:
+            weighted_distance = float(np.sum(weights * nearest_distances, dtype=np.float64))
+            residual_confidence = 1.0 / (
+                1.0
+                + (weighted_distance / max(float(self.neighbor_distance_scale), 1e-6))
+            )
+            residual = residual * (residual_confidence ** self.residual_confidence_power)
         return np.asarray(base + residual, dtype=np.float64)
 
     def _summary_distance(self, query_vector: np.ndarray) -> float:

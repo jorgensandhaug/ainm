@@ -1,13 +1,26 @@
 # Best Models
 
-No post-pivot full-family winner is promoted yet in this directory.
+No post-pivot full-family winner is promoted yet.
 
-Current active gate queue:
+Current finished corrected-holdout ranking:
 
-- `teacher_student_blend_v13`
-- `teacher_student_blend_v14`
-- `teacher_student_blend_v15`
-- `teacher_student_blend_v16`
+- `teacher_student_blend_v13`: mean score `61.3244`, mean weighted KL `0.163762`
+- `teacher_student_blend_v15`: mean score `61.2680`, mean weighted KL `0.164093`
+- `teacher_student_blend_v14`: mean score `59.9971`, mean weighted KL `0.170906`
+- `teacher_student_blend_v31`: mean score `59.9922`, mean weighted KL `0.171838`
+- `teacher_student_blend_v16`: mean score `59.9179`, mean weighted KL `0.171375`
+- `teacher_student_blend_v33`: mean score `59.8833`, mean weighted KL `0.172501`
+- `teacher_student_blend_v32`: mean score `58.9782`, mean weighted KL `0.178274`
+- `teacher_student_blend_v34`: mean score `58.7956`, mean weighted KL `0.179503`
+
+Current read:
+
+- strongest finished branch is still the simple temporal + coefficient-residual line
+- multiscale temporal summaries lost on both global and spatial-dynamic backbones
+- geometry-gated / class-weighted local blur branch also lost badly (`v25/v27/v28`)
+
+Active corrected-holdout queue now includes:
+
 - `teacher_student_blend_v17`
 - `teacher_student_blend_v18`
 - `teacher_student_blend_v19`
@@ -16,9 +29,10 @@ Current active gate queue:
 - `teacher_student_blend_v22`
 - `teacher_student_blend_v23`
 - `teacher_student_blend_v24`
-- `teacher_student_blend_v25`
 - `teacher_student_blend_v26`
-- `teacher_student_blend_v27`
-- `teacher_student_blend_v28`
+- `teacher_student_blend_v35`
+- `teacher_student_blend_v36`
+- `teacher_student_blend_v37`
+- `teacher_student_blend_v38`
 
-Use `/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md` for the timestamped run ledger until corrected holdout results land.
+Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

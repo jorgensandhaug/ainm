@@ -2344,6 +2344,39 @@
    - launch policy:
      - `jobs=1`
      - outer model parallelism only
+253. Corrected-holdout results that landed after items 247 and 252:
+   - `teacher_student_blend_v31`: mean score `59.9922`, mean weighted KL `0.171838`
+   - `teacher_student_blend_v32`: mean score `58.9782`, mean weighted KL `0.178274`
+   - `teacher_student_blend_v33`: mean score `59.8833`, mean weighted KL `0.172501`
+   - `teacher_student_blend_v34`: mean score `58.7956`, mean weighted KL `0.179503`
+   - interpretation:
+     - multiscale temporal summaries lost on both global and spatial-dynamic backbones
+     - the simpler `summary_temporal_v4` encoder remains stronger than the quarter-scale multiscale variant on this corrected gate
+254. New hypothesis after item 253:
+   - the best finished branch remains coefficient-residual KNN on the simpler backbones
+   - likely failure mode on unseen rounds:
+     - the ridge base is useful
+     - the KNN residual overcorrects when the live summary is far from the training bank
+   - decisive test:
+     - shrink residual magnitude by a distance-based confidence factor before adding it back to the ridge base
+255. Implemented residual-distance shrink variants:
+   - student checkpoint/model now persist:
+     - `residual_confidence_power`
+   - coefficient-residual prediction now shrinks residual correction by:
+     - `1 / (1 + weighted_neighbor_distance / neighbor_distance_scale)` raised to `residual_confidence_power`
+   - new variants:
+     - `teacher_student_blend_v35`
+     - `teacher_student_blend_v36`
+     - `teacher_student_blend_v37`
+     - `teacher_student_blend_v38`
+   - branch mapping:
+     - `v35` / `v36` = `v13` / `v14` + residual-distance shrink
+     - `v37` / `v38` = `v15` / `v16` + residual-distance shrink
+256. Validation for item 255:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_bank_residual_confidence_shrinks_far_neighbor_residual tests/test_historical_benchmark.py::test_teacher_student_blend_v36_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_teacher_student_blend_v38_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions

@@ -13,6 +13,8 @@
 - `v29` / `v30`: quarter-scale multiscale temporal summaries should beat coarse half-split temporal summaries by preserving early/mid/late query-phase information
 - `v31` / `v32`: quarter-scale multiscale temporal summaries may work better on the simpler global-blend backbone if the newer local-evidence stack is overfitting the corrected holdout
 - `v33` / `v34`: multiscale temporal summaries may work better with spatial-dynamic blending than with global blending if phase information mostly matters on buildable/frontier cells
+- `v35` / `v36`: coefficient-residual KNN likely overcorrects on far-off held-out rounds; shrink the residual toward the ridge base as neighbor distance grows
+- `v37` / `v38`: test the same residual-distance shrink on the spatial-dynamic backbone
 
 ## Evaluation Rule
 

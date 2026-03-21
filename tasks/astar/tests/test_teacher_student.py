@@ -486,6 +486,7 @@ def test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip(
         normalize_summary=True,
         inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
         ridge_alpha=2.0,
+        residual_confidence_power=1.0,
     )
     checkpoint_path = student.save_checkpoint(
         sample_paths.model_dir("summary_bank_student_temporal_multiscale_test"),
@@ -514,6 +515,7 @@ def test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip(
     assert reloaded.summary_encoder == SUMMARY_ENCODER_TEMPORAL_MULTISCALE_V5
     assert reloaded.inference_head == SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN
     assert reloaded.normalize_summary is True
+    assert reloaded.residual_confidence_power == 1.0
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)
 
@@ -545,6 +547,45 @@ def test_summary_temporal_multiscale_encoder_zero_observation_shape(sample_paths
     assert multiscale.shape == (semantic.shape[0] * 6,)
     assert np.allclose(multiscale[: expected_prefix.shape[0]], expected_prefix)
     assert np.allclose(multiscale[expected_prefix.shape[0] :], 0.0)
+
+
+def test_summary_bank_residual_confidence_shrinks_far_neighbor_residual() -> None:
+    from astar.student.posterior.deepset_student import (
+        SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        SummaryBankStudent,
+    )
+
+    teacher = HazardTeacher(name="hazard_teacher_residual_confidence_test")
+    base_kwargs = dict(
+        name="summary_bank_student_residual_confidence_test",
+        dataset_name="synthetic_live_residual_confidence_test",
+        summary_vectors=np.asarray([[0.0], [100.0]], dtype=np.float64),
+        regime_vectors=np.zeros((2, 1), dtype=np.float64),
+        k_neighbors=2,
+        normalize_summary=False,
+        inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        feature_mean=np.zeros(1, dtype=np.float64),
+        feature_scale=np.ones(1, dtype=np.float64),
+        regime_intercept=np.zeros(1, dtype=np.float64),
+        regime_weights=np.zeros((1, 1), dtype=np.float64),
+        coefficient_intercept=np.zeros(1, dtype=np.float64),
+        coefficient_weights=np.zeros((1, 1), dtype=np.float64),
+        coefficient_vectors=np.asarray([[10.0], [10.0]], dtype=np.float64),
+        neighbor_distance_scale=10.0,
+        teacher=teacher,
+    )
+    without_shrink = SummaryBankStudent(**base_kwargs)
+    with_shrink = SummaryBankStudent(
+        **base_kwargs,
+        residual_confidence_power=1.0,
+    )
+
+    query_vector = np.asarray([1000.0], dtype=np.float64)
+    baseline = without_shrink._predict_coefficient_vector(query_vector)
+    shrunk = with_shrink._predict_coefficient_vector(query_vector)
+
+    assert baseline.shape == (1,)
+    assert 0.0 < shrunk[0] < baseline[0]
 
 
 def test_summary_bank_exact_local_evidence_posterior_uses_observed_counts() -> None:
