@@ -53,9 +53,28 @@ from astar.student.posterior.deepset_student import (
 )
 
 
-def _mode_feature_names() -> list[str]:
+_INTERACTION_PAIRS = [
+    ("coast", "prior_logit_settlement"),
+    ("coast", "prior_logit_port"),
+    ("frontier_score", "prior_logit_settlement"),
+    ("settlement_proximity", "prior_logit_ruin"),
+    ("buildable", "prior_logit_empty"),
+    ("forest_density", "prior_logit_ruin"),
+    ("maritime_access", "prior_logit_port"),
+    ("coast_distance", "prior_logit_settlement"),
+    ("land_distance_to_settlement", "prior_logit_empty"),
+    ("initial_settlement", "prior_logit_ruin"),
+    ("initial_port", "prior_logit_port"),
+    ("mountain_density", "prior_logit_settlement"),
+]
+
+
+def _mode_feature_names(*, include_interactions: bool = False) -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
+    if include_interactions:
+        for left, right in _INTERACTION_PAIRS:
+            names.append(f"ix_{left}_x_{right}")
     return names
 
 
@@ -133,9 +152,23 @@ def _compose_mode_design_tensor(
     prior: np.ndarray,
     *,
     probability_floor: float,
+    include_interactions: bool = False,
 ) -> np.ndarray:
     prior_logits = _safe_log_probs(prior, probability_floor) / LOG_FLOOR_DENOM
-    return np.concatenate([static_stack, prior_logits], axis=-1).astype(np.float64)
+    base = np.concatenate([static_stack, prior_logits], axis=-1).astype(np.float64)
+    if not include_interactions:
+        return base
+    base_names = _static_feature_names() + [f"prior_logit_{cn}" for cn in CLASS_NAMES]
+    name_to_idx = {name: idx for idx, name in enumerate(base_names)}
+    interactions = []
+    for left, right in _INTERACTION_PAIRS:
+        if left in name_to_idx and right in name_to_idx:
+            interactions.append(
+                (base[..., name_to_idx[left]] * base[..., name_to_idx[right]])[..., None]
+            )
+    if interactions:
+        return np.concatenate([base, *interactions], axis=-1).astype(np.float64)
+    return base
 
 
 def _solve_mode_operator(
@@ -160,8 +193,9 @@ def _fit_mode_operator_vector(
     cells_per_seed: int,
     ridge_lambda: float,
     probability_floor: float,
+    include_interactions: bool = False,
 ) -> np.ndarray:
-    feature_dim = len(_mode_feature_names())
+    feature_dim = len(_mode_feature_names(include_interactions=include_interactions))
     xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
     xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
 
@@ -178,6 +212,7 @@ def _fit_mode_operator_vector(
                 static_stack,
                 prior,
                 probability_floor=probability_floor,
+                include_interactions=include_interactions,
             )
             flat_design = design.reshape(-1, feature_dim)
             target_delta = (
@@ -605,6 +640,7 @@ class FFAMModePredictorCheckpoint(BaseModel):
     beta_scale: float = Field(ge=0.0)
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     delta_clip: float = Field(default=4.0, gt=0.0)
+    include_interactions: bool = False
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -657,6 +693,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     beta_scale: float = Field(default=8.0, ge=0.0)
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
     delta_clip: float = Field(default=4.0, gt=0.0)
+    include_interactions: bool = False
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -746,7 +783,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             round_ids=list(selected_round_ids),
         )
         round_entries: list[dict[str, object]] = []
-        mode_feature_names = _mode_feature_names()
+        mode_feature_names = _mode_feature_names(include_interactions=config.include_interactions)
 
         for round_id in selected_round_ids:
             round_detail = read_round_record(paths, round_id).round
@@ -780,6 +817,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             cells_per_seed=config.cells_per_seed,
             ridge_lambda=config.operator_ridge_lambda,
             probability_floor=config.probability_floor,
+            include_interactions=config.include_interactions,
         )
         round_operator_vectors: list[np.ndarray] = []
         mode_round_ids: list[str] = []
@@ -789,6 +827,7 @@ class FFAMModePredictor(BaseRoundPredictor):
                 cells_per_seed=config.cells_per_seed,
                 ridge_lambda=config.operator_ridge_lambda,
                 probability_floor=config.probability_floor,
+                include_interactions=config.include_interactions,
             )
             round_operator_vectors.append(round_operator)
             mode_round_ids.append(str(entry["round_id"]))
@@ -1044,6 +1083,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_scale=config.beta_scale,
             beta_repeat_discount=config.beta_repeat_discount,
             delta_clip=config.delta_clip,
+            include_interactions=config.include_interactions,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_input_source=config.posterior_input_source,
@@ -1806,6 +1846,7 @@ class FFAMModePredictor(BaseRoundPredictor):
                 static_stack,
                 prior,
                 probability_floor=self.probability_floor,
+                include_interactions=self.include_interactions,
             )
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)

@@ -2707,6 +2707,31 @@ Framework should accept unique query-residual family variant names directly so b
   - R2: 84.9 → 86.5 (+1.6)
   - R1: 82.0 → 81.3 (-0.7)
 
+### 2026-03-21T17:45Z approx
+
+- Added configurable delta_clip and interaction features to operator
+- Delta clip had ZERO effect (deltas never exceed ±4)
+- Interaction features (12 domain-knowledge feature products) gave +0.11 with higher ridge
+- **v152 = 86.25** (interactions + q=5 + ridge=4 + all calibration fixes)
+- v152 per-round: R1:81.4 R2:86.5 R3:90.3 R4:93.1 R5:84.0 R6:87.5 R7:73.2 R8:94.0
+- R7 (73.2) remains the stubborn bottleneck
+
+## Current Champion
+
+- model: `ffam_mode_v152`
+- score: **86.2495**
+- total improvement from v44: **+8.49 points** (77.76 → 86.25, +10.9%)
+
+## Exhausted Axes
+
+All of these have been systematically swept and are near-optimal:
+- probability_floor (0.0003), beta (8/32), prior_blend (0), ood_blend (0)
+- posterior_ridge (0.05), operator_ridge (2-4), temperature (1.0)
+- mode_dim (q=4-5), cluster_count (2), metric_dim (10-12)
+- MLP (hidden=32, steps=500), bandwidth (1.1), neighbors (24)
+- class_scale (all 1.0), delta_clip (4+), interaction features (+0.11)
+- cells_per_seed (512), samples_per_round (2), multi-seed ensemble (neutral)
+
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
 | Rank | Model | Score | Key difference vs v104 |
