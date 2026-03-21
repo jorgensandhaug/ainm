@@ -4212,7 +4212,7 @@
   - hv2+sx 40/60: 75.29
   - hv2+sx 60/40: 75.26
   - hv2k7+sx 50/50: 75.22
-- Dev5 for hv2+sx 50/50 running
+- Dev5 hv2+sx 50/50: **79.57** (+3.60 vs baseline, +0.07 vs hv2+qr ensemble)
 
 ### Current scoreboard on probe3:
 1. **ENSEMBLE hv2+sx 50/50: 75.38** (NEWEST BEST)
@@ -4228,10 +4228,11 @@
 8. baseline query_residual: 72.55
 
 ### Current scoreboard on dev5:
-1. **ENSEMBLE hv2+qr 50/50: 79.50** (MASSIVE NEW BEST, +3.53 vs baseline, +3.27 vs supportx!)
-2. hazard_posterior_v2 k7_r3: 77.40
-3. supportx_v01: 76.23
-4. baseline query_residual: 75.97
+1. **ENSEMBLE hv2+sx 50/50: 79.57** (DEFINITIVE BEST, +3.60 vs baseline)
+2. ensemble hv2+qr 50/50: 79.50
+3. hazard_posterior_v2 k7_r3: 77.40
+4. supportx_v01: 76.23
+5. baseline query_residual: 75.97
 
 ### Summary of all new approaches tried this session:
 | Approach | Best Score (probe3) | Status |
