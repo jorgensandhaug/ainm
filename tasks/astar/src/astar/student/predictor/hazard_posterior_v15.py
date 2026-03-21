@@ -150,10 +150,64 @@ def _apply_obs_blending(
 
 
 class OriginalCoefficientTeacher(HazardTeacherV2):
-    """HazardTeacherV2 variant that uses original coefficients for known rounds."""
+    """HazardTeacherV2 variant that uses original coefficients for known rounds.
+
+    Also supports configurable prior blend (default: use parent's 0.98/0.02).
+    Set prior_blend=0.0 to disable prior blending entirely (Agent7 insight).
+    """
 
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
     name: str = "original_coefficient_teacher"
+    prior_blend_weight: float = Field(default=0.02)
+    floor: float = Field(default=0.0003)
+
+    def _decode_terminal_tensor_custom(self, seed: object, coefficient_vector: np.ndarray) -> np.ndarray:
+        """Decode with configurable prior blend and floor."""
+        from astar.history.summaries.round_coefficients_v2 import seed_feature_dict_v2, seed_feature_matrix_v2
+
+        intercepts, coefficients = self._split_coefficients(coefficient_vector)
+        _, feature_stack = seed_feature_matrix_v2(seed.initial_state)
+        feature_dict = seed_feature_dict_v2(seed.initial_state)
+
+        dynamic_logits = (
+            intercepts[:, None, None] + np.tensordot(coefficients, feature_stack, axes=(1, 0))
+        )
+        base_logit = np.zeros(feature_stack.shape[1:], dtype=np.float64)
+        logits = np.concatenate([base_logit[None, :, :], dynamic_logits], axis=0)
+
+        def _softmax_local(x):
+            shifted = x - np.max(x, axis=-1, keepdims=True)
+            exp = np.exp(np.clip(shifted, -25.0, 25.0))
+            return exp / np.sum(exp, axis=-1, keepdims=True)
+
+        probs_5 = np.moveaxis(_softmax_local(np.moveaxis(logits, 0, -1)), -1, 0)
+
+        height, width = feature_stack.shape[1:]
+        probs = np.zeros((height, width, 6), dtype=np.float64)
+        probs[:, :, 0] = probs_5[0]
+        probs[:, :, 1] = probs_5[1]
+        probs[:, :, 2] = probs_5[2]
+        probs[:, :, 3] = probs_5[3]
+        probs[:, :, 4] = probs_5[4]
+
+        ocean = feature_dict["initial_ocean"] > 0.5
+        mountain = feature_dict["initial_mountain"] > 0.5
+        soft_mask = ~(ocean | mountain)
+
+        # Configurable prior blend (Agent7: 0.0 is best)
+        if self.prior_blend_weight > 1e-6:
+            prior = np.asarray([0.84, 0.05, 0.02, 0.02, 0.05, 0.02], dtype=np.float64)
+            alpha = 1.0 - self.prior_blend_weight
+            probs[soft_mask] = alpha * probs[soft_mask] + self.prior_blend_weight * prior
+
+        # Apply floor (Agent7: 0.0003 is optimal)
+        if self.floor > 0:
+            probs[soft_mask] = np.maximum(probs[soft_mask], self.floor)
+
+        probs[ocean] = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
+        probs[mountain] = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+        sums = np.sum(probs, axis=-1, keepdims=True)
+        return np.asarray(probs / np.clip(sums, 1e-8, None), dtype=np.float64)
 
     def terminal_tensor(
         self,
@@ -182,7 +236,7 @@ class OriginalCoefficientTeacher(HazardTeacherV2):
             # Use SVD-reconstructed coefficients for novel regime points
             coefficient_vector = self._coefficients_from_regime(regime_array)
 
-        return self._decode_terminal_tensor(seed, coefficient_vector)
+        return self._decode_terminal_tensor_custom(seed, coefficient_vector)
 
 
 class HazardPosteriorV15Predictor(BaseRoundPredictor):
@@ -245,7 +299,8 @@ class HazardPosteriorV15Predictor(BaseRoundPredictor):
             replay_eps, latent_rank=latent_rank,
         )
 
-        # Create the original-coefficient teacher
+        # Create the original-coefficient teacher with configurable calibration
+        # Agent7 insight: prior_blend=0.0 and floor=0.0003 are optimal
         teacher = OriginalCoefficientTeacher(
             name=f"{resolved_name}__teacher",
             feature_names=base_teacher.feature_names,
@@ -257,6 +312,8 @@ class HazardPosteriorV15Predictor(BaseRoundPredictor):
             basis=base_teacher.basis,
             coordinates=base_teacher.coordinates,
             latent_rank=base_teacher.latent_rank,
+            prior_blend_weight=0.0,  # Agent7: removing prior blend gives +1.5 pts
+            floor=0.0003,  # Agent7: 0.0003 is optimal (not 0.01!)
         )
 
         dataset = _ensure_synthetic_dataset(
