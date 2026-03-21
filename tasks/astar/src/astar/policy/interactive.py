@@ -54,6 +54,9 @@ def build_interactive_policy(
     predictor: OnlinePredictor | None = None,
 ) -> InteractiveQueryPolicy:
     normalized = policy_name.strip().lower()
+    if normalized == "regime_probe_v1" or normalized == "regime_probe":
+        from astar.policy.regime_probe import RegimeProbePolicy
+        return RegimeProbePolicy(name="regime_probe_v1")
     adaptive_match = _ADAPTIVE_PATTERN.fullmatch(normalized)
     if adaptive_match is not None:
         replicate_budget_text = adaptive_match.group(1)

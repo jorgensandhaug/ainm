@@ -2767,6 +2767,31 @@
   - Agent2 reached 78.40 with GLMM z2 model (different architecture)
   - Agent6 confirmed hazard teacher is at its ceiling
   - Agent7 found exploration_r3 is optimal repeat policy
+  - Agent1's regime_probe_v1 policy: 78.59 with our QR (WORSE than exploration_r3 80.37)
+    - Policy designed for hazard_posterior model, doesn't transfer well
+  - teacher_blend=0.0: neutral (same score as 0.12)
+  - Stacking with expansion-conditioned HURTS with proper calibration (80.01 < 80.37)
+
+### Final Best Model Configuration
+
+```
+Model: query_residual_v7 (recalibrated)
+Parameters:
+  temperature: 1.0       (was 1.15, Agent4 finding)
+  prior_blend: 0.0       (was 0.35, Agents 3&4 finding)
+  beta_min: 6.0          (was 8.0, Agent4 finding)
+  beta_scale: 24.0       (unchanged)
+  teacher_blend: 0.0     (was 0.12, Agent3 finding)
+  ridge_lambda: 8.0      (unchanged)
+  signal_scale: 0.12     (unchanged)
+  min_delta_scale: 0.4   (unchanged)
+  cells_per_seed: 256    (unchanged)
+Policy: exploration_r3
+samples_per_round: 2
+episode_seed: 0
+budget: 50
+Score: 80.37
+```
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
