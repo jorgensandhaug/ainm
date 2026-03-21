@@ -481,6 +481,14 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `POST /supplierInvoice/{id}/:addPayment` remains unproven on imported supplier-invoice objects created through the public voucher-import branch
   - persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on invoice `2147547151` even after the linked voucher later showed booked number `100`; do not assume `voucher.number > 0` alone proves that `:addPayment` is usable on that object family
   - if that exact validation branch appears, do not burn extra scored-run calls on `/incomingInvoice*`, `voucherId=` retries, or speculative `:approve` retries; treat the task as a non-exact branch that still needs a separate proven public payment path
+- Standard manual-voucher fallback note:
+  - production 2026-03-21 task 23 had 0 `/supplierInvoice` objects for all suppliers even though open postings existed on account 2400; when the account has no `/supplierInvoice` objects, use manual voucher payment instead of `:addPayment`
+  - the proven manual voucher supplier payment is `POST /ledger/voucher` with debit 2400 (supplier liability, positive `amountGross`) and credit 1920 (bank, negative `amountGross`), both with explicit `row: 1` and `row: 2`
+  - include `supplier: { id: <supplierId> }` on the 2400 posting so the supplier dimension is linked
+  - resolve account ids first via `GET /ledger/account?number=2400,1920&fields=*`
+  - sandbox 2026-03-21 proof: `POST /ledger/voucher` with debit 2400 id=424190921 and credit 1920 id=424190862 returned 201 with voucher id=608909971
+  - `PUT /supplierInvoice/voucher/{id}/postings?sendToLedger=true` fails with `422 Can not put postings on a voucher that already have postings` on existing supplier invoices
+  - `:approve` fails on imported voucher types with `422 Denne bilagstypen kan ikke attesteres.`
 
 ## Travel Expense
 - `/travelExpense`
@@ -616,6 +624,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for month-over-month expense-account analysis, prefer one decisive combined read over separate monthly reads: `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
   - on that analysis branch, aggregate signed `amount` by account and month in local code; do not switch to `amountCurrency` or absolute values unless the prompt explicitly asks for transaction-currency or absolute-volume ranking
   - when the prompt wants you to reuse the account's name in a newly created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named expense rows do not become ambiguous
+- Standard parameter note for `/ledger/posting/openPost`:
+  - requires `date` parameter (NOT `dateFrom`/`dateTo`); `date` is a cutoff meaning postings dated before this date
+  - format is `YYYY-MM-DD`; use `date=2031-01-01` for a future-proof cutoff
+  - `supplierId` and `customerId` are optional filters
+  - `GET /ledger/posting` (not openPost) requires `dateFrom` and `dateTo` (not `date`)
+  - production 2026-03-21 task 23 wasted 2 calls with `422` because `dateFrom`/`dateTo` were sent instead of `date` on the `openPost` variant
 
 ## Ledger Voucher
 - `/ledger/voucher`
