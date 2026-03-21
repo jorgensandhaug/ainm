@@ -1141,3 +1141,16 @@
 - launched broad promotion:
   - `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
     - session `60357`
+- machine health changed sharply after the extra sidecars:
+  - `13:55 UTC`: load about `156 / 149 / 103`
+  - memory free about `723 GiB`
+  - many other agents plus heavy `ainm` validation jobs were saturating cores
+  - action:
+    - stopped low-priority information-policy sidecars
+      - `proxy5_hazard_v4_k5_r3_l32_m70_regime_probe_information_seed0to1`
+      - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_information_seed0to1`
+  - kept running:
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q4_regime_probe_posterior_blend_seed0to1`
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_posterior_blend_seed0to1`
+    - `proxy5_hazard_v7_k5_r3_l32_m70_q12_regime_probe_posterior_blend_seed0to1`
+    - `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`
