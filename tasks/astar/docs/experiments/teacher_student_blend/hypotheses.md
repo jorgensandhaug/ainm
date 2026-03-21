@@ -39,6 +39,8 @@
 - `v81` / `v82`: keep the winning cap fixed, but ramp into student trust faster in case the student should dominate earlier once exact local evidence is active
 - `v83` / `v84`: exact local evidence already fixes observed cells, so attenuate student blending there and leave full student strength on unobserved cells
 - `v85` / `v86`: test the stronger version of the same idea by removing observed-cell student blending entirely
+- `v87` / `v88`: if observed-aware damping helps, reallocate that removed student mass toward unobserved cells instead of only deleting it
+- `v89` / `v90`: test the stronger reallocation version on the zero-observed-blend branch
 
 ## Evaluation Rule
 

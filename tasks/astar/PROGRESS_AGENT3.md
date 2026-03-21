@@ -3172,6 +3172,24 @@
    - machine remained healthy:
      - about `929 GiB` used
      - about `2.0 TiB` available
+356. Parallel hypothesis after item 350:
+   - if observed-aware damping helps, the real win may be not just removing student mass from observed cells, but reallocating that mass toward unobserved cells where the student is still needed
+357. Implemented observed-aware reallocation variants:
+   - new variants:
+     - `teacher_student_blend_v87`
+     - `teacher_student_blend_v88`
+     - `teacher_student_blend_v89`
+     - `teacher_student_blend_v90`
+   - mapping:
+     - `v87` = `v83` branch + unobserved-cell boost `1.15`
+     - `v88` = `v84` branch + unobserved-cell boost `1.15`
+     - `v89` = `v85` branch + unobserved-cell boost `1.20`
+     - `v90` = `v86` branch + unobserved-cell boost `1.20`
+358. Validation for item 357:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v88_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v90_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
