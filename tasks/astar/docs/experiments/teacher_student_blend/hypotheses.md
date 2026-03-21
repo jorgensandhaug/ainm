@@ -45,6 +45,8 @@
 - `v93` / `v94`: test a stronger observed-cell boost in case the observed-cell branch is underweighted today
 - `v95` / `v96`: exact local evidence may shift the optimal residual-neighbor count upward, because observed cells are already fixed and unobserved cells may benefit from smoother transfer
 - `v97` / `v98`: test whether the pre-exact-evidence `k=5` setting becomes competitive again once local evidence is correcting observed cells directly
+- `v99` / `v100`: a single sharp `k=1` expert may still be too noisy on far-unobserved cells, so route those cells to a smoother `k=5` secondary expert using distance from observed coverage
+- `v101` / `v102`: test the stronger smoothing version of the same dual-expert routing idea with a `k=7` secondary expert and a slower distance ramp
 
 ## Evaluation Rule
 

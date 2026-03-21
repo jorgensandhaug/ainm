@@ -32,5 +32,7 @@
 - If the opposite branch helps, is the right observed-cell multiplier modest (`1.15`) or aggressive (`1.30`)?
 - Does exact local evidence change the optimal residual-neighbor count, making `k=3` or `k=5` better than the current `k=1` winner?
 - Is the apparent `k=1` optimum only a pre-local-evidence effect?
+- Does a true two-expert student beat all single-student branches by letting a sharp `k=1` expert own observed / near-observed cells while a smoother expert owns far-unobserved cells?
+- If dual-student routing helps, is `k=5` or `k=7` the better secondary expert and how quickly should the route transition with coverage distance?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

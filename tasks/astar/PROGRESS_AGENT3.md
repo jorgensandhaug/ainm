@@ -3321,6 +3321,44 @@
    - machine remained healthy:
      - about `1.1 TiB` used
      - about `1.7 TiB` available
+376. Exact-local-evidence neighbor-count results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v95`
+     - `teacher_student_blend_v96`
+     - `teacher_student_blend_v97`
+     - `teacher_student_blend_v98`
+   - aggregate results:
+     - `v95`: mean score `65.4518`, mean weighted KL `0.141873`
+     - `v96`: mean score `65.4052`, mean weighted KL `0.142126`
+     - `v97`: mean score `65.4555`, mean weighted KL `0.141854`
+     - `v98`: mean score `65.4088`, mean weighted KL `0.142107`
+377. Read from item 376:
+   - smoother `k=3/5` single-student branches are nearly neutral even after exact local evidence
+   - `v97` got very close to `v59` but still lost by about `0.0094` score
+   - this points to a more structural failure: far-unobserved cells may want smoother residual transfer while queried / near-queried cells still want the sharp `k=1` expert
+378. New hypothesis after item 377:
+   - a true two-expert student should beat all single-student branches by routing observed / near-observed cells to the sharp `k=1` expert and farther unobserved cells to a smoother secondary expert
+379. Implemented dual-student coverage-distance routing variants:
+   - new variants:
+     - `teacher_student_blend_v99`
+     - `teacher_student_blend_v100`
+     - `teacher_student_blend_v101`
+     - `teacher_student_blend_v102`
+   - architecture change:
+     - `SummaryBankRoundPredictor` can now load a secondary `SummaryBankStudent`
+     - teacher predictions can now be composed from two separately fitted students before the base/teacher blend
+     - routing uses per-seed coverage distance: queried cells stay on the primary expert, and farther unobserved cells ramp toward the secondary expert
+     - secondary checkpoints now persist under the model cache directory in `secondary/summary_bank_student.json`
+   - mapping:
+     - `v99` = `v59` backbone + secondary `k=5` expert + distance scale `2.0`
+     - `v100` = `v60` backbone + secondary `k=5` expert + distance scale `2.0`
+     - `v101` = `v59` backbone + secondary `k=7` expert + distance scale `3.0`
+     - `v102` = `v60` backbone + secondary `k=7` expert + distance scale `3.0`
+380. Validation for item 379:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_observed tests/test_teacher_student.py::test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint tests/test_historical_benchmark.py::test_teacher_student_blend_v100_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v102_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `4 passed`
 
 
 ## Open Questions

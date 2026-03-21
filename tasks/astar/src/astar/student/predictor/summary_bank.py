@@ -18,7 +18,11 @@ from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.episodes.build import build_round_episode
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
+from astar.observe.evidence import (
+    RoundEvidenceBundle,
+    SeedEvidenceBundle,
+    build_round_evidence_from_observations,
+)
 from astar.student.posterior.deepset_student import (
     SUMMARY_ENCODER_SEMANTIC_V3,
     SUMMARY_ENCODER_SPATIAL_V2,
@@ -136,6 +140,10 @@ SUMMARY_BANK_STUDENT_V95 = "teacher_student_blend_v95"
 SUMMARY_BANK_STUDENT_V96 = "teacher_student_blend_v96"
 SUMMARY_BANK_STUDENT_V97 = "teacher_student_blend_v97"
 SUMMARY_BANK_STUDENT_V98 = "teacher_student_blend_v98"
+SUMMARY_BANK_STUDENT_V99 = "teacher_student_blend_v99"
+SUMMARY_BANK_STUDENT_V100 = "teacher_student_blend_v100"
+SUMMARY_BANK_STUDENT_V101 = "teacher_student_blend_v101"
+SUMMARY_BANK_STUDENT_V102 = "teacher_student_blend_v102"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
@@ -241,6 +249,10 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V96,
         SUMMARY_BANK_STUDENT_V97,
         SUMMARY_BANK_STUDENT_V98,
+        SUMMARY_BANK_STUDENT_V99,
+        SUMMARY_BANK_STUDENT_V100,
+        SUMMARY_BANK_STUDENT_V101,
+        SUMMARY_BANK_STUDENT_V102,
     },
 )
 
@@ -272,6 +284,8 @@ class SummaryBankVariantSpec(BaseModel):
     local_blur_use_geometry_gate: bool = False
     local_blur_class_scale: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
     residual_confidence_power: float = Field(default=0.0, ge=0.0)
+    secondary_k_neighbors: int | None = Field(default=None, ge=1)
+    secondary_distance_scale: float = Field(default=0.0, ge=0.0)
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -393,6 +407,10 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V96: 4,
         SUMMARY_BANK_STUDENT_V97: 4,
         SUMMARY_BANK_STUDENT_V98: 4,
+        SUMMARY_BANK_STUDENT_V99: 4,
+        SUMMARY_BANK_STUDENT_V100: 4,
+        SUMMARY_BANK_STUDENT_V101: 4,
+        SUMMARY_BANK_STUDENT_V102: 4,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -593,6 +611,86 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v97 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V98 and effective_samples_per_round != 4:
         raise ValueError("teacher_student_blend_v98 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V99 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v99 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V100 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v100 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V101 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v101 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V102 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v102 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V102:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=7,
+            secondary_distance_scale=3.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V101:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=7,
+            secondary_distance_scale=3.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V100:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_distance_scale=2.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V99:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_distance_scale=2.0,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V98:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -2326,10 +2424,34 @@ def _load_or_build_synthetic_dataset(
     )
 
 
+def _secondary_student_weight_map(
+    seed_evidence: SeedEvidenceBundle,
+    *,
+    distance_scale: float,
+) -> np.ndarray:
+    coverage = np.asarray(seed_evidence.coverage_counts, dtype=np.float64)
+    observed = coverage > 0.0
+    unobserved = (1.0 - observed.astype(np.float64))[:, :, None]
+    if not np.any(observed):
+        return np.ones_like(unobserved, dtype=np.float64)
+    if distance_scale <= 0.0:
+        return np.asarray(unobserved, dtype=np.float64)
+    observed_coordinates = np.argwhere(observed)
+    grid_y, grid_x = np.indices(observed.shape, dtype=np.int64)
+    delta_y = grid_y[:, :, None] - observed_coordinates[None, None, :, 0]
+    delta_x = grid_x[:, :, None] - observed_coordinates[None, None, :, 1]
+    nearest_distance = np.sqrt(
+        np.min((delta_y * delta_y) + (delta_x * delta_x), axis=-1).astype(np.float64),
+    )
+    secondary_weight = np.clip(nearest_distance / distance_scale, 0.0, 1.0)
+    return np.asarray(secondary_weight[:, :, None] * unobserved, dtype=np.float64)
+
+
 class SummaryBankRoundPredictor(BaseRoundPredictor):
     name: str = SUMMARY_BANK_STUDENT_V1
     base_predictor: HistoricalBucketPriorPredictor
     student: SummaryBankStudent
+    secondary_student: SummaryBankStudent | None = None
     teacher_weight_max: float = Field(default=0.4, ge=0.0, le=1.0)
     query_count_scale: float = Field(default=20.0, gt=0.0)
     blend_mode: str = BLEND_MODE_GLOBAL
@@ -2346,6 +2468,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     local_blur_strength: float = Field(default=0.0, ge=0.0)
     local_blur_use_geometry_gate: bool = False
     local_blur_class_scale: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+    secondary_distance_scale: float = Field(default=0.0, ge=0.0)
 
     def _local_blur_spatial_gate(
         self,
@@ -2465,6 +2588,26 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
             dtype=np.float64,
         )
 
+    def _teacher_prediction_for_seed(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+    ) -> np.ndarray:
+        primary_prediction = self.student.predict_seed(context, seed_index)
+        if self.secondary_student is None:
+            return primary_prediction
+        secondary_prediction = self.secondary_student.predict_seed(context, seed_index)
+        secondary_weight = _secondary_student_weight_map(
+            context.evidence_bundle.per_seed[seed_index],
+            distance_scale=self.secondary_distance_scale,
+        )
+        return np.asarray(
+            ((1.0 - secondary_weight) * primary_prediction)
+            + (secondary_weight * secondary_prediction),
+            dtype=np.float64,
+        )
+
     def build_prediction_bundle_from_context(
         self,
         context: LiveInferenceContext,
@@ -2480,10 +2623,13 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
                 round_id=context.round_context.round_id,
                 model_name=self.name,
                 predictions_by_seed=base_bundle.predictions_by_seed,
-            )
+        )
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed in context.round_context.seeds:
-            teacher_prediction = self.student.predict_seed(context, seed.seed_index)
+            teacher_prediction = self._teacher_prediction_for_seed(
+                context,
+                seed_index=seed.seed_index,
+            )
             blend_map = self._teacher_blend_map(
                 context,
                 seed_index=seed.seed_index,
@@ -2558,6 +2704,8 @@ def load_or_fit_named_summary_bank_predictor(
         ),
     )
     checkpoint_path = checkpoint_dir / "summary_bank_student.json"
+    secondary_checkpoint_dir = checkpoint_dir / "secondary"
+    secondary_checkpoint_path = secondary_checkpoint_dir / "summary_bank_student.json"
     base_checkpoint_path = (
         paths.model_dir(
             _cached_shared_base_prior_name(round_ids=selected_round_ids),
@@ -2570,28 +2718,6 @@ def load_or_fit_named_summary_bank_predictor(
         )
         / "hazard_teacher.json"
     )
-    if checkpoint_path.exists() and base_checkpoint_path.exists():
-        return SummaryBankRoundPredictor(
-            name=spec.model_name,
-            base_predictor=HistoricalBucketPriorPredictor.load_checkpoint(base_checkpoint_path),
-            student=SummaryBankStudent.load_checkpoint(checkpoint_path),
-            teacher_weight_max=spec.teacher_weight_max,
-            query_count_scale=spec.query_count_scale,
-            blend_mode=spec.blend_mode,
-            unobserved_teacher_scale=spec.unobserved_teacher_scale,
-            observed_teacher_scale=spec.observed_teacher_scale,
-            use_confidence_gate=spec.use_confidence_gate,
-            teacher_weight_mode=spec.teacher_weight_mode,
-            use_exact_local_evidence=spec.use_exact_local_evidence,
-            local_evidence_beta_min=spec.local_evidence_beta_min,
-            local_evidence_beta_scale=spec.local_evidence_beta_scale,
-            local_evidence_count_pivot=spec.local_evidence_count_pivot,
-            use_local_blur_evidence=spec.use_local_blur_evidence,
-            local_blur_sigma=spec.local_blur_sigma,
-            local_blur_strength=spec.local_blur_strength,
-            local_blur_use_geometry_gate=spec.local_blur_use_geometry_gate,
-            local_blur_class_scale=spec.local_blur_class_scale,
-        )
 
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     base_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2617,32 +2743,70 @@ def load_or_fit_named_summary_bank_predictor(
             [episode for episode in replay_episodes if episode.replay_run_count > 0],
         )
         teacher.save_checkpoint(teacher_checkpoint_path)
-    dataset = _load_or_build_synthetic_dataset(
-        paths,
-        policy_name=policy_name,
-        samples_per_round=spec.samples_per_round,
-        round_ids=selected_round_ids,
-    )
-    student = SummaryBankStudent.fit_from_dataset(
-        dataset,
-        teacher,
-        k_neighbors=spec.k_neighbors,
-        summary_encoder=spec.summary_encoder,
-        normalize_summary=spec.normalize_summary,
-        inference_head=spec.inference_head,
-        ridge_alpha=spec.ridge_alpha,
-        residual_confidence_power=spec.residual_confidence_power,
-    ).model_copy(
-        update={
-            "name": spec.model_name,
-            "dataset_name": dataset.dataset_name,
-        },
-    )
-    student.save_checkpoint(checkpoint_dir, teacher_checkpoint_path)
+
+    dataset: SyntheticEpisodeDatasetRef | None = None
+
+    def _ensure_dataset() -> SyntheticEpisodeDatasetRef:
+        nonlocal dataset
+        if dataset is None:
+            dataset = _load_or_build_synthetic_dataset(
+                paths,
+                policy_name=policy_name,
+                samples_per_round=spec.samples_per_round,
+                round_ids=selected_round_ids,
+            )
+        return dataset
+
+    def _fit_student(
+        *,
+        student_name: str,
+        k_neighbors: int,
+        save_dir: Path,
+    ) -> SummaryBankStudent:
+        fitted_dataset = _ensure_dataset()
+        fitted_student = SummaryBankStudent.fit_from_dataset(
+            fitted_dataset,
+            teacher,
+            k_neighbors=k_neighbors,
+            summary_encoder=spec.summary_encoder,
+            normalize_summary=spec.normalize_summary,
+            inference_head=spec.inference_head,
+            ridge_alpha=spec.ridge_alpha,
+            residual_confidence_power=spec.residual_confidence_power,
+        ).model_copy(
+            update={
+                "name": student_name,
+                "dataset_name": fitted_dataset.dataset_name,
+            },
+        )
+        fitted_student.save_checkpoint(save_dir, teacher_checkpoint_path)
+        return fitted_student
+
+    if checkpoint_path.exists():
+        student = SummaryBankStudent.load_checkpoint(checkpoint_path)
+    else:
+        student = _fit_student(
+            student_name=spec.model_name,
+            k_neighbors=spec.k_neighbors,
+            save_dir=checkpoint_dir,
+        )
+
+    secondary_student: SummaryBankStudent | None = None
+    if spec.secondary_k_neighbors is not None:
+        if secondary_checkpoint_path.exists():
+            secondary_student = SummaryBankStudent.load_checkpoint(secondary_checkpoint_path)
+        else:
+            secondary_student = _fit_student(
+                student_name=f"{spec.model_name}__secondary_k{spec.secondary_k_neighbors}",
+                k_neighbors=spec.secondary_k_neighbors,
+                save_dir=secondary_checkpoint_dir,
+            )
+
     return SummaryBankRoundPredictor(
         name=spec.model_name,
         base_predictor=base_predictor,
         student=student,
+        secondary_student=secondary_student,
         teacher_weight_max=spec.teacher_weight_max,
         query_count_scale=spec.query_count_scale,
         blend_mode=spec.blend_mode,
@@ -2659,6 +2823,7 @@ def load_or_fit_named_summary_bank_predictor(
         local_blur_strength=spec.local_blur_strength,
         local_blur_use_geometry_gate=spec.local_blur_use_geometry_gate,
         local_blur_class_scale=spec.local_blur_class_scale,
+        secondary_distance_scale=spec.secondary_distance_scale,
     )
 
 

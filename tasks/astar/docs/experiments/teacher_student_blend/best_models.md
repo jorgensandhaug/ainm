@@ -5,10 +5,14 @@ No post-pivot full-family winner is promoted yet.
 Current finished corrected-holdout ranking:
 
 - `teacher_student_blend_v59`: mean score `65.4649`, mean weighted KL `0.141802`
+- `teacher_student_blend_v97`: mean score `65.4555`, mean weighted KL `0.141854`
+- `teacher_student_blend_v95`: mean score `65.4518`, mean weighted KL `0.141873`
 - `teacher_student_blend_v69`: mean score `65.4438`, mean weighted KL `0.141927`
 - `teacher_student_blend_v71`: mean score `65.4319`, mean weighted KL `0.141890`
 - `teacher_student_blend_v60`: mean score `65.4188`, mean weighted KL `0.142051`
 - `teacher_student_blend_v73`: mean score `65.4119`, mean weighted KL `0.142007`
+- `teacher_student_blend_v98`: mean score `65.4088`, mean weighted KL `0.142107`
+- `teacher_student_blend_v96`: mean score `65.4052`, mean weighted KL `0.142126`
 - `teacher_student_blend_v67`: mean score `65.3996`, mean weighted KL `0.142170`
 - `teacher_student_blend_v70`: mean score `65.3980`, mean weighted KL `0.142176`
 - `teacher_student_blend_v72`: mean score `65.3842`, mean weighted KL `0.142140`
@@ -47,6 +51,9 @@ Current read:
 
 - strongest finished branch is now the `k=1` line plus exact observed-cell posterior correction
 - `v59` is the new corrected-gate leader and `v60` is essentially tied behind it
+- `v95/v97` say the old smoother-neighbor hypothesis is nearly neutral even after exact local evidence; it still does not beat `v59`
+- `v97` got within `0.0094` score of `v59`, so unobserved-cell smoothing still looks directionally useful but scalar `k` changes alone are too weak
+- next branch is a true two-expert mixture: keep the sharp `k=1` expert on observed / near-observed cells and route farther unobserved cells to a smoother secondary student
 - the exact-local-evidence win kept moving in the same direction: lower shrinkage beat `v51/v52` again
 - pushing the same beta schedule further down (`v63/v64`) was still decent but clearly worse than `v59/v60`
 - making the posterior almost count-dominated (`v65/v66`) collapsed badly
@@ -54,7 +61,6 @@ Current read:
 - seed-adaptive student mixing without the confidence gate (`v71-v74`) was also nearly neutral; `v71` got close but still did not beat `v59`
 - moving the total student cap up or down (`v75-v78`) hurt clearly, so the best remaining easy knob is likely query-count pacing rather than total cap
 - query-count-scale tuning (`v79-v82`) turned out fully inert here; both slower and faster ramps exactly reproduced `v59/v60`
-- next branch is observed-aware student blending so direct evidence owns observed cells and the student focuses on unobserved cells
 - `v59` beats `v45` by `+4.1279` score and `-0.021885` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
@@ -88,9 +94,9 @@ Active queue now includes:
 
 Pending corrected-gate results:
 
-- `teacher_student_blend_v83`
-- `teacher_student_blend_v84`
-- `teacher_student_blend_v85`
-- `teacher_student_blend_v86`
+- `teacher_student_blend_v99`
+- `teacher_student_blend_v100`
+- `teacher_student_blend_v101`
+- `teacher_student_blend_v102`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

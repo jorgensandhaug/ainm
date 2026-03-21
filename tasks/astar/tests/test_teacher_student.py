@@ -765,6 +765,87 @@ def test_summary_bank_local_blur_evidence_respects_class_scale() -> None:
     assert np.allclose(updated, prediction)
 
 
+def test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_observed() -> None:
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.summary_bank import _secondary_student_weight_map
+
+    count_tensor = np.zeros((5, 5, 6), dtype=np.int64)
+    count_tensor[2, 2, 2] = 4
+    observed_class_counts = np.sum(count_tensor, axis=(0, 1))
+    observed_class_frequencies = observed_class_counts.astype(np.float64) / float(
+        np.sum(observed_class_counts),
+    )
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=4,
+        repeated_window_groups=0,
+        coverage_counts=np.asarray(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+            dtype=np.int64,
+        ),
+        observed_class_counts=observed_class_counts,
+        observed_class_frequencies=observed_class_frequencies,
+        observed_class_count_tensor=count_tensor,
+    )
+
+    weight_map = _secondary_student_weight_map(seed_evidence, distance_scale=2.0)
+
+    assert weight_map.shape == (5, 5, 1)
+    assert weight_map[2, 2, 0] == 0.0
+    assert 0.0 < weight_map[2, 3, 0] < 1.0
+    assert weight_map[0, 0, 0] == 1.0
+
+
+def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+
+    from astar.student.predictor.summary_bank import (
+        _cached_model_name,
+        load_or_fit_named_summary_bank_predictor,
+    )
+
+    predictor_a = load_or_fit_named_summary_bank_predictor(
+        sample_paths,
+        model_name="teacher_student_blend_v99",
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+    )
+    predictor_b = load_or_fit_named_summary_bank_predictor(
+        sample_paths,
+        model_name="teacher_student_blend_v99",
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+    )
+
+    secondary_checkpoint_path = (
+        sample_paths.model_dir(
+            _cached_model_name(
+                model_name="teacher_student_blend_v99",
+                policy_name="coverage",
+                samples_per_round=4,
+                round_ids=[ROUND_ID],
+            ),
+        )
+        / "secondary"
+        / "summary_bank_student.json"
+    )
+
+    assert secondary_checkpoint_path.exists()
+    assert predictor_a.secondary_student is not None
+    assert predictor_b.secondary_student is not None
+    assert predictor_b.secondary_student.k_neighbors == 5
+
+
 def test_summary_bank_variants_share_base_prior_and_teacher_cache(
     sample_paths: RepoPaths,
 ) -> None:
