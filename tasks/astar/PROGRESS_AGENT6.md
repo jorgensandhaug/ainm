@@ -3638,3 +3638,65 @@
   - launch 2 smoke benchmarks in parallel:
     - `collapsequad`
     - `nonmountain`
+
+## 2026-03-21 13:14 UTC - rate-conditioned law-bank decoder
+
+- Re-read again before coding:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br list` still unavailable in this env:
+  - `/bin/bash: br: command not found`
+
+- Machine state before the new branch:
+  - `13:14 UTC`
+  - load about `44.1 / 40.1 / 45.0`
+  - RAM about `1.4 TiB available`
+- Machine state after focused tests, before benchmark launch:
+  - `13:20 UTC`
+  - load about `101.6 / 57.2 / 49.3`
+  - RAM about `1.1 TiB available`
+  - conclusion:
+    - still plenty of headroom
+    - but other agents clearly ramped usage, so cap the first sweep to 3 parallel smokes, not 5
+
+- New structural decoder hypothesis:
+  - the current family-best `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01` is still one shared linear decoder from latent rates to logits
+  - that may be the wrong bottleneck
+  - instead:
+    - fit one terminal law head per training round
+    - infer a low-dim event-rate latent online from the legal transcript
+    - blend the round law heads in rate space
+  - this is closer to the handoff’s intended “fast terminal decoder / bank of law objects” path than the recent scalar-gate tweaks
+
+- Code landed:
+  - new predictor:
+    - `src/astar/student/predictor/summary_rate_lawbank.py`
+  - immutable specs:
+    - `src/astar/student/predictor/summary_rate_lawbank_specs.py`
+  - wiring:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+  - regression coverage:
+    - `tests/test_summary_rate_lawbank_predictor.py`
+
+- Initial immutable models added:
+  - `f1_summary_rate_lawbank_rates_v01`
+  - `f1_summary_rate_lawbank_rates_teacher_v01`
+  - `f1_summary_rate_lawbank_collapse_portsplit_v01`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_v01`
+  - `f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01`
+
+- Focused validation:
+  - `uv run python -m compileall src/astar/student/predictor/summary_rate_lawbank.py src/astar/student/predictor/summary_rate_lawbank_specs.py src/astar/student/predictor/interactive.py src/astar/cli.py src/astar/workflows/historical_benchmark.py`
+  - `uv run pytest tests/test_summary_rate_lawbank_predictor.py tests/test_summary_rate_decoder_predictor.py tests/test_summary_roundlaw_decoder_predictor.py -q`
+  - result:
+    - `12 passed in 40.37s`
+
+- Immediate next action:
+  - commit/push runnable law-bank branch
+  - launch 3 parallel current-smoke benchmarks:
+    - `f1_summary_rate_lawbank_rates_teacher_v01`
+    - `f1_summary_rate_lawbank_collapse_portsplit_teacher_v01`
+    - `f1_summary_rate_lawbank_collapse_portsplit_teacher_stress_v01`

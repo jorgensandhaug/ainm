@@ -27,6 +27,9 @@ from astar.student.predictor.summary_bank_decoder_specs import (
 from astar.student.predictor.summary_rate_decoder_specs import (
     supported_summary_rate_decoder_model_names,
 )
+from astar.student.predictor.summary_rate_lawbank_specs import (
+    supported_summary_rate_lawbank_model_names,
+)
 from astar.student.predictor.summary_roundlaw_specs import (
     supported_summary_roundlaw_model_names,
 )
@@ -159,6 +162,7 @@ def run_historical_benchmark(
         *supported_summary_birth_hybrid_model_names(),
         *supported_summary_bank_decoder_model_names(),
         *supported_summary_rate_decoder_model_names(),
+        *supported_summary_rate_lawbank_model_names(),
         *supported_summary_roundlaw_model_names(),
         *supported_summary_roundlaw_decoder_model_names(),
         *supported_summary_bank_model_names(),

@@ -47,6 +47,11 @@ from astar.student.predictor.summary_rate_decoder_specs import (
     resolve_summary_rate_decoder_model_spec,
     supported_summary_rate_decoder_model_names,
 )
+from astar.student.predictor.summary_rate_lawbank import SummaryRateLawBankPredictor
+from astar.student.predictor.summary_rate_lawbank_specs import (
+    resolve_summary_rate_lawbank_model_spec,
+    supported_summary_rate_lawbank_model_names,
+)
 from astar.student.predictor.summary_roundlaw import SummaryRoundLawPredictor
 from astar.student.predictor.summary_roundlaw_specs import (
     resolve_summary_roundlaw_model_spec,
@@ -265,6 +270,27 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    summary_rate_lawbank_spec = resolve_summary_rate_lawbank_model_spec(normalized)
+    if summary_rate_lawbank_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = SummaryRateLawBankPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=summary_rate_lawbank_spec.budget,
+            samples_per_round=summary_rate_lawbank_spec.samples_per_round,
+            k_neighbors=summary_rate_lawbank_spec.k_neighbors,
+            model_name=summary_rate_lawbank_spec.model_name,
+            probability_floor=summary_rate_lawbank_spec.probability_floor,
+            ridge_lambda=summary_rate_lawbank_spec.ridge_lambda,
+            include_teacher_logits=summary_rate_lawbank_spec.include_teacher_logits,
+            target_family=summary_rate_lawbank_spec.target_family,
+            summary_feature_variant=summary_rate_lawbank_spec.summary_feature_variant,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     summary_roundlaw_spec = resolve_summary_roundlaw_model_spec(normalized)
     if summary_roundlaw_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -413,6 +439,7 @@ __all__ = [
     "supported_summary_birth_hybrid_model_names",
     "supported_summary_bank_decoder_model_names",
     "supported_summary_rate_decoder_model_names",
+    "supported_summary_rate_lawbank_model_names",
     "supported_summary_roundlaw_model_names",
     "supported_summary_roundlaw_decoder_model_names",
     "supported_summary_bank_model_names",
