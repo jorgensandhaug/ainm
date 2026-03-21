@@ -620,3 +620,98 @@
     - `b20,s2` posterior dev audit to completion
     - then `b50,s4` or similar fuller posterior audit
   - if the completed posterior audit is positive, then build the next benchmarkable learned birth/collapse posterior model on top of it
+- New synthetic-live memory hypothesis under test:
+  - `build_synthetic_live_dataset` still had one avoidable replay-corpus duplication
+  - it was calling `build_round_episode(...)` directly for each round while the online oracle path for the same round already uses `_cached_round_episode(...)`
+  - expected effect:
+    - reduce one full `RoundEpisode` allocation per active round during synthetic-live generation
+    - improve the posterior-audit memory profile without changing semantics
+- Landed candidate fix in `src/astar/history/datasets/synthetic_live.py`:
+  - replace the direct `build_round_episode(...)` call with `_cached_round_episode(str(paths.root), round_id)`
+  - keep the existing end-of-round cache clear, so the same shared object is reused within a round and then dropped before the next round
+  - next step is strict regression + rerun of the `b20,s2` posterior audit timing/memory check
+- Regression after the shared-episode fix:
+  - `uv run pytest tests/test_history_datasets.py tests/test_event_regime_posterior_audit.py tests/test_teacher_student.py -q`
+  - result: `8 passed`
+  - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_hazard_riskset.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `20 passed`
+- First completed real-corpus posterior audit finally landed:
+  - command:
+    - `/usr/bin/time -v uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b20s2_audit_v04 --dataset-name f1_synthetic_live_coverage_b20_s2_v4 --policy coverage --samples-per-round 2 --budget 20 --k-neighbors 5`
+  - artifacts:
+    - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_b20s2_audit_v04/result.json`
+    - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_b20s2_audit_v04/report.md`
+    - `data/artifacts/datasets/f1_synthetic_live_coverage_b20_s2_v4/summary.json`
+  - runtime / memory:
+    - wall `3:17.51`
+    - max RSS `5955792` kB (`~5.96 GB`)
+  - result:
+    - rounds `9`
+    - episodes `18`
+    - baseline MAE `0.614106` -> kNN MAE `0.371333` (gain `+0.242772`)
+    - baseline MSE `0.876230` -> kNN MSE `0.453991` (gain `+0.422239`)
+  - per-target read:
+    - birth MAE `0.951700 -> 0.522521`
+    - collapse MAE `0.276511 -> 0.220145`
+  - round read:
+    - positive on `8/9` held-out rounds by both MAE and MSE
+    - only clear miss is `8e839974-b13b-407b-a5e7-fc749d877195`
+- Fuller posterior audit also completed on the repaired path:
+  - command:
+    - `/usr/bin/time -v uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b50s4_audit_v01 --dataset-name f1_synthetic_live_coverage_b50_s4_v2 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7`
+  - artifacts:
+    - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_b50s4_audit_v01/result.json`
+    - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_b50s4_audit_v01/report.md`
+    - `data/artifacts/datasets/f1_synthetic_live_coverage_b50_s4_v2/summary.json`
+  - runtime / memory:
+    - wall `3:12.10`
+    - max RSS `5885948` kB (`~5.89 GB`)
+  - result:
+    - rounds `9`
+    - episodes `36`
+    - baseline MAE `0.614106` -> kNN MAE `0.401393` (gain `+0.212712`)
+    - baseline MSE `0.876230` -> kNN MSE `0.431643` (gain `+0.444587`)
+  - per-target read:
+    - birth MAE `0.951700 -> 0.519261`
+    - collapse MAE `0.276511 -> 0.283525`
+    - collapse MSE still improves `0.117471 -> 0.094565`
+  - interpretation:
+    - posterior signal survives the fuller query regime
+    - it is mostly a birth/posterior signal; collapse remains harder and likely needs a richer latent target than round-level collapse prevalence alone
+- Added immutable synthetic-live dataset reuse by dataset contract:
+  - `build_synthetic_live_dataset(...)` now returns an existing dataset immediately when:
+    - `dataset_name`
+    - `policy_name`
+    - `budget`
+    - `samples_per_round`
+    - `round_ids`
+    all match the stored summary
+  - summary metadata now records `round_ids`
+  - added regression:
+    - `test_synthetic_live_dataset_reuses_matching_cached_dataset`
+    - this monkeypatches `run_online_episode` to raise, then proves a matching second build does not regenerate episodes
+- Regression after dataset-cache reuse:
+  - `uv run pytest tests/test_history_datasets.py tests/test_event_regime_posterior_audit.py tests/test_teacher_student.py -q`
+  - result: `9 passed`
+  - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_hazard_riskset.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `21 passed`
+- Real cache-hit proof on the full posterior audit:
+  - first rerun to rewrite the older dataset summary into the new immutable format:
+    - `/usr/bin/time -v uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b50s4_audit_v02 --dataset-name f1_synthetic_live_coverage_b50_s4_v2 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7`
+    - wall `3:29.51`
+    - max RSS `5908424` kB (`~5.91 GB`)
+    - metrics identical to `v01`
+  - true cache-hit rerun:
+    - `/usr/bin/time -v uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b50s4_audit_v03 --dataset-name f1_synthetic_live_coverage_b50_s4_v2 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7`
+    - wall `1.53s`
+    - max RSS `1259848` kB (`~1.26 GB`)
+    - metrics identical to `v01` and `v02`
+  - read:
+    - synthetic-live is no longer the main blocker for posterior sweeps
+    - repeated posterior k-sweeps / student training can now iterate on a fixed dataset name without paying the episode-generation cost again
+- Updated next-step read:
+  - strongest live posterior signal found so far is birth, not collapse
+  - collapse likely needs a better latent target than coarse round-level collapse prevalence, even though replay-only collapse event models are strong
+  - next modeling path should be one of:
+    - benchmarkable birth-led posterior event model using the now-validated synthetic-live posterior substrate
+    - or a richer collapse latent target / teacher before another collapse-heavy benchmarkable model

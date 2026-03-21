@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import astar.history.datasets.synthetic_live as synthetic_live_module
 from astar.envs.historical import _cached_round_episode
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
@@ -224,3 +225,38 @@ def test_synthetic_live_dataset_respects_budget_override(sample_paths: RepoPaths
     assert len(artifact.observations) == 3
     assert summary["budget"] == 3
     assert _cached_round_episode.cache_info().currsize == 0
+
+
+def test_synthetic_live_dataset_reuses_matching_cached_dataset(
+    sample_paths: RepoPaths,
+    monkeypatch,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_cache_reuse_test",
+        budget=4,
+    )
+    summary = json.loads(dataset.summary_path.read_text(encoding="utf-8"))
+
+    def _unexpected_rebuild(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("synthetic live cache hit should not rerun online episodes")
+
+    monkeypatch.setattr(synthetic_live_module, "run_online_episode", _unexpected_rebuild)
+
+    reused = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_cache_reuse_test",
+        budget=4,
+    )
+
+    assert reused == dataset
+    assert summary["round_ids"] == [ROUND_ID]

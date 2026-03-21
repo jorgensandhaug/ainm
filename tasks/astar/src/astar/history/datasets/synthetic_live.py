@@ -12,7 +12,6 @@ from astar.core.trajectory import LiveQueryObs
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.envs.historical import _cached_round_episode
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
-from astar.history.episodes.build import build_round_episode
 from astar.history.summaries.round_coefficients import round_regime_summary_vector
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
@@ -47,6 +46,47 @@ class SyntheticEpisodeArtifact(BaseModel):
     observations: tuple[LiveQueryObs, ...]
     target_sources: dict[int, str]
     target_paths: dict[int, Path]
+
+
+def _load_existing_dataset_ref(
+    *,
+    dataset_name: str,
+    dataset_dir: Path,
+    summary_path: Path,
+    index_path: Path,
+    policy_name: str,
+    budget: int | None,
+    samples_per_round: int,
+    round_ids: list[str],
+) -> SyntheticEpisodeDatasetRef | None:
+    if not summary_path.exists() or not index_path.exists():
+        return None
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if summary.get("dataset_kind") != "synthetic_live":
+        return None
+    if summary.get("dataset_name") != dataset_name:
+        return None
+    if summary.get("policy_name") != policy_name:
+        return None
+    if summary.get("budget") != budget:
+        return None
+    if int(summary.get("samples_per_round", -1)) != samples_per_round:
+        return None
+    if summary.get("round_ids") != round_ids:
+        return None
+    return SyntheticEpisodeDatasetRef(
+        dataset_name=dataset_name,
+        dataset_kind="synthetic_live",
+        dataset_dir=dataset_dir,
+        summary_path=summary_path,
+        index_path=index_path,
+        row_count=int(summary["episode_count"]),
+        round_count=int(summary["round_count"]),
+        policy_name=str(summary["policy_name"]),
+        episode_count=int(summary["episode_count"]),
+        total_query_count=int(summary["total_query_count"]),
+        samples_per_round=int(summary["samples_per_round"]),
+    )
 
 
 def resolve_synthetic_episode_path(
@@ -131,15 +171,27 @@ def build_synthetic_live_dataset(
     episodes_dir.mkdir(parents=True, exist_ok=True)
     index_path = dataset_dir / "index.parquet"
     summary_path = dataset_dir / "summary.json"
+    policy = build_interactive_policy(policy_name)
+    existing = _load_existing_dataset_ref(
+        dataset_name=dataset_name,
+        dataset_dir=dataset_dir,
+        summary_path=summary_path,
+        index_path=index_path,
+        policy_name=policy.name,
+        budget=budget,
+        samples_per_round=samples_per_round,
+        round_ids=selected_round_ids,
+    )
+    if existing is not None:
+        return existing
 
     rows: list[dict[str, str | int]] = []
     total_query_count = 0
     oracle = SyntheticActiveOracle(paths=paths)
-    policy = build_interactive_policy(policy_name)
     recorder = TranscriptRecorderPredictor()
 
     for round_id in selected_round_ids:
-        round_episode = build_round_episode(paths, round_id)
+        round_episode = _cached_round_episode(str(paths.root), round_id)
         if round_episode.replay_run_count == 0:
             continue
         planned_budget = _plan_budget(policy, round_id, oracle)
@@ -222,6 +274,7 @@ def build_synthetic_live_dataset(
         "samples_per_round": samples_per_round,
         "total_query_count": total_query_count,
         "round_count": len({row["round_id"] for row in rows}),
+        "round_ids": selected_round_ids,
         "index_path": str(index_path),
     }
     summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")
