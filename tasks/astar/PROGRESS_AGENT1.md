@@ -609,3 +609,15 @@
 - note:
   - CLI model-choice table still lags behind richer direct-Python model aliases
   - custom `v3/v4` configs beyond the baked CLI list must be launched through `run_historical_benchmark(...)` directly for now
+- follow-up fix completed:
+  - removed rigid research-model `argparse` whitelists from:
+    - `run-historical-benchmark`
+    - `run-synthetic-tournament`
+    - `run-synthetic-benchmark`
+    - `run-live-online`
+    - `visualize-model-prediction`
+  - rationale:
+    - model resolution is already dynamic in predictor/model code
+    - static CLI choices were blocking legitimate frontier configs and slowing iteration
+  - parser smoke:
+    - custom names like `hazard_posterior_v4_k5_r3_l32_m70` now parse cleanly across those commands
