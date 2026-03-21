@@ -1,0 +1,64 @@
+{
+  "audit_name": "f1_query_residual_online_f1_student_query_residual_supportbase_v01_probe3_b50e0_v01",
+  "model_name": "f1_student_query_residual_supportbase_v01",
+  "policy_name": "coverage",
+  "budget": 50,
+  "episode_seed": 0,
+  "round_ids": [
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad"
+  ],
+  "round_count": 3,
+  "evaluated_seed_count": 15,
+  "aggregation_mode": "equal_round_mean_over_exact_online_episode",
+  "aggregate_regime_mae": 0.0659535941911135,
+  "aggregate_regime_mse": 0.00994185770275601,
+  "aggregate_raw_delta_rmse": 0.5795801607900795,
+  "aggregate_served_delta_rmse": 0.5625480203514382,
+  "aggregate_score": 72.57047215169248,
+  "aggregate_weighted_kl": 0.10729891114451562,
+  "rounds": [
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "round_number": 4,
+      "episode_seed": 0,
+      "query_count": 45,
+      "evaluated_seed_count": 5,
+      "regime_mae": 0.058176406891229125,
+      "regime_mse": 0.006256694455313492,
+      "raw_delta_rmse": 0.7085199308550811,
+      "served_delta_rmse": 0.6368571438491897,
+      "mean_score": 68.49459374563905,
+      "mean_weighted_kl": 0.1262057567200318
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "round_number": 5,
+      "episode_seed": 0,
+      "query_count": 45,
+      "evaluated_seed_count": 5,
+      "regime_mae": 0.03584008118436798,
+      "regime_mse": 0.002580528708467961,
+      "raw_delta_rmse": 0.6203813135322084,
+      "served_delta_rmse": 0.5716256236607968,
+      "mean_score": 76.15928614895185,
+      "mean_weighted_kl": 0.0910331849821159
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "round_number": 6,
+      "episode_seed": 0,
+      "query_count": 45,
+      "evaluated_seed_count": 5,
+      "regime_mae": 0.1038442944977434,
+      "regime_mse": 0.02098834994448658,
+      "raw_delta_rmse": 0.4098392379829488,
+      "served_delta_rmse": 0.4791612935443282,
+      "mean_score": 73.05753656048657,
+      "mean_weighted_kl": 0.10465779173139914
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/query_residual_online_audit/f1_query_residual_online_f1_student_query_residual_supportbase_v01_probe3_b50e0_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/query_residual_online_audit/f1_query_residual_online_f1_student_query_residual_supportbase_v01_probe3_b50e0_v01/report.md"
+}

@@ -225,6 +225,70 @@
 
 ### 2026-03-21 UTC
 
+- Re-read `README.md`, `docs/game_facts.md`, and `instructions/agent6.md` at start of turn.
+- Re-checked repo state: branch clean/synced; `br` still unavailable in this env.
+- Starting next validation branch:
+  - objective: replace the weak synthetic-only `query_residual` gate with a benchmark-faithful held-out online-transcript audit
+  - rationale: `supportbase_v01` was slightly positive on synthetic fit-audit but negative on the real smoke benchmark, so the next validation layer must reuse the exact replay-backed online episode path
+- Implemented benchmark-faithful `query_residual` online audit:
+  - new shared helper module: `src/astar/workflows/query_residual_audit_common.py`
+  - new workflow: `src/astar/workflows/query_residual_online_audit.py`
+  - new CLI entry: `uv run astar run-query-residual-online-audit`
+  - new renderer/tests:
+    - `src/astar/cli_output.py`
+    - `tests/test_query_residual_online_audit.py`
+- New validation guarantee:
+  - sample regression proves `run-query-residual-online-audit` matches `run-historical-benchmark` exactly on the same held-out online episode
+  - meaning: this is now a benchmark-faithful probe for `query_residual`, not a surrogate
+- Current-corpus probe3 online-audit runs completed:
+  - baseline artifact:
+    - `data/artifacts/family1/query_residual_online_audit/f1_query_residual_online_query_residual_probe3_b50e0_v01/result.json`
+    - score `72.546489`
+    - KL `0.107407`
+    - regime MAE/MSE `0.065954 / 0.009942`
+    - raw/served delta RMSE `0.580351 / 0.563237`
+    - wall `3:09.71`, max RSS `9.38 GB`
+  - supportbase artifact:
+    - `data/artifacts/family1/query_residual_online_audit/f1_query_residual_online_f1_student_query_residual_supportbase_v01_probe3_b50e0_v01/result.json`
+    - score `72.570472`
+    - KL `0.107299`
+    - regime MAE/MSE `0.065954 / 0.009942`
+    - raw/served delta RMSE `0.579580 / 0.562548`
+    - wall `2:53.80`, max RSS `9.36 GB`
+- Critical validation finding:
+  - `supportbase_v01` online-audit matches the saved smoke benchmark artifact exactly
+  - baseline `query_residual` online-audit did **not** match the old saved smoke artifact
+  - to resolve that, I reran the baseline smoke benchmark fresh on the current corpus:
+    - `data/artifacts/benchmarks/tmp_query_residual_probe_3rounds_v7_current/result.json`
+    - score `72.546489`
+    - KL `0.107407`
+  - this fresh benchmark matches the new online-audit exactly
+  - conclusion:
+    - the old baseline smoke artifact `tmp_query_residual_probe_3rounds_v7` was stale relative to the current replay corpus
+    - the new online-audit is calibrated correctly; the earlier supportbase rejection was partly an artifact-staleness problem, not only a gate problem
+- Current-corpus smoke compare now changed sign:
+  - compare artifact overwritten at the standard path:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_supportbase_v01.json`
+  - using fresh current baseline `tmp_query_residual_probe_3rounds_v7_current` vs current supportbase smoke:
+    - mean score delta `+0.023983`
+    - mean KL delta `-0.000108`
+    - win rate `0.667`
+    - CI95 `[0.0054, 0.0480]`
+  - interpretation:
+    - `f1_student_query_residual_supportbase_v01` is no longer a clean reject on the current smoke corpus
+    - but the margin is tiny; do **not** promote it without a broader current-corpus rerun
+- Broader current-corpus retest attempt:
+  - tried fresh 8-round analyzed∩replay baseline benchmark:
+    - command name `dev_query_residual_online50_v7_current2`
+  - after well over ten minutes it was still running with no artifact emitted; I killed it
+  - updated perf read:
+    - full-tier current-corpus `query_residual` reevaluation is now too slow for routine loop use
+    - next benchmark step should come only with another speed pass or a narrower dev slice
+- Updated next-step read:
+  - keep the new online-audit as the benchmark-faithful smoke gate for `query_residual`
+  - stop trusting old smoke artifacts when replay corpus may have changed underneath them
+  - `supportbase_v01` deserves broader retest on the **current** corpus, but only after speeding up full-tier LOO or choosing a cheaper current dev tier
+
 - Re-read family handoff sections for Phase 1 event ledger and Phase 3 hazard modeling.
 - Inspected current `HazardTeacher`; confirmed it is a terminal snapshot law and not the right next mainline after Gate 2.
 - Implemented canonical replay event names in `src/astar/core/events.py`.
