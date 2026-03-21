@@ -25,8 +25,10 @@
 
 ## Payload Rules
 - send only prompt-required employee fields
-- always pre-read department and include `department: { id: ... }` on the POST; this avoids a 422 repair branch on 50%+ of production accounts and eliminates avoidable 4xx errors
-- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it (0/11 production runs needed division; only persistent sandbox requires it)
+- always pre-read department and include `department: { id: ... }` as a **top-level employee field** on the POST; this avoids a 422 repair branch on 50%+ of production accounts and eliminates avoidable 4xx errors
+- CRITICAL: `department` is a top-level employee field ONLY — do NOT put `department` inside the `employments[]` array; the employment object does not have a `department` field and the API returns code 16000 "Request mapping failed" with "Feltet eksisterer ikke i objektet." if you try; this is an unmappable-field error, not a validation error; sandbox-verified on 2026-03-22
+- `division` is the opposite: it belongs ONLY inside each employment row, never at the top level; `department` → employee, `division` → employment
+- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it (0/13 production runs needed division; only persistent sandbox requires it)
 - always include explicit `userType: "NO_ACCESS"` unless the prompt explicitly asks for login access; do not use `"STANDARD"` as the default — `"NO_ACCESS"` is the proven safe choice for create-only tasks
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
@@ -37,6 +39,7 @@
 - for employee-create repair branches, key off `validationMessages[].field`
 - the current proven repair fields are `department.id` (handled by pre-read) and `employments.division.id` (repair-only)
 - division requirement is a second-stage branch, not a safe speculative pre-read (0% occurrence in production)
+- a `422` with code `16000` ("Request mapping failed") and field `"department"` means `department` was placed inside the employment object; this is an unmappable-field error, not a validation error — the fix is to move `department` to the top level, not to retry with a different id
 
 ## Reuse From Write Response
 - `value.id` — employee id from `POST /employee?fields=*,employments(*)`
@@ -64,7 +67,7 @@
 - pre-reading department was adopted after the dept-required rate crossed 50% (7/11 = 64% when adopted)
 - at 64% department-required: pre-read averages 2.0 calls / 0 errors vs no-pre-read 2.3 calls / 0.64 errors — fewer calls AND zero 4xx errors
 - the AGENTS.md scoring rules penalize 4xx errors, making pre-read strictly better at 50%+
-- division remains at 0% in production (0/12 runs); pre-reading it would waste 1 call every time
+- division remains at 0% in production (0/13 runs); pre-reading it would waste 1 call every time
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
@@ -73,6 +76,8 @@
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
 - persistent sandbox re-verification on 2026-03-21 confirmed the pre-read strategy (GET /department + POST /employee with dept + division) succeeds in the sandbox with 0 errors
-- out of 12 known production create-employee runs, 4 succeeded without department and 7 needed it (1 used pre-read so requirement is indeterminate); dept-required rate is at least 64%
-- latest run: Bjørn Neset (8e8e2e86, Nynorsk prompt, 1996-02-21, bjrn.neset@example.org, start 2026-06-16) used the CURRENT pre-read strategy correctly; 2 calls, 0 errors (GET /department found 973047, POST /employee with dept→201); 1st production run achieving the proven-minimum 2-call path with pre-read
+- out of 13 known production create-employee runs, 4 succeeded without department and 8 needed it (1 used pre-read so requirement is indeterminate); dept-required rate is at least 64%
+- André Almeida run (e9e115f1, Portuguese prompt, 1992-05-30, andre.almeida@example.org, start 2026-02-04) used the pre-read strategy but placed `department` inside the employment object; caused 2 wasted 422s (code 16000 unmappable-field) before correcting placement; 4 calls, 2 errors; should have been 2 calls, 0 errors
+- Bjørn Neset run (8e8e2e86, Nynorsk prompt, 1996-02-21, bjrn.neset@example.org, start 2026-06-16) used the CURRENT pre-read strategy correctly; 2 calls, 0 errors (GET /department found 973047, POST /employee with dept→201); 1st production run achieving the proven-minimum 2-call path with pre-read
 - the Torbjørn Neset run (b23d4cc2) and Hannah Becker run (3705040b) both used the OLD no-pre-read strategy despite the trusted standard already specifying pre-read; each wasted 1 call + 1 error — agent MUST follow the CURRENT standard flow, not cached/old patterns
+- sandbox verification on 2026-03-22 confirmed: `department` inside employment → code 16000; `department` at top level → correct; `department` only in employment → code 16000

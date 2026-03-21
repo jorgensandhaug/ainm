@@ -32,6 +32,7 @@ Observed validation messages:
 - missing `userType`: `Brukertype kan ikke være "0" eller tom.`
 - missing `department.id`: `validationMessages[].field == "department.id"` with message `Feltet må fylles ut.`
 - missing `employments.division.id`: `validationMessages[].field == "employments.division.id"` with message `Arbeidsforholdet må knyttes til en virksomhet/underenhet.`
+- `department` inside employment: code `16000` "Request mapping failed", field `"department"`, message `"Feltet eksisterer ikke i objektet."` — this is an unmappable-field error (NOT a validation error); `department` is a top-level employee field only, NOT an employment field
 - top-level `message` can stay the same generic `Validering feilet.` across both repair branches
 
 ## Minimal Safe Flow
@@ -52,6 +53,7 @@ Observed validation messages:
 ## Recommended Payload Shape
 
 Use ISO dates. Normalize any localized prompt date first.
+CRITICAL: `department` is a **top-level employee field** — do NOT put it inside `employments[]`. The employment object only accepts `division`, not `department`. Putting `department` inside employment causes code 16000 "Request mapping failed".
 
 ```json
 {
@@ -95,13 +97,16 @@ Run 2026-03-21 (Hannah Becker, German prompt): 3 calls, 1 error — dept-repair 
 
 Run 2026-03-22 (Bjørn Neset, Nynorsk prompt): 2 calls, 0 errors — 1st optimal pre-read production run (8e8e2e86); GET /department found 973047, POST /employee with dept+employment→201; all fields confirmed from POST response (dateOfBirth 1996-02-21, email bjrn.neset@example.org, startDate 2026-06-16); proves the pre-read strategy delivers 2 calls / 0 errors in production; 12th create-employee run overall, 3rd Nynorsk prompt
 
+Run 2026-03-22 (André Almeida, Portuguese prompt): 4 calls, 2 errors — agent placed `department` inside employment object causing 2× code 16000 unmappable-field errors (e9e115f1); GET /department found 973636, POST with dept in employment→422, POST with dept only in employment→422, POST with dept at top level only→201; should have been 2 calls, 0 errors; 13th create-employee run overall, 2nd Portuguese prompt
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not skip the `GET /department` pre-read; at 64%+ department-required rate (7/11 runs needed it), pre-reading saves calls and errors on average; the Bjørn Neset run (8e8e2e86) was the 1st production run to correctly follow the pre-read strategy, achieving the optimal 2 calls / 0 errors
+- Do not skip the `GET /department` pre-read; at 64%+ department-required rate (8/13 runs needed it), pre-reading saves calls and errors on average; the Bjørn Neset run (8e8e2e86) was the 1st production run to correctly follow the pre-read strategy, achieving the optimal 2 calls / 0 errors
+- CRITICAL: `department` is a top-level employee field — do NOT put it inside `employments[]`; the employment object only accepts `division`, not `department`; placing `department` inside employment triggers code 16000 "Request mapping failed" ("Feltet eksisterer ikke i objektet."); sandbox-verified on 2026-03-22; the André Almeida run (e9e115f1) wasted 2 calls on this exact mistake
 - CRITICAL: always follow the CURRENT trusted standard flow, not a cached older version — the trusted standard may have been updated between runs
-- Do not pre-read `/division` — 0/12 production runs needed it; only repair if `422` on `employments.division.id`
+- Do not pre-read `/division` — 0/13 production runs needed it; only repair if `422` on `employments.division.id`
 - Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on the generic `422 message`; inspect `validationMessages[].field`
 - Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"`
