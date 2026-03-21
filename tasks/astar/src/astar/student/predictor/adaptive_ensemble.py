@@ -38,6 +38,10 @@ ADAPTIVE_ENSEMBLE_V5 = "adaptive_ensemble_v5"
 ADAPTIVE_ENSEMBLE_V6 = "adaptive_ensemble_v6"
 ADAPTIVE_ENSEMBLE_V7 = "adaptive_ensemble_v7"
 ADAPTIVE_ENSEMBLE_V8 = "adaptive_ensemble_v8"
+ADAPTIVE_ENSEMBLE_V9 = "adaptive_ensemble_v9"
+ADAPTIVE_ENSEMBLE_V10 = "adaptive_ensemble_v10"
+ADAPTIVE_ENSEMBLE_V11 = "adaptive_ensemble_v11"
+ADAPTIVE_ENSEMBLE_V12 = "adaptive_ensemble_v12"
 
 ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_ALIAS,
@@ -49,6 +53,10 @@ ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_V6,
     ADAPTIVE_ENSEMBLE_V7,
     ADAPTIVE_ENSEMBLE_V8,
+    ADAPTIVE_ENSEMBLE_V9,
+    ADAPTIVE_ENSEMBLE_V10,
+    ADAPTIVE_ENSEMBLE_V11,
+    ADAPTIVE_ENSEMBLE_V12,
 })
 
 ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
@@ -61,6 +69,10 @@ ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
     ADAPTIVE_ENSEMBLE_V6,
     ADAPTIVE_ENSEMBLE_V7,
     ADAPTIVE_ENSEMBLE_V8,
+    ADAPTIVE_ENSEMBLE_V9,
+    ADAPTIVE_ENSEMBLE_V10,
+    ADAPTIVE_ENSEMBLE_V11,
+    ADAPTIVE_ENSEMBLE_V12,
 ]
 
 
@@ -80,6 +92,9 @@ class AdaptiveEnsembleVariantSpec(BaseModel):
     active_settlement_boost: float = Field(default=1.05, ge=0.0)
     # Observation-direct correction
     obs_correction_strength: float = Field(default=0.0, ge=0.0, le=1.0)
+    # Graduated scaling (smooth instead of binary threshold)
+    graduated_scaling: bool = False
+    graduated_scale_power: float = Field(default=1.0, ge=0.0)  # Higher = sharper transition
 
 
 def is_adaptive_ensemble_model_name(model_name: str) -> bool:
@@ -186,6 +201,59 @@ def resolve_adaptive_ensemble_variant_spec(
             active_settlement_boost=1.0,
             obs_correction_strength=0.0,
         ),
+        # v9-v12: graduated scaling variants (smooth transition instead of binary threshold)
+        ADAPTIVE_ENSEMBLE_V9: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V9,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            graduated_scaling=True,
+            graduated_scale_power=1.0,
+        ),
+        ADAPTIVE_ENSEMBLE_V10: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V10,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.04,
+            barren_settlement_scale=0.25,
+            barren_ruin_scale=0.15,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            graduated_scaling=True,
+            graduated_scale_power=0.5,
+        ),
+        ADAPTIVE_ENSEMBLE_V11: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V11,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.2,
+            barren_ruin_scale=0.15,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            graduated_scaling=True,
+            graduated_scale_power=1.5,
+        ),
+        ADAPTIVE_ENSEMBLE_V12: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V12,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.035,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            graduated_scaling=True,
+            graduated_scale_power=2.0,
+        ),
     }
     resolved_name = normalized if normalized != ADAPTIVE_ENSEMBLE_ALIAS else ADAPTIVE_ENSEMBLE_V1
     spec = specs.get(resolved_name, specs[ADAPTIVE_ENSEMBLE_V1])
@@ -288,22 +356,37 @@ class AdaptiveEnsemblePredictor(BaseModel):
 
             corrected = base_pred.copy()
 
-            # Barren round: scale down settlement/ruin predictions
-            if regime["build_rate"] < self.spec.barren_threshold:
-                corrected[:, :, 1] *= self.spec.barren_settlement_scale
-                corrected[:, :, 2] *= self.spec.barren_settlement_scale
-                corrected[:, :, 3] *= self.spec.barren_ruin_scale
-                # Redistribute mass to empty
-                total_non_static = corrected[:, :, :4].sum(axis=-1)
-                corrected[:, :, 0] = np.maximum(
-                    1.0 - corrected[:, :, 1] - corrected[:, :, 2] - corrected[:, :, 3] - corrected[:, :, 4] - corrected[:, :, 5],
-                    0.01,
-                )
-
-            # Active round: slight boost to settlement predictions
-            elif regime["build_rate"] > self.spec.active_threshold:
-                corrected[:, :, 1] *= self.spec.active_settlement_boost
-                corrected[:, :, 2] *= self.spec.active_settlement_boost
+            # Apply calibration
+            if self.spec.graduated_scaling:
+                # Graduated: smooth interpolation based on build rate
+                build_rate = regime["build_rate"]
+                threshold = self.spec.barren_threshold
+                if build_rate < threshold * 2.0:
+                    # Scale factor goes from barren_scale at build_rate=0 to 1.0 at threshold*2
+                    t = min(build_rate / max(threshold * 2.0, 1e-8), 1.0)
+                    t = t ** self.spec.graduated_scale_power
+                    sett_scale = self.spec.barren_settlement_scale + t * (1.0 - self.spec.barren_settlement_scale)
+                    ruin_scale = self.spec.barren_ruin_scale + t * (1.0 - self.spec.barren_ruin_scale)
+                    corrected[:, :, 1] *= sett_scale
+                    corrected[:, :, 2] *= sett_scale
+                    corrected[:, :, 3] *= ruin_scale
+                    corrected[:, :, 0] = np.maximum(
+                        1.0 - corrected[:, :, 1] - corrected[:, :, 2] - corrected[:, :, 3] - corrected[:, :, 4] - corrected[:, :, 5],
+                        0.01,
+                    )
+            else:
+                # Binary threshold
+                if regime["build_rate"] < self.spec.barren_threshold:
+                    corrected[:, :, 1] *= self.spec.barren_settlement_scale
+                    corrected[:, :, 2] *= self.spec.barren_settlement_scale
+                    corrected[:, :, 3] *= self.spec.barren_ruin_scale
+                    corrected[:, :, 0] = np.maximum(
+                        1.0 - corrected[:, :, 1] - corrected[:, :, 2] - corrected[:, :, 3] - corrected[:, :, 4] - corrected[:, :, 5],
+                        0.01,
+                    )
+                elif regime["build_rate"] > self.spec.active_threshold:
+                    corrected[:, :, 1] *= self.spec.active_settlement_boost
+                    corrected[:, :, 2] *= self.spec.active_settlement_boost
 
             # Renormalize
             corrected = np.clip(corrected, 1e-8, None)
