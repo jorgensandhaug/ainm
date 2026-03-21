@@ -58,7 +58,10 @@ From this response:
 - extract the counterpart (contra) account **ID** and any supplier ID from the original postings — the nested expansion provides `account.id` for all counterpart accounts, so no second account lookup is needed for counterparts
 - the counterpart posting is the opposite-signed posting that is NOT the prompt account and NOT account 2710
 - **extract the `vatType.id` from each original expense posting** — use this exact vatType on correction lines instead of assuming vatType 1; some 7xxx accounts (e.g., 7100) are locked to vatType 0 and will 422 if forced to vatType 1
-- for the missing VAT case, check whether the original voucher has a `2710` posting to distinguish "exact branch" (no 2710 at all) from "other branch" (2710 exists but VAT is too low)
+- **CRITICAL: Missing-VAT voucher detection priority** — the prompt says "missing VAT line", which almost always means a voucher where the 2710 posting is **entirely absent** (Case A). Multiple vouchers on the same account may exist; the agent MUST select the correct one:
+  1. **FIRST**: Find vouchers on the prompt account with `amountGross` matching the prompt's excl-VAT amount AND **no 2710 posting at all** → this is Case A (the most common "missing VAT" error)
+  2. **SECOND**: Only if no Case A match exists, look for vouchers with the prompt amount that HAVE a 2710 posting but with VAT too low → this is Case B
+  - **WHY**: Production runs 397faff2, 7fed6a02, and db732541 ALL failed Check 3 because the script found a voucher WITH a 2710 posting (a correctly-booked voucher on the same account) and applied Case B, while the actual erroneous voucher (WITHOUT 2710) was a different entry on the same account. Prioritizing no-2710 vouchers avoids this misidentification.
 
 ### Step 3: Combined Corrective Voucher
 One `POST /ledger/voucher?sendToLedger=true` with all correction lines in a single voucher.
@@ -208,22 +211,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - sandbox confirms: duplikat-labeled vouchers may be the ONLY entry on that account+amount (no original to pair with), so signature grouping alone is insufficient
 - production run 2026-03-21 (correct-ledger-errors, fourth run — 397faff2):
   - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
-  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, had 2710=2290 → Case B), wrong amount 6300 (8200→5800, vatType 0)
-  - Case B correctly applied: original 6540 gross=11450 net=9160 2710=2290; posted 2710 +572.50, 6540 +2290 (vatType=0), 2400 -2862.50 with supplier
-  - vatType correctly copied: 1 for 6500 reclassification (auto-generated ±1470 on 2710 cancel out), 0 for 7100 dup and 6300 wrong-amount
-  - duplicate found via description keyword cascade ("duplikat" in voucher description), no signature grouping needed
-  - counterpart accounts (1920 bank, 2400 supplier with ID) all from voucher response nested expansion
-  - `dateTo=2026-03-01` correctly used (exclusive)
-  - this is the first run to correctly use Case B direct-2710 posting in production and achieve 3 calls with 0 errors on all 4 correction types
+  - errors: 6500→6540 (7350, vatType 1), dup 7100 (3200, vatType 0), missing VAT 6540 (11450 excl, found voucher with 2710=2290 → applied Case B), wrong amount 6300 (8200→5800, vatType 0)
+  - **scored 2.25/6 — Check 3 (missing VAT) FAILED** despite Case B being applied "correctly"
+  - **root cause**: the script matched a voucher WITH 2710 (a correctly-booked voucher on account 6540) and applied Case B, but the actual erroneous voucher was a DIFFERENT entry on 6540 that had NO 2710 posting (Case A). The detection priority was inverted — should have first looked for no-2710 vouchers.
+  - vatType, duplicate detection, counterpart handling all correct
 - production run 2026-03-21 (correct-ledger-errors, fifth run — 7fed6a02):
-  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
-  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, had 2710=1070 → Case B), wrong amount 7100 (8550→6750, vatType 0)
-  - Case B correctly applied: existing 2710=1070, vatShortfall=267.5, expenseNetShortfall=1070, totalShortfall=1337.5; posted 2710 +267.5, 7300 +1070 (vatType=0), 2400 -1337.5 with supplier
-  - vatType correctly copied: 1 for 6340/6390 reclassification, 0 for 6300 dup and 7100 wrong-amount
-  - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
-  - counterpart accounts: 1920 (bank) for reclassification/dup/wrong-amount, 2400 (supplier ID 108392217) for missing VAT
-  - `dateTo=2026-03-01` correctly used (exclusive)
-  - second consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct with Case B
+  - achieved ideal 3-call path, 0 errors
+  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, found voucher with 2710=1070 → applied Case B), wrong amount 7100 (8550→6750, vatType 0)
+  - **scored 2.25/6 — Check 3 (missing VAT) FAILED** — same root cause as run 397faff2: matched wrong voucher (one WITH 2710) instead of the actual erroneous voucher (WITHOUT 2710)
 - production run 2026-03-21 (correct-ledger-errors, sixth run — 49332405):
   - errors: 7140→7100 (7500), dup 6540 (1000), missing VAT 4500 (21500 excl), wrong amount 6860 (17250→6000)
   - **run blocked**: proxy token expired/invalid (`403 Invalid or expired proxy token`), 1 wasted call
@@ -233,13 +228,26 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - sandbox verified: `GET /ledger/account?fields=id,number,vatType(id)` returns account's default/locked vatType; use this for target-side vatType in reclassification
   - the 3-call minimum remains proven; adding `vatType(id)` to account lookup adds no extra calls
 - production run 2026-03-21 (correct-ledger-errors, seventh run — db732541):
-  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
-  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, had 2710=2820 → Case B), wrong amount 6590 (13150→11650, vatType 1)
-  - **first production confirmation of cross-vatType reclassification**: 7140 (vatType 12) reversed with vatType 12, 7100 posted with vatType 0 from account lookup — auto-generated 2710 -241.07 on reversal, no auto-VAT on target; the 6th run had the same shape but was blocked by expired token
-  - Case B correctly applied: existing2710=2820, vatShortfall=705, expenseNetShortfall=2820, totalShortfall=3525; posted 2710 +705, 6500 +2820 (vatType=0), 2400 -3525 with supplier
-  - duplicate found via description keyword cascade (primary)
-  - account 6590 has default vatType 1 (not locked)
-  - third consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct
+  - achieved ideal 3-call path, 0 errors
+  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl, found voucher with 2710=2820 → applied Case B), wrong amount 6590 (13150→11650, vatType 1)
+  - **scored 2.25/6 — Check 3 (missing VAT) FAILED** — same root cause as runs 397faff2 and 7fed6a02: matched wrong voucher (one WITH 2710) instead of the actual erroneous voucher (WITHOUT 2710)
+  - **first production confirmation of cross-vatType reclassification**: 7140 (vatType 12) → 7100 (locked vatType 0) succeeded with different vatTypes on each side
+  - **CONCLUSION across ALL 7 runs**: Check 3 fails every time. Runs 3-5-7 used Case B on a wrong voucher. The missing-VAT error is always Case A (no 2710 at all). The fix is to prioritize no-2710 vouchers in detection (see Step 2 guidance above).
+- production run 2026-03-21 (correct-ledger-errors, eighth run — ee909d4d):
+  - achieved ideal 3-call path, 0 HTTP errors
+  - errors: 7140→7100 (2250, vatType 12→0), dup 7000 (4400, vatType 1), missing VAT 6500 (14100 excl), wrong amount 6590 (13150→11650, vatType 1)
+  - **same error shape as run db732541 (7th run) — same Check 3 failure expected**
+  - script found voucher 609144589 on 6500 with gross=14100, net=11280, has2710=true (existing2710=2820) and applied Case B
+  - but the actual error voucher was a DIFFERENT 6500 entry with gross=14100 and NO 2710 posting (Case A)
+  - correct fix: 2710 +3525 (= 14100 * 0.25), counterpart -3525 (only 2 lines)
+  - wrong fix applied: 2710 +705, 6500 +2820 (vatType=0), 2400 -3525 (Case B, 3 lines)
+  - cross-vatType reclassification (7140 vatType 12 → 7100 locked vatType 0) succeeded again
+  - **CONCLUSION across ALL 8 runs**: Check 3 (missing VAT) failed every time. The error is always Case A (no 2710 posting). Detection must FIRST scan for no-2710 vouchers before falling back to Case B.
+- sandbox verified 2026-03-21 (Case A detection priority):
+  - created two vouchers on 6500 with gross=14100: one WITH 2710=2820 (vatType=1, correctly booked) and one WITHOUT 2710 (vatType=0, the error)
+  - prioritizing no-2710 vouchers correctly identifies the error voucher
+  - Case A correction (2710 +3525, counterpart -3525) succeeded as voucher 609146124
+  - confirms: the detection cascade must be "no-2710 first → Case A correction (2 lines)" before "has-2710 → Case B correction (3 lines)"
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
 - sandbox verified 2026-03-21: `account: { number: ... }` in POST /ledger/voucher body does NOT work — Tripletex requires `account: { id: ... }`; `account: { number: 6300, name: "Leie lokale" }` → 422 (`Feltet må fylles ut`); this confirms **3 calls is the proven minimum** — the GET /ledger/account step cannot be eliminated
 - sandbox verified 2026-03-21: reclassification between accounts with different vatType locks — vatType 12 on 7140 (reversal) + vatType 0 on 7100 (target) succeeds; vatType 12 on both → 422 (`Kontoen 7100 er låst til mva-kode 0`); vatType 0 on both succeeds but creates incorrect accounting if original had vatType 12 (leaves residual balance on 7140)
