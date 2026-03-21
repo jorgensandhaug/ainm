@@ -17,7 +17,7 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.policy.interactive import QueryPlanPolicyAdapter, build_interactive_policy
+from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.online_episode import run_online_episode
@@ -105,13 +105,16 @@ def _resolve_workspace_path(
 
 
 def _plan_budget(
-    policy: QueryPlanPolicyAdapter,
+    policy: object,
     round_id: str,
     oracle: SyntheticActiveOracle,
 ) -> int:
     round_context = oracle.get_round_context(round_id)
-    plan = policy.policy.build_plan(round_context.to_round_detail())
-    return sum(item.repeats for item in plan.items)
+    static_policy = getattr(policy, "policy", None)
+    if static_policy is not None and hasattr(static_policy, "build_plan"):
+        plan = static_policy.build_plan(round_context.to_round_detail())
+        return sum(item.repeats for item in plan.items)
+    return 50
 
 
 def _target_info(

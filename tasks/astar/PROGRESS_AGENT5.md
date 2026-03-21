@@ -324,6 +324,51 @@
   - `agent5_student_joint_probe3_conservative`
     - config: `samples=4`, `rank=4`, `ridge=12.0`, `correction_blend=0.65`, `correction_scale=0.55`
 - Probe outputs are set to write `result.json` under `data/artifacts/benchmarks/<name>/`.
+- Commit/push checkpoint:
+  - local commit: `f399d0bc` `[astar] add greybox joint student predictor`
+  - pushed to `origin/agent5` via clean worktree as remote commit `b23848c5`
+
+### 2026-03-21T10:55:00Z
+
+- Harvested previously launched full 8-round `exploration_r3` historical benchmarks:
+  - `agent5_hybrid_lowrank_queryres_explorationr3_online50_v03w35`
+    - model `greybox_hybrid_lowrank_queryres`
+    - policy `exploration_r3`
+    - `samples=4`, `budget=50`, `episode_seed=0`
+    - mean score `75.1931`
+    - mean weighted KL `0.097798`
+  - `agent5_hybrid_lowrank_queryres_w45_explorationr3_online50_v01`
+    - model `greybox_hybrid_lowrank_queryres_w45`
+    - policy `exploration_r3`
+    - `samples=4`, `budget=50`, `episode_seed=0`
+    - mean score `75.1356`
+    - mean weighted KL `0.098000`
+- Interpretation:
+  - `exploration_r3` is now the best validated result in this branch so far.
+  - New local lead:
+    - `75.1931` vs prior coverage lead `74.9421`
+    - delta `+0.2510`
+  - `w35` remains slightly better than `w45` under `exploration_r3`.
+  - immediate consequence: no need to keep exploring `coverage` vs `exploration_r3` for this exact hybrid family unless new model families change the posterior/query interaction materially.
+
+### 2026-03-21T11:00:00Z
+
+- Found prior already-materialized joint-student probe artifact:
+  - `data/artifacts/benchmarks/agent5_student_joint_coverage_probe3_v01/`
+- Result:
+  - model `greybox_student_joint`
+  - policy `coverage`
+  - rounds `{36e581..., c5cdf..., f1dac...}`
+  - mean score `37.9554`
+  - mean weighted KL `0.395407`
+  - per-round:
+    - `36e581...`: `16.7019`
+    - `c5cdf...`: `73.4436`
+    - `f1dac...`: `23.7208`
+- Interpretation:
+  - naive/default joint direct-head branch is catastrophically overcorrecting.
+  - only reason to continue this branch is if heavily shrunken correction variants recover most of the lowrank base and add a small gain.
+  - ongoing custom ablations are therefore correctly focused on smaller correction strengths.
 
 ### 2026-03-21T10:45:00Z
 
@@ -387,6 +432,40 @@
   - default correction head is far too aggressive and catastrophically degrades `36e581...` and `f1dac...`
   - do not promote this default
   - immediate next action: conservative shrinkage ablations (`lower rank`, `lower correction_scale`, `lower correction_blend`)
+
+### 2026-03-21T11:10:00Z
+
+- Implemented new belief-adaptive policy branch:
+  - `adaptive_rN`
+  - current implementation: full coverage first, then spend remaining repeat budget on already-observed windows that look most stochastic from the transcript itself
+  - repeat scoring uses:
+    - motif prior
+    - observed dynamic mass (`settlement + port + ruin`)
+    - empirical repeat entropy across observed final-state samples
+    - settlement density
+    - mild repeat-count penalty
+- Generalized synthetic transcript dataset planning so non-static policies are valid:
+  - if a policy does not expose a static query plan, synthetic dataset generation now uses the competition cap (`50`) as an upper bound and relies on `run_online_episode()` to stop when the policy returns `None`
+  - this preserves existing static-plan behavior and makes adaptive policies compatible with transcript dataset generation
+- Re-verified after adaptive-policy compatibility change:
+  - `uv run --extra dev pytest tests/test_history_datasets.py -q` -> `5 passed`
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `16 passed`
+- Conservative joint-student shrinkage probes in progress:
+  - variant A: `residual_rank=2`, `correction_scale=0.15`, `correction_blend=0.15`
+  - variant B: `residual_rank=3`, `correction_scale=0.25`, `correction_blend=0.25`
+- Partial results so far on the 3-round hard slice:
+  - `36e581...`
+    - A: `66.4656`
+    - B: `66.4064`
+    - both fix the catastrophic default and edge above current coverage-hybrid score on this round
+  - `c5cdf...`
+    - A: `77.8781`
+    - B: `77.9704`
+    - both remain strong, though still below the best low-rank-only `c5cdf...` result
+- Still pending at time of this log:
+  - `f1dac...` for both conservative joint-student variants
+  - 3-round `coverage_r5` probe for the current lead model
+  - 3-round `adaptive_r5` probe for the current lead model
 
 ### 2026-03-21T10:00:00Z
 
