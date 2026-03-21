@@ -149,6 +149,7 @@ Authentication:
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
 | Register travel expense | `./task-playbooks/register-travel-expense.md` |
 | Simplified year-end closing (depreciation, prepaid reversal, tax) | `./task-playbooks/simplified-year-end-closing.md` |
+| Month-end closing (accrual reversal, depreciation, salary accrual) | `./task-playbooks/month-end-closing.md` |
 
 ## Common Endpoints
 - Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
@@ -168,7 +169,7 @@ Authentication:
 - `/supplier` and `/supplier/{id}` — supplier create/search/read/update/delete
 - `/supplierInvoice` and `/supplierInvoice/{invoiceId}/:addPayment` — supplier-invoice search/read and supplier-invoice payment
 - `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, and `/travelExpense/paymentType` — travel-expense create/search/update/delete plus child-line and lookup endpoints
-- `/ledger/account` and `/ledger/account/{id}` — chart-of-accounts search/create/update/delete
+- `/ledger/account`, `/ledger/account/list`, and `/ledger/account/{id}` — chart-of-accounts search/create/batch-create/update/delete
 - `/ledger/accountingDimensionName`, `/ledger/accountingDimensionName/{id}`, and `/ledger/accountingDimensionName/search` — free-dimension name create/search/read/update/delete
 - `/ledger/accountingDimensionValue`, `/ledger/accountingDimensionValue/{id}`, `/ledger/accountingDimensionValue/list`, and `/ledger/accountingDimensionValue/search` — free-dimension value create/search/read/update/delete/batch-update
 - `/ledger/posting` and `/ledger/posting/openPost` — ledger postings search/read plus open customer/supplier postings lookup

@@ -534,6 +534,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/ledger/account`
   - `GET` search
   - `POST` create
+- `/ledger/account/list`
+  - `POST` batch create (accepts an array of `{ number, name }` objects, creates multiple accounts in one call)
 - `/ledger/account/{id}`
   - `GET` read
   - `PUT` update
@@ -543,6 +545,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, `6300`, `7300`, `6340`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
   - when the prompt explicitly gives ledger account numbers, trust those numbers over account-name semantics; persistent sandbox on 2026-03-21 returned requested account `3400` as `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded on that exact row
+- Standard create note:
+  - `POST /ledger/account` with just `{ number, name }` succeeds; Tripletex auto-infers the account `type` from the number range (e.g. 6xxx → OPERATING_EXPENSES)
+  - `POST /ledger/account/list` batch create also works with `[{ number, name }, ...]`; use this to save a call when 2+ accounts need creation
+  - common missing accounts in fresh Tripletex charts: `6030` (Avskrivning maskiner), `1209` (Akk. avskr. maskiner), and other `xx09` accumulated depreciation accounts
+  - 2026-03-21 persistent sandbox confirmed both single and batch account creation with just `number` and `name`
 
 ## Balance Sheet
 - `/balanceSheet`
