@@ -4235,7 +4235,8 @@
 8. baseline query_residual: 72.55
 
 ### Current scoreboard on dev5:
-1. **ENSEMBLE hv2f0001+sxf0001 GEO 50/50: 84.16** (DEFINITIVE BEST, +8.19 vs baseline!)
+1. **ENSEMBLE hv2f0001+sxf0001+obs20 GEO 50/50: 84.29** (DEFINITIVE BEST, +8.32 vs baseline!)
+2. ensemble hv2f0001+sxf0001 no obs: 84.16
 2. ensemble hv2f0003+sxf0003: 84.12
 3. ensemble hv2f001+sxf001: 83.63
 
