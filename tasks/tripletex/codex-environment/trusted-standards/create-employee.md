@@ -61,10 +61,10 @@
 - always use `?fields=*,employments(*)` on every POST /employee attempt (including retries) to get the full response and avoid needing a verification GET
 
 ## Strategy Rationale
-- pre-reading department was adopted after the dept-required rate crossed 50% (now 7/11 = 64%)
+- pre-reading department was adopted after the dept-required rate crossed 50% (7/11 = 64% when adopted)
 - at 64% department-required: pre-read averages 2.0 calls / 0 errors vs no-pre-read 2.3 calls / 0.64 errors — fewer calls AND zero 4xx errors
 - the AGENTS.md scoring rules penalize 4xx errors, making pre-read strictly better at 50%+
-- division remains at 0% in production (0/11 runs); pre-reading it would waste 1 call every time
+- division remains at 0% in production (0/12 runs); pre-reading it would waste 1 call every time
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
@@ -73,6 +73,6 @@
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
 - persistent sandbox re-verification on 2026-03-21 confirmed the pre-read strategy (GET /department + POST /employee with dept + division) succeeds in the sandbox with 0 errors
-- out of 11 known production create-employee runs, 4 succeeded without department and 7 needed it; dept-required rate is now 64%
-- latest run: Hannah Becker (3705040b, German prompt, 1996-01-31, hannah.becker@example.org, start 2026-07-15) used OLD no-pre-read strategy; 3 calls, 1 error (POST→422, GET /department found 745170, POST with dept→201); with pre-read would have been 2 calls, 0 errors
+- out of 12 known production create-employee runs, 4 succeeded without department and 7 needed it (1 used pre-read so requirement is indeterminate); dept-required rate is at least 64%
+- latest run: Bjørn Neset (8e8e2e86, Nynorsk prompt, 1996-02-21, bjrn.neset@example.org, start 2026-06-16) used the CURRENT pre-read strategy correctly; 2 calls, 0 errors (GET /department found 973047, POST /employee with dept→201); 1st production run achieving the proven-minimum 2-call path with pre-read
 - the Torbjørn Neset run (b23d4cc2) and Hannah Becker run (3705040b) both used the OLD no-pre-read strategy despite the trusted standard already specifying pre-read; each wasted 1 call + 1 error — agent MUST follow the CURRENT standard flow, not cached/old patterns

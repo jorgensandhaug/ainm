@@ -93,13 +93,15 @@ Run 2026-03-21 (Torbjørn Neset, Nynorsk prompt): 3 calls, 1 error — dept-repa
 
 Run 2026-03-21 (Hannah Becker, German prompt): 3 calls, 1 error — dept-repair branch (3705040b); agent used OLD no-pre-read strategy (POST → 422 dept → GET /department found 745170 → POST with dept → 201); with pre-read would have been 2 calls, 0 errors; dept-required rate now 7/11 (64%); German date normalization (31. January 1996 → 1996-01-31, 15. July 2026 → 2026-07-15) correct
 
+Run 2026-03-22 (Bjørn Neset, Nynorsk prompt): 2 calls, 0 errors — 1st optimal pre-read production run (8e8e2e86); GET /department found 973047, POST /employee with dept+employment→201; all fields confirmed from POST response (dateOfBirth 1996-02-21, email bjrn.neset@example.org, startDate 2026-06-16); proves the pre-read strategy delivers 2 calls / 0 errors in production; 12th create-employee run overall, 3rd Nynorsk prompt
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not skip the `GET /department` pre-read; at 64% department-required rate (7/11 runs), pre-reading saves calls and errors on average; the Torbjørn Neset and Hannah Becker runs both proved that using the old no-pre-read pattern wastes 1 call + 1 error
+- Do not skip the `GET /department` pre-read; at 64%+ department-required rate (7/11 runs needed it), pre-reading saves calls and errors on average; the Bjørn Neset run (8e8e2e86) was the 1st production run to correctly follow the pre-read strategy, achieving the optimal 2 calls / 0 errors
 - CRITICAL: always follow the CURRENT trusted standard flow, not a cached older version — the trusted standard may have been updated between runs
-- Do not pre-read `/division` — 0/11 production runs needed it; only repair if `422` on `employments.division.id`
+- Do not pre-read `/division` — 0/12 production runs needed it; only repair if `422` on `employments.division.id`
 - Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on the generic `422 message`; inspect `validationMessages[].field`
 - Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"`
