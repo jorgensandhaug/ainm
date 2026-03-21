@@ -122,6 +122,19 @@
 - extra proxy-5 expansion launched after that realization:
   - session `20593`: `proxy5_hazard_v5_k5_c4_r1_regime_probe_seed0to1`
   - session `85699`: `proxy5_hazard_v5_k5_c3_r0_regime_probe_seed0to1`
+- decisive proxy-5 v5 results:
+  - `proxy5_hazard_v5_k5_c3_r1_regime_probe_seed0to1`: `70.0258`, KL `0.125563`
+  - `proxy5_hazard_v5_k5_c3_r2_regime_probe_seed0to1`: `73.0027`, KL `0.111634`
+  - `proxy5_hazard_v5_k5_c2_r2_regime_probe_seed0to1`: `69.6359`, KL `0.133558`
+  - `proxy5_hazard_v5_k5_c4_r1_regime_probe_seed0to1`: `73.6657`, KL `0.109230`
+- proxy-5 conclusion:
+  - best finished v5 config is `k5 c4 r1`, but it is still far below the standing proxy frontier
+  - current v5 best: `73.6657` / `0.109230`
+  - standing proxy leader: `hazard_posterior_v3_k5_r3_l32_m70 + regime_probe_posterior_blend_v1` at `77.1302` / `0.089726`
+  - therefore the first global mixture-residual teacher implementation is not competitive enough to broad-promote
+- compute hygiene action:
+  - terminated `proxy5_hazard_v5_k5_c3_r0_regime_probe_seed0to1` with `Ctrl-C`
+  - reason: after the finished proxy-5 results above, the pure-mixture tail run was already dominated and not worth more shared-machine budget
 
 ### Session Continuation
 

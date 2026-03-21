@@ -55,3 +55,13 @@
     - broad set: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` => `75.0272` / `0.100043`
     - broad comparator: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1` => `75.0492` / `0.100129`
   - Conclusion: false so far; broad gain is effectively zero for v3, so do not promote v3 posterior-blend as the family mainline.
+- A first global discrete+continuous mixture-residual teacher (`hazard_posterior_v5`) should outperform the current continuous-only replay-regime stack once paired with `regime_probe_v1`.
+  - Evidence:
+    - hard-3 is degenerate for this family because each fold trains on only 2 rounds and multiple requested configs collapse to the same effective teacher
+    - proxy-5 results are still decisive:
+      - `proxy5_hazard_v5_k5_c3_r1_regime_probe_seed0to1` => `70.0258` / `0.125563`
+      - `proxy5_hazard_v5_k5_c3_r2_regime_probe_seed0to1` => `73.0027` / `0.111634`
+      - `proxy5_hazard_v5_k5_c2_r2_regime_probe_seed0to1` => `69.6359` / `0.133558`
+      - `proxy5_hazard_v5_k5_c4_r1_regime_probe_seed0to1` => `73.6657` / `0.109230`
+    - current proxy leader remains `proxy5_hazard_v3_k5_r3_l32_m70_regime_probe_posterior_blend_seed0to1` at `77.1302` / `0.089726`
+  - Conclusion: false for the first v5 implementation; do not promote this family further without changing the teacher/decoder structure materially.

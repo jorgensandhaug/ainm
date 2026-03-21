@@ -178,6 +178,15 @@
 - For v3, the posterior-blend policy should carry its hard-slice win through full 8-round broad validation.
   - Evidence: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` is `75.0272` / `0.100043` vs `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1` at `75.0492` / `0.100129`.
   - Conclusion: false so far; the broad gain is effectively zero for v3.
+- A first global discrete+continuous mixture-residual teacher should outperform the current continuous-only replay-regime stack once paired with the existing adaptive query policy.
+  - Evidence:
+    - replay-coefficient geometry supports the thesis in isolation: rank-3 low-rank RMSE is `0.4541`, while prototype+residual fits improve to `0.3802` (`k=3,r=1`) and `0.2971` (`k=3,r=2`)
+    - but benchmarked v5 predictors are weak on proxy-5:
+      - `hazard_posterior_v5_k5_c3_r1 + regime_probe_v1`: `70.0258` / `0.125563`
+      - `hazard_posterior_v5_k5_c3_r2 + regime_probe_v1`: `73.0027` / `0.111634`
+      - `hazard_posterior_v5_k5_c4_r1 + regime_probe_v1`: `73.6657` / `0.109230`
+    - current proxy leader remains `hazard_posterior_v3_k5_r3_l32_m70 + regime_probe_posterior_blend_v1` at `77.1302` / `0.089726`
+  - Conclusion: the mixture signal is real in the coefficient bank, but this first teacher/decoder coupling does not transfer to online prediction quality; do not promote v5 as-is.
 
 ## Open Questions
 
@@ -185,3 +194,4 @@
 - Can the relaunched proxy-5 posterior-blend runs identify a variant where the blend genuinely transfers beyond the hard-slice v3 illusion?
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
 - The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?
+- If mixture-structured round variation is real but v5 fails, is the missing ingredient block-structured mechanism decomposition rather than a single global prototype mixture?
