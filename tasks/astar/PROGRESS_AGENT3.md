@@ -743,6 +743,88 @@
      - `prior_blend`
      - delta scaling
      - exact-cell blend strength
+89. New hypothesis after `v15`:
+   - the dominant remaining heuristic anchor appears to be `prior_blend`
+   - with current settings, even strong transcript signal still leaves a large fraction of the historical prior in the final tensor
+   - because `samples_per_round=2` improved robustness already, a modest reduction in prior anchoring may let transcript-driven corrections matter more without destabilizing the model
+90. Implemented lower-prior-anchor branch:
+   - new model name: `query_residual_v16`
+   - semantics:
+     - same architecture as `query_residual_v11`
+     - fixed `samples_per_round=2`
+     - same stratified entropy cell selection
+     - same exact local residual features
+     - fixed `prior_blend=0.25`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+91. Validation after `query_residual_v16` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `22 passed`
+92. `query_residual_v16` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v16_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v16`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.25`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `62.9365`
+     - mean weighted KL `0.154614`
+   - per-round:
+     - `36e581...`: score `64.7919`, KL `0.144745`
+     - `f1dac9...`: score `61.0810`, KL `0.164483`
+93. Interpretation of item 92:
+   - `v16` is a clear proxy winner
+   - gain versus current targeted leader `v11` / `v8` samples-2:
+     - score `+1.9784`
+     - weighted KL `-0.010903`
+   - importantly, unlike `v13` / `v14`, `v16` improves both representative rounds at once
+   - promotion decision:
+     - run full corrected LOO for `query_residual_v16` immediately
+94. Full corrected `query_residual_v16` LOO benchmark complete:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v16_full_corrected/result.json`
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v16 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v16_full_corrected`
+   - result:
+     - mean score `75.4866`
+     - mean weighted KL `0.095799`
+     - official weighted mean score `75.2037`
+     - official weighted mean weighted-KL `0.097000`
+     - round mean score std `7.9781`
+     - round mean weighted-KL std `0.036871`
+     - worst round:
+       - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+       - mean score `61.0810`
+       - mean weighted KL `0.164483`
+     - runtime `1415.439s`
+95. Interpretation of item 94:
+   - `query_residual_v16` is the new best verified full local model here
+   - versus prior best `query_residual_v11` full corrected metrics:
+     - mean score `74.6870 -> 75.4866` (`+0.7996`)
+     - mean weighted KL `0.099885 -> 0.095799` (`-0.004086`)
+     - official weighted mean score `74.3921 -> 75.2037` (`+0.8116`)
+     - official weighted mean weighted-KL `0.101119 -> 0.097000` (`-0.004119`)
+   - worst-round robustness also improved materially:
+     - worst round remained `f1dac9...`
+     - worst-round score improved `58.0878 -> 61.0810`
+96. Paired historical comparison vs prior best:
+   - artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v11__candidate=query_residual_v16.json`
+   - report:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v11__candidate=query_residual_v16.md`
+   - result:
+     - mean score delta `+0.7996`
+     - mean weighted KL delta `-0.004085`
+     - win rate `0.800`
+     - loss rate `0.200`
+     - tie rate `0.000`
+     - score-delta CI95 `[0.5134, 1.1407]`
 
 ## Open Questions
 
