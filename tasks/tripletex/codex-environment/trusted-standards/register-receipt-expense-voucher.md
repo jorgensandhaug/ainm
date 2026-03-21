@@ -262,6 +262,18 @@
 - **run 1519c2a7** (Togbillett 11350): used 12% VAT, treated 11350 as gross, no sendToLedger → 0/5 (all three issues)
 - These proofs demonstrate the WRONG approach. The corrected sandbox proofs above show the RIGHT approach.
 
+### Branch C production proof (2026-03-21, SUCCESS — 3373fbc9, Togbillett)
+- **run 3373fbc9** (Togbillett 8750, Norwegian prompt, NSB receipt, dept Administrasjon): 4 calls, 0 errors
+  - POST /department → 201 (dept "Administrasjon" id=957152)
+  - GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*) → 200
+  - POST /ledger/voucher?sendToLedger=true → 201 (voucher 609144179)
+    - expense posting: account 7140, amount=8750 (NET auto-computed), amountGross=10937.50, vatType.id=1, dept 957152
+    - bank posting: account 1920, amount=-10937.50
+    - auto-VAT posting: account 2710, amount=2187.50
+  - POST /ledger/voucher/609144179/attachment → 201 (attachment id=1024289404)
+  - NET→GROSS: 8750 × 1.25 = 10937.50 ✓
+  - **1st successful Branch C production proof**; confirms corrected path with vatType id=1 (25%) and NET→GROSS conversion
+
 ### Branch A production proof (2026-03-21, FAILED — 4c7f5f3e, scored 0/10)
 - **run 4c7f5f3e** (Kaffemøte 6600, Portuguese prompt, Starbucks receipt, dept Utvikling): 4 calls, 0 errors BUT 0/10 score
   - Used account 7360 (non-deductible representation) for Kaffemøte

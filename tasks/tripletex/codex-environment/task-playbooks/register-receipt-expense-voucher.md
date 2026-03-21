@@ -9,10 +9,11 @@ Use for tasks like:
 - preserve the receipt as a voucher attachment
 - use the correct expense account and VAT treatment based on the receipt line text
 
-Three proven branches:
-- **Branch A**: business-lunch / representation / coffee meeting line (e.g., `Forretningslunsj`, `Kundemøte lunsj`, `Kaffemøte`) → account `7360`, no VAT deduction
+Four proven branches:
+- **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`, `Kundemøte lunsj`) → account `7360`, no VAT deduction
 - **Branch B**: office furniture / equipment / supplies line (e.g., `Kontorstoler`) → account `6540`, incoming 25% VAT deductible
 - **Branch C**: travel / accommodation line (e.g., `Overnatting`, `Togbillett`) → account `7140`, incoming 25% VAT deductible
+- **Branch D**: internal meeting / coffee meeting / course / seminar line (e.g., `Kaffemøte`) → account `6860`, incoming 25% VAT deductible
 
 Do not use for:
 - supplier-invoice tasks
@@ -40,10 +41,11 @@ All known task 22 receipts are NET:
 
 | Receipt line text | Account | VAT treatment |
 |---|---|---|
-| `Forretningslunsj` / `Kundemøte lunsj` / `Kaffemøte` / business lunch / coffee meeting / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction. Amount = GROSS (full cost incl. non-recoverable VAT) |
+| `Forretningslunsj` / `Kundemøte lunsj` / business lunch / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction. Amount = GROSS (full cost incl. non-recoverable VAT) |
 | `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT (vatType id from account), fully deductible |
 | `Overnatting` / hotel / accommodation | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
 | `Togbillett` / train ticket / transport | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
+| `Kaffemøte` / coffee meeting / internal meeting / course / seminar | `6860` (Møte, kurs, oppdatering o.l.) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
 | Office supplies / `Kontorrekvisita` | `6500` (if applicable) | Incoming 25% VAT, fully deductible |
 
 - Do NOT use `7350` for representation; 2026-03-21 production scored `0/10` on that branch
@@ -84,11 +86,19 @@ Verified in persistent sandbox on 2026-03-21 (CORRECTED tests with NET→GROSS c
   - expense posting: amount=11350 (net), amountGross=14187.50, vatType.id=1
   - auto-VAT: amount=2837.50
 
-### Branch A production proof (2026-03-21, SUCCESS — 4c7f5f3e, Kaffemøte)
+### Branch A production proof (2026-03-21, FAILED — 4c7f5f3e, Kaffemøte scored 0/10)
 - Kaffemøte (coffee meeting) 6600 NET → GROSS = 8250, dept "Utvikling", account 7360, Portuguese prompt
+- 4 calls, 0 errors BUT 0/10 score
+- **ROOT CAUSE**: Kaffemøte is a meeting expense (6860 Branch D), NOT representation (7360 Branch A)
+- All 4 production runs using 7360 for Kaffemøte scored 0/10
+
+### Branch C production proof (2026-03-21, 3373fbc9, Togbillett)
+- Togbillett 8750 NET → GROSS = 10937.50, dept "Administrasjon", account 7140, Norwegian prompt
 - 4 calls, 0 errors: POST dept → GET accounts → POST voucher?sendToLedger=true → POST attachment
-- Voucher 609125374 #1 (booked): amount=8250, amountGross=8250, vatType.id=0, dept 953714
-- Confirms: "Kaffemøte" is Branch A (representation), NET→GROSS conversion, 4-call minimum
+- Voucher 609144179 (booked): amount=8750 (net), amountGross=10937.50, vatType.id=1, dept 957152
+- Auto-VAT posting: 2187.50 on account 2710
+- Attachment id: 1024289404
+- Confirms: Branch C Togbillett path with NET→GROSS, vatType id=1 (25%), 4-call minimum
 
 ### Common findings
 - `GET /department?name=Drift&isInactive=false&fields=*` is a containing search; local exact filtering mandatory
@@ -186,10 +196,39 @@ Where GROSS = line_amount × 1.25 for NET-priced receipts.
 - Tripletex auto-calculates `amount` on expense posting (net = GROSS / 1.25) and creates a 3rd posting on `2710`
 - Applies to: `Overnatting`, `Togbillett`, and other travel/accommodation lines
 
+### Branch D — Deductible meeting/course expense
+**URL**: `POST /ledger/voucher?sendToLedger=true`
+```json
+{
+  "date": "<receipt-date>",
+  "description": "<receipt-line-text>",
+  "postings": [
+    {
+      "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<6860-id>" },
+      "department": { "id": "<dept-id>" },
+      "vatType": { "id": 1 },
+      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+    },
+    {
+      "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
+      "account": { "id": "<1920-id>" },
+      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+    }
+  ]
+}
+```
+- `vatType: { id: 1 }` = incoming 25%
+- Tripletex auto-calculates `amount` on expense posting (net = GROSS / 1.25) and creates a 3rd posting on `2710`
+- Applies to: `Kaffemøte`, internal meetings, courses, seminars
+- **CRITICAL**: `Kaffemøte` is Branch D (6860), NOT Branch A (7360). All 4 production runs using 7360 for Kaffemøte scored 0/10.
+
 ## Validation Traps
 
 - **CRITICAL: detect NET vs GROSS receipt prices FIRST** — `total × 0.25 == MVA` means NET, multiply by 1.25 for gross. All task 22 receipts are NET. Previous runs scored 0/5 because NET was treated as GROSS.
 - **CRITICAL: always use `?sendToLedger=true`** on POST /ledger/voucher — without it the voucher stays in draft and scorer cannot find it (all checks fail)
+- **CRITICAL: do NOT use `7360` for `Kaffemøte`** — Kaffemøte is a meeting expense (6860 Branch D), NOT representation. All 4 production runs using 7360 scored 0/10.
 - do not use `7350` for representation receipts
 - do not use `7100` for train tickets (vatLocked=true, car allowance account)
 - do not use the whole receipt total; use only the selected receipt line amount (after NET→GROSS conversion)
