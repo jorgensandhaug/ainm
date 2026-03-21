@@ -4641,9 +4641,24 @@
    - 3rd: adaptive_ensemble_v23 = 79.95
    - 4th: query_residual_v19 = 76.89
 
+507. Hyperparameter sweep results (live cellwise LGB):
+   - **ew (floor=0.0005, n500, d6, lr0.03): 82.38** (BEST LIVE!)
+   - sv (floor=0.001, n500, d6): 82.24
+   - mt (floor=0.0005, n1000, d6): 82.24
+   - wl (floor=0.0005, n500, d8): 82.21
+   - ulf (floor=0.0005, n800, d8): 82.04
+   - Pattern: shallow model (depth 6) + ultra-low floor (0.0005) + moderate lr (0.03) wins
+
+508. Live round 16 feedback:
+   - Model did OK on static classes (forest, mountain, empty/ocean)
+   - Weaker on dynamic classes (settlement, port, ruin) - this is where scoring weight concentrates
+   - Only used 45/50 queries - need to fix coverage policy to use all 50
+   - Need to explore better query policies for improved evidence quality
+
 ## Open Questions
 
-- Can the LGB model be improved further with better features or hyperparameters?
-- Why does 71451d74 regress so much with LGB (73.91 vs 80.15)?
-- Can we ensemble LGB + adaptive_ensemble for best-of-both-worlds?
-- Need to wire the live LGB into the run-live-online pipeline for actual live submissions
+- How to improve settlement/port/ruin prediction specifically?
+- How to fix query policy to use all 50 queries?
+- Should we design a smarter query policy that targets dynamic cells?
+- Can we ensemble LGB with adaptive_ensemble for best of both worlds?
+- Need to wire live LGB into the run-live-online pipeline
