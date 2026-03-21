@@ -1,5 +1,7 @@
 # Register Supplier Invoice
 
+> **NO BETA ENDPOINTS.** NEVER use `/incomingInvoice*` or any `(BETA)` endpoint. They ALL return `403`. Use the EHF/XML import path via `/ledger/voucher/importDocument`.
+
 ## Scope
 
 Use for tasks like:
@@ -379,6 +381,18 @@ Proven outcome:
 - net=44760, VAT=11190 (exact, no rounding)
 - voucher `609122334`, supplier `108410856`
 - 5th consecutive optimal 5-call production run with 0 errors
+
+2026-03-21 production run for `Océan SARL` / `955986881` / `INV-2026-8825` / `75312` / `6340` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- French-language prompt with PDF, description "Skylagring"
+- PDF data fully extracted: address `Torggata 92, 4611 Kristiansand`, bank account `36069835664`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=60250, gross=75312 (60250×1.25=75312.5) → Tripletex stored net=60249.6, VAT=15062.4
+- voucher `609130518`, supplier `108414532`
+- 6th consecutive optimal 5-call production run with 0 errors
+- languages confirmed across consecutive optimal runs: en, es, pt, de, fr — standard is language-independent
 
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 

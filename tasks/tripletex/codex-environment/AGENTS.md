@@ -16,6 +16,13 @@
   - few or zero `4xx` errors (Make sure you know the API calls will work before running)
 - Avoid trial-and-error. Every unnecessary call and every `4xx` hurts. (Verify the correct API call flow before running, this is MEGA important, this is often where alot of errors pile up)
 
+## ABSOLUTE RULE: NO BETA API ENDPOINTS
+- **NEVER use any API endpoint marked as beta in the OpenAPI spec.** Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in this environment. There are NO exceptions.
+- This includes but is not limited to: `/incomingInvoice*`, `/bank/reconciliation*`, and any other endpoint with `(BETA)` in its summary or tagged as beta.
+- Do not attempt beta endpoints even as a fallback. Do not retry them. Do not explore them. They will NEVER work.
+- Every single production and sandbox attempt that used a beta endpoint scored 0% and wasted API calls.
+- If the only apparent path to a task goes through a beta endpoint, use the alternative non-beta path documented in the trusted standard. If no alternative exists, the task shape is unsupported.
+
 ## Operating Rules
 - Work fully autonomously.
 - Do not ask questions.
@@ -283,7 +290,7 @@ Authentication:
 - For the exact ledger-analysis shape `find the three expense accounts with the largest January->February increase, then create three internal projects and one activity per project`, the optimal path is **3 calls**: one combined `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`, one `GET /employee?assignableProjectManagers=true&count=1&fields=*`, one `POST /project/list` with inline `projectActivities` per project. Do not use three separate `POST /project` writes, and do not use three separate `POST /project/projectActivity` calls — the inline `projectActivities` array on `POST /project/list` creates them in the same batch call (sandbox-verified 2026-03-21, production-confirmed 2026-03-21). Note: the `POST /project/list` response returns `projectActivities[].{id, url}` without expanding the nested `activity` object; the activities are created correctly despite `activity` appearing as `undefined` in the response.
 - In that same internal-project branch, `POST /project` without `projectManager` is not safe even with `isInternal=true`; the 2026-03-21 persistent sandbox returned `422` with `Feltet "Prosjektleder" må fylles ut.`
 - When a prompt asks you to reuse a ledger account's name in a created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named rows remain distinguishable.
-- Never use `/incomingInvoice*` in scored runs. Those endpoints are beta-only and user guidance for this repo is that they will never work here; the 2026-03-21 reflection re-check also hit `403 You do not have permission to access this feature.` on `/incomingInvoice/search`.
+- **NEVER use ANY beta API endpoint.** ALL beta endpoints return `403 You do not have permission to access this feature.` in EVERY environment (production AND sandbox). This is a permanent restriction, not a temporary issue. Specifically: NEVER use `/incomingInvoice*`, `/bank/reconciliation*`, or any endpoint marked `(BETA)` in the OpenAPI spec. Every attempt has failed with 403. Do not retry. Do not explore. Do not use as fallback.
 - For bank-statement reconciliation tasks, do not assume the bank text invoice label is the literal Tripletex `invoiceNumber`; the 2026-03-21 French CSV run used labels `1001..1005` while the live open invoices were `1..5`, and the correct resolver signal was customer name plus amount plus the open-invoice inventory.
 - For outgoing supplier-payment tasks, do not trust unfiltered `GET /supplierInvoice` or `voucherId=` lookup as a decisive resolver in every account. Persistent sandbox on 2026-03-21 returned real supplier invoices for `GET /supplierInvoice?...&supplierId=108269769...` while the corresponding `voucherId=` lookup returned `values=[]`.
 - The public supplier-payment branch is still fragile on imported supplier invoices: persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` from `POST /supplierInvoice/{id}/:addPayment` on invoice `2147547151` even after the linked voucher later showed booked number `100`. Do not burn scored-run calls on `/incomingInvoice*`, `voucherId=` retries, or speculative `:approve` retries after that validation branch.

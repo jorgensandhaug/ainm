@@ -1,5 +1,7 @@
 # Register Supplier Invoice
 
+> **NO BETA ENDPOINTS.** NEVER use `/incomingInvoice*` or any `(BETA)` endpoint. They ALL return `403`. Use the EHF/XML import path via `/ledger/voucher/importDocument`.
+
 ## Trust Level
 - Trusted standard
 - Use directly for exact matches
@@ -369,3 +371,17 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - voucher `609122334`, supplier `108410856`
 - this is the 5th consecutive optimal 5-call production run with 0 errors using this standard
 - sandbox re-proof confirmed: single PUT with postings+sendToLedger=true still fails; account:{number,name} without id still fails; 5 calls remains the true minimum
+
+2026-03-21 production run for `Océan SARL` / `955986881` / `INV-2026-8825` / `75312` / `6340` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- French-language prompt with PDF, description "Skylagring"
+- PDF data fully extracted: address `Torggata 92, 4611 Kristiansand`, bank account `36069835664`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=60250, gross=75312 (60250×1.25=75312.5) → Tripletex stored net=60249.6, VAT=15062.4
+- voucher `609130518`, supplier `108414532`
+- this is the 6th consecutive optimal 5-call production run with 0 errors using this standard
+- sandbox re-proof confirmed: combined postings+sendToLedger=true still fails with 422; 5 calls remains the true minimum
