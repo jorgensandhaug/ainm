@@ -17,6 +17,8 @@
 - `v37` / `v38`: test the same residual-distance shrink on the spatial-dynamic backbone
 - `v39` / `v40`: all finished `samples=8` branches are weaker than their `samples=4` siblings; test `samples=2` on the strongest temporal backbones
 - `v41` / `v42`: continue that direction to `samples=1` to test whether lower within-round synthetic variance helps held-out-round generalization
+- `v43` / `v44`: residual KNN may still be over-smoothing across mismatched rounds; test `k=3` on the strongest temporal backbones
+- `v45` / `v46`: push the same idea to `k=1` to test whether a single nearest replay regime is better than a blended residual
 
 ## Evaluation Rule
 

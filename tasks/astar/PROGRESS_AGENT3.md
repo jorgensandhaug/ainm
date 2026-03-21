@@ -2471,6 +2471,28 @@
    - reason:
      - `v13` is still current best finished corrected-gate model
      - full corrected LOO is now worth running while new low-sample gates evaluate
+266. No low-sample result landed yet, so next parallel branch chosen from remaining strong failure mode:
+   - current best branch still uses residual KNN with `k_neighbors=5`
+   - likely issue:
+     - residual bank may still be over-smoothing across mismatched rounds
+   - next decisive test:
+     - reduce neighbor count while keeping the strong temporal backbone fixed
+267. Implemented lower-`k` strong-backbone variants:
+   - new variants:
+     - `teacher_student_blend_v43`
+     - `teacher_student_blend_v44`
+     - `teacher_student_blend_v45`
+     - `teacher_student_blend_v46`
+   - mapping:
+     - `v43` = `v13` backbone with `k=3`
+     - `v44` = `v15` backbone with `k=3`
+     - `v45` = `v13` backbone with `k=1`
+     - `v46` = `v15` backbone with `k=1`
+268. Validation for item 267:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v44_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v46_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
