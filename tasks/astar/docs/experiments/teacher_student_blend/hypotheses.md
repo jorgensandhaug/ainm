@@ -37,6 +37,8 @@
 - `v77` / `v78`: test the opposite direction too, in case the remaining error is still student overfit rather than underweighting
 - `v79` / `v80`: keep the winning cap fixed, but ramp into student trust more slowly as query count grows
 - `v81` / `v82`: keep the winning cap fixed, but ramp into student trust faster in case the student should dominate earlier once exact local evidence is active
+- `v83` / `v84`: exact local evidence already fixes observed cells, so attenuate student blending there and leave full student strength on unobserved cells
+- `v85` / `v86`: test the stronger version of the same idea by removing observed-cell student blending entirely
 
 ## Evaluation Rule
 

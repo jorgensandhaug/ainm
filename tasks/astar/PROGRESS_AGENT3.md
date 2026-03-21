@@ -3112,6 +3112,42 @@
    - machine snapshot improved again:
      - about `758 GiB` used
      - about `2.2 TiB` available
+348. Query-count-pacing results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v79`
+     - `teacher_student_blend_v80`
+     - `teacher_student_blend_v81`
+     - `teacher_student_blend_v82`
+   - aggregate results:
+     - `v79`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v80`: mean score `65.4188`, mean weighted KL `0.142051`
+     - `v81`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v82`: mean score `65.4188`, mean weighted KL `0.142051`
+349. Read from item 348:
+   - query-count-scale is fully inert on these held-out rounds
+   - both slower and faster ramping exactly reproduced `v59/v60`
+   - the query-count scalar is saturated here, so more scalar pacing work is low value
+350. New hypothesis after item 349:
+   - exact local evidence already corrects observed cells, so the next gain may come from changing where the student is allowed to override the base prior, not by changing a global scalar
+   - next probe:
+     - keep full student strength on unobserved cells
+     - attenuate or zero student blending on observed cells that already have direct evidence
+351. Implemented observed-aware exact-local-evidence variants:
+   - new variants:
+     - `teacher_student_blend_v83`
+     - `teacher_student_blend_v84`
+     - `teacher_student_blend_v85`
+     - `teacher_student_blend_v86`
+   - mapping:
+     - `v83` = `v59` backbone with observed-cell blend attenuation `0.25`
+     - `v84` = `v60` backbone with observed-cell blend attenuation `0.25`
+     - `v85` = `v59` backbone with observed-cell student blend removed entirely
+     - `v86` = `v60` backbone with observed-cell student blend removed entirely
+352. Validation for item 351:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v84_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v86_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions

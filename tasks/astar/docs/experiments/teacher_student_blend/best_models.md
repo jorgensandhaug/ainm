@@ -53,7 +53,8 @@ Current read:
 - count-adaptive exact local evidence (`v67-v70`) came back almost neutral; `v69` was close but still did not beat `v59`
 - seed-adaptive student mixing without the confidence gate (`v71-v74`) was also nearly neutral; `v71` got close but still did not beat `v59`
 - moving the total student cap up or down (`v75-v78`) hurt clearly, so the best remaining easy knob is likely query-count pacing rather than total cap
-- next branch is query-count-scale tuning on the exact-local-evidence winner
+- query-count-scale tuning (`v79-v82`) turned out fully inert here; both slower and faster ramps exactly reproduced `v59/v60`
+- next branch is observed-aware student blending so direct evidence owns observed cells and the student focuses on unobserved cells
 - `v59` beats `v45` by `+4.1279` score and `-0.021885` KL
 - residual-distance shrink is nearly neutral: `v35` / `v37` tied the leaders but did not beat them
 - lowering `k` helped slightly on both backbones: `v43/v45` beat `v13`, `v44/v46` beat `v15`
@@ -83,13 +84,13 @@ Active queue now includes:
 - full LOO live: `teacher_student_blend_v59`
 - full LOO live: `teacher_student_blend_v60`
 - next promotion target is `teacher_student_blend_v59`
-- newest corrected-gate branch will be `teacher_student_blend_v79` through `teacher_student_blend_v82`
+- newest corrected-gate branch will be `teacher_student_blend_v83` through `teacher_student_blend_v86`
 
 Pending corrected-gate results:
 
-- `teacher_student_blend_v79`
-- `teacher_student_blend_v80`
-- `teacher_student_blend_v81`
-- `teacher_student_blend_v82`
+- `teacher_student_blend_v83`
+- `teacher_student_blend_v84`
+- `teacher_student_blend_v85`
+- `teacher_student_blend_v86`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

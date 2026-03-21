@@ -2053,6 +2053,74 @@ def test_teacher_student_blend_v82_online_historical_benchmark_defaults_to_sampl
             assert seed_result.samples_per_round == 4
 
 
+def test_teacher_student_blend_v84_online_historical_benchmark_defaults_to_samples_4(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="teacher_student_blend_v84",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_teacher_student_blend_v84_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 4
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 4
+        for seed_result in round_result.seed_results:
+            assert seed_result.samples_per_round == 4
+
+
+def test_teacher_student_blend_v86_online_historical_benchmark_defaults_to_samples_4(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="teacher_student_blend_v86",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_teacher_student_blend_v86_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 4
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 4
+        for seed_result in round_result.seed_results:
+            assert seed_result.samples_per_round == 4
+
+
 def test_query_residual_rebuilds_dataset_when_legacy_cache_misses_rounds(
     sample_paths: RepoPaths,
 ) -> None:
