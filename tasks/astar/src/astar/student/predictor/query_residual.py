@@ -42,6 +42,7 @@ QUERY_RESIDUAL_V8 = "query_residual_v8"
 QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V11 = "query_residual_v11"
+QUERY_RESIDUAL_V12 = "query_residual_v12"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -50,6 +51,7 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V9,
         QUERY_RESIDUAL_V10,
         QUERY_RESIDUAL_V11,
+        QUERY_RESIDUAL_V12,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -86,12 +88,17 @@ def resolve_query_residual_variant_spec(
     samples_per_round: int | None = None,
 ) -> QueryResidualNamedVariantSpec:
     resolved_model_name = resolve_query_residual_model_name(model_name)
-    default_samples_per_round = 2 if resolved_model_name == QUERY_RESIDUAL_V11 else 1
+    default_samples_per_round = {
+        QUERY_RESIDUAL_V11: 2,
+        QUERY_RESIDUAL_V12: 3,
+    }.get(resolved_model_name, 1)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
     )
     if resolved_model_name == QUERY_RESIDUAL_V11 and effective_samples_per_round != 2:
         raise ValueError("query_residual_v11 fixes samples_per_round=2")
+    if resolved_model_name == QUERY_RESIDUAL_V12 and effective_samples_per_round != 3:
+        raise ValueError("query_residual_v12 fixes samples_per_round=3")
     if resolved_model_name == QUERY_RESIDUAL_V8:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
@@ -113,6 +120,13 @@ def resolve_query_residual_variant_spec(
             include_exact_local_residual=True,
         )
     if resolved_model_name == QUERY_RESIDUAL_V11:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V12:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
             samples_per_round=effective_samples_per_round,

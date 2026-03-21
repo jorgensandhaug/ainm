@@ -348,6 +348,7 @@ class HistoricalBenchmarkRoundResult(BaseModel):
 
     round_id: str
     round_number: int | None = None
+    round_weight: float | None = Field(default=None, ge=0.0)
     policy_name: str | None = None
     samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
@@ -375,6 +376,15 @@ class HistoricalBenchmarkResult(BaseModel):
     round_ids: list[str]
     aggregate: CompetitionAggregate
     rounds: list[HistoricalBenchmarkRoundResult]
+    official_weighted_mean_score: float | None = None
+    official_weighted_mean_weighted_kl: float | None = None
+    round_mean_score_std: float | None = Field(default=None, ge=0.0)
+    round_mean_weighted_kl_std: float | None = Field(default=None, ge=0.0)
+    worst_round_id: str | None = None
+    worst_round_number: int | None = Field(default=None, ge=0)
+    worst_round_weight: float | None = Field(default=None, ge=0.0)
+    worst_round_mean_score: float | None = None
+    worst_round_mean_weighted_kl: float | None = None
     evaluated_seed_count: int = Field(ge=0)
     visualization_policy: str
     visualized_seed_count: int = Field(ge=0)

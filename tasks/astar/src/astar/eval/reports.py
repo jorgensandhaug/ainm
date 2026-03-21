@@ -112,6 +112,27 @@ def render_historical_benchmark_report(result: HistoricalBenchmarkResult) -> str
         f"visualized_seeds: {result.visualized_seed_count}",
         f"mean_score: {result.aggregate.mean_score:.4f}",
         f"mean_weighted_kl: {result.aggregate.mean_weighted_kl:.6f}",
+        (
+            f"official_weighted_mean_score: {result.official_weighted_mean_score:.4f}"
+            if result.official_weighted_mean_score is not None
+            else "official_weighted_mean_score: n/a"
+        ),
+        (
+            "official_weighted_mean_weighted_kl: "
+            f"{result.official_weighted_mean_weighted_kl:.6f}"
+            if result.official_weighted_mean_weighted_kl is not None
+            else "official_weighted_mean_weighted_kl: n/a"
+        ),
+        (
+            f"round_mean_score_std: {result.round_mean_score_std:.4f}"
+            if result.round_mean_score_std is not None
+            else "round_mean_score_std: n/a"
+        ),
+        (
+            f"round_mean_weighted_kl_std: {result.round_mean_weighted_kl_std:.6f}"
+            if result.round_mean_weighted_kl_std is not None
+            else "round_mean_weighted_kl_std: n/a"
+        ),
         f"timing_total_s: {result.total_runtime_seconds:.3f}",
         f"timing_eval_s: {result.evaluation_seconds:.3f}",
         f"timing_viz_s: {result.visualization_seconds:.3f}",
@@ -125,6 +146,18 @@ def render_historical_benchmark_report(result: HistoricalBenchmarkResult) -> str
         f"summary_jsonl: {result.summary_jsonl_path}",
         f"summary_csv: {result.summary_csv_path}",
     ]
+    if result.worst_round_id is not None:
+        worst_prefix = (
+            f"#{result.worst_round_number} {result.worst_round_id}"
+            if result.worst_round_number is not None
+            else result.worst_round_id
+        )
+        lines.append(
+            f"worst_round: {worst_prefix} "
+            f"weight={result.worst_round_weight if result.worst_round_weight is not None else 'n/a'} "
+            f"score={result.worst_round_mean_score if result.worst_round_mean_score is not None else 'n/a'} "
+            f"kl={result.worst_round_mean_weighted_kl if result.worst_round_mean_weighted_kl is not None else 'n/a'}",
+        )
     for round_result in result.rounds:
         round_prefix = (
             f"#{round_result.round_number} {round_result.round_id}"
@@ -139,6 +172,7 @@ def render_historical_benchmark_report(result: HistoricalBenchmarkResult) -> str
         lines.append(
             f"{round_prefix} seeds={round_result.evaluated_seed_count} "
             f"visualized={round_result.visualized_seed_count} "
+            f"weight={round_result.round_weight if round_result.round_weight is not None else 'n/a'} "
             f"queries={executed_queries} "
             f"score={round_result.mean_score:.4f} kl={round_result.mean_weighted_kl:.6f} "
             f"eval_s={(round_result.evaluation_seconds or 0.0):.3f} "

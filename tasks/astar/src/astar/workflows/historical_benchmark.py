@@ -5,9 +5,12 @@ import json
 from pathlib import Path
 from time import perf_counter
 
+import numpy as np
+
 from astar.eval.competition import CompetitionAggregate, aggregate_episode_metrics
 from astar.eval.reports import render_historical_benchmark_report
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import read_round_record
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
@@ -92,6 +95,18 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
                 },
             )
     return path
+
+
+def _effective_round_weight(
+    *,
+    round_number: int | None,
+    round_weight: float | None,
+) -> float:
+    if round_weight is not None:
+        return float(round_weight)
+    if round_number is not None:
+        return float(1.05**round_number)
+    return 1.0
 
 
 def run_historical_benchmark(
@@ -249,10 +264,16 @@ def run_historical_benchmark(
         if not keys:
             continue
         round_seed_results = [seed_results_by_key[key] for key in keys]
+        round_record = read_round_record(paths, round_id).round
+        effective_round_weight = _effective_round_weight(
+            round_number=round_record.round_number,
+            round_weight=round_record.round_weight,
+        )
         round_results.append(
             HistoricalBenchmarkRoundResult(
                 round_id=round_id,
                 round_number=round_seed_results[0].round_number,
+                round_weight=effective_round_weight,
                 policy_name=round_seed_results[0].policy_name,
                 samples_per_round=round_seed_results[0].samples_per_round,
                 budget=round_seed_results[0].budget,
@@ -285,6 +306,30 @@ def run_historical_benchmark(
         for round_result in round_results
         for seed_result in round_result.seed_results
     ]
+    round_score_array = np.asarray([item.mean_score for item in round_results], dtype=np.float64)
+    round_kl_array = np.asarray([item.mean_weighted_kl for item in round_results], dtype=np.float64)
+    round_weight_array = np.asarray(
+        [
+            _effective_round_weight(
+                round_number=item.round_number,
+                round_weight=item.round_weight,
+            )
+            for item in round_results
+        ],
+        dtype=np.float64,
+    )
+    weight_denom = float(np.sum(round_weight_array))
+    official_weighted_mean_score = (
+        float(np.sum(round_weight_array * round_score_array) / weight_denom)
+        if weight_denom > 0.0
+        else None
+    )
+    official_weighted_mean_weighted_kl = (
+        float(np.sum(round_weight_array * round_kl_array) / weight_denom)
+        if weight_denom > 0.0
+        else None
+    )
+    worst_round_result = min(round_results, key=lambda item: item.mean_score)
     result = HistoricalBenchmarkResult(
         benchmark_name=run_name,
         model_name=model_name,
@@ -298,6 +343,15 @@ def run_historical_benchmark(
         round_ids=[item.round_id for item in round_results],
         aggregate=aggregate,
         rounds=round_results,
+        official_weighted_mean_score=official_weighted_mean_score,
+        official_weighted_mean_weighted_kl=official_weighted_mean_weighted_kl,
+        round_mean_score_std=float(np.std(round_score_array)) if len(round_score_array) > 0 else None,
+        round_mean_weighted_kl_std=float(np.std(round_kl_array)) if len(round_kl_array) > 0 else None,
+        worst_round_id=worst_round_result.round_id,
+        worst_round_number=worst_round_result.round_number,
+        worst_round_weight=worst_round_result.round_weight,
+        worst_round_mean_score=worst_round_result.mean_score,
+        worst_round_mean_weighted_kl=worst_round_result.mean_weighted_kl,
         evaluated_seed_count=len(all_seed_results),
         visualization_policy=visualization_policy,
         visualized_seed_count=len(visualization_keys),
@@ -346,6 +400,13 @@ def run_historical_benchmark(
                 "samples_per_round": result.samples_per_round,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
+                "official_weighted_mean_score": result.official_weighted_mean_score,
+                "official_weighted_mean_weighted_kl": result.official_weighted_mean_weighted_kl,
+                "round_mean_score_std": result.round_mean_score_std,
+                "round_mean_weighted_kl_std": result.round_mean_weighted_kl_std,
+                "worst_round_id": result.worst_round_id,
+                "worst_round_mean_score": result.worst_round_mean_score,
+                "worst_round_mean_weighted_kl": result.worst_round_mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,
                 "visualization_seconds": result.visualization_seconds,
                 "artifact_write_seconds": result.artifact_write_seconds,

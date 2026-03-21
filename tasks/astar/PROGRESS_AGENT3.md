@@ -439,6 +439,70 @@
    - conclusion:
      - current lead remains the `v11` branch
      - top-heavy stratification still looks slightly inferior to the plain stratified selector once transcript diversity is increased
+55. Re-read repo canon + handoff again at new turn start:
+   - `README.md`
+   - `docs/game_facts.md`
+   - `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - `PROGRESS_AGENT3.md`
+   - `br list` retried and still unavailable in this shell (`br: command not found`)
+56. Validation upgrade hypothesis:
+   - current historical benchmark output is missing several signals already useful for model selection in this workspace
+   - specifically, official round weighting, round-to-round variance, and worst-round summary should be first-class benchmark fields rather than ad-hoc manual calculations
+   - this should improve selection discipline without changing model behavior
+57. Implemented validation/reporting upgrade for historical benchmarks:
+   - added native benchmark fields for:
+     - official weighted mean score
+     - official weighted mean weighted-KL
+     - round mean score std
+     - round mean weighted-KL std
+     - worst-round id / number / weight / score / KL
+     - per-round stored weight
+   - wiring updated in:
+     - `src/astar/workflows/results.py`
+     - `src/astar/workflows/historical_benchmark.py`
+     - `src/astar/cli_output.py`
+     - `src/astar/eval/reports.py`
+     - `tests/test_historical_benchmark.py`
+58. Validation after benchmark-metric upgrade:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `17 passed`
+59. Next model-family hypothesis from current evidence:
+   - `samples_per_round=2` helped the lead branch on both representative hard rounds and on full corrected LOO
+   - the next most plausible incremental win is a fixed-name `samples_per_round=3` variant on the same `v11` architecture
+   - that should be tested first on the representative 2-round/7-train holdout before spending another full LOO run
+60. Implemented next fixed-name regime probe:
+   - new model name: `query_residual_v12`
+   - semantics:
+     - same architecture as `query_residual_v11`
+     - fixed `samples_per_round=3`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+61. Validation after `query_residual_v12` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `18 passed`
+   - key new assertion:
+     - `query_residual_v12` resolves to `samples_per_round=3` with no explicit CLI flag
+62. Immediate next experiment:
+   - evaluate `query_residual_v12` on the representative 2-round/7-train holdout
+   - only if that beats `v11`/samples-2 should it earn a full corrected LOO run
+63. `query_residual_v12` targeted holdout status at end of this turn:
+   - probe was started on the same representative 2-round/7-train holdout with:
+     - model `query_residual_v12`
+     - fixed `samples_per_round=3`
+     - `policy=coverage`
+     - `budget=50`
+   - expensive groundwork now cached:
+     - samples-3 synthetic dataset directory exists at:
+       - `data/artifacts/datasets/query_residual_synthetic_live__policy=coverage__samples=3__rounds=n=8__sha1=ea07400de1/`
+     - first held-out fold checkpoint exists at:
+       - `data/artifacts/models/query_residual_v12__policy=coverage__samples=3__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+   - run was intentionally interrupted after the first checkpoint landed, to avoid leaving an orphan long-running process at turn end
+   - rerunning the same `v12` targeted holdout probe should skip dataset build and reuse that first fold
+64. Current post-`v11` branch state:
+   - best verified full corrected local model remains `query_residual_v11`
+   - validation output is now stronger than when `v11` was first benchmarked, but `v11` itself has not yet been rerun under the upgraded reporting schema
 
 ## Open Questions
 
