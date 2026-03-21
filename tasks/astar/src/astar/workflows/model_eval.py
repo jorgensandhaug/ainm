@@ -24,6 +24,7 @@ from astar.student.predictor.greybox_hazard_bayesfamily import (
     bayesfamily_model_names,
     fit_named_bayesfamily_predictor,
 )
+from astar.student.predictor.greybox_hazard_clusteredbayes import GreyboxHazardClusteredBayesPredictor
 from astar.student.predictor.greybox_hazard_clusteredmanifold import GreyboxHazardClusteredManifoldPredictor
 from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
 from astar.student.predictor.greybox_hazard_phasefactored import GreyboxHazardPhaseFactoredPredictor
@@ -320,6 +321,20 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized == "greybox_hazard_clusteredbayes":
+        predictor = GreyboxHazardClusteredBayesPredictor.fit_from_workspace(
+            paths,
+            round_ids=list(training_round_ids),
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (
+            bundle,
+            {},
+            predictor.clustered_predictor.base_predictor.analyzed_seed_count,
+            predictor.clustered_predictor.base_predictor.cell_count,
+        )
+
     if normalized in bayesfamily_model_names():
         predictor = fit_named_bayesfamily_predictor(
             model_name,
@@ -574,6 +589,7 @@ def evaluate_model_on_round(
                 "greybox_hazard_lowrank",
                 "greybox_hazard_phasefactored",
                 "greybox_hazard_clusteredmanifold",
+                "greybox_hazard_clusteredbayes",
                 *bayesfamily_model_names(),
                 "greybox_student_joint",
                 "greybox_coefficient_knn",

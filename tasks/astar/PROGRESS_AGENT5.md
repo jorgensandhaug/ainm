@@ -443,6 +443,82 @@
     - `jobs=3`
     - session `7062`
 
+### 2026-03-21T12:21:00Z
+
+- Results harvested:
+  - `agent5_bayesfamily_anchor55_scale10_coverage_online50_v04`
+    - mean score `74.0576`
+    - mean weighted KL `0.102201`
+    - rejected:
+      - slightly worse than `anchor35_scale30_v03` coverage (`74.1359`)
+  - `agent5_clusteredmanifold_coverage_probe3_v01`
+    - mean score `42.4426`
+    - mean weighted KL `0.387751`
+  - `agent5_clusteredmanifold_explorationr3_probe3_v01`
+    - mean score `42.7460`
+    - mean weighted KL `0.382320`
+- Interpretation:
+  - pure clustered-manifold family decomposition is catastrophically wrong on `36e581...`
+  - but it is still very strong on `c5cdf...`
+  - that strongly suggests:
+    - the family decomposition itself may be useful
+    - the failure is the pure transcript-feature cluster weighting
+    - next fix should be Bayesian evidence reweighting over clustered experts
+- New immediate branch:
+  - `greybox_hazard_clusteredbayes_v01`
+  - idea:
+    - reuse clustered-manifold family experts
+    - use transcript-conditioned family logits only as prior
+    - reweight families with exact observed-cell likelihoods
+  - reason:
+    - directly attacks the observed clustered-manifold failure mode
+    - still matches the handoff's discrete+continuous regime-family agenda
+
+### 2026-03-21T12:32:00Z
+
+- Remaining `v04` official result harvested:
+  - `agent5_bayesfamily_anchor55_scale10_explorationr3_online50_v04`
+    - mean score `73.2356`
+    - mean weighted KL `0.106057`
+- Combined `v04` read:
+  - `coverage`:
+    - `74.0576`
+  - `exploration_r3`:
+    - `73.2356`
+  - conclusion:
+    - `anchor55_scale10_v04` rejected
+    - still below `anchor35_scale30_v03` coverage (`74.1359`)
+
+- Important validation correction for clustered-family models:
+  - the official 3-round benchmark under-trained them because each held-out fit only saw the other `2` rounds
+  - ran fair custom hard-slice probes with the full 8-round training universe instead
+
+- Fair custom hard-slice results, `coverage`, full 8-round training universe:
+  - `greybox_hazard_clusteredmanifold_v01`
+    - `36e581...`: `58.0311`
+    - `c5cdf...`: `79.2943`
+    - `f1dac...`: `49.7446`
+    - mean `62.3567`
+    - weighted KL `0.164068`
+    - log:
+      - `data/artifacts/benchmarks/agent5_clusteredmanifold_coverage_probe3_full8train_v01.log`
+  - `greybox_hazard_clusteredbayes_v01`
+    - identical results:
+      - mean `62.3567`
+      - weighted KL `0.164068`
+    - log:
+      - `data/artifacts/benchmarks/agent5_clusteredbayes_coverage_probe3_full8train_v01.log`
+- Interpretation:
+  - clustered family decomposition is real enough to help `c5cdf...`
+  - but still much too weak on `36e581...` and `f1dac...`
+  - Bayes reweighting over clustered experts provided no measurable rescue
+  - conclusion:
+    - reject pure clustered-manifold and clustered-bayes as lead candidates
+    - do not scale these branches to full 8 official benchmarks
+    - next useful pivots are no longer more cluster-family tweaking:
+      - stronger event-structured teacher branch (`H8`)
+      - or a materially better direct student / tensor head branch (`H9`)
+
 ### 2026-03-21T11:32:00Z
 
 - Re-read handoff hypotheses again, especially:

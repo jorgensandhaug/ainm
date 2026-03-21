@@ -94,6 +94,48 @@ class GreyboxHazardClusteredManifoldPredictor(BaseRoundPredictor):
     cluster_coord_weights: tuple[np.ndarray, ...] = ()
     training_example_count: int = Field(default=0, ge=0)
 
+    def _standardized_feature_vector(
+        self,
+        derived: object,
+    ) -> np.ndarray:
+        feature_vector = np.asarray(_regime_input_vector(derived), dtype=np.float64)
+        return np.asarray((feature_vector - self.feature_mean) / self.feature_scale, dtype=np.float64)
+
+    def _cluster_logits_from_standardized(
+        self,
+        standardized: np.ndarray,
+    ) -> np.ndarray:
+        centroid_deltas = (
+            self.cluster_feature_centroids - standardized[None, :]
+        ) / self.cluster_feature_scales[None, :]
+        return np.asarray(
+            -self.distance_temperature * np.sum(centroid_deltas**2, axis=1),
+            dtype=np.float64,
+        )
+
+    def _coefficient_vector_for_cluster(
+        self,
+        cluster_index: int,
+        standardized: np.ndarray,
+    ) -> np.ndarray:
+        cluster_basis = np.asarray(self.cluster_coefficient_bases[cluster_index], dtype=np.float64)
+        if cluster_basis.shape[0] <= 0:
+            return np.asarray(self.cluster_coefficient_means[cluster_index], dtype=np.float64)
+        coords = np.asarray(
+            self.cluster_coord_intercepts[cluster_index]
+            + standardized @ self.cluster_coord_weights[cluster_index],
+            dtype=np.float64,
+        )
+        coords = np.clip(
+            coords,
+            self.cluster_coord_lows[cluster_index],
+            self.cluster_coord_highs[cluster_index],
+        )
+        return np.asarray(
+            self.cluster_coefficient_means[cluster_index] + (coords @ cluster_basis),
+            dtype=np.float64,
+        )
+
     @classmethod
     def fit_from_workspace(
         cls,
@@ -275,12 +317,8 @@ class GreyboxHazardClusteredManifoldPredictor(BaseRoundPredictor):
         features: RoundFeatureBundle,
         derived: object,
     ) -> PredictionBundle:
-        feature_vector = np.asarray(_regime_input_vector(derived), dtype=np.float64)
-        standardized = (feature_vector - self.feature_mean) / self.feature_scale
-        centroid_deltas = (
-            self.cluster_feature_centroids - standardized[None, :]
-        ) / self.cluster_feature_scales[None, :]
-        logits = -self.distance_temperature * np.sum(centroid_deltas**2, axis=1)
+        standardized = self._standardized_feature_vector(derived)
+        logits = self._cluster_logits_from_standardized(standardized)
         logits = logits - float(np.max(logits))
         cluster_weights = np.exp(logits)
         cluster_weights = cluster_weights / np.maximum(np.sum(cluster_weights), 1e-6)
@@ -290,27 +328,7 @@ class GreyboxHazardClusteredManifoldPredictor(BaseRoundPredictor):
         for seed_index in range(round_detail.seeds_count):
             cluster_predictions: list[np.ndarray] = []
             for cluster_index in range(self.cluster_count):
-                cluster_basis = np.asarray(self.cluster_coefficient_bases[cluster_index], dtype=np.float64)
-                if cluster_basis.shape[0] <= 0:
-                    coefficient_vector = np.asarray(
-                        self.cluster_coefficient_means[cluster_index],
-                        dtype=np.float64,
-                    )
-                else:
-                    coords = np.asarray(
-                        self.cluster_coord_intercepts[cluster_index]
-                        + standardized @ self.cluster_coord_weights[cluster_index],
-                        dtype=np.float64,
-                    )
-                    coords = np.clip(
-                        coords,
-                        self.cluster_coord_lows[cluster_index],
-                        self.cluster_coord_highs[cluster_index],
-                    )
-                    coefficient_vector = np.asarray(
-                        self.cluster_coefficient_means[cluster_index] + (coords @ cluster_basis),
-                        dtype=np.float64,
-                    )
+                coefficient_vector = self._coefficient_vector_for_cluster(cluster_index, standardized)
                 teacher_prediction = self.teacher._decode_terminal_tensor(
                     _teacher_seed_adapter(round_detail, seed_index),
                     coefficient_vector,
