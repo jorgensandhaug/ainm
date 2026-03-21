@@ -264,6 +264,17 @@ To break through 78.4, we need fundamentally different modeling approaches.
 6. Polynomial time-static interactions (overfitting, -4.2 points)
 7. Tensor mixing (mathematically equivalent to weight-bank rollout for this config)
 
+## BREAKTHROUGH: GLMM + Direct Terminal Ensemble (Phase 4)
+
+| Model | Score | Weighted KL | Delta vs GLMM | Worst Round |
+|-------|-------|-------------|---------------|-------------|
+| **glmm_dt_ensemble_v003 (35% DT)** | **80.59** | **0.076** | **+2.21** | **54.57** |
+| glmm_dt_ensemble_v002 (25% DT) | 80.19 | 0.078 | +1.81 | 53.22 |
+| glmm_dt_ensemble_v001 (15% DT) | 79.60 | 0.081 | +1.22 | 51.71 |
+| glmm_dt_ensemble_v004 (10% DT) | 79.24 | 0.083 | +0.86 | 50.88 |
+
+The ensemble works because GLMM excels on normal rounds (93 score) while the direct terminal predictor handles hard/novel rounds better (59 vs 49). The 35% blend optimizes this tradeoff.
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
