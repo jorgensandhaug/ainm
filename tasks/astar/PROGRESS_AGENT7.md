@@ -2791,6 +2791,39 @@ All of these have been systematically swept and are near-optimal:
 - per-round: R1:84.3 R2:91.1 R3:88.7 R4:92.4 R5:85.0 R6:88.3 R7:73.2 R8:93.9
 - total improvement from v44: **+9.36 points** (77.76 → 87.12, +12.0%)
 
+### 2026-03-21T22:00Z approx
+
+- Ridge sweep for q=6: operator_ridge=[1,2,4,8], posterior_ridge=[0.02,0.05], MLP=[32,48]
+- All within ±0.17 of baseline 87.12. v169 settings are optimal.
+- Architecture exhausted across ALL explored axes (170+ variants tested).
+- Next improvement requires: more training data, or fundamentally different architecture.
+
+## Complete Experiment Summary
+
+**170+ variants tested across these axes:**
+- Calibration: probability_floor, beta, prior_blend, temperature, class_scale, delta_clip
+- Architecture: mode_dim (q=2..7), cluster_count, decoder_method (5 types)
+- Posterior: ridge, MLP (hidden=12..48, steps=350..600), metric (PCA/supervised), bandwidth, neighbors
+- Features: 43 static + interaction features
+- Training: samples_per_round (2..12), cells_per_seed
+- Policy: 6 variants tested
+- Ensemble: multi-seed MLP (neutral)
+
+**Score trajectory:**
+- v44 (starting): 77.76
+- v52 (less prior): 78.28 (+0.52)
+- v67 (q=4 + lambda + less prior): 78.85 (+1.09)
+- v89 (posterior ridge=0.5): 79.57 (+1.81)
+- v104 (ridge=0.05 + operator lambda=2): 79.87 (+2.11)
+- v116 (probability floor=0.005): 82.11 (+4.35)
+- v122 (floor=0.002 + beta=4/16): 84.61 (+6.85)
+- v132 (floor=0.0003 + beta=8/32): 85.50 (+7.74)
+- v143 (zero prior blend + no damping): 86.14 (+8.38)
+- v152 (interaction features): 86.25 (+8.49)
+- v157 (cluster-operator hybrid): 86.91 (+9.15)
+- v157 s6: 87.04 (+9.28)
+- **v169 s6 (q=6, no interactions): 87.12 (+9.36)**
+
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
 | Rank | Model | Score | Key difference vs v104 |
