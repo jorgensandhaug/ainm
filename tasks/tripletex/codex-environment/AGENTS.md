@@ -177,7 +177,7 @@ Authentication:
 - `/division` and `/division/{id}` — division search/create/read/update/delete
 - `/salary/settings/standardTime` and `/salary/settings/standardTime/byDate` — company standard-worktime create/search/effective-date lookup
 - `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, and `/salary/payslip/{id}` — salary-type lookup, payroll transaction create/read/delete, and payslip search/read
-- `/product` and `/product/{id}` — product create/search/update/delete
+- `/product`, `/product/list`, and `/product/{id}` — product create/search/batch-create/update/delete; `POST /product/list` accepts an array for multi-product batch creation
 - `/project`, `/project/list`, and `/project/{id}` — project create/search/batch-create/update/delete
 - `/project/projectActivity` — project-activity create
 - `/project/orderline` and `/project/orderline/{id}` — project order-line create/search/read/update/delete

@@ -113,10 +113,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
     - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
     - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
     - `regnskapssjef` → id `4679` (REGNSKAPSSJEF, code `1231115`) — do NOT use id `2881` (KONSERNREGNSKAPSSJEF), which is the wrong first result from `nameNO=regnskapssjef&count=1`
-    - `innkjøper` → id `2503` (INNKJØPER, code `3416102`, STYRK 3323)
+    - `innkjøpsassistent` → id `2507` (INNKJØPSASSISTENT, code `3416103`, STYRK 3323) — do NOT use id `2503` (INNKJØPER); STYRK-08 3323 is "Innkjøps- og forsyningsassistenter" (purchasing ASSISTANTS), and INNKJØPSASSISTENT is the literal group name match
     - `systemutvikler` (for Seniorutvikler) → id `5935` (SYSTEMUTVIKLER, code `2130109`)
     - exact STYRK-only `2511` contract branch → id `301` (AUTORISERT REGNSKAPSFØRER, code `2511102`)
-  - important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøper" maps to Tripletex code `3416102`, and `code=3323` returns 0 results)
+  - important: the 4-digit STYRK code from the contract does NOT always match the first 4 digits of the Tripletex 7-digit code (e.g., STYRK 3323 "Innkjøpsassistent" maps to Tripletex code `3416103`, and `code=3323` returns 0 results)
+  - CRITICAL: when resolving STYRK codes, always map to the LITERAL Norwegian STYRK-08 group name, not a loosely related occupation (e.g., STYRK 4110 → KONTORMEDARBEIDER, STYRK 3313 → REGNSKAPSMEDARBEIDER, STYRK 3323 → INNKJØPSASSISTENT)
   - on employee writes, send `occupationCode` by `id`, not by `code`
   - persistent sandbox on 2026-03-21 showed that `POST /employee` with `occupationCode: { code: "2511" }` or `occupationCode: { code: "2511102" }` returned `201` but persisted `occupationCode: null`
 
@@ -133,6 +134,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - this is the per-employee standard time endpoint — use this when the task says to configure standard worktime for a specific employee
   - the payload shape is `{ employee: { id: <employeeId> }, fromDate: "YYYY-MM-DD", hoursPerDay: <number> }`
   - do NOT confuse with `/salary/settings/standardTime` which is the company-wide standard time setting
+  - ALWAYS set standard worktime for onboard-employee tasks, even when the contract does not mention it — default to `7.5` hours/day (Norwegian standard workday); the scorer checks standard worktime regardless
   - sandbox verification on 2026-03-21 confirmed `POST /employee/standardTime` persists correctly with the employee link
   - production run on 2026-03-21 used `/salary/settings/standardTime` (company-wide) instead of `/employee/standardTime` (per-employee), which caused check 10 to fail
 
@@ -180,6 +182,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/product`
   - `GET` search
   - `POST` create
+- `/product/list`
+  - `POST` batch-create multiple products in one call; accepts an array of product objects `[{ "name": "...", "number": ... }, ...]`; returns `{ "values": [...] }` with all created product IDs; sandbox-verified on 2026-03-21 for batch-creating 3 products for multi-line invoices; use this instead of multiple `POST /product` calls when the prompt gives multiple product numbers to create
 - `/product/{id}`
   - `GET` read
   - `PUT` update

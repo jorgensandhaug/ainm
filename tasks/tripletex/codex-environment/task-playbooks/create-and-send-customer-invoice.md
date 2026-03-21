@@ -283,3 +283,36 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - The 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` incorrectly used the order-based flow with product creation and spent 8 calls (1 error); the correct path was this standard's existing-customer variant with bank repair = 6 calls: `GET /customer` → `GET /ledger/vatType` (25%) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry; final state was correct (`amountExcludingVatCurrency=28900`, `amountCurrency=36125`)
 - The 2026-03-21 production run for `Brightstone Ltd` / `894181273` / `Cloud Storage` / `14150` / `excluding VAT` (English prompt, existing customer) confirmed the existing-customer direct-line create-and-send variant with bank repair in optimal 6 calls: `GET /customer?organizationNumber=894181273&fields=*` → `GET /ledger/vatType` (id=3, 25%) → `POST /invoice?sendToCustomer=true` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice?sendToCustomer=true` (201); final: `amountExcludingVatCurrency=14150`, `amountCurrency=17687.5`; English definite article "the customer" correctly triggered `GET /customer` instead of `POST /customer`
 - The same English definite-article heuristic applies: "the customer X" or "invoice to the customer X" implies existing customer → `GET /customer?organizationNumber=...&fields=*`; this mirrors Norwegian "kunden" (definite) vs "en kunde" (indefinite)
+
+## Key Finding: Product-Line Invoices Require Batch Product Creation
+
+When the prompt gives product numbers in parentheses (e.g. "Analysis Report (9796) at 27700 NOK with 25% VAT"), these are NOT just descriptions — they are product numbers that must appear as linked products on the invoice order lines.
+
+**Description-only lines will fail product-related scorer checks** even if amounts and VAT are correct. The 2026-03-21 production run for `Oakwood Ltd` / `909722500` with 3 product lines (9796, 2145, 5995) used description-only lines and scored 5/8 (checks 3, 4, 5 failed).
+
+The correct flow adds one `POST /product/list` call:
+
+1. `GET /customer?organizationNumber=...&fields=*` (parallel)
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` (parallel)
+3. `POST /product/list` with `[{ "name": "Analysis Report", "number": 9796 }, ...]` (parallel with 1 and 2)
+4. `POST /invoice?sendToCustomer=true` with `product: { "id": <id> }` on each order line
+
+This is 4 calls in the happy path (3 parallel + 1 invoice), or 7 with bank-account repair.
+
+Sandbox-verified pitfalls:
+- `product: { "number": 9796 }` on order line does NOT resolve products — readback shows `product: null`; must use `product: { "id": <id> }`
+- Inline product creation via invoice (product with name+number but no id in order line) does NOT work — readback shows `product: null`
+- Products must be pre-created via `POST /product/list` (batch) or `POST /product` (single)
+
+## Key Finding: Multi-VAT-Rate Invoices
+
+When the prompt specifies different VAT rates for different lines (e.g. 25%, 15% food, 0% exempt), the single `GET /ledger/vatType?typeOfVat=OUTGOING` call returns ALL available outgoing VAT types. Select the correct one for each line:
+
+- 25% standard: look for `percentage === 25` (production code 3)
+- 15% food/drink: look for `percentage === 15` (production code 31)
+- 12% low rate: look for `percentage === 12` (production code 32)
+- 0% exempt (within VAT law): look for `percentage === 0` AND `number === "5"` (avgiftsfri)
+- 0% outside VAT area: look for `percentage === 0` AND `number === "6"`
+- 0% export: look for `percentage === 0` AND `number === "52"`
+
+When the prompt says "0% VAT (exempt)", prefer code 5 (within VAT law/avgiftsfri). When the prompt says "food" or "mat", select the 15% rate (code 31). One vatType lookup serves all lines.

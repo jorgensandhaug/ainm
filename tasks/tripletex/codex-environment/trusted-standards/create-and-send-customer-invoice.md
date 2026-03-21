@@ -8,13 +8,13 @@
 ## Exact Match
 - create one outgoing invoice
 - send it as part of the same minimal flow
-- invoice has one or more simple direct order lines
+- invoice has one or more simple direct order lines (description-only or with product numbers to create)
 - prompt gives the customer identity directly or the customer is resolvable in one decisive read
 - prompt does not require a specific send channel override such as a forced email address
 
 ## Do Not Use This Standard If
 - prompt requires a specific send channel that is not already safely implied by known customer data
-- prompt requires an existing-product lookup-heavy flow
+- prompt requires looking up existing products in the account (use `./trusted-standards/create-order-invoice-and-register-payment.md` instead)
 - task is payment, reversal, or correction
 
 ## Standard Flow
@@ -23,8 +23,9 @@
    - `name`
    - `organizationNumber`
    - `invoiceSendMethod: "MANUAL"`
-3. resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
-4. `POST /invoice` and let the default `sendToCustomer=true` handle the send in the same write
+3. if the prompt gives product numbers (e.g. "Analysis Report (9796)"), batch-create all products in one call: `POST /product/list` with `[{ "name": "<description>", "number": <number> }, ...]`; in production fresh accounts these products will not exist yet; parallelize this call with steps 1 and 3a
+3a. resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
+4. `POST /invoice` and let the default `sendToCustomer=true` handle the send in the same write; if products were created in step 3, reference them on each order line as `product: { "id": <id-from-batch-create-response> }`
 5. only if that invoice write fails with missing company bank account:
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - `PUT /ledger/account/{id}` on the existing invoice account (usually `1920`) with minimal payload `{ "bankAccountNumber": "12345678903" }`
@@ -43,6 +44,8 @@
   - `orders[].deliveryDate`
   - `orders[].orderLines`
 - create lines under `orders[].orderLines`, not `invoice.orderLines`
+- if the prompt gives product numbers, each order line must include `product: { "id": <product-id> }` where the product was batch-created in step 3; description-only lines (no product number) should omit `product` entirely
+- when the prompt gives multiple lines with different VAT rates (e.g. 25%, 15% food, 0% exempt), select the correct `vatType.id` for each line from the filtered outgoing VAT result; production accounts expose codes 3 (25%), 31 (15%), 5 (0% exempt), 6 (0% outside), 32 (12%), 52 (0% export)
 - do not hardcode output VAT code `3`
 - do not omit direct-line `vatType` just to save the VAT lookup; a successful write can still create the wrong VAT outcome
 - for explicit no-VAT / `0%` direct-line prompts, still resolve the current account's filtered outgoing `0%` VAT row instead of assuming omission is equivalent
@@ -96,6 +99,11 @@
 - the same definite-article heuristic applies in English: "the customer Brightstone Ltd" or "invoice to the customer X" implies the customer already exists; use `GET /customer?organizationNumber=...&fields=*` instead of `POST /customer`
 - when the prompt says "create and send" an invoice, always match this standard (`create-and-send-customer-invoice.md`), not the create-only standard (`create-customer-invoice.md`); matching the wrong standard wastes agent time even if the final flow is similar
 - the 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` / `eksklusiv MVA` used the wrong flow entirely — the agent selected the order-based standard (`create-order-invoice-and-register-payment`) instead of this standard, then created an unnecessary product and used `POST /order` + `PUT /order/:invoice` instead of direct `POST /invoice`; that cost 8 calls instead of the optimal 6 (with bank repair); the correct path was: `GET /customer` → `GET /ledger/vatType` (25%) → `POST /invoice` (422 bank account) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry
+- **CRITICAL product-line pitfall**: when the prompt gives product numbers in parentheses (e.g. "Analysis Report (9796)"), those products must be created and referenced on order lines; description-only lines (`product: null` on readback) will fail product-related scorer checks; the 2026-03-21 production run for `Oakwood Ltd` / `909722500` / `Analysis Report (9796)` + `Maintenance (2145)` + `System Development (5995)` used description-only lines and failed 3 of 6 checks (checks 3, 4, 5) despite correct amounts and VAT; the correct path adds one `POST /product/list` call to batch-create all products, then references them by `product: { "id": <id> }` on each order line
+- `POST /product/list` batch-creates multiple products in one call; sandbox-verified on 2026-03-21: `[{ "name": "Analysis Report", "number": 9796 }, { "name": "Maintenance", "number": 2145 }, { "name": "System Development", "number": 5995 }]` → returns all three IDs in one `201` response; this call can be parallelized with the customer resolution and VAT lookup
+- `product: { "number": 9796 }` on an order line does NOT resolve to an existing product; Tripletex silently ignores the number-only reference and the readback shows `product: null`; always use `product: { "id": <id> }` from the batch-create response
+- inline product creation via invoice (e.g. `product: { "name": "X", "number": 9796 }` on an order line inside `POST /invoice`) does NOT work; the invoice is created but readback shows `product: null`; products must be pre-created separately
+- when the prompt gives product numbers, the optimal call count is 4 (happy path: 3 parallel [customer + vatType + product/list] + 1 invoice) or 7 (with bank repair: + 1 failed invoice + 1 GET account + 1 PUT account + 1 retry); this is 1 more call than the description-only variant but is required for correctness when product numbers appear in the prompt
 
 ## OpenAPI / Sandbox Status
 - `/customer`, `/invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -159,3 +167,12 @@
   - the prompt "the customer Brightstone Ltd" with English definite article correctly triggered `GET /customer` instead of `POST /customer`
   - persistent sandbox re-verification on 2026-03-21 confirmed the same create-and-send mechanics with `sendToCustomer=true` on the existing customer; sandbox only has 0% VAT so the exact 25% taxed outcome was not reproducible there
   - sandbox also re-confirmed that omitting `vatType` on a direct line creates 0% VAT (amountCurrency == amountExcludingVatCurrency), proving the VAT lookup is essential for the taxed branch
+- product-line order lines with batch-created products verified in persistent sandbox on 2026-03-21:
+  - `POST /product/list` with 3 products (`{ "name": "Analysis Report", "number": ... }`, etc.) returned 201 with all 3 IDs in one call
+  - `POST /invoice` with `orders[].orderLines[].product: { "id": <product-id> }` referencing the batch-created products succeeded in 201
+  - readback via `GET /invoice/{id}?fields=*,orders(*,orderLines(*,product(*),vatType(*)))` confirmed all 3 order lines had the correct `product.number`, `product.name`, `unitPriceExcludingVatCurrency`, and `vatType`
+  - optimal flow: 3 parallel calls (`POST /product/list` + `GET /customer` + `GET /ledger/vatType`) + 1 `POST /invoice` = 4 calls total
+  - with bank repair: + 1 failed invoice + 1 `GET /ledger/account` + 1 `PUT /ledger/account/{id}` + 1 retry = 7 calls total
+  - also verified: `product: { "number": 9796 }` on order line does NOT resolve products by number — readback shows `product: null`; must use `product: { "id": <id> }`
+  - also verified: inline product creation via invoice (product with name+number but no id) does NOT work — readback shows `product: null`
+  - the 2026-03-21 production run for `Oakwood Ltd` / `909722500` used description-only lines (6 calls with bank repair) and scored 5/8 (checks 3, 4, 5 failed); the correct path was 7 calls: `GET /customer` + `GET /ledger/vatType` + `POST /product/list` (parallel) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` retry
