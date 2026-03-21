@@ -201,6 +201,60 @@
 26. Next step started:
    - run corrected full leave-one-round-out historical benchmark for `query_residual_v8`
    - objective: establish best current full local score under fixed synthetic-coverage + sample-aware checkpoint regime
+27. Git checkpoint created + pushed:
+   - commit: `afe153b`
+   - message: `query_residual: fix fold pipeline and add v9 ablation`
+   - pushed to remote branch `origin/agent3`
+28. New follow-up branch prepared while full `v8` benchmark runs:
+   - `query_residual_v10`
+   - hypothesis:
+     - `v8` wins mainly because entropy stratification helps barren/static rounds
+     - `v9` shows exact-local-residual alone is insufficient
+     - therefore try a top-heavy stratified selector to preserve most dynamic-cell focus while still teaching low-entropy calibration
+   - implementation:
+     - selection strategy `top_heavy_stratified_entropy`
+     - intended mix: roughly `75%` high-entropy, `15%` mid-entropy, remainder low-entropy
+     - model wiring added in:
+       - `src/astar/student/predictor/query_residual.py`
+       - `src/astar/cli.py`
+       - `tests/test_historical_benchmark.py`
+29. Validation after `v10` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `16 passed`
+30. `query_residual_v10` targeted holdout result:
+   - artifact: `data/artifacts/benchmarks/agent3_query_residual_v10_targeted_holdout_2rounds_7train/result.json`
+   - same setup as items 24-25
+   - result:
+     - mean score `60.7303`
+     - mean weighted KL `0.166877`
+   - per-round:
+     - `36e581...`: score `63.9362`, KL `0.149196`
+     - `f1dac9...`: score `57.5244`, KL `0.184559`
+   - comparison:
+     - vs `v8`: essentially tied but slightly worse overall (`-0.0013` mean score)
+     - vs `v8`, `36e581...` improves modestly, but `f1dac9...` loses more
+   - conclusion:
+     - top-heavy stratification does not beat `v8`
+     - `query_residual_v8` remains best branch among tested named variants
+31. Corrected full leave-one-round-out benchmark complete for `query_residual_v8`:
+   - artifact: `data/artifacts/benchmarks/agent3_dev_query_residual_v8_full_corrected/result.json`
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v8 --mode online_interactive --policy coverage --samples-per-round 1 --budget 50 --with-png none --name agent3_dev_query_residual_v8_full_corrected`
+   - result:
+     - mean score `74.3226`
+     - mean weighted KL `0.101556`
+     - rounds `8`
+     - evaluated seeds `40`
+     - total runtime `1568.289s`
+     - round mean score range `58.0278..85.4184`
+   - notable:
+     - this is the best fully revalidated full-run score produced in this workspace during this session
+     - worst round remains `f1dac9...`, but `v8` still materially improved it relative to targeted `v7`
+32. Next control started:
+   - corrected full leave-one-round-out benchmark for `query_residual_v7`
+   - reason:
+     - old repo-visible `v7` full score (`73.9505`) predates the synthetic-coverage/cache fix
+     - need apples-to-apples `v7` vs `v8` under the corrected pipeline before declaring `v8` final winner
 
 ## Open Questions
 

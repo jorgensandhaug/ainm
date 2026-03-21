@@ -40,16 +40,19 @@ QUERY_RESIDUAL_ALIAS = "query_residual"
 QUERY_RESIDUAL_V7 = "query_residual_v7"
 QUERY_RESIDUAL_V8 = "query_residual_v8"
 QUERY_RESIDUAL_V9 = "query_residual_v9"
+QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
         QUERY_RESIDUAL_V7,
         QUERY_RESIDUAL_V8,
         QUERY_RESIDUAL_V9,
+        QUERY_RESIDUAL_V10,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
 CELL_SELECTION_STRATIFIED_ENTROPY = "stratified_entropy"
+CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY = "top_heavy_stratified_entropy"
 
 
 def is_query_residual_model_name(model_name: str) -> bool:
@@ -1015,6 +1018,31 @@ def _select_training_cells(
                 selected.add(int(flat_index))
                 if len(selected) >= target_count:
                     break
+    elif selection_strategy == CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY:
+        hi_count = max(1, int(round(target_count * 0.75)))
+        mid_count = max(0, int(round(target_count * 0.15)))
+        low_count = max(0, target_count - hi_count - mid_count)
+        third = max(1, len(order) // 3)
+
+        def _take_evenly(indices: np.ndarray, count: int) -> np.ndarray:
+            if count <= 0 or indices.size == 0:
+                return np.zeros(0, dtype=np.int64)
+            if indices.size <= count:
+                return np.asarray(indices, dtype=np.int64)
+            positions = np.linspace(0, indices.size - 1, num=count, dtype=np.int64)
+            return np.asarray(indices[positions], dtype=np.int64)
+
+        high_pool = order[:third]
+        mid_pool = order[third : min(2 * third, len(order))]
+        low_pool = order[min(2 * third, len(order)) :]
+        selected = set(_take_evenly(high_pool, hi_count).tolist())
+        selected.update(_take_evenly(mid_pool, mid_count).tolist())
+        selected.update(_take_evenly(low_pool, low_count).tolist())
+        if len(selected) < target_count:
+            for flat_index in order:
+                selected.add(int(flat_index))
+                if len(selected) >= target_count:
+                    break
     else:
         selected = set(order[:target_count].tolist())
     width = ground_truth.shape[1]
@@ -1551,6 +1579,16 @@ def fit_named_query_residual_predictor(
             policy_name=policy_name,
             model_name=resolved_model_name,
             samples_per_round=samples_per_round,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V10:
+        return QueryResidualPredictor.fit_from_workspace(
+            paths,
+            round_ids=round_ids,
+            policy_name=policy_name,
+            model_name=resolved_model_name,
+            samples_per_round=samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY,
             include_exact_local_residual=True,
         )
     return QueryResidualPredictor.fit_from_workspace(
