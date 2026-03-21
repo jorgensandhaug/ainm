@@ -1368,6 +1368,18 @@ def test_round_heatmap_prototype_residual_kmeans_returns_centers() -> None:
     assert len(set(assignments.tolist())) == 2
 
 
+def test_round_heatmap_kernel_residual_rbf_features_are_bounded() -> None:
+    from astar.student.predictor.round_heatmap_kernel_residual import _rbf_feature_matrix
+
+    features = np.asarray([[0.0, 0.0], [1.0, 1.0]], dtype=np.float64)
+    anchors = np.asarray([[0.0, 0.0], [2.0, 2.0]], dtype=np.float64)
+    kernel = _rbf_feature_matrix(features, anchors, length_scale=1.0)
+
+    assert kernel.shape == (2, 2)
+    assert np.all(kernel > 0.0)
+    assert np.all(kernel <= 1.0)
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

@@ -4229,6 +4229,35 @@
      - only `4` variants live in this new wave
      - `jobs=1` each
      - stopped there because shared-box memory tightened versus the prior check
+465. New hypothesis branch started while heatmap factor + memory + prototype waves run:
+   - family:
+     - `round_heatmap_kernel_residual`
+   - hypothesis:
+     - heatmap-state dynamics may be nonlinear but still smooth, so neither linear factor maps nor discrete prototypes may fit the right regime geometry
+     - an RBF-kernel residual head over whole-round spatial evidence could interpolate across nearby regimes without copying single replay noise
+     - if the round law lies on a curved manifold in heatmap-state space, kernel features should beat both linear factor and prototype soft clusters
+   - objective:
+     - test nonlinear kernelized heatmap-state residual prediction on top of base `v59/v60`
+466. Implemented + validated `round_heatmap_kernel_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_heatmap_kernel_residual.py`
+   - reproducible models:
+     - `round_heatmap_kernel_residual`
+     - `round_heatmap_kernel_residual_v1`
+     - `round_heatmap_kernel_residual_v2`
+     - `round_heatmap_kernel_residual_v3`
+     - `round_heatmap_kernel_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, `16` anchors, length scale `2.0`, rank `12`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, `24` anchors, length scale `1.5`, rank `24`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - whole-round spatial evidence heatmap vector -> normalized RBF features to learned anchors -> low-rank residual bundle -> apply jointly across all seeds on top of base `v59/v60`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_heatmap_kernel_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_heatmap_kernel_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_heatmap_kernel_residual_rbf_features_are_bounded tests/test_historical_benchmark.py::test_round_heatmap_kernel_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

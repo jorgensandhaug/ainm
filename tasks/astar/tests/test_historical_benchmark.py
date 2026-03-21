@@ -2971,6 +2971,40 @@ def test_round_heatmap_prototype_residual_v2_online_historical_benchmark_default
             assert seed_result.samples_per_round == 8
 
 
+def test_round_heatmap_kernel_residual_v2_online_historical_benchmark_defaults_to_samples_8(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="round_heatmap_kernel_residual_v2",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_round_heatmap_kernel_residual_v2_online",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 8
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.artifact_path.exists()
+    for round_result in result.rounds:
+        assert round_result.samples_per_round == 8
+        for seed_result in round_result.seed_results:
+            assert seed_result.samples_per_round == 8
+
+
 def test_query_residual_rebuilds_dataset_when_legacy_cache_misses_rounds(
     sample_paths: RepoPaths,
 ) -> None:
