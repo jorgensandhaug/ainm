@@ -81,6 +81,12 @@
 - promotion update:
   - killed stale full run `dev_hazard_v3_k5_r3_l8_m35_coverage_online50_v1`
   - relaunched full 8-round promotion as `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
+- later `samples-per-round=4` hard-slice results:
+  - `hazard_posterior_v3_l8_m35 + coverage, s4`: `76.4107`, KL `0.092568`
+  - `hazard_posterior_v3_l8_m35 + exploration_v2, s4`: `75.0621`, KL `0.098891`
+  - conclusion:
+    - more synthetic transcript samples do not beat the current `l16/m50` mainline on the hard slice
+    - keep the full `l16/m50` promotion running; no need to switch to `s4`
 
 ### Session Continuation
 
