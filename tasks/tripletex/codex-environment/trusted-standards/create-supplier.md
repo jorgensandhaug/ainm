@@ -90,3 +90,4 @@
 - 2026-03-20: after adding `invoiceEmail` mirroring, production runs (`Silveroak Ltd`, `Northwave Ltd`, `Cascade SARL`) achieved perfect scores
 - 2026-03-21: Spanish prompt `Sierra SL` with `faktura@sierrasl.no` scored 6/6 (4/4 checks, correctness=1.0, normalized_score=2) using one POST with mirrored email — confirmed optimal path
 - 2026-03-21: French prompt `Rivière SARL` with `faktura@riviresarl.no` scored 6/6 (4/4 checks, correctness=1.0, normalized_score=2) using one POST with mirrored email — Unicode name preserved correctly; 5th consecutive perfect score on this standard
+- 2026-03-21: English prompt `Silveroak Ltd` / `889586605` with `faktura@silveroakltd.no` scored 6/6 (4/4 checks, correctness=1.0, normalized_score=2) using one POST with mirrored email — 6th consecutive perfect score on this standard
