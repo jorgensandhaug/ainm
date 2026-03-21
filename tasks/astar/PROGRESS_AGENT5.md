@@ -2506,3 +2506,40 @@
   - `greybox_stacked_w25` (weight=0.25)
   - `greybox_stacked_w35` (weight=0.35)
   - purpose: find optimal blend weight that preserves easy-round strength while keeping f1dac improvement
+
+### 2026-03-21T15:45:00Z
+
+- Fixed round weight computation bug in cellknn_perround
+- Result: cellknn_perround_v2 unchanged at 71.90 (round weighting wasn't the main issue)
+- Stacked weight sweep could not run via CLI (CLI uses fixed choice list, not prefix matching)
+- Added prefix matching for model names in interactive/model_eval/historical_benchmark
+- Running prior-only weight sweep via Python for weights {0.0, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60}
+
+- **Critical insight about f1dac**:
+  - Ground truth shows settlement prob = 0.002 (nearly zero)
+  - Compare: 36e581 has settlement prob = 0.131
+  - f1dac is an extremely hostile regime where virtually all settlements die
+  - The hazard teacher can't model "everything dies" because it focuses on WHERE things happen
+  - CellKNN naturally captures this because most training cells are empty/forest too
+
+- **Current best result summary** (full 8-round, exploration_r3):
+
+  | Model | Mean | f1dac | 36e581 | Range |
+  |-------|------|-------|--------|-------|
+  | hybrid_lowrank_queryres (CURRENT BEST) | **75.19** | 57.40 | **66.20** | 57-86 |
+  | stacked QR+CellKNN w50 | **75.12** | **66.95** | 64.20 | 64-83 |
+  | cellknn_perround | 71.90 | 64.82 | 60.57 | 60-79 |
+  | cellknn pooled | 63.50 | 57.09 | 56.87 | 57-73 |
+
+- The stacked model is the most promising direction because:
+  - Nearly tied on mean (75.12 vs 75.19)
+  - Dramatically better on hardest round (+9.55 on f1dac)
+  - Much tighter round-to-round spread (64-83 vs 57-86)
+  - Lower overall risk
+
+- **Next actions (ordered by expected impact)**:
+  1. Complete weight sweep to find optimal blend weight
+  2. Try adaptive blending (higher cellknn weight when regime looks hostile)
+  3. Add regime-hostility detection from transcript evidence
+  4. Build a direct model for hostile regimes
+  5. Push all results to remote
