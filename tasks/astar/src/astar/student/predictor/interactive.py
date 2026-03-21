@@ -32,6 +32,7 @@ SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001 = "smh_glmm_z0_h0_covbase_calnone_v001"
 SMH_GLMMBANK_ZHIST_H0_COVBASE_CALNONE_V001 = "smh_glmmbank_zhist_h0_covbase_calnone_v001"
 SMH_GLMMBANK_ZHIST_H0_COVBASE_CALOBS_V001 = "smh_glmmbank_zhist_h0_covbase_calobs_v001"
 SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z2_h0_covbase_calnone_v001"
+SMH_GLMMLATENT_Z2_H1_COVBASE_CALNONE_V001 = "smh_glmmlatent_z2_h1_covbase_calnone_v001"
 SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z4_h0_covbase_calnone_v001"
 SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z6_h0_covbase_calnone_v001"
 SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001 = "smh_glmmlatent_z2_h0_covprior_calnone_v001"
@@ -1605,6 +1606,19 @@ def build_online_predictor(
             checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
             model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
             fit_kwargs={"latent_dim": 2},
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H1_COVBASE_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H1_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H1_COVBASE_CALNONE_V001,
+            fit_kwargs={
+                "latent_dim": 2,
+                "memory_feature_names": ("occupied_recent", "ruin_recent", "port_recent"),
+                "memory_decay": 0.85,
+            },
         )
     if normalized == SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

@@ -20,6 +20,7 @@ from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.round import BaseRoundPredictor
 
 _TIME_FEATURE_NAMES = ("time_frac", "time_frac_sq", "time_remaining")
+_MEMORY_FEATURE_NAMES = ("occupied_recent", "ruin_recent", "port_recent")
 _EMPTY_VECTOR = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
 _MOUNTAIN_VECTOR = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
 
@@ -57,11 +58,31 @@ def _default_theta(current_class: int, feature_dim: int) -> np.ndarray:
     return theta
 
 
+def _memory_feature_stack_from_probs(
+    probs: np.ndarray,
+    memory_feature_names: tuple[str, ...],
+) -> np.ndarray | None:
+    if not memory_feature_names:
+        return None
+    feature_arrays: list[np.ndarray] = []
+    for feature_name in memory_feature_names:
+        if feature_name == "occupied_recent":
+            feature_arrays.append(probs[..., 1] + probs[..., 2])
+        elif feature_name == "ruin_recent":
+            feature_arrays.append(probs[..., 3])
+        elif feature_name == "port_recent":
+            feature_arrays.append(probs[..., 2])
+        else:
+            raise ValueError(f"unsupported memory feature name: {feature_name}")
+    return np.stack(feature_arrays, axis=-1).astype(np.float64, copy=False)
+
+
 def _load_part_rows(
     part_path: Path,
     *,
     current_class: int,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
     max_steps: int,
 ) -> tuple[np.ndarray, np.ndarray] | None:
     columns = [
@@ -69,6 +90,7 @@ def _load_part_rows(
         "current_class",
         *[f"next_count_{class_index}" for class_index in range(CLASS_COUNT)],
         *static_feature_names,
+        *memory_feature_names,
     ]
     frame = (
         pl.scan_parquet(part_path)
@@ -79,8 +101,13 @@ def _load_part_rows(
     if frame.height == 0:
         return None
     static_matrix = frame.select(list(static_feature_names)).to_numpy().astype(np.float64, copy=False)
+    memory_matrix = (
+        frame.select(list(memory_feature_names)).to_numpy().astype(np.float64, copy=False)
+        if memory_feature_names
+        else np.zeros((frame.height, 0), dtype=np.float64)
+    )
     time_matrix = _time_features(frame["step"].to_numpy(), max_steps)
-    design = np.concatenate([static_matrix, time_matrix], axis=1)
+    design = np.concatenate([static_matrix, memory_matrix, time_matrix], axis=1)
     counts = frame.select(
         [f"next_count_{class_index}" for class_index in range(CLASS_COUNT)],
     ).to_numpy().astype(np.float64, copy=False)
@@ -92,6 +119,7 @@ def _class_marginal_counts(
     *,
     current_class: int,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
 ) -> np.ndarray:
     counts = np.zeros(CLASS_COUNT, dtype=np.float64)
     for part_path, max_steps in part_records:
@@ -99,6 +127,7 @@ def _class_marginal_counts(
             part_path,
             current_class=current_class,
             static_feature_names=static_feature_names,
+            memory_feature_names=memory_feature_names,
             max_steps=max_steps,
         )
         if matrices is None:
@@ -135,17 +164,19 @@ def _fit_softmax_branch(
     *,
     current_class: int,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
     ridge_lambda: float,
     learning_rate: float,
     max_epochs: int,
 ) -> np.ndarray:
-    feature_dim = len(static_feature_names) + len(_TIME_FEATURE_NAMES)
+    feature_dim = len(static_feature_names) + len(memory_feature_names) + len(_TIME_FEATURE_NAMES)
     if current_class == 5:
         return _default_theta(current_class, feature_dim)
     marginal_counts = _class_marginal_counts(
         part_records,
         current_class=current_class,
         static_feature_names=static_feature_names,
+        memory_feature_names=memory_feature_names,
     )
     if float(np.sum(marginal_counts)) <= 0.0:
         return _default_theta(current_class, feature_dim)
@@ -165,6 +196,7 @@ def _fit_softmax_branch(
                 part_path,
                 current_class=current_class,
                 static_feature_names=static_feature_names,
+                memory_feature_names=memory_feature_names,
                 max_steps=max_steps,
             )
             if matrices is None:
@@ -218,23 +250,43 @@ def _apply_hard_constraints(probs: np.ndarray, initial_grid: np.ndarray) -> np.n
 
 def _transition_probs_for_class(
     static_feature_stack: np.ndarray,
+    memory_feature_stack: np.ndarray | None,
     weight_bank: np.ndarray,
     *,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
     current_class: int,
     step: int,
     rollout_steps: int,
 ) -> np.ndarray:
     theta = np.asarray(weight_bank[current_class], dtype=np.float64)
+    spatial_shape = static_feature_stack.shape[:2]
+    logits = np.broadcast_to(
+        theta[0],
+        spatial_shape + (CLASS_COUNT,),
+    ).astype(np.float64, copy=True)
+    offset = 1
     static_dim = len(static_feature_names)
-    logits = theta[0][None, None, :] + np.tensordot(
-        static_feature_stack,
-        theta[1 : 1 + static_dim],
-        axes=(2, 0),
-    )
+    if static_dim > 0:
+        logits += np.tensordot(
+            static_feature_stack,
+            theta[offset : offset + static_dim],
+            axes=(2, 0),
+        )
+        offset += static_dim
+    memory_dim = len(memory_feature_names)
+    if memory_dim > 0:
+        if memory_feature_stack is None:
+            raise ValueError("memory feature stack is required when memory features are configured")
+        logits += np.tensordot(
+            memory_feature_stack,
+            theta[offset : offset + memory_dim],
+            axes=(2, 0),
+        )
+        offset += memory_dim
     time_values = _time_features(step, rollout_steps)
     for time_index, value in enumerate(np.asarray(time_values, dtype=np.float64)):
-        logits += value * theta[1 + static_dim + time_index][None, None, :]
+        logits += value * theta[offset + time_index][None, None, :]
     return _softmax(logits)
 
 
@@ -243,6 +295,8 @@ def _rollout_seed_prediction(
     *,
     weight_bank: np.ndarray,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
+    memory_decay: float,
     rollout_steps: int,
     prediction_floor: float,
 ) -> np.ndarray:
@@ -251,19 +305,26 @@ def _rollout_seed_prediction(
     current_probs = np.eye(CLASS_COUNT, dtype=np.float64)[collapsed]
     current_probs = _apply_hard_constraints(current_probs, initial_grid)
     static_stack = _static_feature_stack(initial_state, static_feature_names)
+    memory_stack = _memory_feature_stack_from_probs(current_probs, memory_feature_names)
     for step in range(rollout_steps):
         next_probs = np.zeros_like(current_probs)
         for current_class in range(CLASS_COUNT):
             transition_probs = _transition_probs_for_class(
                 static_stack,
+                memory_stack,
                 weight_bank,
                 static_feature_names=static_feature_names,
+                memory_feature_names=memory_feature_names,
                 current_class=current_class,
                 step=step,
                 rollout_steps=rollout_steps,
             )
             next_probs += current_probs[..., current_class : current_class + 1] * transition_probs
         current_probs = _apply_hard_constraints(next_probs, initial_grid)
+        if memory_stack is not None:
+            current_memory = _memory_feature_stack_from_probs(current_probs, memory_feature_names)
+            assert current_memory is not None
+            memory_stack = (memory_decay * memory_stack) + ((1.0 - memory_decay) * current_memory)
     return _apply_probability_floor(current_probs, prediction_floor)
 
 
@@ -275,6 +336,8 @@ class SemhGlmmPredictorCheckpoint(BaseModel):
     checkpoint_npz_path: str
     round_ids: list[str]
     static_feature_names: list[str]
+    memory_feature_names: list[str] = Field(default_factory=list)
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(ge=1)
     ridge_lambda: float = Field(ge=0.0)
     learning_rate: float = Field(gt=0.0)
@@ -290,6 +353,8 @@ class SemhGlmmBankPredictorCheckpoint(BaseModel):
     checkpoint_npz_path: str
     round_ids: list[str]
     static_feature_names: list[str]
+    memory_feature_names: list[str] = Field(default_factory=list)
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(ge=1)
     ridge_lambda: float = Field(ge=0.0)
     learning_rate: float = Field(gt=0.0)
@@ -305,6 +370,8 @@ class SemhGlmmLatentPredictorCheckpoint(BaseModel):
     checkpoint_npz_path: str
     round_ids: list[str]
     static_feature_names: list[str]
+    memory_feature_names: list[str] = Field(default_factory=list)
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(ge=1)
     ridge_lambda: float = Field(ge=0.0)
     learning_rate: float = Field(gt=0.0)
@@ -320,6 +387,7 @@ def _fit_round_weight_bank(
     part_records: list[tuple[Path, int]],
     *,
     static_feature_names: tuple[str, ...],
+    memory_feature_names: tuple[str, ...],
     ridge_lambda: float,
     learning_rate: float,
     max_epochs: int,
@@ -330,6 +398,7 @@ def _fit_round_weight_bank(
                 part_records,
                 current_class=current_class,
                 static_feature_names=static_feature_names,
+                memory_feature_names=memory_feature_names,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -345,6 +414,8 @@ def _fit_candidate_weight_banks(
     *,
     round_ids: list[str] | None,
     dataset_name: str,
+    memory_feature_names: tuple[str, ...],
+    memory_decay: float,
     ridge_lambda: float,
     learning_rate: float,
     max_epochs: int,
@@ -358,6 +429,8 @@ def _fit_candidate_weight_banks(
         paths,
         round_ids=selected_round_ids,
         dataset_name=dataset_name,
+        include_memory_features=bool(memory_feature_names),
+        memory_decay=memory_decay,
     )
     if dataset.index_path is None:
         raise ValueError("smh glmm predictors require a transition dataset index")
@@ -385,6 +458,7 @@ def _fit_candidate_weight_banks(
             _fit_round_weight_bank(
                 part_records_by_round[round_id],
                 static_feature_names=static_feature_names,
+                memory_feature_names=memory_feature_names,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -510,9 +584,11 @@ class SemhGlmmPredictor(BaseRoundPredictor):
     dataset_name: str
     round_ids: tuple[str, ...]
     static_feature_names: tuple[str, ...]
+    memory_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(default=50, ge=1)
     ridge_lambda: float = Field(default=1e-3, ge=0.0)
     learning_rate: float = Field(default=0.1, gt=0.0)
@@ -527,6 +603,8 @@ class SemhGlmmPredictor(BaseRoundPredictor):
         round_ids: list[str] | None,
         model_name: str,
         dataset_name: str,
+        memory_feature_names: tuple[str, ...] = (),
+        memory_decay: float = 0.85,
         ridge_lambda: float = 1e-3,
         learning_rate: float = 0.1,
         max_epochs: int = 18,
@@ -537,6 +615,8 @@ class SemhGlmmPredictor(BaseRoundPredictor):
                 paths,
                 round_ids=round_ids,
                 dataset_name=dataset_name,
+                memory_feature_names=memory_feature_names,
+                memory_decay=memory_decay,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -550,7 +630,9 @@ class SemhGlmmPredictor(BaseRoundPredictor):
             dataset_name=dataset_name,
             round_ids=tuple(selected_round_ids),
             static_feature_names=static_feature_names,
+            memory_feature_names=tuple(memory_feature_names),
             weight_bank=weight_bank,
+            memory_decay=memory_decay,
             rollout_steps=rollout_steps,
             ridge_lambda=ridge_lambda,
             learning_rate=learning_rate,
@@ -565,6 +647,8 @@ class SemhGlmmPredictor(BaseRoundPredictor):
             checkpoint_npz_path=str(checkpoint_npz_path),
             round_ids=list(self.round_ids),
             static_feature_names=list(self.static_feature_names),
+            memory_feature_names=list(self.memory_feature_names),
+            memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             ridge_lambda=self.ridge_lambda,
             learning_rate=self.learning_rate,
@@ -595,7 +679,9 @@ class SemhGlmmPredictor(BaseRoundPredictor):
             dataset_name=checkpoint.dataset_name,
             round_ids=tuple(checkpoint.round_ids),
             static_feature_names=tuple(checkpoint.static_feature_names),
+            memory_feature_names=tuple(checkpoint.memory_feature_names),
             weight_bank=np.asarray(arrays["weight_bank"], dtype=np.float64),
+            memory_decay=checkpoint.memory_decay,
             rollout_steps=checkpoint.rollout_steps,
             ridge_lambda=checkpoint.ridge_lambda,
             learning_rate=checkpoint.learning_rate,
@@ -608,6 +694,8 @@ class SemhGlmmPredictor(BaseRoundPredictor):
             initial_state,
             weight_bank=self.weight_bank,
             static_feature_names=self.static_feature_names,
+            memory_feature_names=self.memory_feature_names,
+            memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             prediction_floor=self.prediction_floor,
         )
@@ -647,9 +735,11 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
     dataset_name: str
     round_ids: tuple[str, ...]
     static_feature_names: tuple[str, ...]
+    memory_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     candidate_weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(default=50, ge=1)
     ridge_lambda: float = Field(default=1e-3, ge=0.0)
     learning_rate: float = Field(default=0.1, gt=0.0)
@@ -665,6 +755,8 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
         round_ids: list[str] | None,
         model_name: str,
         dataset_name: str,
+        memory_feature_names: tuple[str, ...] = (),
+        memory_decay: float = 0.85,
         ridge_lambda: float = 1e-3,
         learning_rate: float = 0.1,
         max_epochs: int = 18,
@@ -675,6 +767,8 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
                 paths,
                 round_ids=round_ids,
                 dataset_name=dataset_name,
+                memory_feature_names=memory_feature_names,
+                memory_decay=memory_decay,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -685,7 +779,9 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
             dataset_name=dataset_name,
             round_ids=tuple(candidate_round_ids),
             static_feature_names=static_feature_names,
+            memory_feature_names=tuple(memory_feature_names),
             candidate_weight_bank=candidate_weight_bank,
+            memory_decay=memory_decay,
             rollout_steps=rollout_steps,
             ridge_lambda=ridge_lambda,
             learning_rate=learning_rate,
@@ -700,6 +796,8 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
             checkpoint_npz_path=str(checkpoint_npz_path),
             round_ids=list(self.round_ids),
             static_feature_names=list(self.static_feature_names),
+            memory_feature_names=list(self.memory_feature_names),
+            memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             ridge_lambda=self.ridge_lambda,
             learning_rate=self.learning_rate,
@@ -730,7 +828,9 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
             dataset_name=checkpoint.dataset_name,
             round_ids=tuple(checkpoint.round_ids),
             static_feature_names=tuple(checkpoint.static_feature_names),
+            memory_feature_names=tuple(checkpoint.memory_feature_names),
             candidate_weight_bank=np.asarray(arrays["candidate_weight_bank"], dtype=np.float64),
+            memory_decay=checkpoint.memory_decay,
             rollout_steps=checkpoint.rollout_steps,
             ridge_lambda=checkpoint.ridge_lambda,
             learning_rate=checkpoint.learning_rate,
@@ -750,6 +850,8 @@ class SemhGlmmBankPredictor(BaseRoundPredictor):
                             initial_state,
                             weight_bank=np.asarray(candidate_weight_bank, dtype=np.float64),
                             static_feature_names=self.static_feature_names,
+                            memory_feature_names=self.memory_feature_names,
+                            memory_decay=self.memory_decay,
                             rollout_steps=self.rollout_steps,
                             prediction_floor=self.prediction_floor,
                         )
@@ -851,6 +953,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
     dataset_name: str
     round_ids: tuple[str, ...]
     static_feature_names: tuple[str, ...]
+    memory_feature_names: tuple[str, ...] = Field(default_factory=tuple)
     mean_weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
@@ -859,6 +962,7 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
     candidate_weight_bank: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, CLASS_COUNT, 1, CLASS_COUNT), dtype=np.float64),
     )
+    memory_decay: float = Field(default=0.85, ge=0.0, le=1.0)
     rollout_steps: int = Field(default=50, ge=1)
     ridge_lambda: float = Field(default=1e-3, ge=0.0)
     learning_rate: float = Field(default=0.1, gt=0.0)
@@ -882,6 +986,8 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
         round_ids: list[str] | None,
         model_name: str,
         dataset_name: str,
+        memory_feature_names: tuple[str, ...] = (),
+        memory_decay: float = 0.85,
         ridge_lambda: float = 1e-3,
         learning_rate: float = 0.1,
         max_epochs: int = 18,
@@ -895,6 +1001,8 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
                 paths,
                 round_ids=round_ids,
                 dataset_name=dataset_name,
+                memory_feature_names=memory_feature_names,
+                memory_decay=memory_decay,
                 ridge_lambda=ridge_lambda,
                 learning_rate=learning_rate,
                 max_epochs=max_epochs,
@@ -925,10 +1033,12 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             dataset_name=dataset_name,
             round_ids=tuple(candidate_round_ids),
             static_feature_names=static_feature_names,
+            memory_feature_names=tuple(memory_feature_names),
             mean_weight_bank=mean_weight_bank.astype(np.float64),
             latent_basis=latent_basis.astype(np.float64),
             candidate_round_latents=candidate_round_latents.astype(np.float64),
             candidate_weight_bank=reconstructed_weight_bank.astype(np.float64),
+            memory_decay=memory_decay,
             rollout_steps=rollout_steps,
             ridge_lambda=ridge_lambda,
             learning_rate=learning_rate,
@@ -951,6 +1061,8 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             checkpoint_npz_path=str(checkpoint_npz_path),
             round_ids=list(self.round_ids),
             static_feature_names=list(self.static_feature_names),
+            memory_feature_names=list(self.memory_feature_names),
+            memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             ridge_lambda=self.ridge_lambda,
             learning_rate=self.learning_rate,
@@ -992,10 +1104,12 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             dataset_name=checkpoint.dataset_name,
             round_ids=tuple(checkpoint.round_ids),
             static_feature_names=tuple(checkpoint.static_feature_names),
+            memory_feature_names=tuple(checkpoint.memory_feature_names),
             mean_weight_bank=np.asarray(arrays["mean_weight_bank"], dtype=np.float64),
             latent_basis=np.asarray(arrays["latent_basis"], dtype=np.float64),
             candidate_round_latents=np.asarray(arrays["candidate_round_latents"], dtype=np.float64),
             candidate_weight_bank=np.asarray(arrays["candidate_weight_bank"], dtype=np.float64),
+            memory_decay=checkpoint.memory_decay,
             rollout_steps=checkpoint.rollout_steps,
             ridge_lambda=checkpoint.ridge_lambda,
             learning_rate=checkpoint.learning_rate,
@@ -1042,6 +1156,8 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
                             initial_state,
                             weight_bank=np.asarray(weight_bank, dtype=np.float64),
                             static_feature_names=self.static_feature_names,
+                            memory_feature_names=self.memory_feature_names,
+                            memory_decay=self.memory_decay,
                             rollout_steps=self.rollout_steps,
                             prediction_floor=self.prediction_floor,
                         )
@@ -1126,6 +1242,8 @@ class SemhGlmmLatentPredictor(BaseRoundPredictor):
             initial_state,
             weight_bank=weight_bank,
             static_feature_names=self.static_feature_names,
+            memory_feature_names=self.memory_feature_names,
+            memory_decay=self.memory_decay,
             rollout_steps=self.rollout_steps,
             prediction_floor=self.prediction_floor,
         )

@@ -1863,3 +1863,48 @@
     - `59 passed`
   - `uv run --extra dev pytest tests/test_online_episode.py -q`
     - `1 passed`
+
+### 2026-03-21T15:57:48Z
+
+- Resumed from the `z2 h0` win with the next handoff-mandated axis:
+  - hidden memory / Markov sufficiency test
+  - target model family member: `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+- Re-read `instructions/agent2.md` and verified the relevant path in Part B:
+  - after tiny low-rank round latent works, test small hidden memory before spending more time on larger latent dimension or policy
+  - this matches the observed remaining failure concentration on `36e581f1...`
+- Checked machine state before launching heavier work:
+  - load average: `24.77 / 49.42 / 62.31`
+  - available RAM: about `2.0 TiB`
+  - implication:
+    - enough headroom for parallel benchmarks later, but start with one serious gate until the new branch is correct
+- Implemented the first `h1` branch plumbing:
+  - replay transition dataset can now optionally emit collapsed-state EMA memory covariates:
+    - `occupied_recent`
+    - `ruin_recent`
+    - `port_recent`
+  - added dataset metadata/version checks for:
+    - `include_memory_features`
+    - `memory_decay`
+  - threaded memory features through the full GLMM family:
+    - pooled `smh_glmm`
+    - candidate-bank `smh_glmmbank`
+    - latent-manifold `smh_glmmlatent`
+  - added backward-compatible checkpoint fields:
+    - `memory_feature_names`
+    - `memory_decay`
+  - registered new benchmarkable model:
+    - `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+- Smoke testing exposed a real GLMM bug unrelated to the new memory idea:
+  - `_transition_probs_for_class(...)` initialized intercept logits with an in-place broadcast that is invalid
+  - fixed by explicitly materializing the broadcasted spatial intercept tensor
+  - this bug affects the whole GLMM family, so fixing it before promotion was mandatory
+- Validation after the memory wiring + broadcast fix:
+  - `python3 -m py_compile src/astar/student/predictor/smh_glmm.py src/astar/history/datasets/cell_transition.py`
+    - passed
+  - `python3 -m py_compile src/astar/student/predictor/interactive.py src/astar/student/predictor/smh_glmm.py src/astar/history/datasets/cell_transition.py src/astar/cli.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_glmmlatent_z2_h1_covbase_calnone_v001 or smh_glmmlatent_z2_h0_covbase_calnone_v001' -q`
+    - `2 passed`
+- Next action from here:
+  - run the serious 6-round gate for `smh_glmmlatent_z2_h1_covbase_calnone_v001`
+  - only promote to full 8-round if it clears the incumbent `z2 h0` serious baseline `72.8255 / 0.116068`
