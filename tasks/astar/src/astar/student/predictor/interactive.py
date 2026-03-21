@@ -26,6 +26,7 @@ from astar.student.predictor.smh_glmm import (
     SemhGlmmLatentPredictor,
     SemhGlmmPredictor,
 )
+from astar.student.predictor.cellwise_gbt import CellwiseGBTPredictor
 from astar.student.predictor.direct_terminal import DirectTerminalPredictor
 from astar.student.predictor.smh_student import SemhResidualStudentPredictor
 
@@ -71,6 +72,9 @@ DIRECT_TERMINAL_Z2_V004 = "direct_terminal_z2_v004"  # lower floor
 GLMM_DT_ENSEMBLE_V008 = "glmm_dt_ensemble_v008"  # 50% DT with lower floor
 GLMM_DT_ENSEMBLE_V009 = "glmm_dt_ensemble_v009"  # 40% DT with lower floor
 GLMM_DT_LOWFLOOR_V001 = "glmm_dt_lowfloor_v001"  # GLMM also gets lower floor
+CELLWISE_GBT_V001 = "cellwise_gbt_v001"
+CELLWISE_GBT_V002 = "cellwise_gbt_v002"
+CELLWISE_GBT_V003 = "cellwise_gbt_v003"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1965,6 +1969,23 @@ def build_online_predictor(
                 name=normalized,
             ),
             name=normalized,
+        )
+    if normalized in (CELLWISE_GBT_V001, CELLWISE_GBT_V002, CELLWISE_GBT_V003):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        gbt_params = {
+            CELLWISE_GBT_V001: {"n_estimators": 800, "max_depth": 8, "learning_rate": 0.01},
+            CELLWISE_GBT_V002: {"n_estimators": 1200, "max_depth": 8, "learning_rate": 0.01},
+            CELLWISE_GBT_V003: {"n_estimators": 800, "max_depth": 6, "learning_rate": 0.02},
+        }[normalized]
+        predictor = CellwiseGBTPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            model_name=normalized,
+            **gbt_params,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
         )
     if normalized == DIRECT_TERMINAL_Z2_V004:
         workspace_paths = paths or WorkspacePaths.from_root(".")
