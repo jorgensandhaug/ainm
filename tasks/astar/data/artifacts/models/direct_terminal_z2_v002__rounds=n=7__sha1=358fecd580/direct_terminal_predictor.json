@@ -1,0 +1,42 @@
+{
+  "name": "direct_terminal_z2_v002",
+  "checkpoint_npz_path": "/home/jorge/agent2/tasks/astar/data/artifacts/models/direct_terminal_z2_v002__rounds=n=7__sha1=358fecd580/direct_terminal_predictor.npz",
+  "round_ids": [
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb"
+  ],
+  "feature_names": [
+    "buildable",
+    "land",
+    "coast",
+    "coast_distance",
+    "land_distance_to_settlement",
+    "sea_distance_to_port",
+    "forest_density",
+    "mountain_density",
+    "settlement_basin_gap",
+    "frontier_score",
+    "settlement_proximity",
+    "coastal_exposure",
+    "maritime_access",
+    "initial_forest",
+    "initial_mountain",
+    "initial_ocean",
+    "nbr1_empty",
+    "nbr1_occupied",
+    "nbr1_forest",
+    "nbr2_empty",
+    "nbr2_occupied",
+    "nbr2_forest",
+    "coast_x_proximity",
+    "buildable_x_proximity",
+    "coast_x_nbr_occupied"
+  ],
+  "ridge_lambda": 0.001,
+  "prediction_floor": 0.0005
+}
