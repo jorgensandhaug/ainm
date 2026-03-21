@@ -3705,6 +3705,28 @@
      - `2 passed`
    - extra check:
      - `uv run python -m py_compile src/astar/student/predictor/evidence_field.py tests/test_teacher_student.py tests/test_historical_benchmark.py`
+420. Committed and pushed the global-state evidence-field branch:
+   - commit:
+     - `c8de0c45`
+   - message:
+     - `agent3: add global-state evidence fields`
+421. Global-state corrected-gate wave launched from commit `c8de0c45`:
+   - pre-launch memory gate:
+     - `available_gib=1785`
+   - old `v7-v10` `tmux` sessions were killed before relaunch
+   - new `tmux` sessions:
+     - `agent3_evidence_v11_gate`
+     - `agent3_evidence_v12_gate`
+     - `agent3_evidence_v13_gate`
+     - `agent3_evidence_v14_gate`
+   - commands:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v11 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v11_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v12 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v12_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v13 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v13_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v14 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v14_targeted_holdout_2rounds_corrected --jobs 1`
+422. Short first poll after item 421:
+   - `v11-v14` were still pending
+   - no result artifact had landed yet at the first poll
 
 
 ## Open Questions
