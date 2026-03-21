@@ -17,7 +17,7 @@ Do not use for:
 
 ## Critical Timing Rule
 
-The task has a hard 300s budget. **Two production runs have scored 0 due to timeout** — agents spent all 300s reading docs and never executed a script. Do not read AGENTS.md, openapi.json, or additional playbook files once the trusted standard is loaded. Read the trusted standard, parse the CSV, write one comprehensive TypeScript script, and execute immediately. The entire API interaction takes ~15s; the remaining 285s is wasted if spent on documentation exploration.
+The task has a hard 300s budget. **Three production runs have scored 0 due to timeout** — agents spent all 300s reading docs (bc688ea1), or the LLM took too long generating output after reading extra files (2f10e207). Do not read AGENTS.md, openapi.json, or additional playbook files once the trusted standard is loaded. Read the trusted standard, parse the CSV, write one comprehensive TypeScript script, and execute immediately. The actual API interaction takes ~4s; the remaining 296s is wasted if spent on documentation exploration or slow LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 
 ## Production Run Results (2026-03-21)
 
@@ -45,10 +45,17 @@ The task has a hard 300s budget. **Two production runs have scored 0 due to time
 ### Earlier Nynorsk run 1 (task 23, 13 calls, 0 errors)
 - same shape but 3 separate supplier vouchers instead of 1 combined → wasted 2 calls
 
+### Nynorsk run 3 (2f10e207, 11 calls, 0 errors) — SCORED 0/1 (endpoint_unreachable, proxy timeout)
+- 5 reads in parallel, 5 customer payments (4 full + 1 partial: Aasen AS 6500 of 13000), 3 supplier + 2 Renteinntekter Ut combined into 1 voucher (10 postings)
+- CSV had 2 "Renteinntekter" lines in the Ut column (outgoing: -1282.21 and -1910.48) — booked to 8050 with reversed direction (debit 8050, credit 1920)
+- API execution completed in 4 seconds, but LLM output generation took 4.5 minutes; proxy expired before scorer could verify
+- Agent wasted time reading AGENTS.md (200 lines) in addition to the trusted standard — unnecessary for exact match
+- **Lesson**: for exact trusted-standard matches, read ONLY the trusted standard file, then write and execute. Skip AGENTS.md, Glob searches, and all other documentation reads.
+
 ### Spanish run (bc688ea1, 0 calls, timed out) — SCORED 0/1
 - Agent spent all 300s reading documentation (AGENTS.md, trusted standard, openapi.json) and never wrote or executed a script
 - CSV had 5 customer payments, 3 supplier payments, 1 Bankgebyr (-1083.95), 1 Skattetrekk Inn (+1269.93), 1 Skattetrekk Ut (-600.07)
-- This is the second timeout failure for this task shape; the correct approach takes ~15s to execute
+- This is the third timeout failure for this task shape; the correct approach takes ~4–15s to execute
 - **Lesson**: read ONLY the trusted standard, then immediately execute — do not read additional documentation files
 
 ### Earlier English run (task 23, score 0/0)
@@ -192,13 +199,14 @@ Book each non-invoice line with 2 postings (bank + contra account):
 | Line type | Direction | Bank 1920 | Contra account |
 |---|---|---|---|
 | Renteinntekter (interest income) | Inn (+) | debit | credit 8050 |
+| Renteinntekter (negative interest / reversal) | Ut (-) | credit | debit 8050 |
 | Bankgebyr (bank fee) | Ut (-) | credit | debit 7770 |
 | Bankgebyr (fee refund) | Inn (+) | debit | credit 7770 |
 | Skattetrekk (tax withholding) | Ut (-) | credit | debit 2600 |
 | Skattetrekk (tax refund) | Inn (+) | debit | credit 2600 |
 
 Add these postings to the combined supplier voucher (no extra API calls needed).
-Sandbox-verified: voucher #426 with Bankgebyr, Skattetrekk Inn (+), and Skattetrekk Ut (-) booked successfully. Earlier voucher #349 verified Renteinntekter + Bankgebyr + Skattetrekk.
+Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successfully. Earlier voucher #426 verified Bankgebyr/7770 + Skattetrekk Inn/Ut/2600. Voucher #349 verified Renteinntekter Inn/8050 + Bankgebyr/7770 + Skattetrekk/2600.
 
 ## `/ledger/posting/openPost` Parameter Notes
 - requires `date` parameter (NOT `dateFrom`/`dateTo`)

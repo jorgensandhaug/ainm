@@ -70,6 +70,7 @@ Combine non-invoice postings into the same supplier voucher (if one exists) OR c
 | Line type | Direction | Bank side (1920) | Contra account | Contra acct # |
 |---|---|---|---|---|
 | Renteinntekter (interest income) | Inn (+) | debit (positive) | credit 8050 "Annen renteinntekt" | 8050 |
+| Renteinntekter (negative interest / reversal) | Ut (-) | credit (negative) | debit 8050 "Annen renteinntekt" | 8050 |
 | Bankgebyr (bank fee expense) | Ut (-) | credit (negative) | debit 7770 "Bank og kortgebyrer" | 7770 |
 | Bankgebyr (fee refund) | Inn (+) | debit (positive) | credit 7770 "Bank og kortgebyrer" | 7770 |
 | Skattetrekk (tax withholding) | Ut (-) | credit (negative) | debit 2600 "Forskuddstrekk" | 2600 |
@@ -88,9 +89,15 @@ For each non-invoice line, add 2 postings:
 // Example: Skattetrekk 1269.93 (Inn column, positive/incoming refund)
 { row: N+4, date: "<date>", description: "Skattetrekk",    account: { id: <1920_id> }, amount: 1269.93,  amountCurrency: 1269.93,  amountGross: 1269.93,  amountGrossCurrency: 1269.93  },
 { row: N+5, date: "<date>", description: "Skattetrekk",    account: { id: <2600_id> }, amount: -1269.93, amountCurrency: -1269.93, amountGross: -1269.93, amountGrossCurrency: -1269.93 },
+
+// Example: Renteinntekter 1282.21 (Ut column, negative/outgoing — negative interest or reversal)
+{ row: N+6, date: "<date>", description: "Renteinntekter", account: { id: <8050_id> }, amount: 1282.21,  amountCurrency: 1282.21,  amountGross: 1282.21,  amountGrossCurrency: 1282.21  },
+{ row: N+7, date: "<date>", description: "Renteinntekter", account: { id: <1920_id> }, amount: -1282.21, amountCurrency: -1282.21, amountGross: -1282.21, amountGrossCurrency: -1282.21 },
 ```
 
-Sandbox-verified on 2026-03-21: voucher #426 with Bankgebyr/7770, Skattetrekk Inn/2600, Skattetrekk Ut/2600 — all 12 postings booked successfully. Earlier voucher #349 verified Renteinntekter/8050 + Bankgebyr/7770 + Skattetrekk/2600.
+**Direction rule**: the keyword determines the account (Renteinntekter→8050, Bankgebyr→7770, Skattetrekk→2600). The column (Inn/Ut) determines only the sign. For Inn: bank 1920 is positive (debit), contra is negative (credit). For Ut: contra is positive (debit), bank 1920 is negative (credit).
+
+Sandbox-verified on 2026-03-21: voucher #609157175 with Renteinntekter Ut/8050 posted successfully. Earlier voucher #426 verified Bankgebyr/7770 + Skattetrekk Inn/Ut/2600. Voucher #349 verified Renteinntekter Inn/8050 + Bankgebyr/7770 + Skattetrekk/2600.
 
 ## Call count
 
@@ -103,12 +110,13 @@ Sandbox-verified on 2026-03-21: voucher #426 with Bankgebyr/7770, Skattetrekk In
 - English run 4: 11 calls, 0 errors, 5 customer (1 partial) + 3 supplier combined into 1 voucher
 - Nynorsk run 2 (c76bbef3): 11 calls, 0 errors, 5 customer (all full) + 3 supplier combined into 1 voucher — optimal
 - Portuguese run (d1297531): 11 calls, 0 errors, 5 customer (1 partial: Sousa Lda 5675 of 14187.50) + 3 supplier combined into 1 voucher — optimal
+- Nynorsk run 3 (2f10e207): 11 calls, 0 errors, 5 customer (1 partial: Aasen AS 6500 of 13000) + 3 supplier + 2 Renteinntekter Ut combined into 1 voucher (10 postings) — **scored 0/1 endpoint_unreachable** (proxy expired; LLM output took 4.5 min leaving <15s before 300s timeout; API execution itself was 4s)
 - Spanish run (bc688ea1): **0 calls, TIMED OUT** — agent spent all 300s reading documentation and never executed a script; scored 0/1
 - Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
 
 ## Critical pitfalls
 
-- **TIMEOUT RISK**: This is a time-critical task. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Multiple production runs (including bc688ea1) scored 0 because the agent spent the entire 300s reading documentation and never executed a single API call.
+- **TIMEOUT RISK**: This is the most timeout-prone task shape. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Three production runs scored 0 due to timeout: bc688ea1 (spent 300s reading docs, 0 API calls), 2f10e207 (LLM output took 4.5 min generating script, API executed in 4s but proxy expired), and one earlier run. The API execution takes ~4–15s; all remaining time is wasted on documentation or LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes `400`
 - For customer invoices use `amountCurrencyOutstanding` (both `amountOutstanding` and `amountCurrencyOutstanding` exist on `InvoiceDTO`; the latter is correct for foreign currency)
