@@ -7,7 +7,7 @@
 
 ## Exact Match
 - exactly one existing overdue outgoing customer invoice is implied by the prompt
-- prompt requires an exact manual reminder fee booking of `65` to ledger accounts `1500` and `3400`
+- prompt requires an exact manual reminder fee booking of the prompt-fixed amount to ledger accounts `1500` and `3400`
 - prompt also requires a separate outgoing fee invoice for the same customer and wants it sent
 - prompt also requires a partial payment of exactly `5000` on the overdue invoice
 - prompt does not give the overdue invoice id directly
@@ -15,7 +15,7 @@
 ## Do Not Use This Standard If
 - several overdue invoices remain after one decisive invoice read
 - the prompt explicitly says to use Tripletex reminder/remittance/debt-collection functionality instead of a manual fee booking
-- the prompt requires a different fee amount, different ledger accounts, or a different payment amount
+- the prompt requires different ledger accounts or a different payment amount
 - the located overdue invoice has outstanding amount below `5000`
 - the prompt requires a specific send-channel override for the fee invoice
 
@@ -45,14 +45,14 @@
   - `customer: { "id": ... }` on that `1500` posting
   - one negative posting on account `3400`
   - `currency: { "id": 1 }`
-  - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to `65` / `-65`
-- on the fee-invoice `POST /invoice`, create one direct order line for `65`
+  - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount
+- on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount
 - because the fee is exact no-VAT, still resolve and send the filtered outgoing `0%` VAT row on the line; do not rely on omission
 - do not use `/invoice/{id}/:createReminder` for this exact task shape:
   - the fee amount there is account-configured, not prompt-controlled
   - sandbox on `2026-03-21` required an explicit send type
   - sandbox rejected `type=REMINDER`
-  - sandbox accepted `type=SOFT_REMINDER&dispatchTypes=EMAIL` but charged `38`, not the prompt-required `65`
+  - sandbox accepted `type=SOFT_REMINDER&dispatchTypes=EMAIL` but charged `38`, not the prompt-required fee amount
 - on the partial-payment write, use the prompt-fixed `paidAmount=5000`, not the full outstanding amount
 - because the task already proves an existing charged outgoing invoice, do not add a proactive company-bank-account hedge before the fee-invoice write
 
@@ -64,11 +64,11 @@
   - customer id
 - from `POST /ledger/voucher`:
   - voucher id and number
-  - returned postings proving `1500` / `3400` and `65` / `-65`
+  - returned postings proving `1500` / `3400` and the prompt fee amount / negative prompt fee amount
 - from `POST /invoice`:
   - fee invoice id
   - fee invoice number
-  - `amountCurrency=65`
+  - `amountCurrency=<prompt-fee>`
 - from `PUT /invoice/{id}/:payment`:
   - remaining outstanding amount after the partial payment
 
@@ -78,8 +78,8 @@
   - voucher id and number
   - one `1500` posting with `customer.id`
   - one `3400` posting
-  - `65` / `-65`
-- trust the fee-invoice write response when it already proves `amountCurrency=65` and a new fee invoice number
+  - prompt fee amount / negative prompt fee amount
+- trust the fee-invoice write response when it already proves `amountCurrency=<prompt-fee>` and a new fee invoice number
 - trust the payment write response when it reduces outstanding by exactly `5000` from the locate-read amount
 
 ## Known Recovery Branches
@@ -97,8 +97,8 @@
 - persistent sandbox proof on `2026-03-21` first disproved the tempting reminder shortcut:
   - `PUT /invoice/{id}/:createReminder` without a send type failed `422 Minst én sendetype må oppgis.`
   - `PUT /invoice/{id}/:createReminder?type=REMINDER...` failed `422 type: Ugyldig verdi.`
-  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but created reminder charge `38`, not `65`
-  - that reminder branch therefore is not a correct exact-match replacement for prompt-controlled `65` reminder-fee tasks
+  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but created reminder charge `38`, not the prompt-controlled fee amount
+  - that reminder branch therefore is not a correct exact-match replacement for prompt-controlled reminder-fee tasks on `1500` / `3400`
 - persistent sandbox proof on `2026-03-21` then confirmed the manual exact-fee branch on disposable fixture customer `995205756` / invoice `180`:
   - one decisive overdue-invoice locate read found the fixture invoice with `amountCurrencyOutstanding=10000` and `invoiceDueDate=2026-03-01`
   - `GET /invoice/paymentType` returned usable incoming bank payment type `32813748`
@@ -106,4 +106,17 @@
   - `POST /ledger/voucher` succeeded with voucher `608897119` and returned the exact `1500` + customer debit posting for `65` plus the exact `3400` credit posting for `-65`
   - `POST /invoice` created fee invoice `181` with `amountCurrency=65`
   - `PUT /invoice/2147580713/:payment?paymentDate=2026-03-21&paymentTypeId=32813748&paidAmount=5000` reduced the overdue invoice outstanding from `10000` to `5000`
+- production re-proof on `2026-03-21` then confirmed the same exact `7`-call branch for German prompt amount `50` on a fresh account:
+  - locate read found overdue invoice `4` with `amountCurrencyOutstanding=33562.5`
+  - `GET /invoice/paymentType` returned production payment type `27178699`, not sandbox `32813748`
+  - `POST /ledger/voucher` booked `50` / `-50` on `1500` / `3400`
+  - `POST /invoice` created and sent fee invoice `5` with `amountCurrency=50`
+  - `PUT /invoice/2147546735/:payment?paymentDate=2026-03-21&paymentTypeId=27178699&paidAmount=5000` reduced outstanding to `28562.5`
+- persistent sandbox downstream re-proof on `2026-03-21` confirmed the same manual branch still works for prompt fee `50` after target identification:
+  - `POST /ledger/voucher` succeeded with voucher `95` for `50` / `-50`
+  - `POST /invoice` created/sent fee invoice `186` with `amountCurrency=50`
+  - `PUT /invoice/2147580577/:payment?...&paidAmount=5000` reduced outstanding from `10000` to `5000`
+- a tempting `6`-call omission shortcut remains unproven for production:
+  - persistent sandbox accepted unsent probe `POST /invoice?sendToCustomer=false` without `orderLines[].vatType` and created invoice `185` with `amountCurrency=50`
+  - the write response still exposed `orderLines[].vatType=null`, so that omission path is not yet strong enough to replace the explicit outgoing `0%` VAT read in the trusted standard
 - for the exact standalone task shape with no same-run cached ids, that downstream action path remains `7` Tripletex calls; no lower-call fully correct replacement was proven

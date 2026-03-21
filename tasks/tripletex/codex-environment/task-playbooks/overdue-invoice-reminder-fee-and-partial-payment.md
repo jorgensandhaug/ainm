@@ -28,19 +28,20 @@ Do not use for:
 - Persistent sandbox on `2026-03-21` showed:
   - `PUT /invoice/{id}/:createReminder` without send type failed `422 Minst én sendetype må oppgis.`
   - `PUT /invoice/{id}/:createReminder?type=REMINDER...` failed `422 type: Ugyldig verdi.`
-  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but charged `38`, not the prompt-required `65`
+  - `PUT /invoice/{id}/:createReminder?type=SOFT_REMINDER&dispatchTypes=EMAIL&includeCharge=true` succeeded but charged `38`, not the prompt-required exact fee amount
 - Therefore `/invoice/{id}/:createReminder` is not the exact-fee solution path for this task family unless the prompt explicitly wants the company-configured reminder charge rather than an exact manual amount
 - The exact-fee manual branch was re-proven in persistent sandbox on `2026-03-21` with disposable fixture customer `995205756` and overdue invoice `180`
 - `GET /ledger/account?number=1500,3400&fields=*` returned the requested `3400` row even though its sandbox display name was unrelated to reminder fees and `isInactive=true`
 - The later id-based voucher write still succeeded on that exact `3400` row, so do not second-guess explicit prompt account numbers by semantic account-name filtering
+- The same `7`-call production branch was re-confirmed on `2026-03-21` for a German prompt using exact fee amount `50`, so the fee literal is not the branch selector; the prompt-controlled amount is
 - The successful voucher payload needed:
   - `voucherType=null`
   - `account: { id }` refs, not `account.number`
   - `customer: { id }` on the `1500` posting
-  - balanced `65` and `-65` across `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency`
+  - balanced prompt-fee and negative prompt-fee values across `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency`
 - The fee invoice itself is an ordinary direct-line no-VAT customer invoice:
   - same customer id as the overdue invoice
-  - one `65` line
+  - one prompt-fee line
   - filtered outgoing `0%` `vatType.id`
   - default `sendToCustomer=true`
 - The payment write for this task family is not the ordinary full-payment rule from the standalone payment playbook
@@ -49,7 +50,9 @@ Do not use for:
   - prefer a `19xx` debit account
   - accept `name=null`
   - accept `creditAccount=null`
+- Production and sandbox payment-type ids differed (`27178699` vs `32813748`), so never hardcode or cargo-cult a prior id across environments
 - Because the account already contains an overdue outgoing invoice, a proactive company-bank-account hedge before the fee-invoice write is not part of the winning path
+- Persistent sandbox also accepted an unsent `POST /invoice` without `orderLines[].vatType` and created untaxed invoice `185` for `50`, but that write response left `orderLines[].vatType=null`; keep the explicit outgoing `0%` VAT read in the production playbook until a fresh-account production proof shows the omission path is safe
 
 ## Minimal Safe Flow
 
@@ -77,9 +80,9 @@ Do not use for:
 6. Post the manual exact-fee voucher
    - debit `1500` with `customer.id`
    - credit `3400`
-   - `65` / `-65`
+   - prompt fee amount / negative prompt fee amount
 7. Create and send the separate fee invoice
-   - one `65` direct order line
+   - one prompt-fee direct order line
    - resolved outgoing `0%` `vatType.id`
 8. Register the fixed partial payment
    - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=5000`
@@ -155,16 +158,17 @@ Fee invoice:
 ```
 
 Replace ids with the current account's resolved ids. The structure is the key: exact account ids on the voucher, exact customer id on the `1500` posting, and an explicit outgoing `0%` VAT row on the fee invoice.
+Replace the literal `65` values with the prompt's exact reminder-fee amount.
 
 ## Pitfalls
 
-- Do not use `/invoice/{id}/:createReminder` for exact `65` reminder-fee tasks
+- Do not use `/invoice/{id}/:createReminder` for exact prompt-fee reminder-fee tasks on `1500` / `3400`
 - Do not assume the reminder endpoint's configured charge equals the prompt amount; the sandbox charged `38`
 - Do not omit the reminder fee's separate manual voucher just because the prompt also asks for a fee invoice
 - Do not try to infer the explicit prompt account from the account name; in sandbox the required account `3400` had an unrelated name and `isInactive=true`, yet still worked when referenced by id
 - Do not use `account.number` directly on voucher postings; the id-based path is the trusted one
 - Do not omit `customer` on the `1500` voucher posting
-- Do not omit direct-line `vatType` on the fee invoice just because it is `0%`
+- Do not promote the sandbox-only omitted-`vatType` shortcut to production yet; the unsent probe invoice had `amountCurrency=50` but still returned `orderLines[].vatType=null`
 - Do not overpay the overdue invoice; for this task shape the payment amount comes from the prompt (`5000`), not from the live outstanding balance
 - Do not add a proactive `/ledger/account?isBankAccount=true` hedge before the fee invoice; the presence of an existing overdue outgoing invoice already weakens that branch enough that it is not the default winning path
 - Do not add a `GET /customer`; the overdue-invoice locate read already gives the needed `customer.id`
@@ -179,11 +183,11 @@ Replace ids with the current account's resolved ids. The structure is the key: e
   - outstanding amount before payment
 - voucher write proves:
   - exact `1500` / `3400` postings
-  - exact `65` / `-65`
+  - exact prompt fee amount / negative prompt fee amount
   - `customer.id` on the debit posting
 - fee-invoice write proves:
   - new invoice id and invoice number
-  - `amountCurrency=65`
+  - `amountCurrency=<prompt-fee>`
 - payment write proves:
   - remaining outstanding decreased by exactly `5000`
 
