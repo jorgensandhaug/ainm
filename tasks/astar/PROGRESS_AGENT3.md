@@ -4429,8 +4429,59 @@
      - no extra stacking beyond this bounded launch because the shared host still had large foreign jobs active
 
 
+481. Radical new approach: `obs_likelihood_mixture` family:
+   - 4 variants (v1-v4)
+   - approach: particle-filter-like weighting of historical round ground truths by observation likelihood
+   - **CATASTROPHIC FAILURE**: scored 3-17 on targeted holdout
+   - root cause: blending raw ground truth tensors across rounds with DIFFERENT map geometries is fundamentally broken
+   - lesson: ground truth tensors are map-specific; can't mix them across rounds
+
+482. Radical new approach: `coefficient_inverse` family:
+   - 4 variants (v1-v4)
+   - approach: solve inverse problem to estimate hazard teacher's 12-dim coefficient vector from viewport observations
+   - scores: v1=50.75, v2=52.69, v3=50.88, v4=53.98
+   - BELOW existing teacher_student_blend (~65) and far below query_residual (~77)
+   - root cause: inverse problem is too ill-conditioned with sparse stochastic viewport observations
+
+483. Radical new approach: `spatial_correction` family:
+   - 4 variants (v1-v4)
+   - approach: take query_residual_v19 as base, apply spatially-propagated observation corrections
+   - features: activity calibration from Gaussian-smoothed observation patterns, direct observed-cell correction, cross-seed consensus blending
+   - benchmarks launched, results pending
+
+484. Key per-round analysis of current best (query_residual_v19, 76.89 full LOO):
+   - best rounds: 8e8399 (84.43), 76909e (82.49), 71451d (80.15)
+   - worst rounds: 36e581 (66.58), f1dac9 (68.47)
+   - round f1dac9 is BARREN (mean build rate 0.0028, only 78 high-entropy cells) - model overpredicts activity
+   - round 36e581 is ACTIVE but UNPREDICTABLE (574 high-entropy cells) - model struggles with spatial distribution
+   - improving just these two rounds by ~5 points would push overall to ~79+
+
+485. Spatial correction results (targeted holdout, 2 hard rounds):
+   - v1 (sigma=3.0, strength=0.3): 64.56
+   - v2 (sigma=2.0, strength=0.5): 59.31
+   - v3 (sigma=4.0, strength=0.15): 67.02 (BEST initial)
+   - v4 (sigma=3.0, strength=0.4, no activity cal): 60.49
+   - INTERPRETATION: gentle correction (v3) works best, strong correction destroys
+   - v3 per-round: 36e581f1=61.83 (worse), f1dac9a9=72.21 (MUCH better)
+   - v3 dramatically helps barren round but hurts active round
+
+486. Refined spatial correction (v5-v8) based on v3's success:
+   - v5 (sigma=5.0, strength=0.08, radius=8.0): **67.38** (NEW near-best targeted)
+   - v6 (sigma=4.0, strength=0.10, radius=7.0): 67.36
+   - v7 (sigma=6.0, strength=0.12, radius=10.0): 67.23
+   - v8 (sigma=4.0, strength=0.15, radius=7.0, no cross-seed): 67.03
+   - KEY PATTERN: very gentle correction with wide sigma is optimal
+   - v5 is WITHIN 0.04 of query_residual_v21 targeted (67.42)!
+   - Full LOO launched for v5 to see if it beats v19 overall
+
+487. Summary of all new radical families (targeted holdout scores):
+   - obs_likelihood_mixture: 3-17 (catastrophic, fundamentally broken)
+   - coefficient_inverse: 50-54 (below baseline)
+   - spatial_correction: 59-67.4 (v5 competitive with best!)
+   - spatial_correction_v5 is the ONLY new family that approaches v19's territory
+
 ## Open Questions
 
-- Which benchmark/run currently best on local held-out rounds: `query_residual` vs `historical_bucket_prior`?
-- Where exactly are experiment ledgers stored today, if at all?
-- Is current validation strong enough for live performance selection, or should it be upgraded to better grouped/chronological round holdouts?
+- Will spatial_correction_v5 beat query_residual_v19 on full LOO?
+- Can the spatial correction be made even gentler to avoid hurting the active round?
+- Is there a fundamentally different approach that would help BOTH hard rounds simultaneously?
