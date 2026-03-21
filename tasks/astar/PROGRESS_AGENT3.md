@@ -4376,6 +4376,35 @@
      - only `4` variants live in this new wave
      - `jobs=1` each
      - no extra stacking beyond this bounded launch because the shared host still had large foreign jobs active
+477. New radical branch started while transcript + heatmap + settlement-state waves run:
+   - family:
+     - `round_multiview_factor_residual`
+   - hypothesis:
+     - each current radical family sees only one projection of live state and may miss cross-modal interactions
+     - ordered transcript state, heatmap evidence state, and settlement-graph state likely contain complementary residual signal that no single branch captures alone
+     - a fused round-state factor head could model cross-view regime structure without copying a single replay, and should be a materially different architecture from the pure transcript/heatmap/settlement branches
+   - objective:
+     - test a joint transcript + heatmap + settlement-state residual family on top of base `v59/v60`
+478. Implemented + validated `round_multiview_factor_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_multiview_factor_residual.py`
+   - reproducible models:
+     - `round_multiview_factor_residual`
+     - `round_multiview_factor_residual_v1`
+     - `round_multiview_factor_residual_v2`
+     - `round_multiview_factor_residual_v3`
+     - `round_multiview_factor_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, `max_queries=24`, rank `24`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, `max_queries=50`, rank `48`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - ordered transcript vector + heatmap evidence vector + settlement-graph vector -> fused multiview feature -> low-rank residual bundle -> apply jointly across all seeds on top of base `v59/v60`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_multiview_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_multiview_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_multiview_factor_residual_vector_concatenates_modalities tests/test_historical_benchmark.py::test_round_multiview_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

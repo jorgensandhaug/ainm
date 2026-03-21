@@ -1451,6 +1451,43 @@ def test_settlement_state_field_blend_variant_alias_resolves() -> None:
     assert spec.state_strength > 1.0
 
 
+def test_round_multiview_factor_residual_vector_concatenates_modalities(
+    sample_paths: RepoPaths,
+) -> None:
+    from astar.student.predictor.round_heatmap_factor_residual import _round_heatmap_vector
+    from astar.student.predictor.round_multiview_factor_residual import _round_multiview_vector
+    from astar.student.predictor.round_settlement_graph_factor_residual import (
+        _round_settlement_graph_vector,
+    )
+    from astar.student.predictor.round_transcript_residual_memory import _round_vector
+    from astar.observe.evidence import build_round_evidence_from_observations
+
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    round_detail = read_round_record(sample_paths, ROUND_ID).round
+    round_context = build_round_context_from_detail(round_detail)
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    assert round_episode.live_transcript is not None
+    observations = round_episode.live_transcript.observations
+    context = LiveInferenceContext(
+        online_episode=round_context_to_online_episode(round_context, tuple(observations)),
+        geometry_bundle=compute_round_features(round_detail),
+        evidence_bundle=build_round_evidence_from_observations(round_detail, tuple(observations)),
+    )
+
+    transcript = _round_vector(
+        round_context,
+        context.evidence_bundle,
+        context.geometry_bundle,
+        observations,
+        max_queries=24,
+    )
+    heatmap = _round_heatmap_vector(context.evidence_bundle)
+    settlement = _round_settlement_graph_vector(observations, context.geometry_bundle)
+    multiview = _round_multiview_vector(context, max_queries=24)
+
+    assert multiview.shape == (transcript.size + heatmap.size + settlement.size,)
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

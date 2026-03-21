@@ -77,6 +77,10 @@ from astar.student.predictor.round_settlement_graph_factor_residual import (
     is_round_settlement_graph_factor_residual_model_name,
     resolve_round_settlement_graph_factor_residual_samples_per_round,
 )
+from astar.student.predictor.round_multiview_factor_residual import (
+    is_round_multiview_factor_residual_model_name,
+    resolve_round_multiview_factor_residual_samples_per_round,
+)
 from astar.student.predictor.settlement_state_field_blend import (
     is_settlement_state_field_blend_model_name,
     resolve_settlement_state_field_blend_samples_per_round,
@@ -294,6 +298,10 @@ def run_historical_benchmark(
         raise ValueError(
             "round_settlement_graph_factor_residual requires at least two replay-backed analyzed rounds for holdout eval",
         )
+    if mode == "online_interactive" and is_round_multiview_factor_residual_model_name(normalized_model_name) and len(selected_round_ids) < 2:
+        raise ValueError(
+            "round_multiview_factor_residual requires at least two replay-backed analyzed rounds for holdout eval",
+        )
     if mode == "online_interactive" and is_settlement_state_field_blend_model_name(normalized_model_name) and len(selected_round_ids) < 2:
         raise ValueError(
             "settlement_state_field_blend requires at least two replay-backed analyzed rounds for holdout eval",
@@ -394,12 +402,19 @@ def run_historical_benchmark(
                                                                 )
                                                                 if is_round_settlement_graph_factor_residual_model_name(normalized_model_name)
                                                                 else (
-                                                                    resolve_settlement_state_field_blend_samples_per_round(
+                                                                    resolve_round_multiview_factor_residual_samples_per_round(
                                                                         normalized_model_name,
                                                                         samples_per_round=samples_per_round,
                                                                     )
-                                                                    if is_settlement_state_field_blend_model_name(normalized_model_name)
-                                                                    else None
+                                                                    if is_round_multiview_factor_residual_model_name(normalized_model_name)
+                                                                    else (
+                                                                        resolve_settlement_state_field_blend_samples_per_round(
+                                                                            normalized_model_name,
+                                                                            samples_per_round=samples_per_round,
+                                                                        )
+                                                                        if is_settlement_state_field_blend_model_name(normalized_model_name)
+                                                                        else None
+                                                                    )
                                                                 )
                                                             )
                                                         )
@@ -433,6 +448,7 @@ def run_historical_benchmark(
         or is_round_heatmap_prototype_residual_model_name(normalized_model_name)
         or is_round_heatmap_kernel_residual_model_name(normalized_model_name)
         or is_round_settlement_graph_factor_residual_model_name(normalized_model_name)
+        or is_round_multiview_factor_residual_model_name(normalized_model_name)
         or is_settlement_state_field_blend_model_name(normalized_model_name)
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"
