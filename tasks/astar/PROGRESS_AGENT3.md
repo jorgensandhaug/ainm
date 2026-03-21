@@ -2542,13 +2542,11 @@
    - margin over prior gate leader `v13` is tiny but positive:
      - score delta: `+0.0126`
      - weighted-KL delta: `-0.000075`
-274. Polling also exposed a process-management failure in the prior launch method:
-   - the first launched low-sample jobs `v39-v42` did not leave final benchmark artifacts
-   - the first launched full promotion runs for `v13` and `v15` also did not leave final benchmark artifacts
-   - root cause:
-     - those long jobs were launched through interactive sessions rather than detached background processes with explicit logs
-   - correction from here:
-     - future long runs will be launched detached and logged explicitly
+274. A later machine-wide process check corrected an earlier misread:
+   - `v39-v42` were still alive as OS processes
+   - the full promotion runs for `v13` and `v15` were also still alive as OS processes
+   - the earlier “dead run” read was wrong because I checked old session IDs as if they were PIDs
+   - correct live-state read must use machine-wide process inspection, not session IDs alone
 275. New hypothesis after item 273:
    - the small gain from `k=1` suggests cross-round residual averaging is hurting more than helping
    - if that is true, combining `k=1` with lower `samples_per_round` should stack two anti-noise changes:
@@ -2570,6 +2568,52 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v48_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_teacher_student_blend_v50_online_historical_benchmark_defaults_to_samples_1 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+278. Machine-wide health check before expanding the active queue again:
+   - snapshot before launch:
+     - memory used: about `795 GiB`
+     - memory available: about `2.1 TiB`
+   - active branch-local jobs already confirmed live:
+     - corrected holdouts: `v21`, `v22`, `v23`, `v24`, `v26`, `v39`, `v40`, `v41`, `v42`
+     - full corrected LOO: `v13`, `v15`
+   - decision:
+     - enough headroom remained for one more full LOO plus one more 4-model corrected-gate wave
+279. An attempted detached `nohup` / `setsid` launch pattern did not persist reliably on this host:
+   - returned shell PIDs disappeared immediately
+   - output logs stayed empty
+   - correction:
+     - continue using the normal long-running session-backed launcher, which is empirically what keeps the earlier jobs alive here
+280. Eleventh corrected-holdout outer wave launched from pushed commit `f2b647b9`:
+   - models:
+     - `teacher_student_blend_v47`
+     - `teacher_student_blend_v48`
+     - `teacher_student_blend_v49`
+     - `teacher_student_blend_v50`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - sessions:
+     - `v47`: `83626`
+     - `v48`: `55369`
+     - `v49`: `41243`
+     - `v50`: `33661`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
+281. Third promotion benchmark launched in parallel from pushed commit `f2b647b9`:
+   - command:
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v45 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v45_full_corrected --jobs 4`
+   - session:
+     - `80497`
+   - reason:
+     - `v45` is now the strongest finished corrected-gate model
+282. Post-launch machine-wide health check:
+   - snapshot after launch:
+     - memory used: about `995 GiB`
+     - memory available: about `1.9 TiB`
+   - active new branch-local jobs confirmed live:
+     - corrected holdouts: `v47`, `v48`, `v49`, `v50`
+     - full corrected LOO: `v45`
+   - total family queue still remained well below the machine-wide memory ceiling
 
 
 ## Open Questions

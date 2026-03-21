@@ -30,10 +30,24 @@ Current read:
 - multiscale temporal summaries lost on both global and spatial-dynamic backbones
 - geometry-gated / class-weighted local blur branch also lost badly (`v25/v27/v28`)
 
-Active corrected-holdout queue now includes:
+Active queue now includes:
 
-- no corrected-holdout job is currently trusted as live
-- `v39-v42` and the first full `v13/v15` promotion runs died before writing final artifacts because they were not launched detached
+- `teacher_student_blend_v21`
+- `teacher_student_blend_v22`
+- `teacher_student_blend_v23`
+- `teacher_student_blend_v24`
+- `teacher_student_blend_v26`
+- `teacher_student_blend_v39`
+- `teacher_student_blend_v40`
+- `teacher_student_blend_v41`
+- `teacher_student_blend_v42`
+- `teacher_student_blend_v47`
+- `teacher_student_blend_v48`
+- `teacher_student_blend_v49`
+- `teacher_student_blend_v50`
+- full LOO live: `teacher_student_blend_v13`
+- full LOO live: `teacher_student_blend_v15`
+- full LOO live: `teacher_student_blend_v45`
 - next promotion target is `teacher_student_blend_v45`
 - next corrected-gate branch is `teacher_student_blend_v47` through `teacher_student_blend_v50`
 
