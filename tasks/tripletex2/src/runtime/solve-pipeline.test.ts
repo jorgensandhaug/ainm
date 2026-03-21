@@ -10,7 +10,10 @@ import type {
   TripletexFetchResponse,
 } from "./contracts";
 import { taskRegistrations } from "../registry/tasks";
-import { runCompetitionSolvePipeline } from "./solve-pipeline";
+import {
+  resolveDeterministicSolveSelection,
+  runCompetitionSolvePipeline,
+} from "./solve-pipeline";
 
 test("runCompetitionSolvePipeline executes the pinned strategy and writes canonical plus staging lineage", async (t) => {
   const tempRoot = await mkdtemp(
@@ -535,6 +538,282 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
   await assert.rejects(stat(promptCorpusPath));
 });
 
+test("resolveDeterministicSolveSelection keeps retrying after a rejected task and an invalid unresolved retry response", async () => {
+  const seenRetryContexts: Array<{
+    attemptNumber?: number;
+    excludedTaskIds?: readonly string[];
+    remainingTaskIds?: readonly string[];
+    unresolvedIsInvalid?: boolean;
+  }> = [];
+  let callCount = 0;
+
+  const selection = await resolveDeterministicSolveSelection(
+    {
+      prompt: "Lag kundeposten.",
+      files: [],
+      tripletexCredentials: {
+        baseUrl: "https://example.invalid",
+        sessionToken: "redacted-for-test",
+      },
+    },
+    {
+      nonEligibleTaskPolicyOverride: {
+        schemaVersion: "tripletex2.non-eligible-task-policy.v1",
+        policyId: "policy-retry-test",
+        excludedCanonicalTasks: {
+          "08": {
+            reasonCode: "already-perfect",
+            reason: "Canonical task 08 is already perfect and non-eligible for live selection.",
+          },
+        },
+      },
+      classifierExtractor: async (input) => {
+        callCount += 1;
+        seenRetryContexts.push({
+          attemptNumber: input.retryContext?.attemptNumber,
+          excludedTaskIds: input.retryContext?.excludedTaskIds,
+          remainingTaskIds: input.retryContext?.remainingTaskIds,
+          unresolvedIsInvalid: input.retryContext?.unresolvedIsInvalid,
+        });
+
+        if (callCount === 1) {
+          return {
+            status: "resolved",
+            taskId: "08",
+            input: {
+              customerName: "Nordhav AS",
+              organizationNumber: "876520427",
+              lineDescription: "Analyserapport",
+              quantity: 1,
+              unitPriceExcludingVatNok: 7850,
+            },
+          };
+        }
+
+        if (callCount === 2) {
+          return {
+            status: "unresolved",
+            code: "ambiguous-task",
+            message: "Second-best interpretation is weak.",
+          };
+        }
+
+        return {
+          status: "resolved",
+          taskId: "01",
+          input: {
+            customerName: "Nordhav AS",
+            organizationNumber: "876520427",
+            email: "post@nordhav.example",
+          },
+        };
+      },
+    },
+  );
+
+  assert.equal(selection.taskId, "01");
+  assert.equal(selection.taskUnderstanding.result.status, "resolved");
+  assert.equal(
+    selection.taskUnderstanding.result.status === "resolved"
+      ? selection.taskUnderstanding.result.taskId
+      : undefined,
+    "01",
+  );
+  assert.equal(callCount, 3);
+  assert.deepEqual(seenRetryContexts, [
+    {
+      attemptNumber: undefined,
+      excludedTaskIds: undefined,
+      remainingTaskIds: undefined,
+      unresolvedIsInvalid: undefined,
+    },
+    {
+      attemptNumber: 2,
+      excludedTaskIds: ["08"],
+      remainingTaskIds: selection.taskUnderstanding.attempts[1]
+        ? seenRetryContexts[1]?.remainingTaskIds
+        : undefined,
+      unresolvedIsInvalid: true,
+    },
+    {
+      attemptNumber: 3,
+      excludedTaskIds: ["08"],
+      remainingTaskIds: selection.taskUnderstanding.attempts[2]
+        ? seenRetryContexts[2]?.remainingTaskIds
+        : undefined,
+      unresolvedIsInvalid: true,
+    },
+  ]);
+  assert.equal(seenRetryContexts[1]?.remainingTaskIds?.includes("08"), false);
+  assert.equal(seenRetryContexts[2]?.remainingTaskIds?.includes("08"), false);
+});
+
+test("resolveDeterministicSolveSelection exhausts the canonical task universe before returning unresolved", async () => {
+  const excludedCanonicalTasks = Object.fromEntries(
+    taskRegistrations.map((registration) => [
+      registration.task.taskId,
+      {
+        reasonCode: "non-eligible" as const,
+        reason: `Canonical task ${registration.task.taskId} is non-eligible in this test policy.`,
+      },
+    ]),
+  );
+  let callIndex = 0;
+
+  const selection = await resolveDeterministicSolveSelection(
+    {
+      prompt: "Test exhaust the universe.",
+      files: [],
+      tripletexCredentials: {
+        baseUrl: "https://example.invalid",
+        sessionToken: "redacted-for-test",
+      },
+    },
+    {
+      nonEligibleTaskPolicyOverride: {
+        schemaVersion: "tripletex2.non-eligible-task-policy.v1",
+        policyId: "policy-exhaustive-test",
+        excludedCanonicalTasks,
+      },
+      classifierExtractor: async () => {
+        const taskId = taskRegistrations[callIndex]!.task.taskId;
+        callIndex += 1;
+        return {
+          status: "resolved",
+          taskId,
+          input: {},
+        };
+      },
+    },
+  );
+
+  assert.equal(selection.taskUnderstanding.result.status, "unresolved");
+  assert.equal(
+    selection.taskUnderstanding.result.status === "unresolved"
+      ? selection.taskUnderstanding.result.code
+      : undefined,
+    "no-task-match",
+  );
+  assert.equal(callIndex, taskRegistrations.length);
+});
+
+test("runCompetitionSolvePipeline writes the retry chain into trace and reflection sidecars", async (t) => {
+  const tempRoot = await mkdtemp(
+    path.join(os.tmpdir(), "tripletex2-solve-pipeline-retry-chain-"),
+  );
+  const artifactRoot = path.join(tempRoot, "runs");
+  const promptCorpusPath = path.join(tempRoot, "data", "prompt-corpus.jsonl");
+  const stageDirectory = path.join(
+    tempRoot,
+    "data",
+    "sandbox",
+    "runs",
+    "sandbox-retry-chain-run",
+  );
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  let callCount = 0;
+  const result = await runCompetitionSolvePipeline(
+    {
+      prompt: "Opprett kunden Nordhav AS.",
+      files: [],
+      tripletex_credentials: {
+        base_url: "https://example.invalid",
+        session_token: "redacted-for-test",
+      },
+    },
+    {
+      mode: "sandbox",
+      promptCorpusPath,
+      runContext: {
+        runId: "sandbox-retry-chain-run",
+        stageDirectory,
+        artifactRoot,
+      },
+      nonEligibleTaskPolicyOverride: {
+        schemaVersion: "tripletex2.non-eligible-task-policy.v1",
+        policyId: "policy-trace-test",
+        excludedCanonicalTasks: {
+          "08": {
+            reasonCode: "already-perfect",
+            reason: "Canonical task 08 is already perfect and non-eligible for live selection.",
+          },
+        },
+      },
+      classifierExtractor: async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return {
+            status: "resolved",
+            taskId: "08",
+            input: {
+              customerName: "Nordhav AS",
+              organizationNumber: "876520427",
+              lineDescription: "Analyserapport",
+              quantity: 1,
+              unitPriceExcludingVatNok: 7850,
+            },
+          };
+        }
+
+        return {
+          status: "resolved",
+          taskId: "01",
+          input: {
+            customerName: "Nordhav AS",
+            organizationNumber: "876520427",
+            email: "post@nordhav.example",
+          },
+        };
+      },
+      fetch: createCreateCustomerFixtureTripletexFetch(),
+    },
+  );
+
+  const artifact = JSON.parse(await readFile(result.artifactPath, "utf8")) as {
+    task: { taskId: string };
+    sidecars?: Array<{ kind: string; path: string }>;
+  };
+  assert.equal(artifact.task.taskId, "01");
+  assert.equal(callCount, 2);
+  assert.deepEqual(
+    artifact.sidecars?.map((sidecar) => sidecar.kind),
+    ["sanitized-trace", "reflection-summary"],
+  );
+
+  const traceSidecar = JSON.parse(await readFile(result.sidecarPaths[0], "utf8")) as {
+    payload: { notes?: string[] };
+  };
+  assert.equal(
+    traceSidecar.payload.notes?.some((note) =>
+      note.includes('rejected canonical task id "08" as already-perfect'),
+    ),
+    true,
+  );
+  assert.equal(
+    traceSidecar.payload.notes?.includes('Final accepted canonical task id: "01".'),
+    true,
+  );
+
+  const reflectionSidecar = JSON.parse(
+    await readFile(result.sidecarPaths[1], "utf8"),
+  ) as {
+    payload: { summary?: string; findings?: string[] };
+  };
+  assert.match(
+    reflectionSidecar.payload.summary ?? "",
+    /accepted canonical task id "01" after excluding earlier non-eligible selections/,
+  );
+  assert.equal(
+    reflectionSidecar.payload.findings?.some((finding) =>
+      finding.includes('accepted canonical task id "01"'),
+    ),
+    true,
+  );
+});
+
 function createFrozenNow(timestamp: string): () => Date {
   return () => new Date(timestamp);
 }
@@ -697,6 +976,25 @@ function createSupplierInvoiceFixtureTripletexFetch(): TripletexFetch {
               account: { id: 424190999 },
             },
           ],
+        },
+      });
+    }
+
+    throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
+  };
+}
+
+function createCreateCustomerFixtureTripletexFetch(): TripletexFetch {
+  return async (input, init) => {
+    const url = new URL(input);
+
+    if (init.method === "POST" && url.pathname === "/customer") {
+      return createResponse(200, {
+        value: {
+          id: 101,
+          name: "Nordhav AS",
+          organizationNumber: "876520427",
+          email: "post@nordhav.example",
         },
       });
     }

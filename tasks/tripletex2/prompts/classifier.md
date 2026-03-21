@@ -9,6 +9,7 @@ Agent sees: this prompt + codex-environment/AGENTS.md
 Tripletex2 task-understanding tmux run.
 Follow ./AGENTS.md exactly.
 Do not solve the Tripletex task and do not plan API calls.
+If the task-understanding payload includes a `Retry context:` block, follow that retry contract literally and keep all task ids in the canonical Tripletex2 namespace.
 
 Submission contract:
 - Build exactly one classification JSON object that matches this schema:

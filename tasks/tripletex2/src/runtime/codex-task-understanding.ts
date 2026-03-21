@@ -157,9 +157,29 @@ export function buildCodexTaskUnderstandingPrompt(
     "Registered task surfaces:",
     JSON.stringify(input.taskSpecs, null, 2),
     "",
+  ];
+
+  if (input.retryContext) {
+    lines.push(
+      "Retry context:",
+      `This is classifier retry attempt ${input.retryContext.attemptNumber}.`,
+      "Previously rejected task ids are still semantically real, but they are non-eligible for final selection in this runtime.",
+      "Do not treat a prior selection as false. Choose the most plausible DIFFERENT remaining task, or unresolved if none is genuinely plausible.",
+      `Excluded task ids for this retry: ${JSON.stringify(input.retryContext.excludedTaskIds)}.`,
+      `Remaining task ids for this retry: ${JSON.stringify(input.retryContext.remainingTaskIds)}.`,
+      input.retryContext.unresolvedIsInvalid
+        ? "Do not return unresolved while any remaining task ids still exist; you must pick the best different remaining task id."
+        : "You may return unresolved only if no remaining task id is genuinely plausible.",
+      "Rejected task feedback:",
+      JSON.stringify(input.retryContext.rejectedTasks, null, 2),
+      "",
+    );
+  }
+
+  lines.push(
     "Request prompt:",
     input.request.prompt,
-  ];
+  );
 
   if (!input.request.files || input.request.files.length === 0) {
     return lines.join("\n");

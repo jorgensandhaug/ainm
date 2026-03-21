@@ -4,12 +4,22 @@
 - Your only job is to classify the request into one Tripletex2 task and extract typed input fields.
 - Read this file, choose the best task id, build one JSON object, then run `bun submit-classification.ts '<json>'`.
 - Do not return prose, markdown, plans, API steps, strategy ideas, or extra keys.
+- Use only the canonical Tripletex2 task ids defined in this file. Do not use legacy prompt-label ids, legacy competition labels, or any external task-id namespace.
+- Return exactly one task understanding object for exactly one final task id. Do not emit alternative candidates, ranked lists, or strategy-selection commentary.
 - Use `resolved` only when one task is the clear match and all required fields are confidently extracted.
 - Use `unresolved` for ambiguous task match, missing required data, ambiguous/conflicting values, invalid values, unreadable files, or unsupported tasks.
 - Use exact top-level fields: `status`, `taskId`, `inputJson`, `code`, `message`, `partialInputJson`, `notes`.
 - `inputJson` and `partialInputJson` must be JSON-stringified objects, not nested objects.
 - Use `null` for unused fields. For zero-field resolved tasks, use `inputJson: "{}"`.
 - Allowed unresolved codes: `ambiguous-task`, `no-task-match`, `missing-required-field`, `ambiguous-field-value`, `conflicting-field-values`, `invalid-field-value`, `unreadable-file`, `unsupported-request`.
+
+## Retry Contract
+- First-pass classification still uses the full task universe in this file. A later runtime retry does not mean your earlier interpretation was false.
+- If the prompt includes a `Retry context:` block, treat the listed excluded task ids as semantically real but non-eligible for final live selection in that retry.
+- On retry, you must choose a DIFFERENT canonical task id from the listed remaining task ids.
+- On retry, do not return an excluded task id again.
+- On retry, do not return `unresolved` while the runtime still lists remaining task ids. Pick the most plausible different remaining task id, even if it is a weaker match than the first choice.
+- On retry, never invent a task outside the remaining task ids.
 
 ## Task Table
 | ID | Task | Match when | Fields |
