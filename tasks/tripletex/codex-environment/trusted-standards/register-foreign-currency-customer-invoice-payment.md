@@ -100,13 +100,14 @@ PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<amo
 ```
 Omit `paidAmountCurrency`. Verify `amountOutstanding === 0`.
 
-#### Call 4: Resolve agio account ID
+#### Call 4: Resolve agio/disagio account ID
 ```
-GET /ledger/account?number=1920,8060&fields=id,number
+GET /ledger/account?number=8060&fields=id,number
 ```
-- Returns the internal IDs for bank (1920) and agio (8060) accounts
+- Returns the internal ID for agio (8060) account
+- If the prompt describes a loss (disagio), use `number=8160` instead
 - `account: { number: ... }` does NOT work in POST /ledger/voucher — IDs are required
-- If the prompt describes a loss (disagio), use `number=1920,8160` instead
+- The bank account ID does NOT need a separate lookup — reuse `debitAccount.id` from the paymentType resolved in Call 2 (sandbox-proven: vouchers 609133621, 609134241, 609134244)
 
 #### Call 5: Book the FX difference manually
 ```
@@ -118,11 +119,12 @@ Body (for agio — settlement rate > original rate):
   "date": "<payment-date>",
   "description": "Valutagevinst (agio) - kursforskjell",
   "postings": [
-    { "row": 1, "date": "<payment-date>", "account": { "id": <bankAcctId> }, "amountGross": <agioAmount>, "amountGrossCurrency": <agioAmount>, "vatType": { "id": 0 }, "description": "Kursgevinst innbetaling" },
+    { "row": 1, "date": "<payment-date>", "account": { "id": <paymentTypeBankAcctId> }, "amountGross": <agioAmount>, "amountGrossCurrency": <agioAmount>, "vatType": { "id": 0 }, "description": "Kursgevinst innbetaling" },
     { "row": 2, "date": "<payment-date>", "account": { "id": <agioAcctId> }, "amountGross": <-agioAmount>, "amountGrossCurrency": <-agioAmount>, "vatType": { "id": 0 }, "description": "Valutagevinst (agio)" }
   ]
 }
 ```
+Note: `<paymentTypeBankAcctId>` is `debitAccount.id` from the paymentType resolved in Call 2 — do NOT hardcode 1920, reuse the actual bank account from the payment type.
 
 **CRITICAL: `row` must start from 1, NOT 0.** Row 0 is reserved as "system-generated" by Tripletex. Using `row: 0` → 422 (`Posteringene på rad 0 (guiRow 0) er systemgenererte`). This was the root cause of the earlier 0% run that tried manual vouchers.
 
@@ -131,16 +133,18 @@ FX difference amount calculation:
 - Use the prompt's stated EUR amount (typically ex-VAT, matching how a real EUR export invoice would have 0% VAT)
 
 For **agio** (settlement rate > original rate, FX gain):
-- Account lookup: `GET /ledger/account?number=1920,8060&fields=id,number`
-- Row 1: bank (1920), `amountGross: +fxAmount` (debit — bank received more)
+- Account lookup: `GET /ledger/account?number=8060&fields=id,number`
+- Bank account: reuse `debitAccount.id` from paymentType (Call 2)
+- Row 1: bank (paymentType debitAccount), `amountGross: +fxAmount` (debit — bank received more)
 - Row 2: agio (8060), `amountGross: -fxAmount` (credit — income)
 - Example: 18687 EUR × (10.87 − 10.33) = 18687 × 0.54 = **10090.98** NOK
-- Production-confirmed: run 86050544 (12301 × 1.00 = 12301, voucher 609126234)
+- Production-confirmed: run 86050544 (12301 × 1.00 = 12301, voucher 609126234), run 3386d6a5 (10781 × 0.38 = 4096.78, voucher 609131777)
 
 For **disagio** (settlement rate < original rate, FX loss):
-- Account lookup: `GET /ledger/account?number=1920,8160&fields=id,number`
+- Account lookup: `GET /ledger/account?number=8160&fields=id,number`
+- Bank account: reuse `debitAccount.id` from paymentType (Call 2)
 - Row 1: disagio (8160), `amountGross: +fxAmount` (debit — expense)
-- Row 2: bank (1920), `amountGross: -fxAmount` (credit — bank received less)
+- Row 2: bank (paymentType debitAccount), `amountGross: -fxAmount` (credit — bank received less)
 - Example: 12689 EUR × (11.28 − 10.71) = 12689 × 0.57 = **7232.73** NOK
 
 Sandbox proof (2026-03-21): NOK invoice `2147609133` (`amount=amountCurrency=2565`): sending `paidAmount=25675.65` + `paidAmountCurrency=2565` still closed the invoice; zero FX posting was created — confirming manual voucher is necessary for agio on NOK invoices.
@@ -169,7 +173,7 @@ The script pattern:
 2. If a matching EUR/foreign invoice is found → use FX payment logic (paidAmount + paidAmountCurrency) — 3 calls total
 3. If NO foreign invoice found → find the NOK invoice matching `amountExcludingVat`:
    a. Register simple payment (paidAmount = amountOutstanding)
-   b. Look up account IDs for 1920 and 8060 (or 8160 for disagio)
+   b. Look up agio/disagio account ID: `GET /ledger/account?number=8060` (or `8160` for disagio) — reuse paymentType `debitAccount.id` for the bank account
    c. POST /ledger/voucher?sendToLedger=true with row=1+ to book agio manually
    d. 5 calls total
 4. In BOTH cases, register a payment AND book the FX difference. NEVER stop without paying. NEVER stop without booking agio if the prompt requests it.
