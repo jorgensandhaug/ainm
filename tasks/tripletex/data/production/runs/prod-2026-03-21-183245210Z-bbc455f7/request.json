@@ -1,0 +1,8 @@
+{
+  "prompt": "Kunden Elvdal AS (org.nr 812449982) har reklamert på fakturaen for \"Datarådgjeving\" (45300 kr ekskl. MVA). Opprett ei fullstendig kreditnota som reverserer heile fakturaen.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "d9luOmbt4aO5tHa5ly2p9lS8CUuqkAYvDcpyU-zT7AQ"
+  }
+}

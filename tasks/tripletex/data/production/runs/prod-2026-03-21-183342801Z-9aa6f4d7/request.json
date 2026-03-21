@@ -1,0 +1,8 @@
+{
+  "prompt": "Sett fastpris 178450 kr på prosjektet \"Skymigrering\" for Stormberg AS (org.nr 957353681). Prosjektleder er Magnus Haugen (magnus.haugen@example.org). Fakturer kunden for 50 % av fastprisen som en delbetaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Hx9i9PYh1XUxXVMf_vlnqCbeslRSNqVizfM0sF3KIiU"
+  }
+}

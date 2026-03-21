@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie uma dimensão contabilística personalizada \"Region\" com os valores \"Sør-Norge\" e \"Midt-Norge\". Em seguida, lance um documento na conta 6540 por 5150 NOK, vinculado ao valor de dimensão \"Sør-Norge\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "GtrK3uymSRJTJdOHa6kekzXGOZ3mNJVfqEhV0LyUC9I"
+  }
+}

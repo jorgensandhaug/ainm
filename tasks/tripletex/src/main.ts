@@ -897,7 +897,7 @@ function buildCodexPrompt(
     "- 1. ./trusted-standards/",
     "- 2. ./task-playbooks/",
     "- 3. ./openapi.json",
-    "- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.",
+    "- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.",
     "",
     "Run-specific rules:",
     "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",

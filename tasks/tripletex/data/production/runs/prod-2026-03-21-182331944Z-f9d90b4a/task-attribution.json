@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-182331944Z-f9d90b4a",
+  "request_id": "862b481f",
+  "prompt_raw": "Processe o salário de Ana Ferreira (ana.ferreira@example.org) para este mês. O salário base é de 41750 NOK. Adicione um bónus único de 6750 NOK além do salário base.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T18:25:18Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T18:23:32.017Z",
+  "after_captured_at": "2026-03-21T18:25:48.792Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "12",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T18:25:48.795Z"
+}

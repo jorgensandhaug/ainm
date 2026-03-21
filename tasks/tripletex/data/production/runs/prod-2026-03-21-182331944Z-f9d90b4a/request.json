@@ -1,0 +1,8 @@
+{
+  "prompt": "Processe o salário de Ana Ferreira (ana.ferreira@example.org) para este mês. O salário base é de 41750 NOK. Adicione um bónus único de 6750 NOK além do salário base.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "5skQ--OpwSPg7X8_I5Bcl3f9eEMrQu5EBGvSjJ-l9S8"
+  }
+}

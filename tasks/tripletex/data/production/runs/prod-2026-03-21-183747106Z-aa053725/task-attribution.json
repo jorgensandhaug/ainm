@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-183747106Z-aa053725",
+  "request_id": "1a021be9",
+  "prompt_raw": "Os custos totais aumentaram significativamente de janeiro a fevereiro de 2026. Analise o livro razão e identifique as três contas de despesa com o maior aumento em valor. Crie um projeto interno para cada uma das três contas com o nome da conta. Também crie uma atividade para cada projeto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T18:38:34Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T18:37:47.159Z",
+  "after_captured_at": "2026-03-21T18:39:06.416Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "28",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T18:39:06.418Z"
+}

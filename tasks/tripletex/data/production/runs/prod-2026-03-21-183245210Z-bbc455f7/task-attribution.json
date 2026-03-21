@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-183245210Z-bbc455f7",
+  "request_id": "2ede1e54",
+  "prompt_raw": "Kunden Elvdal AS (org.nr 812449982) har reklamert på fakturaen for \"Datarådgjeving\" (45300 kr ekskl. MVA). Opprett ei fullstendig kreditnota som reverserer heile fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T18:33:35Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T18:32:45.260Z",
+  "after_captured_at": "2026-03-21T18:34:06.866Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T18:34:06.870Z"
+}

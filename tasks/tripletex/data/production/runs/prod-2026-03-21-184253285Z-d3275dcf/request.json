@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une dimension comptable personnalisée \"Kostsenter\" avec les valeurs \"IT\" et \"HR\". Puis comptabilisez une pièce sur le compte 6590 pour 38100 NOK, liée à la valeur de dimension \"HR\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "htSxcehN_58s-g8mlfQi3c5QgSTOXKIzQdozCnSc6XI"
+  }
+}

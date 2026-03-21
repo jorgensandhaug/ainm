@@ -45,8 +45,10 @@
 - if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`
 - when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`
 - for multi-day or overnight per diem, resolve one compatible `perDiemCompensations[].rateType` from `/travelExpense/rate`; do not leave `rateType`/`rateCategory` null
+- **critical**: the `/travelExpense/rate` response values ARE the rate objects themselves; each value has `{ id, rateCategory: { id, url }, zone, rate, ... }`; the value's own `.id` is the rateType id — do NOT try to access `.rateType` on these values (that property does not exist and returns `undefined`)
+- to build `perDiemCompensations[].rateType`, map: `{ id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }`; omit `zone` when `rateValue.zone` is null
 - the filtered `/travelExpense/rate?...fields=*` response can still return `rateCategory` only as `id`/`url`; do not locally require `rateCategory.isValidDomestic` or `isRequiresOvernightAccommodation` after the query already filtered the set
-- prefer a returned `rateType` whose numeric `rate` matches the prompt day rate when such a row exists; otherwise reuse any returned `rateType.id` and preserve the prompt-scored manual `count`/`rate`/`amount`
+- prefer a rate value whose numeric `.rate` matches the prompt day rate when such a row exists; otherwise reuse the first returned value's `.id` and preserve the prompt-scored manual `count`/`rate`/`amount`
 - for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`
 - embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload
 - embed `costs[]` directly on the same `POST /travelExpense` payload
@@ -79,6 +81,7 @@
 - if `POST /travelExpense` fails on `costs.amountCurrencyIncVat`, add `amountCurrencyIncVat` on every embedded cost row
 - if `POST /travelExpense` fails with `Kun kostnader kan registreres uten kompensasjon etter satser.`, set `travelDetails.isCompensationFromRates=true`
 - if `PUT /travelExpense/:deliver` fails on `travelDetails.departureFrom`, the create-only path was incomplete; do not keep treating the `OPEN` expense as final
+- if `POST /travelExpense` fails with `perDiemCompensations.rateType.rateCategory: Kan ikke være null` or `perDiemCompensations.rateType.zone: Kan ikke være null`, the agent is accessing `.rateType` on the rate response values instead of using the values directly; fix by mapping `rateType: { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` and omitting `zone` when null
 - if `PUT /travelExpense/:deliver` fails on `perDiemCompensations.rateType.id`, resolve a compatible live `rateType` from `/travelExpense/rate` and recreate with that field populated
 - if `PUT /travelExpense/:deliver` fails on `costs.vatType.id` because the company is not VAT registered, recreate with explicit zero-VAT cost rows rather than trusting the category default VAT
 
@@ -89,8 +92,8 @@
   - a no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that one company read produced concrete `departureFrom="Oslo"` from `company.address.city`
   - the 7-call branch `GET /employee` -> `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `state=DELIVERED`, `costs.length=2`, and `perDiemCompensations.length=1`
   - `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered parent row under `values[]`, not `ResponseWrapperTravelExpense`
-  - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned five usable `rateType` rows, but each `rateCategory` came back only as sparse `id`/`url`
-  - using one of those returned sparse `rateType.id` values still allowed a delivered manual per-diem row to persist the prompt-scored `count`, `rate`, and `amount`
+  - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned five rate objects; each value has `{ id, rateCategory: { id, url }, zone: null, rate, ... }` — the value's `.id` IS the rateType id; do NOT access `.rateType` on these objects
+  - mapping `perDiemCompensations[].rateType = { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` with `zone` omitted still allowed a delivered manual per-diem row to persist the prompt-scored `count`, `rate`, and `amount`
   - one `POST /travelExpense` with only manual per-diem `count`/`rate`/`amount` created the parent expense plus embedded rows, but left the expense in `state=OPEN`
   - that create-only branch also persisted `perDiemCompensations[].rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`
   - `PUT /travelExpense/:deliver` then failed until `travelDetails.departureFrom`, a compatible per-diem `rateType`, and delivery-safe cost `vatType` values were present
@@ -115,3 +118,9 @@
   - the forced-action branch with deterministic dates `2026-03-17..2026-03-21` produced a clean 7-call run: employee → company → costCategory + paymentType + rate (parallel) → POST → PUT :deliver
   - 0 errors, `state=DELIVERED`, travel expense `11149202`, `costs.length=2`, `perDiemCompensations.length=1`
   - no `rateType.rate` matched the prompt day rate of `800`, so the first returned `rateType.id=25886` (rate `397`) was used; `PUT :deliver` still accepted the manual per-diem `count=5, rate=800, amount=4000`
+  - `Pablo Sánchez` / `pablo.sanchez@example.org` / `Conferencia Drammen` / 3-day per-diem (800/day) + flight 7050 + taxi 550
+  - duration-only prompt, employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - first attempt wasted 6 calls (5 GETs + 1 failed POST 422) because the script accessed `.rateType` on rate response values instead of using `.id` directly; the rate values ARE the rate objects, not containers with a nested `.rateType` property
+  - second attempt with correct mapping `rateType: { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` produced a clean 7-call run: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
+  - total: 13 calls, 1 error; optimal: 7 calls, 0 errors
+  - `state=DELIVERED`, travel expense `11149366`, `costs.length=2`, `perDiemCompensations.length=1`
