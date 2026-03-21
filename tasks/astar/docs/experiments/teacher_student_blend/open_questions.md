@@ -30,5 +30,7 @@
 - Is the best regime zero student at observed cells plus boosted student on unobserved cells?
 - Are observed cells actually underweighted today, such that boosting student influence there beats the exact-evidence winner?
 - If the opposite branch helps, is the right observed-cell multiplier modest (`1.15`) or aggressive (`1.30`)?
+- Does exact local evidence change the optimal residual-neighbor count, making `k=3` or `k=5` better than the current `k=1` winner?
+- Is the apparent `k=1` optimum only a pre-local-evidence effect?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

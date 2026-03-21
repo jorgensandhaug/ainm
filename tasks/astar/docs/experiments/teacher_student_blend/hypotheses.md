@@ -43,6 +43,8 @@
 - `v89` / `v90`: test the stronger reallocation version on the zero-observed-blend branch
 - `v91` / `v92`: the damping branch failed badly, so test the opposite: boost student blending on observed cells above baseline
 - `v93` / `v94`: test a stronger observed-cell boost in case the observed-cell branch is underweighted today
+- `v95` / `v96`: exact local evidence may shift the optimal residual-neighbor count upward, because observed cells are already fixed and unobserved cells may benefit from smoother transfer
+- `v97` / `v98`: test whether the pre-exact-evidence `k=5` setting becomes competitive again once local evidence is correcting observed cells directly
 
 ## Evaluation Rule
 

@@ -3279,6 +3279,24 @@
    - machine remained healthy:
      - about `1.0 TiB` used
      - about `1.8 TiB` available
+370. Parallel hypothesis after item 363:
+   - exact local evidence may change the optimal residual-neighbor count because observed cells are fixed locally and unobserved cells might now benefit from smoother residual transfer
+371. Implemented exact-local-evidence neighbor-count variants:
+   - new variants:
+     - `teacher_student_blend_v95`
+     - `teacher_student_blend_v96`
+     - `teacher_student_blend_v97`
+     - `teacher_student_blend_v98`
+   - mapping:
+     - `v95` = `v59` branch with `k_neighbors=3`
+     - `v96` = `v60` branch with `k_neighbors=3`
+     - `v97` = `v59` branch with `k_neighbors=5`
+     - `v98` = `v60` branch with `k_neighbors=5`
+372. Validation for item 371:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v96_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v98_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
