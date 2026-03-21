@@ -1238,6 +1238,26 @@
    - both held-out hard rounds improved
    - promotion decision:
      - run full corrected LOO for `query_residual_v21`
+141. `query_residual_v21` full corrected LOO launched immediately after promotion:
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v21 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v21_full_corrected`
+   - run is reusing fold checkpoints already created by the targeted 2-round gate
+   - cached fold checkpoints already present at launch logging point:
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+   - final artifact still absent at this logging point:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v21_full_corrected/result.json`
+142. `query_residual_v21` full corrected LOO status at end of this continuation:
+   - run was intentionally stopped cleanly to avoid leaving an orphan long process at turn end
+   - no active `query_residual_v21` full benchmark process remains after the stop
+   - cached completed fold checkpoints now present for `4/8` held-out folds:
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
+     - `data/artifacts/models/query_residual_v21__policy=coverage__samples=2__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
+   - final artifact still absent:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v21_full_corrected/result.json`
+   - rerunning the exact same command should resume from those cached folds rather than restart from zero
 
 ## Open Questions
 
