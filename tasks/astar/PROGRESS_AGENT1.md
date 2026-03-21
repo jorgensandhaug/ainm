@@ -187,6 +187,89 @@
    - calibration/ensemble dramatically rescues the catastrophic `ae780...` failure compared with hazard-only
    - but even the best blend (`a=0.25`) still does **not** beat the bucket anchor on aggregate (`70.2024 < 70.3257`)
    - therefore current hazard component is still net-negative on this slice; the next gain must come from improving the semimechanistic teacher/posterior itself, not from more convex blending of the same v1 hazard model
+48. re-read handoff + repo docs after user correction and re-anchored to the actual replay-regime family rather than `query_residual`
+49. parallel code inspection from explorer agents confirmed:
+    - raw replay frames already expose enough state for richer transition/event summaries
+    - v1 bottleneck is structural: 3-head decoder + tiny lossy kNN summary
+50. implemented v2 dataset plumbing:
+    - `SyntheticEpisodeArtifact` now carries `map_width` / `map_height`
+    - synthetic-live dataset builder can now store externally supplied regime vectors rather than only the old summary-vector labels
+51. implemented `src/astar/history/summaries/round_coefficients_v2.py`
+    - richer interacted static feature bank
+    - replay-derived transition summary augmentation
+    - score-weighted per-round multiclass terminal coefficient fitting against dynamic classes vs empty baseline
+52. implemented `src/astar/teacher/dynamics/hazard_teacher_v2.py`
+    - fits per-round coefficient rows
+    - factorizes them with low-rank SVD manifold
+    - decodes latent coordinates directly into final tensors
+53. implemented a stronger transcript-set student in `src/astar/student/posterior/deepset_student.py`
+    - observation-level set features
+    - coverage moments
+    - repeat-window variance
+    - owner concentration and settlement-mark summaries
+    - normalized kNN in transcript-feature space
+54. implemented new predictor family in `src/astar/student/predictor/hazard_posterior_v2.py`
+    - `hazard_posterior_v2`
+    - `hazard_posterior_v2_blend`
+55. wired new family through:
+    - `interactive.py`
+    - `historical_benchmark.py`
+    - `cli.py`
+56. added focused v2 historical benchmark smoke tests
+57. fixed two v2 plumbing bugs found by test:
+    - strict zip on frame transitions
+    - one-element-short zero-observation transcript vector
+58. reran focused benchmark suite after fixes:
+    - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+    - result: `10 passed in 18.32s`
+59. checked machine-wide capacity before scaling parallelism:
+    - memory available: ~`2.9 TiB`
+    - cores: `384`
+    - load near idle
+    - no competing benchmark jobs found
+60. launched the first hard-slice real-data v2 benchmark:
+    - `hazard_posterior_v2_k5_r3`
+    - policy `coverage`
+    - matched hard 3-round multi-seed slice
+    - currently still running while this log entry is written
+61. inspected whole-machine activity before increasing sweep width:
+    - other agents are active on the box
+    - visible benchmark jobs included agent4 `gbx_transition_teacher_*` prior-only runs and agent2 `smh_coeffbank_*` online runs
+    - despite that, system load and RAM headroom remained extremely loose
+62. widened the live v2 sweep after the health check:
+    - added `hazard_posterior_v2_k5_r3` with `policy=exploration`
+    - added `hazard_posterior_v2_blend_a20_k5_r3` with `policy=exploration`
+63. re-checked machine health after other agents scaled up:
+    - load average rose to about `57`
+    - memory in use rose to about `836 GiB`
+    - free memory still about `2.1 TiB`
+    - decision: keep current sweep width, no need to throttle existing jobs, but stop adding more until first results land
+64. first completed real-data v2 result:
+    - benchmark: `probe_hazard_v2_k5_r3_coverage_3rounds_seed0to1`
+    - model: `hazard_posterior_v2_k5_r3`
+    - policy: `coverage`
+    - mean score: `74.2658`
+    - weighted KL: `0.103147`
+    - runtime: `974.458s`
+65. first major v2 benchmark conclusion:
+    - this beats prior hard-slice best `query_residual + exploration` (`73.2181`, KL `0.104341`)
+    - this also beats the bucket anchor and every prior hazard-v1 result on the same slice
+    - so the new regime-manifold / multiclass terminal decoder path is now a real improvement, not just architectural churn
+66. additional matched hard-slice v2 results:
+    - `hazard_posterior_v2_k5_r3 + exploration`: `74.1259`, KL `0.103718`
+    - `hazard_posterior_v2_k9_r4 + exploration`: `74.1259`, KL `0.103718`
+    - `hazard_posterior_v2_blend_a20_k5_r3 + exploration`: `71.0375`, KL `0.118206`
+    - `hazard_posterior_v2_blend_a35_k5_r3 + exploration`: `71.3270`, KL `0.116462`
+67. v2 sweep interpretation after those additional results:
+    - raw v2 stays best
+    - on this slice, `coverage` beats `exploration` by about `+0.1399` score and `-0.000571` KL
+    - increasing to `k9/r4` did not improve over `k5/r3`
+    - blending the strong raw v2 model back toward bucket is net-negative
+68. promotion decision:
+    - keep full 8-round raw promotions running:
+      - `dev_hazard_v2_k5_r3_coverage_online50_v1`
+      - `dev_hazard_v2_k5_r3_exploration_online50_v1`
+    - kill full 8-round blend promotion because the matched hard-slice evidence says it is a waste of compute
 
 ### Working Hypotheses
 
@@ -206,3 +289,57 @@
 ### Push Log
 
 - pushed `230a12f` to `origin/agent1`
+- pushed `37f9cac` to `origin/agent1`
+
+### 2026-03-21 Continuation: Hazard v2 Pivot
+
+- user correction accepted:
+  - stop treating `query_residual` as the path
+  - stop spending budget on hazard-v1 blend polishing
+  - implement the actual replay-regime handoff more directly
+  - use parallel exploration aggressively
+- re-read:
+  - `instructions/agent1.md`
+  - local `README.md`
+  - local `docs/game_facts.md`
+- repo-note:
+  - AGENTS first-read paths pointed at `/home/jorge/repos/ainm/...`
+  - those paths do not exist in this checkout
+  - used local repo copies instead
+
+### v1 Postmortem
+
+- hazard-v1 failure is structural, not tuning:
+  - teacher only decodes 3 static heads: build / port / ruin
+  - teacher latent target is ad hoc 12d replay summary, not a direct coefficient manifold
+  - student is not a real set encoder; it is kNN on counts + class freqs + four means
+- subagent findings confirmed raw replay frames already support richer transition heads:
+  - collapse `{1,2}->{3}`
+  - rebuild `3->{1,2}`
+  - reclaim `3->4`
+  - owner flips
+  - year-to-year population / food / wealth / defense deltas
+  - shared alive / port / ruin curves
+
+### v2 Implementation Decision
+
+- new mainline family to implement now:
+  - score-weighted semimechanistic terminal decoder with richer static/interacted features
+  - per-round coefficient fitting over dynamic terminal classes vs empty baseline
+  - low-rank SVD manifold over fitted round coefficient vectors
+  - synthetic-live episodes labeled by round manifold coordinates, not by v1 summary vector
+  - transcript-set student with observation-level set features, pooled coverage stats, repeat-window stats, owner concentration, and settlement-mark summaries
+- rationale:
+  - direct coefficient manifold is a better latent target than the v1 replay summary
+  - multiclass terminal decoder fixes the biggest teacher bottleneck
+  - normalized set-summary kNN is a more faithful first student than the prior tiny summary vector
+
+### Immediate Work In Flight
+
+1. add `round_coefficients_v2.py`
+2. add `hazard_teacher_v2.py`
+3. extend synthetic-live artifacts to carry map size and externally supplied regime vectors
+4. add v2 transcript-set student
+5. wire new predictor family + benchmark/CLI registration
+6. run focused tests
+7. launch parallel historical probes on the hard 3-round multi-seed slice

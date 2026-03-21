@@ -17,6 +17,12 @@ from astar.student.predictor.hazard_posterior import (
     hazard_posterior_blend_spec_for_model_name,
     hazard_posterior_k_neighbors_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v2 import (
+    HazardPosteriorV2BlendPredictor,
+    HazardPosteriorV2Predictor,
+    hazard_posterior_v2_blend_spec_for_model_name,
+    hazard_posterior_v2_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -162,6 +168,72 @@ def build_online_predictor(
                 f"__policy={resolved_policy_name}"
                 f"__samples={samples_per_round}"
                 f"__k={k_neighbors}"
+                f"__a={int(round(hazard_weight * 100.0))}"
+            ),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    hazard_posterior_v2 = hazard_posterior_v2_spec_for_model_name(normalized)
+    if hazard_posterior_v2 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, latent_rank = hazard_posterior_v2
+        predictor = HazardPosteriorV2Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids)
+                if historical_round_ids is not None
+                else sorted(
+                    round_dir.name
+                    for round_dir in workspace_paths.raw_dir.joinpath("replays").glob("*")
+                    if round_dir.is_dir()
+                )
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+            k_neighbors=k_neighbors,
+            latent_rank=latent_rank,
+            model_name=(
+                "hazard_posterior_v2"
+                f"__policy={resolved_policy_name}"
+                f"__samples={samples_per_round}"
+                f"__k={k_neighbors}"
+                f"__rank={latent_rank}"
+            ),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    hazard_posterior_v2_blend = hazard_posterior_v2_blend_spec_for_model_name(normalized)
+    if hazard_posterior_v2_blend is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, latent_rank, hazard_weight = hazard_posterior_v2_blend
+        predictor = HazardPosteriorV2BlendPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids)
+                if historical_round_ids is not None
+                else sorted(
+                    round_dir.name
+                    for round_dir in workspace_paths.raw_dir.joinpath("replays").glob("*")
+                    if round_dir.is_dir()
+                )
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+            k_neighbors=k_neighbors,
+            latent_rank=latent_rank,
+            hazard_weight=hazard_weight,
+            model_name=(
+                "hazard_posterior_v2_blend"
+                f"__policy={resolved_policy_name}"
+                f"__samples={samples_per_round}"
+                f"__k={k_neighbors}"
+                f"__rank={latent_rank}"
                 f"__a={int(round(hazard_weight * 100.0))}"
             ),
         )

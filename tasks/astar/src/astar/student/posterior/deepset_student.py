@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.core.grid import MapShape, coverage_counts
 from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
@@ -20,6 +21,18 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 def _optional_float(value: float | None) -> float:
     return 0.0 if value is None else float(value)
+
+
+def _safe_mean(values: list[float]) -> float:
+    return float(np.mean(values)) if values else 0.0
+
+
+def _safe_std(values: list[float]) -> float:
+    return float(np.std(values)) if values else 0.0
+
+
+def _normalize(value: float | None, scale: float) -> float:
+    return 0.0 if value is None else float(value) / scale
 
 
 def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
@@ -73,6 +86,233 @@ def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
         components.append(float(np.mean(wealths)) if wealths else 0.0)
         components.append(float(np.mean(defenses)) if defenses else 0.0)
     return np.asarray(components, dtype=np.float64), artifact.regime_vector
+
+
+def _owner_summary_from_settlements(
+    settlements: tuple | list,
+) -> tuple[float, float, float]:
+    owner_counts: dict[int, int] = {}
+    for settlement in settlements:
+        owner_id = getattr(settlement, "owner_id", None)
+        if owner_id is None:
+            continue
+        owner_counts[int(owner_id)] = owner_counts.get(int(owner_id), 0) + 1
+    if not owner_counts:
+        return (0.0, 0.0, 0.0)
+    total = float(sum(owner_counts.values()))
+    shares = np.asarray([count / total for count in owner_counts.values()], dtype=np.float64)
+    return (
+        float(len(owner_counts)) / 10.0,
+        float(np.max(shares)),
+        float(np.sum(shares * shares)),
+    )
+
+
+def _class_frequencies(grid: np.ndarray) -> np.ndarray:
+    collapsed = collapse_internal_grid(np.asarray(grid, dtype=np.int64))
+    counts = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
+    total = float(np.sum(counts))
+    return counts / total if total > 0.0 else np.zeros(CLASS_COUNT, dtype=np.float64)
+
+
+def _observation_feature_vector(
+    observation: LiveQueryObs,
+    *,
+    map_width: int,
+    map_height: int,
+) -> np.ndarray:
+    class_freq = _class_frequencies(observation.grid)
+    settlements = observation.settlements
+    area = float(observation.viewport.w * observation.viewport.h)
+    populations = [
+        float(settlement.population)
+        for settlement in settlements
+        if settlement.population is not None
+    ]
+    foods = [float(settlement.food) for settlement in settlements if settlement.food is not None]
+    wealths = [float(settlement.wealth) for settlement in settlements if settlement.wealth is not None]
+    defenses = [
+        float(settlement.defense)
+        for settlement in settlements
+        if settlement.defense is not None
+    ]
+    owner_count, largest_owner_share, owner_hhi = _owner_summary_from_settlements(settlements)
+    settlement_count = len(settlements)
+    alive_share = (
+        float(sum(1 for settlement in settlements if settlement.alive)) / float(max(1, settlement_count))
+    )
+    port_share = (
+        float(sum(1 for settlement in settlements if settlement.has_port)) / float(max(1, settlement_count))
+    )
+    center_x = (observation.viewport.x + 0.5 * observation.viewport.w) / float(max(1, map_width))
+    center_y = (observation.viewport.y + 0.5 * observation.viewport.h) / float(max(1, map_height))
+    return np.asarray(
+        [
+            center_x,
+            center_y,
+            float(observation.viewport.w) / float(max(1, map_width)),
+            float(observation.viewport.h) / float(max(1, map_height)),
+            area / float(max(1, map_width * map_height)),
+            float(settlement_count) / area,
+            alive_share,
+            port_share,
+            owner_count,
+            largest_owner_share,
+            owner_hhi,
+            _normalize(_safe_mean(populations), 4.5),
+            _normalize(_safe_std(populations), 4.5),
+            _normalize(_safe_mean(foods), 1.2),
+            _normalize(_safe_std(foods), 1.2),
+            _normalize(_safe_mean(wealths), 1.5),
+            _normalize(_safe_std(wealths), 1.5),
+            _normalize(_safe_mean(defenses), 1.0),
+            _normalize(_safe_std(defenses), 1.0),
+            *class_freq.tolist(),
+        ],
+        dtype=np.float64,
+    )
+
+
+def _coverage_moments(coverage: np.ndarray) -> np.ndarray:
+    weight_sum = float(np.sum(coverage))
+    if weight_sum <= 0.0:
+        return np.zeros(4, dtype=np.float64)
+    ys, xs = np.indices(coverage.shape)
+    mean_x = float(np.sum(xs * coverage) / weight_sum) / float(max(1, coverage.shape[1]))
+    mean_y = float(np.sum(ys * coverage) / weight_sum) / float(max(1, coverage.shape[0]))
+    var_x = float(np.sum(((xs / float(max(1, coverage.shape[1]))) - mean_x) ** 2 * coverage) / weight_sum)
+    var_y = float(np.sum(((ys / float(max(1, coverage.shape[0]))) - mean_y) ** 2 * coverage) / weight_sum)
+    return np.asarray([mean_x, mean_y, np.sqrt(max(var_x, 0.0)), np.sqrt(max(var_y, 0.0))], dtype=np.float64)
+
+
+def _repeat_variance(
+    observations: list[LiveQueryObs],
+) -> float:
+    by_window: dict[tuple[int, int, int, int], list[np.ndarray]] = {}
+    for observation in observations:
+        viewport = observation.viewport
+        key = (viewport.x, viewport.y, viewport.w, viewport.h)
+        by_window.setdefault(key, []).append(_class_frequencies(observation.grid))
+    repeated = [
+        float(np.mean(np.var(np.stack(items, axis=0), axis=0)))
+        for items in by_window.values()
+        if len(items) > 1
+    ]
+    return float(np.mean(repeated)) if repeated else 0.0
+
+
+def _seed_transcript_vector(
+    observations: list[LiveQueryObs],
+    *,
+    map_width: int,
+    map_height: int,
+) -> np.ndarray:
+    if not observations:
+        feature_dim = 19 + CLASS_COUNT
+        return np.zeros(12 + 3 * feature_dim + CLASS_COUNT, dtype=np.float64)
+
+    observation_matrix = np.stack(
+        [
+            _observation_feature_vector(
+                observation,
+                map_width=map_width,
+                map_height=map_height,
+            )
+            for observation in observations
+        ],
+        axis=0,
+    )
+    coverage = coverage_counts(
+        MapShape(width=map_width, height=map_height),
+        [observation.viewport for observation in observations],
+    ).astype(np.float64)
+    observed_mask = coverage > 0.0
+    repeat_mask = coverage > 1.0
+    pooled_class = np.mean(
+        np.stack([_class_frequencies(observation.grid) for observation in observations], axis=0),
+        axis=0,
+    )
+    repeated_window_groups = len(
+        {
+            (obs.viewport.x, obs.viewport.y, obs.viewport.w, obs.viewport.h)
+            for obs in observations
+        },
+    )
+    return np.concatenate(
+        [
+            np.asarray(
+                [
+                    float(len(observations)) / 50.0,
+                    float(repeated_window_groups) / float(max(1, len(observations))),
+                    float(np.mean(observed_mask)),
+                    float(np.mean(repeat_mask)),
+                    float(np.mean(np.log1p(coverage[observed_mask]))) / np.log1p(float(len(observations)))
+                    if np.any(observed_mask)
+                    else 0.0,
+                    _repeat_variance(observations),
+                    *_coverage_moments(coverage).tolist(),
+                    float(np.max(coverage)) / float(max(1, len(observations))),
+                    float(np.sum(coverage)) / float(max(1, map_width * map_height * len(observations))),
+                ],
+                dtype=np.float64,
+            ),
+            np.mean(observation_matrix, axis=0),
+            np.std(observation_matrix, axis=0),
+            np.max(observation_matrix, axis=0),
+            pooled_class.astype(np.float64),
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
+def _summary_vector_from_observations(
+    observations: list[LiveQueryObs] | tuple[LiveQueryObs, ...],
+    *,
+    map_width: int,
+    map_height: int,
+    seed_count: int,
+) -> np.ndarray:
+    grouped: dict[int, list[LiveQueryObs]] = {seed_index: [] for seed_index in range(seed_count)}
+    for observation in observations:
+        grouped.setdefault(observation.seed_index, []).append(observation)
+    return np.concatenate(
+        [
+            _seed_transcript_vector(
+                grouped[seed_index],
+                map_width=map_width,
+                map_height=map_height,
+            )
+            for seed_index in range(seed_count)
+        ],
+        axis=0,
+    ).astype(np.float64)
+
+
+def _summary_vector_from_artifact_v2(path: Path) -> tuple[np.ndarray, np.ndarray]:
+    artifact = load_synthetic_episode(path)
+    observations = list(artifact.observations)
+    target_seed_indexes = [int(seed_index) for seed_index in artifact.target_sources]
+    inferred_width = artifact.map_width or max(
+        (observation.viewport.x + observation.viewport.w for observation in observations),
+        default=1,
+    )
+    inferred_height = artifact.map_height or max(
+        (observation.viewport.y + observation.viewport.h for observation in observations),
+        default=1,
+    )
+    seed_count = max(
+        [observation.seed_index for observation in observations] + target_seed_indexes,
+        default=-1,
+    ) + 1
+    return (
+        _summary_vector_from_observations(
+            observations,
+            map_width=max(1, inferred_width),
+            map_height=max(1, inferred_height),
+            seed_count=max(1, seed_count),
+        ),
+        artifact.regime_vector,
+    )
 
 
 class SummaryBankStudentCheckpoint(BaseModel):
@@ -162,6 +402,81 @@ class SummaryBankStudent(BaseModel):
     def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
         query_vector = _summary_vector_from_evidence(context.evidence_bundle)
         distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
+        nearest_distances = distances[order]
+        weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
+        weights = weights / np.sum(weights)
+        mean = np.tensordot(weights, self.regime_vectors[order], axes=(0, 0))
+        particles = tuple(self.regime_vectors[index] for index in order)
+        return RegimePosteriorState(
+            mean=np.asarray(mean, dtype=np.float64),
+            particles=particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
+
+    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
+        posterior = self.infer_regime(context)
+        return self.teacher.posterior_predictive(
+            context.round_context.seeds[seed_index],
+            posterior,
+        )
+
+
+class ObservationSetBankStudent(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = "observation_set_bank_student_v2"
+    dataset_name: str = "synthetic_live_v2"
+    summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    summary_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    summary_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    k_neighbors: int = Field(default=5, ge=1)
+    teacher: object
+
+    @classmethod
+    def fit_from_dataset(
+        cls,
+        dataset: SyntheticEpisodeDatasetRef,
+        teacher: object,
+        *,
+        k_neighbors: int = 5,
+    ) -> ObservationSetBankStudent:
+        if dataset.index_path is None:
+            raise ValueError("synthetic dataset requires an index path")
+        index_table = pl.read_parquet(dataset.index_path)
+        summary_vectors: list[np.ndarray] = []
+        regime_vectors: list[np.ndarray] = []
+        for path_value in index_table["episode_path"].to_list():
+            summary_vector, regime_vector = _summary_vector_from_artifact_v2(Path(str(path_value)))
+            summary_vectors.append(summary_vector)
+            regime_vectors.append(regime_vector)
+        if not summary_vectors:
+            raise ValueError("synthetic dataset did not yield any summary vectors")
+        summary_matrix = np.stack(summary_vectors, axis=0)
+        summary_mean = np.mean(summary_matrix, axis=0)
+        summary_scale = np.std(summary_matrix, axis=0)
+        summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
+        return cls(
+            dataset_name=dataset.dataset_name,
+            summary_vectors=summary_matrix,
+            regime_vectors=np.stack(regime_vectors, axis=0),
+            summary_mean=summary_mean,
+            summary_scale=summary_scale.astype(np.float64),
+            k_neighbors=k_neighbors,
+            teacher=teacher,
+        )
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        query_vector = _summary_vector_from_observations(
+            context.observations,
+            map_width=context.round_context.map_width,
+            map_height=context.round_context.map_height,
+            seed_count=len(context.round_context.seeds),
+        )
+        normalized_bank = (self.summary_vectors - self.summary_mean[None, :]) / self.summary_scale[None, :]
+        normalized_query = (query_vector - self.summary_mean) / self.summary_scale
+        distances = np.linalg.norm(normalized_bank - normalized_query[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
         nearest_distances = distances[order]
         weights = 1.0 / np.clip(nearest_distances, 1e-6, None)

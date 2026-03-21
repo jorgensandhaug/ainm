@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import numpy as np
@@ -38,6 +39,8 @@ class SyntheticEpisodeArtifact(BaseModel):
 
     round_id: str
     round_number: int
+    map_width: int = Field(default=0, ge=0)
+    map_height: int = Field(default=0, ge=0)
     sample_index: int = Field(ge=0)
     policy_name: str
     regime_vector: np.ndarray
@@ -90,6 +93,7 @@ def build_synthetic_live_dataset(
     round_ids: list[str] | None = None,
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
+    regime_vectors_by_round: Mapping[str, np.ndarray] | None = None,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -145,9 +149,15 @@ def build_synthetic_live_dataset(
             artifact = SyntheticEpisodeArtifact(
                 round_id=round_id,
                 round_number=int(episode_run.round_context.round_number or -1),
+                map_width=episode_run.round_context.map_width,
+                map_height=episode_run.round_context.map_height,
                 sample_index=sample_index,
                 policy_name=policy.name,
-                regime_vector=round_regime_summary_vector(round_episode),
+                regime_vector=(
+                    np.asarray(regime_vectors_by_round[round_id], dtype=np.float64)
+                    if regime_vectors_by_round is not None
+                    else round_regime_summary_vector(round_episode)
+                ),
                 observations=observations,
                 target_sources=target_sources,
                 target_paths=target_paths,
@@ -178,6 +188,11 @@ def build_synthetic_live_dataset(
         "samples_per_round": samples_per_round,
         "total_query_count": total_query_count,
         "round_count": len({row["round_id"] for row in rows}),
+        "regime_vector_source": (
+            "external"
+            if regime_vectors_by_round is not None
+            else "round_regime_summary_v1"
+        ),
         "index_path": str(index_path),
     }
     summary_path.write_text(json.dumps(to_jsonable(summary), indent=2), encoding="utf-8")

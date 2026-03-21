@@ -16,6 +16,10 @@ from astar.student.predictor.hazard_posterior import (
     hazard_posterior_blend_spec_for_model_name,
     hazard_posterior_k_neighbors_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v2 import (
+    hazard_posterior_v2_blend_spec_for_model_name,
+    hazard_posterior_v2_spec_for_model_name,
+)
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -133,6 +137,8 @@ def run_historical_benchmark(
         normalized_model_name == "query_residual"
         or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
         or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
     )
     resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
     if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
@@ -141,6 +147,8 @@ def run_historical_benchmark(
         normalized_model_name == "latent_regime"
         or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
         or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
     ):
         raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
