@@ -247,18 +247,29 @@ def _gaussian_blur(array: np.ndarray, sigma: float) -> np.ndarray:
 
 
 def _owner_summary(observations: Sequence[LiveQueryObs]) -> tuple[float, float, float]:
-    owner_counts: dict[int, int] = {}
+    site_owners: dict[tuple[int, int], dict[int, int]] = {}
     for observation in observations:
         for settlement in observation.settlements:
             if settlement.owner_id is None:
                 continue
-            owner_counts[settlement.owner_id] = owner_counts.get(settlement.owner_id, 0) + 1
-    if not owner_counts:
+            key = (settlement.y, settlement.x)
+            if key not in site_owners:
+                site_owners[key] = {}
+            site_owners[key][settlement.owner_id] = site_owners[key].get(settlement.owner_id, 0) + 1
+            
+    if not site_owners:
         return (0.0, 0.0, 0.0)
-    total = float(sum(owner_counts.values()))
-    shares = np.asarray([count / total for count in owner_counts.values()], dtype=np.float64)
+        
+    global_owner_expected: dict[int, float] = {}
+    for site_counts in site_owners.values():
+        total_obs = float(sum(site_counts.values()))
+        for owner_id, count in site_counts.items():
+            global_owner_expected[owner_id] = global_owner_expected.get(owner_id, 0.0) + (float(count) / total_obs)
+            
+    total_sites = float(len(site_owners))
+    shares = np.asarray([expected / total_sites for expected in global_owner_expected.values()], dtype=np.float64)
     return (
-        float(len(owner_counts)) / 10.0,
+        float(len(global_owner_expected)) / 10.0,
         float(np.max(shares)),
         float(np.sum(shares * shares)),
     )
@@ -1367,7 +1378,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 prediction = ((1.0 - teacher_weight) * prediction) + (teacher_weight * teacher_prior)
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
-            predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
+            predictions_by_seed[seed_index] = apply_probability_floor(
+                prediction,
+                self.probability_floor,
+                initial_grid=np.asarray(round_detail.initial_states[seed_index].grid, dtype=np.int64),
+            )
         return PredictionBundle(
             round_id=round_detail.id,
             model_name=self.name,

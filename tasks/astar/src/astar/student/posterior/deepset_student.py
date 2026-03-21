@@ -12,7 +12,7 @@ from astar.core.trajectory import LiveQueryObs
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import load_synthetic_episode
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.evidence import RoundEvidenceBundle
+from astar.observe.evidence import RoundEvidenceBundle, _build_seed_evidence_bundle
 from astar.student.predictor.base import LiveInferenceContext
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
@@ -37,41 +37,33 @@ def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
 
 def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
     artifact = load_synthetic_episode(path)
-    grouped: dict[int, list[LiveQueryObs]] = {}
+    
+    seeds_count = max(5, max(artifact.target_sources.keys(), default=-1) + 1)
+    grouped: dict[int, list[LiveQueryObs]] = {seed_index: [] for seed_index in range(seeds_count)}
     for observation in artifact.observations:
-        grouped.setdefault(observation.seed_index, []).append(observation)
+        grouped[observation.seed_index].append(observation)
+
+    max_x = max((obs.viewport.x + obs.viewport.w for obs in artifact.observations), default=40)
+    max_y = max((obs.viewport.y + obs.viewport.h for obs in artifact.observations), default=40)
+    map_width = max(40, max_x)
+    map_height = max(40, max_y)
 
     components: list[float] = []
     for seed_index in sorted(grouped):
         observations = grouped[seed_index]
-        class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
-        populations: list[float] = []
-        foods: list[float] = []
-        wealths: list[float] = []
-        defenses: list[float] = []
-        for observation in observations:
-            collapsed = collapse_internal_grid(observation.grid)
-            bincount = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
-            class_counts += bincount
-            for settlement in observation.settlements:
-                if settlement.population is not None:
-                    populations.append(float(settlement.population))
-                if settlement.food is not None:
-                    foods.append(float(settlement.food))
-                if settlement.wealth is not None:
-                    wealths.append(float(settlement.wealth))
-                if settlement.defense is not None:
-                    defenses.append(float(settlement.defense))
-        total = float(np.sum(class_counts))
-        class_frequencies = (
-            class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
+        bundle = _build_seed_evidence_bundle(
+            round_id=artifact.round_id,
+            seed_index=seed_index,
+            map_width=map_width,
+            map_height=map_height,
+            observations=observations,
         )
-        components.append(float(len(observations)))
-        components.extend(class_frequencies.tolist())
-        components.append(float(np.mean(populations)) if populations else 0.0)
-        components.append(float(np.mean(foods)) if foods else 0.0)
-        components.append(float(np.mean(wealths)) if wealths else 0.0)
-        components.append(float(np.mean(defenses)) if defenses else 0.0)
+        components.append(float(bundle.query_count))
+        components.extend(bundle.observed_class_frequencies.astype(np.float64).tolist())
+        components.append(_optional_float(bundle.mean_population))
+        components.append(_optional_float(bundle.mean_food))
+        components.append(_optional_float(bundle.mean_wealth))
+        components.append(_optional_float(bundle.mean_defense))
     return np.asarray(components, dtype=np.float64), artifact.regime_vector
 
 

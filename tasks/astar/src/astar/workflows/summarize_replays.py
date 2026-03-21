@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import json
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +16,7 @@ from astar.history.summaries.event_summary import (
     ReplayEventRoundSummary,
     ReplayEventSeedSummary,
     build_round_event_summary,
+    build_round_event_summary_from_seed_summaries,
     summarize_replay_event_bundle,
 )
 from astar.history.summaries.events import ReplayEventTableBundle, extract_replay_event_tables
@@ -21,6 +24,8 @@ from astar.history.summaries.hazards import (
     ReplayHazardRoundSummary,
     ReplayHazardSeedSummary,
     build_round_hazard_summary,
+    build_round_hazard_summary_from_seed_summaries,
+    build_seed_hazard_summary_from_seed_features,
 )
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
@@ -28,6 +33,7 @@ from astar.history.summaries.measurements import (
     ReplayMeasurementSeedSummary,
     build_replay_measurement_bundle,
     build_round_measurement_summary,
+    build_round_measurement_summary_from_seed_summaries,
     replay_measurement_payload,
 )
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -118,32 +124,23 @@ def _bool_sum(bundle: ReplayEventTableBundle, frame_name: str, column_name: str)
     return int(frame.get_column(column_name).sum())
 
 
-def _event_summary_lines(bundle: ReplayEventTableBundle) -> list[str]:
-    unmatched_ruin_events = int(
-        bundle.cell_events.filter(
-            pl.col("ruin_created") & (~pl.col("matched_collapse_to_ruin"))
-        ).height
-    )
-    unmatched_rebuild_events = int(
-        bundle.cell_events.filter(
-            pl.col("rebuilt_from_ruin") & (~pl.col("matched_settlement_rebuild"))
-        ).height
-    )
+def _event_summary_lines(summary: ReplayEventSeedSummary) -> list[str]:
     return [
-        f"- cell_event_count: {bundle.cell_event_count}",
-        f"- settlement_transition_count: {bundle.settlement_transition_count}",
-        f"- build_events: {_bool_sum(bundle, 'cell_events', 'built_created')}",
-        f"- ruin_events: {_bool_sum(bundle, 'cell_events', 'ruin_created')}",
-        f"- rebuild_events: {_bool_sum(bundle, 'cell_events', 'rebuilt_from_ruin')}",
-        f"- ruin_to_forest_events: {_bool_sum(bundle, 'cell_events', 'reclaimed_by_forest')}",
-        f"- births: {_bool_sum(bundle, 'settlement_transitions', 'birth')}",
-        f"- settlement_rebuilds: {_bool_sum(bundle, 'settlement_transitions', 'rebuild')}",
-        f"- collapses: {_bool_sum(bundle, 'settlement_transitions', 'collapse')}",
-        f"- unmatched_ruin_events: {unmatched_ruin_events}",
-        f"- unmatched_rebuild_events: {unmatched_rebuild_events}",
-        f"- port_gains: {_bool_sum(bundle, 'settlement_transitions', 'port_gain')}",
-        f"- port_losses: {_bool_sum(bundle, 'settlement_transitions', 'port_loss')}",
-        f"- owner_flips: {_bool_sum(bundle, 'settlement_transitions', 'owner_flip')}",
+        f"- cell_event_count: {summary.cell_event_count}",
+        f"- settlement_transition_count: {summary.settlement_transition_count}",
+        f"- build_events: {summary.build_event_count}",
+        f"- ruin_events: {summary.ruin_event_count}",
+        f"- matched_ruin_events: {summary.matched_ruin_event_count}",
+        f"- site_ruin_events: {summary.site_ruin_event_count}",
+        f"- rebuild_events: {summary.rebuild_event_count}",
+        f"- ruin_to_forest_events: {summary.ruin_to_forest_event_count}",
+        f"- births: {summary.birth_event_count}",
+        f"- settlement_rebuilds: {summary.settlement_rebuild_event_count}",
+        f"- collapses: {summary.collapse_event_count}",
+        f"- collapse_to_ruin_events: {summary.collapse_to_ruin_event_count}",
+        f"- port_gains: {summary.port_gain_event_count}",
+        f"- port_losses: {summary.port_loss_event_count}",
+        f"- owner_flips: {summary.owner_flip_event_count}",
     ]
 
 
@@ -178,32 +175,210 @@ def _round_summary_payload(
     }
 
 
+def _from_jsonable_tree(value: object) -> object:
+    if isinstance(value, dict):
+        return {key: _from_jsonable_tree(item) for key, item in value.items()}
+    if isinstance(value, list):
+        if not value:
+            return value
+        converted = [_from_jsonable_tree(item) for item in value]
+        if all(
+            isinstance(item, (int, float, bool, np.integer, np.floating, np.bool_))
+            for item in converted
+        ):
+            return np.asarray(converted)
+        if all(isinstance(item, np.ndarray) for item in converted):
+            return np.asarray(converted)
+        if all(isinstance(item, (dict, str)) for item in converted):
+            return converted
+        return converted
+    return value
+
+
+def load_round_replay_summary(
+    paths: WorkspacePaths,
+    round_id: str,
+) -> SummarizeReplaysResult | None:
+    round_summary_path = paths.replay_artifact_dir(round_id) / "round_summary.json"
+    report_path = paths.replay_artifact_dir(round_id) / "report.md"
+    if not round_summary_path.exists() or not report_path.exists():
+        return None
+    payload = _from_jsonable_tree(json.loads(round_summary_path.read_text(encoding="utf-8")))
+    hazard_summary = ReplayHazardRoundSummary.model_validate(payload["hazard_summary"])
+    event_summary = ReplayEventRoundSummary.model_validate(payload["event_summary"])
+    measurement_summary = ReplayMeasurementRoundSummary.model_validate(
+        payload["measurement_summary"]
+    )
+
+    ordered_seed_indexes = [item.seed_index for item in hazard_summary.seed_summaries]
+    summary_paths = [paths.replay_summary_path(round_id, seed_index) for seed_index in ordered_seed_indexes]
+    cell_event_paths = [paths.replay_cell_event_path(round_id, seed_index) for seed_index in ordered_seed_indexes]
+    settlement_event_paths = [
+        paths.replay_settlement_event_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    site_transition_paths = [
+        paths.replay_site_transition_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    site_opportunity_paths = [
+        paths.replay_site_opportunity_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    settlement_measurement_paths = [
+        paths.replay_settlement_measurement_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
+    ]
+    live_settlement_transition_paths = [
+        paths.replay_live_settlement_transition_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
+    ]
+    ruin_transition_paths = [
+        paths.replay_ruin_transition_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    pairwise_candidate_paths = [
+        paths.replay_pairwise_candidate_path(round_id, seed_index)
+        for seed_index in ordered_seed_indexes
+    ]
+    owner_year_paths = [
+        paths.replay_owner_year_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    year_shock_paths = [
+        paths.replay_year_shock_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    macro_trajectory_paths = [
+        paths.replay_macro_trajectory_path(round_id, seed_index) for seed_index in ordered_seed_indexes
+    ]
+    required_paths = (
+        summary_paths
+        + cell_event_paths
+        + settlement_event_paths
+        + site_transition_paths
+        + site_opportunity_paths
+        + settlement_measurement_paths
+        + live_settlement_transition_paths
+        + ruin_transition_paths
+        + pairwise_candidate_paths
+        + owner_year_paths
+        + year_shock_paths
+        + macro_trajectory_paths
+    )
+    if not all(path.exists() for path in required_paths):
+        return None
+    return SummarizeReplaysResult(
+        round_id=round_id,
+        round_number=hazard_summary.round_number,
+        replay_run_count=hazard_summary.replay_run_count,
+        replay_seed_count=hazard_summary.replay_seed_count,
+        summary_paths=summary_paths,
+        cell_event_paths=cell_event_paths,
+        settlement_event_paths=settlement_event_paths,
+        site_transition_paths=site_transition_paths,
+        site_opportunity_paths=site_opportunity_paths,
+        settlement_measurement_paths=settlement_measurement_paths,
+        live_settlement_transition_paths=live_settlement_transition_paths,
+        ruin_transition_paths=ruin_transition_paths,
+        pairwise_candidate_paths=pairwise_candidate_paths,
+        owner_year_paths=owner_year_paths,
+        year_shock_paths=year_shock_paths,
+        macro_trajectory_paths=macro_trajectory_paths,
+        round_summary_path=round_summary_path,
+        report_path=report_path,
+        hazard_summary=hazard_summary,
+        event_summary=event_summary,
+        measurement_summary=measurement_summary,
+    )
+
+
+def _summarize_seed_replays(
+    root_path: str,
+    round_id: str,
+    seed_index: int,
+    initial_grid: np.ndarray,
+    seed_feature_bundle,
+) -> tuple:
+    paths = WorkspacePaths.from_root(root_path)
+    runs = load_seed_replay_runs(paths, round_id, seed_index)
+    aggregate = summarize_replay_runs(runs)
+    hazard_seed_summary = build_seed_hazard_summary_from_seed_features(
+        runs,
+        aggregate,
+        seed_feature_bundle,
+    )
+    event_bundle = extract_replay_event_tables(runs)
+    event_summary = summarize_replay_event_bundle(event_bundle)
+    measurement_bundle = build_replay_measurement_bundle(
+        initial_grid,
+        seed_feature_bundle,
+        runs,
+    )
+    measurement_summary = measurement_bundle.summary
+    summary_path = save_named_arrays(
+        paths.replay_summary_path(round_id, seed_index),
+        _seed_summary_payload(aggregate, hazard_seed_summary, event_summary, measurement_summary),
+    )
+    cell_event_path = paths.replay_cell_event_path(round_id, seed_index)
+    settlement_event_path = paths.replay_settlement_event_path(round_id, seed_index)
+    site_transition_path = paths.replay_site_transition_path(round_id, seed_index)
+    site_opportunity_path = paths.replay_site_opportunity_path(round_id, seed_index)
+    settlement_measurement_path = paths.replay_settlement_measurement_path(round_id, seed_index)
+    live_settlement_transition_path = paths.replay_live_settlement_transition_path(round_id, seed_index)
+    ruin_transition_path = paths.replay_ruin_transition_path(round_id, seed_index)
+    pairwise_candidate_path = paths.replay_pairwise_candidate_path(round_id, seed_index)
+    owner_year_path = paths.replay_owner_year_path(round_id, seed_index)
+    year_shock_path = paths.replay_year_shock_path(round_id, seed_index)
+    macro_trajectory_path = paths.replay_macro_trajectory_path(round_id, seed_index)
+    cell_event_path.parent.mkdir(parents=True, exist_ok=True)
+    event_bundle.cell_events.write_parquet(cell_event_path)
+    event_bundle.settlement_transitions.write_parquet(settlement_event_path)
+    save_named_arrays(site_transition_path, _measurement_payload(measurement_bundle))
+    measurement_bundle.site_opportunities.write_parquet(site_opportunity_path)
+    measurement_bundle.settlement_measurements.write_parquet(settlement_measurement_path)
+    measurement_bundle.live_settlement_transitions.write_parquet(live_settlement_transition_path)
+    measurement_bundle.ruin_transitions.write_parquet(ruin_transition_path)
+    measurement_bundle.pairwise_candidates.write_parquet(pairwise_candidate_path)
+    measurement_bundle.owner_years.write_parquet(owner_year_path)
+    measurement_bundle.year_shocks.write_parquet(year_shock_path)
+    measurement_bundle.macro_trajectories.write_parquet(macro_trajectory_path)
+    return (
+        seed_index,
+        aggregate,
+        hazard_seed_summary,
+        event_summary,
+        measurement_summary,
+        summary_path,
+        cell_event_path,
+        settlement_event_path,
+        site_transition_path,
+        site_opportunity_path,
+        settlement_measurement_path,
+        live_settlement_transition_path,
+        ruin_transition_path,
+        pairwise_candidate_path,
+        owner_year_path,
+        year_shock_path,
+        macro_trajectory_path,
+    )
+
+
 def summarize_round_replays(
     paths: WorkspacePaths,
     round_id: str,
+    *,
+    reuse_existing: bool = False,
 ) -> SummarizeReplaysResult:
+    if reuse_existing:
+        cached = load_round_replay_summary(paths, round_id)
+        if cached is not None:
+            return cached
     round_record = read_round_record(paths, round_id)
     round_features = compute_round_features(round_record.round)
-
-    runs_by_seed = {
-        seed_index: load_seed_replay_runs(paths, round_id, seed_index)
+    replay_seed_indexes = [
+        seed_index
         for seed_index in range(round_record.round.seeds_count)
-    }
-    aggregates = sorted(
-        [summarize_replay_runs(runs) for runs in runs_by_seed.values() if runs],
-        key=lambda item: item.seed_index,
-    )
-    if not aggregates:
+        if paths.raw_replay_dir(round_id, seed_index).exists()
+        and any(paths.raw_replay_dir(round_id, seed_index).glob("*.json"))
+    ]
+    if not replay_seed_indexes:
         msg = f"no replay runs found for round {round_id}"
         raise ValueError(msg)
-
-    hazard_summary = build_round_hazard_summary(
-        round_id=round_id,
-        round_number=round_record.round.round_number,
-        runs_by_seed={seed_index: runs for seed_index, runs in runs_by_seed.items() if runs},
-        aggregates=aggregates,
-        round_features=round_features,
-    )
 
     summary_paths: list[Path] = []
     cell_event_paths: list[Path] = []
@@ -217,9 +392,9 @@ def summarize_round_replays(
     owner_year_paths: list[Path] = []
     year_shock_paths: list[Path] = []
     macro_trajectory_paths: list[Path] = []
-    event_bundles_by_seed: dict[int, ReplayEventTableBundle] = {}
+    aggregates_by_seed: dict[int, ReplaySeedAggregate] = {}
+    hazard_summaries_by_seed: dict[int, ReplayHazardSeedSummary] = {}
     event_summaries_by_seed: dict[int, ReplayEventSeedSummary] = {}
-    measurement_bundles_by_seed: dict[int, ReplayMeasurementBundle] = {}
     measurement_summaries_by_seed: dict[int, ReplayMeasurementSeedSummary] = {}
     cell_event_paths_by_seed: dict[int, Path] = {}
     settlement_event_paths_by_seed: dict[int, Path] = {}
@@ -232,71 +407,61 @@ def summarize_round_replays(
     owner_year_paths_by_seed: dict[int, Path] = {}
     year_shock_paths_by_seed: dict[int, Path] = {}
     macro_trajectory_paths_by_seed: dict[int, Path] = {}
-    for seed_summary, aggregate in zip(hazard_summary.seed_summaries, aggregates, strict=True):
-        event_bundle = extract_replay_event_tables(runs_by_seed[seed_summary.seed_index])
-        event_summary = summarize_replay_event_bundle(event_bundle)
-        measurement_bundle = build_replay_measurement_bundle(
+    max_workers = min(
+        len(replay_seed_indexes),
+        max(1, min(8, os.cpu_count() or 1)),
+    )
+    worker_args = [
+        (
+            str(paths.root),
+            round_id,
+            seed_index,
             np.asarray(
-                round_record.round.initial_states[seed_summary.seed_index].grid,
+                round_record.round.initial_states[seed_index].grid,
                 dtype=np.int64,
             ),
-            round_features.per_seed[seed_summary.seed_index],
-            runs_by_seed[seed_summary.seed_index],
+            round_features.per_seed[seed_index],
         )
-        measurement_summary = measurement_bundle.summary
-        summary_path = save_named_arrays(
-            paths.replay_summary_path(round_id, seed_summary.seed_index),
-            _seed_summary_payload(aggregate, seed_summary, event_summary, measurement_summary),
+        for seed_index in replay_seed_indexes
+    ]
+    use_processes = (
+        max_workers > 1
+        and os.environ.get("PYTEST_CURRENT_TEST") is None
+    )
+    if use_processes:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(_summarize_seed_replays, *args)
+                for args in worker_args
+            ]
+            seed_results = sorted(
+                [future.result() for future in futures],
+                key=lambda item: item[0],
+            )
+    else:
+        seed_results = sorted(
+            [_summarize_seed_replays(*args) for args in worker_args],
+            key=lambda item: item[0],
         )
-        cell_event_path = paths.replay_cell_event_path(round_id, seed_summary.seed_index)
-        settlement_event_path = paths.replay_settlement_event_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        site_transition_path = paths.replay_site_transition_path(round_id, seed_summary.seed_index)
-        site_opportunity_path = paths.replay_site_opportunity_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        settlement_measurement_path = paths.replay_settlement_measurement_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        live_settlement_transition_path = paths.replay_live_settlement_transition_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        ruin_transition_path = paths.replay_ruin_transition_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        pairwise_candidate_path = paths.replay_pairwise_candidate_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        owner_year_path = paths.replay_owner_year_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        year_shock_path = paths.replay_year_shock_path(round_id, seed_summary.seed_index)
-        macro_trajectory_path = paths.replay_macro_trajectory_path(
-            round_id,
-            seed_summary.seed_index,
-        )
-        cell_event_path.parent.mkdir(parents=True, exist_ok=True)
-        event_bundle.cell_events.write_parquet(cell_event_path)
-        event_bundle.settlement_transitions.write_parquet(settlement_event_path)
-        save_named_arrays(site_transition_path, _measurement_payload(measurement_bundle))
-        measurement_bundle.site_opportunities.write_parquet(site_opportunity_path)
-        measurement_bundle.settlement_measurements.write_parquet(settlement_measurement_path)
-        measurement_bundle.live_settlement_transitions.write_parquet(
-            live_settlement_transition_path
-        )
-        measurement_bundle.ruin_transitions.write_parquet(ruin_transition_path)
-        measurement_bundle.pairwise_candidates.write_parquet(pairwise_candidate_path)
-        measurement_bundle.owner_years.write_parquet(owner_year_path)
-        measurement_bundle.year_shocks.write_parquet(year_shock_path)
-        measurement_bundle.macro_trajectories.write_parquet(macro_trajectory_path)
+    for (
+        seed_index,
+        aggregate,
+        hazard_seed_summary,
+        event_summary,
+        measurement_summary,
+        summary_path,
+        cell_event_path,
+        settlement_event_path,
+        site_transition_path,
+        site_opportunity_path,
+        settlement_measurement_path,
+        live_settlement_transition_path,
+        ruin_transition_path,
+        pairwise_candidate_path,
+        owner_year_path,
+        year_shock_path,
+        macro_trajectory_path,
+    ) in seed_results:
         summary_paths.append(summary_path)
         cell_event_paths.append(cell_event_path)
         settlement_event_paths.append(settlement_event_path)
@@ -309,32 +474,37 @@ def summarize_round_replays(
         owner_year_paths.append(owner_year_path)
         year_shock_paths.append(year_shock_path)
         macro_trajectory_paths.append(macro_trajectory_path)
-        event_bundles_by_seed[seed_summary.seed_index] = event_bundle
-        event_summaries_by_seed[seed_summary.seed_index] = event_summary
-        measurement_bundles_by_seed[seed_summary.seed_index] = measurement_bundle
-        measurement_summaries_by_seed[seed_summary.seed_index] = measurement_summary
-        cell_event_paths_by_seed[seed_summary.seed_index] = cell_event_path
-        settlement_event_paths_by_seed[seed_summary.seed_index] = settlement_event_path
-        site_transition_paths_by_seed[seed_summary.seed_index] = site_transition_path
-        site_opportunity_paths_by_seed[seed_summary.seed_index] = site_opportunity_path
-        settlement_measurement_paths_by_seed[seed_summary.seed_index] = settlement_measurement_path
-        live_settlement_transition_paths_by_seed[
-            seed_summary.seed_index
-        ] = live_settlement_transition_path
-        ruin_transition_paths_by_seed[seed_summary.seed_index] = ruin_transition_path
-        pairwise_candidate_paths_by_seed[seed_summary.seed_index] = pairwise_candidate_path
-        owner_year_paths_by_seed[seed_summary.seed_index] = owner_year_path
-        year_shock_paths_by_seed[seed_summary.seed_index] = year_shock_path
-        macro_trajectory_paths_by_seed[seed_summary.seed_index] = macro_trajectory_path
-    event_round_summary = build_round_event_summary(
+        aggregates_by_seed[seed_index] = aggregate
+        hazard_summaries_by_seed[seed_index] = hazard_seed_summary
+        event_summaries_by_seed[seed_index] = event_summary
+        measurement_summaries_by_seed[seed_index] = measurement_summary
+        cell_event_paths_by_seed[seed_index] = cell_event_path
+        settlement_event_paths_by_seed[seed_index] = settlement_event_path
+        site_transition_paths_by_seed[seed_index] = site_transition_path
+        site_opportunity_paths_by_seed[seed_index] = site_opportunity_path
+        settlement_measurement_paths_by_seed[seed_index] = settlement_measurement_path
+        live_settlement_transition_paths_by_seed[seed_index] = live_settlement_transition_path
+        ruin_transition_paths_by_seed[seed_index] = ruin_transition_path
+        pairwise_candidate_paths_by_seed[seed_index] = pairwise_candidate_path
+        owner_year_paths_by_seed[seed_index] = owner_year_path
+        year_shock_paths_by_seed[seed_index] = year_shock_path
+        macro_trajectory_paths_by_seed[seed_index] = macro_trajectory_path
+    ordered_seed_indexes = sorted(replay_seed_indexes)
+    hazard_summary = build_round_hazard_summary_from_seed_summaries(
         round_id,
         round_record.round.round_number,
-        list(event_bundles_by_seed.values()),
+        [hazard_summaries_by_seed[seed_index] for seed_index in ordered_seed_indexes],
+        [aggregates_by_seed[seed_index] for seed_index in ordered_seed_indexes],
     )
-    measurement_round_summary = build_round_measurement_summary(
+    event_round_summary = build_round_event_summary_from_seed_summaries(
         round_id,
         round_record.round.round_number,
-        list(measurement_bundles_by_seed.values()),
+        [event_summaries_by_seed[seed_index] for seed_index in ordered_seed_indexes],
+    )
+    measurement_round_summary = build_round_measurement_summary_from_seed_summaries(
+        round_id,
+        round_record.round.round_number,
+        [measurement_summaries_by_seed[seed_index] for seed_index in ordered_seed_indexes],
     )
 
     replay_artifact_dir = paths.replay_artifact_dir(round_id)
@@ -373,7 +543,6 @@ def summarize_round_replays(
     for seed_summary, summary_path in zip(
         hazard_summary.seed_summaries, summary_paths, strict=True
     ):
-        event_bundle = event_bundles_by_seed[seed_summary.seed_index]
         event_summary = event_summaries_by_seed[seed_summary.seed_index]
         measurement_summary = measurement_summaries_by_seed[seed_summary.seed_index]
         cell_event_path = cell_event_paths_by_seed[seed_summary.seed_index]
@@ -412,7 +581,7 @@ def summarize_round_replays(
                 f"- year_shock_path: {year_shock_path}",
                 f"- macro_trajectory_path: {macro_trajectory_path}",
                 f"- event_summary_vector: {event_summary.summary_vector.tolist()}",
-                *_event_summary_lines(event_bundle),
+                *_event_summary_lines(event_summary),
                 *_measurement_summary_lines(measurement_summary),
                 "",
             ],

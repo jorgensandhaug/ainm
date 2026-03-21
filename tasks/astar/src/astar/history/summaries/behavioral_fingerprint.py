@@ -6,7 +6,17 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.history.summaries.canonical_behavioral_probes import (
+    build_canonical_live_probes,
+    build_canonical_owner_probes,
+    build_canonical_pairwise_probes,
+    build_canonical_ruin_probes,
+    build_canonical_site_probes,
+)
 from astar.history.summaries.measurements import ReplayMeasurementBundle
+
+CANONICAL_PROBE_LIBRARY_KIND = "canonical"
+CANONICAL_PROBE_LIBRARY_VERSION = "v1"
 
 SITE_BINARY_TARGETS: tuple[str, ...] = ("birth", "site_ruin_created")
 LIVE_BINARY_TARGETS: tuple[str, ...] = (
@@ -21,12 +31,31 @@ LIVE_LINEAR_TARGETS: tuple[str, ...] = (
     "wealth_delta",
     "defense_delta",
 )
+PAIRWISE_BINARY_TARGETS: tuple[str, ...] = (
+    "dst_owner_flip_next",
+    "dst_collapse_next",
+    "dst_port_gain_next",
+)
+PAIRWISE_LINEAR_TARGETS: tuple[str, ...] = (
+    "dst_population_delta",
+    "dst_food_delta",
+    "dst_wealth_delta",
+    "dst_defense_delta",
+)
 RUIN_BINARY_TARGETS: tuple[str, ...] = (
     "remain_ruin",
     "rebuild_settlement",
     "rebuild_port",
     "reclaim_forest",
     "fade_empty",
+)
+OWNER_LINEAR_TARGETS: tuple[str, ...] = (
+    "settlement_delta",
+    "port_delta",
+    "population_delta",
+    "food_delta",
+    "wealth_delta",
+    "defense_delta",
 )
 OWNER_SUMMARY_COLUMNS: tuple[str, ...] = (
     "settlement_delta",
@@ -72,6 +101,114 @@ MACRO_SUMMARY_COLUMNS: tuple[str, ...] = (
     "ruin_delta",
     "owner_delta",
 )
+MAX_FIT_SITE_ROWS = 50_000
+MAX_FIT_LIVE_ROWS = 50_000
+MAX_FIT_RUIN_ROWS = 50_000
+MAX_FIT_PAIRWISE_ROWS = 100_000
+SITE_FEATURE_NAMES: tuple[str, ...] = (
+    "prev_ruin",
+    "buildable",
+    "coast",
+    "coast_distance_steps_log1p",
+    "coast_distance_unreachable",
+    "land_distance_to_settlement_steps_log1p",
+    "land_distance_to_settlement_unreachable",
+    "sea_distance_to_port_steps_log1p",
+    "sea_distance_to_port_unreachable",
+    "settlement_basin_gap_steps_log1p",
+    "settlement_basin_gap_unreachable",
+    "forest_density",
+    "mountain_density",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "nearby_live_count_log1p",
+    "nearby_same_owner_count_log1p",
+    "nearby_other_owner_count_log1p",
+    "nearby_port_count_log1p",
+    "nearby_ruin_count_log1p",
+)
+LIVE_FEATURE_NAMES: tuple[str, ...] = (
+    "prev_has_port",
+    "prev_owner_known",
+    "coast",
+    "coast_distance_steps_log1p",
+    "coast_distance_unreachable",
+    "land_distance_to_settlement_steps_log1p",
+    "land_distance_to_settlement_unreachable",
+    "sea_distance_to_port_steps_log1p",
+    "sea_distance_to_port_unreachable",
+    "settlement_basin_gap_steps_log1p",
+    "settlement_basin_gap_unreachable",
+    "forest_density",
+    "mountain_density",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "nearby_live_count_log1p",
+    "nearby_same_owner_count_log1p",
+    "nearby_other_owner_count_log1p",
+    "nearby_port_count_log1p",
+    "nearby_ruin_count_log1p",
+    "prev_population_asinh",
+    "prev_food_asinh",
+    "prev_wealth_asinh",
+    "prev_defense_asinh",
+)
+RUIN_FEATURE_NAMES: tuple[str, ...] = (
+    "ruin_age_log1p",
+    "buildable",
+    "coast",
+    "coast_distance_steps_log1p",
+    "coast_distance_unreachable",
+    "land_distance_to_settlement_steps_log1p",
+    "land_distance_to_settlement_unreachable",
+    "sea_distance_to_port_steps_log1p",
+    "sea_distance_to_port_unreachable",
+    "settlement_basin_gap_steps_log1p",
+    "settlement_basin_gap_unreachable",
+    "forest_density",
+    "mountain_density",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "nearby_live_count_log1p",
+    "nearby_same_owner_count_log1p",
+    "nearby_other_owner_count_log1p",
+    "nearby_port_count_log1p",
+    "nearby_ruin_count_log1p",
+)
+PAIRWISE_FEATURE_NAMES: tuple[str, ...] = (
+    "same_owner",
+    "src_has_port",
+    "dst_has_port",
+    "maritime_pair",
+    "land_distance_log1p",
+    "land_distance_unreachable",
+    "sea_distance_log1p",
+    "sea_distance_unreachable",
+    "src_population_asinh",
+    "src_food_asinh",
+    "src_wealth_asinh",
+    "src_defense_asinh",
+    "dst_population_asinh",
+    "dst_food_asinh",
+    "dst_wealth_asinh",
+    "dst_defense_asinh",
+)
+OWNER_FEATURE_NAMES: tuple[str, ...] = (
+    "settlement_count_log1p",
+    "port_count_log1p",
+    "coastal_share",
+    "frontier_share",
+    "total_population_asinh",
+    "total_food_asinh",
+    "total_wealth_asinh",
+    "total_defense_asinh",
+    "mean_frontier_score",
+    "mean_maritime_access",
+    "mean_settlement_proximity",
+)
 
 
 def _sigmoid(values: np.ndarray) -> np.ndarray:
@@ -94,11 +231,10 @@ def _frame_column(
     return np.asarray(series.to_numpy(), dtype=dtype)
 
 
-def _positive_quantile(values: np.ndarray, quantile: float) -> float:
-    finite = values[np.isfinite(values)]
-    if finite.size == 0:
-        return 0.0
-    return float(np.quantile(finite, quantile))
+def _nonnull_mask(frame: pl.DataFrame, name: str) -> np.ndarray:
+    if frame.height == 0:
+        return np.zeros((0,), dtype=bool)
+    return np.asarray(~frame.get_column(name).is_null().to_numpy(), dtype=bool)
 
 
 def _fit_ridge_linear(
@@ -156,18 +292,6 @@ def _fit_ridge_logistic(
     return float(beta[0]), np.asarray(beta[1:], dtype=np.float64)
 
 
-def _representative_probe(feature_matrix: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    if feature_matrix.shape[0] == 0:
-        return np.zeros((feature_matrix.shape[1],), dtype=np.float64)
-    candidate_mask = np.asarray(mask, dtype=bool)
-    if not bool(np.any(candidate_mask)):
-        candidate_mask = np.ones(feature_matrix.shape[0], dtype=bool)
-    candidates = feature_matrix[candidate_mask]
-    center = np.median(candidates, axis=0)
-    distances = np.sum((candidates - center[None, :]) ** 2, axis=1)
-    return np.asarray(candidates[int(np.argmin(distances))], dtype=np.float64)
-
-
 def _concat_frames(
     frames: Iterable[pl.DataFrame],
     schema: dict[str, pl.DataType] | None = None,
@@ -176,6 +300,22 @@ def _concat_frames(
     if not materialized:
         return pl.DataFrame(schema=schema)
     return pl.concat(materialized, how="vertical_relaxed")
+
+
+def _sample_frame(
+    frame: pl.DataFrame,
+    *,
+    max_rows: int,
+    seed: int,
+) -> pl.DataFrame:
+    if frame.height <= max_rows:
+        return frame
+    return frame.sample(
+        n=max_rows,
+        with_replacement=False,
+        shuffle=True,
+        seed=seed,
+    )
 
 
 def _aggregate_summary(
@@ -189,6 +329,41 @@ def _aggregate_summary(
         for name in columns
     ]
     return columns, np.asarray(values, dtype=np.float64)
+
+
+def _probe_support_payload(
+    frame: pl.DataFrame,
+    feature_matrix_builder,
+    probe_names: tuple[str, ...],
+    probe_matrix: np.ndarray,
+    *,
+    max_rows: int | None = None,
+    seed: int = 0,
+) -> dict[str, object]:
+    sampled_frame = frame if max_rows is None else _sample_frame(frame, max_rows=max_rows, seed=seed)
+    _, feature_matrix = feature_matrix_builder(sampled_frame)
+    if feature_matrix.shape[0] == 0:
+        return {
+            "probe_names": list(probe_names),
+            "sample_count": 0,
+            "feature_support_fraction": [0.0 for _ in probe_names],
+            "all_features_in_range": [False for _ in probe_names],
+            "nearest_standardized_distance": [float("inf") for _ in probe_names],
+        }
+    lower = np.min(feature_matrix, axis=0)
+    upper = np.max(feature_matrix, axis=0)
+    std = np.std(feature_matrix, axis=0)
+    std = np.where(std > 1e-6, std, 1.0)
+    centered = feature_matrix[:, None, :] - probe_matrix[None, :, :]
+    standardized_distance = np.sqrt(np.mean((centered / std[None, None, :]) ** 2, axis=2))
+    in_range = (probe_matrix >= lower[None, :]) & (probe_matrix <= upper[None, :])
+    return {
+        "probe_names": list(probe_names),
+        "sample_count": int(feature_matrix.shape[0]),
+        "feature_support_fraction": np.mean(in_range, axis=1).astype(np.float64).tolist(),
+        "all_features_in_range": np.all(in_range, axis=1).tolist(),
+        "nearest_standardized_distance": np.min(standardized_distance, axis=0).astype(np.float64).tolist(),
+    }
 
 
 class BehavioralBinaryHead(BaseModel):
@@ -224,15 +399,23 @@ class BehavioralLinearHead(BaseModel):
 class BehavioralFingerprintProbeLibrary(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
+    library_kind: str = CANONICAL_PROBE_LIBRARY_KIND
+    library_version: str = CANONICAL_PROBE_LIBRARY_VERSION
     site_feature_names: tuple[str, ...]
     live_feature_names: tuple[str, ...]
     ruin_feature_names: tuple[str, ...]
+    pairwise_feature_names: tuple[str, ...]
+    owner_feature_names: tuple[str, ...]
     site_probe_names: tuple[str, ...]
     site_probe_matrix: np.ndarray
     live_probe_names: tuple[str, ...]
     live_probe_matrix: np.ndarray
     ruin_probe_names: tuple[str, ...]
     ruin_probe_matrix: np.ndarray
+    pairwise_probe_names: tuple[str, ...]
+    pairwise_probe_matrix: np.ndarray
+    owner_probe_names: tuple[str, ...]
+    owner_probe_matrix: np.ndarray
 
 
 class RoundBehavioralFingerprintFit(BaseModel):
@@ -244,10 +427,15 @@ class RoundBehavioralFingerprintFit(BaseModel):
     site_feature_names: tuple[str, ...]
     live_feature_names: tuple[str, ...]
     ruin_feature_names: tuple[str, ...]
+    pairwise_feature_names: tuple[str, ...]
+    owner_feature_names: tuple[str, ...]
     site_binary_heads: tuple[BehavioralBinaryHead, ...]
     live_binary_heads: tuple[BehavioralBinaryHead, ...]
     live_linear_heads: tuple[BehavioralLinearHead, ...]
     ruin_binary_heads: tuple[BehavioralBinaryHead, ...]
+    pairwise_binary_heads: tuple[BehavioralBinaryHead, ...]
+    pairwise_linear_heads: tuple[BehavioralLinearHead, ...]
+    owner_linear_heads: tuple[BehavioralLinearHead, ...]
     owner_summary_names: tuple[str, ...]
     owner_summary_vector: np.ndarray
     year_shock_summary_names: tuple[str, ...]
@@ -259,12 +447,20 @@ class RoundBehavioralFingerprintFit(BaseModel):
         self,
         probe_library: BehavioralFingerprintProbeLibrary,
     ) -> tuple[list[str], np.ndarray]:
+        if probe_library.library_kind != CANONICAL_PROBE_LIBRARY_KIND:
+            raise ValueError("unsupported probe library kind")
+        if probe_library.library_version != CANONICAL_PROBE_LIBRARY_VERSION:
+            raise ValueError("unsupported probe library version")
         if tuple(self.site_feature_names) != tuple(probe_library.site_feature_names):
             raise ValueError("site probe library feature mismatch")
         if tuple(self.live_feature_names) != tuple(probe_library.live_feature_names):
             raise ValueError("live probe library feature mismatch")
         if tuple(self.ruin_feature_names) != tuple(probe_library.ruin_feature_names):
             raise ValueError("ruin probe library feature mismatch")
+        if tuple(self.pairwise_feature_names) != tuple(probe_library.pairwise_feature_names):
+            raise ValueError("pairwise probe library feature mismatch")
+        if tuple(self.owner_feature_names) != tuple(probe_library.owner_feature_names):
+            raise ValueError("owner probe library feature mismatch")
 
         names: list[str] = []
         values: list[float] = []
@@ -289,10 +485,34 @@ class RoundBehavioralFingerprintFit(BaseModel):
             for probe_name, value in zip(probe_library.ruin_probe_names, predictions, strict=True):
                 names.append(f"ruin_binary::{head.name}::{probe_name}")
                 values.append(float(value))
+        for head in self.pairwise_binary_heads:
+            predictions = head.predict(probe_library.pairwise_probe_matrix)
+            for probe_name, value in zip(
+                probe_library.pairwise_probe_names,
+                predictions,
+                strict=True,
+            ):
+                names.append(f"pairwise_binary::{head.name}::{probe_name}")
+                values.append(float(value))
+        for head in self.pairwise_linear_heads:
+            predictions = head.predict(probe_library.pairwise_probe_matrix)
+            for probe_name, value in zip(
+                probe_library.pairwise_probe_names,
+                predictions,
+                strict=True,
+            ):
+                names.append(f"pairwise_linear::{head.name}::{probe_name}")
+                values.append(float(value))
+        for head in self.owner_linear_heads:
+            predictions = head.predict(probe_library.owner_probe_matrix)
+            for probe_name, value in zip(
+                probe_library.owner_probe_names,
+                predictions,
+                strict=True,
+            ):
+                names.append(f"owner_linear::{head.name}::{probe_name}")
+                values.append(float(value))
 
-        for name, value in zip(self.owner_summary_names, self.owner_summary_vector, strict=True):
-            names.append(f"owner::{name}")
-            values.append(float(value))
         for name, value in zip(
             self.year_shock_summary_names,
             self.year_shock_summary_vector,
@@ -347,29 +567,6 @@ def site_opportunity_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...
         "settlement_basin_gap_unreachable",
         dtype=np.float64,
     )
-    feature_names = (
-        "prev_ruin",
-        "buildable",
-        "coast",
-        "coast_distance_steps_log1p",
-        "coast_distance_unreachable",
-        "land_distance_to_settlement_steps_log1p",
-        "land_distance_to_settlement_unreachable",
-        "sea_distance_to_port_steps_log1p",
-        "sea_distance_to_port_unreachable",
-        "settlement_basin_gap_steps_log1p",
-        "settlement_basin_gap_unreachable",
-        "forest_density",
-        "mountain_density",
-        "settlement_proximity",
-        "maritime_access",
-        "frontier_score",
-        "nearby_live_count_log1p",
-        "nearby_same_owner_count_log1p",
-        "nearby_other_owner_count_log1p",
-        "nearby_port_count_log1p",
-        "nearby_ruin_count_log1p",
-    )
     matrix = np.stack(
         [
             _frame_column(frame, "prev_ruin", dtype=np.float64),
@@ -396,7 +593,7 @@ def site_opportunity_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...
         ],
         axis=1,
     ).astype(np.float64)
-    return feature_names, matrix
+    return SITE_FEATURE_NAMES, matrix
 
 
 def live_settlement_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarray]:
@@ -429,33 +626,6 @@ def live_settlement_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...]
         dtype=np.float64,
     )
     prev_owner_id = _frame_column(frame, "prev_owner_id", dtype=np.float64, fill_null=-1.0)
-    feature_names = (
-        "prev_has_port",
-        "prev_owner_known",
-        "coast",
-        "coast_distance_steps_log1p",
-        "coast_distance_unreachable",
-        "land_distance_to_settlement_steps_log1p",
-        "land_distance_to_settlement_unreachable",
-        "sea_distance_to_port_steps_log1p",
-        "sea_distance_to_port_unreachable",
-        "settlement_basin_gap_steps_log1p",
-        "settlement_basin_gap_unreachable",
-        "forest_density",
-        "mountain_density",
-        "settlement_proximity",
-        "maritime_access",
-        "frontier_score",
-        "nearby_live_count_log1p",
-        "nearby_same_owner_count_log1p",
-        "nearby_other_owner_count_log1p",
-        "nearby_port_count_log1p",
-        "nearby_ruin_count_log1p",
-        "prev_population_asinh",
-        "prev_food_asinh",
-        "prev_wealth_asinh",
-        "prev_defense_asinh",
-    )
     matrix = np.stack(
         [
             _frame_column(frame, "prev_has_port", dtype=np.float64),
@@ -486,7 +656,7 @@ def live_settlement_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...]
         ],
         axis=1,
     ).astype(np.float64)
-    return feature_names, matrix
+    return LIVE_FEATURE_NAMES, matrix
 
 
 def ruin_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarray]:
@@ -518,29 +688,6 @@ def ruin_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarra
         "settlement_basin_gap_unreachable",
         dtype=np.float64,
     )
-    feature_names = (
-        "ruin_age_log1p",
-        "buildable",
-        "coast",
-        "coast_distance_steps_log1p",
-        "coast_distance_unreachable",
-        "land_distance_to_settlement_steps_log1p",
-        "land_distance_to_settlement_unreachable",
-        "sea_distance_to_port_steps_log1p",
-        "sea_distance_to_port_unreachable",
-        "settlement_basin_gap_steps_log1p",
-        "settlement_basin_gap_unreachable",
-        "forest_density",
-        "mountain_density",
-        "settlement_proximity",
-        "maritime_access",
-        "frontier_score",
-        "nearby_live_count_log1p",
-        "nearby_same_owner_count_log1p",
-        "nearby_other_owner_count_log1p",
-        "nearby_port_count_log1p",
-        "nearby_ruin_count_log1p",
-    )
     matrix = np.stack(
         [
             np.log1p(np.clip(_frame_column(frame, "ruin_age", dtype=np.float64), 0.0, None)),
@@ -567,112 +714,151 @@ def ruin_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarra
         ],
         axis=1,
     ).astype(np.float64)
-    return feature_names, matrix
+    return RUIN_FEATURE_NAMES, matrix
+
+
+def pairwise_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarray]:
+    land_distance = _frame_column(frame, "land_distance", dtype=np.float64)
+    sea_distance = _frame_column(frame, "sea_distance", dtype=np.float64)
+    matrix = np.stack(
+        [
+            _frame_column(frame, "same_owner", dtype=np.float64),
+            _frame_column(frame, "src_has_port", dtype=np.float64),
+            _frame_column(frame, "dst_has_port", dtype=np.float64),
+            _frame_column(frame, "maritime_pair", dtype=np.float64),
+            np.log1p(np.clip(land_distance, 0.0, None)),
+            (land_distance < 0.0).astype(np.float64),
+            np.log1p(np.clip(sea_distance, 0.0, None)),
+            (sea_distance < 0.0).astype(np.float64),
+            np.arcsinh(_frame_column(frame, "src_population", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "src_food", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "src_wealth", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "src_defense", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "dst_population", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "dst_food", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "dst_wealth", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "dst_defense", dtype=np.float64)),
+        ],
+        axis=1,
+    ).astype(np.float64)
+    return PAIRWISE_FEATURE_NAMES, matrix
+
+
+def owner_feature_matrix(frame: pl.DataFrame) -> tuple[tuple[str, ...], np.ndarray]:
+    settlement_count = _frame_column(frame, "settlement_count", dtype=np.float64)
+    port_count = _frame_column(frame, "port_count", dtype=np.float64)
+    coastal_count = _frame_column(frame, "coastal_settlement_count", dtype=np.float64)
+    frontier_count = _frame_column(frame, "frontier_settlement_count", dtype=np.float64)
+    owner_size = np.maximum(settlement_count, 1.0)
+    matrix = np.stack(
+        [
+            np.log1p(settlement_count),
+            np.log1p(port_count),
+            coastal_count / owner_size,
+            frontier_count / owner_size,
+            np.arcsinh(_frame_column(frame, "total_population", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "total_food", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "total_wealth", dtype=np.float64)),
+            np.arcsinh(_frame_column(frame, "total_defense", dtype=np.float64)),
+            _frame_column(frame, "mean_frontier_score", dtype=np.float64),
+            _frame_column(frame, "mean_maritime_access", dtype=np.float64),
+            _frame_column(frame, "mean_settlement_proximity", dtype=np.float64),
+        ],
+        axis=1,
+    ).astype(np.float64)
+    return OWNER_FEATURE_NAMES, matrix
 
 
 def build_behavioral_fingerprint_probe_library(
     site_frames: Iterable[pl.DataFrame],
     live_frames: Iterable[pl.DataFrame],
     ruin_frames: Iterable[pl.DataFrame],
+    pairwise_frames: Iterable[pl.DataFrame],
+    owner_frames: Iterable[pl.DataFrame],
 ) -> BehavioralFingerprintProbeLibrary:
-    site_frame = pl.concat(list(site_frames), how="vertical_relaxed")
-    live_frame = pl.concat(list(live_frames), how="vertical_relaxed")
-    ruin_frame = pl.concat(list(ruin_frames), how="vertical_relaxed")
-    site_feature_names, site_matrix = site_opportunity_feature_matrix(site_frame)
-    live_feature_names, live_matrix = live_settlement_feature_matrix(live_frame)
-    ruin_feature_names, ruin_matrix = ruin_feature_matrix(ruin_frame)
-
-    site_prev_ruin = _frame_column(site_frame, "prev_ruin", dtype=bool)
-    site_buildable = _frame_column(site_frame, "buildable", dtype=np.float64) > 0.5
-    site_coast = _frame_column(site_frame, "coast", dtype=np.float64) > 0.5
-    site_frontier = _frame_column(site_frame, "frontier_score", dtype=np.float64)
-    site_other_owner = _frame_column(site_frame, "nearby_other_owner_count", dtype=np.float64)
-    site_nearby_live = _frame_column(site_frame, "nearby_live_count", dtype=np.float64)
-    site_forest = _frame_column(site_frame, "forest_density", dtype=np.float64)
-    site_frontier_threshold = _positive_quantile(site_frontier[~site_prev_ruin], 0.67)
-    site_forest_threshold = _positive_quantile(site_forest[~site_prev_ruin], 0.67)
-    site_probe_specs = (
-        ("open_inland", (~site_prev_ruin) & site_buildable & (~site_coast)),
-        ("open_coastal", (~site_prev_ruin) & site_buildable & site_coast),
-        (
-            "frontier_open",
-            (~site_prev_ruin)
-            & site_buildable
-            & (site_frontier >= site_frontier_threshold)
-            & (site_other_owner > 0.0),
-        ),
-        ("forest_edge_open", (~site_prev_ruin) & site_buildable & (site_forest >= site_forest_threshold)),
-        ("coastal_ruin", site_prev_ruin & site_coast),
-        ("supported_ruin", site_prev_ruin & (site_nearby_live > 0.0)),
-        ("isolated_ruin", site_prev_ruin & (site_nearby_live <= 0.0)),
+    del site_frames, live_frames, ruin_frames, pairwise_frames, owner_frames
+    site_probe_names, site_probe_matrix = build_canonical_site_probes(SITE_FEATURE_NAMES)
+    live_probe_names, live_probe_matrix = build_canonical_live_probes(LIVE_FEATURE_NAMES)
+    ruin_probe_names, ruin_probe_matrix = build_canonical_ruin_probes(RUIN_FEATURE_NAMES)
+    pairwise_probe_names, pairwise_probe_matrix = build_canonical_pairwise_probes(
+        PAIRWISE_FEATURE_NAMES
     )
-    site_probe_matrix = np.stack(
-        [_representative_probe(site_matrix, mask) for _, mask in site_probe_specs],
-        axis=0,
-    ).astype(np.float64)
-
-    live_coast = _frame_column(live_frame, "coast", dtype=np.float64) > 0.5
-    live_has_port = _frame_column(live_frame, "prev_has_port", dtype=bool)
-    live_food = _frame_column(live_frame, "prev_food", dtype=np.float64, fill_null=0.0)
-    live_wealth = _frame_column(live_frame, "prev_wealth", dtype=np.float64, fill_null=0.0)
-    live_defense = _frame_column(live_frame, "prev_defense", dtype=np.float64, fill_null=0.0)
-    live_frontier = _frame_column(live_frame, "frontier_score", dtype=np.float64)
-    live_other_owner = _frame_column(live_frame, "nearby_other_owner_count", dtype=np.float64)
-    live_food_low = _positive_quantile(live_food, 0.33)
-    live_wealth_high = _positive_quantile(live_wealth, 0.67)
-    live_defense_high = _positive_quantile(live_defense, 0.67)
-    live_frontier_threshold = _positive_quantile(live_frontier, 0.67)
-    live_probe_specs = (
-        (
-            "weak_inland",
-            (~live_coast) & (~live_has_port) & (live_food <= live_food_low),
-        ),
-        ("coastal_nonport", live_coast & (~live_has_port)),
-        ("established_port", live_has_port),
-        (
-            "frontier_exposed",
-            (live_frontier >= live_frontier_threshold) & (live_other_owner > 0.0),
-        ),
-        (
-            "defended_core",
-            (live_defense >= live_defense_high) & (live_other_owner <= 0.0),
-        ),
-        (
-            "rich_coastal",
-            live_coast & (live_wealth >= live_wealth_high) & (live_food > live_food_low),
-        ),
-    )
-    live_probe_matrix = np.stack(
-        [_representative_probe(live_matrix, mask) for _, mask in live_probe_specs],
-        axis=0,
-    ).astype(np.float64)
-
-    ruin_coast = _frame_column(ruin_frame, "coast", dtype=np.float64) > 0.5
-    ruin_nearby_live = _frame_column(ruin_frame, "nearby_live_count", dtype=np.float64)
-    ruin_forest = _frame_column(ruin_frame, "forest_density", dtype=np.float64)
-    ruin_forest_threshold = _positive_quantile(ruin_forest, 0.67)
-    ruin_probe_specs = (
-        ("coastal_supported", ruin_coast & (ruin_nearby_live > 0.0)),
-        ("inland_supported", (~ruin_coast) & (ruin_nearby_live > 0.0)),
-        ("isolated", ruin_nearby_live <= 0.0),
-        ("forest_pressured", ruin_forest >= ruin_forest_threshold),
-    )
-    ruin_probe_matrix = np.stack(
-        [_representative_probe(ruin_matrix, mask) for _, mask in ruin_probe_specs],
-        axis=0,
-    ).astype(np.float64)
+    owner_probe_names, owner_probe_matrix = build_canonical_owner_probes(OWNER_FEATURE_NAMES)
 
     return BehavioralFingerprintProbeLibrary(
-        site_feature_names=site_feature_names,
-        live_feature_names=live_feature_names,
-        ruin_feature_names=ruin_feature_names,
-        site_probe_names=tuple(name for name, _ in site_probe_specs),
+        library_kind=CANONICAL_PROBE_LIBRARY_KIND,
+        library_version=CANONICAL_PROBE_LIBRARY_VERSION,
+        site_feature_names=SITE_FEATURE_NAMES,
+        live_feature_names=LIVE_FEATURE_NAMES,
+        ruin_feature_names=RUIN_FEATURE_NAMES,
+        pairwise_feature_names=PAIRWISE_FEATURE_NAMES,
+        owner_feature_names=OWNER_FEATURE_NAMES,
+        site_probe_names=site_probe_names,
         site_probe_matrix=site_probe_matrix,
-        live_probe_names=tuple(name for name, _ in live_probe_specs),
+        live_probe_names=live_probe_names,
         live_probe_matrix=live_probe_matrix,
-        ruin_probe_names=tuple(name for name, _ in ruin_probe_specs),
+        ruin_probe_names=ruin_probe_names,
         ruin_probe_matrix=ruin_probe_matrix,
+        pairwise_probe_names=pairwise_probe_names,
+        pairwise_probe_matrix=pairwise_probe_matrix,
+        owner_probe_names=owner_probe_names,
+        owner_probe_matrix=owner_probe_matrix,
     )
+
+
+def summarize_probe_support(
+    bundles: list[ReplayMeasurementBundle],
+    probe_library: BehavioralFingerprintProbeLibrary,
+) -> dict[str, dict[str, object]]:
+    if not bundles:
+        raise ValueError("cannot summarize probe support without replay measurements")
+    site_frame = _concat_frames(bundle.site_opportunities for bundle in bundles)
+    live_frame = _concat_frames(bundle.live_settlement_transitions for bundle in bundles)
+    ruin_frame = _concat_frames(bundle.ruin_transitions for bundle in bundles)
+    pairwise_frame = _concat_frames(bundle.pairwise_candidates for bundle in bundles)
+    owner_frame = _concat_frames(bundle.owner_years for bundle in bundles)
+    return {
+        "site": _probe_support_payload(
+            site_frame.filter(~pl.col("prev_ruin")),
+            site_opportunity_feature_matrix,
+            probe_library.site_probe_names,
+            probe_library.site_probe_matrix,
+            max_rows=MAX_FIT_SITE_ROWS,
+            seed=7,
+        ),
+        "live": _probe_support_payload(
+            live_frame,
+            live_settlement_feature_matrix,
+            probe_library.live_probe_names,
+            probe_library.live_probe_matrix,
+            max_rows=MAX_FIT_LIVE_ROWS,
+            seed=11,
+        ),
+        "ruin": _probe_support_payload(
+            ruin_frame,
+            ruin_feature_matrix,
+            probe_library.ruin_probe_names,
+            probe_library.ruin_probe_matrix,
+            max_rows=MAX_FIT_RUIN_ROWS,
+            seed=13,
+        ),
+        "pairwise": _probe_support_payload(
+            pairwise_frame,
+            pairwise_feature_matrix,
+            probe_library.pairwise_probe_names,
+            probe_library.pairwise_probe_matrix,
+            max_rows=MAX_FIT_PAIRWISE_ROWS,
+            seed=17,
+        ),
+        "owner": _probe_support_payload(
+            owner_frame,
+            owner_feature_matrix,
+            probe_library.owner_probe_names,
+            probe_library.owner_probe_matrix,
+            max_rows=None,
+            seed=19,
+        ),
+    }
 
 
 def _fit_binary_head(
@@ -726,13 +912,30 @@ def fit_round_behavioral_fingerprint(
     site_frame = _concat_frames(bundle.site_opportunities for bundle in bundles)
     live_frame = _concat_frames(bundle.live_settlement_transitions for bundle in bundles)
     ruin_frame = _concat_frames(bundle.ruin_transitions for bundle in bundles)
+    pairwise_frame = _concat_frames(bundle.pairwise_candidates for bundle in bundles)
     owner_frame = _concat_frames(bundle.owner_years for bundle in bundles)
     year_shock_frame = _concat_frames(bundle.year_shocks for bundle in bundles)
     macro_frame = _concat_frames(bundle.macro_trajectories for bundle in bundles)
 
+    total_sample_count = int(
+        site_frame.height
+        + live_frame.height
+        + ruin_frame.height
+        + pairwise_frame.height
+        + owner_frame.height
+        + year_shock_frame.height
+        + macro_frame.height
+    )
+    site_frame = _sample_frame(site_frame, max_rows=MAX_FIT_SITE_ROWS, seed=7)
+    live_frame = _sample_frame(live_frame, max_rows=MAX_FIT_LIVE_ROWS, seed=11)
+    ruin_frame = _sample_frame(ruin_frame, max_rows=MAX_FIT_RUIN_ROWS, seed=13)
+    pairwise_frame = _sample_frame(pairwise_frame, max_rows=MAX_FIT_PAIRWISE_ROWS, seed=17)
+
     site_feature_names, site_matrix = site_opportunity_feature_matrix(site_frame)
     live_feature_names, live_matrix = live_settlement_feature_matrix(live_frame)
     ruin_feature_names, ruin_matrix = ruin_feature_matrix(ruin_frame)
+    pairwise_feature_names, pairwise_matrix = pairwise_feature_matrix(pairwise_frame)
+    owner_feature_names, owner_matrix = owner_feature_matrix(owner_frame)
 
     site_binary_heads: list[BehavioralBinaryHead] = []
     non_ruin_mask = ~_frame_column(site_frame, "prev_ruin", dtype=bool)
@@ -797,6 +1000,46 @@ def fit_round_behavioral_fingerprint(
             )
         )
 
+    pairwise_binary_heads: list[BehavioralBinaryHead] = []
+    for name in PAIRWISE_BINARY_TARGETS:
+        target = _frame_column(pairwise_frame, name, dtype=np.float64)
+        pairwise_binary_heads.append(
+            _fit_binary_head(
+                name,
+                pairwise_feature_names,
+                pairwise_matrix,
+                target,
+                ridge_alpha=ridge_alpha,
+            )
+        )
+
+    pairwise_linear_heads: list[BehavioralLinearHead] = []
+    for name in PAIRWISE_LINEAR_TARGETS:
+        mask = _nonnull_mask(pairwise_frame, name)
+        target = _frame_column(pairwise_frame, name, dtype=np.float64, fill_null=0.0)[mask]
+        pairwise_linear_heads.append(
+            _fit_linear_head(
+                name,
+                pairwise_feature_names,
+                pairwise_matrix[mask],
+                target,
+                ridge_alpha=ridge_alpha,
+            )
+        )
+
+    owner_linear_heads: list[BehavioralLinearHead] = []
+    for name in OWNER_LINEAR_TARGETS:
+        target = _frame_column(owner_frame, name, dtype=np.float64, fill_null=0.0)
+        owner_linear_heads.append(
+            _fit_linear_head(
+                name,
+                owner_feature_names,
+                owner_matrix,
+                target,
+                ridge_alpha=ridge_alpha,
+            )
+        )
+
     owner_summary_names, owner_summary_vector = _aggregate_summary(
         owner_frame,
         OWNER_SUMMARY_COLUMNS,
@@ -813,14 +1056,19 @@ def fit_round_behavioral_fingerprint(
     return RoundBehavioralFingerprintFit(
         round_id=round_id,
         round_number=round_number,
-        sample_count=int(site_frame.height + live_frame.height + ruin_frame.height),
+        sample_count=total_sample_count,
         site_feature_names=site_feature_names,
         live_feature_names=live_feature_names,
         ruin_feature_names=ruin_feature_names,
+        pairwise_feature_names=pairwise_feature_names,
+        owner_feature_names=owner_feature_names,
         site_binary_heads=tuple(site_binary_heads),
         live_binary_heads=tuple(live_binary_heads),
         live_linear_heads=tuple(live_linear_heads),
         ruin_binary_heads=tuple(ruin_binary_heads),
+        pairwise_binary_heads=tuple(pairwise_binary_heads),
+        pairwise_linear_heads=tuple(pairwise_linear_heads),
+        owner_linear_heads=tuple(owner_linear_heads),
         owner_summary_names=owner_summary_names,
         owner_summary_vector=owner_summary_vector,
         year_shock_summary_names=year_shock_summary_names,
@@ -972,12 +1220,17 @@ __all__ = [
     "BehavioralBinaryHead",
     "BehavioralFingerprintProbeLibrary",
     "BehavioralLinearHead",
+    "CANONICAL_PROBE_LIBRARY_KIND",
+    "CANONICAL_PROBE_LIBRARY_VERSION",
     "RoundBehavioralFingerprintEstimate",
     "RoundBehavioralFingerprintFit",
     "build_behavioral_fingerprint_probe_library",
     "estimate_round_behavioral_fingerprint",
     "fit_round_behavioral_fingerprint",
     "live_settlement_feature_matrix",
+    "owner_feature_matrix",
+    "pairwise_feature_matrix",
     "ruin_feature_matrix",
     "site_opportunity_feature_matrix",
+    "summarize_probe_support",
 ]

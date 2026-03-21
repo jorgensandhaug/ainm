@@ -30,6 +30,16 @@ class SeedLearningArrays(BaseModel):
     observed_class_frequencies: np.ndarray
     observed_class_count_tensor: np.ndarray
     replay_run_count: int = Field(default=0, ge=0)
+    replay_frame_transition_count: int = Field(default=0, ge=0)
+    replay_site_transition_count: int = Field(default=0, ge=0)
+    replay_site_opportunity_count: int = Field(default=0, ge=0)
+    replay_settlement_measurement_count: int = Field(default=0, ge=0)
+    replay_live_settlement_transition_count: int = Field(default=0, ge=0)
+    replay_ruin_transition_count: int = Field(default=0, ge=0)
+    replay_pairwise_candidate_count: int = Field(default=0, ge=0)
+    replay_owner_year_count: int = Field(default=0, ge=0)
+    replay_year_shock_count: int = Field(default=0, ge=0)
+    replay_macro_trajectory_count: int = Field(default=0, ge=0)
     replay_mean_terminal_probs: np.ndarray | None = None
     replay_build_hit_rate: np.ndarray | None = None
     replay_port_hit_rate: np.ndarray | None = None
@@ -85,6 +95,16 @@ class RoundLearningEpisode(BaseModel):
                 observed_class_frequencies=np.zeros_like(item.observed_class_frequencies),
                 observed_class_count_tensor=np.zeros_like(item.observed_class_count_tensor),
                 replay_run_count=item.replay_run_count,
+                replay_frame_transition_count=item.replay_frame_transition_count,
+                replay_site_transition_count=item.replay_site_transition_count,
+                replay_site_opportunity_count=item.replay_site_opportunity_count,
+                replay_settlement_measurement_count=item.replay_settlement_measurement_count,
+                replay_live_settlement_transition_count=item.replay_live_settlement_transition_count,
+                replay_ruin_transition_count=item.replay_ruin_transition_count,
+                replay_pairwise_candidate_count=item.replay_pairwise_candidate_count,
+                replay_owner_year_count=item.replay_owner_year_count,
+                replay_year_shock_count=item.replay_year_shock_count,
+                replay_macro_trajectory_count=item.replay_macro_trajectory_count,
                 replay_mean_terminal_probs=item.replay_mean_terminal_probs,
                 replay_build_hit_rate=item.replay_build_hit_rate,
                 replay_port_hit_rate=item.replay_port_hit_rate,
@@ -155,6 +175,57 @@ def load_round_learning_episode(
             ),
             replay_run_count=(
                 int(replay_payload["replay_run_count"][0]) if replay_payload is not None else 0
+            ),
+            replay_frame_transition_count=(
+                int(replay_payload["frame_transition_count"][0])
+                if replay_payload is not None and "frame_transition_count" in replay_payload
+                else 0
+            ),
+            replay_site_transition_count=(
+                int(replay_payload["site_transition_count"][0])
+                if replay_payload is not None and "site_transition_count" in replay_payload
+                else 0
+            ),
+            replay_site_opportunity_count=(
+                int(replay_payload["site_opportunity_count"][0])
+                if replay_payload is not None and "site_opportunity_count" in replay_payload
+                else 0
+            ),
+            replay_settlement_measurement_count=(
+                int(replay_payload["settlement_measurement_count"][0])
+                if replay_payload is not None and "settlement_measurement_count" in replay_payload
+                else 0
+            ),
+            replay_live_settlement_transition_count=(
+                int(replay_payload["live_settlement_transition_count"][0])
+                if replay_payload is not None
+                and "live_settlement_transition_count" in replay_payload
+                else 0
+            ),
+            replay_ruin_transition_count=(
+                int(replay_payload["ruin_transition_count"][0])
+                if replay_payload is not None and "ruin_transition_count" in replay_payload
+                else 0
+            ),
+            replay_pairwise_candidate_count=(
+                int(replay_payload["pairwise_candidate_count"][0])
+                if replay_payload is not None and "pairwise_candidate_count" in replay_payload
+                else 0
+            ),
+            replay_owner_year_count=(
+                int(replay_payload["owner_year_count"][0])
+                if replay_payload is not None and "owner_year_count" in replay_payload
+                else 0
+            ),
+            replay_year_shock_count=(
+                int(replay_payload["year_shock_count"][0])
+                if replay_payload is not None and "year_shock_count" in replay_payload
+                else 0
+            ),
+            replay_macro_trajectory_count=(
+                int(replay_payload["macro_trajectory_count"][0])
+                if replay_payload is not None and "macro_trajectory_count" in replay_payload
+                else 0
             ),
             replay_mean_terminal_probs=(
                 np.asarray(replay_payload["mean_terminal_probs"], dtype=np.float64)

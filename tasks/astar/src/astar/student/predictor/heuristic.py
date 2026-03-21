@@ -64,6 +64,7 @@ class GeometryPriorPredictor(BaseRoundPredictor):
             predictions_by_seed[seed_index] = apply_probability_floor(
                 probabilities / np.sum(probabilities, axis=-1, keepdims=True),
                 self.probability_floor,
+                initial_grid=grid,
             )
         return PredictionBundle(
             round_id=round_detail.id,
@@ -214,6 +215,7 @@ class LatentRegimePredictor(BaseRoundPredictor):
             predictions_by_seed[seed_index] = apply_probability_floor(
                 probabilities / np.sum(probabilities, axis=-1, keepdims=True),
                 self.probability_floor,
+                initial_grid=np.asarray(round_detail.initial_states[seed_index].grid, dtype=np.int64),
             )
 
         return PredictionBundle(

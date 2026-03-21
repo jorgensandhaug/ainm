@@ -14,6 +14,7 @@ from astar.cli_output import (
     render_corpus_summary,
     render_dataset_diagnostics,
     render_dataset_ref,
+    render_dynamic_law_summary_validation,
     render_episode_diagnostics,
     render_factorize_round_summaries,
     render_fetch_analysis,
@@ -69,6 +70,7 @@ from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
+from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
@@ -170,6 +172,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     summarize_replays_parser = subparsers.add_parser("summarize-replays")
     summarize_replays_parser.add_argument("--round-id", required=True)
+    summarize_replays_parser.add_argument(
+        "--reuse-existing",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
 
     build_parser_cmd = subparsers.add_parser("build-submission")
     build_parser_cmd.add_argument("--round-id", required=True)
@@ -248,6 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="dynamic_law",
     )
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
+    factorize_rounds_parser.add_argument("--bootstrap-samples", type=int, default=4)
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
     teacher_transition_parser.add_argument("--round-id", action="append", default=None)
@@ -382,6 +390,21 @@ def build_parser() -> argparse.ArgumentParser:
     science_parser.add_argument("--model-name", default="hazard_teacher_v1")
     science_parser.add_argument("--n-rollouts", type=int, default=None)
 
+    dynamic_law_parser = subparsers.add_parser("evaluate-dynamic-law-summary")
+    dynamic_law_parser.add_argument("--round-id", action="append", default=None)
+    dynamic_law_parser.add_argument(
+        "--profile",
+        choices=("smoke", "dev", "science"),
+        default="science",
+    )
+    dynamic_law_parser.add_argument("--max-holdout-runs", type=int, default=None)
+    dynamic_law_parser.add_argument("--bootstrap-samples", type=int, default=None)
+    dynamic_law_parser.add_argument("--rng-seed", type=int, default=0)
+    dynamic_law_parser.add_argument("--site-max-rows", type=int, default=None)
+    dynamic_law_parser.add_argument("--settlement-max-rows", type=int, default=None)
+    dynamic_law_parser.add_argument("--pairwise-max-rows", type=int, default=None)
+    dynamic_law_parser.add_argument("--name", default=None)
+
     backtest_round_parser = subparsers.add_parser("backtest-round")
     backtest_round_parser.add_argument("--round-id", required=True)
 
@@ -480,7 +503,11 @@ def _main() -> int:
         return 0
 
     if args.command == "summarize-replays":
-        summarize_result = summarize_round_replays(paths, args.round_id)
+        summarize_result = summarize_round_replays(
+            paths,
+            args.round_id,
+            reuse_existing=args.reuse_existing,
+        )
         _emit(args.json, summarize_result, render_summarize_replays(summarize_result))
         return 0
 
@@ -527,6 +554,7 @@ def _main() -> int:
             round_ids=args.round_id,
             summary_kind=args.summary_kind,
             max_rank=args.max_rank,
+            bootstrap_samples=args.bootstrap_samples,
         )
         _emit(args.json, factorized, render_factorize_round_summaries(factorized))
         return 0
@@ -604,6 +632,26 @@ def _main() -> int:
             n_rollouts=args.n_rollouts,
         )
         _emit(args.json, science_result, render_teacher_science(science_result))
+        return 0
+
+    if args.command == "evaluate-dynamic-law-summary":
+        validation_result = evaluate_dynamic_law_summary(
+            paths,
+            round_ids=args.round_id,
+            validation_profile=args.profile,
+            max_holdout_runs=args.max_holdout_runs,
+            bootstrap_samples=args.bootstrap_samples,
+            rng_seed=args.rng_seed,
+            name=args.name,
+            site_max_rows=args.site_max_rows,
+            settlement_max_rows=args.settlement_max_rows,
+            pairwise_max_rows=args.pairwise_max_rows,
+        )
+        _emit(
+            args.json,
+            validation_result,
+            render_dynamic_law_summary_validation(validation_result),
+        )
         return 0
 
     if args.command == "run-synthetic-tournament":

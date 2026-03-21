@@ -59,66 +59,72 @@ def _viewport_key(record: QueryFileRecord) -> tuple[int, int, int, int, int]:
 def _settlement_means(
     records: list[QueryFileRecord],
 ) -> tuple[float | None, float | None, float | None, float | None]:
-    populations = [
-        settlement.population
-        for record in records
-        for settlement in record.record.response.settlements
-    ]
-    foods = [
-        settlement.food for record in records for settlement in record.record.response.settlements
-    ]
-    wealths = [
-        settlement.wealth for record in records for settlement in record.record.response.settlements
-    ]
-    defenses = [
-        settlement.defense
-        for record in records
-        for settlement in record.record.response.settlements
-    ]
+    populations: dict[tuple[int, int], list[float]] = {}
+    foods: dict[tuple[int, int], list[float]] = {}
+    wealths: dict[tuple[int, int], list[float]] = {}
+    defenses: dict[tuple[int, int], list[float]] = {}
+
+    for record in records:
+        for settlement in record.record.response.settlements:
+            key = (settlement.y, settlement.x)
+            if settlement.population is not None:
+                populations.setdefault(key, []).append(settlement.population)
+            if settlement.food is not None:
+                foods.setdefault(key, []).append(settlement.food)
+            if settlement.wealth is not None:
+                wealths.setdefault(key, []).append(settlement.wealth)
+            if settlement.defense is not None:
+                defenses.setdefault(key, []).append(settlement.defense)
+
     if not populations:
         return (None, None, None, None)
+    
+    site_mean_pops = [fmean(vals) for vals in populations.values()]
+    site_mean_foods = [fmean(vals) for vals in foods.values()]
+    site_mean_wealths = [fmean(vals) for vals in wealths.values()]
+    site_mean_defenses = [fmean(vals) for vals in defenses.values()]
+
     return (
-        float(fmean(populations)),
-        float(fmean(foods)),
-        float(fmean(wealths)),
-        float(fmean(defenses)),
+        float(fmean(site_mean_pops)),
+        float(fmean(site_mean_foods)) if site_mean_foods else None,
+        float(fmean(site_mean_wealths)) if site_mean_wealths else None,
+        float(fmean(site_mean_defenses)) if site_mean_defenses else None,
     )
 
 
 def _settlement_means_from_observations(
     observations: list[LiveQueryObs],
 ) -> tuple[float | None, float | None, float | None, float | None]:
-    populations = [
-        settlement.population
-        for observation in observations
-        for settlement in observation.settlements
-        if settlement.population is not None
-    ]
-    foods = [
-        settlement.food
-        for observation in observations
-        for settlement in observation.settlements
-        if settlement.food is not None
-    ]
-    wealths = [
-        settlement.wealth
-        for observation in observations
-        for settlement in observation.settlements
-        if settlement.wealth is not None
-    ]
-    defenses = [
-        settlement.defense
-        for observation in observations
-        for settlement in observation.settlements
-        if settlement.defense is not None
-    ]
+    populations: dict[tuple[int, int], list[float]] = {}
+    foods: dict[tuple[int, int], list[float]] = {}
+    wealths: dict[tuple[int, int], list[float]] = {}
+    defenses: dict[tuple[int, int], list[float]] = {}
+
+    for observation in observations:
+        for settlement in observation.settlements:
+            key = (settlement.y, settlement.x)
+            if settlement.population is not None:
+                populations.setdefault(key, []).append(settlement.population)
+            if settlement.food is not None:
+                foods.setdefault(key, []).append(settlement.food)
+            if settlement.wealth is not None:
+                wealths.setdefault(key, []).append(settlement.wealth)
+            if settlement.defense is not None:
+                defenses.setdefault(key, []).append(settlement.defense)
+
     if not populations:
         return (None, None, None, None)
+
+    site_mean_pops = [fmean(vals) for vals in populations.values()]
+    site_mean_foods = [fmean(vals) for vals in foods.values()]
+    site_mean_wealths = [fmean(vals) for vals in wealths.values()]
+    site_mean_defenses = [fmean(vals) for vals in defenses.values()]
+
     return (
-        float(fmean(populations)),
-        float(fmean(foods)) if foods else None,
-        float(fmean(wealths)) if wealths else None,
-        float(fmean(defenses)) if defenses else None,
+        float(fmean(site_mean_pops)),
+        float(fmean(site_mean_foods)) if site_mean_foods else None,
+        float(fmean(site_mean_wealths)) if site_mean_wealths else None,
+        float(fmean(site_mean_defenses)) if site_mean_defenses else None,
     )
 
 
@@ -154,11 +160,17 @@ def _build_seed_evidence_bundle(
                 global_y = viewport.y + local_y
                 global_x = viewport.x + local_x
                 count_tensor[global_y, global_x, class_index] += 1
-                class_counts[class_index] += 1
-    class_total = int(class_counts.sum())
-    frequencies = np.zeros(CLASS_COUNT, dtype=np.float64)
-    if class_total > 0:
-        frequencies = class_counts.astype(np.float64) / float(class_total)
+                
+    class_counts = count_tensor.sum(axis=(0, 1)).astype(np.int64)
+    count_total = count_tensor.sum(axis=-1)
+    mask = count_total > 0
+    exact_freq = np.zeros_like(count_tensor, dtype=np.float64)
+    if np.any(mask):
+        exact_freq[mask] = count_tensor[mask] / count_total[mask, None]
+        frequencies = exact_freq[mask].mean(axis=0)
+    else:
+        frequencies = np.zeros(CLASS_COUNT, dtype=np.float64)
+
     mean_population, mean_food, mean_wealth, mean_defense = _settlement_means_from_observations(
         observations,
     )
@@ -209,11 +221,17 @@ def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceB
                     global_y = viewport.y + local_y
                     global_x = viewport.x + local_x
                     count_tensor[global_y, global_x, class_index] += 1
-                    class_counts[class_index] += 1
-        class_total = int(class_counts.sum())
-        frequencies = np.zeros(CLASS_COUNT, dtype=np.float64)
-        if class_total > 0:
-            frequencies = class_counts.astype(np.float64) / float(class_total)
+                    
+        class_counts = count_tensor.sum(axis=(0, 1)).astype(np.int64)
+        count_total = count_tensor.sum(axis=-1)
+        mask = count_total > 0
+        exact_freq = np.zeros_like(count_tensor, dtype=np.float64)
+        if np.any(mask):
+            exact_freq[mask] = count_tensor[mask] / count_total[mask, None]
+            frequencies = exact_freq[mask].mean(axis=0)
+        else:
+            frequencies = np.zeros(CLASS_COUNT, dtype=np.float64)
+            
         mean_population, mean_food, mean_wealth, mean_defense = _settlement_means(records)
         per_seed[seed_index] = SeedEvidenceBundle(
             round_id=round_id,

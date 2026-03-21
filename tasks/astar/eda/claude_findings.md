@@ -1228,3 +1228,1094 @@ Rebuilt settlements (from ruins) have **exactly constant stats**:
 42. **Newborns start at pop=0.5, def=0.2** and **rebuilds at pop=0.4, def=0.15** -- hard simulator constants.
 43. **Collapses cascade weakly** (lag-1 autocorr=0.22) -- bad years beget bad years.
 44. **Mass die-offs** of up to 123 settlements per step occur -- the tail is very heavy.
+
+---
+
+## WAVE 6 FINDINGS (from replay_eda_wave6.py)
+
+---
+
+## MM. Spatial Autocorrelation
+
+Overall spatial autocorrelation: P(adjacent same class) = 0.535 vs random 0.491 (ratio 1.09x). Modest overall clustering.
+
+**Per-class clustering lifts:**
+
+| Class | Lift |
+|-------|------|
+| mountain | 17.3x |
+| port | 7.7x |
+| settlement | 2.3x |
+| ruin | 2.1x |
+| forest | 1.2x |
+| empty | 1.05x |
+
+Mountains and ports are **extremely spatially clustered**. Mountains because they form chains. Ports because they're on coastlines (clustered along ocean boundaries). Settlements cluster at 2.3x -- settlements breed more settlements nearby. Ruins cluster at 2.1x -- when one settlement collapses, its neighbors are more likely to collapse too (cascade effect). Forest and empty are weakly clustered.
+
+---
+
+## NN. 4-Year Cycle Sub-Structure
+
+Events by step mod 4:
+
+| Position | Births/step | Collapses | Cell Changes | Port Gains |
+|----------|------------|-----------|-------------|------------|
+| mod 0 | 4.92 | 8.84 | 25.5 | 0.318 |
+| mod 1 | 4.82 | 8.52 | 24.7 | 0.380 |
+| mod 2 | 4.22 | 7.54 | 21.9 | 0.440 |
+| mod 3 | **12.88** | 8.19 | **32.9** | 0.350 |
+
+**The birth burst happens at mod 3** (steps 3, 7, 11, 15, 19, ...). Births are 2.6x higher at mod 3 vs mod 2. Collapses are roughly uniform across the cycle -- they don't have a periodic structure.
+
+Port gains are slightly higher at mod 2 (0.44 vs 0.32-0.38) -- ports may be acquired preferentially one step before the birth burst.
+
+---
+
+## OO. Edge/Border Effects
+
+| Region | Total Cells | Changed | Rate |
+|--------|------------|---------|------|
+| Edge (3 cells from border) | 97,600 | 17,434 | 17.9% |
+| Interior | 403,032 | 87,885 | 21.8% |
+
+**Edge cells change 18% less** than interior cells (ratio 0.82x). This is partly because edges have more ocean (less room for expansion) and partly because initial settlements are placed away from edges.
+
+**Only 11.6% of initial settlements are near edges**, despite edges being 27.8% of the map. The map generator places settlements preferentially in the interior.
+
+---
+
+## PP. Expansion Barriers
+
+### Ocean as barrier:
+
+| Connectivity | Build Rate |
+|-------------|-----------|
+| Same land component as settlements | 15.9% |
+| Disconnected (across ocean) | 3.0% |
+
+Cells on the **same connected land mass** as initial settlements are **5.4x more likely** to be built on. Ocean is a major expansion barrier, but not absolute -- disconnected land still gets a 3% build rate (likely from sea-reachable settlement founding).
+
+### Mountain blocking:
+
+| Context | Build Rate |
+|---------|-----------|
+| Behind mountain (relative to nearest settlement) | 8.8% |
+| Not blocked | 15.7% |
+
+Mountains reduce build probability by **1.8x**. Mountains are a moderate barrier but not a hard wall -- settlements can go around them.
+
+---
+
+## QQ. Settlement Density Limits -- CRITICAL
+
+### Maximum density at year 50:
+
+- Max density in any 5x5 window: **0.92** (absolute max) -- nearly full saturation.
+- Mean max density: 0.47 (about half a 5x5 window filled).
+
+### Minimum spacing between settlements at year 50:
+
+| Distance | Fraction |
+|----------|----------|
+| 1 (adjacent!) | **69.7%** |
+| 2 | 23.8% |
+| 3 | 5.1% |
+| 4 | 1.0% |
+
+**CRITICAL DISCOVERY: Settlements CAN be adjacent (distance 1) at year 50.** 70% of settlements have a neighbor at distance 1. The initial spacing constraint of 3 does NOT apply to founded settlements -- only to the initial map generation. This means settlement density can be very high locally.
+
+---
+
+## RR. Cell Cycling
+
+Number of terrain transitions per cell across 50 steps:
+
+| Transitions | Share | Cumulative |
+|-------------|-------|-----------|
+| 0 | 75.4% | 75.4% |
+| 1 | 5.7% | 81.0% |
+| 2 | 4.7% | 85.7% |
+| 3 | 6.3% | 92.0% |
+| 4 | 2.1% | 94.1% |
+| 5 | 2.4% | 96.5% |
+| 6-10 | 3.1% | 99.6% |
+| 11-24 | 0.4% | 100% |
+
+**75% of cells never change.** But 25% do, and of those, many cycle multiple times. The max is 24 transitions (12 complete settlement->ruin->rebuild cycles in 50 years). The distribution at 3 transitions (6.3%) is notably higher than 2 (4.7%) -- this is because of the settlement->ruin->rebuild/decay pattern: a cell that gets a settlement, loses it to ruin, and has the ruin resolved = 3 transitions.
+
+---
+
+## SS. Faction Consolidation Curve
+
+| Year | Mean Factions | Gini (faction size) |
+|------|--------------|-------------------|
+| 0 | 46.6 | 0.000 |
+| 5 | 32.8 | 0.175 |
+| 10 | 27.4 | 0.244 |
+| 20 | 23.2 | 0.247 |
+| 30 | 21.4 | 0.278 |
+| 40 | 20.1 | 0.305 |
+| 50 | 18.8 | 0.324 |
+
+**Rapid early consolidation**: factions drop from 47 to 33 in the first 5 years (30% eliminated). Then consolidation slows -- only 33 to 19 over the remaining 45 years.
+
+Faction size inequality (Gini) grows slowly from 0 to 0.32 -- moderate but not extreme inequality. The biggest faction controls ~19% on average (from Analysis 9), confirming no single hegemon typically emerges.
+
+---
+
+## TT. Per-Round Transition Probabilities -- CRITICAL FOR MODELING
+
+### P(terminal | initial=settlement), per round:
+
+| Round | empty | settlement | ruin | forest |
+|-------|-------|-----------|------|--------|
+| f1dac9a9 (harsh) | 0.667 | 0.022 | 0.006 | 0.304 |
+| c5cdf100 (harsh) | 0.610 | 0.059 | 0.010 | 0.320 |
+| 8e839974 (moderate) | 0.476 | 0.243 | 0.023 | 0.253 |
+| ae78003a (expansive) | 0.355 | 0.451 | 0.034 | 0.160 |
+
+The hidden parameters shift P(terminal|initial) dramatically:
+- In harsh rounds, initial settlements become empty 67% of the time.
+- In expansive rounds, they stay settlement 45% of the time.
+
+### P(terminal | initial=forest), per round:
+
+| Round | forest stays | settlement | empty |
+|-------|-------------|-----------|-------|
+| f1dac9a9 | **96.8%** | 0.3% | 2.8% |
+| c5cdf100 | 90.1% | 2.6% | 6.8% |
+| ae78003a | **53.6%** | 26.2% | 15.1% |
+
+In harsh rounds, forest is nearly immutable (97%). In expansive rounds, only 54% of forest survives -- settlements aggressively clear forest.
+
+### P(terminal | initial=plains), per round:
+
+| Round | plains stays | settlement | forest |
+|-------|-------------|-----------|--------|
+| f1dac9a9 | **98.7%** | 0.2% | 1.0% |
+| ae78003a | 63.2% | 25.4% | 6.4% |
+
+Same pattern: plains are nearly static in harsh rounds but heavily built on in expansive rounds.
+
+**This is the key table for regime-conditioned prediction.** If you can infer the regime, you can dramatically improve per-cell class probabilities.
+
+---
+
+## UU. Initial Settlement Stat Distributions -- CRITICAL
+
+**All four initial stats are perfectly uniform:**
+
+| Stat | Min | Max | Distribution |
+|------|-----|-----|-------------|
+| population | 0.500 | 1.500 | **U[0.5, 1.5]** |
+| food | 0.301 | 0.800 | **U[0.3, 0.8]** |
+| wealth | 0.100 | 0.500 | **U[0.1, 0.5]** |
+| defense | 0.200 | 0.600 | **U[0.2, 0.6]** |
+
+Verified by uniform test: observed mean and std match expected uniform distribution to 3+ decimal places. The map generator draws each stat independently from a uniform distribution with the exact bounds shown.
+
+---
+
+## Final Actionable Insights (Wave 6)
+
+45. **Settlements CAN be adjacent (distance 1)** at year 50 -- the initial spacing constraint of 3 is only for map generation, not a simulation rule. 70% of year-50 settlements have a neighbor at distance 1.
+46. **Ocean blocks expansion 5.4x** -- cells on disconnected land masses are rarely built on.
+47. **Mountains reduce expansion 1.8x** -- a moderate but not hard barrier.
+48. **The birth burst happens at step mod 3** (steps 3, 7, 11, 15, ...) -- precise cycle phase.
+49. **75% of cells never change** -- but the 25% that do can cycle up to 24 times.
+50. **Per-round P(terminal|initial) varies massively** -- from forest staying 97% to 54% depending on regime. This table IS the regime signal.
+51. **Initial stats are exactly uniform**: pop~U[0.5,1.5], food~U[0.3,0.8], wealth~U[0.1,0.5], defense~U[0.2,0.6].
+52. **Settlement spatial clustering is 2.3x** expected -- nearby cells are likely to share settlement status.
+53. **Faction consolidation is front-loaded**: 30% of factions eliminated in 5 years, then slow decay.
+54. **Edge cells change 18% less** and settlements are placed 2.4x more in the interior.
+
+---
+
+## WAVE 7 FINDINGS (from replay_eda_wave7.py)
+
+---
+
+## VV. Collapse Threshold Analysis -- CRITICAL
+
+### Collapse rate by population:
+
+| Population | Collapse Rate |
+|-----------|--------------|
+| 0.0-0.3 | **23.5%** |
+| 0.3-0.5 | **18.8%** |
+| 0.5-0.7 | 7.5% |
+| 0.7-1.0 | 3.4% |
+| 1.0-1.5 | **2.6% (minimum)** |
+| 1.5-2.0 | 3.3% |
+| 2.0-3.0 | 5.4% |
+| 3.0+ | **11.0%** |
+
+**U-shaped collapse curve in population!** Small settlements (pop<0.5) and very large settlements (pop>3.0) both have elevated collapse rates. The sweet spot is pop=1.0-1.5 (2.6% collapse rate). This matches the "grow too fast, starve" finding from earlier -- very large settlements overextend.
+
+### Collapse rate by food:
+
+| Food | Collapse Rate |
+|------|--------------|
+| 0.0-0.1 | **24.8%** |
+| 0.1-0.2 | **17.2%** |
+| 0.3-0.5 | 11.3% |
+| 0.5-0.7 | 7.1% |
+| 0.7-0.9 | 7.5% |
+| 0.9-1.0 | **3.1%** |
+
+**Strong monotonic relationship** -- high food = low collapse. Settlements at food cap (0.9-1.0) collapse at only 3.1%, vs 24.8% for starving settlements. Food is the single best predictor of collapse.
+
+### Collapse rate by defense:
+
+| Defense | Collapse Rate |
+|---------|--------------|
+| 0.0-0.1 | **30.2%** |
+| 0.1-0.2 | **18.4%** |
+| 0.2-0.3 | 6.3% |
+| 0.3-0.5 | 2.9% |
+| 0.5-0.7 | 2.6% |
+| 0.7-0.9 | 2.8% |
+| 0.9-1.0 | 5.2% |
+
+Defense shows a sharp threshold at 0.2: below 0.2 collapse is 18-30%, above 0.2 it drops to 3-6%. The rise at defense=0.9-1.0 (5.2%) may be because high-defense settlements are targets of strong attackers.
+
+### Combined food x defense:
+
+| Condition | Collapse Rate |
+|-----------|--------------|
+| food<0.3 & defense<0.3 | **14.9%** |
+| food≥0.5 & defense≥0.5 | **2.0%** |
+| Ratio | **7.5x** |
+
+Low food + low defense = 7.5x more likely to collapse than well-fed + well-defended. This is the strongest signal for modeling individual settlement fate.
+
+---
+
+## WW. Population Growth Dynamics
+
+### Growth by current population:
+
+| Population | Mean Pop Delta |
+|-----------|---------------|
+| 0.0-0.3 | -0.003 (shrinking!) |
+| 0.3-0.5 | +0.011 |
+| 0.5-1.0 | +0.040 to +0.072 |
+| 1.0-1.5 | **+0.090** (peak) |
+| 1.5-3.0 | +0.060 to +0.066 |
+| 3.0+ | +0.058 |
+
+Population growth peaks at pop=1.0-1.5. Very small settlements barely grow, very large ones grow slower than medium ones. This resembles logistic growth.
+
+### Growth by food:
+
+Growth is positive at all food levels, but increases with food up to 0.4-0.6, then plateaus. Having more food doesn't make settlements grow faster above ~0.6.
+
+---
+
+## XX. Food Delta Decomposition -- CRITICAL
+
+### Food production is mean-reverting:
+
+| Previous Food | Mean Food Delta |
+|-------------|----------------|
+| 0.0-0.1 | **+0.28** |
+| 0.1-0.3 | +0.25 |
+| 0.3-0.5 | +0.13 |
+| 0.5-0.7 | +0.12 |
+| 0.7-0.85 | +0.02 |
+| 0.85-0.95 | **-0.03** |
+| 0.95-1.0 | **-0.05** |
+
+**Food is strongly mean-reverting toward ~0.7-0.8.** Low-food settlements gain food rapidly (+0.28/step when near 0). High-food settlements lose food (-0.05/step when near cap). The equilibrium point is around food=0.75-0.85.
+
+### Food delta by population:
+
+| Population | Mean Food Delta |
+|-----------|----------------|
+| 0.0-0.5 | **+0.16** |
+| 0.5-1.0 | +0.08 |
+| 1.0-1.5 | +0.004 |
+| 1.5-2.0 | **-0.034** |
+| 2.0-5.0 | **-0.042** |
+
+**Large populations consume food.** Settlements with pop>1.5 have negative food deltas on average -- they eat more than they produce. This creates the "grow too fast, starve" dynamic.
+
+### Ports actually hurt food production:
+
+Port settlements have mean food delta **-0.007** vs non-port +0.050. Ports trade rather than farm -- they sacrifice food for wealth.
+
+---
+
+## YY. Port Development Preconditions -- CRITICAL
+
+**100% of port gains are coastal.** Zero non-coastal port gains.
+
+### Port gain rate by food level (coastal settlements):
+
+| Food | Port Gain Rate |
+|------|---------------|
+| 0.0-0.2 | **0.10%** |
+| 0.2-0.4 | 1.8% |
+| 0.4-0.6 | 6.5% |
+| 0.6-0.8 | **11.1%** |
+| 0.8-1.0 | **11.1%** |
+
+Port gain rate increases with food up to 0.6, then saturates at ~11%. There's a **soft food threshold around 0.4-0.6** for port development. Minimum food at port gain: 0.11 (very rare at low food, but possible).
+
+### Port gain population: median=0.72, p5=0.47. Small coastal settlements can gain ports.
+
+---
+
+## ZZ. Defense Dynamics
+
+- Defense trends upward on average (+0.021/step).
+- **Defense increases at all levels** (frac positive > 68%) EXCEPT near cap (defense ≥0.8: only 23% have positive delta).
+- **Nearby conflict reduces defense**: settlements near an owner flip have mean delta -0.005 vs +0.022 without conflict.
+- Defense at cap (≥0.99) has mean delta -0.0005 -- it stays near cap but slowly erodes.
+
+Defense grows passively over time -- it's not just from fighting but from natural improvement. This explains why defense becomes bimodal: settlements that survive long enough inevitably approach the cap.
+
+---
+
+## AAA. Wealth Dynamics
+
+- Overall wealth delta: **-0.001/step** -- tiny but consistently negative.
+- **Wealth decays faster at higher levels**: wealth 0.2-0.5 loses -0.005/step, wealth 0.5+ loses -0.016/step.
+- **Ports are the only positive wealth source**: port settlements gain +0.0007/step vs non-port -0.001/step.
+- Only **7.5% of non-port settlement-steps** have positive wealth gain vs 17.8% for ports.
+- This explains the wealth collapse to near-zero: most settlements are non-port and slowly bleed wealth. Only ports can sustain it, and ports are rare.
+
+---
+
+## BBB. Founding Distance -- CRITICAL
+
+Distance from same-owner parent to new settlement:
+
+| Distance | Share |
+|----------|-------|
+| 1 | **47.0%** |
+| 2 | 24.7% |
+| 3 | 14.3% |
+| 4 | 10.7% |
+| 5 | 3.4% |
+| 6+ | **0.0%** |
+
+**CRITICAL: Maximum founding distance is 5 (or maybe 6 with extreme rarity).** Settlements can ONLY be founded within distance 5 of a same-owner settlement. There are essentially zero foundings at distance 6+ (only 2 out of 119,472).
+
+### Parent stats at founding:
+
+| Stat | Mean | p25 | p50 | p75 |
+|------|------|-----|-----|-----|
+| Population | 1.69 | 1.08 | 1.70 | 2.17 |
+| Food | 0.75 | 0.69 | 0.81 | 0.89 |
+
+Parents are relatively prosperous: high population (1.7 mean) and good food (0.75 mean). P5 parent food is 0.27, so it's rare but possible for low-food parents to found settlements.
+
+---
+
+## Final Actionable Insights (Wave 7)
+
+55. **Collapse rate is U-shaped in population**: sweet spot at pop=1.0-1.5 (2.6%). Both small and very large settlements are vulnerable.
+56. **Food is the strongest collapse predictor**: 24.8% at food<0.1 vs 3.1% at food>0.9.
+57. **Low food + low defense = 7.5x more collapse** vs well-fed + defended.
+58. **Food is mean-reverting toward ~0.7-0.8** -- strong corrective force pushes food to equilibrium.
+59. **Large populations (>1.5) consume food** (negative food delta) -- creating the growth-then-starvation cycle.
+60. **Ports hurt food production** but enable wealth gain -- a trade-off.
+61. **Port development saturates at food≥0.6** with 11% per-step gain rate for coastal settlements.
+62. **Maximum founding distance from same-owner parent is 5** -- a hard expansion range limit.
+63. **47% of foundings are at distance 1** from parent -- very local expansion.
+64. **Defense grows passively** (+0.02/step) and naturally reaches the cap=1.0 in long-lived settlements.
+65. **Wealth decays at higher levels** and is only sustained by ports -- explaining near-zero terminal wealth.
+
+---
+
+## WAVE 8 FINDINGS (from replay_eda_wave8.py)
+
+---
+
+## CCC. Ruin Fate Detailed Analysis -- CRITICAL NEGATIVE RESULT
+
+**Initial terrain does NOT determine ruin fate.** Cells that were initially forest become forest after ruin at the same rate (21.8%) as cells that were initially plains (22.0%). The features that differentiate ruin->forest from ruin->plains are nearly identical across all measured dimensions.
+
+The only significant differentiator is **distance to nearest alive settlement**: rebuild happens closer (1.63) than forest/decay (2.11-2.14). But forest vs plains is nearly identical.
+
+This means ruin->forest vs ruin->plains is likely controlled by:
+- A **random probability** (the hidden round parameters may set the reclamation rate)
+- Not by local context or initial terrain
+
+This simplifies modeling: ruin fate can be modeled as a fixed probability split (rebuild:forest:decay = ~48:17:35) that shifts by regime.
+
+---
+
+## DDD. Step 0 Detailed Mechanics
+
+At step 0->1:
+- **Zero births** -- founding never happens at step 0.
+- **2.5 collapses** -- some settlements die immediately.
+- **Zero port gains** -- no ports are developed at step 0.
+- **0.7 owner flips** -- conquest does happen at step 0.
+
+All step-0 cell changes are: settlement->ruin (2.3/run) and port->ruin (0.1/run). No other transitions at step 0.
+
+This confirms: step 0 runs conflict + winter (collapse/conquest) but NOT growth (no births, no port development).
+
+---
+
+## EEE. Founding Probability Model -- CRITICAL
+
+Base founding rate: 6.0% per settlement per step.
+
+### Founding rate by step mod 4:
+
+| Mod | Rate |
+|-----|------|
+| 0 | 4.4% |
+| 1 | 4.3% |
+| 2 | 4.0% |
+| 3 | **11.8%** |
+
+**Founding rate triples at mod 3** (the birth burst step). The 4-year cycle is driven by a hard 3x multiplier on founding probability.
+
+### Founding rate by parent population:
+
+| Pop | Rate |
+|-----|------|
+| 0.0-0.5 | 2.9% |
+| 0.5-1.0 | 2.4% |
+| 1.0-1.5 | 3.9% |
+| 1.5-2.0 | **14.6%** |
+| 2.0-3.0 | **13.8%** |
+| 3.0+ | **14.7%** |
+
+**Sharp threshold at pop=1.5**: founding rate jumps from 3.9% to 14.6%. Settlements need pop>=1.5 to effectively reproduce. This is a **hard population threshold for founding**.
+
+### Founding rate by parent food:
+
+| Food | Rate |
+|------|------|
+| 0.0-0.3 | 2.5% |
+| 0.3-0.5 | 4.5% |
+| 0.5-0.7 | 5.8% |
+| 0.7-0.9 | **9.7%** |
+| 0.9-1.0 | 4.3% |
+
+Peak founding at food 0.7-0.9 (not at max food). Settlements at food cap (0.9-1.0) found LESS than those at 0.7-0.9. Possible explanation: food is consumed during founding, so high-food settlements that are about to found may show slightly lower food.
+
+### Parent settlement profile:
+
+Parents have higher population (1.68 vs 1.08), higher defense (0.70 vs 0.45), and slightly higher food (0.75 vs 0.70) than non-parents. Population is the strongest differentiator.
+
+---
+
+## FFF. Per-Round Collapse Rate
+
+| Round | Collapse Rate | Character |
+|-------|--------------|-----------|
+| 36e581f1 | 5.9% | Low collapse |
+| 71451d74 | 5.9% | Low collapse |
+| 76909e29 | 7.4% | Moderate |
+| fd3c92ff | 7.6% | Moderate |
+| 8e839974 | 7.4% | Moderate |
+| 2a341ace | 8.3% | High conflict |
+| ae78003a | 9.5% | High expansion |
+| c5cdf100 | **11.1%** | Very harsh |
+| f1dac9a9 | **14.5%** | Extreme |
+
+Collapse rates range from 5.9% to 14.5% -- a 2.5x range across rounds. This is a direct measure of the hidden "harshness" parameter. Note ae78003a has high collapse (9.5%) but also high expansion -- both birth and death rates are elevated.
+
+---
+
+## GGG. Defense Gain Mechanics
+
+Defense gain rate: 71.2% of settlement-steps have positive defense delta.
+
+Settlements that gain defense vs those that don't:
+- Defense gain happens to **lower-defense** settlements (0.38 vs 0.72) -- defense grows toward cap.
+- Defense gain happens to **lower-population** settlements (0.92 vs 1.68) -- small settlements focus on defense.
+- Defense gain happens at **higher food** (0.74 vs 0.64) -- food fuels defense building.
+
+Defense growth is a **passive process** that happens to most settlements, especially small well-fed ones.
+
+---
+
+## HHH. Terminal State by Position
+
+| Position | empty | settlement | port | ruin | forest | mountain |
+|----------|-------|-----------|------|------|--------|----------|
+| Corner | 0.858 | 0.027 | 0.013 | 0.003 | 0.098 | 0.001 |
+| Edge | 0.772 | 0.062 | 0.021 | 0.007 | 0.134 | 0.004 |
+| Center | 0.611 | 0.132 | 0.003 | 0.013 | 0.215 | 0.026 |
+
+**Corners are mostly empty** (86%) -- very little settlement activity reaches corners.
+**Edges have more ports** (2.1%) than center (0.3%) -- ports are coastal and coastlines run along edges.
+**Center has the most settlement/forest/mountain activity** -- the interior is where the action is.
+
+---
+
+## Final Actionable Insights (Wave 8)
+
+66. **Ruin fate (forest vs plains) is NOT determined by initial terrain or local context** -- it's likely a hidden round parameter that sets the reclamation probability.
+67. **Step 0 has no births and no port gains** -- only collapses (2.5) and owner flips (0.7).
+68. **Founding requires pop≥1.5** (rate jumps from 4% to 15%) -- a hard population threshold.
+69. **Founding rate triples at step mod 3** (11.8% vs 4.0-4.4%) -- the 4-year cycle is a 3x multiplier.
+70. **Peak founding food is 0.7-0.9** (9.7%), NOT at food cap -- suggesting food is consumed during founding.
+71. **Collapse rate varies 2.5x across rounds** (5.9% to 14.5%) -- a direct hidden parameter signal.
+72. **Defense grows passively in 71% of steps** -- it's a slow accumulation, not event-driven.
+73. **Corners are 86% empty at year 50** -- position strongly predicts terminal class.
+
+---
+
+## WAVE 9 FINDINGS (from replay_eda_wave9.py)
+
+---
+
+## III. Per-Round Ruin Reclamation Rate
+
+| Round | Rebuild | Forest | Plains |
+|-------|---------|--------|--------|
+| ae78003a (expansive) | **0.525** | 0.145 | 0.330 |
+| fd3c92ff | 0.500 | 0.162 | 0.337 |
+| 76909e29 | 0.496 | 0.153 | 0.351 |
+| 2a341ace | 0.489 | 0.171 | 0.341 |
+| 36e581f1 | 0.486 | 0.165 | 0.349 |
+| 71451d74 | 0.483 | 0.172 | 0.344 |
+| 8e839974 | 0.457 | 0.188 | 0.354 |
+| f1dac9a9 (harsh) | **0.388** | 0.187 | **0.425** |
+| c5cdf100 (harsh) | **0.385** | 0.207 | **0.408** |
+
+**Ruin fate IS regime-dependent.** In expansive rounds, 53% of ruins are rebuilt. In harsh rounds, only 39% are rebuilt and 41-43% decay to plains. Forest reclamation varies 0.145-0.207 across rounds -- a 1.4x range.
+
+The pattern: more expansion = more rebuilding (more nearby settlements), less expansion = more decay to plains. Forest reclamation is relatively stable at ~17% regardless of regime.
+
+---
+
+## JJJ. Founding Population Threshold (Fine-Grained) -- CRITICAL
+
+| Population | Founding Rate (mod-3 steps) |
+|-----------|---------------------------|
+| 0.0-1.3 | ~5% (flat, no trend) |
+| 1.3-1.4 | 5.0% |
+| **1.4-1.5** | **16.1%** (3x jump!) |
+| 1.5-1.6 | 22.9% |
+| 1.6-1.7 | 26.4% |
+| 1.7-1.8 | **29.2%** (peak) |
+| 1.8-3.4 | 24-29% (plateau) |
+
+**The founding threshold is precisely at pop=1.4-1.5.** Founding rate jumps from 5% to 16% between pop 1.3-1.4 and 1.4-1.5, then continues rising to ~28% at pop 1.7-1.8 where it plateaus.
+
+This is likely a **hard threshold near 1.4-1.5** in the simulator code, where settlements become eligible to found new settlements.
+
+---
+
+## KKK. Food Production Terrain Model -- CRITICAL
+
+### Marginal effect of each 4-neighbor type on food delta:
+
+| Neighbor Type | 0 neighbors | 1 | 2 | 3 | 4 |
+|-------------|------------|---|---|---|---|
+| **Plains** | +0.020 | +0.040 | +0.050 | **+0.054** | +0.053 |
+| **Forest** | +0.040 | +0.052 | +0.056 | +0.058 | +0.057 |
+| **Ocean** | +0.048 | +0.043 | +0.037 | +0.033 | +0.010 |
+| **Mountain** | +0.047 | +0.049 | +0.037 | +0.050 | -- |
+| **Settlement** | **+0.055** | +0.052 | +0.031 | +0.002 | **-0.027** |
+
+**Key findings:**
+- **Plains and forest neighbors increase food production** -- each additional neighbor adds ~0.01 food.
+- **Settlement neighbors DECREASE food** at high counts: 4 settlement neighbors = **negative** food delta (-0.027). Resource competition!
+- **Ocean slightly decreases food** -- each ocean neighbor costs ~0.005 food (less farmable land).
+- **Mountain has minimal effect**.
+- The food production formula appears to be: base rate (~0.02) + bonus per plains/forest neighbor (~0.01 each) - penalty per settlement neighbor (~0.02 at high density).
+
+---
+
+## LLL. Settlement Interaction Range
+
+### Conflict range:
+
+| Distance | Share |
+|----------|-------|
+| 1-4 | **91.0%** |
+| 5-7 | 8.9% |
+| 8-9 | 0.2% |
+| 10+ | **0.0%** |
+
+**Maximum conflict range is 9 cells.** Zero owner flips at distance 10+. 91% of conquests happen at distance 1-4. The peak is at distance 4 (31.6%), matching the initial settlement spacing.
+
+### Port-port trade effect:
+
+Ports near other ports (dist≤8) have wealth delta +0.00057 vs isolated ports +0.00097. **Isolated ports actually gain MORE wealth** than clustered ports. This may mean trade doesn't require port proximity, or that clustered ports split the same trade value.
+
+---
+
+## MMM. Per-Round Founding Rate
+
+| Round | Founding Rate |
+|-------|--------------|
+| ae78003a | **7.9%** |
+| 76909e29 | 6.7% |
+| 2a341ace | 6.2% |
+| 71451d74 | 6.1% |
+| fd3c92ff | 5.8% |
+| 8e839974 | 5.5% |
+| 36e581f1 | 5.4% |
+| c5cdf100 | 4.4% |
+| f1dac9a9 | **1.9%** |
+
+Founding rate varies 4x across rounds (1.9% to 7.9%). This is a direct measure of the expansion parameter. The near-extinction round (f1dac9a9) has founding rate 1/4 of the most expansive.
+
+---
+
+## NNN. Rebuild Ownership
+
+- **70.7% of rebuilds are by the original owner** (same as pre-collapse faction).
+- **82.8% of rebuilds are by the nearest alive settlement's owner** -- proximity determines rebuild ownership.
+- Since nearest≠original in some cases, proximity matters more than historical ownership.
+
+---
+
+## OOO. Alive Count Variance Trajectory
+
+The coefficient of variation (CV) of alive settlement count within a seed:
+- **Year 0: CV=0** (deterministic initial count).
+- **Year 10: CV=0.05-0.20** -- moderate uncertainty.
+- **Year 30: CV=0.08-0.40** -- significant spread.
+- **Year 50: CV=0.09-0.34** -- wide but not always growing.
+
+CV peaks around year 30-40 then can stabilize or decrease slightly. This suggests the system enters a quasi-steady state where variance stops growing -- consistent with a soft carrying capacity.
+
+---
+
+## Final Actionable Insights (Wave 9)
+
+74. **Founding threshold is precisely at pop=1.4-1.5** -- founding rate jumps 3x (5% to 16%) at this threshold.
+75. **Food production = base + plains/forest bonus - settlement penalty**: each plains/forest neighbor adds ~0.01, each settlement neighbor above 2 costs ~0.02.
+76. **Maximum conflict range is 9 cells** -- zero conquests beyond this.
+77. **Ruin fate varies by regime**: rebuild rate ranges from 39% (harsh) to 53% (expansive).
+78. **Forest reclamation rate is near-constant at ~17%** across all rounds -- a fixed mechanic.
+79. **Founding rate varies 4x** across rounds (1.9% to 7.9%) -- a direct regime parameter.
+80. **Rebuild ownership is 83% nearest-alive** -- proximity dominates historical ownership.
+81. **Stochastic CV of alive count peaks at ~30% by year 30-40** then stabilizes.
+
+---
+
+## WAVE 10 FINDINGS (from replay_eda_wave10.py)
+
+---
+
+## PPP. Sea Conquest (Longship Proxy)
+
+| Connectivity | Flips | Share |
+|-------------|-------|-------|
+| Same land component | 8,039 | **99.3%** |
+| Across sea | 56 | **0.7%** |
+
+**99.3% of conquests happen on the same landmass.** Sea-based conquest is extremely rare (0.7%), despite longships being mentioned in the docs. Only 4.7% of attackers have ports.
+
+This means for modeling: **conquest is essentially land-only**. Longship-based maritime conquest exists but is negligible.
+
+---
+
+## QQQ. Initial vs Founded Settlement Survival
+
+| Type | Survived to Year 50 | Rate |
+|------|---------------------|------|
+| Initial settlements | 4,941/16,792 | **29.4%** |
+| Founded settlements | 64,031/115,597 | **55.4%** |
+
+**Founded settlements survive nearly 2x more** than initial settlements! This is counterintuitive but explained by:
+1. Many founded settlements are created late in the game (so they haven't had time to die)
+2. Founded settlements are placed in favorable locations (near prosperous parents)
+3. Initial settlements face the full 50-year gauntlet from step 0
+
+---
+
+## RRR. Founding Patterns
+
+| Settlement Neighbors (4-connected) | Share |
+|-------------------------------------|-------|
+| 0 neighbors | **45.9%** |
+| 1 neighbor | 36.5% |
+| 2 neighbors | 13.2% |
+| 3 neighbors | 3.5% |
+| 4 neighbors | 0.9% |
+
+**46% of foundings happen on cells with NO adjacent settlements** -- settlements expand into empty land, not fill gaps. 37% have exactly 1 neighbor. Settlements rarely pack densely at founding -- the density comes later as the wavefront fills in.
+
+---
+
+## SSS. Food Production Regression -- CRITICAL
+
+**Linear model explains 59% of food delta variance (R²=0.594):**
+
+| Feature | Coefficient |
+|---------|------------|
+| intercept | **+0.354** |
+| prev_food | **-0.408** |
+| prev_pop | **-0.106** |
+| n_plains | **+0.033** |
+| n_forest | **+0.047** |
+| n_settlement | **-0.010** |
+| n_ocean | +0.004 |
+
+**The reverse-engineered food formula:**
+```
+food_delta ≈ 0.35 - 0.41 * food - 0.11 * pop + 0.033 * plains + 0.047 * forest - 0.010 * settlements
+```
+
+Interpretation:
+- **Strong mean-reversion**: -0.41 coefficient on prev_food. Food equilibrium is at ~0.35/(0.41) ≈ 0.85 for a settlement with no neighbors.
+- **Population consumes food**: -0.11 per unit pop. A pop=2 settlement loses 0.22 food/step from consumption.
+- **Forest provides more food than plains** (0.047 vs 0.033) -- 40% more productive per neighbor.
+- **Settlement neighbors drain food** slightly (-0.01 per neighbor) -- competition.
+- **Ocean barely matters** (+0.004).
+- This 6-parameter model captures 59% of food dynamics -- a strong predictive signal.
+
+---
+
+## TTT. Terminal State by Coast Distance
+
+| Distance from Coast | empty | settlement | port | forest |
+|---------------------|-------|-----------|------|--------|
+| 0 (ocean) | 1.000 | 0.000 | 0.000 | 0.000 |
+| 1 (coastline) | 0.657 | 0.054 | **0.061** | 0.214 |
+| 2 | 0.605 | 0.146 | 0.000 | 0.225 |
+| 3-15 | ~0.59 | ~0.14 | 0.000 | ~0.22 |
+
+**Ports ONLY appear at coast distance 1** -- exactly adjacent to ocean. Zero ports at distance 2+. This is a **hard geometric rule**: port requires ocean adjacency.
+
+The settlement rate is remarkably flat (13-15%) from distance 2 through 15. Coast distance beyond 1 has almost no effect on terminal settlement probability. Only the immediate coastline (distance 1) has lower settlement density, offset by port probability.
+
+---
+
+## UUU. Cycle Phase Consistency
+
+The birth cycle phase varies slightly by round:
+- Most rounds have the dominant spike at mod 3 (steps 3, 7, 11, ...)
+- Some rounds also show spikes at mod 0 or mod 1
+- All rounds show near-zero births at steps 0, 1, and 4
+
+The 4-year cycle is robust but not perfectly clean -- secondary spikes can appear at other phases, especially in high-activity rounds.
+
+---
+
+## Final Actionable Insights (Wave 10)
+
+82. **Conquest is 99.3% land-based** -- sea conquest via longships is negligible.
+83. **Founded settlements survive 2x more** (55%) than initial ones (29%) -- partly due to recency bias.
+84. **46% of foundings have zero adjacent settlements** -- expansion into empty land, not gap-filling.
+85. **Food formula reverse-engineered**: food_delta ≈ 0.35 - 0.41*food - 0.11*pop + 0.033*plains + 0.047*forest (R²=0.59).
+86. **Forest provides 40% more food than plains** per neighbor (0.047 vs 0.033).
+87. **Ports require exactly coast distance 1** -- a hard rule, zero ports at distance 2+.
+88. **Settlement rate is flat (14%) from distance 2 to 15** from coast -- coast distance beyond 1 is irrelevant.
+
+---
+
+## WAVE 11 FINDINGS (from replay_eda_wave11.py)
+
+---
+
+## VVV. Population Growth Regression
+
+R²=0.064 -- population growth is **very hard to predict** from current stats alone.
+
+```
+pop_delta ≈ -0.021 + 0.061*pop + 0.041*food + 0.033*defense - 0.016*pop*food - 0.014*pop²
+```
+
+Interpretation: population growth increases with pop, food, and defense, but has negative quadratic terms. Growth peaks at moderate population and slows at extremes. But R²=6% means most population dynamics are driven by stochastic/hidden factors, not observable stats.
+
+---
+
+## WWW. Defense Gain Regression
+
+R²=0.361 -- defense dynamics are **moderately predictable**.
+
+```
+defense_delta ≈ -0.051 + 0.334*defense - 0.243*defense² + 0.047*pop - 0.059*defense*pop - 0.013*food
+```
+
+**Defense grows quadratically toward a cap**: +0.334*def - 0.243*def² = 0 at def≈1.37, meaning defense naturally converges toward ~1.0 cap. Population accelerates defense growth but the interaction term defense*pop is negative -- large settlements with high defense grow defense slower.
+
+---
+
+## XXX. Collapse Probability Model
+
+R²=0.075 -- collapse prediction from observable stats is weak but non-trivial.
+
+```
+P(collapse) ≈ 0.15 - 0.01*pop - 0.05*food + 0.16*defense - 0.32*food*defense + 0.03*n_enemy - 0.002*n_friendly
+```
+
+**The food*defense interaction is the strongest collapse predictor** (coefficient -0.32). High food AND high defense together dramatically reduce collapse. But defense alone INCREASES collapse probability (+0.16) -- this counterintuitive result likely reflects that high-defense settlements are in conflict zones.
+
+Enemy neighbors increase collapse (+0.033 per enemy within 3 cells). Friendly neighbors weakly protect (-0.002).
+
+Calibration shows the model is reasonably well-calibrated: predicted 5% → actual 2.3%, predicted 20% → actual 18%.
+
+---
+
+## YYY. Port Loss Conditions
+
+- **4.9% of port-steps result in port loss** -- ports are quite stable per-step.
+- **99.3% of port losses → ruin** (0.7% → re-port, edge case).
+- Port loss correlates with **low food** (0.494 vs 0.762 for kept ports). Food is the primary driver.
+- Population and defense are similar for lost vs kept ports.
+- Food below 0.5 is the danger zone for port survival.
+
+---
+
+## ZZZ. Per-Round Food Formula Coefficients -- CRITICAL
+
+| Round | Intercept | food coeff | pop coeff | plains | forest | R² |
+|-------|-----------|-----------|-----------|--------|--------|-----|
+| ae78003a | +0.273 | -0.363 | -0.084 | **+0.042** | **+0.059** | 0.622 |
+| 8e839974 | +0.495 | -0.551 | -0.112 | +0.025 | +0.036 | 0.631 |
+| c5cdf100 | +0.521 | -0.578 | -0.136 | +0.028 | +0.041 | 0.669 |
+| f1dac9a9 | +0.437 | -0.488 | -0.105 | +0.027 | +0.036 | 0.691 |
+
+**The food formula coefficients VARY BY ROUND -- they are hidden parameters!**
+
+Key variations:
+- **Intercept** (base food production): ranges from 0.273 (ae78003a) to 0.521 (c5cdf100). Low intercept = less food.
+- **food coefficient** (mean-reversion strength): ranges from -0.344 to -0.578. Stronger reversion in harsh rounds.
+- **pop coefficient** (consumption rate): ranges from -0.084 to -0.136. Harsh rounds have higher consumption.
+- **Plains and forest coefficients** vary ~2x: plains 0.025-0.042, forest 0.036-0.059.
+- R² is consistently 0.56-0.69 across rounds, meaning the linear model captures similar fraction of variance in all regimes.
+
+**This is a key insight for regime inference**: the food formula coefficients are the hidden parameters (or strongly correlated with them). If you can estimate these coefficients from early observations, you've effectively inferred the regime.
+
+---
+
+## AAAA. Founding Cell Choice
+
+Chosen founding cells have **slightly fewer** plains and forest neighbors than unchosen alternatives:
+- Plains: chosen=2.19 vs unchosen=2.41
+- Forest: chosen=0.80 vs unchosen=0.87
+
+This is a weak effect. The founding cell appears to be chosen roughly at random among eligible cells within range of the parent settlement, with a slight preference for cells with fewer farmable neighbors (perhaps preferring cells adjacent to settlements for defense?).
+
+---
+
+## Final Actionable Insights (Wave 11)
+
+89. **Population growth is mostly stochastic** (R²=0.064) -- individual growth is unpredictable from stats alone.
+90. **Defense converges toward cap=1.0 quadratically** (R²=0.36) -- a predictable mean-reverting process.
+91. **food*defense interaction is the strongest collapse predictor** -- both high food AND defense needed for safety.
+92. **Port loss is driven by low food** (0.49 vs 0.76) -- food is the port survival signal.
+93. **THE FOOD FORMULA COEFFICIENTS ARE THE HIDDEN ROUND PARAMETERS** -- intercept, mean-reversion, consumption, and terrain bonuses all vary by round. Estimating these from early observations ≈ regime inference.
+94. **Founding cell choice is roughly random** among eligible cells within range -- no strong site preference.
+
+---
+
+## WAVE 12 FINDINGS (from replay_eda_wave12.py)
+
+---
+
+## BBBB. Per-Seed Food Formula Consistency -- CONFIRMED
+
+Cross-seed coefficient of variation within each round:
+
+| Round | CV(intercept) | CV(food) | CV(pop) | CV(plains) | CV(forest) |
+|-------|-------------|---------|---------|-----------|-----------|
+| 2a341ace | 0.021 | 0.022 | 0.007 | 0.019 | 0.026 |
+| 76909e29 | 0.018 | 0.015 | 0.021 | 0.036 | 0.025 |
+| c5cdf100 | 0.012 | 0.016 | 0.033 | 0.044 | 0.037 |
+| ae78003a | 0.042 | 0.038 | 0.029 | 0.036 | 0.034 |
+
+**Cross-seed CV is 1-5% for all coefficients.** The food formula coefficients are essentially identical across all 5 seeds within a round, confirming they are shared hidden parameters. This is rock-solid evidence that the food model parameters ARE the hidden round parameters.
+
+---
+
+## CCCC. Early-Step Regime Estimation -- CRITICAL
+
+Can the regime be estimated from just the first 10 steps?
+
+| Round | Cosine Similarity (early vs full) |
+|-------|----------------------------------|
+| c5cdf100 | 0.9998 |
+| 8e839974 | 0.9994 |
+| 76909e29 | 0.9992 |
+| 2a341ace | 0.9986 |
+| 71451d74 | 0.9985 |
+| f1dac9a9 | 0.9982 |
+| fd3c92ff | 0.9967 |
+| ae78003a | 0.9924 |
+| 36e581f1 | 0.9898 |
+
+**YES -- cosine similarity > 0.989 in ALL rounds.** The food formula estimated from just the first 10 steps nearly perfectly matches the full-game formula. The regime can be identified extremely early.
+
+The coefficients are systematically higher in early steps (intercept and food-reversion are ~20% larger), suggesting early-game food dynamics are slightly stronger. But the relative ranking and direction of all coefficients is preserved.
+
+**This is the key operational insight**: with just ~10 simulate queries revealing settlement food dynamics, you can estimate the hidden round parameters with high fidelity.
+
+---
+
+## DDDD. Regime -> Terminal State Correlations
+
+| Regime Feature | Strongest Correlated Terminal Class |
+|---------------|--------------------------------------|
+| **founding_rate** | settlement r=**+0.929**, empty r=**-0.950** |
+| food_forest | settlement r=+0.745, empty r=-0.714 |
+| food_intercept | empty r=+0.694, forest r=**+0.812** |
+| collapse_rate | port r=-0.649, settlement r=-0.619 |
+
+**Founding rate is the single best predictor** of terminal state (r=0.93 for settlement, r=-0.95 for empty). This makes sense -- founding rate directly controls how many settlements fill the map.
+
+**Food intercept strongly predicts forest fraction** (r=+0.812). Higher base food production → less starvation → fewer ruins → less forest reclamation → more original forest survives. Wait -- actually this is inverted: higher intercept means MORE food → MORE settlement survival → LESS empty → but this correlates positively with forest? Looking at the data, the high-intercept rounds (8e839974, c5cdf100, f1dac9a9) are the HARSH rounds -- they have high intercept but also high reversion and high pop cost. The intercept alone doesn't capture the regime.
+
+---
+
+## EEEE. Cell-Level Terminal Prediction
+
+R²=0.027 from initial features alone -- **very weak** cell-level prediction without regime information. The most important feature is `dist_settlement` (coeff -0.025), confirming distance from initial settlements matters but is insufficient.
+
+This confirms: **cell-level prediction requires regime inference**. Initial features alone explain only 2.7% of terminal variance.
+
+---
+
+## FFFF. Growth Curve Shapes
+
+| Round | N0 | N50 | Growth Ratio | Character |
+|-------|-----|-----|-------------|-----------|
+| ae78003a | 48 | 382 | 8.0x | Explosive |
+| 76909e29 | 48 | 290 | 6.0x | Strong |
+| 71451d74 | 42 | 243 | 5.9x | Strong |
+| 2a341ace | 44 | 210 | 4.8x | Moderate |
+| 36e581f1 | 54 | 225 | 4.2x | Moderate |
+| fd3c92ff | 48 | 184 | 3.8x | Moderate |
+| 8e839974 | 48 | 148 | 3.1x | Slow |
+| c5cdf100 | 46 | 38 | 0.8x | Declining |
+| f1dac9a9 | 43 | 4 | 0.1x | Extinction |
+
+Growth rates decelerate over time in all positive rounds (consistent with soft carrying capacity). The two harsh rounds (c5cdf100, f1dac9a9) have consistently negative growth rates throughout.
+
+---
+
+## Final Actionable Insights (Wave 12)
+
+95. **Food formula coefficients have <5% cross-seed CV** -- confirmed as shared hidden parameters.
+96. **Regime is estimable from first 10 steps** with cosine similarity >0.989 to full-game coefficients.
+97. **Founding rate is the strongest regime-to-terminal predictor** (r=0.93 for settlement probability).
+98. **Cell-level prediction is nearly impossible (R²=0.03) without regime inference** -- regime dominates.
+99. **Growth follows decelerating curves** in positive rounds, consistent negative in harsh rounds.
+100. **The food formula IS the regime**: 5 coefficients (intercept, food-reversion, pop-cost, plains-bonus, forest-bonus) fully characterize the hidden parameters.
+
+---
+
+## WAVE 13 FINDINGS (from replay_eda_wave13.py)
+
+---
+
+## GGGG. Per-Round Newborn Stats -- CRITICAL
+
+**Newborn population is constant at ~0.49 across all rounds** (std 0.03-0.04). The pop=0.5 constant is NOT a hidden parameter -- it's a fixed simulator constant.
+
+**Newborn defense is always from {0.112, 0.14, 0.16, 0.2}** -- exactly 4 discrete values across all rounds. This is likely determined by a formula (e.g., related to nearby settlement defense or terrain).
+
+**BUT newborn food VARIES DRAMATICALLY by round:**
+
+| Round | Mean Newborn Food | Std |
+|-------|------------------|-----|
+| f1dac9a9 (extinction) | **0.080** | 0.030 |
+| ae78003a (explosive) | **0.110** | 0.079 |
+| 2a341ace | 0.156 | 0.069 |
+| 71451d74 | 0.175 | 0.071 |
+| fd3c92ff | 0.209 | 0.080 |
+| 36e581f1 | 0.210 | 0.072 |
+| 76909e29 | 0.215 | 0.062 |
+| c5cdf100 (harsh) | **0.272** | 0.039 |
+| 8e839974 | **0.276** | 0.059 |
+
+**Newborn food is a hidden parameter!** It ranges from 0.08 to 0.28 across rounds. Counterintuitively, the harshest rounds (f1dac9a9, ae78003a) have the LOWEST newborn food, while moderate rounds have higher. Low newborn food → new settlements start hungrier → higher infant mortality → fewer survive → less expansion.
+
+Wait, ae78003a is the most expansive round but has the 2nd-lowest newborn food (0.11). This means high founding rate can overcome low starting food through sheer volume.
+
+---
+
+## HHHH. Conquest Probability Model -- CRITICAL
+
+Base conquest rate for settlements with an enemy within 5 cells: **0.71%** per step.
+
+### Key conquest predictors:
+
+| Feature | Conquered | Not Conquered |
+|---------|-----------|---------------|
+| Defender pop | **0.61** | 1.12 |
+| Defender defense | **0.25** | 0.47 |
+| Enemy pop | 1.19 | 1.04 |
+| Distance to enemy | **2.84** | 3.81 |
+| Pop ratio (enemy/def) | **2.44** | 1.63 |
+| Defense ratio (enemy/def) | **2.60** | 1.69 |
+
+**Conquest requires the attacker to be ~2.5x stronger** in both population AND defense. The defender needs to be small (pop 0.61) and poorly defended (def 0.25).
+
+### Conquest rate by pop ratio:
+
+| Pop Ratio (enemy/defender) | Conquest Rate |
+|---------------------------|--------------|
+| < 0.5 | 0.10% |
+| 0.5-1.0 | 0.80% |
+| 1.0-1.5 | 1.01% |
+| 2.0-3.0 | 1.07% |
+| 3.0+ | 1.26% |
+
+Conquest rate increases with pop ratio but plateaus above 1.0 -- having 3x more pop doesn't help much more than 1.5x. The biggest jump is from <0.5 (0.1%) to 0.5-1.0 (0.8%) -- attackers need at least half the defender's pop.
+
+### Defense ratio shows similar pattern -- defense is equally important as population for conquest.
+
+---
+
+## IIII. Most Variable Cells
+
+High-entropy (top 5%) cells by initial terrain:
+- **Plains: 46%** -- most uncertain cells started as plains
+- **Forest: 35%** -- substantial
+- **Settlement: 18%** -- overrepresented (settlements are only 2.8% of cells but 18% of high-entropy)
+- **Port: 1%**
+
+High-entropy cells are at distance **2.0** from initial settlements. Low-entropy cells at distance **3.3**. The frontier zone (distance 2-3) is the most uncertain region -- cells right at the expansion boundary.
+
+---
+
+## KKKK. Forest Reclamation Rate -- NOT a Hidden Parameter
+
+| Round | forest/(forest+plains) |
+|-------|----------------------|
+| 8e839974 | 0.347 |
+| c5cdf100 | 0.337 |
+| 2a341ace | 0.333 |
+| 71451d74 | 0.334 |
+| fd3c92ff | 0.325 |
+| 36e581f1 | 0.322 |
+| ae78003a | 0.306 |
+| f1dac9a9 | 0.305 |
+| 76909e29 | 0.303 |
+
+**Forest reclamation rate varies only 0.303-0.347** (14% relative range) across rounds. Compare to founding rate which varies 4x and collapse rate which varies 2.5x. Forest reclamation is a near-constant mechanic: **~32% of non-rebuilt ruins become forest, ~68% become plains.** This is NOT significantly regime-dependent.
+
+---
+
+## LLLL. Newborn Food by Round (Confirmed Regime-Dependent)
+
+This confirms finding GGGG with percentile detail:
+
+| Round | Mean | p5 | p50 | p95 |
+|-------|------|-----|-----|-----|
+| f1dac9a9 | 0.080 | 0.043 | 0.081 | 0.089 |
+| ae78003a | 0.110 | 0.024 | 0.079 | 0.272 |
+| 8e839974 | 0.276 | 0.203 | 0.269 | 0.447 |
+| c5cdf100 | 0.272 | 0.217 | 0.276 | 0.287 |
+
+The distribution is very narrow in harsh rounds (f1dac9a9: std=0.030) and wider in moderate/expansive rounds (ae78003a: std=0.079). The harsh rounds give newborns barely enough food to survive.
+
+---
+
+## Final Actionable Insights (Wave 13)
+
+101. **Newborn food is a hidden round parameter** ranging from 0.08 to 0.28 -- a 3.5x range.
+102. **Newborn population (0.5) and defense ({0.112-0.2}) are NOT hidden parameters** -- fixed constants.
+103. **Conquest requires ~2.5x attacker superiority** in pop and defense over the defender.
+104. **Conquest rate is only 0.7% per step** for settlements with nearby enemies -- rare but impactful.
+105. **The expansion frontier (distance 2-3 from initial settlements) is the most stochastically uncertain zone.**
+106. **Forest reclamation rate is ~32% and NOT regime-dependent** (only 14% relative variation).
+107. **The full set of hidden parameters** now identified: food formula coefficients (5), newborn food level (1), founding rate modifier, collapse rate modifier -- approximately 7-8 free parameters per round.

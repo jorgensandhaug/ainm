@@ -13,6 +13,7 @@ from astar.eval.diagnostics import RoundEpisodeDiagnostics
 from astar.eval.science import ScienceRoundReport
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
+from astar.history.summaries.dynamic_law_validation import DynamicLawRoundValidationReport
 from astar.history.summaries.event_summary import ReplayEventRoundSummary
 from astar.history.summaries.hazards import ReplayHazardRoundSummary
 from astar.history.summaries.measurements import ReplayMeasurementRoundSummary
@@ -168,6 +169,7 @@ class MaterializeEpisodeResult(BaseModel):
     per_seed: list[MaterializedSeedArtifacts]
     diagnostics: RoundEpisodeDiagnostics
     replay_round_summary: ReplayHazardRoundSummary | None = None
+    replay_event_summary: ReplayEventRoundSummary | None = None
     replay_measurement_summary: ReplayMeasurementRoundSummary | None = None
     backtest_result: BacktestRoundResult | None = None
 
@@ -264,6 +266,34 @@ class EvaluateTeacherScienceResult(BaseModel):
     reports: list[ScienceRoundReport]
     artifact_path: Path
     report_path: Path
+
+
+class EvaluateDynamicLawSummaryResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_ids: list[str]
+    report_count: int = Field(ge=0)
+    validation_profile: str
+    max_holdout_runs: int = Field(ge=0)
+    bootstrap_samples: int = Field(ge=0)
+    rng_seed: int = Field(ge=0)
+    site_max_rows: int | None = Field(default=None, ge=0)
+    settlement_max_rows: int | None = Field(default=None, ge=0)
+    pairwise_max_rows: int | None = Field(default=None, ge=0)
+    elapsed_seconds: float = Field(ge=0.0)
+    mean_site_binary_brier: float | None = None
+    mean_settlement_binary_brier: float | None = None
+    mean_settlement_linear_rmse: float | None = None
+    mean_pairwise_binary_brier: float | None = None
+    mean_pairwise_linear_rmse: float | None = None
+    mean_ruin_binary_brier: float | None = None
+    mean_owner_linear_rmse: float | None = None
+    mean_macro_linear_rmse: float | None = None
+    mean_year_shock_mae: float | None = None
+    mean_probe_std: float | None = None
+    artifact_path: Path
+    report_path: Path
+    round_reports: tuple[DynamicLawRoundValidationReport, ...]
 
 
 class TournamentQueryTrace(BaseModel):

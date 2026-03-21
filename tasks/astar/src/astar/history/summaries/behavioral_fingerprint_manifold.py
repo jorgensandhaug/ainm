@@ -28,6 +28,20 @@ from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 
 
+def _discover_round_ids(paths: WorkspacePaths) -> list[str]:
+    round_ids = {
+        round_dir.name
+        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
+        if round_dir.is_dir()
+    }
+    round_ids.update(
+        summary_dir.name.removeprefix("round_id=")
+        for summary_dir in paths.derived_dir.joinpath("replay_summaries").glob("round_id=*")
+        if summary_dir.is_dir()
+    )
+    return sorted(round_ids)
+
+
 def _replay_seed_indexes(
     paths: WorkspacePaths,
     round_id: str,
@@ -99,20 +113,18 @@ def factorize_round_behavioral_fingerprint_subspace(
     round_ids: list[str] | None = None,
     max_rank: int = 3,
     summary_name: str = "round_behavioral_fingerprint_subspace_v1",
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int = 4,
     rng_seed: int = 0,
 ) -> tuple[RoundSummaryFactorization, Path, Path]:
-    selected_round_ids = round_ids or sorted(
-        round_dir.name
-        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
-        if round_dir.is_dir()
-    )
+    selected_round_ids = round_ids or _discover_round_ids(paths)
 
     round_numbers_by_id: dict[str, int] = {}
     bundles_by_round_id: dict[str, list[ReplayMeasurementBundle]] = {}
     site_frames = []
     live_frames = []
     ruin_frames = []
+    pairwise_frames = []
+    owner_frames = []
 
     for round_id in selected_round_ids:
         round_number, bundles = _load_or_build_round_measurement_bundles(paths, round_id)
@@ -124,6 +136,8 @@ def factorize_round_behavioral_fingerprint_subspace(
             site_frames.append(bundle.site_opportunities)
             live_frames.append(bundle.live_settlement_transitions)
             ruin_frames.append(bundle.ruin_transitions)
+            pairwise_frames.append(bundle.pairwise_candidates)
+            owner_frames.append(bundle.owner_years)
 
     if not bundles_by_round_id:
         raise ValueError("no replay-backed round behavioral fingerprints available for factorization")
@@ -132,6 +146,8 @@ def factorize_round_behavioral_fingerprint_subspace(
         site_frames,
         live_frames,
         ruin_frames,
+        pairwise_frames,
+        owner_frames,
     )
 
     summary_names: list[str] | None = None
@@ -182,12 +198,18 @@ def factorize_round_behavioral_fingerprint_subspace(
         "factorization": factorization,
         "bootstrap_samples": bootstrap_samples,
         "summary_std_matrix": np.asarray(row_std_vectors, dtype=np.float64),
+        "probe_library_kind": probe_library.library_kind,
+        "probe_library_version": probe_library.library_version,
         "site_probe_names": probe_library.site_probe_names,
         "site_probe_matrix": probe_library.site_probe_matrix,
         "live_probe_names": probe_library.live_probe_names,
         "live_probe_matrix": probe_library.live_probe_matrix,
         "ruin_probe_names": probe_library.ruin_probe_names,
         "ruin_probe_matrix": probe_library.ruin_probe_matrix,
+        "pairwise_probe_names": probe_library.pairwise_probe_names,
+        "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
+        "owner_probe_names": probe_library.owner_probe_names,
+        "owner_probe_matrix": probe_library.owner_probe_matrix,
     }
     summary_path.write_text(json.dumps(to_jsonable(summary_payload), indent=2), encoding="utf-8")
     np.savez_compressed(
@@ -202,6 +224,8 @@ def factorize_round_behavioral_fingerprint_subspace(
         site_probe_matrix=probe_library.site_probe_matrix,
         live_probe_matrix=probe_library.live_probe_matrix,
         ruin_probe_matrix=probe_library.ruin_probe_matrix,
+        pairwise_probe_matrix=probe_library.pairwise_probe_matrix,
+        owner_probe_matrix=probe_library.owner_probe_matrix,
     )
     CatalogDB(paths.catalog_path).log_event(
         CatalogEvent(

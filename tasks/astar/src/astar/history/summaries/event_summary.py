@@ -196,6 +196,18 @@ def build_round_event_summary(
         summarize_replay_event_bundle(bundle)
         for bundle in sorted(bundles, key=lambda item: item.seed_index)
     ]
+    return build_round_event_summary_from_seed_summaries(
+        round_id,
+        round_number,
+        seed_summaries,
+    )
+
+
+def build_round_event_summary_from_seed_summaries(
+    round_id: str,
+    round_number: int,
+    seed_summaries: list[ReplayEventSeedSummary],
+) -> ReplayEventRoundSummary:
     summary_matrix = np.stack([item.summary_vector for item in seed_summaries], axis=0)
     return ReplayEventRoundSummary(
         round_id=round_id,
@@ -214,5 +226,6 @@ __all__ = [
     "ReplayEventRoundSummary",
     "ReplayEventSeedSummary",
     "build_round_event_summary",
+    "build_round_event_summary_from_seed_summaries",
     "summarize_replay_event_bundle",
 ]

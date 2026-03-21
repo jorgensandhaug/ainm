@@ -128,7 +128,9 @@ def score_viewport_motif(
     window_settlements = _settlements_in_viewport(settlements, viewport)
     coast_mask = _coast_mask(grid)
 
-    area = float(viewport.w * viewport.h)
+    window_h, window_w = window.shape
+    area = float(max(1, window_w * window_h))
+    
     port_count = sum(1 for settlement in window_settlements if settlement.has_port)
     coastal_settlement_count = _coastal_settlement_count(coast_mask, window_settlements)
     forest_ratio = float(np.count_nonzero(window == 4) / area)

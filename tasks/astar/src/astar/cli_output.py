@@ -27,6 +27,7 @@ from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.replay_eda import ReplayEdaResult
 from astar.workflows.results import (
     BuildSubmissionResult,
+    EvaluateDynamicLawSummaryResult,
     EvaluateTeacherScienceResult,
     FetchAnalysisResult,
     FetchRoundAnalysesResult,
@@ -268,6 +269,10 @@ def render_inspect_replays(result: InspectReplaysResult) -> str:
 
 
 def render_summarize_replays(result: SummarizeReplaysResult) -> str:
+    event_summaries_by_seed = {
+        seed_summary.seed_index: seed_summary
+        for seed_summary in result.event_summary.seed_summaries
+    }
     cell_event_paths_by_seed = {
         seed_summary.seed_index: path
         for seed_summary, path in zip(
@@ -382,6 +387,7 @@ def render_summarize_replays(result: SummarizeReplaysResult) -> str:
         result.summary_paths,
         strict=True,
         ):
+        event_summary = event_summaries_by_seed[seed_summary.seed_index]
         cell_event_path = cell_event_paths_by_seed[seed_summary.seed_index]
         settlement_event_path = settlement_event_paths_by_seed[seed_summary.seed_index]
         site_transition_path = site_transition_paths_by_seed[seed_summary.seed_index]
@@ -403,6 +409,8 @@ def render_summarize_replays(result: SummarizeReplaysResult) -> str:
                     f"built={seed_summary.built_hit_rate_mean:.4f}",
                     f"port={seed_summary.port_hit_rate_mean:.4f}",
                     f"ruin={seed_summary.ruin_hit_rate_mean:.4f}",
+                    f"matched_ruin={event_summary.matched_ruin_event_count}",
+                    f"site_ruin={event_summary.site_ruin_event_count}",
                     f"owner_flips={seed_summary.owner_flip_mean:.4f}",
                     f"summary={summary_path}",
                     f"cell_events={cell_event_path}",
@@ -510,6 +518,35 @@ def render_teacher_science(result: EvaluateTeacherScienceResult) -> str:
         f"report: {result.report_path}",
     ]
     return "\n".join(lines)
+
+
+def render_dynamic_law_summary_validation(result: EvaluateDynamicLawSummaryResult) -> str:
+    return "\n".join(
+        [
+            "evaluate-dynamic-law-summary",
+            f"profile: {result.validation_profile}",
+            f"rounds: {result.report_count}",
+            f"holdout_runs: {result.max_holdout_runs}",
+            f"bootstrap_samples: {result.bootstrap_samples}",
+            f"rng_seed: {result.rng_seed}",
+            f"site_max_rows: {result.site_max_rows}",
+            f"settlement_max_rows: {result.settlement_max_rows}",
+            f"pairwise_max_rows: {result.pairwise_max_rows}",
+            f"elapsed_seconds: {result.elapsed_seconds:.3f}",
+            f"mean_site_binary_brier: {result.mean_site_binary_brier}",
+            f"mean_settlement_binary_brier: {result.mean_settlement_binary_brier}",
+            f"mean_settlement_linear_rmse: {result.mean_settlement_linear_rmse}",
+            f"mean_pairwise_binary_brier: {result.mean_pairwise_binary_brier}",
+            f"mean_pairwise_linear_rmse: {result.mean_pairwise_linear_rmse}",
+            f"mean_ruin_binary_brier: {result.mean_ruin_binary_brier}",
+            f"mean_owner_linear_rmse: {result.mean_owner_linear_rmse}",
+            f"mean_macro_linear_rmse: {result.mean_macro_linear_rmse}",
+            f"mean_year_shock_mae: {result.mean_year_shock_mae}",
+            f"mean_probe_std: {result.mean_probe_std}",
+            f"artifact: {result.artifact_path}",
+            f"report: {result.report_path}",
+        ],
+    )
 
 
 def render_build_submission(result: BuildSubmissionResult) -> str:
@@ -690,6 +727,20 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
         lines.append(f"replay_report: {result.replay_report_path}")
         lines.append(
             f"replay_coefficients_mean: {result.replay_round_summary.coefficient_mean.tolist()}",
+        )
+    if result.replay_event_summary is not None:
+        site_ruin_total = sum(
+            item.site_ruin_event_count for item in result.replay_event_summary.seed_summaries
+        )
+        matched_ruin_total = sum(
+            item.matched_ruin_event_count for item in result.replay_event_summary.seed_summaries
+        )
+        lines.append(
+            (
+                "replay_events: "
+                f"matched_ruin={matched_ruin_total} "
+                f"site_ruin={site_ruin_total}"
+            ),
         )
     if result.replay_measurement_summary is not None:
         lines.append(

@@ -83,7 +83,18 @@ def build_seed_hazard_summary(
     aggregate: ReplaySeedAggregate,
     round_features: RoundFeatureBundle,
 ) -> ReplayHazardSeedSummary:
-    seed_features = round_features.per_seed[aggregate.seed_index]
+    return build_seed_hazard_summary_from_seed_features(
+        runs,
+        aggregate,
+        round_features.per_seed[aggregate.seed_index],
+    )
+
+
+def build_seed_hazard_summary_from_seed_features(
+    runs: list[ReplayRun],
+    aggregate: ReplaySeedAggregate,
+    seed_features,
+) -> ReplayHazardSeedSummary:
     buildable_mask = seed_features.feature("buildable") > 0.5
     coast_mask = seed_features.feature("coast") > 0.5
     inland_mask = buildable_mask & ~coast_mask
@@ -158,6 +169,20 @@ def build_round_hazard_summary(
         build_seed_hazard_summary(runs_by_seed[aggregate.seed_index], aggregate, round_features)
         for aggregate in sorted(aggregates, key=lambda item: item.seed_index)
     ]
+    return build_round_hazard_summary_from_seed_summaries(
+        round_id,
+        round_number,
+        seed_summaries,
+        aggregates,
+    )
+
+
+def build_round_hazard_summary_from_seed_summaries(
+    round_id: str,
+    round_number: int,
+    seed_summaries: list[ReplayHazardSeedSummary],
+    aggregates: list[ReplaySeedAggregate],
+) -> ReplayHazardRoundSummary:
     coefficient_matrix = np.stack(
         [summary.coefficient_vector for summary in seed_summaries],
         axis=0,

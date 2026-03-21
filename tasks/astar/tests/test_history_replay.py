@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import UTC, datetime
 
 import polars as pl
@@ -186,6 +187,24 @@ def test_summarize_round_replays_writes_seed_npz_and_round_report(sample_paths: 
     assert "measurement_summary" in round_summary
     assert result.event_summary.round_id == ROUND_ID
     assert result.measurement_summary.frame_transition_count >= 1
+
+
+def test_summarize_round_replays_can_reuse_cached_artifacts(sample_paths: RepoPaths) -> None:
+    _write_sample_replay(sample_paths, seed_index=0, capture_id="c0", sim_seed=100)
+    _write_sample_replay(sample_paths, seed_index=1, capture_id="c1", sim_seed=101)
+
+    fresh = summarize_round_replays(sample_paths, ROUND_ID)
+    shutil.rmtree(sample_paths.raw_replay_dir(ROUND_ID, 0).parent)
+
+    cached = summarize_round_replays(sample_paths, ROUND_ID, reuse_existing=True)
+
+    assert cached.round_id == fresh.round_id
+    assert cached.replay_run_count == fresh.replay_run_count
+    assert cached.event_summary.summary_mean.shape == fresh.event_summary.summary_mean.shape
+    assert cached.measurement_summary.frame_transition_count == (
+        fresh.measurement_summary.frame_transition_count
+    )
+    assert cached.report_path.exists()
 
 
 def test_build_round_episode_and_materialize_episode_include_replays(

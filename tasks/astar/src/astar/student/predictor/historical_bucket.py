@@ -489,6 +489,7 @@ class HistoricalBucketPriorPredictor(BaseRoundPredictor):
         return apply_probability_floor(
             prediction,
             self.probability_floor,
+            initial_grid=initial_grid,
         ), HistoricalBucketSeedDiagnostics(
             round_id=round_id,
             seed_index=seed_index,

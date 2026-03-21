@@ -8,6 +8,17 @@ import numpy as np
 from astar.features.geometry import compute_round_features
 from astar.history.replay.ingest import load_seed_replay_runs
 from astar.history.summaries.dynamic_law import (
+    MACRO_REQUIRED_COLUMNS,
+    MAX_FIT_PAIRWISE_ROWS,
+    MAX_FIT_SETTLEMENT_ROWS,
+    MAX_PROBE_PAIRWISE_ROWS,
+    MAX_PROBE_SETTLEMENT_ROWS,
+    OWNER_REQUIRED_COLUMNS,
+    PAIRWISE_REQUIRED_COLUMNS,
+    RUIN_REQUIRED_COLUMNS,
+    SETTLEMENT_REQUIRED_COLUMNS,
+    SITE_REQUIRED_COLUMNS,
+    YEAR_SHOCK_REQUIRED_COLUMNS,
     build_dynamic_law_probe_library,
     fit_round_dynamic_law_summary,
 )
@@ -18,7 +29,7 @@ from astar.history.summaries.factorization import (
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
     build_replay_measurement_bundle,
-    load_replay_measurement_bundle,
+    load_replay_measurement_bundle_projected,
     materialize_round_replay_measurements,
 )
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -45,9 +56,13 @@ def _replay_seed_indexes(
     return replay_seed_indexes
 
 
-def _load_or_build_round_measurement_bundles(
+def load_or_build_round_dynamic_law_measurement_bundles(
     paths: WorkspacePaths,
     round_id: str,
+    *,
+    site_max_rows: int | None = None,
+    settlement_max_rows: int | None = None,
+    pairwise_max_rows: int | None = None,
 ) -> tuple[int, list[ReplayMeasurementBundle]]:
     round_record = read_round_record(paths, round_id)
     replay_seed_indexes = _replay_seed_indexes(
@@ -55,10 +70,50 @@ def _load_or_build_round_measurement_bundles(
         round_id,
         seed_count=round_record.round.seeds_count,
     )
+    replay_seed_count = max(1, len(replay_seed_indexes))
+    default_site_cap = max(
+        1,
+        MAX_PROBE_SETTLEMENT_ROWS // replay_seed_count,
+        MAX_FIT_SETTLEMENT_ROWS // replay_seed_count,
+    )
+    default_settlement_cap = max(
+        1,
+        MAX_PROBE_SETTLEMENT_ROWS // replay_seed_count,
+        MAX_FIT_SETTLEMENT_ROWS // replay_seed_count,
+    )
+    default_pairwise_cap = max(
+        1,
+        MAX_PROBE_PAIRWISE_ROWS // replay_seed_count,
+        MAX_FIT_PAIRWISE_ROWS // replay_seed_count,
+    )
+    site_cap = default_site_cap if site_max_rows is None else site_max_rows
+    settlement_cap = default_settlement_cap if settlement_max_rows is None else settlement_max_rows
+    pairwise_cap = default_pairwise_cap if pairwise_max_rows is None else pairwise_max_rows
     bundles = [
         bundle
         for seed_index in replay_seed_indexes
-        if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+        if (
+            bundle := load_replay_measurement_bundle_projected(
+                paths,
+                round_id,
+                seed_index,
+                site_opportunity_columns=SITE_REQUIRED_COLUMNS,
+                settlement_measurement_columns=SETTLEMENT_REQUIRED_COLUMNS,
+                pairwise_candidate_columns=PAIRWISE_REQUIRED_COLUMNS,
+                ruin_transition_columns=RUIN_REQUIRED_COLUMNS,
+                owner_year_columns=OWNER_REQUIRED_COLUMNS,
+                year_shock_columns=YEAR_SHOCK_REQUIRED_COLUMNS,
+                macro_trajectory_columns=MACRO_REQUIRED_COLUMNS,
+                site_opportunity_max_rows=site_cap,
+                settlement_measurement_max_rows=settlement_cap,
+                pairwise_candidate_max_rows=pairwise_cap,
+                ruin_transition_max_rows=settlement_cap,
+                owner_year_max_rows=settlement_cap,
+                macro_trajectory_max_rows=settlement_cap,
+                sampling_seed=seed_index * 17,
+            )
+        )
+        is not None
     ]
     if len(bundles) == len(replay_seed_indexes):
         return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
@@ -68,7 +123,28 @@ def _load_or_build_round_measurement_bundles(
         bundles = [
             bundle
             for seed_index in replay_seed_indexes
-            if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+            if (
+                bundle := load_replay_measurement_bundle_projected(
+                    paths,
+                    round_id,
+                    seed_index,
+                    site_opportunity_columns=SITE_REQUIRED_COLUMNS,
+                    settlement_measurement_columns=SETTLEMENT_REQUIRED_COLUMNS,
+                    pairwise_candidate_columns=PAIRWISE_REQUIRED_COLUMNS,
+                    ruin_transition_columns=RUIN_REQUIRED_COLUMNS,
+                    owner_year_columns=OWNER_REQUIRED_COLUMNS,
+                    year_shock_columns=YEAR_SHOCK_REQUIRED_COLUMNS,
+                    macro_trajectory_columns=MACRO_REQUIRED_COLUMNS,
+                    site_opportunity_max_rows=site_cap,
+                    settlement_measurement_max_rows=settlement_cap,
+                    pairwise_candidate_max_rows=pairwise_cap,
+                    ruin_transition_max_rows=settlement_cap,
+                    owner_year_max_rows=settlement_cap,
+                    macro_trajectory_max_rows=settlement_cap,
+                    sampling_seed=seed_index * 17,
+                )
+            )
+            is not None
         ]
     if len(bundles) == len(replay_seed_indexes):
         return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
@@ -110,13 +186,19 @@ def factorize_round_dynamic_law_subspace(
     site_frames = []
     settlement_frames = []
     pairwise_frames = []
+    ruin_frames = []
+    owner_frames = []
+    macro_frames = []
 
     for round_id in selected_round_ids:
-        round_number, bundles = _load_or_build_round_measurement_bundles(paths, round_id)
+        round_number, bundles = load_or_build_round_dynamic_law_measurement_bundles(paths, round_id)
         for bundle in bundles:
             site_frames.append(bundle.site_opportunities)
             settlement_frames.append(bundle.settlement_measurements)
             pairwise_frames.append(bundle.pairwise_candidates)
+            ruin_frames.append(bundle.ruin_transitions)
+            owner_frames.append(bundle.owner_years)
+            macro_frames.append(bundle.macro_trajectories)
 
         if not bundles:
             continue
@@ -136,6 +218,9 @@ def factorize_round_dynamic_law_subspace(
         site_frames,
         settlement_frames,
         pairwise_frames,
+        ruin_frames,
+        owner_frames,
+        macro_frames,
     )
 
     summary_names: list[str] | None = None
@@ -177,6 +262,12 @@ def factorize_round_dynamic_law_subspace(
         "settlement_probe_matrix": probe_library.settlement_probe_matrix,
         "pairwise_probe_names": probe_library.pairwise_probe_names,
         "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
+        "ruin_probe_names": probe_library.ruin_probe_names,
+        "ruin_probe_matrix": probe_library.ruin_probe_matrix,
+        "owner_probe_names": probe_library.owner_probe_names,
+        "owner_probe_matrix": probe_library.owner_probe_matrix,
+        "macro_probe_names": probe_library.macro_probe_names,
+        "macro_probe_matrix": probe_library.macro_probe_matrix,
     }
     summary_path.write_text(json.dumps(to_jsonable(summary_payload), indent=2), encoding="utf-8")
     np.savez_compressed(
@@ -190,6 +281,9 @@ def factorize_round_dynamic_law_subspace(
         site_probe_matrix=probe_library.site_probe_matrix,
         settlement_probe_matrix=probe_library.settlement_probe_matrix,
         pairwise_probe_matrix=probe_library.pairwise_probe_matrix,
+        ruin_probe_matrix=probe_library.ruin_probe_matrix,
+        owner_probe_matrix=probe_library.owner_probe_matrix,
+        macro_probe_matrix=probe_library.macro_probe_matrix,
     )
     CatalogDB(paths.catalog_path).log_event(
         CatalogEvent(
@@ -203,4 +297,7 @@ def factorize_round_dynamic_law_subspace(
     return factorization, summary_path, basis_path
 
 
-__all__ = ["factorize_round_dynamic_law_subspace"]
+__all__ = [
+    "factorize_round_dynamic_law_subspace",
+    "load_or_build_round_dynamic_law_measurement_bundles",
+]

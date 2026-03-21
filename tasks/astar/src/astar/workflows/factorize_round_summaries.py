@@ -56,6 +56,7 @@ def factorize_round_summaries(
         "legacy_terminal_coeff",
     ] = "dynamic_law",
     max_rank: int = 3,
+    bootstrap_samples: int = 4,
     summary_name: str | None = None,
 ) -> FactorizeRoundSummariesResult:
     if summary_kind == "dynamic_law":
@@ -72,6 +73,7 @@ def factorize_round_summaries(
             paths,
             round_ids=round_ids,
             max_rank=max_rank,
+            bootstrap_samples=bootstrap_samples,
             summary_name=resolved_summary_name,
         )
     elif summary_kind == "event_summary":

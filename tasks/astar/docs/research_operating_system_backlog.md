@@ -9,6 +9,7 @@ See also:
 - [cleanup_matrix.md](/home/jorge/repos/ainm/tasks/astar/docs/cleanup_matrix.md)
 - [handoff_from_high_level_agent.md](/home/jorge/repos/ainm/tasks/astar/docs/handoff_from_high_level_agent.md)
 - [architecture.md](/home/jorge/repos/ainm/tasks/astar/docs/architecture.md)
+- [per_round_dynamic_law_blueprint.md](/home/jorge/repos/ainm/tasks/astar/docs/per_round_dynamic_law_blueprint.md)
 
 ## Core Thesis
 

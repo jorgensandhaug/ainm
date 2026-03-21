@@ -95,12 +95,21 @@ def _stored_probe_library(teacher: HazardTeacher) -> DynamicLawProbeLibrary:
         site_feature_names=teacher.site_probe_feature_names,
         settlement_feature_names=teacher.settlement_probe_feature_names,
         pairwise_feature_names=teacher.pairwise_probe_feature_names,
+        ruin_feature_names=teacher.ruin_probe_feature_names,
+        owner_feature_names=teacher.owner_probe_feature_names,
+        macro_feature_names=teacher.macro_probe_feature_names,
         site_probe_names=teacher.site_probe_names,
         site_probe_matrix=teacher.site_probe_matrix,
         settlement_probe_names=teacher.settlement_probe_names,
         settlement_probe_matrix=teacher.settlement_probe_matrix,
         pairwise_probe_names=teacher.pairwise_probe_names,
         pairwise_probe_matrix=teacher.pairwise_probe_matrix,
+        ruin_probe_names=teacher.ruin_probe_names,
+        ruin_probe_matrix=teacher.ruin_probe_matrix,
+        owner_probe_names=teacher.owner_probe_names,
+        owner_probe_matrix=teacher.owner_probe_matrix,
+        macro_probe_names=teacher.macro_probe_names,
+        macro_probe_matrix=teacher.macro_probe_matrix,
     )
 
 
@@ -131,7 +140,9 @@ class HazardTeacher(BaseModel):
     regime_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     site_probe_names: tuple[str, ...] = ()
-    site_probe_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
+    site_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
     settlement_probe_names: tuple[str, ...] = ()
     settlement_probe_matrix: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
@@ -140,9 +151,24 @@ class HazardTeacher(BaseModel):
     pairwise_probe_matrix: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
     )
+    ruin_probe_names: tuple[str, ...] = ()
+    ruin_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    owner_probe_names: tuple[str, ...] = ()
+    owner_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    macro_probe_names: tuple[str, ...] = ()
+    macro_probe_matrix: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
     site_probe_feature_names: tuple[str, ...] = ()
     settlement_probe_feature_names: tuple[str, ...] = ()
     pairwise_probe_feature_names: tuple[str, ...] = ()
+    ruin_probe_feature_names: tuple[str, ...] = ()
+    owner_probe_feature_names: tuple[str, ...] = ()
+    macro_probe_feature_names: tuple[str, ...] = ()
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
@@ -175,10 +201,28 @@ class HazardTeacher(BaseModel):
             for bundles in measurement_bundles_by_episode
             for bundle in bundles
         ]
+        ruin_frames = [
+            bundle.ruin_transitions
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
+        owner_frames = [
+            bundle.owner_years
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
+        macro_frames = [
+            bundle.macro_trajectories
+            for bundles in measurement_bundles_by_episode
+            for bundle in bundles
+        ]
         probe_library = build_dynamic_law_probe_library(
             site_frames,
             settlement_frames,
             pairwise_frames,
+            ruin_frames,
+            owner_frames,
+            macro_frames,
         )
         regime_summary_names: list[str] | None = None
         regime_bank_rows: list[np.ndarray] = []
@@ -226,9 +270,18 @@ class HazardTeacher(BaseModel):
                 "settlement_probe_matrix": probe_library.settlement_probe_matrix,
                 "pairwise_probe_names": tuple(probe_library.pairwise_probe_names),
                 "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
+                "ruin_probe_names": tuple(probe_library.ruin_probe_names),
+                "ruin_probe_matrix": probe_library.ruin_probe_matrix,
+                "owner_probe_names": tuple(probe_library.owner_probe_names),
+                "owner_probe_matrix": probe_library.owner_probe_matrix,
+                "macro_probe_names": tuple(probe_library.macro_probe_names),
+                "macro_probe_matrix": probe_library.macro_probe_matrix,
                 "site_probe_feature_names": tuple(probe_library.site_feature_names),
                 "settlement_probe_feature_names": tuple(probe_library.settlement_feature_names),
                 "pairwise_probe_feature_names": tuple(probe_library.pairwise_feature_names),
+                "ruin_probe_feature_names": tuple(probe_library.ruin_feature_names),
+                "owner_probe_feature_names": tuple(probe_library.owner_feature_names),
+                "macro_probe_feature_names": tuple(probe_library.macro_feature_names),
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),

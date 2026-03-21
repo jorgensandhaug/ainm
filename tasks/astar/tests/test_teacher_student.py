@@ -87,6 +87,10 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
 
     assert artifact.regime_vector.shape == encoded_round.shape
     assert np.allclose(artifact.regime_vector, encoded_round)
+    assert any(
+        name.startswith("site_binary::site_ruin_created::")
+        for name in teacher.regime_summary_names
+    )
     assert posterior.mean.ndim == 1
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)

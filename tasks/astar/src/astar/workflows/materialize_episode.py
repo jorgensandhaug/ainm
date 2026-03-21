@@ -11,9 +11,9 @@ from astar.eval.reports import (
     render_round_episode_diagnostics,
 )
 from astar.features.geometry import compute_round_features
-from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import (
+    load_named_arrays,
     read_analysis_records,
     read_round_record,
     save_named_arrays,
@@ -25,8 +25,12 @@ from astar.observe.evidence import build_round_evidence
 from astar.workflows.results import (
     MaterializedSeedArtifacts,
     MaterializeEpisodeResult,
+    SummarizeReplaysResult,
 )
-from astar.workflows.summarize_replays import summarize_round_replays
+from astar.workflows.summarize_replays import (
+    load_round_replay_summary,
+    summarize_round_replays,
+)
 
 
 def _feature_payload(
@@ -81,22 +85,63 @@ def _evidence_payload(
     }
 
 
+def _replay_run_counts(
+    paths: WorkspacePaths,
+    round_id: str,
+    *,
+    seeds_count: int,
+) -> tuple[list[int], SummarizeReplaysResult | None]:
+    def _counts_from_summary_paths(summary_paths: list[object]) -> list[int]:
+        counts = [0] * seeds_count
+        for summary_path in summary_paths:
+            path_str = str(summary_path)
+            stem = path_str.rsplit("/", maxsplit=1)[-1].removesuffix(".npz")
+            seed_index = int(stem.split("seed_index=", maxsplit=1)[1])
+            payload = load_named_arrays(summary_path)
+            counts[seed_index] = int(payload["replay_run_count"][0])
+        return counts
+
+    cached = load_round_replay_summary(paths, round_id)
+    if cached is not None:
+        return _counts_from_summary_paths(cached.summary_paths), cached
+    counts: list[int] = []
+    for seed_index in range(seeds_count):
+        replay_dir = paths.raw_replay_dir(round_id, seed_index)
+        if not replay_dir.exists():
+            counts.append(0)
+            continue
+        counts.append(sum(1 for _ in replay_dir.glob("*.json")))
+    return counts, None
+
+
 def materialize_round_episode(
     paths: WorkspacePaths,
     round_id: str,
 ) -> MaterializeEpisodeResult:
     round_record = read_round_record(paths, round_id)
+    replay_run_counts, replay_result = _replay_run_counts(
+        paths,
+        round_id,
+        seeds_count=round_record.round.seeds_count,
+    )
     features = compute_round_features(round_record.round)
     evidence = build_round_evidence(paths, round_id)
     diagnostics = build_round_episode_diagnostics(paths, round_id)
     analyses = read_analysis_records(paths, round_id)
-    round_episode = build_round_episode(paths, round_id)
     replay_round_summary = None
+    replay_event_summary = None
     replay_measurement_summary = None
     replay_report_path = None
-    if round_episode.replay_run_count > 0:
-        replay_result = summarize_round_replays(paths, round_id)
+    if replay_result is None and sum(replay_run_counts) > 0:
+        replay_result = summarize_round_replays(paths, round_id, reuse_existing=True)
+        replay_run_counts = _replay_run_counts(
+            paths,
+            round_id,
+            seeds_count=round_record.round.seeds_count,
+        )[0]
+    if replay_result is not None:
         replay_round_summary = replay_result.hazard_summary
+        replay_event_summary = replay_result.event_summary
         replay_measurement_summary = replay_result.measurement_summary
         replay_report_path = replay_result.report_path
 
@@ -213,7 +258,7 @@ def materialize_round_episode(
                     if paths.replay_macro_trajectory_path(round_id, seed_index).exists()
                     else None
                 ),
-                replay_run_count=len(round_episode.seeds[seed_index].replay_runs),
+                replay_run_count=replay_run_counts[seed_index],
                 has_prediction=paths.prediction_tensor_path(round_id, seed_index).exists(),
                 has_analysis=seed_index in analyses,
             ),
@@ -235,6 +280,7 @@ def materialize_round_episode(
         per_seed=per_seed,
         diagnostics=diagnostics,
         replay_round_summary=replay_round_summary,
+        replay_event_summary=replay_event_summary,
         replay_measurement_summary=replay_measurement_summary,
         backtest_result=backtest_result,
     )

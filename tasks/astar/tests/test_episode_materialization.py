@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import shutil
+
 import numpy as np
 
 from astar.history.learning import load_round_learning_episode
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.materialize_episode import materialize_round_episode
+from astar.workflows.summarize_replays import summarize_round_replays
 from tests.conftest import ROUND_ID
 
 
@@ -44,9 +47,41 @@ def test_load_round_learning_episode_reads_replay_event_summaries_when_present(
 
     assert episode.per_seed[0].replay_event_summary_names is not None
     assert episode.per_seed[0].replay_event_summary_vector is not None
+    assert episode.per_seed[0].replay_frame_transition_count > 0
+    assert episode.per_seed[0].replay_site_opportunity_count > 0
+    assert episode.per_seed[0].replay_year_shock_count > 0
     assert len(episode.per_seed[0].replay_event_summary_names) == int(
         episode.per_seed[0].replay_event_summary_vector.shape[0],
     )
+
+
+def test_materialize_round_episode_keeps_replay_event_summary_when_present(
+    sample_paths: RepoPaths,
+) -> None:
+    from tests.test_history_datasets import _write_replays_for_all_seeds
+
+    _write_replays_for_all_seeds(sample_paths, run_count=1)
+    result = materialize_round_episode(sample_paths, ROUND_ID)
+
+    assert result.replay_event_summary is not None
+    assert len(result.replay_event_summary.seed_summaries) >= 1
+
+
+def test_materialize_round_episode_can_use_cached_replay_summaries_without_raw_replays(
+    sample_paths: RepoPaths,
+) -> None:
+    from tests.test_history_datasets import _write_replays_for_all_seeds
+
+    _write_replays_for_all_seeds(sample_paths, run_count=1)
+    summarize_round_replays(sample_paths, ROUND_ID)
+    shutil.rmtree(sample_paths.raw_replay_dir(ROUND_ID, 0).parent)
+
+    result = materialize_round_episode(sample_paths, ROUND_ID)
+
+    assert result.replay_round_summary is not None
+    assert result.replay_round_summary.replay_run_count == 5
+    assert result.per_seed[0].replay_run_count == 1
+    assert result.per_seed[1].replay_run_count == 1
 
 
 def test_round_learning_episode_can_hide_evidence_for_seed(sample_paths: RepoPaths) -> None:

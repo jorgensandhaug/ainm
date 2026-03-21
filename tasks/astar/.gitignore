@@ -14,3 +14,6 @@ __pycache__/
 !data/
 !data/**
 data/catalog.duckdb
+
+# Derived outputs are reproducible; keep them out of git.
+data/derived/

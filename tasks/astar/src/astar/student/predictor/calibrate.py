@@ -14,5 +14,16 @@ def softmax_logits(logits: np.ndarray) -> FloatArray:
     return cast(FloatArray, exp / np.sum(exp, axis=-1, keepdims=True))
 
 
-def apply_probability_floor(probabilities: np.ndarray, floor: float) -> FloatArray:
-    return floor_and_normalize(probabilities, floor)
+def apply_probability_floor(
+    probabilities: np.ndarray,
+    floor: float,
+    *,
+    initial_grid: np.ndarray | None = None,
+) -> FloatArray:
+    floored = floor_and_normalize(probabilities, floor)
+    if initial_grid is not None:
+        ocean = initial_grid == 10
+        mountain = initial_grid == 5
+        floored[ocean] = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
+        floored[mountain] = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+    return floored

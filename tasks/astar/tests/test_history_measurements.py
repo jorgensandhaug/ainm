@@ -127,7 +127,7 @@ def test_build_replay_measurement_bundle_captures_site_settlement_pair_and_shock
     assert bundle.summary.live_settlement_transition_count == 2
     assert bundle.summary.ruin_transition_count == 1
     assert bundle.summary.pairwise_candidate_count == 2
-    assert bundle.summary.owner_year_count == 2
+    assert bundle.summary.owner_year_count == 3
     assert bundle.summary.year_shock_count == 1
     assert bundle.summary.macro_trajectory_count == 1
     assert "birth" in bundle.site_opportunities.columns
@@ -150,6 +150,13 @@ def test_build_replay_measurement_bundle_captures_site_settlement_pair_and_shock
     assert bundle.settlement_measurements.get_column("sea_distance_to_port_steps").min() >= -1
     assert int(bundle.settlement_measurements.get_column("port_gain").sum()) == 1
     assert int(bundle.settlement_measurements.get_column("owner_flip").sum()) == 1
+    primary_row = bundle.settlement_measurements.filter(
+        (bundle.settlement_measurements.get_column("x") == 0)
+        & (bundle.settlement_measurements.get_column("y") == 0)
+    )
+    assert primary_row.get_column("nearby_live_count").to_list() == [1]
+    assert primary_row.get_column("nearby_same_owner_count").to_list() == [0]
+    assert primary_row.get_column("nearby_other_owner_count").to_list() == [1]
     assert int(bundle.site_opportunities.get_column("site_ruin_created").sum()) == 0
     assert int(bundle.ruin_transitions.get_column("reclaim_forest").sum()) == 1
     assert bundle.year_shocks.get_column("owner_flip_count").to_list() == [1]
@@ -159,7 +166,11 @@ def test_build_replay_measurement_bundle_captures_site_settlement_pair_and_shock
     assert round_summary.live_settlement_transition_count == 2
     assert round_summary.ruin_transition_count == 1
     assert round_summary.pairwise_candidate_count == 2
-    assert round_summary.owner_year_count == 2
+    assert round_summary.owner_year_count == 3
+    emergent_owner = bundle.owner_years.filter(bundle.owner_years.get_column("owner_id") == 3)
+    assert emergent_owner.height == 1
+    assert emergent_owner.get_column("settlement_count").to_list() == [0]
+    assert emergent_owner.get_column("next_settlement_count").to_list() == [1]
     assert round_summary.year_shock_count == 1
     assert round_summary.macro_trajectory_count == 1
 

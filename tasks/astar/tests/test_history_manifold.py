@@ -117,6 +117,22 @@ def test_factorize_round_dynamic_law_subspace_writes_summary_and_basis(
     assert factorization.summary_kind == "dynamic_law"
     assert len(factorization.round_ids) == 1
     assert factorization.effective_rank == 1
+    assert any(
+        name.startswith("site_binary::site_ruin_created::")
+        for name in factorization.summary_names
+    )
+    assert any(
+        name.startswith("ruin_binary::rebuild_port::")
+        for name in factorization.summary_names
+    )
+    assert any(
+        name.startswith("owner_linear::settlement_delta::")
+        for name in factorization.summary_names
+    )
+    assert any(
+        name.startswith("macro_linear::live_delta::")
+        for name in factorization.summary_names
+    )
     assert summary_path.exists()
     assert basis_path.exists()
 
@@ -177,6 +193,26 @@ def test_factorize_round_behavioral_fingerprint_subspace_uses_saved_measurements
     )
 
     assert factorization.summary_kind == "behavioral_fingerprint"
+    assert summary_path.exists()
+    assert basis_path.exists()
+
+
+def test_factorize_round_behavioral_fingerprint_subspace_discovers_cached_rounds_by_default(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+    summarize_round_replays(sample_paths, ROUND_ID)
+    shutil.rmtree(sample_paths.raw_replay_dir(ROUND_ID, 0).parent)
+
+    factorization, summary_path, basis_path = factorize_round_behavioral_fingerprint_subspace(
+        sample_paths,
+        max_rank=2,
+        summary_name="round_behavioral_fingerprint_subspace_default_cached_test",
+        bootstrap_samples=1,
+    )
+
+    assert factorization.summary_kind == "behavioral_fingerprint"
+    assert list(factorization.round_ids) == [ROUND_ID]
     assert summary_path.exists()
     assert basis_path.exists()
 
