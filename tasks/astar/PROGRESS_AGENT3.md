@@ -3651,6 +3651,60 @@
      - `2 passed`
    - extra check:
      - `uv run python -m py_compile src/astar/student/predictor/evidence_field.py tests/test_teacher_student.py tests/test_historical_benchmark.py`
+413. Committed and pushed the settlement-state evidence-field branch:
+   - commit:
+     - `85a216d3`
+   - message:
+     - `agent3: add settlement-state evidence fields`
+414. Settlement-state corrected-gate wave launched from commit `85a216d3`:
+   - pre-launch memory gate:
+     - `available_gib=1826`
+   - old `v1-v6` `tmux` sessions were killed before relaunch
+   - new `tmux` sessions:
+     - `agent3_evidence_v7_gate`
+     - `agent3_evidence_v8_gate`
+     - `agent3_evidence_v9_gate`
+     - `agent3_evidence_v10_gate`
+415. Settlement-state corrected-gate results landed and also failed:
+   - artifacts:
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v7_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v8_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v9_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v10_targeted_holdout_2rounds_corrected/result.json`
+   - aggregate results:
+     - `v7`: mean score `63.4523`, mean weighted KL `0.151868`
+     - `v8`: mean score `63.4226`, mean weighted KL `0.152021`
+     - `v9`: mean score `63.8063`, mean weighted KL `0.149983`
+     - `v10`: mean score `63.7749`, mean weighted KL `0.150139`
+416. Read from item 415:
+   - raw local settlement-state fields improve slightly over the naive count-field branch only when mixed lightly with the count field (`v9/v10`), but they are still far below `v59`
+   - direct local coordinate painting looks too noisy / too query-sample-specific under this corrected holdout
+417. New hypothesis after item 416:
+   - use the richer settlement-state evidence globally instead of locally:
+     - mean population
+     - mean food
+     - mean wealth
+     - mean defense
+     - alive fraction
+     - port fraction
+     - owner fragmentation
+   - turn those seed-level statistics into feature-map logit shifts over buildable / coastal / frontier structure, optionally mixed with a very light count field
+418. Implemented global-state feature-map evidence-field variants:
+   - new variants:
+     - `evidence_field_blend_v11`
+     - `evidence_field_blend_v12`
+     - `evidence_field_blend_v13`
+     - `evidence_field_blend_v14`
+   - mapping:
+     - `v11/v12`: global-state feature maps only on top of `v59/v60`
+     - `v13/v14`: global-state feature maps + light count field on top of `v59/v60`
+419. Focused validation for item 418:
+   - command:
+     - `uv run pytest tests/test_teacher_student.py::test_evidence_field_global_state_refinement_uses_seed_level_state_summary tests/test_historical_benchmark.py::test_evidence_field_blend_v12_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `2 passed`
+   - extra check:
+     - `uv run python -m py_compile src/astar/student/predictor/evidence_field.py tests/test_teacher_student.py tests/test_historical_benchmark.py`
 
 
 ## Open Questions

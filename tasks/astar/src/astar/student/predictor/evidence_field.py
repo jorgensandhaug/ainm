@@ -32,6 +32,10 @@ EVIDENCE_FIELD_V7 = "evidence_field_blend_v7"
 EVIDENCE_FIELD_V8 = "evidence_field_blend_v8"
 EVIDENCE_FIELD_V9 = "evidence_field_blend_v9"
 EVIDENCE_FIELD_V10 = "evidence_field_blend_v10"
+EVIDENCE_FIELD_V11 = "evidence_field_blend_v11"
+EVIDENCE_FIELD_V12 = "evidence_field_blend_v12"
+EVIDENCE_FIELD_V13 = "evidence_field_blend_v13"
+EVIDENCE_FIELD_V14 = "evidence_field_blend_v14"
 EVIDENCE_FIELD_MODEL_NAMES = frozenset(
     {
         EVIDENCE_FIELD_ALIAS,
@@ -45,6 +49,10 @@ EVIDENCE_FIELD_MODEL_NAMES = frozenset(
         EVIDENCE_FIELD_V8,
         EVIDENCE_FIELD_V9,
         EVIDENCE_FIELD_V10,
+        EVIDENCE_FIELD_V11,
+        EVIDENCE_FIELD_V12,
+        EVIDENCE_FIELD_V13,
+        EVIDENCE_FIELD_V14,
     },
 )
 EVIDENCE_FIELD_MODEL_CHOICE_LIST = [
@@ -59,6 +67,10 @@ EVIDENCE_FIELD_MODEL_CHOICE_LIST = [
     EVIDENCE_FIELD_V8,
     EVIDENCE_FIELD_V9,
     EVIDENCE_FIELD_V10,
+    EVIDENCE_FIELD_V11,
+    EVIDENCE_FIELD_V12,
+    EVIDENCE_FIELD_V13,
+    EVIDENCE_FIELD_V14,
 ]
 
 
@@ -80,6 +92,9 @@ class EvidenceFieldVariantSpec(BaseModel):
     state_strength: float = Field(default=0.0, ge=0.0)
     state_port_strength: float = Field(default=1.0, ge=0.0)
     state_ruin_strength: float = Field(default=1.0, ge=0.0)
+    global_state_strength: float = Field(default=0.0, ge=0.0)
+    global_port_strength: float = Field(default=1.0, ge=0.0)
+    global_ruin_strength: float = Field(default=1.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
 
 
@@ -106,6 +121,42 @@ def resolve_evidence_field_variant_spec(
     effective_samples_per_round = 4 if samples_per_round is None else samples_per_round
     if effective_samples_per_round != 4:
         raise ValueError(f"{resolved_model_name} fixes samples_per_round=4")
+    if resolved_model_name == EVIDENCE_FIELD_V14:
+        return EvidenceFieldVariantSpec(
+            model_name=resolved_model_name,
+            base_model_name="teacher_student_blend_v60",
+            field_strength=0.25,
+            global_state_strength=1.2,
+            global_port_strength=1.25,
+            global_ruin_strength=1.2,
+        )
+    if resolved_model_name == EVIDENCE_FIELD_V13:
+        return EvidenceFieldVariantSpec(
+            model_name=resolved_model_name,
+            base_model_name="teacher_student_blend_v59",
+            field_strength=0.25,
+            global_state_strength=1.2,
+            global_port_strength=1.25,
+            global_ruin_strength=1.2,
+        )
+    if resolved_model_name == EVIDENCE_FIELD_V12:
+        return EvidenceFieldVariantSpec(
+            model_name=resolved_model_name,
+            base_model_name="teacher_student_blend_v60",
+            field_strength=0.0,
+            global_state_strength=1.1,
+            global_port_strength=1.2,
+            global_ruin_strength=1.15,
+        )
+    if resolved_model_name == EVIDENCE_FIELD_V11:
+        return EvidenceFieldVariantSpec(
+            model_name=resolved_model_name,
+            base_model_name="teacher_student_blend_v59",
+            field_strength=0.0,
+            global_state_strength=1.1,
+            global_port_strength=1.2,
+            global_ruin_strength=1.15,
+        )
     if resolved_model_name == EVIDENCE_FIELD_V10:
         return EvidenceFieldVariantSpec(
             model_name=resolved_model_name,
@@ -445,6 +496,83 @@ def _apply_settlement_state_refinement(
     return apply_probability_floor(refined, probability_floor)
 
 
+def _apply_global_state_feature_refinement(
+    prediction: np.ndarray,
+    *,
+    seed_evidence: SeedEvidenceBundle,
+    seed_features: SeedFeatureBundle,
+    initial_scored_grid: np.ndarray,
+    global_state_strength: float,
+    global_port_strength: float,
+    global_ruin_strength: float,
+    probability_floor: float,
+) -> np.ndarray:
+    if global_state_strength <= 0.0:
+        return prediction
+
+    population = _normalize_population(seed_evidence.mean_population)
+    food = _normalize_food(seed_evidence.mean_food)
+    wealth = _normalize_wealth(seed_evidence.mean_wealth)
+    defense = _normalize_defense(seed_evidence.mean_defense)
+    thriving = max(
+        0.0,
+        (0.3 * population)
+        + (0.2 * food)
+        + (0.2 * wealth)
+        + (0.2 * defense)
+        + (0.15 * seed_evidence.alive_fraction)
+        - (0.05 * seed_evidence.owner_hhi),
+    )
+    collapse = max(
+        0.0,
+        (0.65 * (1.0 - seed_evidence.alive_fraction))
+        + (0.35 * seed_evidence.owner_hhi)
+        + (0.2 * (1.0 - seed_evidence.largest_owner_share))
+        + (0.1 * seed_evidence.mean_settlement_count)
+        - (0.15 * thriving),
+    )
+    port_bias = seed_evidence.port_fraction * (0.4 + thriving)
+    if thriving <= 0.0 and collapse <= 0.0 and port_bias <= 0.0:
+        return prediction
+
+    observed_total = np.sum(
+        np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64),
+        axis=-1,
+        dtype=np.float64,
+    )
+    support_gate = 0.25 + (0.75 * np.clip(1.0 - (observed_total / 4.0), 0.0, 1.0))
+    mutable = (initial_scored_grid != 5).astype(np.float64)
+    gate = support_gate * mutable
+
+    buildable = np.asarray(seed_features.feature("buildable"), dtype=np.float64)
+    settlement_proximity = np.asarray(seed_features.feature("settlement_proximity"), dtype=np.float64)
+    coastal_exposure = np.asarray(seed_features.feature("coastal_exposure"), dtype=np.float64)
+    maritime_access = np.asarray(seed_features.feature("maritime_access"), dtype=np.float64)
+    frontier_score = np.asarray(seed_features.feature("frontier_score"), dtype=np.float64)
+    forest_density = np.asarray(seed_features.feature("forest_density"), dtype=np.float64)
+    mountain_density = np.asarray(seed_features.feature("mountain_density"), dtype=np.float64)
+
+    settlement_signal = gate * buildable * (
+        thriving * ((0.7 * settlement_proximity) + (0.3 * frontier_score))
+    )
+    port_signal = gate * coastal_exposure * maritime_access * (
+        port_bias * (0.45 + (0.55 * settlement_proximity))
+    )
+    ruin_signal = gate * (
+        collapse * ((0.6 * frontier_score) + (0.25 * mountain_density) + (0.15 * (1.0 - buildable)))
+    )
+
+    logits = np.log(np.maximum(prediction, 1e-6))
+    logits[..., 0] += global_state_strength * (
+        (0.12 * forest_density * gate) - (0.22 * settlement_signal) - (0.15 * port_signal) - (0.18 * ruin_signal)
+    )
+    logits[..., 1] += global_state_strength * settlement_signal
+    logits[..., 2] += global_state_strength * global_port_strength * port_signal
+    logits[..., 3] += global_state_strength * global_ruin_strength * ruin_signal
+    refined = softmax_logits(logits)
+    return apply_probability_floor(refined, probability_floor)
+
+
 class EvidenceFieldBlendPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -462,6 +590,9 @@ class EvidenceFieldBlendPredictor(BaseRoundPredictor):
     state_strength: float = Field(default=0.0, ge=0.0)
     state_port_strength: float = Field(default=1.0, ge=0.0)
     state_ruin_strength: float = Field(default=1.0, ge=0.0)
+    global_state_strength: float = Field(default=0.0, ge=0.0)
+    global_port_strength: float = Field(default=1.0, ge=0.0)
+    global_ruin_strength: float = Field(default=1.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
 
     def build_prediction_bundle_from_context(
@@ -502,6 +633,16 @@ class EvidenceFieldBlendPredictor(BaseRoundPredictor):
                 state_strength=self.state_strength,
                 state_port_strength=self.state_port_strength,
                 state_ruin_strength=self.state_ruin_strength,
+                probability_floor=self.probability_floor,
+            )
+            predictions_by_seed[seed_index] = _apply_global_state_feature_refinement(
+                predictions_by_seed[seed_index],
+                seed_evidence=context.evidence_bundle.per_seed[seed_index],
+                seed_features=context.geometry_bundle.per_seed[seed_index],
+                initial_scored_grid=initial_scored_grid,
+                global_state_strength=self.global_state_strength,
+                global_port_strength=self.global_port_strength,
+                global_ruin_strength=self.global_ruin_strength,
                 probability_floor=self.probability_floor,
             )
         return PredictionBundle(
@@ -559,6 +700,9 @@ def load_or_fit_named_evidence_field_predictor(
         state_strength=spec.state_strength,
         state_port_strength=spec.state_port_strength,
         state_ruin_strength=spec.state_ruin_strength,
+        global_state_strength=spec.global_state_strength,
+        global_port_strength=spec.global_port_strength,
+        global_ruin_strength=spec.global_ruin_strength,
         probability_floor=spec.probability_floor,
     )
 
@@ -576,9 +720,14 @@ __all__ = [
     "EVIDENCE_FIELD_V8",
     "EVIDENCE_FIELD_V9",
     "EVIDENCE_FIELD_V10",
+    "EVIDENCE_FIELD_V11",
+    "EVIDENCE_FIELD_V12",
+    "EVIDENCE_FIELD_V13",
+    "EVIDENCE_FIELD_V14",
     "EvidenceFieldBlendPredictor",
     "_apply_local_evidence_field_refinement",
     "_apply_settlement_state_refinement",
+    "_apply_global_state_feature_refinement",
     "is_evidence_field_model_name",
     "load_or_fit_named_evidence_field_predictor",
     "resolve_evidence_field_samples_per_round",

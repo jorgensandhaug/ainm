@@ -984,6 +984,63 @@ def test_evidence_field_settlement_state_refinement_uses_live_settlement_stats()
     assert refined[1, 2, 2] > prediction[1, 2, 2]
 
 
+def test_evidence_field_global_state_refinement_uses_seed_level_state_summary() -> None:
+    from astar.features.geometry import SeedFeatureBundle
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.evidence_field import _apply_global_state_feature_refinement
+
+    prediction = np.full((2, 2, 6), 1.0 / 6.0, dtype=np.float64)
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=4,
+        repeated_window_groups=0,
+        coverage_counts=np.zeros((2, 2), dtype=np.int64),
+        observed_class_counts=np.zeros(6, dtype=np.int64),
+        observed_class_frequencies=np.zeros(6, dtype=np.float64),
+        observed_class_count_tensor=np.zeros((2, 2, 6), dtype=np.int64),
+        mean_population=4.5,
+        mean_food=1.1,
+        mean_wealth=1.5,
+        mean_defense=1.0,
+        mean_settlement_count=1.0,
+        alive_fraction=1.0,
+        port_fraction=1.0,
+        largest_owner_share=1.0,
+        owner_hhi=0.0,
+    )
+    seed_features = SeedFeatureBundle(
+        round_id="round",
+        seed_index=0,
+        height=2,
+        width=2,
+        features={
+            "buildable": np.ones((2, 2), dtype=np.float64),
+            "settlement_proximity": np.ones((2, 2), dtype=np.float64),
+            "coastal_exposure": np.ones((2, 2), dtype=np.float64),
+            "maritime_access": np.ones((2, 2), dtype=np.float64),
+            "frontier_score": np.ones((2, 2), dtype=np.float64),
+            "forest_density": np.zeros((2, 2), dtype=np.float64),
+            "mountain_density": np.zeros((2, 2), dtype=np.float64),
+        },
+    )
+
+    refined = _apply_global_state_feature_refinement(
+        prediction,
+        seed_evidence=seed_evidence,
+        seed_features=seed_features,
+        initial_scored_grid=np.zeros((2, 2), dtype=np.int64),
+        global_state_strength=1.0,
+        global_port_strength=1.2,
+        global_ruin_strength=1.1,
+        probability_floor=0.01,
+    )
+
+    assert np.allclose(refined.sum(axis=-1), 1.0)
+    assert refined[0, 0, 1] > prediction[0, 0, 1]
+    assert refined[0, 0, 2] > prediction[0, 0, 2]
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
