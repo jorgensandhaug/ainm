@@ -927,6 +927,48 @@
      - `query_residual_v16`
    - both improvements came from continuing the prior-blend de-anchoring sweep:
      - `0.35 -> 0.25 -> 0.15`
+107. Immediate next continuation after the `v17` full win:
+   - the prior-blend sweep is still monotone across the verified points
+   - next decisive probe:
+     - test whether the gains continue down to near-zero prior anchoring, or whether they reverse
+108. Implemented near-zero prior-anchor probe:
+   - new model name: `query_residual_v18`
+   - semantics:
+     - same architecture as `query_residual_v17`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.05`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+109. Validation after `query_residual_v18` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `24 passed`
+110. `query_residual_v18` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v18_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v18`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.05`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `66.6604`
+     - mean weighted KL `0.135264`
+   - per-round:
+     - `36e581...`: score `66.2954`, KL `0.137078`
+     - `f1dac9...`: score `67.0255`, KL `0.133450`
+111. Interpretation of item 110:
+   - the prior-blend sweep remains strongly monotone through `0.05`
+   - versus `v17` targeted:
+     - score `+1.8175`
+     - weighted KL `-0.009255`
+   - versus current verified full leader `v17` targeted:
+     - both representative hard rounds improved again
+   - promotion decision:
+     - run full corrected LOO for `query_residual_v18`
 
 ## Open Questions
 

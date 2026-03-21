@@ -48,6 +48,7 @@ QUERY_RESIDUAL_V14 = "query_residual_v14"
 QUERY_RESIDUAL_V15 = "query_residual_v15"
 QUERY_RESIDUAL_V16 = "query_residual_v16"
 QUERY_RESIDUAL_V17 = "query_residual_v17"
+QUERY_RESIDUAL_V18 = "query_residual_v18"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -62,6 +63,7 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V15,
         QUERY_RESIDUAL_V16,
         QUERY_RESIDUAL_V17,
+        QUERY_RESIDUAL_V18,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -111,6 +113,7 @@ def resolve_query_residual_variant_spec(
         QUERY_RESIDUAL_V15: 2,
         QUERY_RESIDUAL_V16: 2,
         QUERY_RESIDUAL_V17: 2,
+        QUERY_RESIDUAL_V18: 2,
     }.get(resolved_model_name, 1)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -129,6 +132,8 @@ def resolve_query_residual_variant_spec(
         raise ValueError("query_residual_v16 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V17 and effective_samples_per_round != 2:
         raise ValueError("query_residual_v17 fixes samples_per_round=2")
+    if resolved_model_name == QUERY_RESIDUAL_V18 and effective_samples_per_round != 2:
+        raise ValueError("query_residual_v18 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V8:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
@@ -201,6 +206,14 @@ def resolve_query_residual_variant_spec(
             model_name=resolved_model_name,
             samples_per_round=2,
             prior_blend=0.15,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V18:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=2,
+            prior_blend=0.05,
             cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
             include_exact_local_residual=True,
         )
