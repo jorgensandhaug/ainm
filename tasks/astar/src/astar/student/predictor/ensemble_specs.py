@@ -163,6 +163,26 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.55, 0.45),
     ),
+    # 3-model: two hazard variants + supportx
+    "f1_ensemble_hv2duo_sx_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2duo_sx_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_hazard_posterior_v2_k9_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.25, 0.25, 0.5),
+    ),
+    # 3-model: hazard k5 + supportx + plain qr
+    "f1_ensemble_hv2_sx_qr_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_qr_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+            "query_residual",
+        ),
+        component_weights=(0.5, 0.25, 0.25),
+    ),
 }
 
 
