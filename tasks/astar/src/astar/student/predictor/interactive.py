@@ -77,6 +77,11 @@ from astar.student.predictor.summary_bank_specs import (
     resolve_summary_bank_model_spec,
     supported_summary_bank_model_names,
 )
+from astar.student.predictor.terminal_retrieval import TerminalRetrievalPredictor
+from astar.student.predictor.terminal_retrieval_specs import (
+    resolve_terminal_retrieval_model_spec,
+    supported_terminal_retrieval_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -391,6 +396,25 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    terminal_retrieval_spec = resolve_terminal_retrieval_model_spec(normalized)
+    if terminal_retrieval_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = TerminalRetrievalPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=terminal_retrieval_spec.budget,
+            samples_per_round=terminal_retrieval_spec.samples_per_round,
+            k_neighbors=terminal_retrieval_spec.k_neighbors,
+            model_name=terminal_retrieval_spec.model_name,
+            probability_floor=terminal_retrieval_spec.probability_floor,
+            prior_blend=terminal_retrieval_spec.prior_blend,
+            summary_feature_variant=terminal_retrieval_spec.summary_feature_variant,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     query_residual_birth_blend_spec = resolve_query_residual_birth_blend_model_spec(normalized)
     if query_residual_birth_blend_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -504,4 +528,5 @@ __all__ = [
     "supported_summary_roundlaw_model_names",
     "supported_summary_roundlaw_decoder_model_names",
     "supported_summary_bank_model_names",
+    "supported_terminal_retrieval_model_names",
 ]
