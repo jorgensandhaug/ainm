@@ -11,6 +11,7 @@ from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
+from astar.student.predictor.greybox_expansion_conditioned import GreyboxExpansionConditionedPredictor
 from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
 from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
 from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
@@ -314,6 +315,16 @@ def build_online_predictor(
     if normalized == "greybox_cellknn":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         predictor = GreyboxCellKnnPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized == "greybox_expansion_conditioned":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
         )
