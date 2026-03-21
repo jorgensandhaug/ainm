@@ -1253,3 +1253,41 @@ Framework should accept unique query-residual family variant names directly so b
 - Additional hard-probe runs launched with isolated roots:
   - `ffam_retrieval_v7` on `{3,6,7,8}`, `samples_per_round=2`
   - `ffam_retrieval_v8` on `{3,6,7,8}`, `samples_per_round=2`
+
+### 2026-03-21T13:45Z approx
+
+- Hard 4-round ffam screen finished for `v3..v8`.
+  - baseline reference:
+    - [`agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v14_exploration_r3_r3r6r7r8/result.json)
+    - mean score `63.9805`
+  - ffam results:
+    - [`v3`](/tmp/astar_ffam_v3_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v3_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `48.6524`
+      - mean weighted KL `0.292344`
+    - [`v4`](/tmp/astar_ffam_v4_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v4_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `41.8252`
+      - mean weighted KL `0.348838`
+    - [`v5`](/tmp/astar_ffam_v5_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v5_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `41.7670`
+      - mean weighted KL `0.363574`
+    - [`v6`](/tmp/astar_ffam_v6_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v6_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `39.9918`
+      - mean weighted KL `0.389446`
+    - [`v7`](/tmp/astar_ffam_v7_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v7_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `35.9863`
+      - mean weighted KL `0.509346`
+    - [`v8`](/tmp/astar_ffam_v8_s2_b/data/artifacts/benchmarks/agent7_probe4_ffam_retrieval_v8_exploration_r3_r3r6r7r8_s2_iso_b/result.json)
+      - mean score `36.3688`
+      - mean weighted KL `0.450111`
+- Interpretation:
+  - stronger transcript summaries alone did not rescue this line
+  - coefficient-target retrieval was worse than raw-regime retrieval
+  - global ridge posterior was worse than neighbor averaging
+  - therefore the bottleneck is not merely posterior smoothness
+  - current `HazardTeacher` decoder family itself is too weak for hard live rounds
+- Consequence:
+  - no ffam `v3..v8` candidate is promotable
+  - do not spend more compute on this decoder line without a stronger decoder or an ensemble/blend layer
+  - next rational branch is:
+    - stronger decoder integration
+    - likely reusing richer residual-decoder machinery with fifth-family posterior/manifold ideas rather than more pure-hazard-decoder tuning
