@@ -259,6 +259,7 @@ def build_online_predictor(
             summary_feature_variant=summary_rate_decoder_spec.summary_feature_variant,
             active_class_indices=summary_rate_decoder_spec.active_class_indices,
             active_delta_gate=summary_rate_decoder_spec.active_delta_gate,
+            design_variant=summary_rate_decoder_spec.design_variant,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

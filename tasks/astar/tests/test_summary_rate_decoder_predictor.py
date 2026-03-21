@@ -11,6 +11,7 @@ from astar.student.predictor.interactive import build_online_predictor
 from astar.student.predictor.summary_rate_decoder import (
     SummaryRateDecoderPredictor,
     _active_delta_gate_tensor,
+    _summary_rate_design_tensor,
 )
 from tests.conftest import ROUND_ID
 from tests.test_event_regime_posterior_audit import ROUND_ID_2, _duplicate_round_fixture
@@ -202,6 +203,39 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
     )
 
+    collapse_dyn_priorx_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_priorx_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01"
+    )
+
+    collapse_dyn_teachx_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_teachx_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01"
+    )
+
+    collapse_dyn_priorteachx_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_priorteachx_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01"
+    )
+
     collapse_dyn_collapsequad_adapter = build_online_predictor(
         "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_collapsequad_v01",
         paths=sample_paths,
@@ -263,6 +297,43 @@ def test_summary_rate_decoder_classwise_gate_tensor() -> None:
     assert np.allclose(classwise[:, :, 0], spatial_basis[:, :, 0])
     assert np.allclose(classwise[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 1])
     assert np.allclose(classwise[:, :, 2], spatial_basis[:, :, 0])
+
+
+def test_summary_rate_decoder_design_variant_adds_dynamic_logit_interactions() -> None:
+    spatial_basis = np.ones((2, 2, 3), dtype=np.float64)
+    prior_prediction = np.full((2, 2, 6), 1.0 / 6.0, dtype=np.float64)
+    teacher_prediction = np.full((2, 2, 6), 1.0 / 6.0, dtype=np.float64)
+    rate_vector = np.asarray([0.2, -0.1], dtype=np.float64)
+
+    base_names, base_tensor = _summary_rate_design_tensor(
+        spatial_basis,
+        prior_prediction,
+        rate_vector,
+        teacher_prediction=teacher_prediction,
+        design_variant="basic",
+        active_class_indices=(1, 2, 3),
+    )
+    prior_names, prior_tensor = _summary_rate_design_tensor(
+        spatial_basis,
+        prior_prediction,
+        rate_vector,
+        teacher_prediction=teacher_prediction,
+        design_variant="prior_dynx",
+        active_class_indices=(1, 2, 3),
+    )
+    combined_names, combined_tensor = _summary_rate_design_tensor(
+        spatial_basis,
+        prior_prediction,
+        rate_vector,
+        teacher_prediction=teacher_prediction,
+        design_variant="prior_teacher_dynx",
+        active_class_indices=(1, 2, 3),
+    )
+
+    assert prior_tensor.shape[-1] == base_tensor.shape[-1] + 3 * 2
+    assert combined_tensor.shape[-1] == base_tensor.shape[-1] + 2 * 3 * 2
+    assert any(name.startswith("prior_logit_settlement__x__regime_") for name in prior_names)
+    assert any(name.startswith("teacher_logit_port__x__regime_") for name in combined_names)
 
 
 def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
@@ -452,6 +523,48 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     assert (
         parsed_collapse_dyn_portmaritime.model
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01"
+    )
+
+    parsed_collapse_dyn_priorx = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_priorx.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01"
+    )
+
+    parsed_collapse_dyn_teachx = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_teachx.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01"
+    )
+
+    parsed_collapse_dyn_priorteachx = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_priorteachx.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01"
     )
 
     parsed_collapse_dyn_collapsequad = parser.parse_args(

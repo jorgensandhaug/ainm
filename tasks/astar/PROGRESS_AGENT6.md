@@ -3420,9 +3420,86 @@
   - the family still needs a richer decoder change than scalar hard/soft gates
   - best current family model remains:
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
-  - strongest next branch:
-    - class-specific decoder parameterization / interactions / penalties
-    - not more one-feature multiplicative gate variants
+- strongest next branch:
+  - class-specific decoder parameterization / interactions / penalties
+  - not more one-feature multiplicative gate variants
+
+## 2026-03-21 12:4x UTC - dyn interaction decoder branch
+
+- Re-read handoff sections:
+  - `14.2 Fast terminal decoder`
+  - `25.4 Search methods to include`
+  - `26.2 Two possible assembly targets`
+  - `Step 7` / `Step 8` roadmap
+- Machine-health check before new branch:
+  - load about `22.7 / 31.1 / 39.4`
+  - RAM about `2.0 TiB available`
+  - other agents still active, but headroom is now very large
+  - so I can afford 3 parallel family smokes without stressing the box
+- `br list` still unavailable:
+  - `/bin/bash: br: command not found`
+
+- New local diagnosis before coding:
+  - the remaining family miss is not mainly port geometry
+  - dev5 family-best `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01` class-mass error:
+    - round 6:
+      - settlement `-0.1016`
+      - ruin `-0.0173`
+      - empty `+0.0793`
+      - forest `+0.0304`
+      - port only `+0.0007`
+    - round 8:
+      - settlement `+0.0785`
+      - port `+0.0133`
+      - ruin `+0.0065`
+      - empty `-0.0822`
+  - read:
+    - settlement/ruin allocation is the real error surface
+    - port-only gates were addressing the wrong bottleneck
+
+- New hypothesis:
+  - the current dyn head already has separate output weights per class, but it still lacks the right class-conditioned interaction features
+  - specifically, decoder corrections are driven by:
+    - spatial basis
+    - prior logits
+    - teacher logits
+    - regime vector
+    - spatial × regime
+  - missing piece:
+    - dynamic prior/teacher logits × regime interactions
+  - this should let the small round latent modulate corrections differently depending on how much the base prior/teacher already thinks a cell is settlement/port/ruin-like
+  - that is a richer decoder-side change than scalar spatial gates and directly targets the observed settlement/ruin miss pattern
+
+- Code landed locally:
+  - `src/astar/student/predictor/summary_rate_decoder.py`
+    - new `_summary_rate_design_tensor(...)`
+    - new design variants:
+      - `basic`
+      - `prior_dynx`
+      - `teacher_dynx`
+      - `prior_teacher_dynx`
+  - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - new immutable models:
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01`
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01`
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01`
+  - `src/astar/student/predictor/interactive.py`
+    - plumbed `design_variant`
+  - `tests/test_summary_rate_decoder_predictor.py`
+    - added parser/build coverage for all 3 new models
+    - added unit test that the new design variants actually append dynamic-logit × regime features
+
+- Validation:
+  - `uv run pytest tests/test_summary_rate_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py -q`
+  - result:
+    - `18 passed in 44.77s`
+
+- Next immediate action:
+  - commit/push runnable branch
+  - launch 3 parallel current-smoke runs on:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorx_v01`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_teachx_v01`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_priorteachx_v01`
 
 ## 2026-03-21 12:4x UTC - collapse-class head expansion
 

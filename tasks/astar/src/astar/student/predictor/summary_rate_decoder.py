@@ -7,7 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import Field
 
-from astar.core.terrain import CLASS_COUNT
+from astar.core.terrain import CLASS_COUNT, CLASS_NAMES
 from astar.core.prediction import PredictionBundle
 from astar.core.score import entropy_map
 from astar.envs.types import build_round_context_from_detail
@@ -133,6 +133,73 @@ def _active_delta_gate_mask(
     raise ValueError(f"unsupported active delta gate: {gate_variant}")
 
 
+def _interaction_class_indices(active_class_indices: Sequence[int]) -> tuple[int, ...]:
+    dynamic_indices = tuple(class_index for class_index in active_class_indices if class_index in {1, 2, 3})
+    return dynamic_indices or (1, 2, 3)
+
+
+def _summary_rate_design_tensor(
+    spatial_basis: np.ndarray,
+    prior_prediction: np.ndarray,
+    rate_vector: np.ndarray,
+    *,
+    teacher_prediction: np.ndarray | None,
+    design_variant: str,
+    active_class_indices: Sequence[int],
+) -> tuple[list[str], np.ndarray]:
+    feature_names, design_tensor = _decoder_design_tensor(
+        spatial_basis,
+        prior_prediction,
+        rate_vector,
+        teacher_prediction=teacher_prediction,
+    )
+    if design_variant == "basic":
+        return feature_names, design_tensor
+
+    if design_variant not in {"prior_dynx", "teacher_dynx", "prior_teacher_dynx"}:
+        raise ValueError(f"unsupported summary rate decoder design variant: {design_variant}")
+
+    interaction_classes = _interaction_class_indices(active_class_indices)
+    rate_array = np.asarray(rate_vector, dtype=np.float64)
+    components = [design_tensor]
+    names = list(feature_names)
+
+    prior_logits = np.log(np.maximum(np.asarray(prior_prediction, dtype=np.float64), 1.0e-6))
+    if design_variant in {"prior_dynx", "prior_teacher_dynx"}:
+        prior_dynamic = np.asarray(prior_logits[:, :, list(interaction_classes)], dtype=np.float64)
+        prior_interactions = (
+            prior_dynamic[:, :, :, None] * rate_array[None, None, None, :]
+        ).reshape(spatial_basis.shape[0], spatial_basis.shape[1], -1)
+        components.append(prior_interactions)
+        names.extend(
+            [
+                f"prior_logit_{CLASS_NAMES[class_index]}__x__regime_{regime_index}"
+                for class_index in interaction_classes
+                for regime_index in range(rate_array.shape[0])
+            ],
+        )
+
+    if design_variant in {"teacher_dynx", "prior_teacher_dynx"}:
+        if teacher_prediction is None:
+            teacher_logits = np.zeros_like(prior_logits)
+        else:
+            teacher_logits = np.log(np.maximum(np.asarray(teacher_prediction, dtype=np.float64), 1.0e-6))
+        teacher_dynamic = np.asarray(teacher_logits[:, :, list(interaction_classes)], dtype=np.float64)
+        teacher_interactions = (
+            teacher_dynamic[:, :, :, None] * rate_array[None, None, None, :]
+        ).reshape(spatial_basis.shape[0], spatial_basis.shape[1], -1)
+        components.append(teacher_interactions)
+        names.extend(
+            [
+                f"teacher_logit_{CLASS_NAMES[class_index]}__x__regime_{regime_index}"
+                for class_index in interaction_classes
+                for regime_index in range(rate_array.shape[0])
+            ],
+        )
+
+    return names, np.concatenate(components, axis=-1)
+
+
 def _active_delta_gate_tensor(
     spatial_names: Sequence[str],
     spatial_basis: np.ndarray,
@@ -201,6 +268,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
     summary_feature_variant: str = "basic"
     active_class_indices: tuple[int, ...] = Field(default_factory=tuple)
     active_delta_gate: str = "none"
+    design_variant: str = "basic"
 
     @classmethod
     def fit_from_workspace(
@@ -223,6 +291,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         summary_feature_variant: str = "basic",
         active_class_indices: Sequence[int] | None = None,
         active_delta_gate: str = "none",
+        design_variant: str = "basic",
     ) -> SummaryRateDecoderPredictor:
         selected_round_ids = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected_round_ids) < 2:
@@ -232,6 +301,10 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             raise ValueError(f"active class index must be in [0, {CLASS_COUNT - 1}]")
         if active_delta_gate not in {"none", "buildable", "port_coast", "port_maritime", "classwise"}:
             raise ValueError(f"unsupported active delta gate: {active_delta_gate}")
+        if design_variant not in {"basic", "prior_dynx", "teacher_dynx", "prior_teacher_dynx"}:
+            raise ValueError(f"unsupported summary rate decoder design variant: {design_variant}")
+        if design_variant in {"teacher_dynx", "prior_teacher_dynx"} and not include_teacher_logits:
+            raise ValueError(f"design variant {design_variant} requires include_teacher_logits=True")
 
         target_frame = _target_frame(
             paths,
@@ -298,11 +371,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             rate_vector = target_by_round[round_id]
             for seed_index, analysis_record in sorted(analyses.items()):
                 spatial_names, spatial_basis = _spatial_basis(round_detail, features, seed_index)
-                feature_names, design_tensor = _decoder_design_tensor(
+                feature_names, design_tensor = _summary_rate_design_tensor(
                     spatial_basis,
                     prior_bundle.predictions_by_seed[seed_index],
                     rate_vector,
                     teacher_prediction=teacher_predictions.get(seed_index),
+                    design_variant=design_variant,
+                    active_class_indices=normalized_active_class_indices,
                 )
                 ground_truth = np.asarray(analysis_record.analysis.ground_truth, dtype=np.float64)
                 prior_logits = np.log(
@@ -397,6 +472,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             summary_feature_variant=summary_feature_variant,
             active_class_indices=normalized_active_class_indices,
             active_delta_gate=active_delta_gate,
+            design_variant=design_variant,
         )
 
     def infer_rate_vector(self, evidence: RoundEvidenceBundle | None) -> np.ndarray:
@@ -440,11 +516,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
             spatial_names, spatial_basis = _spatial_basis(round_detail, features, seed_index)
-            _, design_tensor = _decoder_design_tensor(
+            _, design_tensor = _summary_rate_design_tensor(
                 spatial_basis,
                 base_bundle.predictions_by_seed[seed_index],
                 rate_vector,
                 teacher_prediction=teacher_predictions.get(seed_index),
+                design_variant=self.design_variant,
+                active_class_indices=self.active_class_indices,
             )
             normalized_design = (design_tensor - self.feature_means[None, None, :]) / self.feature_scales[None, None, :]
             raw_delta_logits = self.decoder_intercept[None, None, :] + np.tensordot(
