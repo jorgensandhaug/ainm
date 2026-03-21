@@ -4,6 +4,176 @@
 
 Radically improve benchmark scores beyond the current best of 78.38 (GLMM latent z2 + exploration).
 
+---
+
+## DETAILED MODEL EXPLANATION: `smh_glmmlatent_z2_h0_covbase_calnone_v001`
+
+**Best score: 78.40 (8-round leave-one-round-out, exploration policy)**
+
+### What the model does at a high level
+
+This model predicts the probability distribution of terrain classes (empty, settlement, port, ruin, forest, mountain) for every cell on a 40×40 grid at year 50 of a stochastic Norse world simulator. It does this by:
+
+1. **Learning per-round transition dynamics** from historical replay data
+2. **Factoring cross-round variation** into a 2-dimensional latent manifold
+3. **Inferring the current round's position** in that manifold from 50 stochastic viewport queries
+4. **Rolling forward** the inferred transition model for 50 time steps to produce the final probability tensor
+
+### Part 1: Cell Transition Dataset (`cell_transition.py`)
+
+**Purpose**: Extract per-cell, per-timestep transition statistics from replay data.
+
+**Input**: For each historical round × seed × replay run:
+- Full map state at each year (year 0 through year 50)
+- Each cell's terrain class (collapsed from 8 internal codes to 6 prediction classes)
+
+**What it computes**: For each `(step, y, x, current_class)`:
+- Counts of how many times each `next_class` was observed across replay runs
+- Per-cell static geometry features (16 features, see below)
+
+**Why**: The cell transition counts are the raw training signal. Each cell at each timestep is a multinomial observation: "given current class C at position (y,x) with these features, the next class was distributed as [count_0, count_1, ..., count_5]".
+
+**Output**: Parquet files partitioned by round×seed, with columns for step, position, current class, next-class counts, and features.
+
+### Part 2: Static Geometry Features (`round_coefficients.py`)
+
+**16 features per cell**, computed once from the initial map:
+
+| Feature | What it measures | Why it matters |
+|---------|-----------------|----------------|
+| `buildable` | Can a settlement exist here? | Fundamental constraint |
+| `land` | Is this land (not ocean)? | Basic terrain type |
+| `coast` | Is this cell adjacent to ocean? | Ports can only appear on coasts |
+| `coast_distance` | Normalized distance to nearest coast | Port potential gradient |
+| `land_distance_to_settlement` | Normalized distance to nearest initial settlement | Expansion potential |
+| `sea_distance_to_port` | Normalized maritime distance to nearest port | Trade/maritime influence |
+| `forest_density` | Fraction of 3×3 neighborhood that is forest | Forest reclamation potential |
+| `mountain_density` | Fraction of 3×3 neighborhood that is mountain | Barrier effects |
+| `settlement_basin_gap` | Gap to second-nearest settlement Voronoi | Frontier location |
+| `frontier_score` | 1 - basin_gap | Higher = more contested |
+| `settlement_proximity` | 1 - land_distance | Higher = closer to settlement |
+| `coastal_exposure` | 1 - coast_distance | Higher = more coastal |
+| `maritime_access` | 1 - sea_distance | Higher = more maritime |
+| `initial_forest` | Binary: starts as forest? | Initial state |
+| `initial_mountain` | Binary: starts as mountain? | Permanent constraint |
+| `initial_ocean` | Binary: starts as ocean? | Permanent constraint |
+
+**Why these features**: They capture the spatial structure that determines WHERE settlements expand, ports develop, and ruins appear. The game mechanics are fundamentally spatial - a cell's fate depends heavily on its terrain and proximity to other features.
+
+### Part 3: Per-Round Softmax Regression (`_fit_softmax_branch`)
+
+**Purpose**: For each training round, fit a softmax regression that predicts cell transitions.
+
+**Model form**: For current class `c`, the probability of transitioning to class `j` is:
+
+```
+P(next=j | current=c, features x, step t) = softmax_j(θ_c · [1, x, time(t)])
+```
+
+Where:
+- `θ_c` is a weight matrix of shape `[feature_dim+1, 6]` (one per current class)
+- `x` is the 16-dim static feature vector for this cell
+- `time(t)` is a 3-dim time encoding: `[t/49, (t/49)², 1-t/49]`
+- The `+1` is for the intercept/bias term
+
+**Total parameters per round**: 6 classes × (16+3+1) features × 6 next-classes = **720 parameters**
+
+**Training**: Adam optimizer with ridge regularization (λ=0.001), 18 epochs, learning rate 0.1. Initialized from marginal class frequencies.
+
+**Why softmax regression**: It's the natural model for multinomial count data. It's fast, interpretable, and provides well-calibrated probabilities. More complex models (neural nets, gradient boosting) were considered but would overfit with the limited per-round data.
+
+**Why per-round**: Each round has different hidden behavioral parameters. A settlement has different expansion/collapse rates in different rounds. Fitting per-round captures this variation.
+
+### Part 4: Low-Rank Round Manifold (`_fit_low_rank_round_manifold`)
+
+**Purpose**: Factorize the per-round weight banks into a shared mean + 2-dimensional latent variation.
+
+**How it works**:
+1. Stack all N training rounds' weight banks into a matrix of shape `[N, 720]`
+2. Center by subtracting the mean weight bank
+3. Apply SVD to the centered matrix
+4. Keep the top 2 singular vectors as the "latent basis"
+5. Each training round gets a 2D latent coordinate `z_r`
+
+**Decomposition**: `weight_bank_r = mean_weight_bank + z_r · latent_basis`
+
+**Why latent_dim=2**:
+- With ~8 training rounds, the effective rank is at most 7
+- But higher latent dimensions overfit to the training rounds
+- z2 empirically outperforms z3, z4, z6 on held-out evaluation
+- z2 captures the dominant axis of round-to-round variation while remaining regularized
+
+**What the latent captures**: The 2D manifold represents the main axes along which round laws differ. Approximately: one axis captures "how active/expansive is settlement growth" and the other captures "how aggressive is conflict/collapse".
+
+### Part 5: Posterior Inference from Queries
+
+**Purpose**: Given 50 stochastic viewport observations of year-50 state, infer where the current round falls in the 2D latent space.
+
+**How it works**:
+1. For each training round's reconstructed weight bank, roll out the 50-step model on the TEST round's initial maps to get predicted year-50 tensors (candidate tensors)
+2. For each observation, compute the log-likelihood: `log P(observed_grid_patch | candidate_tensor_r)`
+3. Sum log-likelihoods across all observations to get posterior log-weights per training round
+4. Softmax to get posterior weights: `w_r = softmax(sum_obs log P(obs | tensor_r))`
+
+**Final prediction**:
+1. Compute posterior-weighted latent: `z* = Σ_r w_r · z_r`
+2. Reconstruct weight bank: `weight_bank* = mean + z* · basis`
+3. Roll out 50 steps to get final prediction tensor
+
+**Why this approach**: It's Bayesian model averaging in latent space. Each training round represents a "hypothesis" about the current round's dynamics. The observations provide evidence for/against each hypothesis. The posterior-weighted latent interpolates between training round dynamics.
+
+### Part 6: Probabilistic Rollout (`_rollout_seed_prediction`)
+
+**Purpose**: Given a weight bank, roll forward from the initial map state for 50 steps to predict the year-50 probability tensor.
+
+**How it works**:
+```
+probs_0 = one_hot(initial_grid_classes)  # deterministic start
+for step in 0..49:
+    next_probs = zeros
+    for each current_class c:
+        trans_probs = softmax(θ_c · [1, features, time(step)])  # shape (H, W, 6)
+        next_probs += probs[..., c:c+1] * trans_probs  # mix by current probability
+    probs = next_probs
+    apply_hard_constraints(probs)  # ocean stays ocean, mountains stay mountains
+return apply_floor(probs)  # minimum probability 1e-4 to avoid KL explosion
+```
+
+**Key insight**: This is a probabilistic propagation, not a simulation. At each step, the probability mass is split across possible transitions. After 50 steps, each cell has a smooth probability distribution over the 6 classes.
+
+**Why rollout instead of direct prediction**: The 50-step rollout respects the temporal dynamics. Early steps spread probability into nearby cells (expansion), later steps equilibrate. Direct prediction would need to learn these dynamics implicitly.
+
+### Part 7: Query Policy (`exploration_v2`)
+
+**Purpose**: Choose which 50 viewport windows to observe in the year-50 state.
+
+**How it works**: Selects viewports that cover the map efficiently with some emphasis on high-uncertainty regions.
+
+**Why exploration over coverage**: Coverage tiles the map uniformly. Exploration concentrates on regions where the model is uncertain. The difference is small (+0.56 points) because the posterior inference is robust to query placement.
+
+### Part 8: Probability Floor
+
+**Parameter**: `prediction_floor = 1e-4`
+
+**Why**: The scoring uses KL divergence. If the model assigns probability 0 to a class that has non-zero ground truth, KL goes to infinity. The floor prevents catastrophic scores.
+
+### Why This Architecture Wins
+
+1. **Semimechanistic**: The softmax regression respects the game's cell-transition structure
+2. **Low-rank regime**: 2D latent prevents overfitting to the ~8 training rounds
+3. **Bayesian posterior**: Observations update beliefs about the regime, not the model
+4. **Calibrated output**: The rollout produces well-calibrated probabilities
+5. **Fast**: Full evaluation takes ~30 seconds per round
+
+### Known Limitations
+
+1. **Linear transitions**: Cannot capture non-linear feature interactions (e.g., coast AND nearby settlement → port)
+2. **No neighborhood dynamics**: Each cell transitions independently; cannot model spatial contagion
+3. **Limited round diversity**: With ~8 rounds, the 2D manifold has very few anchor points
+4. **Worst-round failure**: Round 36e581f1 scores only 49 (vs 93 for best rounds) because its regime is far from all training rounds in the latent space
+
+---
+
 ## Current State
 
 - Branch: `agent2`
