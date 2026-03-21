@@ -170,6 +170,15 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Nynorsk prompt: "kostnadskonto" correctly mapped to 6300 via 1700 source
 - 3rd production confirmation of 6020→1029 needing 1029 creation
 
+### Run 7 (1700→6300 + 6020→1029 variant, Nynorsk prompt, 3 calls)
+- Task: March 2026, prepaid 12000 (1700→6300), depreciation 278500/4yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors, optimal for 6020→1029 variant
+- Only 1029 was missing; 1700, 5000, 2900, 6020, 6300 all existed
+- Depreciation: Math.round((278500/48)*100)/100 = 5802.08
+- Exact repeat of Run 6 parameters, 4th production confirmation of 6020→1029 variant
+- Confirms 3-call path is stable across 4 independent production runs (Runs 2, 5, 6, 7)
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -177,7 +186,7 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Comprehensive account survey: all prepaid source (1700, 1710, 1720, 1740), periodization targets (6300, 6390, 8150), depreciation expense (6000, 6010, 6020, 6030), and accum. dep. (1249, 1209) exist in sandbox
 - 1720→6300 mapping confirmed working in sandbox (voucher with 6 postings created successfully)
 - 1700→6300 mapping confirmed working: sandbox voucher with 6 postings (prepaid 12000, dep 5802.08, salary 45000) created successfully
-- Only 1029 confirmed missing in fresh production (Runs 2, 5, 6); only 1109 missing in sandbox
+- Only 1029 confirmed missing in fresh production (Runs 2, 5, 6, 7); only 1109 missing in sandbox
 - Depreciation contra mappings confirmed: 6020→1029, 6010→1249, 1710→6390 all work
 - "kostkonto"/"kostnadskonto" maps to 6390 (Annen kostnad lokaler) for 1710 source, 6300 (Leie lokale) for 1700 source
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target
