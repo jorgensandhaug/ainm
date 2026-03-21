@@ -3471,3 +3471,36 @@ Cross-agent intelligence was decisive here — the floor insight alone is worth 
 CatBoost is +0.49 better than LightGBM at ev1 (single observation).
 LightGBM is slightly better at ev15 (more complex data).
 Both are valid approaches depending on evidence quality.
+
+### LGB + CatBoost Geometric Mean Ensemble
+
+| Model | ev | Score |
+|-------|-----|-------|
+| **Ensemble LGB+CAT** | **1** | **82.65** |
+| CatBoost alone | 1 | 82.54 |
+| LightGBM alone | 1 | 82.05 |
+| **Ensemble LGB+CAT** | **15** | **86.74** |
+| LightGBM alone | 15 | 86.64 |
+| CatBoost alone | 15 | 86.32 |
+
+Geometric mean ensemble (in log-probability space) consistently improves
+over both individual models. +0.10 to +0.42 depending on configuration.
+
+## ALL-TIME BEST RESULTS
+
+| Rank | Model | ev | Score | KL |
+|------|-------|-----|-------|-----|
+| **1** | **Ensemble LGB+CAT GT-evidence** | **15** | **86.74** | ~0.049 |
+| 2 | LightGBM GT-evidence | 15 | 86.64 | 0.049 |
+| 3 | CatBoost GT-evidence | 15 | 86.32 | 0.051 |
+| 4 | CatBoost GT-evidence | 5 | 85.61 | 0.054 |
+| 5 | CatBoost GT-evidence | 3 | 84.57 | 0.058 |
+| 6 | Ensemble LGB+CAT GT-evidence | 1 | 82.65 | ~0.067 |
+| 7 | CatBoost GT-evidence | 1 | 82.54 | 0.067 |
+| 8 | LightGBM GT-evidence | 1 | 82.05 | 0.069 |
+
+For comparison:
+- Agent7 best (ffam_mode): 87.12
+- Agent3 best (CatBoost cellwise): 85.29
+- Agent1 best (hazard_posterior_v15): 83.79
+- query_residual_v11 champion: 79.39
