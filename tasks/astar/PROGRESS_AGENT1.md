@@ -309,6 +309,20 @@ Optimum at 50% DT weight with low floor. Low floor adds only +0.03 - our floor w
 Observation blending at temperature=20 adds +0.86 points on top of the ensemble!
 DT weight peaks at 50% (higher hurts the good rounds).
 
+### Temperature/Weight Fine-Tuning Sweep
+
+| Variant | DT % | Temp | Score | Worst |
+|---------|------|------|-------|-------|
+| **v002** | **50** | **20** | **81.73** | **59.85** |
+| v004 | 50 | 25 | 81.71 | 59.37 |
+| v006 | 45 | 20 | 81.70 | 59.36 |
+| v001 | 50 | 30 | 81.67 | 59.00 |
+| v003 | 50 | 15 | 81.65 | 60.46 |
+| v007 | 40 | 20 | 81.62 | 58.84 |
+| v005 | 50 | 10 | 81.17 | 61.20 |
+
+Model has plateaued at ~81.7. All configurations within ±0.6 of each other.
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
