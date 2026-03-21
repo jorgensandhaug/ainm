@@ -200,7 +200,8 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
             from astar.teacher.dynamics.hazard_teacher_v3 import HazardTeacherV3
             teacher = HazardTeacherV3(name=f"{model_name}__teacher_v3").fit(
                 episodes,
-                latent_rank=latent_rank,
+                mixture_count=latent_rank,
+                residual_rank=max(1, latent_rank - 1),
             )
         else:
             teacher = HazardTeacherV2(name=f"{model_name}__teacher").fit(
