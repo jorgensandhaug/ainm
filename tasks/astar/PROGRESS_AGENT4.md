@@ -489,3 +489,57 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
   - stronger historical validation (`episode_seed_count`, predictor reuse)
   - negative `samples_per_round=2` result
   - positive `exploration_v2` policy result on both 3-round multi-seed and full 8-round dev
+
+### 2026-03-21T02:00Z approx
+
+- Committed and pushed current champion state:
+  - commit `8349132`
+  - branch `agent4`
+  - remote `origin/agent4`
+- Repo status after push: clean
+- `br list` still blocked because `br` command is unavailable in this shell
+- Next remaining scientific question after promotion:
+  - does `exploration_v2` still win under **full 8-round multi-episode** validation, not just:
+    - 3-round multi-episode subset
+    - full 8-round single-seed dev
+- Next planned runs:
+  - full 8-round `coverage` with `episode_seed_count=2`
+  - full 8-round `exploration` with `episode_seed_count=2`
+  - use that result as strongest local selection signal currently available in this branch
+
+### 2026-03-21T02:30Z approx
+
+- Completed strongest current validation available in this branch:
+  - full 8-round historical online benchmark
+  - transcript seeds `0,1`
+  - predictor reused across episode seeds per held-out round
+- Full multi-episode coverage baseline:
+  - run: `dev_query_residual_online50_scopefix1_seed01`
+  - mean score `74.1150`
+  - mean weighted KL `0.103500`
+  - runtime `1565.1s`
+- Full multi-episode exploration benchmark:
+  - run: `dev_query_residual_exploration_scopefix1_seed01`
+  - mean score `74.5587`
+  - mean weighted KL `0.101003`
+  - runtime `1615.1s`
+- Manual paired comparison across `(round_id, seed_index, episode_seed)`:
+  - score delta `+0.4437`
+  - weighted KL delta `-0.002497`
+  - win rate `0.600`
+  - loss rate `0.400`
+  - round deltas:
+    - `c5cdf100-a876-4fb7-b5d8-757162c97989`: `+2.8897`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`: `+3.0826`
+    - `76909e29-f664-4b2f-b16b-61b7507277e9`: `+0.7464`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`: `+0.3402`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `+0.1911`
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`: `-0.1457`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `-1.6648`
+    - `36e581f1-73f8-453f-ab98-cbe3052b701b`: `-1.8900`
+- Updated conclusion:
+  - `query_residual + exploration_v2` remains champion not only on:
+    - 3-round multi-episode subset
+    - full 8-round single-seed dev
+  - but also on full 8-round multi-episode validation
+  - this is now the strongest local evidence in agent4 branch so far
