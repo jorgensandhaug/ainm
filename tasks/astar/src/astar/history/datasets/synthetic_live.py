@@ -13,7 +13,6 @@ from astar.envs.synthetic import SyntheticActiveOracle
 from astar.envs.historical import _cached_round_episode
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.episodes.build import build_round_episode
-from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
 from astar.history.summaries.round_coefficients import round_regime_summary_vector
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
@@ -90,13 +89,13 @@ def _target_info(
     paths: WorkspacePaths,
     round_id: str,
     seed_index: int,
-    episode: RoundLearningEpisode,
 ) -> tuple[str, Path]:
-    seed = episode.per_seed[seed_index]
-    if seed.ground_truth is not None:
-        return ("analysis_ground_truth", paths.analysis_tensor_path(round_id, seed_index))
-    if seed.replay_mean_terminal_probs is not None:
-        return ("replay_mean_terminal_probs", paths.replay_summary_path(round_id, seed_index))
+    analysis_path = paths.analysis_tensor_path(round_id, seed_index)
+    if analysis_path.exists():
+        return ("analysis_ground_truth", analysis_path)
+    replay_summary_path = paths.replay_summary_path(round_id, seed_index)
+    if replay_summary_path.exists():
+        return ("replay_mean_terminal_probs", replay_summary_path)
     msg = f"seed {seed_index} in round {round_id} has no terminal target"
     raise ValueError(msg)
 
@@ -143,10 +142,14 @@ def build_synthetic_live_dataset(
         round_episode = build_round_episode(paths, round_id)
         if round_episode.replay_run_count == 0:
             continue
-        materialize_round_episode(paths, round_id)
         planned_budget = _plan_budget(policy, round_id, oracle)
         resolved_budget = planned_budget if budget is None else budget
-        learning_episode = load_round_learning_episode(paths, round_id)
+        if any(
+            not paths.analysis_tensor_path(round_id, seed_index).exists()
+            and not paths.replay_summary_path(round_id, seed_index).exists()
+            for seed_index in range(round_episode.metadata.seeds_count)
+        ):
+            materialize_round_episode(paths, round_id)
 
         for sample_index in range(samples_per_round):
             episode_run = run_online_episode(
@@ -167,7 +170,6 @@ def build_synthetic_live_dataset(
                         paths,
                         round_id,
                         seed_index,
-                        learning_episode,
                     )
                 except ValueError:
                     continue
@@ -205,7 +207,7 @@ def build_synthetic_live_dataset(
         # Synthetic-live generation walks replay-backed rounds one at a time; dropping
         # the cached round episode here prevents all replay corpora from accumulating
         # in memory across the full dataset build.
-        del learning_episode, round_episode
+        del round_episode
         _cached_round_episode.cache_clear()
         gc.collect()
 

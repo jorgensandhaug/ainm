@@ -589,11 +589,25 @@
   - clear `_cached_round_episode` after each round
   - drop round-local episode objects
   - force `gc.collect()` after each round
+- Found and removed a second unnecessary synthetic-live load path:
+  - `build_synthetic_live_dataset` was loading full `RoundLearningEpisode` objects only to discover target file paths
+  - this is now replaced by direct path existence checks:
+    - analysis tensor path
+    - replay summary path
+  - synthetic-live now only calls `materialize_round_episode` if a required target artifact is actually missing
 - Post-fix read:
   - same `b20,s2` audit shape rerun with fresh names no longer exploded immediately
   - early RSS dropped to about `2.36 GB` instead of the prior runaway behavior
   - later RSS still climbed to about `9.35 GB`, so the leak is reduced but synthetic-live is still heavier than it should be
-  - no completed real-corpus posterior audit result yet; the current blocker is now clearly synthetic-live performance/memory, not missing audit logic
+  - after the second synthetic-live cut, a measured retry:
+    - command:
+      - `/usr/bin/time -v uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b20s2_audit_v03 --dataset-name f1_synthetic_live_coverage_b20_s2_v3 --policy coverage --samples-per-round 2 --budget 20 --k-neighbors 5`
+    - runtime before manual stop: `4:12.83`
+    - max RSS: `8406260` kB (`~8.41 GB`)
+  - read:
+    - synthetic-live posterior dev sweeps are still too heavy/slow
+    - but the path is now materially better than the pre-fix runaway attempts (`~18.3 GB`)
+    - no completed real-corpus posterior audit result yet; current blocker remains synthetic-live performance, not missing audit logic
 - Validation after posterior-audit + synthetic-live cache work:
   - `uv run pytest tests/test_history_datasets.py tests/test_event_regime_posterior_audit.py tests/test_teacher_student.py -q`
   - result: `8 passed`
