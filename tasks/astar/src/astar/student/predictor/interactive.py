@@ -87,6 +87,11 @@ from astar.student.predictor.mlp_decoder_specs import (
     resolve_mlp_decoder_model_spec,
     supported_mlp_decoder_model_names,
 )
+from astar.student.predictor.cell_type_transfer import CellTypeTransferPredictor
+from astar.student.predictor.cell_type_transfer_specs import (
+    resolve_cell_type_transfer_model_spec,
+    supported_cell_type_transfer_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -401,6 +406,25 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    cell_type_transfer_spec = resolve_cell_type_transfer_model_spec(normalized)
+    if cell_type_transfer_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = CellTypeTransferPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=cell_type_transfer_spec.budget,
+            samples_per_round=cell_type_transfer_spec.samples_per_round,
+            k_neighbors=cell_type_transfer_spec.k_neighbors,
+            model_name=cell_type_transfer_spec.model_name,
+            probability_floor=cell_type_transfer_spec.probability_floor,
+            prior_blend=cell_type_transfer_spec.prior_blend,
+            summary_feature_variant=cell_type_transfer_spec.summary_feature_variant,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     mlp_decoder_spec = resolve_mlp_decoder_model_spec(normalized)
     if mlp_decoder_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -557,4 +581,5 @@ __all__ = [
     "supported_summary_bank_model_names",
     "supported_terminal_retrieval_model_names",
     "supported_mlp_decoder_model_names",
+    "supported_cell_type_transfer_model_names",
 ]
