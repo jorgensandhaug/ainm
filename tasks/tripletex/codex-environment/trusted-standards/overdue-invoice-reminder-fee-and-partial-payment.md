@@ -46,6 +46,7 @@
   - one negative posting on account `3400`
   - `currency: { "id": 1 }`
   - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount
+  - explicit `row: 1` on the first posting and `row: 2` on the second posting; omitting `row` defaults to row 0 which is system-generated, causing `422 Posteringene på rad 0 (guiRow 0) er systemgenererte` — sandbox-verified as consistent, not account-specific
 - on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount
 - omit `vatType` on the order line; the API defaults to vatType id=0 ("Ingen avgiftsbehandling", 0%) which is correct for a no-VAT reminder fee and produces the correct invoice amount
 - do not use `/invoice/{id}/:createReminder` for this exact task shape:
@@ -147,3 +148,14 @@
   - payment type `36723119`
   - payment reduced outstanding to `11250`
 - the `6`-call path is now the default for this task shape; the previous `7`-call path included a now-unnecessary `GET /ledger/vatType` call
+- production proof on `2026-03-21` (`prod-2026-03-21-184424564Z-d022ee19`) hit the `row 0 systemgenererte` trap on voucher POST without explicit `row` values, requiring 7 calls (1 wasted 422):
+  - overdue invoice `#1` (`id=2147625691`), customer `108395937`, outstanding `19687.5`
+  - voucher POST without `row` failed `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; retry with `row: 1` and `row: 2` succeeded as voucher `#1` (`id=609094799`)
+  - fee invoice `#4` (`id=2147625942`, amount `70`)
+  - payment type `36850274`
+  - payment reduced outstanding to `14687.5`
+  - **fix**: always set explicit `row: 1` and `row: 2` on voucher postings to avoid the system-generated row 0 trap
+- persistent sandbox re-proof on `2026-03-21` confirmed the `row` requirement is consistent, not account-specific:
+  - `POST /ledger/voucher` without `row` failed `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`
+  - same payload with `row: 1` and `row: 2` succeeded as voucher `609095912`
+  - full 6-call end-to-end re-proof with `row` fix: fixture invoice `#318` (`id=2147626400`, outstanding `10000`), voucher `609096514`, fee invoice `#319` (`id=2147626402`, amount `70`), payment reduced outstanding to `5000`

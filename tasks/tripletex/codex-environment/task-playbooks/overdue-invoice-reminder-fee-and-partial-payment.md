@@ -163,6 +163,7 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
 - Do not omit the reminder fee's separate manual voucher just because the prompt also asks for a fee invoice
 - Do not try to infer the explicit prompt account from the account name; in sandbox the required account `3400` had an unrelated name and `isInactive=true`, yet still worked when referenced by id
 - Do not use `account.number` directly on voucher postings; the id-based path is the only one that works (number-based fails `422`)
+- Do not omit explicit `row` values on voucher postings; omitting `row` defaults to row 0 which is system-generated and always fails with `422 Posteringene på rad 0 (guiRow 0) er systemgenererte`; use `row: 1` on the first posting and `row: 2` on the second
 - Do not omit `customer` on the `1500` voucher posting
 - Do not add a `GET /ledger/vatType` call; omitting `vatType` on the fee invoice order line defaults to 0% and saves 1 API call
 - Do not overpay the overdue invoice; for this task shape the payment amount comes from the prompt (`5000`), not from the live outstanding balance
@@ -215,3 +216,9 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `36723119`
   - remaining outstanding `11250`
 - the `6`-call path is confirmed optimal across 3 production runs and multiple sandbox proofs; no lower-call path exists
+- production run `prod-2026-03-21-184424564Z-d022ee19` hit the `row 0 systemgenererte` trap on voucher POST without explicit `row`, wasting 1 call (7 total):
+  - overdue invoice `#1` (`id=2147625691`), customer `108395937`, outstanding `19687.5`
+  - voucher POST without `row` failed `422`; retry with `row: 1` and `row: 2` succeeded as voucher `#1` (`id=609094799`)
+  - fee invoice `#4` (`id=2147625942`, amount `70`), payment type `36850274`, outstanding reduced to `14687.5`
+  - sandbox re-proof confirmed `row` omission always fails — it is not account-specific
+  - **critical fix**: always include `row: 1` and `row: 2` on voucher postings
