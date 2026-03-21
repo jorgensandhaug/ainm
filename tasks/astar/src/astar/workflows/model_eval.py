@@ -25,6 +25,11 @@ from astar.student.predictor.query_residual import (
     load_or_fit_named_query_residual_predictor,
     resolve_query_residual_samples_per_round,
 )
+from astar.student.predictor.summary_bank import (
+    is_summary_bank_model_name,
+    load_or_fit_named_summary_bank_predictor,
+    resolve_summary_bank_variant_spec,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -238,6 +243,30 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if is_summary_bank_model_name(normalized):
+        predictor = load_or_fit_named_summary_bank_predictor(
+            paths,
+            model_name=normalized,
+            round_ids=list(training_round_ids),
+            policy_name="coverage",
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
+        spec = resolve_summary_bank_variant_spec(
+            normalized,
+            samples_per_round=samples_per_round,
+        )
+        return (
+            bundle,
+            {},
+            0,
+            spec.samples_per_round,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -373,7 +402,14 @@ def evaluate_model_on_round(
                 samples_per_round=samples_per_round,
             )
             if is_query_residual_model_name(model_name)
-            else None
+            else (
+                resolve_summary_bank_variant_spec(
+                    model_name,
+                    samples_per_round=samples_per_round,
+                ).samples_per_round
+                if is_summary_bank_model_name(model_name)
+                else None
+            )
         )
         resolved_budget = None
         resolved_episode_seed = None
@@ -404,7 +440,14 @@ def evaluate_model_on_round(
                 samples_per_round=samples_per_round,
             )
             if is_query_residual_model_name(model_name)
-            else None
+            else (
+                resolve_summary_bank_variant_spec(
+                    model_name,
+                    samples_per_round=samples_per_round,
+                ).samples_per_round
+                if is_summary_bank_model_name(model_name)
+                else None
+            )
         )
         resolved_budget = budget
         resolved_episode_seed = episode_seed

@@ -1258,6 +1258,309 @@
    - final artifact still absent:
      - `data/artifacts/benchmarks/agent3_dev_query_residual_v21_full_corrected/result.json`
    - rerunning the exact same command should resume from those cached folds rather than restart from zero
+143. New-turn preflight before resuming `query_residual_v21`:
+   - reread:
+     - `README.md`
+     - `docs/game_facts.md`
+     - `instructions/agent3/generic-iteration-protocol-agent3.md`
+     - `instructions/agent3/specific-handoff-information.md`
+   - result:
+     - protocol unchanged
+     - `specific-handoff-information.md` is empty
+   - environment checks:
+     - `br` unavailable in this env: `/bin/bash: br: command not found`
+     - no active `query_residual_v21` benchmark process
+     - final artifact still absent:
+       - `data/artifacts/benchmarks/agent3_dev_query_residual_v21_full_corrected/result.json`
+     - named-model wiring for `query_residual_v21` still present in:
+       - `src/astar/student/predictor/query_residual.py`
+       - `src/astar/cli.py`
+       - `tests/test_historical_benchmark.py`
+   - next action:
+     - rerun the exact cached full corrected LOO command for `query_residual_v21`
+144. Resumed `query_residual_v21` full corrected LOO:
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v21 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v21_full_corrected`
+   - resumed cleanly from prior cache state
+   - observed progress during this continuation:
+     - fold checkpoints advanced from `4/8` to `5/8`, then `6/8`, then `7/8`, then full completion
+145. Full corrected LOO result for `query_residual_v21`:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v21_full_corrected/result.json`
+   - result:
+     - mean score `76.6799`
+     - mean weighted KL `0.089491`
+     - official weighted mean score `76.4346`
+     - official weighted mean weighted-KL `0.090568`
+     - round mean score std `5.6012`
+     - round mean weighted-KL std `0.024961`
+     - worst round:
+       - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+       - score `67.0394`
+       - KL `0.133360`
+146. Interpretation of item 145:
+   - `query_residual_v21` improved the two hardest rounds enough to win the old representative 2-round gate, but it did not generalize to full LOO
+   - delta versus `query_residual_v19` full:
+     - mean score `-0.2135`
+     - mean weighted KL `+0.000793`
+     - official weighted mean score `-0.1881`
+     - official weighted mean weighted-KL `+0.000685`
+   - paired comparison artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v19__candidate=query_residual_v21.json`
+   - paired comparison result:
+     - win rate `0.425`
+     - loss rate `0.575`
+     - score-delta CI95 `[-0.4171, -0.0159]`
+   - round-level diagnosis:
+     - gains:
+       - `36e581...` `+0.4546`
+       - `f1dac9...` `+0.4110`
+       - `c5cdf1...` `+0.2850`
+       - `fd3c92...` `+0.0473`
+     - losses:
+       - `71451d...` `-0.4009`
+       - `76909e...` `-1.1698`
+       - `8e8399...` `-0.1341`
+       - `ae7800...` `-1.2006`
+   - conclusion:
+     - the `beta_min=4`, `beta_scale=12` shrinkage cut is too aggressive
+     - do not promote `query_residual_v21`
+     - keep `query_residual_v19` as best verified model
+147. Next post-`v21` hypothesis:
+   - exact-cell shrinkage is still promising because the hardest rounds improved, but the `v21` step overshot
+   - decisive next test:
+     - interpolate between `v19` and `v21` with a milder shrinkage reduction rather than switching families
+148. Implemented `query_residual_v22`:
+   - semantics:
+     - same architecture as `query_residual_v19`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.0`
+     - interpolated exact-cell shrinkage:
+       - `beta_min=6.0`
+       - `beta_scale=18.0`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+149. Validation after `query_residual_v22` wiring:
+   - minimal command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_query_residual_v22_online_historical_benchmark_defaults_to_samples_2 -q`
+   - result:
+     - `1 passed`
+   - full command:
+     - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result:
+     - `28 passed`
+150. Invalid quick probe discovered and rejected for `query_residual_v22`:
+   - I initially ran:
+     - `uv run astar run-historical-benchmark --model query_residual_v22 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_query_residual_v22_targeted_holdout_2rounds_7train --round-id 36e581... --round-id f1dac9...`
+   - result artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v22_targeted_holdout_2rounds_7train/result.json`
+   - why invalid:
+     - that CLI path trains only on the explicitly selected rounds minus the held-out round
+     - with two selected rounds, it is a 1-train protocol, not the intended “train on all other historical rounds” probe
+   - observed score was catastrophically low, but it is not comparable to prior targeted-holdout artifacts and must not be used for selection
+151. Validation-process correction:
+   - the longstanding artifact label `targeted_holdout_2rounds_7train` is internally inconsistent with the current round universe
+   - evidence:
+     - historical artifacts list only `8` total round ids
+     - holding out `2` of those implies `6` training rounds, not `7`
+     - the old artifacts also store `training_round_count=7`, so that metadata is inconsistent
+   - correction adopted going forward:
+     - use explicit held-out rounds plus “all other available replay-backed analyzed rounds” as training
+     - store corrected results under `*_targeted_holdout_2rounds_7train_corrected` for continuity, but interpret them as the corrected all-other-rounds gate
+152. Corrected targeted holdout controls rerun under the current repo state:
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - training set:
+     - all other currently discoverable replay-backed analyzed rounds
+   - artifacts:
+     - `data/artifacts/benchmarks/agent3_query_residual_v19_targeted_holdout_2rounds_7train_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_query_residual_v21_targeted_holdout_2rounds_7train_corrected/result.json`
+   - results:
+     - `query_residual_v19`: mean score `66.9258`, mean weighted KL `0.134304`
+     - `query_residual_v21`: mean score `67.4214`, mean weighted KL `0.131788`
+   - interpretation:
+     - ranking matches the earlier qualitative story (`v21 > v19`) even though absolute values differ from the older artifact
+153. Corrected targeted holdout result for `query_residual_v22`:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v22_targeted_holdout_2rounds_7train_corrected/result.json`
+   - result:
+     - mean score `67.1409`
+     - mean weighted KL `0.133213`
+   - per-round:
+     - `36e581...`: score `64.2118`, KL `0.147749`
+     - `f1dac9...`: score `70.0700`, KL `0.118677`
+   - comparison on corrected gate:
+     - versus `query_residual_v19`:
+       - score `+0.2150`
+       - KL `-0.001091`
+     - versus `query_residual_v21`:
+       - score `-0.2806`
+       - KL `+0.001425`
+154. Interpretation of item 153:
+   - the interpolated shrinkage step recovered part of the hard-round win without matching the overly aggressive `v21`
+   - because `v21` failed full LOO and `v22` is the milder interpolation that still beats `v19` on the corrected targeted gate, `v22` is promoted to full corrected LOO
+155. Strategy pivot after explicit user override:
+   - stop treating `query_residual` as the main research target
+   - new objective:
+     - develop genuinely new non-`query_residual` model families and explore them aggressively in parallel
+   - reason for the earlier focus:
+     - inherited handoff state and checkpoint momentum were entirely on the `query_residual` family
+   - that instruction is now superseded by the user
+156. New-family codebase scan result:
+   - strongest existing non-`query_residual` base is still `historical_bucket_prior`
+   - existing replay-backed teacher/student stack was present but not exposed in live/interactive benchmarking:
+     - `HazardTeacher`
+     - `SummaryBankStudent`
+   - shortest high-upside new family:
+     - blend replay-student teacher output with `historical_bucket_prior` rather than using raw teacher output alone
+157. Implemented new non-`query_residual` family:
+   - model names:
+     - `teacher_student_blend`
+     - `teacher_student_blend_v1`
+     - `teacher_student_blend_v2`
+   - architecture:
+     - base tensor:
+       - `HistoricalBucketPriorPredictor`
+     - online evidence posterior:
+       - `SummaryBankStudent`
+     - replay decoder:
+       - `HazardTeacher.posterior_predictive()`
+     - serving rule:
+       - query-count-weighted blend of teacher/student posterior tensor with the historical bucket prior
+   - current named variants:
+     - `teacher_student_blend_v1`
+       - `samples_per_round=4`
+       - `k_neighbors=7`
+       - `teacher_weight_max=0.4`
+       - `query_count_scale=20`
+     - `teacher_student_blend_v2`
+       - `samples_per_round=8`
+       - `k_neighbors=11`
+       - `teacher_weight_max=0.4`
+       - `query_count_scale=20`
+158. New-family implementation details:
+   - added checkpoint loading for replay teacher:
+     - `src/astar/teacher/dynamics/hazard_teacher.py`
+   - added checkpoint loading + remapped-path tolerance for saved summary-bank checkpoints:
+     - `src/astar/student/posterior/deepset_student.py`
+   - added scoped train/load/cache path for teacher-student blend predictors:
+     - `src/astar/student/predictor/summary_bank.py`
+   - wired new family into live/online predictor factory:
+     - `src/astar/student/predictor/interactive.py`
+   - wired new family into historical/prior benchmark resolution and sample-count reporting:
+     - `src/astar/workflows/model_eval.py`
+     - `src/astar/workflows/historical_benchmark.py`
+   - exposed new model names through CLI:
+     - `src/astar/cli.py`
+   - added online historical benchmark smoke coverage:
+     - `tests/test_historical_benchmark.py`
+159. Validation after new-family wiring:
+   - focused smoke:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v1_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `1 passed`
+   - broader:
+     - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+   - result:
+     - `24 passed`
+160. Infrastructure state relevant to the new parallel exploration phase:
+   - workspace now also has a concurrent improvement adding `--jobs` to `run-historical-benchmark`
+   - that makes full held-out evaluation of new families much cheaper on available hardware
+161. Immediate next action after item 160:
+   - launch full 8-round online-interactive historical benchmarks for:
+     - `teacher_student_blend_v1`
+     - `teacher_student_blend_v2`
+   - use `--jobs 8` with BLAS thread caps to exploit hardware without oversubscription
+162. Repo/protocol refresh at restart of the new-family push:
+   - re-read:
+     - `README.md`
+     - `docs/game_facts.md`
+     - `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - `instructions/agent3/specific-handoff-information.md` is empty
+   - `br list` is unavailable in this workspace (`br: command not found`), so experiment tracking remains in this file plus benchmark artifacts
+163. Sanity audit of the new `teacher_student_blend` family before large runs:
+   - current serving stack:
+     - base prior: `HistoricalBucketPriorPredictor`
+     - online posterior: `SummaryBankStudent`
+     - replay decoder: `HazardTeacher.posterior_predictive()`
+   - current student summary is intentionally simple:
+     - per-seed query count
+     - per-seed observed class frequencies
+     - mean settlement stats
+   - immediate concern:
+     - this summary discards viewport geometry / spatial coverage structure and is probably too lossy for strong round-regime retrieval
+164. Parallel-expansion plan from item 163:
+   - launch real full historical benchmarks for `teacher_student_blend_v1` and `teacher_student_blend_v2`
+   - while those run, inspect synthetic artifact + evidence schemas and upgrade the student representation toward spatially richer query summaries
+165. New hypothesis for the `teacher_student_blend` family:
+   - current failure mode is likely not “teacher/student concept is bad”
+   - likely issue:
+     - the student retrieval geometry is too weak
+   - evidence:
+     - current `SummaryBankStudent` uses raw Euclidean kNN over only:
+       - per-seed query count
+       - global observed class frequencies
+       - mean settlement stats
+     - it discards:
+       - spatial coverage layout
+       - repeated-window structure
+       - local class composition
+   - intervention:
+     - add versioned summary encoders
+     - add feature normalization
+     - add a spatial pooled evidence encoder for new named variants only
+166. Implemented richer summary-bank internals without mutating `teacher_student_blend_v1/v2`:
+   - `SummaryBankStudent` now supports:
+     - `summary_encoder`
+     - `normalize_summary`
+     - saved `feature_mean` / `feature_scale`
+   - added encoder variants:
+     - `summary_v1`
+     - `summary_spatial_v2`
+   - `summary_spatial_v2` adds:
+     - repeated-window features
+     - observed coverage fraction
+     - pooled coverage intensity map
+     - pooled observed-count map
+     - pooled local class-frequency maps for dynamic classes
+167. Added new named model variants built on item 166:
+   - `teacher_student_blend_v3`
+     - `samples_per_round=4`
+     - `k_neighbors=5`
+     - `teacher_weight_max=0.50`
+     - `query_count_scale=15`
+     - `summary_encoder=summary_spatial_v2`
+     - `normalize_summary=true`
+   - `teacher_student_blend_v4`
+     - `samples_per_round=8`
+     - `k_neighbors=7`
+     - `teacher_weight_max=0.55`
+     - `query_count_scale=15`
+     - `summary_encoder=summary_spatial_v2`
+     - `normalize_summary=true`
+168. Reproducibility / correctness fixes for the new family:
+   - summary-bank model checkpoints are now keyed by the actual replay-backed round scope even when `round_ids` was omitted
+   - cached synthetic datasets are now checked against the requested round-id set before reuse
+   - historical benchmark now raises a clear error if `teacher_student_blend*` is asked to do holdout eval with fewer than `2` replay-backed analyzed rounds
+169. Parallel benchmarking infrastructure fix discovered from the first `teacher_student_blend_v2` full run:
+   - failure mode:
+     - DuckDB catalog writer lock contention under `run-historical-benchmark --jobs 8` plus parallel top-level runs
+   - fix:
+     - serialize catalog writes with a filesystem lock in `src/astar/infra/catalog/db.py`
+     - also lengthened DuckDB connect retry schedule
+   - explicit smoke validation:
+     - `64` concurrent process writes into a scratch catalog completed successfully
+170. Validation after items 166-169:
+   - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+   - result:
+     - `26 passed`
+   - added coverage:
+     - `teacher_student_blend_v4` default-sample historical benchmark smoke
+     - spatial-encoder checkpoint roundtrip smoke
+
 
 ## Open Questions
 

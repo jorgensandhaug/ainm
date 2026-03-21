@@ -11,68 +11,167 @@ from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import load_synthetic_episode
+from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import read_round_record
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.evidence import RoundEvidenceBundle
+from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
 from astar.student.predictor.base import LiveInferenceContext
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
+
+SUMMARY_ENCODER_V1 = "summary_v1"
+SUMMARY_ENCODER_SPATIAL_V2 = "summary_spatial_v2"
+SUMMARY_ENCODERS = frozenset({SUMMARY_ENCODER_V1, SUMMARY_ENCODER_SPATIAL_V2})
 
 
 def _optional_float(value: float | None) -> float:
     return 0.0 if value is None else float(value)
 
 
-def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
+def _resolve_saved_path(path: str | Path) -> Path:
+    candidate = Path(path)
+    if candidate.exists():
+        return candidate
+    if not candidate.is_absolute():
+        cwd_relative = Path.cwd() / candidate
+        if cwd_relative.exists():
+            return cwd_relative.resolve()
+    parts = candidate.parts
+    if "data" in parts:
+        data_index = parts.index("data")
+        remapped = Path.cwd().joinpath(*parts[data_index:])
+        if remapped.exists():
+            return remapped.resolve()
+    msg = f"saved artifact path not found: {candidate}"
+    raise FileNotFoundError(msg)
+
+
+def _seed_summary_components(seed: object) -> list[float]:
+    components = [float(seed.query_count)]
+    components.extend(seed.observed_class_frequencies.astype(np.float64).tolist())
+    components.append(_optional_float(seed.mean_population))
+    components.append(_optional_float(seed.mean_food))
+    components.append(_optional_float(seed.mean_wealth))
+    components.append(_optional_float(seed.mean_defense))
+    return components
+
+
+def _pooled_bounds(length: int, pool_size: int) -> list[tuple[int, int]]:
+    bounds: list[tuple[int, int]] = []
+    for chunk in np.array_split(np.arange(length, dtype=np.int64), pool_size):
+        if chunk.size == 0:
+            bounds.append((0, 0))
+        else:
+            bounds.append((int(chunk[0]), int(chunk[-1]) + 1))
+    return bounds
+
+
+def _pooled_mean_features(values: np.ndarray, *, pool_size: int) -> list[float]:
+    y_bounds = _pooled_bounds(values.shape[0], pool_size)
+    x_bounds = _pooled_bounds(values.shape[1], pool_size)
+    features: list[float] = []
+    for y0, y1 in y_bounds:
+        for x0, x1 in x_bounds:
+            if y0 >= y1 or x0 >= x1:
+                features.append(0.0)
+                continue
+            features.append(float(np.mean(values[y0:y1, x0:x1], dtype=np.float64)))
+    return features
+
+
+def _pooled_class_frequency_features(
+    count_tensor: np.ndarray,
+    *,
+    class_id: int,
+    pool_size: int,
+) -> list[float]:
+    totals = np.sum(count_tensor, axis=-1, dtype=np.float64)
+    y_bounds = _pooled_bounds(count_tensor.shape[0], pool_size)
+    x_bounds = _pooled_bounds(count_tensor.shape[1], pool_size)
+    features: list[float] = []
+    for y0, y1 in y_bounds:
+        for x0, x1 in x_bounds:
+            if y0 >= y1 or x0 >= x1:
+                features.append(0.0)
+                continue
+            denominator = float(np.sum(totals[y0:y1, x0:x1], dtype=np.float64))
+            if denominator <= 0.0:
+                features.append(0.0)
+                continue
+            numerator = float(np.sum(count_tensor[y0:y1, x0:x1, class_id], dtype=np.float64))
+            features.append(numerator / denominator)
+    return features
+
+
+def _summary_vector_v1(evidence: RoundEvidenceBundle) -> np.ndarray:
     components: list[float] = []
     for seed_index in sorted(evidence.per_seed):
         seed = evidence.per_seed[seed_index]
-        components.append(float(seed.query_count))
-        components.extend(seed.observed_class_frequencies.astype(np.float64).tolist())
-        components.append(_optional_float(seed.mean_population))
-        components.append(_optional_float(seed.mean_food))
-        components.append(_optional_float(seed.mean_wealth))
-        components.append(_optional_float(seed.mean_defense))
+        components.extend(_seed_summary_components(seed))
     return np.asarray(components, dtype=np.float64)
 
 
-def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    artifact = load_synthetic_episode(path)
-    grouped: dict[int, list[LiveQueryObs]] = {}
-    for observation in artifact.observations:
-        grouped.setdefault(observation.seed_index, []).append(observation)
-
+def _summary_vector_spatial_v2(evidence: RoundEvidenceBundle) -> np.ndarray:
+    pooled_class_ids = (1, 2, 3, 4)
+    pool_size = 4
     components: list[float] = []
-    for seed_index in sorted(grouped):
-        observations = grouped[seed_index]
-        class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
-        populations: list[float] = []
-        foods: list[float] = []
-        wealths: list[float] = []
-        defenses: list[float] = []
-        for observation in observations:
-            collapsed = collapse_internal_grid(observation.grid)
-            bincount = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
-            class_counts += bincount
-            for settlement in observation.settlements:
-                if settlement.population is not None:
-                    populations.append(float(settlement.population))
-                if settlement.food is not None:
-                    foods.append(float(settlement.food))
-                if settlement.wealth is not None:
-                    wealths.append(float(settlement.wealth))
-                if settlement.defense is not None:
-                    defenses.append(float(settlement.defense))
-        total = float(np.sum(class_counts))
-        class_frequencies = (
-            class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
-        )
-        components.append(float(len(observations)))
-        components.extend(class_frequencies.tolist())
-        components.append(float(np.mean(populations)) if populations else 0.0)
-        components.append(float(np.mean(foods)) if foods else 0.0)
-        components.append(float(np.mean(wealths)) if wealths else 0.0)
-        components.append(float(np.mean(defenses)) if defenses else 0.0)
-    return np.asarray(components, dtype=np.float64), artifact.regime_vector
+    for seed_index in sorted(evidence.per_seed):
+        seed = evidence.per_seed[seed_index]
+        components.extend(_seed_summary_components(seed))
+        query_denom = max(float(seed.query_count), 1.0)
+        coverage = np.asarray(seed.coverage_counts, dtype=np.float64)
+        count_tensor = np.asarray(seed.observed_class_count_tensor, dtype=np.float64)
+        observed_total = np.sum(count_tensor, axis=-1, dtype=np.float64)
+        components.append(float(seed.repeated_window_groups))
+        components.append(float(seed.repeated_window_groups) / query_denom)
+        components.append(float(np.mean(coverage > 0.0)))
+        components.extend(_pooled_mean_features(coverage / query_denom, pool_size=pool_size))
+        components.extend(_pooled_mean_features(observed_total / query_denom, pool_size=pool_size))
+        for class_id in pooled_class_ids:
+            components.extend(
+                _pooled_class_frequency_features(
+                    count_tensor,
+                    class_id=class_id,
+                    pool_size=pool_size,
+                ),
+            )
+    return np.asarray(components, dtype=np.float64)
+
+
+def _summary_vector_from_evidence(
+    evidence: RoundEvidenceBundle,
+    *,
+    summary_encoder: str = SUMMARY_ENCODER_V1,
+) -> np.ndarray:
+    if summary_encoder == SUMMARY_ENCODER_V1:
+        return _summary_vector_v1(evidence)
+    if summary_encoder == SUMMARY_ENCODER_SPATIAL_V2:
+        return _summary_vector_spatial_v2(evidence)
+    msg = f"unsupported summary encoder: {summary_encoder}"
+    raise ValueError(msg)
+
+
+def _summary_vector_from_artifact(
+    path: Path,
+    *,
+    paths: WorkspacePaths | None = None,
+    summary_encoder: str = SUMMARY_ENCODER_V1,
+) -> tuple[np.ndarray, np.ndarray]:
+    artifact = load_synthetic_episode(path, paths=paths)
+    if paths is None:
+        raise ValueError("summary-bank artifact loading requires workspace paths")
+    round_detail = read_round_record(paths, artifact.round_id).round
+    evidence = build_round_evidence_from_observations(
+        round_detail,
+        artifact.observations,
+    )
+    return (
+        _summary_vector_from_evidence(
+            evidence,
+            summary_encoder=summary_encoder,
+        ),
+        artifact.regime_vector,
+    )
 
 
 class SummaryBankStudentCheckpoint(BaseModel):
@@ -86,6 +185,8 @@ class SummaryBankStudentCheckpoint(BaseModel):
     sample_count: int = Field(ge=0)
     summary_dim: int = Field(ge=1)
     regime_dim: int = Field(ge=1)
+    summary_encoder: str = SUMMARY_ENCODER_V1
+    normalize_summary: bool = False
 
 
 class SummaryBankStudent(BaseModel):
@@ -96,6 +197,10 @@ class SummaryBankStudent(BaseModel):
     summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     k_neighbors: int = Field(default=5, ge=1)
+    summary_encoder: str = SUMMARY_ENCODER_V1
+    normalize_summary: bool = False
+    feature_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    feature_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
     teacher: HazardTeacher
 
     @classmethod
@@ -105,23 +210,45 @@ class SummaryBankStudent(BaseModel):
         teacher: HazardTeacher,
         *,
         k_neighbors: int = 5,
+        summary_encoder: str = SUMMARY_ENCODER_V1,
+        normalize_summary: bool = False,
     ) -> SummaryBankStudent:
+        if summary_encoder not in SUMMARY_ENCODERS:
+            raise ValueError(f"unsupported summary encoder: {summary_encoder}")
         if dataset.index_path is None:
             raise ValueError("synthetic dataset requires an index path")
         index_table = pl.read_parquet(dataset.index_path)
+        workspace_paths = WorkspacePaths.from_root(dataset.dataset_dir.parents[3])
         summary_vectors: list[np.ndarray] = []
         regime_vectors: list[np.ndarray] = []
         for path_value in index_table["episode_path"].to_list():
-            summary_vector, regime_vector = _summary_vector_from_artifact(Path(str(path_value)))
+            summary_vector, regime_vector = _summary_vector_from_artifact(
+                Path(str(path_value)),
+                paths=workspace_paths,
+                summary_encoder=summary_encoder,
+            )
             summary_vectors.append(summary_vector)
             regime_vectors.append(regime_vector)
         if not summary_vectors:
             raise ValueError("synthetic dataset did not yield any summary vectors")
+        summary_stack = np.stack(summary_vectors, axis=0)
+        regime_stack = np.stack(regime_vectors, axis=0)
+        feature_mean = np.zeros(summary_stack.shape[1], dtype=np.float64)
+        feature_scale = np.ones(summary_stack.shape[1], dtype=np.float64)
+        if normalize_summary:
+            feature_mean = np.mean(summary_stack, axis=0, dtype=np.float64)
+            feature_scale = np.std(summary_stack, axis=0, dtype=np.float64)
+            feature_scale = np.where(feature_scale > 1e-6, feature_scale, 1.0)
+            summary_stack = (summary_stack - feature_mean[None, :]) / feature_scale[None, :]
         return cls(
             dataset_name=dataset.dataset_name,
-            summary_vectors=np.stack(summary_vectors, axis=0),
-            regime_vectors=np.stack(regime_vectors, axis=0),
+            summary_vectors=summary_stack,
+            regime_vectors=regime_stack,
             k_neighbors=k_neighbors,
+            summary_encoder=summary_encoder,
+            normalize_summary=normalize_summary,
+            feature_mean=feature_mean,
+            feature_scale=feature_scale,
             teacher=teacher,
         )
 
@@ -139,6 +266,8 @@ class SummaryBankStudent(BaseModel):
             sample_count=int(self.summary_vectors.shape[0]),
             summary_dim=int(self.summary_vectors.shape[1]),
             regime_dim=int(self.regime_vectors.shape[1]),
+            summary_encoder=self.summary_encoder,
+            normalize_summary=self.normalize_summary,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
@@ -149,6 +278,8 @@ class SummaryBankStudent(BaseModel):
             npz_path,
             summary_vectors=self.summary_vectors,
             regime_vectors=self.regime_vectors,
+            feature_mean=self.feature_mean,
+            feature_scale=self.feature_scale,
         )
         json_path.write_text(
             json.dumps(
@@ -159,8 +290,43 @@ class SummaryBankStudent(BaseModel):
         )
         return json_path
 
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> SummaryBankStudent:
+        checkpoint = SummaryBankStudentCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        npz_path = _resolve_saved_path(checkpoint.checkpoint_npz_path)
+        teacher_checkpoint_path = _resolve_saved_path(checkpoint.teacher_checkpoint_path)
+        arrays = np.load(npz_path)
+        summary_vectors = np.asarray(arrays["summary_vectors"], dtype=np.float64)
+        feature_mean = (
+            np.asarray(arrays["feature_mean"], dtype=np.float64)
+            if "feature_mean" in arrays.files
+            else np.zeros(summary_vectors.shape[1], dtype=np.float64)
+        )
+        feature_scale = (
+            np.asarray(arrays["feature_scale"], dtype=np.float64)
+            if "feature_scale" in arrays.files
+            else np.ones(summary_vectors.shape[1], dtype=np.float64)
+        )
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            summary_vectors=summary_vectors,
+            regime_vectors=np.asarray(arrays["regime_vectors"], dtype=np.float64),
+            k_neighbors=checkpoint.k_neighbors,
+            summary_encoder=checkpoint.summary_encoder,
+            normalize_summary=checkpoint.normalize_summary,
+            feature_mean=feature_mean,
+            feature_scale=feature_scale,
+            teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
+        )
+
     def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
-        query_vector = _summary_vector_from_evidence(context.evidence_bundle)
+        query_vector = _summary_vector_from_evidence(
+            context.evidence_bundle,
+            summary_encoder=self.summary_encoder,
+        )
+        if self.normalize_summary:
+            query_vector = (query_vector - self.feature_mean) / self.feature_scale
         distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
         nearest_distances = distances[order]

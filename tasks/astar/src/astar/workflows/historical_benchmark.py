@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 import csv
 import json
+from multiprocessing import get_context
 from pathlib import Path
 from time import perf_counter
 
@@ -18,6 +20,10 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.query_residual import (
     is_query_residual_model_name,
     resolve_query_residual_samples_per_round,
+)
+from astar.student.predictor.summary_bank import (
+    is_summary_bank_model_name,
+    resolve_summary_bank_variant_spec,
 )
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -109,6 +115,33 @@ def _effective_round_weight(
     return 1.0
 
 
+def _evaluate_round_worker(
+    *,
+    root: str,
+    round_id: str,
+    model_name: str,
+    training_round_ids: tuple[str, ...],
+    mode: str,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    budget: int,
+    episode_seed: int,
+) -> tuple[str, list[ModelSeedEvaluationContext], float]:
+    started_at = perf_counter()
+    contexts = evaluate_model_on_round(
+        WorkspacePaths.from_root(root),
+        round_id=round_id,
+        model_name=model_name,
+        training_round_ids=training_round_ids,
+        mode=mode,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+        budget=budget,
+        episode_seed=episode_seed,
+    )
+    return (round_id, contexts, perf_counter() - started_at)
+
+
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
@@ -121,8 +154,11 @@ def run_historical_benchmark(
     episode_seed: int = 0,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
+    jobs: int = 1,
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
+    if jobs < 1:
+        raise ValueError("historical benchmark jobs must be >= 1")
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
     if mode == "online_interactive":
         missing_replays = [
@@ -146,6 +182,10 @@ def run_historical_benchmark(
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
+    if mode == "online_interactive" and is_summary_bank_model_name(normalized_model_name) and len(selected_round_ids) < 2:
+        raise ValueError(
+            "teacher_student_blend requires at least two replay-backed analyzed rounds for holdout eval",
+        )
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
@@ -157,10 +197,20 @@ def run_historical_benchmark(
             samples_per_round=samples_per_round,
         )
         if is_query_residual_model_name(normalized_model_name)
-        else None
+        else (
+            resolve_summary_bank_variant_spec(
+                normalized_model_name,
+                samples_per_round=samples_per_round,
+            ).samples_per_round
+            if is_summary_bank_model_name(normalized_model_name)
+            else None
+        )
     )
     model_suffix = ""
-    if is_query_residual_model_name(normalized_model_name):
+    if (
+        is_query_residual_model_name(normalized_model_name)
+        or is_summary_bank_model_name(normalized_model_name)
+    ):
         model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
@@ -190,21 +240,57 @@ def run_historical_benchmark(
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    for held_out_round_id in selected_round_ids:
-        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-        evaluation_started_at = perf_counter()
-        contexts = evaluate_model_on_round(
-            paths,
-            round_id=held_out_round_id,
-            model_name=model_name,
-            training_round_ids=training_round_ids,
-            mode=mode,
-            policy_name=policy_name if mode == "online_interactive" else None,
-            samples_per_round=samples_per_round,
-            budget=budget,
-            episode_seed=episode_seed,
+    round_jobs = [
+        (
+            held_out_round_id,
+            tuple(item for item in selected_round_ids if item != held_out_round_id),
         )
-        round_evaluation_seconds[held_out_round_id] = perf_counter() - evaluation_started_at
+        for held_out_round_id in selected_round_ids
+    ]
+    evaluated_by_round: dict[str, list[ModelSeedEvaluationContext]] = {}
+    if jobs == 1 or len(round_jobs) <= 1:
+        for held_out_round_id, training_round_ids in round_jobs:
+            round_id, contexts, evaluation_seconds = _evaluate_round_worker(
+                root=str(paths.root),
+                round_id=held_out_round_id,
+                model_name=model_name,
+                training_round_ids=training_round_ids,
+                mode=mode,
+                policy_name=policy_name if mode == "online_interactive" else None,
+                samples_per_round=samples_per_round,
+                budget=budget,
+                episode_seed=episode_seed,
+            )
+            evaluated_by_round[round_id] = contexts
+            round_evaluation_seconds[round_id] = evaluation_seconds
+    else:
+        max_workers = min(jobs, len(round_jobs))
+        with ProcessPoolExecutor(
+            max_workers=max_workers,
+            mp_context=get_context("spawn"),
+        ) as executor:
+            futures = [
+                executor.submit(
+                    _evaluate_round_worker,
+                    root=str(paths.root),
+                    round_id=held_out_round_id,
+                    model_name=model_name,
+                    training_round_ids=training_round_ids,
+                    mode=mode,
+                    policy_name=policy_name if mode == "online_interactive" else None,
+                    samples_per_round=samples_per_round,
+                    budget=budget,
+                    episode_seed=episode_seed,
+                )
+                for held_out_round_id, training_round_ids in round_jobs
+            ]
+            for future in futures:
+                round_id, contexts, evaluation_seconds = future.result()
+                evaluated_by_round[round_id] = contexts
+                round_evaluation_seconds[round_id] = evaluation_seconds
+
+    for held_out_round_id in selected_round_ids:
+        contexts = evaluated_by_round.get(held_out_round_id, [])
         if not contexts:
             continue
         keys: list[tuple[str, int]] = []

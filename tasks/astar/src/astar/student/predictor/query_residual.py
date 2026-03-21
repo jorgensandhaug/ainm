@@ -52,6 +52,7 @@ QUERY_RESIDUAL_V18 = "query_residual_v18"
 QUERY_RESIDUAL_V19 = "query_residual_v19"
 QUERY_RESIDUAL_V20 = "query_residual_v20"
 QUERY_RESIDUAL_V21 = "query_residual_v21"
+QUERY_RESIDUAL_V22 = "query_residual_v22"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -70,6 +71,7 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V19,
         QUERY_RESIDUAL_V20,
         QUERY_RESIDUAL_V21,
+        QUERY_RESIDUAL_V22,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -125,6 +127,7 @@ def resolve_query_residual_variant_spec(
         QUERY_RESIDUAL_V19: 2,
         QUERY_RESIDUAL_V20: 2,
         QUERY_RESIDUAL_V21: 2,
+        QUERY_RESIDUAL_V22: 2,
     }.get(resolved_model_name, 1)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -151,6 +154,8 @@ def resolve_query_residual_variant_spec(
         raise ValueError("query_residual_v20 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V21 and effective_samples_per_round != 2:
         raise ValueError("query_residual_v21 fixes samples_per_round=2")
+    if resolved_model_name == QUERY_RESIDUAL_V22 and effective_samples_per_round != 2:
+        raise ValueError("query_residual_v22 fixes samples_per_round=2")
     if resolved_model_name == QUERY_RESIDUAL_V8:
         return QueryResidualNamedVariantSpec(
             model_name=resolved_model_name,
@@ -258,6 +263,16 @@ def resolve_query_residual_variant_spec(
             prior_blend=0.0,
             beta_min=4.0,
             beta_scale=12.0,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V22:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=2,
+            prior_blend=0.0,
+            beta_min=6.0,
+            beta_scale=18.0,
             cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
             include_exact_local_residual=True,
         )

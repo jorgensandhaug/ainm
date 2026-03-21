@@ -5,6 +5,7 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.student.posterior.deepset_student import SummaryBankStudent
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.workflows.results import TrainSummaryStudentResult
 from astar.workflows.train_teacher import train_hazard_teacher
 
@@ -17,20 +18,15 @@ def train_summary_bank_student(
     samples_per_round: int = 1,
     k_neighbors: int = 5,
     model_name: str = "summary_bank_student_v1",
+    teacher_model_name: str = "hazard_teacher_v1",
 ) -> TrainSummaryStudentResult:
-    teacher_result = train_hazard_teacher(paths)
-    from astar.history.episodes.build import build_round_episode
-    from astar.teacher.dynamics.hazard_teacher import HazardTeacher
-
-    replay_round_ids = sorted(
-        round_dir.name
-        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
-        if round_dir.is_dir()
-    )
-    replay_episodes = [build_round_episode(paths, round_id) for round_id in replay_round_ids]
-    teacher = HazardTeacher(name=teacher_result.model_name).fit(
-        [episode for episode in replay_episodes if episode.replay_run_count > 0],
-    )
+    teacher_checkpoint_path = paths.model_dir(teacher_model_name) / "checkpoint.json"
+    if teacher_checkpoint_path.exists():
+        teacher = HazardTeacher.load_checkpoint(teacher_checkpoint_path)
+    else:
+        teacher_result = train_hazard_teacher(paths, model_name=teacher_model_name)
+        teacher_checkpoint_path = teacher_result.checkpoint_path
+        teacher = HazardTeacher.load_checkpoint(teacher_checkpoint_path)
     dataset = build_synthetic_live_dataset(
         paths,
         policy_name=policy_name,
@@ -44,13 +40,13 @@ def train_summary_bank_student(
     )
     checkpoint_path = student.save_checkpoint(
         paths.model_dir(model_name),
-        teacher_result.checkpoint_path,
+        teacher_checkpoint_path,
     )
     result = TrainSummaryStudentResult(
         model_name=model_name,
         dataset=dataset,
         checkpoint_path=checkpoint_path,
-        teacher_checkpoint_path=teacher_result.checkpoint_path,
+        teacher_checkpoint_path=teacher_checkpoint_path,
         sample_count=int(student.summary_vectors.shape[0]),
         summary_dim=int(student.summary_vectors.shape[1]),
         regime_dim=int(student.regime_vectors.shape[1]),

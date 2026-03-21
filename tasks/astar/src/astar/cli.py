@@ -205,6 +205,11 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "teacher_student_blend",
+            "teacher_student_blend_v1",
+            "teacher_student_blend_v2",
+            "teacher_student_blend_v3",
+            "teacher_student_blend_v4",
             "query_residual",
             "query_residual_v7",
             "query_residual_v8",
@@ -221,6 +226,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v19",
             "query_residual_v20",
             "query_residual_v21",
+            "query_residual_v22",
         ],
         required=True,
     )
@@ -262,6 +268,11 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "teacher_student_blend",
+            "teacher_student_blend_v1",
+            "teacher_student_blend_v2",
+            "teacher_student_blend_v3",
+            "teacher_student_blend_v4",
             "query_residual",
             "query_residual_v7",
             "query_residual_v8",
@@ -278,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v19",
             "query_residual_v20",
             "query_residual_v21",
+            "query_residual_v22",
         ],
         default="latent_regime",
     )
@@ -295,6 +307,11 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "teacher_student_blend",
+            "teacher_student_blend_v1",
+            "teacher_student_blend_v2",
+            "teacher_student_blend_v3",
+            "teacher_student_blend_v4",
             "query_residual",
             "query_residual_v7",
             "query_residual_v8",
@@ -311,12 +328,14 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v19",
             "query_residual_v20",
             "query_residual_v21",
+            "query_residual_v22",
         ],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
     synthetic_benchmark_parser.add_argument("--samples-per-round", type=int, default=None)
     synthetic_benchmark_parser.add_argument("--budget", type=int, default=50)
+    synthetic_benchmark_parser.add_argument("--name", default=None)
     synthetic_benchmark_parser.add_argument(
         "--episode-seed",
         action="append",
@@ -332,6 +351,11 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "teacher_student_blend",
+            "teacher_student_blend_v1",
+            "teacher_student_blend_v2",
+            "teacher_student_blend_v3",
+            "teacher_student_blend_v4",
             "query_residual",
             "query_residual_v7",
             "query_residual_v8",
@@ -348,6 +372,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v19",
             "query_residual_v20",
             "query_residual_v21",
+            "query_residual_v22",
         ],
         required=True,
     )
@@ -367,6 +392,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="top",
     )
     historical_benchmark_parser.add_argument("--name", default=None)
+    historical_benchmark_parser.add_argument("--jobs", type=int, default=1)
 
     compare_historical_parser = subparsers.add_parser("compare-historical-benchmarks")
     compare_historical_parser.add_argument("--baseline", required=True)
@@ -381,6 +407,11 @@ def build_parser() -> argparse.ArgumentParser:
             "geometry_prior",
             "historical_bucket_prior",
             "latent_regime",
+            "teacher_student_blend",
+            "teacher_student_blend_v1",
+            "teacher_student_blend_v2",
+            "teacher_student_blend_v3",
+            "teacher_student_blend_v4",
             "query_residual",
             "query_residual_v7",
             "query_residual_v8",
@@ -397,6 +428,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v19",
             "query_residual_v20",
             "query_residual_v21",
+            "query_residual_v22",
         ],
         default="latent_regime",
     )
@@ -436,6 +468,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_student_parser.add_argument("--samples-per-round", type=int, default=1)
     train_student_parser.add_argument("--k-neighbors", type=int, default=5)
     train_student_parser.add_argument("--model-name", default="summary_bank_student_v1")
+    train_student_parser.add_argument("--teacher-model-name", default="hazard_teacher_v1")
 
     science_parser = subparsers.add_parser("evaluate-teacher-science")
     science_parser.add_argument("--eval-round-id", action="append", default=None)
@@ -645,6 +678,7 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             k_neighbors=args.k_neighbors,
             model_name=args.model_name,
+            teacher_model_name=args.teacher_model_name,
         )
         _emit(
             args.json,
@@ -699,6 +733,7 @@ def _main() -> int:
             round_ids=args.round_id,
             episode_seeds=args.episode_seed,
             budget=args.budget,
+            benchmark_name=args.name,
         )
         _emit(
             args.json,
@@ -719,6 +754,7 @@ def _main() -> int:
             episode_seed=args.episode_seed,
             visualization_policy=args.with_png,
             benchmark_name=args.name,
+            jobs=args.jobs,
         )
         _emit(
             args.json,

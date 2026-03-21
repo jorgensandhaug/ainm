@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -16,6 +17,12 @@ from astar.workflows.results import (
     SyntheticBenchmarkResult,
 )
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
+
+
+def _scope_token(values: list[str | int]) -> str:
+    normalized = [str(value) for value in values]
+    digest = hashlib.sha1(",".join(normalized).encode("utf-8")).hexdigest()[:10]
+    return f"n={len(normalized)}__sha1={digest}"
 
 
 def run_synthetic_benchmark(
@@ -74,7 +81,13 @@ def run_synthetic_benchmark(
     run_name = benchmark_name or (
         f"{manifest_name}__{policy.name}__{predictor.name}"
         if manifest_name is not None
-        else f"{policy.name}+{predictor.name}"
+        else (
+            f"synthetic__policy={policy.name}"
+            f"__predictor={predictor.name}"
+            f"__budget={budget}"
+            f"__rounds={_scope_token(selected_round_ids)}"
+            f"__episode_seeds={_scope_token(selected_episode_seeds)}"
+        )
     )
     artifact_path = paths.benchmark_result_path(run_name)
     report_path = artifact_path.with_suffix(".md")

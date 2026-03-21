@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import duckdb
@@ -28,10 +30,21 @@ class CatalogDB:
     def __init__(self, path: Path) -> None:
         self._path = path
 
+    @contextmanager
+    def _write_lock(self) -> object:
+        lock_path = self._path.with_suffix(f"{self._path.suffix}.lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with lock_path.open("a+b") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield handle
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
     def _connect(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         last_error: duckdb.IOException | None = None
-        for delay_seconds in (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6):
+        for delay_seconds in (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8):
             if delay_seconds > 0.0:
                 time.sleep(delay_seconds)
             try:
@@ -44,31 +57,33 @@ class CatalogDB:
         raise last_error
 
     def initialize(self) -> None:
-        with self._connect() as connection:
-            connection.execute(_SCHEMA_SQL)
+        with self._write_lock():
+            with self._connect() as connection:
+                connection.execute(_SCHEMA_SQL)
 
     def log_event(self, event: CatalogEvent) -> None:
-        self.initialize()
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO event_log (
-                    event_id, happened_at, event_kind, round_id, seed_index, spec_name,
-                    status, artifact_path, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                [
-                    event.event_id,
-                    event.happened_at,
-                    event.event_kind,
-                    event.round_id,
-                    event.seed_index,
-                    event.spec_name,
-                    event.status,
-                    None if event.artifact_path is None else str(event.artifact_path),
-                    json.dumps(to_jsonable(event.payload_json), sort_keys=True),
-                ],
-            )
+        with self._write_lock():
+            with self._connect() as connection:
+                connection.execute(_SCHEMA_SQL)
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO event_log (
+                        event_id, happened_at, event_kind, round_id, seed_index, spec_name,
+                        status, artifact_path, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        event.event_id,
+                        event.happened_at,
+                        event.event_kind,
+                        event.round_id,
+                        event.seed_index,
+                        event.spec_name,
+                        event.status,
+                        None if event.artifact_path is None else str(event.artifact_path),
+                        json.dumps(to_jsonable(event.payload_json), sort_keys=True),
+                    ],
+                )
 
     def summarize_dataset(self) -> CatalogDatasetSummary:
         if not self._path.exists():

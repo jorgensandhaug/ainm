@@ -46,6 +46,7 @@ def run_synthetic_tournament(
         / (
             "synthetic_tournament__"
             f"round_id={round_id}__policy={policy.name}__predictor={predictor.name}"
+            f"__budget={budget}"
             f"__episode_seed={episode_seed}.json"
         )
     )
