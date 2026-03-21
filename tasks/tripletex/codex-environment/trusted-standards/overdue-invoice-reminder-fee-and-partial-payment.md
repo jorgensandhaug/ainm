@@ -166,3 +166,10 @@
   - payment type `37216892`
   - payment reduced outstanding to `24375`
   - 5th production confirmation of the `6`-call path; now verified across `nb`, `es`, `pt`, `de`, and `fr` prompts
+- production proof on `2026-03-21` (`prod-2026-03-21-214826630Z-16c30378`) confirmed the `6`-call path for French prompt with fee `60`, 0 errors, 0 wasted calls:
+  - overdue invoice `#1` (`id=2147641528`), customer `108433770`, outstanding `23562.5`
+  - voucher `#1` (`id=609169374`)
+  - fee invoice `#4` (`id=2147641603`, amount `60`)
+  - payment type `37435187`
+  - payment reduced outstanding to `18562.5`
+  - 6th production confirmation of the `6`-call path; verified across `nb`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `50`, `60`, `70`
