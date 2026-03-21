@@ -25,7 +25,15 @@ SUMMARY_ENCODER_TEMPORAL_V4 = "summary_temporal_v4"
 SUMMARY_HEAD_KNN = "knn"
 SUMMARY_HEAD_RIDGE = "ridge"
 SUMMARY_HEAD_COEFFICIENT_RIDGE = "coefficient_ridge"
-SUMMARY_HEADS = frozenset({SUMMARY_HEAD_KNN, SUMMARY_HEAD_RIDGE, SUMMARY_HEAD_COEFFICIENT_RIDGE})
+SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN = "coefficient_residual_knn"
+SUMMARY_HEADS = frozenset(
+    {
+        SUMMARY_HEAD_KNN,
+        SUMMARY_HEAD_RIDGE,
+        SUMMARY_HEAD_COEFFICIENT_RIDGE,
+        SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+    },
+)
 SUMMARY_ENCODERS = frozenset(
     {
         SUMMARY_ENCODER_V1,
@@ -356,6 +364,7 @@ class SummaryBankStudent(BaseModel):
     regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     coefficient_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.float64))
     coefficient_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 0), dtype=np.float64))
+    coefficient_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
     teacher: HazardTeacher
 
     @classmethod
@@ -406,15 +415,19 @@ class SummaryBankStudent(BaseModel):
         )
         coefficient_intercept = np.zeros(0, dtype=np.float64)
         coefficient_weights = np.zeros((summary_stack.shape[1], 0), dtype=np.float64)
+        coefficient_vectors = np.zeros((0, 0), dtype=np.float64)
         if inference_head == SUMMARY_HEAD_RIDGE:
             regime_intercept, regime_weights = _fit_linear_map(
                 summary_stack,
                 regime_stack,
                 ridge_alpha=ridge_alpha,
             )
-        if inference_head == SUMMARY_HEAD_COEFFICIENT_RIDGE:
+        if inference_head in {
+            SUMMARY_HEAD_COEFFICIENT_RIDGE,
+            SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        }:
             if teacher.coefficient_bank.size == 0:
-                raise ValueError("coefficient_ridge requires a fitted teacher coefficient bank")
+                raise ValueError("coefficient heads require a fitted teacher coefficient bank")
             coefficient_by_round = {
                 round_id: np.asarray(teacher.coefficient_bank[index], dtype=np.float64)
                 for index, round_id in enumerate(teacher.round_ids)
@@ -426,6 +439,7 @@ class SummaryBankStudent(BaseModel):
                 ],
                 axis=0,
             )
+            coefficient_vectors = coefficient_targets
             coefficient_intercept, coefficient_weights = _fit_linear_map(
                 summary_stack,
                 coefficient_targets,
@@ -446,6 +460,7 @@ class SummaryBankStudent(BaseModel):
             regime_weights=regime_weights,
             coefficient_intercept=coefficient_intercept,
             coefficient_weights=coefficient_weights,
+            coefficient_vectors=coefficient_vectors,
             teacher=teacher,
         )
 
@@ -484,6 +499,7 @@ class SummaryBankStudent(BaseModel):
             regime_weights=self.regime_weights,
             coefficient_intercept=self.coefficient_intercept,
             coefficient_weights=self.coefficient_weights,
+            coefficient_vectors=self.coefficient_vectors,
         )
         json_path.write_text(
             json.dumps(
@@ -534,6 +550,11 @@ class SummaryBankStudent(BaseModel):
             if "coefficient_weights" in arrays.files
             else np.zeros((summary_vectors.shape[1], coefficient_dim), dtype=np.float64)
         )
+        coefficient_vectors = (
+            np.asarray(arrays["coefficient_vectors"], dtype=np.float64)
+            if "coefficient_vectors" in arrays.files
+            else np.zeros((0, coefficient_dim), dtype=np.float64)
+        )
         return cls(
             name=checkpoint.name,
             dataset_name=checkpoint.dataset_name,
@@ -550,10 +571,11 @@ class SummaryBankStudent(BaseModel):
             regime_weights=regime_weights,
             coefficient_intercept=coefficient_intercept,
             coefficient_weights=coefficient_weights,
+            coefficient_vectors=coefficient_vectors,
             teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
         )
 
-    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+    def _query_vector(self, context: LiveInferenceContext) -> np.ndarray:
         query_vector = _summary_vector_from_evidence(
             context.evidence_bundle,
             summary_encoder=self.summary_encoder,
@@ -563,11 +585,48 @@ class SummaryBankStudent(BaseModel):
         )
         if self.normalize_summary:
             query_vector = (query_vector - self.feature_mean) / self.feature_scale
+        return np.asarray(query_vector, dtype=np.float64)
+
+    def _predict_coefficient_vector(self, query_vector: np.ndarray) -> np.ndarray:
+        base = np.asarray(
+            self.coefficient_intercept + (query_vector @ self.coefficient_weights),
+            dtype=np.float64,
+        )
         if self.inference_head == SUMMARY_HEAD_COEFFICIENT_RIDGE:
-            coefficient_vector = np.asarray(
-                self.coefficient_intercept + (query_vector @ self.coefficient_weights),
-                dtype=np.float64,
+            return base
+        if self.inference_head != SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN:
+            raise ValueError(f"unsupported coefficient head: {self.inference_head}")
+        if self.summary_vectors.shape[0] == 0 or self.coefficient_vectors.shape[0] == 0:
+            return base
+        distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
+        nearest_distances = distances[order]
+        weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
+        weights = weights / np.sum(weights)
+        fitted_neighbor_coefficients = np.asarray(
+            self.coefficient_intercept[None, :]
+            + (self.summary_vectors[order] @ self.coefficient_weights),
+            dtype=np.float64,
+        )
+        residual = np.tensordot(
+            weights,
+            self.coefficient_vectors[order] - fitted_neighbor_coefficients,
+            axes=(0, 0),
+        )
+        return np.asarray(base + residual, dtype=np.float64)
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        query_vector = self._query_vector(context)
+        if self.inference_head == SUMMARY_HEAD_COEFFICIENT_RIDGE:
+            coefficient_vector = self._predict_coefficient_vector(query_vector)
+            mean = np.zeros_like(self.regime_intercept, dtype=np.float64)
+            return RegimePosteriorState(
+                mean=mean,
+                particles=(coefficient_vector,),
+                weights=np.asarray([1.0], dtype=np.float64),
             )
+        if self.inference_head == SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN:
+            coefficient_vector = self._predict_coefficient_vector(query_vector)
             mean = np.zeros_like(self.regime_intercept, dtype=np.float64)
             return RegimePosteriorState(
                 mean=mean,
@@ -598,20 +657,12 @@ class SummaryBankStudent(BaseModel):
         )
 
     def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
-        if self.inference_head == SUMMARY_HEAD_COEFFICIENT_RIDGE:
-            query_vector = _summary_vector_from_evidence(
-                context.evidence_bundle,
-                summary_encoder=self.summary_encoder,
-                geometry_bundle=context.geometry_bundle,
-                observations=context.observations,
-                round_detail=context.round_context.to_round_detail(),
-            )
-            if self.normalize_summary:
-                query_vector = (query_vector - self.feature_mean) / self.feature_scale
-            coefficient_vector = np.asarray(
-                self.coefficient_intercept + (query_vector @ self.coefficient_weights),
-                dtype=np.float64,
-            )
+        if self.inference_head in {
+            SUMMARY_HEAD_COEFFICIENT_RIDGE,
+            SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+        }:
+            query_vector = self._query_vector(context)
+            coefficient_vector = self._predict_coefficient_vector(query_vector)
             return self.teacher.terminal_tensor_from_coefficients(
                 context.round_context.seeds[seed_index],
                 coefficient_vector,

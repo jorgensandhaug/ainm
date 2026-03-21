@@ -23,6 +23,7 @@ from astar.student.posterior.deepset_student import (
     SUMMARY_ENCODER_SPATIAL_V2,
     SUMMARY_ENCODER_TEMPORAL_V4,
     SUMMARY_ENCODER_V1,
+    SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
     SUMMARY_HEAD_COEFFICIENT_RIDGE,
     SUMMARY_HEAD_KNN,
     SUMMARY_HEAD_RIDGE,
@@ -46,6 +47,12 @@ SUMMARY_BANK_STUDENT_V9 = "teacher_student_blend_v9"
 SUMMARY_BANK_STUDENT_V10 = "teacher_student_blend_v10"
 SUMMARY_BANK_STUDENT_V11 = "teacher_student_blend_v11"
 SUMMARY_BANK_STUDENT_V12 = "teacher_student_blend_v12"
+SUMMARY_BANK_STUDENT_V13 = "teacher_student_blend_v13"
+SUMMARY_BANK_STUDENT_V14 = "teacher_student_blend_v14"
+SUMMARY_BANK_STUDENT_V15 = "teacher_student_blend_v15"
+SUMMARY_BANK_STUDENT_V16 = "teacher_student_blend_v16"
+BLEND_MODE_GLOBAL = "global"
+BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
     {
         SUMMARY_BANK_STUDENT_ALIAS,
@@ -61,6 +68,10 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V10,
         SUMMARY_BANK_STUDENT_V11,
         SUMMARY_BANK_STUDENT_V12,
+        SUMMARY_BANK_STUDENT_V13,
+        SUMMARY_BANK_STUDENT_V14,
+        SUMMARY_BANK_STUDENT_V15,
+        SUMMARY_BANK_STUDENT_V16,
     },
 )
 
@@ -77,6 +88,7 @@ class SummaryBankVariantSpec(BaseModel):
     normalize_summary: bool = False
     inference_head: str = SUMMARY_HEAD_KNN
     ridge_alpha: float = Field(default=1.0, gt=0.0)
+    blend_mode: str = BLEND_MODE_GLOBAL
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -112,6 +124,10 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V10: 8,
         SUMMARY_BANK_STUDENT_V11: 4,
         SUMMARY_BANK_STUDENT_V12: 8,
+        SUMMARY_BANK_STUDENT_V13: 4,
+        SUMMARY_BANK_STUDENT_V14: 8,
+        SUMMARY_BANK_STUDENT_V15: 4,
+        SUMMARY_BANK_STUDENT_V16: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -140,6 +156,66 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v11 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V12 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v12 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V13 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v13 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V14 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v14 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V15 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v15 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V16 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v16 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V16:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.82,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V15:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V14:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.78,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V13:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V12:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -374,6 +450,7 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     student: SummaryBankStudent
     teacher_weight_max: float = Field(default=0.4, ge=0.0, le=1.0)
     query_count_scale: float = Field(default=20.0, gt=0.0)
+    blend_mode: str = BLEND_MODE_GLOBAL
 
     def _teacher_weight(self, evidence: RoundEvidenceBundle) -> float:
         if evidence.total_queries <= 0:
@@ -382,6 +459,38 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
             np.clip(evidence.total_queries / self.query_count_scale, 0.0, 1.0)
             * self.teacher_weight_max,
         )
+
+    def _teacher_blend_map(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+        teacher_weight: float,
+    ) -> float | np.ndarray:
+        if self.blend_mode == BLEND_MODE_GLOBAL:
+            return teacher_weight
+        if self.blend_mode != BLEND_MODE_SPATIAL_DYNAMIC:
+            raise ValueError(f"unsupported summary-bank blend mode: {self.blend_mode}")
+        seed_features = context.geometry_bundle.per_seed[seed_index]
+        seed_evidence = context.evidence_bundle.per_seed[seed_index]
+        buildable = (seed_features.feature("buildable") > 0.5).astype(np.float64)
+        frontier = (seed_features.feature("frontier_score") >= 0.5).astype(np.float64)
+        coast = (seed_features.feature("coast") > 0.5).astype(np.float64)
+        maritime = (seed_features.feature("maritime_access") >= 0.5).astype(np.float64)
+        observed = (
+            np.asarray(seed_evidence.coverage_counts, dtype=np.float64) > 0.0
+        ).astype(np.float64)
+        dynamic_emphasis = np.clip(
+            0.05
+            + (0.50 * buildable)
+            + (0.20 * frontier)
+            + (0.15 * coast)
+            + (0.10 * maritime)
+            + (0.20 * observed),
+            0.0,
+            1.0,
+        )
+        return np.asarray(teacher_weight * dynamic_emphasis[:, :, None], dtype=np.float64)
 
     def build_prediction_bundle_from_context(
         self,
@@ -400,14 +509,19 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
                 model_name=self.name,
                 predictions_by_seed=base_bundle.predictions_by_seed,
             )
-        predictions_by_seed = {
-            seed.seed_index: np.asarray(
-                ((1.0 - teacher_weight) * base_bundle.predictions_by_seed[seed.seed_index])
-                + (teacher_weight * self.student.predict_seed(context, seed.seed_index)),
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed in context.round_context.seeds:
+            teacher_prediction = self.student.predict_seed(context, seed.seed_index)
+            blend_map = self._teacher_blend_map(
+                context,
+                seed_index=seed.seed_index,
+                teacher_weight=teacher_weight,
+            )
+            predictions_by_seed[seed.seed_index] = np.asarray(
+                ((1.0 - blend_map) * base_bundle.predictions_by_seed[seed.seed_index])
+                + (blend_map * teacher_prediction),
                 dtype=np.float64,
             )
-            for seed in context.round_context.seeds
-        }
         return PredictionBundle(
             round_id=context.round_context.round_id,
             model_name=self.name,
@@ -459,6 +573,7 @@ def load_or_fit_named_summary_bank_predictor(
             student=SummaryBankStudent.load_checkpoint(checkpoint_path),
             teacher_weight_max=spec.teacher_weight_max,
             query_count_scale=spec.query_count_scale,
+            blend_mode=spec.blend_mode,
         )
 
     base_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
@@ -502,6 +617,7 @@ def load_or_fit_named_summary_bank_predictor(
         student=student,
         teacher_weight_max=spec.teacher_weight_max,
         query_count_scale=spec.query_count_scale,
+        blend_mode=spec.blend_mode,
     )
 
 
@@ -519,6 +635,10 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V10",
     "SUMMARY_BANK_STUDENT_V11",
     "SUMMARY_BANK_STUDENT_V12",
+    "SUMMARY_BANK_STUDENT_V13",
+    "SUMMARY_BANK_STUDENT_V14",
+    "SUMMARY_BANK_STUDENT_V15",
+    "SUMMARY_BANK_STUDENT_V16",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",

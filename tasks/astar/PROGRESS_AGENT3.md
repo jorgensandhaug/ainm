@@ -1737,6 +1737,90 @@
    - added coverage:
      - temporal coefficient-head checkpoint roundtrip smoke
      - `teacher_student_blend_v12` default-sample historical benchmark smoke
+187. Additional benchmark expansion after item 186:
+   - corrected 2-round explicit holdout gates launched for:
+     - `teacher_student_blend_v11`
+     - `teacher_student_blend_v12`
+   - full corrected LOO launched for:
+     - `teacher_student_blend_v11`
+     - `teacher_student_blend_v12`
+188. Current active new-family benchmark sweep now covers:
+   - full corrected LOO:
+     - `teacher_student_blend_v1`
+     - `teacher_student_blend_v3`
+     - `teacher_student_blend_v4`
+     - `teacher_student_blend_v5`
+     - `teacher_student_blend_v6`
+     - `teacher_student_blend_v7`
+     - `teacher_student_blend_v8`
+     - `teacher_student_blend_v9`
+     - `teacher_student_blend_v10`
+     - `teacher_student_blend_v11`
+     - `teacher_student_blend_v12`
+   - corrected 2-round holdout:
+     - `teacher_student_blend_v4`
+     - `teacher_student_blend_v5`
+     - `teacher_student_blend_v6`
+     - `teacher_student_blend_v7`
+     - `teacher_student_blend_v8`
+     - `teacher_student_blend_v9`
+     - `teacher_student_blend_v10`
+     - `teacher_student_blend_v11`
+     - `teacher_student_blend_v12`
+189. Status at end of this iteration burst:
+   - no new-family benchmark artifact has finished yet under the enlarged sweep
+   - latest pushed source commit after the coefficient-head branch:
+     - `814b63e`
+   - latest pushed ledger-only checkpoint after recording the sweep:
+     - pending immediate push from current worktree
+190. Re-read required docs before continuing:
+   - `README.md`
+   - `docs/game_facts.md`
+   - `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - `instructions/agent3/specific-handoff-information.md`
+   - result:
+     - specific handoff file is still empty
+     - generic protocol still implies continuing the assigned new-family search, not returning to `query_residual`
+191. Current next-hypothesis batch before more edits:
+   - current summary-bank family is still too shallow:
+     - hand-built summary vector
+     - global linear or local `kNN` head
+     - one scalar round-level teacher/base blend weight
+   - next two tests to implement:
+     - hybrid local+global student head:
+       - linear coefficient prediction plus nearest-neighbor residual correction
+     - spatially gated blend:
+       - concentrate teacher blend weight on buildable / frontier / observed cells instead of one uniform scalar
+192. Implemented hybrid coefficient-residual student head:
+   - added new summary-bank inference head:
+     - `coefficient_residual_knn`
+   - fit path:
+     - global ridge prediction of teacher coefficient vector
+     - nearest-neighbor residual correction in coefficient space
+   - checkpoint path now persists coefficient target bank so the residual head is reproducible from model name alone
+193. Implemented spatial dynamic blend mode in `SummaryBankRoundPredictor`:
+   - kept old `global` scalar blend as baseline path
+   - new `spatial_dynamic` path scales teacher weight per cell using:
+     - buildable mask
+     - frontier score
+     - coast flag
+     - maritime access
+     - whether the cell has been directly observed by queries
+   - hypothesis:
+     - teacher mass should concentrate on dynamic / high-entropy land instead of being diluted uniformly over the whole map
+194. Added new named variants for the new branch:
+   - global blend + coefficient residual:
+     - `teacher_student_blend_v13`
+     - `teacher_student_blend_v14`
+   - spatial dynamic blend + coefficient residual:
+     - `teacher_student_blend_v15`
+     - `teacher_student_blend_v16`
+   - all four are reproducible by model name alone and wired into CLI choices / benchmark resolution
+195. Validation expansion for the new branch:
+   - added temporal coefficient-residual checkpoint roundtrip coverage
+   - added historical benchmark smoke for `teacher_student_blend_v16`
+   - focused validation command launched:
+     - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
 
 
 ## Open Questions
