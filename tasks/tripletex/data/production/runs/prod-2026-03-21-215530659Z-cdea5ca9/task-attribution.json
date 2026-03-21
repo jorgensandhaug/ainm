@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-215530659Z-cdea5ca9",
+  "request_id": "e2cf3ac1",
+  "prompt_raw": "Create an invoice for the customer Ridgepoint Ltd (org no. 970844708) with three product lines: Software License (3957) at 3650 NOK with 25% VAT, Maintenance (8149) at 11000 NOK with 15% VAT (food), and Web Design (8092) at 17700 NOK with 0% VAT (exempt).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:56:52Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:55:32.175Z",
+  "after_captured_at": "2026-03-21T21:57:23.610Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T21:57:23.611Z"
+}

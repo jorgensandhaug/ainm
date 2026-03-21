@@ -1,0 +1,7 @@
+{
+  "captured_at": "2026-03-21T21:14:03.667Z",
+  "run_id": "prod-2026-03-21-211402061Z-a81782be",
+  "source": "before",
+  "url": "https://api.ainm.no/tripletex/my/submissions",
+  "error": "submissions fetch failed with 429 Too Many Requests"
+}

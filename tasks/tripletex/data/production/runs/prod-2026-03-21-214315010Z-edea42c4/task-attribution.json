@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-214315010Z-edea42c4",
+  "request_id": "c2972161",
+  "prompt_raw": "Fixez un prix forfaitaire de 326550 NOK sur le projet \"Projet d'automatisation\" pour Cascade SARL (nº org. 813648164). Le chef de projet est Hugo Bernard (hugo.bernard@example.org). Facturez au client 75 % du prix fixe comme paiement d'étape.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:45:41Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:43:15.420Z",
+  "after_captured_at": "2026-03-21T21:46:15.337Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:46:15.341Z"
+}

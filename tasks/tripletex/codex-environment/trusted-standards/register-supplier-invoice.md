@@ -145,7 +145,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `cbc:InvoiceTypeCode = 380`
   - `cbc:DocumentCurrencyCode = NOK`
   - `cac:AccountingSupplierParty` with endpoint id, legal entity, tax scheme, and postal address
-  - `cac:AccountingCustomerParty` with a buyer block that MUST include `cac:PostalAddress` (EHF BR-10 rule); do not omit it just because the supplier is the scored entity
+  - `cac:AccountingCustomerParty` with a buyer block that MUST include `cac:PostalAddress` (EHF BR-10 rule) and a valid mod11 `EndpointID` — use `123456785` as the hardcoded buyer EndpointID constant; do NOT use `000000000`
   - `cac:TaxTotal`
   - `cac:LegalMonetaryTotal`
   - one `cac:InvoiceLine` with item name, classified tax category, line extension amount, and price
@@ -180,7 +180,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - do NOT access the importDocument response as `response.value`; it is `response.values[0]` — this mistake alone cost 4 extra calls in the 2026-03-21 production run
 - do NOT omit `row` values on PUT postings; without explicit `row: 1` and `row: 2`, Tripletex defaults to row 0 which conflicts with the system-generated VAT row and returns `422`
 - if you must search for the voucher after a lost import response, `GET /ledger/voucher` requires both `dateFrom` and `dateTo`, and `dateTo` is exclusive (same date for both returns `422`); use `dateTo` = invoice date + 1 day
-- the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
+- ALL org numbers in the XML must pass PEPPOL mod11 validation — this includes BOTH the supplier `EndpointID`/`CompanyID` AND the buyer `EndpointID`; do NOT use `000000000` as the buyer EndpointID — it fails PEPPOL-COMMON-R041 even though it technically passes mod11 arithmetic; use `123456785` as the hardcoded buyer EndpointID constant (sandbox-proven valid mod11); the 2026-03-21 production run for `Forêt SARL` / `823356366` wasted 1 API call (422) because buyer EndpointID was `000000000`
 - do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
 - do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
 - do NOT rely on `importDocument` auto-creating the supplier to skip `POST /supplier` — while import does auto-create a supplier from XML org number data, the auto-created supplier has empty address fields and no bank account, so scored fields from the PDF are lost; explicit `POST /supplier` first remains required for PDF tasks
@@ -189,6 +189,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails because Tripletex clears postings before applying new ones
 - preserve the prompt description's exact casing — if the prompt says "kontortjenester" (lowercase), do NOT capitalize it to "Kontortjenester"; the description is stored exactly as sent and the scorer may do case-sensitive matching
 - do NOT omit `cac:PostalAddress` from the `AccountingCustomerParty` buyer block in the XML — EHF BR-10 validation requires it; the 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` wasted 1 API call (422) because the buyer block lacked PostalAddress; sandbox re-proof confirmed: without buyer PostalAddress → 422, with → 201
+- when using `FormData` for `importDocument`, do NOT manually set the `Content-Type` header — let `fetch` set it automatically with the multipart boundary; manually setting `Content-Type: application/json` or any other value on a FormData body causes `400 HTTP 415 Unsupported Media Type`; the 2026-03-21 production run for `Forêt SARL` wasted 1 API call (400) from this exact mistake
 
 ## VAT Rounding
 - Tripletex computes debit `amount` from `amountGross / (1 + vatPercent/100)` regardless of the `amount` value sent
@@ -433,3 +434,19 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - voucher `609170496`, supplier `108434304`
 - this breaks the 8-run optimal streak due to the BR-10 XML validation error; the fix is to always include buyer PostalAddress in the XML template
 - sandbox re-proof confirmed: buyer block without PostalAddress → 422 (BR-10); with PostalAddress → 201; PartyTaxScheme is optional
+
+2026-03-21 production run for `Forêt SARL` / `823356366` / `INV-2026-6107` / `80437` / `6340` / `25%`:
+- used 7 calls, 2 errors — suboptimal due to two bugs: (1) FormData Content-Type set manually → 400, (2) buyer EndpointID `000000000` failed PEPPOL mod11 → 422
+- French-language prompt with PDF attachment, description "Programvarelisens"
+- PDF data fully extracted: address `Solveien 51, 9008 Tromsø`, bank account `68474635604`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- first importDocument attempt failed with `400 HTTP 415 Unsupported Media Type` because the api function set Content-Type header on FormData body
+- second importDocument attempt failed with `422 PEPPOL-COMMON-R041` because buyer EndpointID was `000000000` (fails mod11 validation)
+- third importDocument attempt with buyer EndpointID `123456785` succeeded → 201
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=64350, gross=80437 (64350×1.25=80437.5) → Tripletex stored net=64349.6, VAT=16087.4
+- voucher `609178672`, supplier `108438104`
+- both bugs now documented in Known Pitfalls: use `123456785` as buyer EndpointID, do not set Content-Type on FormData
+- sandbox re-proof confirmed: `000000000` → 422 (PEPPOL-COMMON-R041); `123456785` → 201; `979442459` → 201

@@ -1,0 +1,8 @@
+{
+  "prompt": "Create the product \"Web Design\" with product number 3766. The price is 23950 NOK excluding VAT, using the standard 25% VAT rate.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "9SlCC0t4ftzdHhXzfgobWSep-8BspEwTR08S54bpoz8"
+  }
+}

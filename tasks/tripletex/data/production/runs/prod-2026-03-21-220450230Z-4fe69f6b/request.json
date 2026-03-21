@@ -1,0 +1,8 @@
+{
+  "prompt": "Sett fastpris 363850 kr på prosjektet \"Nettbutikk-utvikling\" for Havbris AS (org.nr 876325497). Prosjektleder er Ingrid Moe (ingrid.moe@example.org). Fakturer kunden for 75 % av fastprisen som en delbetaling.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "dHI7C_RiU6SQmu5CU1rFHrsCswOHeB4P8ioMcgYgTA0"
+  }
+}

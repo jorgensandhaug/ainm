@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-221043427Z-90fe23ff",
+  "request_id": "a2dc7215",
+  "prompt_raw": "Du har mottatt et tilbudsbrev (se vedlagt PDF) for en ny ansatt. Utfor komplett onboarding: opprett den ansatte, tilknytt riktig avdeling, sett opp ansettelsesforhold med stillingsprosent og arslonn, og konfigurer standard arbeidstid.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:11:34Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:10:46.440Z",
+  "after_captured_at": "2026-03-21T22:12:06.627Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:12:06.628Z"
+}

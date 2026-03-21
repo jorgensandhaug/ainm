@@ -1,0 +1,12 @@
+[
+  {
+    "tx_task_id": "28",
+    "attempt_delta": 1,
+    "best_score_before": 6,
+    "best_score_after": 6,
+    "last_attempt_before": "2026-03-21T20:07:47.462386+00:00",
+    "last_attempt_after": "2026-03-21T21:54:09.910046+00:00",
+    "total_attempts_before": 7,
+    "total_attempts_after": 8
+  }
+]

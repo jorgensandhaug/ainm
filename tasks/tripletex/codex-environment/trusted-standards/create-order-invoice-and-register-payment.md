@@ -101,6 +101,15 @@
   - the fix: payment type objects have no `isIncoming` field — just use `pts[0]` (the first available payment type)
   - sandbox re-verified on 2026-03-21 that both "Kontant" and "Betalt til bank" work as `paymentTypeId` for the combined invoice-and-payment write
   - confirms the canonical 5-call path would have succeeded if the agent had not filtered by a nonexistent field
+- production confirmation on 2026-03-21 for Portuguese prompt `Cascata Lda` / `927161524` / `Consultoria de dados (8400)` + `Design web (2535)` / prices `5700` + `3850`:
+  - used comma-separated `number=8400,2535` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
+  - 5 calls, 0 errors, outstanding=0 — 4th confirmation of the canonical 5-call path on this task shape
+  - 3rd consecutive clean comma-separated product lookup confirmation
+- sandbox investigation on 2026-03-21 disproved three call-reduction hypotheses:
+  - `POST /order` with `product: { number: "..." }` instead of `product: { id }`: accepted (201) but creates orphaned order lines — product fields are null in readback, no linkage to existing product
+  - `POST /order` with `customer: { organizationNumber: "..." }` instead of `customer: { id }`: rejected (422, "customer.name: Kan ikke være null") — API treats it as creating a new customer
+  - hardcoded `paymentTypeId=1`: rejected (422, "Ugyldig verdi") — paymentTypeId is account-specific, must be resolved via GET /invoice/paymentType
+  - conclusion: 5 calls is the proven floor for this task shape on a fresh run
 
 ## Product Lookup Strategy
 - **primary**: `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated `number` values use OR semantics and return all matching products in one call

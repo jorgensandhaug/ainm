@@ -313,3 +313,9 @@ Standard worktime (per-employee):
   - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=4930, nameNO=SALGSSJEF, code=1233105, percentageOfFullTimeEquivalent=100, annualSalary=800000, employmentForm=PERMANENT, hoursPerDay=7.5
   - 2nd production confirmation of the optimal 4-call path for hardcoded-occupation-code + standard-worktime shape; first Salgssjef run (11/14 score) used wrong standard-time endpoint and missed occupation code — both issues now fixed in the standard
   - 12 total onboard-employee production runs; 9 of the last 10 runs used 3-5 calls with 0 errors, confirming the standard is stable
+- production run on 2026-03-21 (thirteenth run, Salgssjef offer letter, Norwegian prompt, Olav Ødegård / 2000-03-18 / dept Økonomi / start 2026-07-24 / 80% / 550000 / 6.0h) used 4 calls: GET /division, POST /department, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - used hardcoded Salgssjef → id 4930 mapping, no occupation-code lookup needed
+  - first production run with non-7.5 hoursPerDay value (6.0) and 80% employment combined with standard worktime
+  - sandbox re-verification on 2026-03-21: hoursPerDay=6 persists correctly, percentageOfFullTimeEquivalent=80, annualSalary=550000, occupationCode.id=4930 (SALGSSJEF) — all fields match
+  - 3rd Salgssjef production confirmation; confirms the 4-call path is stable for any hoursPerDay value, not just 7.5
+  - 13 total onboard-employee production runs; 11 of the last 12 used 3-5 calls with 0 errors

@@ -1,0 +1,8 @@
+{
+  "prompt": "Kunden Nordhav AS (org.nr 841333608) har en utestående faktura på 14200 kr eksklusiv MVA for \"Skylagring\". Registrer full betaling på denne fakturaen.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "TReAIWdbJFAiRGdawExZJsrGYaRqaqyRgNJrqzXJFF0"
+  }
+}

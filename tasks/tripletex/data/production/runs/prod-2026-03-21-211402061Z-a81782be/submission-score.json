@@ -1,0 +1,8 @@
+{
+  "run_id": "prod-2026-03-21-211402061Z-a81782be",
+  "request_id": "f45f587b",
+  "status": "skipped",
+  "reason": "missing_submissions_before_snapshot",
+  "submissions_url": "https://api.ainm.no/tripletex/my/submissions",
+  "generated_at": "2026-03-21T21:15:29.161Z"
+}

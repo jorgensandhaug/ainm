@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-215430300Z-63a6a603",
+  "request_id": "e6efbe11",
+  "prompt_raw": "Me har ein ny tilsett som heiter Geir Neset, fødd 24. June 1997. Opprett vedkomande som tilsett med e-post geir.neset@example.org og startdato 15. October 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:55:53Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:54:31.302Z",
+  "after_captured_at": "2026-03-21T21:56:26.068Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T21:56:26.071Z"
+}

@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-03-21T21:08:09.927Z",
+  "request_id": "0a7554b7",
+  "run_id": "prod-2026-03-21-210809925Z-2f10e207",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-210809925Z-2f10e207",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-21-210809925Z-2f10e207",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-210809925Z-2f10e207/scripts",
+  "runner_provider": "claude",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "agent_run_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-210809925Z-2f10e207/agent-run.status.json",
+  "attachments": [
+    {
+      "filename": "files/bankutskrift_nn_07.csv",
+      "mime_type": "text/csv",
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-210809925Z-2f10e207/attachments/01-bankutskrift_nn_07.csv"
+    }
+  ]
+}

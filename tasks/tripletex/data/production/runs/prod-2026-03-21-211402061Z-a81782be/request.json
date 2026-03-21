@@ -1,0 +1,8 @@
+{
+  "prompt": "Gjennomfør heile prosjektsyklusen for 'Dataplattform Elvdal' (Elvdal AS, org.nr 894208848): 1) Prosjektet har budsjett 331100 kr. 2) Registrer timar: Knut Brekke (prosjektleiar, knut.brekke@example.org) 43 timar og Svein Aasen (konsulent, svein.aasen@example.org) 100 timar. 3) Registrer leverandørkostnad 61650 kr frå Fossekraft AS (org.nr 979871783). 4) Opprett kundefaktura for prosjektet.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "A6Awp_AdMLqcNn6fOjS_KkaFZFeFm1X4YWDjmn6YgJI"
+  }
+}

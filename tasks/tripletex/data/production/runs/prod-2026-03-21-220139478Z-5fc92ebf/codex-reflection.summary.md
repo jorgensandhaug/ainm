@@ -1,0 +1,1 @@
+Score reflection written. Task 23 scored 0.6/6 — Check 1 failed due to missing bank reconciliation (Step 6). The trusted standard has since been updated with this step. Next run should score significantly higher with the added `POST /bank/reconciliation` call.

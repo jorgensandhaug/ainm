@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-215943108Z-92322c6b",
+  "request_id": "1aa5994d",
+  "prompt_raw": "Crie o cliente Porto Alegre Lda com número de organização 834147254. O endereço é Storgata 65, 4611 Kristiansand. E-mail: post@porto.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:00:15Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:59:43.160Z",
+  "after_captured_at": "2026-03-21T22:00:49.816Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:00:49.817Z"
+}

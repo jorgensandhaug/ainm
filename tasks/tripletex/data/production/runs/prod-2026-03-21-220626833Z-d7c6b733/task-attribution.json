@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-220626833Z-d7c6b733",
+  "request_id": "8eecfbfb",
+  "prompt_raw": "Create the product \"Training Session\" with product number 7908. The price is 26250 NOK excluding VAT, using the standard 25% VAT rate.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:06:54Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:06:28.601Z",
+  "after_captured_at": "2026-03-21T22:07:26.348Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:07:26.350Z"
+}

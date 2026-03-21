@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-220024970Z-1584ffb0",
+  "request_id": "15bbb3c6",
+  "prompt_raw": "Opprett produktet \"Eplejuice\" med produktnummer 9026. Prisen er 49700 kr eksklusiv MVA, og MVA-sats for næringsmidler på 15 % skal brukes.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:01:10Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:00:25.444Z",
+  "after_captured_at": "2026-03-21T22:01:42.597Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:01:42.599Z"
+}

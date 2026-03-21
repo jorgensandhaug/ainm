@@ -1,0 +1,17 @@
+{
+  "run_id": "prod-2026-03-21-205937817Z-bc688ea1",
+  "request_id": "e854a442",
+  "prompt_raw": "Concilia el extracto bancario (CSV adjunto) con las facturas abiertas en Tripletex. Relaciona los pagos entrantes con las facturas de clientes y los pagos salientes con las facturas de proveedores. Maneja los pagos parciales correctamente.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:59:37.869Z",
+  "after_captured_at": "2026-03-21T21:05:25.556Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "23",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:05:25.559Z"
+}

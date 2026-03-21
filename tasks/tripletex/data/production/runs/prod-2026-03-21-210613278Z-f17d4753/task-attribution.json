@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-210613278Z-f17d4753",
+  "request_id": "8c1f3d3b",
+  "prompt_raw": "Execute o ciclo de vida completo do projeto 'Migração Cloud Horizonte' (Horizonte Lda, org. nº 857400526): 1) O projeto tem um orçamento de 229500 NOK. 2) Registe horas: Catarina Martins (gestor de projeto, catarina.martins@example.org) 37 horas e João Martins (consultor, joao.martins@example.org) 62 horas. 3) Registe custo de fornecedor de 56300 NOK de Oceano Lda (org. nº 941830420). 4) Crie uma fatura ao cliente para o projeto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:07:44Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:06:15.177Z",
+  "after_captured_at": "2026-03-21T21:08:16.409Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "29",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:08:16.410Z"
+}

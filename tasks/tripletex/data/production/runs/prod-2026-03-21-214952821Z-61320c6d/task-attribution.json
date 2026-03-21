@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-214952821Z-61320c6d",
+  "request_id": "2321667f",
+  "prompt_raw": "Du har motteke ein leverandorfaktura (sjaa vedlagt PDF). Registrer fakturaen i Tripletex. Opprett leverandoren viss den ikkje finst. Bruk rett utgiftskonto og inngaaande MVA.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:52:19Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:49:52.869Z",
+  "after_captured_at": "2026-03-21T21:52:50.221Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "20",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:52:50.224Z"
+}

@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-03-21T21:56:54.069Z",
+  "request_id": "1a888a88",
+  "run_id": "prod-2026-03-21-215654069Z-55ca179b",
+  "run_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-215654069Z-55ca179b",
+  "storage_mode": "production",
+  "tmux_session": "ainm-tripletex-sessions",
+  "tmux_window": "prod-2026-03-21-215654069Z-55ca179b",
+  "scripts_dir": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-215654069Z-55ca179b/scripts",
+  "runner_provider": "claude",
+  "credentials_source": "request",
+  "effective_base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+  "leaderboard_before_captured": true,
+  "submissions_before_captured": true,
+  "agent_run_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-215654069Z-55ca179b/agent-run.status.json",
+  "attachments": [
+    {
+      "filename": "files/tilbudsbrev_nb_01.pdf",
+      "mime_type": "application/pdf",
+      "path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-215654069Z-55ca179b/attachments/01-tilbudsbrev_nb_01.pdf"
+    }
+  ]
+}

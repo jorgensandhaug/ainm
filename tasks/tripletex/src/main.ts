@@ -235,6 +235,7 @@ const submissionsApiUrl =
 const submissionsPollIntervalMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_INTERVAL_MS ?? 10 * 1000);
 const submissionsPollWindowMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_POLL_WINDOW_MS ?? 3 * 60 * 1000);
 const submissionsQueuedAtSkewMs = Number(Bun.env.TRIPLETEX_SUBMISSIONS_QUEUE_SKEW_MS ?? 2 * 60 * 1000);
+const skipReflection = Bun.env.TRIPLETEX_SKIP_REFLECTION === "1" || Bun.env.TRIPLETEX_SKIP_REFLECTION === "true";
 const solveTimeoutMs = 5 * 60 * 1000;
 const maxConcurrentSolveRequests = 3;
 let activeSolveRequests = 0;
@@ -2591,14 +2592,27 @@ async function continuePostRunProcessing(
       });
     });
     await Promise.allSettled([leaderboardPromise, submissionScorePromise]);
-    const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
-    const scoreReflectionResult = await maybeLaunchScoreReflectionRun(preparedRun, tracedSession ?? matchedSession);
+    let reflectionStatus: string;
+    let scoreReflectionStatus: string;
+    if (skipReflection) {
+      reflectionStatus = "skipped_by_env";
+      scoreReflectionStatus = "skipped_by_env";
+      log("INFO", "Skipping reflection and score-reflection (TRIPLETEX_SKIP_REFLECTION=1)", {
+        requestId: preparedRun.requestId,
+        runId: preparedRun.runId,
+      });
+    } else {
+      const reflectionResult = await maybeLaunchReflectionRun(preparedRun, tracedSession ?? matchedSession);
+      const scoreReflectionResult = await maybeLaunchScoreReflectionRun(preparedRun, tracedSession ?? matchedSession);
+      reflectionStatus = reflectionResult.status;
+      scoreReflectionStatus = scoreReflectionResult.status;
+    }
     log("INFO", "Post-run processing completed", {
       requestId: preparedRun.requestId,
       runId: preparedRun.runId,
       tracedSessionId: (tracedSession ?? matchedSession)?.sessionMeta.id,
-      reflectionStatus: reflectionResult.status,
-      scoreReflectionStatus: scoreReflectionResult.status,
+      reflectionStatus,
+      scoreReflectionStatus,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -2958,6 +2972,13 @@ async function parseSolveRequest(request: Request): Promise<SolveRequest | Error
 
   return body;
 }
+
+log("INFO", "Server starting", {
+  port,
+  agentProvider,
+  claudeModel,
+  skipReflection,
+});
 
 Bun.serve({
   port,

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-221419360Z-3bf73c2e",
+  "request_id": "fe586f2c",
+  "prompt_raw": "Crea tres departamentos en Tripletex: \"Utvikling\", \"Kvalitetskontroll\" y \"Markedsføring\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:14:44Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:14:19.584Z",
+  "after_captured_at": "2026-03-21T22:15:15.126Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "05",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T22:15:15.127Z"
+}

@@ -1,0 +1,17 @@
+{
+  "run_id": "prod-2026-03-21-210809925Z-2f10e207",
+  "request_id": "0a7554b7",
+  "prompt_raw": "Avstem bankutskrifta (vedlagt CSV) mot opne fakturaer i Tripletex. Match innbetalingar til kundefakturaer og utbetalingar til leverandorfakturaer. Handter delbetalingar korrekt.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:08:10.967Z",
+  "after_captured_at": "2026-03-21T21:13:46.007Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "23",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:13:46.010Z"
+}

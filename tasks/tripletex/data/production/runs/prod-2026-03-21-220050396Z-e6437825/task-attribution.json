@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-220050396Z-e6437825",
+  "request_id": "380a370b",
+  "prompt_raw": "Opprett en faktura til kunden Havbris AS (org.nr 924693576) med tre produktlinjer: Opplæring (3296) til 5400 kr med 25 % MVA, Skylagring (6620) til 6850 kr med 15 % MVA (næringsmiddel), og Analyserapport (8441) til 13750 kr med 0 % MVA (avgiftsfri).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T22:02:07Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T22:00:50.447Z",
+  "after_captured_at": "2026-03-21T22:02:38.116Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-21T22:02:38.116Z"
+}

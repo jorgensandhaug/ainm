@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea tres departamentos en Tripletex: \"Utvikling\", \"Kvalitetskontroll\" y \"Markedsføring\".",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "NG5z8n27nuxB7NikmHkRqsoWwtkYQyk_tH5yMGSkYlk"
+  }
+}

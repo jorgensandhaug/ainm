@@ -1,0 +1,1 @@
+Score reflection complete. Key finding: the normalized_score gap (4 vs 6) is a wall-clock duration issue, not a call-count or correctness issue. Parallelizing the 3 independent GETs with `Promise.all` should recover the full 6-point score by cutting ~10–20s of sequential latency.

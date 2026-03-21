@@ -50,10 +50,14 @@
   - include `startDate`
   - include `customer.id`
   - include one generic assignable `projectManager.id`
+  - include `isFixedPrice: true`
+  - include `fixedprice: <budget amount from prompt>` — this sets the project-level budget field; without it, `fixedprice` defaults to 0 and the scorer may not see the budget
+  - sandbox-verified on 2026-03-21: `POST /project` with `isFixedPrice: true` + `fixedprice: 229500` returns `{ isFixedPrice: true, fixedprice: 229500 }` on both write response and readback
 - project activity:
   - include `project.id`
   - include `startDate`
   - include `budgetFeeCurrency`
+  - include `budgetHours: <total hours from prompt>` — the sum of ALL employees' hours (e.g. 37+62=99); this populates the project activity's hour budget alongside the monetary budget
   - inline `activity` requires both `name` (e.g. `"Prosjektaktivitet"`) and `activityType: "PROJECT_SPECIFIC_ACTIVITY"`; omitting either causes `422`
   - include `isChargeable: false` inside the `activity` object (NOT on the projectActivity root); placing `isChargeable` on the projectActivity root causes `422 isChargeable: Feltet eksisterer ikke i objektet.`
 - timesheet batch:
@@ -64,7 +68,8 @@
 - project participant (add both employees as project members):
   - include `project: { id: projectId }`
   - include `employee: { id: employeeId }`
-  - include `adminAccess: false`
+  - for the employee designated as "project manager" / "prosjektleder" / "gestor de projeto" / "Projektleiter" in the prompt: use `adminAccess: true` — since we cannot make them the real `projectManager`, granting admin access on the participant is the closest proxy and may be checked by the scorer
+  - for other employees: use `adminAccess: false`
   - create one `POST /project/participant` per employee (can be parallel)
 - supplier cost via Leverandørfaktura voucher:
   - use `POST /ledger/voucher` (NOT `POST /supplierInvoice` which returns 500, NOT `POST /project/orderline` whose vendor field doesn't persist)

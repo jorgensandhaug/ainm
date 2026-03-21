@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-212237391Z-aa847819",
+  "request_id": "05c1f3ba",
+  "prompt_raw": "Vi har mottatt faktura INV-2026-3624 fra leverandøren Tindra AS (org.nr 983514650) på 42100 kr inklusiv MVA. Beløpet gjelder kontortjenester (konto 6540). Registrer leverandørfakturaen med korrekt inngående MVA (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:24:06Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:22:38.076Z",
+  "after_captured_at": "2026-03-21T21:24:38.307Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "11",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:24:38.308Z"
+}

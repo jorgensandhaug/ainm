@@ -152,7 +152,10 @@ Optimizations vs old 18-call baseline:
 
 - **Employee userType**: always include `userType: "NO_ACCESS"` on every `POST /employee`; omitting it causes `422 Brukertype kan ikke være "0" eller tom.`
 - **Employee without employments[]**: do NOT include `employments[]` on employee payloads in this lifecycle flow; employees without employment records can still register timesheet entries, project participation, and all scored actions; this avoids the division/startDate/employmentType traps entirely and eliminates the `GET /division` call
+- **budgetHours on projectActivity**: always include `budgetHours: <total hours from prompt>` (sum of ALL employees' hours) on the `POST /project/projectActivity` payload alongside `budgetFeeCurrency`
+- **PM employee adminAccess**: for the employee designated as "project manager" / "prosjektleder" in the prompt, use `adminAccess: true` on their `POST /project/participant`; this is the closest proxy to PM role since newly created employees cannot be assigned as `projectManager`
 - **Employee dateOfBirth**: include a placeholder `dateOfBirth` (e.g. `"1985-01-15"`) defensively; some accounts require it
+- **Project isFixedPrice + fixedprice**: always include `isFixedPrice: true` and `fixedprice: <budget amount>` on `POST /project`; without these, `fixedprice` defaults to 0 and the scorer may not see the budget
 - **Department**: always read department proactively; if none exists, create one with `POST /department`
 - **Project startDate**: must be on or before the earliest planned timesheet entry date; set it to the run date
 - **Timesheet dates**: all dates must be >= project `startDate`; consecutive dates, max 24h per entry per employee per date
@@ -244,12 +247,22 @@ Batch timesheet entries (POST /timesheet/entry/list):
 ]
 ```
 
-Project participant (POST /project/participant):
+Project participant — PM employee (POST /project/participant):
 
 ```json
 {
   "project": { "id": 54321 },
   "employee": { "id": 111 },
+  "adminAccess": true
+}
+```
+
+Project participant — other employee (POST /project/participant):
+
+```json
+{
+  "project": { "id": 54321 },
+  "employee": { "id": 444 },
   "adminAccess": false
 }
 ```

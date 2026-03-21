@@ -132,6 +132,10 @@ Exact-match tasks should now prefer the trusted standard:
   - wasted 1 call (6 total): first script filtered paymentTypes by nonexistent `pt.isIncoming === true` and aborted; a debug call re-fetched paymentTypes; second script succeeded with hardcoded IDs
   - root cause: payment type objects have no `isIncoming` field — just use `pts[0]`
   - sandbox confirmed both "Kontant" and "Betalt til bank" work for the combined write
+- production run on 2026-03-21 for Portuguese prompt `Cascata Lda` / `927161524` / `Consultoria de dados (8400)` + `Design web (2535)` / prices `5700` + `3850`:
+  - used comma-separated `number=8400,2535` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
+  - 5 calls, 0 errors, outstanding=0 — 4th confirmation of the canonical 5-call path
+  - sandbox investigation disproved three call-reduction hypotheses: inline `product: { number }` creates orphaned lines (no product linkage), inline `customer: { organizationNumber }` rejected (422, requires name), hardcoded `paymentTypeId=1` rejected (422) — 5 calls is the proven floor
 
 ## Minimal Flow
 

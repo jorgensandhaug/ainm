@@ -1,0 +1,8 @@
+{
+  "prompt": "Create and send an invoice to the customer Brightstone Ltd (org no. 894181273) for 14150 NOK excluding VAT. The invoice is for Cloud Storage.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "zCKZeUWjzzYXUNVaEmpgYkCjbBxNAkdhBH4IhWzXB2c"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-211402061Z-a81782be",
+  "request_id": "f45f587b",
+  "prompt_raw": "Gjennomfør heile prosjektsyklusen for 'Dataplattform Elvdal' (Elvdal AS, org.nr 894208848): 1) Prosjektet har budsjett 331100 kr. 2) Registrer timar: Knut Brekke (prosjektleiar, knut.brekke@example.org) 43 timar og Svein Aasen (konsulent, svein.aasen@example.org) 100 timar. 3) Registrer leverandørkostnad 61650 kr frå Fossekraft AS (org.nr 979871783). 4) Opprett kundefaktura for prosjektet.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T21:15:28Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T21:14:03.624Z",
+  "after_captured_at": "2026-03-21T21:15:59.475Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "29",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T21:15:59.478Z"
+}
