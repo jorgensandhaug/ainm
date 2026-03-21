@@ -150,6 +150,7 @@ Authentication:
 | Register travel expense | `./task-playbooks/register-travel-expense.md` |
 | Simplified year-end closing (depreciation, prepaid reversal, tax) | `./task-playbooks/simplified-year-end-closing.md` |
 | Month-end closing (accrual reversal, depreciation, salary accrual) | `./task-playbooks/month-end-closing.md` |
+| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./task-playbooks/correct-ledger-errors.md` |
 
 ## Common Endpoints
 - Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.

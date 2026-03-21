@@ -663,6 +663,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for month-over-month expense-account analysis, prefer one decisive combined read over separate monthly reads: `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
   - on that analysis branch, aggregate signed `amount` by account and month in local code; do not switch to `amountCurrency` or absolute values unless the prompt explicitly asks for transaction-currency or absolute-volume ranking
   - when the prompt wants you to reuse the account's name in a newly created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named expense rows do not become ambiguous
+- **CRITICAL field expansion note**:
+  - `fields=*` on `/ledger/posting` returns nested objects (`account`, `vatType`, `voucher`) as **sparse link stubs** containing only `id` and `url` — `account.number` and `account.name` will be `undefined`
+  - you MUST use `fields=*,account(*)` to expand account data with `number`, `name`, `type`, etc.
+  - for VAT data, add `vatType(*)`: `fields=*,account(*),vatType(*)`
+  - production task 24 on 2026-03-21 scored 0/0 checks because the agent used `fields=*` without `account(*)`, could not identify any error vouchers (all account numbers were `undefined`), and timed out before creating any correction vouchers
+  - the same sparse-link behavior applies to `/ledger/voucher` postings: use `fields=*,postings(*,account(*),vatType(*))` to expand nested posting account data
 - Standard parameter note for `/ledger/posting/openPost`:
   - requires `date` parameter (NOT `dateFrom`/`dateTo`); `date` is a cutoff meaning postings dated before this date
   - format is `YYYY-MM-DD`; use `date=2031-01-01` for a future-proof cutoff
@@ -682,6 +688,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` reverse
 - Standard correction note:
   - prefer reverse over ad hoc mutation when task allows
+  - for ledger-error correction tasks with multiple error types (wrong account, duplicate, missing VAT, incorrect amount), the proven 6-call path is: `GET /ledger/voucher?fields=*,postings(*,account(*),vatType(*))` → `GET /ledger/account?number=<missing>` → `PUT /:reverse` for duplicate → 3x `POST /ledger/voucher` for remaining corrections
+  - persistent sandbox 2026-03-21 confirmed this path with zero 4xx errors
+  - for the voucher discovery read, use `GET /ledger/voucher` (not `/ledger/posting`) because it provides voucher descriptions for identifying duplicates and voucher IDs for the reverse operation
+  - `PUT /ledger/voucher/{id}/:reverse?date=YYYY-MM-DD` requires the `date` query parameter (reversal date); use the run date
 - Standard create note:
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
   - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
