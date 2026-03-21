@@ -372,6 +372,7 @@ def render_event_regime_posterior_audit(result: EventRegimePosteriorAuditResult)
         f"samples_per_round: {result.samples_per_round}",
         f"k_neighbors: {result.k_neighbors}",
         f"target_family: {result.target_family}",
+        f"summary_feature_variant: {result.summary_feature_variant}",
         f"rounds: {result.round_count}",
         f"episodes: {result.episode_count}",
         f"aggregation: {result.aggregation_mode}",

@@ -1,0 +1,430 @@
+{
+  "audit_name": "f1_event_regime_posterior_knn_collapse_portsplit_stress_b50s4_v01",
+  "dataset_name": "f1_synthetic_live_coverage_b50_s4_v2",
+  "policy_name": "coverage",
+  "budget": 50,
+  "samples_per_round": 4,
+  "k_neighbors": 7,
+  "target_family": "collapse_portsplit",
+  "summary_feature_variant": "stress_v1",
+  "target_names": [
+    "collapse_logit_rate",
+    "collapse_logit_port",
+    "collapse_logit_nonport",
+    "collapse_pos_port_share_logit"
+  ],
+  "round_count": 9,
+  "episode_count": 36,
+  "aggregation_mode": "equal_round_mean_primary",
+  "baseline_mae": 0.27861431808122716,
+  "knn_mae": 0.2420166043019702,
+  "mae_gain": 0.036597713779256934,
+  "baseline_mse": 0.14257959113717256,
+  "knn_mse": 0.08530123281878328,
+  "mse_gain": 0.05727835831838925,
+  "standardized_baseline_mae": 0.9943172252814478,
+  "standardized_knn_mae": 0.839169833656489,
+  "standardized_mae_gain": 0.15514739162495883,
+  "standardized_baseline_mse": 1.7359289893244645,
+  "standardized_knn_mse": 1.058577562303211,
+  "standardized_mse_gain": 0.6773514270212535,
+  "per_target_baseline_mae": {
+    "collapse_logit_rate": 0.2765109332776483,
+    "collapse_logit_port": 0.41806042160061047,
+    "collapse_logit_nonport": 0.2705840054365838,
+    "collapse_pos_port_share_logit": 0.14930191201006604
+  },
+  "per_target_knn_mae": {
+    "collapse_logit_rate": 0.2524640023972665,
+    "collapse_logit_port": 0.3404837121716786,
+    "collapse_logit_nonport": 0.251639635854784,
+    "collapse_pos_port_share_logit": 0.12347906678415181
+  },
+  "per_target_baseline_mse": {
+    "collapse_logit_rate": 0.11747111207989683,
+    "collapse_logit_port": 0.3094171710606579,
+    "collapse_logit_nonport": 0.11226545126266482,
+    "collapse_pos_port_share_logit": 0.03116463014547059
+  },
+  "per_target_knn_mse": {
+    "collapse_logit_rate": 0.07997636663129042,
+    "collapse_logit_port": 0.15792803808356873,
+    "collapse_logit_nonport": 0.07828518186668973,
+    "collapse_pos_port_share_logit": 0.02501534469358427
+  },
+  "round_targets": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "collapse_logit_rate": -2.4497444293047064,
+      "collapse_logit_port": -2.7369938812771615,
+      "collapse_logit_nonport": -2.4365518082548574,
+      "collapse_pos_port_share_logit": -3.2343427810368843
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "collapse_logit_rate": -2.7794235861435785,
+      "collapse_logit_port": -2.9755031304469055,
+      "collapse_logit_nonport": -2.7702726465723893,
+      "collapse_pos_port_share_logit": -3.168877061784789
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "collapse_logit_rate": -2.768895724590083,
+      "collapse_logit_port": -3.4276064040278373,
+      "collapse_logit_nonport": -2.737577844683471,
+      "collapse_pos_port_share_logit": -3.4090828759361456
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "collapse_logit_rate": -2.531727001851373,
+      "collapse_logit_port": -3.2633544685986835,
+      "collapse_logit_nonport": -2.5006535405013577,
+      "collapse_pos_port_share_logit": -3.5624322007020344
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "collapse_logit_rate": -2.5218127866926254,
+      "collapse_logit_port": -2.8346692126131607,
+      "collapse_logit_nonport": -2.5056695207101147,
+      "collapse_pos_port_share_logit": -3.132805350211166
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "collapse_logit_rate": -2.2496709503094023,
+      "collapse_logit_port": -2.8464654983259727,
+      "collapse_logit_nonport": -2.2262783567993725,
+      "collapse_pos_port_share_logit": -3.564020585036159
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "collapse_logit_rate": -2.081949877062153,
+      "collapse_logit_port": -2.0967110728985294,
+      "collapse_logit_nonport": -2.081310715007714,
+      "collapse_pos_port_share_logit": -3.1473083258291257
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "collapse_logit_rate": -1.7749409374142362,
+      "collapse_logit_port": -1.765020712064347,
+      "collapse_logit_nonport": -1.775295886856476,
+      "collapse_pos_port_share_logit": -3.3252220614400505
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "collapse_logit_rate": -2.4796512003209963,
+      "collapse_logit_port": -2.8665776776748437,
+      "collapse_logit_nonport": -2.4620526218439394,
+      "collapse_pos_port_share_logit": -3.2988964269404266
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "episode_count": 4,
+      "baseline_mae": 0.05490770216046992,
+      "knn_mae": 0.2203402888711147,
+      "mae_gain": -0.16543258671064479,
+      "baseline_mse": 0.0036201320595084054,
+      "knn_mse": 0.05767574331039348,
+      "mse_gain": -0.05405561125088508,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.05123542125665015,
+        "collapse_logit_port": 0.022494640804123556,
+        "collapse_logit_nonport": 0.0541629166330031,
+        "collapse_pos_port_share_logit": 0.09173782994810287
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.21723857628324084,
+        "collapse_logit_port": 0.3542118196204128,
+        "collapse_logit_nonport": 0.2118660680048915,
+        "collapse_pos_port_share_logit": 0.09804469157591367
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.002625068391346398,
+        "collapse_logit_port": 0.0005060088649065404,
+        "collapse_logit_nonport": 0.0029336215381936437,
+        "collapse_pos_port_share_logit": 0.00841582944358704
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.04743411843403852,
+        "collapse_logit_port": 0.12676209979607742,
+        "collapse_logit_nonport": 0.04518428224984688,
+        "collapse_pos_port_share_logit": 0.011322472761611116
+      }
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "episode_count": 4,
+      "baseline_mae": 0.3157345902647891,
+      "knn_mae": 0.19658268188390168,
+      "mae_gain": 0.11915190838088743,
+      "baseline_mse": 0.11263214202931723,
+      "knn_mse": 0.05157340051336075,
+      "mse_gain": 0.061058741515956486,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.42212447270038167,
+        "collapse_logit_port": 0.24582826451183815,
+        "collapse_logit_nonport": 0.4295988597402265,
+        "collapse_pos_port_share_logit": 0.16538676410671016
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.28782260574505514,
+        "collapse_logit_port": 0.020676937907840087,
+        "collapse_logit_nonport": 0.2992137007024166,
+        "collapse_pos_port_share_logit": 0.1786174831802949
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.17818907045257526,
+        "collapse_logit_port": 0.06043153563290226,
+        "collapse_logit_nonport": 0.1845551802901028,
+        "collapse_pos_port_share_logit": 0.027352781741688592
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.0828692792485482,
+        "collapse_logit_port": 0.001543934162216815,
+        "collapse_logit_nonport": 0.08954566446113332,
+        "collapse_pos_port_share_logit": 0.032334724181544636
+      }
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "episode_count": 4,
+      "baseline_mae": 0.4155967650429613,
+      "knn_mae": 0.23761403443855503,
+      "mae_gain": 0.17798273060440625,
+      "baseline_mse": 0.22570360098863074,
+      "knn_mse": 0.06584844014581796,
+      "mse_gain": 0.15985516084281276,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.41028062845269897,
+        "collapse_logit_port": 0.7544444472903864,
+        "collapse_logit_nonport": 0.3928172076151939,
+        "collapse_pos_port_share_logit": 0.10484477681356585
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.27941936297331804,
+        "collapse_logit_port": 0.3193573807310257,
+        "collapse_logit_nonport": 0.27453118570781787,
+        "collapse_pos_port_share_logit": 0.07714820834205849
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.1683301940835416,
+        "collapse_logit_port": 0.5691864240472966,
+        "collapse_logit_nonport": 0.15430535859859834,
+        "collapse_pos_port_share_logit": 0.010992427225086436
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.07866778659799167,
+        "collapse_logit_port": 0.10199464135010694,
+        "collapse_logit_nonport": 0.07599025409674362,
+        "collapse_pos_port_share_logit": 0.006741078538429602
+      }
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "episode_count": 4,
+      "baseline_mae": 0.27919174197243624,
+      "knn_mae": 0.24849137516646294,
+      "mae_gain": 0.030700366805973295,
+      "baseline_mse": 0.10949304886023468,
+      "knn_mse": 0.07832794535049292,
+      "mse_gain": 0.031165103509741762,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.14346581537165015,
+        "collapse_logit_port": 0.5696610199325884,
+        "collapse_logit_nonport": 0.12627736541031576,
+        "collapse_pos_port_share_logit": 0.2773627671751906
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.1100334554420137,
+        "collapse_logit_port": 0.3874449242772856,
+        "collapse_logit_nonport": 0.13026830450442317,
+        "collapse_pos_port_share_logit": 0.3662188164421293
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.020582440180252407,
+        "collapse_logit_port": 0.32451367763063693,
+        "collapse_logit_nonport": 0.01594597301497041,
+        "collapse_pos_port_share_logit": 0.07693010461507899
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.012109215644992462,
+        "collapse_logit_port": 0.15011453988979348,
+        "collapse_logit_nonport": 0.016971731231687576,
+        "collapse_pos_port_share_logit": 0.1341162946354982
+      }
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "episode_count": 4,
+      "baseline_mae": 0.13939755325978465,
+      "knn_mae": 0.07188054930581414,
+      "mae_gain": 0.0675170039539705,
+      "baseline_mse": 0.021242286204103518,
+      "knn_mse": 0.008202393144711944,
+      "mse_gain": 0.013039893059391574,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.1323123233180592,
+        "collapse_logit_port": 0.08739010694887561,
+        "collapse_logit_nonport": 0.13192034314516787,
+        "collapse_pos_port_share_logit": 0.2059674396270359
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.061074781085487584,
+        "collapse_logit_port": 0.11052818265276265,
+        "collapse_logit_nonport": 0.06352572968362169,
+        "collapse_pos_port_share_logit": 0.05239350380138463
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.017506550901822633,
+        "collapse_logit_port": 0.0076370307925359175,
+        "collapse_logit_nonport": 0.01740297693553884,
+        "collapse_pos_port_share_logit": 0.042422586186516675
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.004336479072684995,
+        "collapse_logit_port": 0.02111710426051841,
+        "collapse_logit_nonport": 0.004461604721695742,
+        "collapse_pos_port_share_logit": 0.0028943845239486296
+      }
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "episode_count": 4,
+      "baseline_mae": 0.1840131466985886,
+      "knn_mae": 0.2740768605399987,
+      "mae_gain": -0.0900637138414101,
+      "baseline_mse": 0.037886968385657624,
+      "knn_mse": 0.08788940751141935,
+      "mse_gain": -0.05000243912576173,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.17384724261306683,
+        "collapse_logit_port": 0.1006609283757891,
+        "collapse_logit_nonport": 0.1823947162544175,
+        "collapse_pos_port_share_logit": 0.27914969955108093
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.32168497205010227,
+        "collapse_logit_port": 0.37201445357211593,
+        "collapse_logit_nonport": 0.31670404683500764,
+        "collapse_pos_port_share_logit": 0.08590396970276903
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.03022286376416652,
+        "collapse_logit_port": 0.010132622501475744,
+        "collapse_logit_nonport": 0.03326783251752947,
+        "collapse_pos_port_share_logit": 0.07792455475945875
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.10378688017677397,
+        "collapse_logit_port": 0.13974116303290937,
+        "collapse_logit_nonport": 0.10057482351536225,
+        "collapse_pos_port_share_logit": 0.007454763320631867
+      }
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "episode_count": 4,
+      "baseline_mae": 0.4101202888932929,
+      "knn_mae": 0.3577532257681765,
+      "mae_gain": 0.05236706312511641,
+      "baseline_mse": 0.2096319511710138,
+      "knn_mse": 0.17763337588875233,
+      "mse_gain": 0.031998575282261466,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.3625334500162225,
+        "collapse_logit_port": 0.7428128002300847,
+        "collapse_logit_nonport": 0.34548331327003323,
+        "collapse_pos_port_share_logit": 0.18965159205683113
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.37336578837436296,
+        "collapse_logit_port": 0.6581495492777234,
+        "collapse_logit_nonport": 0.3591712671677594,
+        "collapse_pos_port_share_logit": 0.04032629825286016
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.1314305023806649,
+        "collapse_logit_port": 0.5517708561856597,
+        "collapse_logit_nonport": 0.11935871974803992,
+        "collapse_pos_port_share_logit": 0.03596772636969069
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.14123777202729915,
+        "collapse_logit_port": 0.4367951047296367,
+        "collapse_logit_nonport": 0.1307745929079188,
+        "collapse_pos_port_share_logit": 0.001726033890154789
+      }
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "episode_count": 4,
+      "baseline_mae": 0.6310335796835759,
+      "knn_mae": 0.43509009281252753,
+      "mae_gain": 0.19594348687104834,
+      "baseline_mse": 0.5555976535617936,
+      "knn_mse": 0.21885369980560648,
+      "mse_gain": 0.3367439537561871,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.7079185071201286,
+        "collapse_logit_port": 1.1159644561685396,
+        "collapse_logit_nonport": 0.689749994940176,
+        "collapse_pos_port_share_logit": 0.010501360505459356
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.47834933841534566,
+        "collapse_logit_port": 0.6314425876625772,
+        "collapse_logit_nonport": 0.4710384570892294,
+        "collapse_pos_port_share_logit": 0.15952998808295793
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.5011486127231916,
+        "collapse_logit_port": 1.2453766674315443,
+        "collapse_logit_nonport": 0.47575505551997277,
+        "collapse_pos_port_share_logit": 0.00011027857246562158
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.228841566545034,
+        "collapse_logit_port": 0.3989524256810109,
+        "collapse_logit_nonport": 0.22189716528410203,
+        "collapse_pos_port_share_logit": 0.025723641712279054
+      }
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "episode_count": 4,
+      "baseline_mae": 0.07753349475514582,
+      "knn_mae": 0.13632032993118076,
+      "mae_gain": -0.058786835176034946,
+      "baseline_mse": 0.007408536974293328,
+      "knn_mse": 0.021706689698494368,
+      "mse_gain": -0.014298152724201041,
+      "per_target_baseline_mae": {
+        "collapse_logit_rate": 0.08488053864997669,
+        "collapse_logit_port": 0.12328713014326897,
+        "collapse_logit_nonport": 0.08285133192072003,
+        "collapse_pos_port_share_logit": 0.01911497830661757
+      },
+      "per_target_knn_mae": {
+        "collapse_logit_rate": 0.14318714120647236,
+        "collapse_logit_port": 0.21052757384336385,
+        "collapse_logit_nonport": 0.13843796299788858,
+        "collapse_pos_port_share_logit": 0.05312864167699827
+      },
+      "per_target_baseline_mse": {
+        "collapse_logit_rate": 0.007204705841510187,
+        "collapse_logit_port": 0.015199716458963342,
+        "collapse_logit_nonport": 0.0068643432010373215,
+        "collapse_pos_port_share_logit": 0.0003653823956624603
+      },
+      "per_target_knn_mse": {
+        "collapse_logit_rate": 0.02050420193425075,
+        "collapse_logit_port": 0.04433132984984869,
+        "collapse_logit_nonport": 0.019166518331717505,
+        "collapse_pos_port_share_logit": 0.002824708678160535
+      }
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_portsplit_stress_b50s4_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_portsplit_stress_b50s4_v01/report.md"
+}

@@ -315,6 +315,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=SUPPORTED_EVENT_REGIME_TARGET_FAMILIES,
         default="rates",
     )
+    event_regime_posterior_parser.add_argument(
+        "--summary-feature-variant",
+        choices=["basic", "stress_v1"],
+        default="basic",
+    )
 
     synthetic_transcript_audit_parser = subparsers.add_parser("run-synthetic-transcript-audit")
     synthetic_transcript_audit_parser.add_argument("--model", choices=online_models, required=True)
@@ -694,6 +699,7 @@ def _main() -> int:
             budget=args.budget,
             k_neighbors=args.k_neighbors,
             target_family=args.target_family,
+            summary_feature_variant=args.summary_feature_variant,
         )
         _emit(args.json, result, render_event_regime_posterior_audit(result))
         return 0

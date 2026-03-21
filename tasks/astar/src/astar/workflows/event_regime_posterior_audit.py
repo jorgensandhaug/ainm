@@ -15,7 +15,10 @@ from astar.history.datasets.synthetic_live import (
 )
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.student.posterior.deepset_student import _summary_vector_from_artifact
+from astar.student.posterior.deepset_student import (
+    SUPPORTED_SUMMARY_FEATURE_VARIANTS,
+    _summary_vector_from_artifact,
+)
 
 SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
     "rates",
@@ -108,6 +111,7 @@ class EventRegimePosteriorAuditResult(BaseModel):
     samples_per_round: int = Field(ge=1)
     k_neighbors: int = Field(ge=1)
     target_family: str
+    summary_feature_variant: str
     target_names: list[str]
     round_count: int = Field(ge=2)
     episode_count: int = Field(ge=1)
@@ -144,6 +148,7 @@ def _render_report(result: EventRegimePosteriorAuditResult) -> str:
         f"samples_per_round: {result.samples_per_round}",
         f"k_neighbors: {result.k_neighbors}",
         f"target_family: {result.target_family}",
+        f"summary_feature_variant: {result.summary_feature_variant}",
         f"rounds: {result.round_count}",
         f"episodes: {result.episode_count}",
         f"aggregation_mode: {result.aggregation_mode}",
@@ -360,6 +365,7 @@ def run_event_regime_posterior_audit(
     birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
     collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
     target_family: str = "rates",
+    summary_feature_variant: str = "basic",
 ) -> EventRegimePosteriorAuditResult:
     if samples_per_round <= 0:
         raise ValueError("samples_per_round must be positive")
@@ -367,6 +373,8 @@ def run_event_regime_posterior_audit(
         raise ValueError("budget must be positive")
     if k_neighbors <= 0:
         raise ValueError("k_neighbors must be positive")
+    if summary_feature_variant not in SUPPORTED_SUMMARY_FEATURE_VARIANTS:
+        raise ValueError(f"unsupported summary feature variant: {summary_feature_variant}")
 
     target_frame = _round_target_frame(
         paths,
@@ -398,6 +406,7 @@ def run_event_regime_posterior_audit(
         round_id = str(row["round_id"])
         summary_vector, _ = _summary_vector_from_artifact(
             resolve_synthetic_episode_path(dataset.dataset_dir, Path(str(row["episode_path"]))),
+            feature_variant=summary_feature_variant,
         )
         target = target_by_round.get(round_id)
         if target is None:
@@ -503,6 +512,7 @@ def run_event_regime_posterior_audit(
         samples_per_round=samples_per_round,
         k_neighbors=k_neighbors,
         target_family=target_family,
+        summary_feature_variant=summary_feature_variant,
         target_names=target_names,
         round_count=len(round_metrics),
         episode_count=len(examples),

@@ -135,3 +135,32 @@ def test_event_regime_posterior_audit_supports_collapse_timing_stress_family(
         "collapse_defense_before_mean",
         "collapse_population_before_mean",
     ]
+
+
+def test_event_regime_posterior_audit_supports_stress_summary_features(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_stress_features_test",
+        audit_name="event_regime_posterior_stress_features_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        collapse_dataset_name="collapse_riskset_regime_posterior_stress_features_test",
+        target_family="collapse_portsplit",
+        summary_feature_variant="stress_v1",
+    )
+
+    assert result.summary_feature_variant == "stress_v1"
+    assert result.target_family == "collapse_portsplit"

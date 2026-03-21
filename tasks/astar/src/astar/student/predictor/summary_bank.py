@@ -81,6 +81,7 @@ class SummaryBankTeacherPredictor(BaseRoundPredictor):
     summary_scales: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
     k_neighbors: int = Field(default=7, ge=1)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    summary_feature_variant: str = "basic"
 
     @classmethod
     def fit_from_workspace(
@@ -95,6 +96,7 @@ class SummaryBankTeacherPredictor(BaseRoundPredictor):
         model_name: str = "f1_summary_bank_teacher_b50s4k7_v01",
         probability_floor: float = 0.01,
         synthetic_dataset_name: str | None = None,
+        summary_feature_variant: str = "basic",
     ) -> SummaryBankTeacherPredictor:
         selected_round_ids = _round_ids_with_replays(paths, round_ids)
         if not selected_round_ids:
@@ -129,7 +131,10 @@ class SummaryBankTeacherPredictor(BaseRoundPredictor):
                 dataset.dataset_dir,
                 Path(str(row["episode_path"])),
             )
-            summary_vector, regime_vector = _summary_vector_from_artifact(episode_path)
+            summary_vector, regime_vector = _summary_vector_from_artifact(
+                episode_path,
+                feature_variant=summary_feature_variant,
+            )
             summary_vectors.append(summary_vector)
             regime_vectors.append(regime_vector)
         if not summary_vectors:
@@ -145,6 +150,7 @@ class SummaryBankTeacherPredictor(BaseRoundPredictor):
             summary_scales=summary_scales,
             k_neighbors=k_neighbors,
             probability_floor=probability_floor,
+            summary_feature_variant=summary_feature_variant,
         )
 
     def infer_regime(self, evidence: RoundEvidenceBundle | None) -> RegimePosteriorState:
@@ -155,7 +161,10 @@ class SummaryBankTeacherPredictor(BaseRoundPredictor):
                 else np.zeros(1, dtype=np.float64)
             )
             return RegimePosteriorState(mean=np.asarray(mean, dtype=np.float64))
-        summary_vector = _summary_vector_from_evidence(evidence)
+        summary_vector = _summary_vector_from_evidence(
+            evidence,
+            feature_variant=self.summary_feature_variant,
+        )
         normalized = (summary_vector - self.summary_means) / self.summary_scales
         distances = np.linalg.norm(self.summary_vectors - normalized[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, self.summary_vectors.shape[0])]

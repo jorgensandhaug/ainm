@@ -120,6 +120,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
     include_teacher_logits: bool = False
     k_neighbors: int = Field(default=7, ge=1)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    summary_feature_variant: str = "basic"
 
     @classmethod
     def fit_from_workspace(
@@ -139,6 +140,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         synthetic_dataset_name: str | None = None,
         birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
         collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
+        summary_feature_variant: str = "basic",
     ) -> SummaryRateDecoderPredictor:
         selected_round_ids = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected_round_ids) < 2:
@@ -179,6 +181,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 model_name=f"{model_name}__summary_teacher",
                 probability_floor=probability_floor,
                 synthetic_dataset_name=synthetic_dataset_name,
+                summary_feature_variant=summary_feature_variant,
             )
             if include_teacher_logits
             else None
@@ -266,7 +269,10 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 dataset.dataset_dir,
                 Path(str(row["episode_path"])),
             )
-            summary_vector, _ = _summary_vector_from_artifact(episode_path)
+            summary_vector, _ = _summary_vector_from_artifact(
+                episode_path,
+                feature_variant=summary_feature_variant,
+            )
             summary_vectors.append(summary_vector)
             rate_vectors.append(target_by_round[round_id])
         if not summary_vectors:
@@ -291,12 +297,16 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             include_teacher_logits=include_teacher_logits,
             k_neighbors=k_neighbors,
             probability_floor=probability_floor,
+            summary_feature_variant=summary_feature_variant,
         )
 
     def infer_rate_vector(self, evidence: RoundEvidenceBundle | None) -> np.ndarray:
         if evidence is None or evidence.total_queries == 0 or self.summary_vectors.shape[0] == 0:
             return np.asarray(np.mean(self.rate_target_vectors, axis=0), dtype=np.float64)
-        summary_vector = _summary_vector_from_evidence(evidence)
+        summary_vector = _summary_vector_from_evidence(
+            evidence,
+            feature_variant=self.summary_feature_variant,
+        )
         normalized = (summary_vector - self.summary_means) / self.summary_scales
         distances = np.linalg.norm(self.summary_vectors - normalized[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, self.summary_vectors.shape[0])]

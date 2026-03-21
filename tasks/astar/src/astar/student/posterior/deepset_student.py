@@ -15,30 +15,170 @@ from astar.history.datasets.synthetic_live import (
     resolve_synthetic_episode_path,
 )
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.evidence import RoundEvidenceBundle
+from astar.observe.evidence import (
+    RoundEvidenceBundle,
+    _coverage_summary_from_observations,
+    _settlement_summary_from_groups,
+)
 from astar.student.predictor.base import LiveInferenceContext
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
+
+SUPPORTED_SUMMARY_FEATURE_VARIANTS = ("basic", "stress_v1")
 
 
 def _optional_float(value: float | None) -> float:
     return 0.0 if value is None else float(value)
 
 
-def _summary_vector_from_evidence(evidence: RoundEvidenceBundle) -> np.ndarray:
+def _normalize_summary_feature_variant(feature_variant: str | None) -> str:
+    normalized = "basic" if feature_variant is None else feature_variant.strip().lower()
+    if normalized not in SUPPORTED_SUMMARY_FEATURE_VARIANTS:
+        raise ValueError(f"unsupported summary feature variant: {feature_variant}")
+    return normalized
+
+
+def _seed_summary_components_from_evidence(
+    seed: object,
+    *,
+    feature_variant: str,
+) -> list[float]:
+    if feature_variant == "basic":
+        return [
+            float(seed.query_count),
+            *seed.observed_class_frequencies.astype(np.float64).tolist(),
+            _optional_float(seed.mean_population),
+            _optional_float(seed.mean_food),
+            _optional_float(seed.mean_wealth),
+            _optional_float(seed.mean_defense),
+        ]
+    return [
+        float(seed.query_count),
+        float(seed.repeated_window_groups),
+        float(seed.observed_cell_count),
+        float(seed.repeated_cell_count),
+        float(seed.mean_positive_coverage_count),
+        *seed.observed_class_frequencies.astype(np.float64).tolist(),
+        float(seed.mean_settlement_count),
+        float(seed.std_settlement_count),
+        float(seed.port_share),
+        float(seed.owner_count),
+        float(seed.largest_owner_share),
+        float(seed.owner_hhi),
+        _optional_float(seed.mean_population),
+        _optional_float(seed.std_population),
+        _optional_float(seed.q25_population),
+        _optional_float(seed.q75_population),
+        _optional_float(seed.mean_food),
+        _optional_float(seed.std_food),
+        _optional_float(seed.q25_food),
+        _optional_float(seed.q75_food),
+        _optional_float(seed.mean_wealth),
+        _optional_float(seed.std_wealth),
+        _optional_float(seed.q25_wealth),
+        _optional_float(seed.q75_wealth),
+        _optional_float(seed.mean_defense),
+        _optional_float(seed.std_defense),
+        _optional_float(seed.q25_defense),
+        _optional_float(seed.q75_defense),
+    ]
+
+
+def _artifact_seed_summary_components(
+    observations: list[LiveQueryObs],
+    *,
+    feature_variant: str,
+) -> list[float]:
+    class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
+    repeat_counts: dict[tuple[int, int, int, int, int], int] = {}
+    for observation in observations:
+        viewport = observation.viewport
+        key = (
+            int(observation.seed_index),
+            int(viewport.x),
+            int(viewport.y),
+            int(viewport.w),
+            int(viewport.h),
+        )
+        repeat_counts[key] = repeat_counts.get(key, 0) + 1
+        collapsed = collapse_internal_grid(observation.grid)
+        class_counts += np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
+    total = float(np.sum(class_counts))
+    class_frequencies = class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
+    if feature_variant == "basic":
+        settlement_summary = _settlement_summary_from_groups(
+            [observation.settlements for observation in observations],
+        )
+        return [
+            float(len(observations)),
+            *class_frequencies.tolist(),
+            _optional_float(settlement_summary["mean_population"]),
+            _optional_float(settlement_summary["mean_food"]),
+            _optional_float(settlement_summary["mean_wealth"]),
+            _optional_float(settlement_summary["mean_defense"]),
+        ]
+    observed_cell_count, repeated_cell_count, mean_positive_coverage_count = _coverage_summary_from_observations(
+        observations,
+    )
+    settlement_summary = _settlement_summary_from_groups(
+        [observation.settlements for observation in observations],
+    )
+    return [
+        float(len(observations)),
+        float(sum(1 for count in repeat_counts.values() if count > 1)),
+        float(observed_cell_count),
+        float(repeated_cell_count),
+        float(mean_positive_coverage_count),
+        *class_frequencies.tolist(),
+        float(settlement_summary["mean_settlement_count"]),
+        float(settlement_summary["std_settlement_count"]),
+        float(settlement_summary["port_share"]),
+        float(settlement_summary["owner_count"]),
+        float(settlement_summary["largest_owner_share"]),
+        float(settlement_summary["owner_hhi"]),
+        _optional_float(settlement_summary["mean_population"]),
+        _optional_float(settlement_summary["std_population"]),
+        _optional_float(settlement_summary["q25_population"]),
+        _optional_float(settlement_summary["q75_population"]),
+        _optional_float(settlement_summary["mean_food"]),
+        _optional_float(settlement_summary["std_food"]),
+        _optional_float(settlement_summary["q25_food"]),
+        _optional_float(settlement_summary["q75_food"]),
+        _optional_float(settlement_summary["mean_wealth"]),
+        _optional_float(settlement_summary["std_wealth"]),
+        _optional_float(settlement_summary["q25_wealth"]),
+        _optional_float(settlement_summary["q75_wealth"]),
+        _optional_float(settlement_summary["mean_defense"]),
+        _optional_float(settlement_summary["std_defense"]),
+        _optional_float(settlement_summary["q25_defense"]),
+        _optional_float(settlement_summary["q75_defense"]),
+    ]
+
+
+def _summary_vector_from_evidence(
+    evidence: RoundEvidenceBundle,
+    *,
+    feature_variant: str = "basic",
+) -> np.ndarray:
+    normalized_variant = _normalize_summary_feature_variant(feature_variant)
     components: list[float] = []
     for seed_index in sorted(evidence.per_seed):
         seed = evidence.per_seed[seed_index]
-        components.append(float(seed.query_count))
-        components.extend(seed.observed_class_frequencies.astype(np.float64).tolist())
-        components.append(_optional_float(seed.mean_population))
-        components.append(_optional_float(seed.mean_food))
-        components.append(_optional_float(seed.mean_wealth))
-        components.append(_optional_float(seed.mean_defense))
+        components.extend(
+            _seed_summary_components_from_evidence(
+                seed,
+                feature_variant=normalized_variant,
+            ),
+        )
     return np.asarray(components, dtype=np.float64)
 
 
-def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
+def _summary_vector_from_artifact(
+    path: Path,
+    *,
+    feature_variant: str = "basic",
+) -> tuple[np.ndarray, np.ndarray]:
+    normalized_variant = _normalize_summary_feature_variant(feature_variant)
     artifact = load_synthetic_episode(path)
     grouped: dict[int, list[LiveQueryObs]] = {}
     for observation in artifact.observations:
@@ -52,34 +192,12 @@ def _summary_vector_from_artifact(path: Path) -> tuple[np.ndarray, np.ndarray]:
     components: list[float] = []
     for seed_index in seed_indexes:
         observations = grouped.get(seed_index, [])
-        class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
-        populations: list[float] = []
-        foods: list[float] = []
-        wealths: list[float] = []
-        defenses: list[float] = []
-        for observation in observations:
-            collapsed = collapse_internal_grid(observation.grid)
-            bincount = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
-            class_counts += bincount
-            for settlement in observation.settlements:
-                if settlement.population is not None:
-                    populations.append(float(settlement.population))
-                if settlement.food is not None:
-                    foods.append(float(settlement.food))
-                if settlement.wealth is not None:
-                    wealths.append(float(settlement.wealth))
-                if settlement.defense is not None:
-                    defenses.append(float(settlement.defense))
-        total = float(np.sum(class_counts))
-        class_frequencies = (
-            class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
+        components.extend(
+            _artifact_seed_summary_components(
+                observations,
+                feature_variant=normalized_variant,
+            ),
         )
-        components.append(float(len(observations)))
-        components.extend(class_frequencies.tolist())
-        components.append(float(np.mean(populations)) if populations else 0.0)
-        components.append(float(np.mean(foods)) if foods else 0.0)
-        components.append(float(np.mean(wealths)) if wealths else 0.0)
-        components.append(float(np.mean(defenses)) if defenses else 0.0)
     return np.asarray(components, dtype=np.float64), artifact.regime_vector
 
 

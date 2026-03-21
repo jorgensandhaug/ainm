@@ -2502,3 +2502,187 @@
   - stop sweeping minor target variants around the same rate-decoder scaffold
   - move to a more structural hidden-state / winter-shock family object
   - or return to the decoder family only if the latent target itself changes qualitatively, not cosmetically
+
+### 2026-03-21 UTC: richer transcript encoder (`stress_v1`) for the summary-rate family
+
+- Re-read again before coding:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- Re-checked machine health before the new parallel block:
+  - memory:
+    - about `820 GiB` used
+    - about `2.1 TiB` free / `2.1 TiB` available
+  - cores:
+    - `384`
+  - active external load:
+    - agent1 + agent3 were already running many `20-40 GB` jobs
+  - read:
+    - safe to run a 4-way audit block and later a 4-way smoke block, but not an unbounded sweep
+- Also asked both local subagents for sidecar reads:
+  - both converged on the same family read:
+    - stop cosmetic target shuffles
+    - push either a hidden-stress latent or a better transcript encoder
+  - I chose the cheaper falsifiable branch first:
+    - richer transcript encoder on the existing `summary_rate_decoder` scaffold
+
+- Landed code:
+  - `src/astar/observe/evidence.py`
+    - extended live-safe evidence with:
+      - observed/repeated cell counts
+      - mean positive coverage count
+      - mean/std settlement count
+      - port share
+      - owner count / largest owner share / owner HHI
+      - mean/std/q25/q75 for population / food / wealth / defense
+  - `src/astar/student/posterior/deepset_student.py`
+    - added versioned summary feature variants:
+      - `basic` = old behavior
+      - `stress_v1` = richer transcript encoder
+    - kept old summary extraction path immutable under `basic`
+  - `src/astar/student/predictor/summary_bank.py`
+    - wired `summary_feature_variant`
+  - `src/astar/student/predictor/summary_rate_decoder.py`
+    - wired `summary_feature_variant`
+  - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - added immutable model names:
+      - `f1_summary_rate_decoder_stress_v01`
+      - `f1_summary_rate_decoder_teacher_stress_v01`
+      - `f1_summary_rate_decoder_collapse_portsplit_stress_v01`
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01`
+  - `src/astar/workflows/event_regime_posterior_audit.py`
+    - audit now supports `summary_feature_variant`
+  - `src/astar/cli.py`
+  - `src/astar/cli_output.py`
+  - tests:
+    - `tests/test_event_regime_posterior_audit.py`
+    - `tests/test_summary_rate_decoder_predictor.py`
+
+- Validation after landing `stress_v1`:
+  - focused:
+    - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_summary_rate_decoder_predictor.py -q`
+    - result:
+      - `7 passed`
+  - broader:
+    - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_summary_rate_decoder_predictor.py tests/test_teacher_student.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+    - result:
+      - `25 passed`
+
+- Posterior-audit gate with `summary_feature_variant=stress_v1` on `f1_synthetic_live_coverage_b50_s4_v2`:
+  - `rates`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_stress_b50s4_v01/result.json`
+    - result:
+      - baseline MAE `0.614106`
+      - kNN MAE `0.394337`
+      - MAE gain `+0.219769`
+      - standardized MAE gain `+0.276586`
+    - compare to old `rates/basic`:
+      - old standardized MAE gain `+0.224329`
+      - read:
+        - real improvement at the transcript→rates posterior step
+  - `collapse_portsplit`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_portsplit_stress_b50s4_v01/result.json`
+    - result:
+      - standardized MAE gain `+0.155147`
+    - compare to old `collapse_portsplit/basic`:
+      - old standardized MAE gain `+0.114416`
+      - read:
+        - also better at the posterior step
+  - `collapse_timing_stress`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_timing_stress_feat_b50s4_v01/result.json`
+    - result:
+      - standardized MAE gain `+0.158350`
+    - compare to old `collapse_timing_stress/basic`:
+      - old standardized MAE gain `+0.165279`
+      - read:
+        - richer encoder does not rescue this raw stress target
+  - `birth_collapse_timing_stress`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_birth_collapse_timing_stress_feat_b50s4_v01/result.json`
+    - result:
+      - standardized MAE gain `+0.188899`
+    - compare to old `birth_collapse_timing_stress/basic`:
+      - old standardized MAE gain `+0.195008`
+      - read:
+        - same story; still worse than old `rates`
+
+- Current-smoke benchmark sweep on the exact current 3-round smoke slice:
+  - rounds:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `f1_summary_rate_decoder_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.3840`
+      - KL `0.129551`
+      - runtime `81.114s`
+    - compare vs old `f1_summary_rate_decoder_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_v01__candidate=f1_summary_rate_decoder_stress_v01.json`
+      - score delta `-0.2641`
+      - KL delta `+0.001096`
+      - win rate `0.000`
+  - `f1_summary_rate_decoder_teacher_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_teacher_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.6262`
+      - KL `0.128828`
+      - runtime `403.030s`
+    - compare vs old `f1_summary_rate_decoder_teacher_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_teacher_v01__candidate=f1_summary_rate_decoder_teacher_stress_v01.json`
+      - score delta `-0.2578`
+      - KL delta `+0.001061`
+      - win rate `0.000`
+    - compare vs `f1_student_query_residual_supportx_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_teacher_stress_v01.json`
+      - score delta `-3.2912`
+      - KL delta `+0.023132`
+  - `f1_summary_rate_decoder_collapse_portsplit_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.3800`
+      - KL `0.129537`
+      - runtime `80.231s`
+    - compare vs old `f1_summary_rate_decoder_collapse_portsplit_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_stress_v01.json`
+      - score delta `-0.2639`
+      - KL delta `+0.001096`
+      - win rate `0.000`
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.6459`
+      - KL `0.128709`
+      - runtime `400.369s`
+    - compare vs old `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01.json`
+      - score delta `-0.2556`
+      - KL delta `+0.001051`
+      - win rate `0.000`
+    - compare vs `f1_student_query_residual_supportx_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_stress_v01.json`
+      - score delta `-3.2715`
+      - KL delta `+0.023013`
+
+- Main contradiction from this block:
+  - richer transcript summaries improved the posterior audit on the good small latent (`rates`) and on `collapse_portsplit`
+  - but the same richer summaries made every benchmarkable `summary_rate_decoder` variant worse
+  - strongest read:
+    - better transcript→latent kNN fit is not enough
+    - the decoder fit / low-data held-in law estimation is likely the actual bottleneck on this scaffold
+    - or the richer encoder amplifies round-4 fit while not fixing the round-6 collapse failure
+
+- Updated family read after this block:
+  - transcript encoder richness alone is not the missing win
+  - `stress_v1` is a useful validation finding, not a promotable model line
+  - do not spend more on summary-feature sweeps over the same rate-decoder scaffold
+  - next best family branch should return to the subagent-consistent direction:
+    - a qualitatively different hidden-stress / winter-shock latent
+    - ideally supervised for terminal usefulness, not just easier posterior audit
