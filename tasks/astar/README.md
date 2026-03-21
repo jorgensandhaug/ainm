@@ -260,7 +260,7 @@ High-level contract:
 - `data/derived/**`
   Reproducible tensors/parquet derived from raw artifacts.
 - `data/artifacts/**`
-  Reports, model checkpoints, datasets, benchmark outputs, run manifests.
+  Reports, model checkpoints, datasets, benchmark outputs, run manifests, and other shareable run outputs.
 - `data/catalog.duckdb`
   Event log / observability catalog.
 
@@ -281,16 +281,16 @@ Most important subtrees:
 
 ## Data Policy
 
-This project intentionally versions data artifacts in git.
+This project intentionally versions raw data in git and selectively versions useful artifacts.
 
 Committed:
 
 - `data/raw/**`
-- `data/derived/**`
-- `data/artifacts/**`
+- selected `data/artifacts/**` outputs that are worth reviewing or sharing
 
 Not committed:
 
+- new `data/derived/**` outputs; they are reproducible and ignored by default
 - `.env`
 - auth tokens
 - local env/cache directories
@@ -299,6 +299,7 @@ Repo invariant:
 
 - raw artifacts are immutable
 - derived artifacts should be reproducible from raw inputs plus code
+- do not add new derived outputs to git; regenerate them locally as needed
 
 ## Common Commands
 

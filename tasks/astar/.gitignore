@@ -10,7 +10,7 @@ __pycache__/
 *.pyo
 *.egg-info/
 
-# Astar data is intentionally versioned and shared through git.
+# Keep `data/` visible so raw data and selected artifacts can be versioned.
 !data/
 !data/**
 data/catalog.duckdb
