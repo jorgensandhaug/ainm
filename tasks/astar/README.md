@@ -334,6 +334,7 @@ uv run astar summarize-replays --round-id <round-id>
 uv run astar fetch-round-analyses --round-id <round-id>
 uv run astar materialize-episode --round-id <round-id>
 uv run astar episode-summary --round-id <round-id>
+uv run astar build-event-ledger
 uv run astar dataset-summary
 uv run astar corpus-summary
 ```

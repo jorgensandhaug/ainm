@@ -1,0 +1,112 @@
+{
+  "dataset_name": "f1_replay_event_ledger_v1",
+  "dataset_kind": "replay_event_ledger",
+  "row_count": 16267769,
+  "round_count": 9,
+  "replay_run_count": 2313,
+  "index_path": "/home/jorge/agent6/tasks/astar/data/artifacts/datasets/f1_replay_event_ledger_v1/events.parquet",
+  "event_counts": {
+    "settlement_delta": 13424383,
+    "owner_switch": 37675,
+    "collapse": 942087,
+    "birth": 754311,
+    "reclaim_forest": 176753,
+    "rebuild": 514840,
+    "reclaim_empty": 375422,
+    "portization": 42298
+  },
+  "per_round_event_counts": {
+    "2a341ace-0f57-4309-9b89-e59fe0f09179": {
+      "settlement_delta": 207379,
+      "owner_switch": 2340,
+      "collapse": 14831,
+      "birth": 11475,
+      "reclaim_forest": 3214,
+      "rebuild": 9288,
+      "reclaim_empty": 6499,
+      "portization": 671
+    },
+    "36e581f1-73f8-453f-ab98-cbe3052b701b": {
+      "settlement_delta": 2092411,
+      "collapse": 113372,
+      "reclaim_empty": 40744,
+      "owner_switch": 8215,
+      "birth": 104549,
+      "portization": 6202,
+      "reclaim_forest": 19594,
+      "rebuild": 57989
+    },
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd": {
+      "settlement_delta": 1939045,
+      "collapse": 104958,
+      "rebuild": 53185,
+      "birth": 108553,
+      "reclaim_forest": 18657,
+      "reclaim_empty": 37262,
+      "portization": 7278,
+      "owner_switch": 7997
+    },
+    "76909e29-f664-4b2f-b16b-61b7507277e9": {
+      "settlement_delta": 2316124,
+      "birth": 140328,
+      "collapse": 154275,
+      "reclaim_forest": 26038,
+      "rebuild": 82338,
+      "reclaim_empty": 58928,
+      "owner_switch": 6999,
+      "portization": 6956
+    },
+    "8e839974-b13b-407b-a5e7-fc749d877195": {
+      "settlement_delta": 1343004,
+      "owner_switch": 767,
+      "collapse": 91085,
+      "rebuild": 52395,
+      "reclaim_forest": 21311,
+      "birth": 65292,
+      "reclaim_empty": 40457,
+      "portization": 4010
+    },
+    "ae78003a-4efe-425a-881a-d16a39bca0ad": {
+      "settlement_delta": 2929488,
+      "collapse": 247345,
+      "reclaim_empty": 86782,
+      "birth": 202917,
+      "rebuild": 136014,
+      "reclaim_forest": 37581,
+      "owner_switch": 1655,
+      "portization": 10079
+    },
+    "c5cdf100-a876-4fb7-b5d8-757162c97989": {
+      "settlement_delta": 616086,
+      "collapse": 61630,
+      "reclaim_empty": 37351,
+      "reclaim_forest": 18269,
+      "rebuild": 35299,
+      "owner_switch": 3176,
+      "portization": 1415,
+      "birth": 24606
+    },
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb": {
+      "settlement_delta": 252661,
+      "collapse": 33414,
+      "rebuild": 17837,
+      "reclaim_empty": 20209,
+      "reclaim_forest": 8951,
+      "owner_switch": 1182,
+      "birth": 4439,
+      "portization": 300
+    },
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b": {
+      "settlement_delta": 1728185,
+      "owner_switch": 5344,
+      "collapse": 121177,
+      "reclaim_empty": 47190,
+      "rebuild": 70495,
+      "birth": 92152,
+      "reclaim_forest": 23138,
+      "portization": 5387
+    }
+  },
+  "invariant_counts": {},
+  "distinct_event_type_count": 8
+}

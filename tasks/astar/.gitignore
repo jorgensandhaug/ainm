@@ -14,3 +14,7 @@ __pycache__/
 !data/
 !data/**
 data/catalog.duckdb
+
+# Large replay event-ledger parquet files are reproducible local artifacts.
+# Keep their summaries/versioned code in git, but not the raw ledger payloads.
+data/artifacts/datasets/*/events.parquet

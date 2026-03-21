@@ -52,6 +52,7 @@ from astar.core.validation import SubmissionSpec, validate_prediction_tensor
 from astar.eval.backtest import backtest_round_from_saved_analyses
 from astar.eval.diagnostics import build_local_dataset_diagnostics, build_round_episode_diagnostics
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+from astar.history.datasets.event_ledger import build_replay_event_ledger_dataset
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
 from astar.history.replay.ingest import ingest_replays
@@ -233,6 +234,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
     teacher_transition_parser.add_argument("--round-id", action="append", default=None)
+
+    event_ledger_parser = subparsers.add_parser("build-event-ledger")
+    event_ledger_parser.add_argument("--round-id", action="append", default=None)
+    event_ledger_parser.add_argument("--dataset-name", default="replay_event_ledger_v1")
 
     teacher_terminal_parser = subparsers.add_parser("build-teacher-terminal-dataset")
     teacher_terminal_parser.add_argument("--round-id", action="append", default=None)
@@ -508,6 +513,15 @@ def _main() -> int:
 
     if args.command == "build-teacher-transition-dataset":
         dataset = build_teacher_transition_dataset(paths, round_ids=args.round_id)
+        _emit(args.json, dataset, render_dataset_ref(dataset))
+        return 0
+
+    if args.command == "build-event-ledger":
+        dataset = build_replay_event_ledger_dataset(
+            paths,
+            round_ids=args.round_id,
+            dataset_name=args.dataset_name,
+        )
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0
 

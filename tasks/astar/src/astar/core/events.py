@@ -4,8 +4,11 @@ from enum import StrEnum
 
 
 class ReplayEventKind(StrEnum):
-    BUILD = "build"
-    PORT = "port"
-    RUIN = "ruin"
-    OWNER_FLIP = "owner_flip"
-    RECLAIM = "reclaim"
+    BIRTH = "birth"
+    PORTIZATION = "portization"
+    COLLAPSE = "collapse"
+    REBUILD = "rebuild"
+    RECLAIM_FOREST = "reclaim_forest"
+    RECLAIM_EMPTY = "reclaim_empty"
+    OWNER_SWITCH = "owner_switch"
+    SETTLEMENT_DELTA = "settlement_delta"

@@ -56,21 +56,21 @@
 2. Keep Gate 1 open but no longer blocked: current proxy says common transitions are near-Markov, with targeted lag sensitivity around collapse/port.
 3. Gate 2 result now says the current crude terminal-law parameterization is not predictively tiny-latent enough.
 4. Next work should shift toward richer per-round effective laws:
-   - event-ledger / event-hazard models, especially build/birth dynamics
+   - replay event-ledger is now built; next missing piece is hazard-training support with eligible negatives, especially for build/birth
    - richer collapse-sensitive state if returning to Gate 1 refinement
    - only then revisit low-rank coupling / live regime inference
 
 ## Active Experiment
 
-- Audit complete: `f1_round_dynamics_lowrank_oracle_v1`
+- Dataset complete: `f1_replay_event_ledger_v1`
 - Hypothesis:
-  - if fitted per-round semimechanistic laws live in a tiny low-rank subspace, family 1 remains viable under the 50-query live constraint
-  - if even oracle low-rank projection needs many dimensions or still loses large predictive mass, family 1 should be downgraded or wrapped inside a broader grey-box model
+  - a clean replay event ledger is the decisive preprocessing layer needed before real family-1 hazard models
+  - if the ledger shows sane event counts and no obvious invariant violations, the next step should be an eligible-cell hazard dataset rather than more terminal-law engineering
 - Validation plan:
-  - fit one semimechanistic coefficient vector per replay-backed round
-  - leave one round out, fit low-rank basis on the rest, and project held-out coefficients onto rank-`k` bases
-  - measure reconstruction and induced predictive loss vs rank
-  - keep interpretation conservative because projection is oracle and tests compressibility, not live identifiability
+  - extract discrete structural events plus settlement stat deltas from full replay transitions
+  - attach static geometry and local neighbor context
+  - scan for basic impossibility violations in the same pass
+  - build versioned artifact and inspect real-corpus event mix before designing hazard-training data
 
 ## Runtime Finding
 
@@ -95,8 +95,10 @@
 - `data/artifacts/family1/registry.jsonl`
 - `data/artifacts/family1/markov/f1_markov_sufficiency_cellproxy_v1/report.md`
 - `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md`
+- `data/artifacts/datasets/f1_replay_event_ledger_v1/summary.json`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
+- `src/astar/history/datasets/event_ledger.py`
 - `src/astar/workflows/model_eval.py`
 - `src/astar/workflows/historical_benchmark.py`
 - `src/astar/workflows/markov_sufficiency.py`
@@ -199,3 +201,49 @@
 - Updated next-step read:
   - strongest next family-1 baseline should be event-hazard / event-ledger based, especially for build dynamics
   - low-rank coupling should be revisited only after richer effective laws exist
+
+### 2026-03-21 UTC
+
+- Re-read family handoff sections for Phase 1 event ledger and Phase 3 hazard modeling.
+- Inspected current `HazardTeacher`; confirmed it is a terminal snapshot law and not the right next mainline after Gate 2.
+- Implemented canonical replay event names in `src/astar/core/events.py`.
+- Added `build_replay_event_ledger_dataset` in `src/astar/history/datasets/event_ledger.py`.
+  - emits structural event rows:
+    - `birth`
+    - `portization`
+    - `collapse`
+    - `rebuild`
+    - `reclaim_forest`
+    - `reclaim_empty`
+    - `owner_switch`
+  - also emits `settlement_delta` support rows with population / food / wealth / defense deltas
+  - attaches static geometry + local neighbor context
+  - scans basic invariants during extraction
+- Added CLI entry:
+  - `uv run astar build-event-ledger --dataset-name f1_replay_event_ledger_v1`
+- Added regression test:
+  - `tests/test_event_ledger.py`
+- Validation rerun after event-ledger changes:
+  - `uv run pytest tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `17 passed`
+- Built full-corpus event ledger artifact:
+  - dataset dir: `data/artifacts/datasets/f1_replay_event_ledger_v1/`
+  - rows: `16267769`
+  - rounds: `9`
+  - replay runs: `2313`
+  - full parquet payload is large (`352M`) and kept as a reproducible local artifact; lightweight summary is the versioned git-side contract
+- Full-corpus event counts:
+  - `settlement_delta`: `13424383`
+  - `collapse`: `942087`
+  - `birth`: `754311`
+  - `rebuild`: `514840`
+  - `reclaim_empty`: `375422`
+  - `reclaim_forest`: `176753`
+  - `portization`: `42298`
+  - `owner_switch`: `37675`
+- Invariant scan result from ledger build:
+  - no violations detected in the currently tracked basic checks
+- Current interpretation:
+  - the replay event ledger is now real, versioned, and large enough to support actual hazard-model work
+  - build/birth and collapse remain the dominant structural event masses
+  - next concrete step should be a hazard-training dataset with eligible negatives / risk sets, not more positive-only event summaries
