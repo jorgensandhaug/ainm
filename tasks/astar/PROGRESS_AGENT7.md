@@ -2611,7 +2611,25 @@ Framework should accept unique query-residual family variant names directly so b
 9. **Operator ridge also over-regularized**: lambda 8.0 → 2.0 gives additional +0.05
 10. **Round 3 massive rescue**: The hardest round improved by +13.4 points - from 64.1 to 77.5
 11. **Multi-seed MLP ensemble is neutral**: Seed sensitivity is <0.01 points, ensembling 3-7 seeds gives <0.02 improvement. The MLP trains stably and there's no variance to reduce.
-12. **Architecture is near its ceiling**: All explored axes (MLP capacity, q, cluster count, bandwidth, neighbor count, ensemble) are now flat within ~0.05 of v104's 79.87
+12. **Probability floor was catastrophically too high**: Reducing from 0.01 to 0.001 gave +5 points!
+13. **Exact-cell beta was too low**: Increasing from 2/8 to 8/32 (more model trust, less observation trust) gave +2 points!
+14. **These two effects compound multiplicatively**: Together they gave +7.5 points total
+
+### 2026-03-21T16:30Z approx
+
+- Discovered probability_floor was massively over-conservative:
+  - floor=0.01 (default) → v104 = 79.87
+  - floor=0.005 → v116 = 82.11 (+2.24!)
+  - floor=0.003 → v118 = 82.89
+  - floor=0.002 → v119 = 83.28
+  - floor=0.001 → v123 = 85.03
+  - floor=0.0005 → v127 = 85.21
+- Discovered exact-cell beta too low (model predictions should be trusted more):
+  - beta=2/8 (default) → baseline
+  - beta=4/16 → +1.3 points
+  - beta=8/32 → +1.8 points
+- Combined: floor=0.001 + beta=8/32 → v128 = 85.24
+- v129-v132 launched for final push
 
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
