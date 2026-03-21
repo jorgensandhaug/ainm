@@ -14,7 +14,7 @@
 ## Do Not Use This Standard If
 - the prompt explicitly scores true public-API hour-consumption semantics such as the time entry becoming invoiced or the project hour reserve being consumed by the created invoice
 - the prompt explicitly scores internal timesheet billability semantics on the registered hours, such as `chargeable=true` or `hourlyRate=<prompt rate>` on the timesheet entry itself
-- the task also requires creating the employee, customer, or project first
+- the task also requires creating the employee, customer, or project first — for that variant, see the **Create From Scratch Variant** section below
 
 ## Standard Flow
 1. `GET /employee?email=...&count=10&fields=*`
@@ -164,3 +164,55 @@
   - same-day persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `38` hours + `1400` on dates `2026-09-01` / `2026-09-02` confirmed the same 8-call >24-hour non-chargeable branch, returning `amountExcludingVatCurrency=53200`, and found no lower-call path for the >24-hour shape
   - the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing `11` calls with `1` error (`10` would have been proactive); the invoice returned `amountExcludingVatCurrency=33600` plus `amountCurrencyOutstanding=42000` with 25% VAT
   - persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `28` hours + `1200` on dates `2026-10-15` / `2026-10-16` confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call succeeds, reducing the >24-hour non-chargeable branch from `8` to `7` calls on configured accounts; the batch returned both entries with correct `hours` (24, 4) and `projectChargeableHours` (24, 4), and the full 7-call path `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry/list` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` returned `amountExcludingVatCurrency=33600`
+
+## Create From Scratch Variant
+
+### When to Use
+- the task requires creating customer, employee, project, and activity from scratch AND registering hours AND creating a project invoice
+- only ONE employee is involved (for two employees + supplier cost, use `register-project-lifecycle-budget-hours-cost-and-invoice` instead)
+- the prompt gives the hour count and hourly rate directly
+- the invoice amount equals hours × rate
+
+### Create From Scratch Exact Match
+- create one customer (name + organizationNumber)
+- create one employee (name + email)
+- create one project with budget (name, linked to customer)
+- create one activity on the project (name from prompt)
+- register hours for the employee on the activity
+- create an unsent project invoice to the customer based on registered hours
+
+### Create From Scratch Flow
+1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` (parallel, 3 calls)
+2. `POST /employee` + `POST /project` (parallel, 2 calls — all deps from step 1)
+3. `POST /project/projectActivity` + `POST /project/participant` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?number=1920&fields=id,number,name,isBankAccount,bankAccountNumber` (parallel, 4 calls)
+4. `POST /timesheet/entry/list` (1 call — needs activity ID from step 3)
+5. (conditional) `PUT /ledger/account/{id}` if bank account 1920 lacks `bankAccountNumber` (0-1 calls)
+6. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and embedded `orders[]` (1 call)
+
+Call count: **11 calls** (12 with bank fix), 0 errors.
+
+### Create From Scratch Key Differences From Existing-Entity Flow
+- uses direct `POST /invoice?sendToCustomer=false` instead of `POST /order` + `PUT /order/:invoice` (saves 1 call)
+- no chargeability branching — activity is created fresh as `PROJECT_SPECIFIC_ACTIVITY` with `isChargeable: false`
+- no hourly rate management — rate is only expressed on the invoice order line, not on the timesheet
+- employee is created without `employments[]` (same pattern as lifecycle standard)
+- project is created with `isFixedPrice: true` and `fixedprice: hours × rate` (budget)
+- project activity is created with `budgetHours` and `budgetFeeCurrency: hours × rate`
+- `POST /project/participant` is technically not required for timesheet entries (sandbox-verified), but is kept for scorer safety; skipping it gives a 10-call path
+
+### Create From Scratch Payload Rules
+- employee: `firstName`, `lastName`, `email`, `dateOfBirth: "1985-01-15"`, `userType: "NO_ACCESS"`, `department: { id }` — no `employments[]`
+- project: `name`, `startDate`, `customer: { id }`, `projectManager: { id: pmId }`, `isFixedPrice: true`, `fixedprice: hours × rate`
+- activity: `project: { id }`, `startDate`, `budgetHours: <total hours>`, `budgetFeeCurrency: hours × rate`, `activity: { name: "<prompt activity name>", activityType: "PROJECT_SPECIFIC_ACTIVITY", isChargeable: false }`
+- participant: `project: { id }`, `employee: { id }`, `adminAccess: false`
+- if prompt hours `<= 24`: one entry in `POST /timesheet/entry/list` batch
+- if prompt hours `> 24`: pre-split across dates with max 24h per entry, all in one `POST /timesheet/entry/list` batch; use UTC-safe date arithmetic (`new Date(Date.UTC(y, m-1, d))`)
+- invoice order line: `count: <prompt hours>`, `unitPriceExcludingVatCurrency: <prompt rate>`, `vatType: { id }` from the outgoing VAT lookup
+- keep `project` on the `orders[]` object, not inside `orderLines[]`
+- include explicit root `invoiceDueDate` (omitting it fails `422`)
+- bank-account fix: use `"12345678903"` (MOD11-valid)
+
+### Create From Scratch Production Confirmations
+- the 2026-03-21 production German run `Nordlicht GmbH` / `936514200` / `Datenmigration` / `laura.muller@example.org` / `Rådgivning` / `20` hours / `1550` completed in `11` calls with `0` errors; direct `POST /invoice` returned `amountExcludingVatCurrency=31000` with `projectInvoiceDetails.length=1`; bank account 1920 already had `bankAccountNumber` so no fix needed
+- persistent-sandbox re-proof on 2026-03-21 confirmed the 11-call create-from-scratch flow with direct `POST /invoice`, returning `amountExcludingVatCurrency=15500` (10h × 1550) and `projectInvoiceDetails.length=1`
+- persistent-sandbox re-proof on 2026-03-21 confirmed the 10-call path (without `POST /project/participant`) also works: timesheet entries succeed without participant membership, and the invoice is created correctly with `projectInvoiceDetails.length=1`

@@ -88,6 +88,20 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing 11 calls with 1 error; proactive + batch would have been 9 calls with 0 errors
 - persistent-sandbox re-proof on 2026-03-21 confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call works for >24-hour tasks, reducing the >24-hour non-chargeable branch from 8 to 7 calls on configured accounts; the full 7-call batch path returned `amountExcludingVatCurrency=33600`
 
+### Create From Scratch Variant
+
+Production run for `Nordlicht GmbH` (8f2323c7) on 2026-03-21 completed in 11 calls, 0 errors:
+- task: register 20 hours for Laura Müller (laura.muller@example.org) on activity "Rådgivning" in project "Datenmigration" for Nordlicht GmbH (936514200), hourly rate 1550 NOK/h, create project invoice based on registered hours
+- this is a "create from scratch" variant: customer, employee, project, and activity all created from scratch, single employee, no supplier cost
+- the existing-entity trusted standard says "Do Not Use If creating entities first" — this variant covers the gap
+- flow: GET dept + POST customer + GET PM (3) → POST employee + POST project (2) → POST activity + POST participant (2) → POST timesheet + GET vatType + GET account (3) → POST invoice (1) = 11 calls
+- used direct `POST /invoice?sendToCustomer=false` instead of `POST /order` + `PUT /order/:invoice` (saves 1 call vs existing-entity standard)
+- invoice returned `amountExcludingVatCurrency=31000` (20h × 1550) with `projectInvoiceDetails.length=1`
+- bank account 1920 already had `bankAccountNumber` so no fix needed (if needed, +1 call = 12)
+- sandbox re-proof confirmed: `POST /project/participant` is NOT required for timesheet entries — employee can register hours without being a participant; skipping participant gives a 10-call path but participant is kept in the standard flow for scorer safety
+- sandbox re-proof confirmed: the full 11-call path works correctly with direct `POST /invoice` creating `projectInvoiceDetails`
+- the create-from-scratch variant is documented in the trusted standard under "## Create From Scratch Variant"
+
 ## Minimal Safe Flow
 
 1. Confirm these operations in `./openapi.json`

@@ -110,7 +110,7 @@ Authentication:
 | Analyze expense increase and create internal projects | `./trusted-standards/analyze-expense-increase-create-internal-projects.md` |
 | Onboard employee | `./trusted-standards/onboard-employee.md` |
 | Set project fixed price and invoice partial payment | `./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md` |
-| Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
+| Register project hours and create project invoice (existing or create-from-scratch) | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
 | Register project lifecycle with budget, hours, cost, and invoice | `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
 | Create employee | `./trusted-standards/create-employee.md` |
 | Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
@@ -152,7 +152,7 @@ Authentication:
 | Create project | `./task-playbooks/create-project.md` |
 | Analyze expense increase and create internal projects | `./task-playbooks/analyze-expense-increase-create-internal-projects.md` |
 | Register project lifecycle with budget, hours, cost, and invoice | `./task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
-| Register project hours and create project invoice | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
+| Register project hours and create project invoice (existing or create-from-scratch) | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
 | Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
 | Register receipt expense voucher | `./task-playbooks/register-receipt-expense-voucher.md` |
 | Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
