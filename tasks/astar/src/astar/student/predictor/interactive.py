@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import hashlib
+import math
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -30,6 +31,8 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND40_V001 = "smh_coeffbank_z0_h0_covlike_hbblen
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_V001 = "smh_coeffbank_z0_h0_covlike_hbblend50_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_V001 = "smh_coeffbank_z0_h0_covlike_hbblend60_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBADAPT25_V001 = "smh_coeffbank_z0_h0_covlike_hbadapt25_v001"
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001 = "smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001"
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001 = "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001"
 SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001 = "smh_knn5_z12_h0_covsum_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBASE_V001 = "smh_knn5_z12_h0_covaug_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBANK_V001 = "smh_knn5_z12_h0_covaug_calbank_v001"
@@ -318,6 +321,77 @@ class BuiltFrequencyAdaptiveBlendPredictor(AdaptiveEntropyDisagreementBlendPredi
                 else self._round_target_right_weight_from_evidence(evidence)
             ),
         )
+
+
+class ExactObservationBlendPredictor(BaseRoundPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    base_predictor: BaseRoundPredictor
+    beta_min: float
+    beta_scale: float
+    probability_floor: float
+    name: str = "exact_observation_blend_v1"
+
+    def _exact_cell_blend(
+        self,
+        prediction: np.ndarray,
+        exact_counts: np.ndarray,
+    ) -> np.ndarray:
+        count_total = np.sum(exact_counts, axis=-1, keepdims=True)
+        if not np.any(count_total > 0.0):
+            return prediction
+        prior_entropy = -np.sum(
+            prediction * np.log(np.maximum(prediction, 1e-12)),
+            axis=-1,
+            keepdims=True,
+        )
+        beta = self.beta_min + self.beta_scale * (1.0 - (prior_entropy / math.log(prediction.shape[-1])))
+        blended = np.where(
+            count_total > 0.0,
+            (beta * prediction + exact_counts) / np.maximum(beta + count_total, 1e-6),
+            prediction,
+        )
+        floored = np.maximum(blended, self.probability_floor)
+        return floored / np.sum(floored, axis=-1, keepdims=True)
+
+    def _blend_bundle_with_evidence(
+        self,
+        bundle: PredictionBundle,
+        evidence_bundle,
+    ) -> PredictionBundle:
+        predictions_by_seed = {}
+        for seed_index, prediction in bundle.predictions_by_seed.items():
+            exact_counts = np.asarray(
+                evidence_bundle.per_seed[seed_index].observed_class_count_tensor,
+                dtype=np.float64,
+            )
+            predictions_by_seed[seed_index] = self._exact_cell_blend(
+                np.asarray(prediction, dtype=np.float64),
+                exact_counts,
+            )
+        return PredictionBundle(
+            round_id=bundle.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        bundle = _bundle_from_context(self.base_predictor, context)
+        return self._blend_bundle_with_evidence(bundle, context.evidence_bundle)
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        bundle = self.base_predictor.build_prediction_bundle(round_detail, features, evidence)
+        if evidence is None:
+            return bundle
+        return self._blend_bundle_with_evidence(bundle, evidence)
 
 
 def _query_residual_checkpoint_dir_name(
@@ -814,6 +888,27 @@ def _build_smh_coeffbank_hb_adaptive_adapter(
     )
 
 
+def _build_exact_observation_adapter(
+    base_predictor: BaseRoundPredictor,
+    *,
+    name: str,
+    beta_min: float = 8.0,
+    beta_scale: float = 24.0,
+    probability_floor: float = 0.01,
+) -> RoundPredictorAdapter:
+    predictor = ExactObservationBlendPredictor(
+        base_predictor=base_predictor,
+        beta_min=beta_min,
+        beta_scale=beta_scale,
+        probability_floor=probability_floor,
+        name=name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
@@ -1051,6 +1146,30 @@ def build_online_predictor(
             min_right_weight=0.05,
             max_right_weight=0.55,
             weight_exponent=1.0,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_coeffbank_hb_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_V001,
+            right_weight=0.50,
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_coeffbank_hb_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_V001,
+            right_weight=0.60,
+        )
+        return _build_exact_observation_adapter(
+            base_adapter.predictor,
+            name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001,
         )
     if normalized == SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
