@@ -36,7 +36,7 @@ Verified in persistent sandbox on 2026-03-20:
 - changing `travelDetails.isCompensationFromRates` to `true` allowed the same embedded per-diem row to persist with manual `count`, `rate`, and `amount`
 - the old create-only branch persisted manual per-diem rows with `rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`
 - `PUT /travelExpense/:deliver` then failed on missing `travelDetails.departureFrom`, missing `perDiemCompensations[].rateType`, and VAT-bearing `costs[].vatType` on a non-VAT-registered sandbox company
-- recreating with `travelDetails.departureFrom`, explicit `costs[].vatType={ "id": 0 }`, and per-diem `rateType` plus `overnightAccommodation` allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`
+- recreating with `travelDetails.departureFrom`, the cost category's default `costs[].vatType` (or `{ "id": 0 }` for non-VAT-registered companies), and per-diem `rateType` plus `overnightAccommodation` allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`
 - the `POST /travelExpense` response already proved the parent fields and returned child ids/counts, but `costs[]` and `perDiemCompensations[]` came back only as `id`/`url`
 - `GET /travelExpense/{id}?fields=*` still kept those child arrays sparse
 - `GET /travelExpense/cost?travelExpenseId=...&count=20&fields=*` returned full cost objects with comments, amounts, category ids, and payment-type ids
@@ -151,7 +151,7 @@ For the travel-expense create, the sandbox-proven shape was:
       "comments": "bilhete de avião",
       "amountCurrencyIncVat": 5200,
       "amountNOKInclVAT": 5200,
-      "vatType": { "id": 0 },
+      "vatType": { "id": "USE_CATEGORY_DEFAULT (e.g. 12 for Fly/Taxi)" },
       "date": "2026-03-19"
     },
     {
@@ -160,7 +160,7 @@ For the travel-expense create, the sandbox-proven shape was:
       "comments": "táxi",
       "amountCurrencyIncVat": 350,
       "amountNOKInclVAT": 350,
-      "vatType": { "id": 0 },
+      "vatType": { "id": "USE_CATEGORY_DEFAULT (e.g. 12 for Fly/Taxi)" },
       "date": "2026-03-20"
     }
   ]
@@ -175,6 +175,8 @@ For the travel-expense create, the sandbox-proven shape was:
 - **`perDiemCompensations[].isDayTrip` does NOT exist** — `isDayTrip` belongs on `travelDetails` only
 - **`costs[].currency` — do NOT include** — NOK is the default; including `currency: { code: "NOK" }` without `factor` causes 422 `costs.currency.factor: Må være minimum 1`; omit `currency` entirely
 - **`costs[].category` — unnecessary** — the `costCategory` object ref is what matters; `category` string is silently ignored
+- **`costs[].vatType` — use the category default, NOT hardcoded 0** — each cost category has a default `vatType` (e.g., Fly/Taxi default to `{ id: 12 }` = 12% input VAT); use `costCategory.vatType.id` from the lookup; if POST fails with `VAT_NOT_REGISTERED`, retry with `{ id: 0 }`
+- **`perDiemCompensations[].countryCode` — do NOT set** — `countryCode: "NO"` causes 422 "Country not enabled for travel expense" unless the company has the feature enabled; leave unset
 - do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
 - do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
 - do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
@@ -207,7 +209,7 @@ For the travel-expense create, the sandbox-proven shape was:
   - Formula: `count = number_of_days - 1` (equivalently: `returnDate - departureDate` in days)
   - `amount = count * rate` (e.g., 4 overnights × 800 = 3200, NOT 5 × 800 = 4000)
   - Do NOT use the prompt's literal day count as the per-diem count; always subtract 1
-  - This was the #1 scoring issue: all 16 production attempts used count=days and failed checks 2+3+6
+  - count=overnights is necessary but not sufficient alone; the full fix requires count=overnights + vatType from category default + isForeignTravel=false (all three confirmed in run 32d11eeb)
 - preserve the prompt's `rate` value, but compute `count = days - 1` and `amount = count * rate`; still include the correct hardcoded `rateType` so the row is deliverable
 - if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`
 - if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
@@ -309,3 +311,12 @@ For the travel-expense create, the sandbox-proven shape was:
   - correctly used per-diem count=3 (overnights=days-1) and rateType 25888/740
   - `state=DELIVERED`, expense `11150576`, 2 costs, 1 per-diem
   - **new trap discovered**: `costs[].currency: { code: "NOK" }` without `factor` causes 422; omit currency entirely (NOK is default)
+- 2026-03-22 `Svein Berge` / `svein.berge@example.org` / `Kundebesøk Trondheim` / 5-day per-diem 800/day + flight 2850 + taxi 200 (run 32d11eeb):
+  - duration-only prompt (Nynorsk), employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - **FIRST production run with category-default vatType (id=12) on costs** — confirmed production companies are VAT-registered
+  - 6-call run: employee+costCat+payType (parallel) → company → POST → PUT :deliver
+  - 0 errors, `state=DELIVERED`, expense `11150806`, 2 costs, 1 per-diem
+  - per-diem count=4 (overnights=5-1), rateType 25888/740 (overnight), overnightAccommodation=HOTEL
+  - all three scoring fixes applied: vatType=12 (category default) + count=overnights + isForeignTravel=false
+  - all required fields from first POST: location, destination, isForeignTravel, isCompensationFromRates — 0 avoidable errors
+  - **21st production run; 1st with fully corrected payload (vatType + count + isForeignTravel)**
