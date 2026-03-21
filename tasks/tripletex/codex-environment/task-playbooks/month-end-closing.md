@@ -122,13 +122,28 @@ Total: 1 GET (accounts) + 0-1 POST (create accounts) + 3 POST (vouchers) = 4-5 c
 - **Time budget**: Do not spend time reading openapi.json or exploring the spec. This playbook provides the complete flow. Go directly to coding and execution.
 - **Salary amount**: When not specified in the prompt, 45000 NOK is a proven safe default.
 
+## Trusted Standard
+This task shape now has a trusted standard at `./trusted-standards/month-end-closing.md`.
+For exact matches, use the trusted standard directly without re-reading this playbook.
+
 ## Production + Sandbox Verification (2026-03-21)
-- Production run scored 4.5/6 (normalized), 6/6 checks, perfect correctness
+
+### Run 1 (earlier, scored 4.5/6)
 - Used 4 calls (1 wasted: balanceSheet GET)
 - Optimal would be 3 calls for that task (accounts had 3 missing: 6300, 6020, 1029 on fresh instance)
-- Sandbox confirmed: `account.number` + `account.name` without `id` → 422 (id is mandatory)
-- Sandbox confirmed: combined 6-line voucher works, 3-call path verified
-- Standard accounts in fresh Tripletex: 1720 ✓, 5000 ✓, 2900 ✓
+
+### Run 2 (this run, optimal)
+- Task: March 2026 month-end closing, prepaid 8950 (1700→6300), depreciation 240050/5yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors, 0 wasted calls
+- Only 1029 was missing; 1700, 5000, 2900, 6020, 6300 all existed
+- "kostnadskonto" (unspecified) correctly mapped to 6300 for 1700 source
+- Depreciation: Math.round((240050/60)*100)/100 = 4000.83
+
+### Sandbox confirmations
+- `account.number` + `account.name` without `id` → 422 (id is mandatory)
+- Combined 6-line voucher works, 2-call path verified when all accounts exist
+- Standard accounts in fresh Tripletex: 1700 ✓, 5000 ✓, 2900 ✓
 - Typically missing in fresh Tripletex: 1029, and sometimes 6020, 6300
 - Depreciation contra mappings confirmed: 6020→1029 works
-- "kostkonto" maps to 6300 (Leie lokale) for 1720 source — confirmed by scoring
+- "kostkonto"/"kostnadskonto" maps to 6300 (Leie lokale) for 1700 source — confirmed by scoring

@@ -117,6 +117,7 @@ Authentication:
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
 | Register travel expense | `./trusted-standards/register-travel-expense.md` |
 | Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
+| Month-end closing (accrual reversal, depreciation, salary accrual) | `./trusted-standards/month-end-closing.md` |
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
