@@ -162,6 +162,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_method: str = "particle_mixture"
+    decoder_method: str = "mode_projection"
+    decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -199,6 +201,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_method: str = "particle_mixture"
+    decoder_method: str = "mode_projection"
+    decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -208,6 +212,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_input_names: tuple[str, ...] = ()
     mode_round_ids: tuple[str, ...] = ()
     base_operator_vector: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    round_operator_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     mode_basis: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     mode_coord_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
@@ -217,6 +222,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_metric_basis: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     posterior_metric_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     posterior_coord_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    posterior_round_index_bank: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
 
     @classmethod
     def fit_named_from_workspace(
@@ -321,12 +327,17 @@ class FFAMModePredictor(BaseRoundPredictor):
             round_id: mode_coord_bank[index]
             for index, round_id in enumerate(mode_round_ids)
         }
+        round_index_by_id = {
+            round_id: index
+            for index, round_id in enumerate(mode_round_ids)
+        }
         entry_by_round = {
             str(entry["round_id"]): entry
             for entry in round_entries
         }
         posterior_inputs: list[np.ndarray] = []
         posterior_targets: list[np.ndarray] = []
+        posterior_round_indexes: list[int] = []
         for row in rows:
             round_id = str(row["round_id"])
             if round_id not in entry_by_round or round_id not in coord_by_round:
@@ -351,6 +362,7 @@ class FFAMModePredictor(BaseRoundPredictor):
                     ),
                 )
                 posterior_targets.append(np.asarray(coord_by_round[round_id], dtype=np.float64))
+                posterior_round_indexes.append(int(round_index_by_id[round_id]))
 
         posterior_input_matrix = np.stack(posterior_inputs, axis=0).astype(np.float64)
         posterior_target_matrix = np.stack(posterior_targets, axis=0).astype(np.float64)
@@ -391,6 +403,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_method=config.posterior_method,
+            decoder_method=config.decoder_method,
+            decoder_particle_blend=config.decoder_particle_blend,
             posterior_metric_dim=config.posterior_metric_dim,
             posterior_neighbor_count=config.posterior_neighbor_count,
             posterior_bandwidth=config.posterior_bandwidth,
@@ -400,6 +414,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_names=tuple(posterior_input_names),
             mode_round_ids=tuple(mode_round_ids),
             base_operator_vector=base_operator_vector,
+            round_operator_bank=round_operator_bank,
             mode_basis=mode_basis,
             mode_coord_bank=mode_coord_bank,
             posterior_intercept=np.asarray(posterior_intercept, dtype=np.float64),
@@ -409,6 +424,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_basis=np.asarray(posterior_metric_basis, dtype=np.float64),
             posterior_metric_bank=np.asarray(posterior_metric_bank, dtype=np.float64),
             posterior_coord_bank=np.asarray(posterior_target_matrix, dtype=np.float64),
+            posterior_round_index_bank=np.asarray(posterior_round_indexes, dtype=np.int64),
         )
 
     def checkpoint(
@@ -437,6 +453,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             synthetic_dataset_version=self.synthetic_dataset_version,
             regime_input_variant=self.regime_input_variant,
             posterior_method=self.posterior_method,
+            decoder_method=self.decoder_method,
+            decoder_particle_blend=self.decoder_particle_blend,
             posterior_metric_dim=self.posterior_metric_dim,
             posterior_neighbor_count=self.posterior_neighbor_count,
             posterior_bandwidth=self.posterior_bandwidth,
@@ -455,6 +473,7 @@ class FFAMModePredictor(BaseRoundPredictor):
         np.savez_compressed(
             arrays_path,
             base_operator_vector=self.base_operator_vector,
+            round_operator_bank=self.round_operator_bank,
             mode_basis=self.mode_basis,
             mode_coord_bank=self.mode_coord_bank,
             posterior_intercept=self.posterior_intercept,
@@ -464,6 +483,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_basis=self.posterior_metric_basis,
             posterior_metric_bank=self.posterior_metric_bank,
             posterior_coord_bank=self.posterior_coord_bank,
+            posterior_round_index_bank=self.posterior_round_index_bank,
         )
         base_checkpoint_path = self.base_predictor.save_checkpoint(path.parent / "base_prior.json")
         path.write_text(
@@ -507,6 +527,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             synthetic_dataset_version=checkpoint.synthetic_dataset_version,
             regime_input_variant=checkpoint.regime_input_variant,
             posterior_method=checkpoint.posterior_method,
+            decoder_method=checkpoint.decoder_method,
+            decoder_particle_blend=checkpoint.decoder_particle_blend,
             posterior_metric_dim=checkpoint.posterior_metric_dim,
             posterior_neighbor_count=checkpoint.posterior_neighbor_count,
             posterior_bandwidth=checkpoint.posterior_bandwidth,
@@ -516,6 +538,10 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_names=tuple(checkpoint.posterior_input_names),
             mode_round_ids=tuple(checkpoint.mode_round_ids),
             base_operator_vector=np.asarray(arrays["base_operator_vector"], dtype=np.float64),
+            round_operator_bank=np.asarray(
+                arrays["round_operator_bank"] if "round_operator_bank" in arrays else np.zeros((0, 1)),
+                dtype=np.float64,
+            ),
             mode_basis=np.asarray(arrays["mode_basis"], dtype=np.float64),
             mode_coord_bank=np.asarray(arrays["mode_coord_bank"], dtype=np.float64),
             posterior_intercept=np.asarray(arrays["posterior_intercept"], dtype=np.float64),
@@ -525,6 +551,10 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_metric_basis=np.asarray(arrays["posterior_metric_basis"], dtype=np.float64),
             posterior_metric_bank=np.asarray(arrays["posterior_metric_bank"], dtype=np.float64),
             posterior_coord_bank=np.asarray(arrays["posterior_coord_bank"], dtype=np.float64),
+            posterior_round_index_bank=np.asarray(
+                arrays["posterior_round_index_bank"] if "posterior_round_index_bank" in arrays else np.zeros(0),
+                dtype=np.int64,
+            ),
         )
 
     def _posterior_metric_input(self, input_vector: np.ndarray) -> np.ndarray:
@@ -545,31 +575,46 @@ class FFAMModePredictor(BaseRoundPredictor):
         confidence = np.exp(-0.5 * np.square(anchor / max(self.posterior_bandwidth, 1e-6)))
         return float(np.clip(confidence, 0.0, 1.0))
 
-    def _particle_coords(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
-        if self.posterior_metric_bank.shape[0] == 0 or self.posterior_coord_bank.shape[0] == 0:
-            coords = np.asarray(self.posterior_intercept + (input_vector @ self.posterior_weights), dtype=np.float64)
-            return coords, 1.0
+    def _posterior_neighbors(
+        self,
+        input_vector: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+        if self.posterior_metric_bank.shape[0] == 0:
+            return (
+                np.zeros(0, dtype=np.int64),
+                np.zeros(0, dtype=np.float64),
+                np.zeros(0, dtype=np.float64),
+                0.0,
+            )
         metric_input = self._posterior_metric_input(input_vector)
         distances = np.linalg.norm(self.posterior_metric_bank - metric_input[None, :], axis=1)
         neighbor_count = min(int(self.posterior_neighbor_count), int(self.posterior_metric_bank.shape[0]))
         indexes = np.argsort(distances)[:neighbor_count]
         local_distances = np.asarray(distances[indexes], dtype=np.float64)
         weights = self._kernel_weights(local_distances)
+        return (
+            np.asarray(indexes, dtype=np.int64),
+            local_distances,
+            weights,
+            self._distance_confidence(local_distances),
+        )
+
+    def _particle_coords(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
+        if self.posterior_metric_bank.shape[0] == 0 or self.posterior_coord_bank.shape[0] == 0:
+            coords = np.asarray(self.posterior_intercept + (input_vector @ self.posterior_weights), dtype=np.float64)
+            return coords, 1.0
+        indexes, local_distances, weights, confidence = self._posterior_neighbors(input_vector)
         coords = np.sum(weights[:, None] * self.posterior_coord_bank[indexes], axis=0)
-        return np.asarray(coords, dtype=np.float64), self._distance_confidence(local_distances)
+        return np.asarray(coords, dtype=np.float64), confidence
 
     def _local_linear_coords(self, input_vector: np.ndarray) -> tuple[np.ndarray, float]:
         if self.posterior_metric_bank.shape[0] == 0 or self.posterior_coord_bank.shape[0] == 0:
             coords = np.asarray(self.posterior_intercept + (input_vector @ self.posterior_weights), dtype=np.float64)
             return coords, 1.0
         metric_input = self._posterior_metric_input(input_vector)
-        distances = np.linalg.norm(self.posterior_metric_bank - metric_input[None, :], axis=1)
-        neighbor_count = min(int(self.posterior_neighbor_count), int(self.posterior_metric_bank.shape[0]))
-        indexes = np.argsort(distances)[:neighbor_count]
-        local_distances = np.asarray(distances[indexes], dtype=np.float64)
+        indexes, local_distances, weights, confidence = self._posterior_neighbors(input_vector)
         local_metric = np.asarray(self.posterior_metric_bank[indexes], dtype=np.float64)
         local_coords = np.asarray(self.posterior_coord_bank[indexes], dtype=np.float64)
-        weights = self._kernel_weights(local_distances)
         centered_metric = local_metric - metric_input[None, :]
         augmented = np.concatenate(
             [np.ones((centered_metric.shape[0], 1), dtype=np.float64), centered_metric],
@@ -584,7 +629,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             augmented.T @ (weights[:, None] * local_coords),
         )
         coords = np.asarray(solved[0], dtype=np.float64)
-        return coords, self._distance_confidence(local_distances)
+        return coords, confidence
 
     def _predict_mode_coords(self, derived) -> tuple[np.ndarray, float]:
         input_vector = _regime_input_vector(
@@ -601,6 +646,48 @@ class FFAMModePredictor(BaseRoundPredictor):
         coords = (blend * particle_coords) + ((1.0 - blend) * local_coords)
         confidence = max(particle_confidence, local_confidence)
         return np.asarray(coords, dtype=np.float64), confidence
+
+    def _mode_projection_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+        mode_coords, posterior_confidence = self._predict_mode_coords(derived)
+        operator_vector = np.asarray(self.base_operator_vector + (mode_coords @ self.mode_basis), dtype=np.float64)
+        return operator_vector, posterior_confidence
+
+    def _particle_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+        if self.round_operator_bank.shape[0] == 0 or self.posterior_round_index_bank.shape[0] == 0:
+            return np.asarray(self.base_operator_vector, dtype=np.float64), 0.0
+        input_vector = _regime_input_vector(
+            derived,
+            variant=self.regime_input_variant,
+        )
+        indexes, _, weights, confidence = self._posterior_neighbors(input_vector)
+        if indexes.size == 0:
+            return np.asarray(self.base_operator_vector, dtype=np.float64), 0.0
+        round_weights = np.zeros(self.round_operator_bank.shape[0], dtype=np.float64)
+        for row_index, weight in zip(indexes, weights, strict=False):
+            round_index = int(self.posterior_round_index_bank[int(row_index)])
+            round_weights[round_index] += float(weight)
+        weight_sum = float(np.sum(round_weights))
+        if weight_sum <= 0.0 or not np.isfinite(weight_sum):
+            round_weights = np.full(
+                self.round_operator_bank.shape[0],
+                1.0 / max(self.round_operator_bank.shape[0], 1),
+                dtype=np.float64,
+            )
+        else:
+            round_weights = round_weights / weight_sum
+        operator_vector = np.asarray(round_weights @ self.round_operator_bank, dtype=np.float64)
+        return operator_vector, confidence
+
+    def _predict_operator_vector(self, derived) -> tuple[np.ndarray, float]:
+        if self.decoder_method == "mode_projection":
+            return self._mode_projection_operator_vector(derived)
+        if self.decoder_method == "operator_particle_mixture":
+            return self._particle_operator_vector(derived)
+        mode_operator, mode_confidence = self._mode_projection_operator_vector(derived)
+        particle_operator, particle_confidence = self._particle_operator_vector(derived)
+        blend = float(np.clip(self.decoder_particle_blend, 0.0, 1.0))
+        operator_vector = (blend * particle_operator) + ((1.0 - blend) * mode_operator)
+        return np.asarray(operator_vector, dtype=np.float64), max(mode_confidence, particle_confidence)
 
     def _exact_cell_blend(
         self,
@@ -629,8 +716,7 @@ class FFAMModePredictor(BaseRoundPredictor):
         derived,
     ) -> PredictionBundle:
         prior_bundle = self.base_predictor.build_prediction_bundle(round_detail, features)
-        mode_coords, posterior_confidence = self._predict_mode_coords(derived)
-        operator_vector = np.asarray(self.base_operator_vector + (mode_coords @ self.mode_basis), dtype=np.float64)
+        operator_vector, posterior_confidence = self._predict_operator_vector(derived)
         intercept, coefficients = _split_mode_operator_vector(
             operator_vector,
             feature_count=len(self.mode_feature_names),

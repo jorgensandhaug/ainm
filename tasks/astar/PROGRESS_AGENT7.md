@@ -1564,3 +1564,36 @@ Framework should accept unique query-residual family variant names directly so b
   - this keeps the search inside the new fifth-family branch rather than falling back to `query_residual`
   - if the first three variants show signal, immediately extend the hard gate to `v4..v6`
   - if they fail badly, move to supervised/metric mode extraction or mixed decoders, not back to hazard-only tuning
+
+### 2026-03-21T10:30Z approx
+
+- Hard-gate probe verdict for `ffam_mode_v1..v6`:
+  - all six variants hit the exact same completed triple on rounds `7/6/8`:
+    - `36e581...` -> `12.4520`
+    - `ae7800...` -> `18.5339`
+    - `c5cdf1...` -> `4.6316`
+  - that makes them mathematically dead against the hard-gate baseline even before round `f1dac9...` finishes:
+    - current completed sum `35.6175`
+    - even a perfect `100.0` on the remaining round would cap them at `33.9044` mean across 4 rounds
+- Consequence:
+  - killed running probes for `ffam_mode_v1..v6`
+  - low-rank mode posterior variation was not the lever
+  - minimal fifth-family stack failed before posterior details could matter
+- Stronger branch implemented next:
+  - added direct historical-round operator retrieval into [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py)
+  - new decoder methods:
+    - `mode_projection`
+    - `operator_particle_mixture`
+    - `operator_hybrid`
+  - stored full `round_operator_bank` plus `posterior_round_index_bank` in checkpoint arrays
+  - this fills the missing handoff baseline from section `14.1`: particle historical-round mixture over full historical support
+- Added new reproducible variants:
+  - `ffam_mode_v7` = direct operator particle mixture
+  - `ffam_mode_v8` = hybrid of low-rank mode decoder and operator particle mixture
+  - `ffam_mode_v9` = higher-rank hybrid
+- Validation after new branch:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `57`
+- Next:
+  - launch `v7..v9` on the same hard gate immediately
+  - if direct operator retrieval also inherits the `12.45 / 18.53 / 4.63` triple, the current linear-operator decoder family is exhausted more broadly and the next move becomes supervised factorization or mixed decoders

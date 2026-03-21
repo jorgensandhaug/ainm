@@ -26,6 +26,8 @@ class FFAMModeConfig(BaseModel):
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_method: str = "particle_mixture"
+    decoder_method: str = "mode_projection"
+    decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -102,6 +104,41 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         posterior_ood_prior_blend=0.5,
         residual_class_scale=(0.92, 0.72, 0.62, 0.62, 0.86, 0.96),
         temperature=1.03,
+    ),
+    "ffam_mode_v7": FFAMModeConfig(
+        model_name="ffam_mode_v7",
+        projected_mode_dim=3,
+        posterior_method="local_linear",
+        decoder_method="operator_particle_mixture",
+        posterior_metric_dim=8,
+        posterior_neighbor_count=18,
+        posterior_bandwidth=1.0,
+        prior_blend=0.08,
+        posterior_ood_prior_blend=0.25,
+    ),
+    "ffam_mode_v8": FFAMModeConfig(
+        model_name="ffam_mode_v8",
+        projected_mode_dim=3,
+        posterior_method="local_linear",
+        decoder_method="operator_hybrid",
+        decoder_particle_blend=0.65,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=18,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.25,
+    ),
+    "ffam_mode_v9": FFAMModeConfig(
+        model_name="ffam_mode_v9",
+        projected_mode_dim=4,
+        posterior_method="local_linear",
+        decoder_method="operator_hybrid",
+        decoder_particle_blend=0.75,
+        posterior_metric_dim=10,
+        posterior_neighbor_count=20,
+        posterior_bandwidth=1.05,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.3,
     ),
 }
 
