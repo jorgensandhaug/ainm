@@ -92,6 +92,11 @@ from astar.student.predictor.cell_type_transfer_specs import (
     resolve_cell_type_transfer_model_spec,
     supported_cell_type_transfer_model_names,
 )
+from astar.student.predictor.hazard_posterior_v2_port import HazardPosteriorV2PortPredictor
+from astar.student.predictor.hazard_posterior_v2_port_specs import (
+    resolve_hazard_posterior_v2_port_model_spec,
+    supported_hazard_posterior_v2_port_model_names,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -406,6 +411,27 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    hazard_v2_port_spec = resolve_hazard_posterior_v2_port_model_spec(normalized)
+    if hazard_v2_port_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = HazardPosteriorV2PortPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=hazard_v2_port_spec.budget,
+            samples_per_round=hazard_v2_port_spec.samples_per_round,
+            k_neighbors=hazard_v2_port_spec.k_neighbors,
+            latent_rank=hazard_v2_port_spec.latent_rank,
+            ridge_alpha=hazard_v2_port_spec.ridge_alpha,
+            predicted_particle_weight=hazard_v2_port_spec.predicted_particle_weight,
+            model_name=hazard_v2_port_spec.model_name,
+            probability_floor=hazard_v2_port_spec.probability_floor,
+            summary_feature_variant=hazard_v2_port_spec.summary_feature_variant,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     cell_type_transfer_spec = resolve_cell_type_transfer_model_spec(normalized)
     if cell_type_transfer_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -582,4 +608,5 @@ __all__ = [
     "supported_terminal_retrieval_model_names",
     "supported_mlp_decoder_model_names",
     "supported_cell_type_transfer_model_names",
+    "supported_hazard_posterior_v2_port_model_names",
 ]
