@@ -35,6 +35,10 @@ from astar.student.predictor.hazard_posterior_v5 import (
     HazardPosteriorV5Predictor,
     hazard_posterior_v5_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v6 import (
+    HazardPosteriorV6Predictor,
+    hazard_posterior_v6_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -355,6 +359,42 @@ def build_online_predictor(
                 f"__k={k_neighbors}"
                 f"__c={mixture_count}"
                 f"__r={residual_rank}"
+                f"__ridge={int(round(ridge_alpha))}"
+                f"__mix={int(round(mean_weight * 100.0))}"
+            ),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    hazard_posterior_v6 = hazard_posterior_v6_spec_for_model_name(normalized)
+    if hazard_posterior_v6 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, block_rank, ridge_alpha, mean_weight = hazard_posterior_v6
+        predictor = HazardPosteriorV6Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids)
+                if historical_round_ids is not None
+                else sorted(
+                    round_dir.name
+                    for round_dir in workspace_paths.raw_dir.joinpath("replays").glob("*")
+                    if round_dir.is_dir()
+                )
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+            k_neighbors=k_neighbors,
+            block_rank=block_rank,
+            ridge_alpha=ridge_alpha,
+            predicted_particle_weight=mean_weight,
+            model_name=(
+                "hazard_posterior_v6"
+                f"__policy={resolved_policy_name}"
+                f"__samples={samples_per_round}"
+                f"__k={k_neighbors}"
+                f"__block_rank={block_rank}"
                 f"__ridge={int(round(ridge_alpha))}"
                 f"__mix={int(round(mean_weight * 100.0))}"
             ),

@@ -139,6 +139,52 @@
 ### Session Continuation
 
 - date: 2026-03-21 UTC
+- resumed commit: `e8c71754`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- mandatory re-reads completed again before more work:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent1.md`
+- live machine snapshot before the next model patch:
+  - load avg: `55.54 / 57.52 / 51.85`
+  - mem used: `1.5 TiB`
+  - mem free: `1.2 TiB`
+- other-agent activity visible:
+  - agent5 running many concurrent student sweeps
+  - agent6 still pushing full/probe historical benchmarks
+  - agent2 and agent3 also active
+  - conclusion: still enough headroom for more work, but avoid wasteful duplicate proxy jobs
+- new interpretation after the v5 failure and handoff reread:
+  - the replay coefficient bank still supports structured compression
+  - but the first **global** mixture-residual latent was the wrong parameterization
+  - handoff section `H3` points more specifically at **block-structured mechanism latent**
+- immediate objective of this patch:
+  - implement a new block-structured replay-regime teacher family
+  - use independent low-rank coordinates per dynamic class/mechanism block instead of one dense global latent
+  - benchmark that family on proxy-5 before any broader promotion
+- new implementation completed:
+  - added `HazardTeacherV4`
+    - splits the terminal coefficient bank into dynamic-class blocks
+    - learns independent low-rank coordinates per block
+    - round regime vector is the concatenation of per-block coordinates
+  - added `hazard_posterior_v6`
+    - block-structured continuous latent family on top of the new teacher
+    - separate synthetic-live cache namespace to avoid latent-family aliasing
+- focused validation after the v6 patch:
+  - `python3 -m compileall src/astar/teacher/dynamics/hazard_teacher_v4.py src/astar/student/predictor/hazard_posterior_v6.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+  - result: `19 passed`
+- immediate next step after validation:
+  - commit/push the new v6 family
+  - benchmark proxy-5 `regime_probe_v1` with:
+    - `hazard_posterior_v6_k5_b1_l16_m50`
+    - `hazard_posterior_v6_k5_b2_l16_m50`
+    - `hazard_posterior_v6_k5_b2_l32_m70`
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
 - resumed commit: `e5b029db`
 - branch: `agent1`
 - remote tracking: `origin/agent1`
