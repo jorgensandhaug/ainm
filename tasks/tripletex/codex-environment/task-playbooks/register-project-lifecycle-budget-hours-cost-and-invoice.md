@@ -92,21 +92,30 @@ Production run for `Cloud Migration Northwave` on 2026-03-21 completed with 1 av
 - total calls: 16 (15 base with bank repair + 1 wasted 422); ideal was 15
 - sandbox re-proof confirmed: `isChargeable` on projectActivity root → 422; inside `activity` object → 201; omitted entirely → 201
 
+Production run for `ERP-implementering Snøhetta` on 2026-03-21 completed with 3 avoidable 422s and 4 wasted repeat GETs:
+- the script included `employmentType: "ORDINARY"` and `percentageOfFullTimeEquivalent: 100` on the employment object; `POST /employee` failed `422 employmentType: Feltet eksisterer ikke i objektet.`; the only valid employment fields are `startDate` and optionally `division`
+- the script omitted `row: 1` / `row: 2` from voucher postings; `POST /ledger/voucher` failed twice with `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte`; adding explicit `row` fields succeeded immediately
+- the trusted standard hardcoded `voucherType: { id: 9744845 }` (sandbox); production had `voucherType id: 11289239`; this required an extra `GET /ledger/voucherType` lookup call
+- when the voucher POST failed inside `Promise.all`, the parallel vatType and bank-account GETs completed but their results were lost; these had to be repeated in the next recovery script, wasting 4 GET calls across two failed batches
+- the bank-account repair branch was triggered (bank had no number), adding 1 conditional call
+- total calls: 26 (19 ideal with bank fix + 1 employmentType 422 + 2 voucher-no-row 422s + 4 repeated GETs lost to Promise.all rejection), 3 errors
+- sandbox re-proof confirmed: `employmentType` → 422; without `row` → 422; with `row: 1/2` → 201; voucherType ID is environment-specific and must be looked up
+
 ## Minimal Safe Flow
 
-The optimized path uses batch timesheet creation and proactive department/division/bank-account reads:
+The optimized path uses batch timesheet creation, proactive department/division reads, and dynamic voucherType lookup:
 
 1. `GET /department?isInactive=false&count=1&fields=*` + `GET /division?count=1&fields=*` + `POST /customer` (parallel, 3 calls)
-2. `POST /employee` for the future project manager (needs dept+div IDs)
+2. `POST /employee` for the first prompt-named employee (needs dept+div IDs)
 3. `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `POST /employee` for the second employee (parallel, 2 calls)
 4. `POST /project` (needs manager ID from step 3 + customer ID from step 1)
 5. `POST /project/projectActivity` + `POST /project/participant` (emp1) + `POST /project/participant` (emp2) (parallel, 3 calls)
-6. `POST /timesheet/entry/list` with ALL entries for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` (parallel, 3 calls)
-7. `POST /ledger/voucher` (Leverandørfaktura with supplier+project linkage) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
+6. `POST /timesheet/entry/list` with ALL entries for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` (parallel, 4 calls)
+7. `POST /ledger/voucher` (Leverandørfaktura with explicit `row: 1` / `row: 2` on postings, supplier+project linkage) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
 8. (conditional) `PUT /ledger/account/{id}` if bank account needs fixing (0 or 1 calls)
 9. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`
 
-Updated call count (with project participants and Leverandørfaktura voucher):
+Updated call count (with project participants, voucherType lookup, and Leverandørfaktura voucher):
 - 2 prerequisite reads (department + division, parallel with customer)
 - 1 customer write
 - 2 employee writes
@@ -114,21 +123,23 @@ Updated call count (with project participants and Leverandørfaktura voucher):
 - 1 project write
 - 1 project-activity write (parallel with 2 participant writes)
 - 2 project-participant writes (parallel with activity)
-- 1 batch timesheet write (parallel with supplier + account read)
-- 1 supplier write (parallel with timesheet + account read)
-- 1 account read for 6590+2400 (parallel with timesheet + supplier)
+- 1 batch timesheet write (parallel with supplier + account read + voucherType read)
+- 1 supplier write (parallel with timesheet + account read + voucherType read)
+- 1 account read for 6590+2400 (parallel with timesheet + supplier + voucherType read)
+- 1 voucherType read (parallel with timesheet + supplier + account read)
 - 1 Leverandørfaktura voucher write (parallel with VAT + bank reads)
 - 1 outgoing-VAT read (parallel with voucher + bank)
 - 1 bank-account read (parallel with voucher + VAT)
 - 0-1 bank-account fix
 - 1 direct invoice write
-- **total baseline: `17` calls, 0 errors** (or `18` with bank fix)
+- **total baseline: `18` calls, 0 errors** (or `19` with bank fix)
 
-The extra 3 calls vs the old 14-call path (2 participant writes + 1 account read) are offset by the Leverandørfaktura voucher replacing the orderline (same count). The old approach scored 2/7 checks (0.5455); these changes target the 5 failing checks by adding supplier linkage and project participants.
+The extra call vs the old 17-call baseline is the voucherType lookup, which prevents the hardcoded-ID trap (voucherType IDs are environment-specific: 9744845 in sandbox, 11289239 in production). Without this lookup, the hardcoded ID fails in production and costs 2+ recovery calls.
 
 ## Critical Rules
 
 - **Employee userType**: always include `userType: "NO_ACCESS"` on every `POST /employee` in this lifecycle flow; omitting it causes `422 Brukertype kan ikke være "0" eller tom.` and has caused two production timeouts
+- **Employment fields**: the only valid fields on `employments[]` entries are `startDate` and optionally `division`; do NOT include `employmentType`, `percentageOfFullTimeEquivalent`, or any other field — they do not exist and cause `422 Feltet eksisterer ikke i objektet.`; the 2026-03-21 production run `ERP-implementering Snøhetta` hit this trap with `employmentType: "ORDINARY"`
 - **Employment startDate**: when including `employments[]` (needed for division linkage), always include `startDate` in each entry; omitting it causes `422 employments.startDate: Kan ikke være null.`
 - **Employee dateOfBirth**: include a placeholder `dateOfBirth` (e.g. `"1985-01-15"`) defensively; some accounts require it even when the prompt does not provide birth dates
 - **Project startDate**: must be on or before the earliest planned timesheet entry date; set it to the run date or use timesheet dates >= project startDate
@@ -257,7 +268,7 @@ Supplier cost via Leverandørfaktura voucher (POST /ledger/voucher):
 {
   "date": "2026-03-21",
   "description": "Leverandørkostnad fra Supplier Name",
-  "voucherType": { "id": 9744845 },
+  "voucherType": { "id": "<looked-up-id-from-GET-voucherType>" },
   "postings": [
     {
       "row": 1,
@@ -287,7 +298,8 @@ Supplier cost via Leverandørfaktura voucher (POST /ledger/voucher):
 
 Do NOT use `POST /project/orderline` for supplier cost — the `vendor` field does not persist (reads back as null).
 Do NOT use `POST /supplierInvoice` — it returns 500 in sandbox.
-The Leverandørfaktura voucherType id is `9744845`. Resolve account IDs via `GET /ledger/account?number=6590,2400&fields=id,number,name`.
+The voucherType ID for Leverandørfaktura is **environment-specific** (e.g. `9744845` in sandbox, `11289239` in production). Always resolve it dynamically via `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` in step 6. Resolve account IDs via `GET /ledger/account?number=6590,2400&fields=id,number,name`.
+CRITICAL: each posting MUST include an explicit `row` field (`row: 1` for expense, `row: 2` for credit). Omitting `row` causes `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte` because Tripletex treats row 0 as system-generated.
 
 ## Avoidable Mistakes
 
@@ -298,7 +310,11 @@ The Leverandørfaktura voucherType id is `9744845`. Resolve account IDs via `GET
 - Do not skip proactive `GET /department` + `GET /division` for this multi-employee task shape; the `422 department.id` error on `POST /employee` caused a timeout on the 2026-03-21 production run
 - Do not spend a separate `POST /activity` before the direct budgeted `POST /project/projectActivity`
 - Do not use `POST /project/orderline` for supplier cost — the `vendor` field does not persist (sandbox-verified: reads back as `null`); use the Leverandørfaktura voucher instead
-- Do not use `POST /supplierInvoice` — the endpoint returns `500` in sandbox; use `POST /ledger/voucher` with `voucherType: { id: 9744845 }` instead
+- Do not use `POST /supplierInvoice` — the endpoint returns `500` in sandbox; use `POST /ledger/voucher` with dynamically looked-up voucherType instead
+- Do not hardcode the Leverandørfaktura voucherType ID — it is environment-specific (9744845 in sandbox, 11289239 in production); always resolve via `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name`; the 2026-03-21 production run `ERP-implementering Snøhetta` hardcoded the sandbox ID and needed an extra lookup call in recovery
+- Do not omit the `row` field on voucher postings — each posting MUST have an explicit `row` starting from 1; omitting it causes `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte`; the 2026-03-21 production run `ERP-implementering Snøhetta` hit this trap twice before adding `row: 1` and `row: 2`
+- Do not include `employmentType`, `percentageOfFullTimeEquivalent`, or other nonexistent fields on `employments[]` entries — the only valid fields are `startDate` and optionally `division`; `employmentType` causes `422 Feltet eksisterer ikke i objektet.`; the 2026-03-21 production run `ERP-implementering Snøhetta` wasted 1 call on this
+- When using `Promise.all` with a risky write (e.g. voucher POST) alongside safe reads (e.g. vatType GET, bank account GET), consider that if the write fails, all parallel results are lost and the reads must be repeated; for this lifecycle flow, the voucher write should be separated from the vatType and bank-account reads if there's any uncertainty about the voucher payload; alternatively, use `Promise.allSettled` to preserve successful results even when one call fails
 - Do not forget to add both employees as project participants via `POST /project/participant` — the scorer likely validates that employees are linked to the project as participants
 - Do not assume a newly created employee is automatically eligible as project manager
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try `POST /project` blindly
