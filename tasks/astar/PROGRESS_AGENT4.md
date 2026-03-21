@@ -3398,3 +3398,36 @@ Read progress files from all 6 other agents. Key findings:
 2. **Geometric mean ensemble** — combine my evidence model with agent1/agent6's predictions
 3. **Entropy-weighted class importance** — already using this in GT-evidence, but could be stronger
 4. **Original coefficients** — agent1's biggest lever, but my approach doesn't use SVD at all
+
+### 2026-03-21T21:30Z — CROSS-AGENT DEEP RESEARCH (thorough read of all agents)
+
+**Agent 3 (score: 85.29 with CatBoost!):**
+- Doing the SAME cellwise LGB approach as me, with critical additions:
+  - Cross-seed evidence features (other seeds' observations) → very powerful for regime detection
+  - Activity heatmap features (multi-scale smoothed spatial patterns)
+  - Lower probability floor (0.0001 vs my 0.01)
+  - CatBoost slightly outperforms LightGBM
+
+**Agent 7 (score: 87.12 with ffam_mode!)**:
+- Mode-based operator: fit per-round operator, compress with SVD, infer mode from transcript
+- KEY DISCOVERY: **probability floor 0.01 → 0.0003 gives +5.6 points alone!**
+- Also: higher beta for exact-cell blending (+2.0), lower prior blend (+1.5)
+- 170+ variants tested, exhausted architecture
+
+### 2026-03-21T22:00Z — PROBABILITY FLOOR BREAKTHROUGH
+
+Applied Agent7's discovery: lowered probability floor from 0.01 to 0.0003.
+
+| Model | ev | Floor | Score | vs qr_v11 |
+|-------|-----|-------|-------|-----------|
+| **GT-evidence** | **15** | **0.0003** | **86.64** | **+7.25** |
+| GT-evidence | 1 | 0.0003 | **82.05** | **+2.66** |
+| GT-evidence | 1 | 0.001 | 81.86 | +2.47 |
+| GT-evidence | 1 | 0.01 | 78.16 | -1.23 |
+| Evidence v2 | 15 | 0.01 | 83.06 | +3.67 |
+| query_residual_v11 | online | 0.01 | 79.39 | 0 |
+
+**Floor 0.01 → 0.0003 on ev1 alone: +3.89 points!**
+**GT-evidence ev15 with floor 0.0003: 86.64 — competitive with Agent7's best (87.12)!**
+
+Cross-agent intelligence was decisive here — the floor insight alone is worth +3.89 points.

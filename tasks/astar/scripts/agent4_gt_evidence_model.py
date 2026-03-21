@@ -261,5 +261,6 @@ if __name__ == "__main__":
     p.add_argument("--name", default="agent4_gt_evidence_ev1_v1")
     p.add_argument("--serve-ev", type=int, default=1)
     p.add_argument("--augment-count", type=int, default=5)
+    p.add_argument("--floor", type=float, default=0.01)
     a = p.parse_args()
-    run_gt_evidence_benchmark(name=a.name, serve_ev=a.serve_ev, augment_count=a.augment_count)
+    run_gt_evidence_benchmark(name=a.name, serve_ev=a.serve_ev, augment_count=a.augment_count, floor=a.floor)
