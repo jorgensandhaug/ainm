@@ -83,6 +83,14 @@ from astar.student.predictor.settlement_state_field_blend import (
     is_settlement_state_field_blend_model_name,
     resolve_settlement_state_field_blend_samples_per_round,
 )
+from astar.student.predictor.observation_likelihood_mixture import (
+    is_obs_likelihood_model_name,
+    resolve_obs_likelihood_samples_per_round,
+)
+from astar.student.predictor.coefficient_inverse import (
+    is_coeff_inverse_model_name,
+    resolve_coeff_inverse_samples_per_round,
+)
 from astar.workflows.historical_benchmark import (
     _effective_round_weight,
     _evaluate_round_worker,
@@ -306,7 +314,21 @@ def run_targeted_holdout_benchmark(
                                                                             samples_per_round=samples_per_round,
                                                                         )
                                                                         if is_settlement_state_field_blend_model_name(normalized_model_name)
-                                                                        else None
+                                                                        else (
+                                                                            resolve_obs_likelihood_samples_per_round(
+                                                                                normalized_model_name,
+                                                                                samples_per_round=samples_per_round,
+                                                                            )
+                                                                            if is_obs_likelihood_model_name(normalized_model_name)
+                                                                            else (
+                                                                                resolve_coeff_inverse_samples_per_round(
+                                                                                    normalized_model_name,
+                                                                                    samples_per_round=samples_per_round,
+                                                                                )
+                                                                                if is_coeff_inverse_model_name(normalized_model_name)
+                                                                                else None
+                                                                            )
+                                                                        )
                                                                     )
                                                                 )
                                                             )
@@ -357,6 +379,10 @@ def run_targeted_holdout_benchmark(
     ) or is_round_multiview_factor_residual_model_name(
         normalized_model_name,
     ) or is_settlement_state_field_blend_model_name(
+        normalized_model_name,
+    ) or is_obs_likelihood_model_name(
+        normalized_model_name,
+    ) or is_coeff_inverse_model_name(
         normalized_model_name,
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"

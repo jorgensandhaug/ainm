@@ -120,6 +120,14 @@ from astar.student.predictor.settlement_state_field_blend import (
     resolve_settlement_state_field_blend_samples_per_round,
     resolve_settlement_state_field_blend_variant_spec,
 )
+from astar.student.predictor.observation_likelihood_mixture import (
+    is_obs_likelihood_model_name,
+    resolve_obs_likelihood_samples_per_round,
+)
+from astar.student.predictor.coefficient_inverse import (
+    is_coeff_inverse_model_name,
+    resolve_coeff_inverse_samples_per_round,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -948,7 +956,21 @@ def evaluate_model_on_round(
                                                                                 samples_per_round=samples_per_round,
                                                                             )
                                                                             if is_settlement_state_field_blend_model_name(model_name)
-                                                                            else None
+                                                                            else (
+                                                                                resolve_obs_likelihood_samples_per_round(
+                                                                                    model_name,
+                                                                                    samples_per_round=samples_per_round,
+                                                                                )
+                                                                                if is_obs_likelihood_model_name(model_name)
+                                                                                else (
+                                                                                    resolve_coeff_inverse_samples_per_round(
+                                                                                        model_name,
+                                                                                        samples_per_round=samples_per_round,
+                                                                                    )
+                                                                                    if is_coeff_inverse_model_name(model_name)
+                                                                                    else None
+                                                                                )
+                                                                            )
                                                                         )
                                                                     )
                                                                 )
@@ -1091,7 +1113,21 @@ def evaluate_model_on_round(
                                                                                 samples_per_round=samples_per_round,
                                                                             )
                                                                             if is_settlement_state_field_blend_model_name(model_name)
-                                                                            else None
+                                                                            else (
+                                                                                resolve_obs_likelihood_samples_per_round(
+                                                                                    model_name,
+                                                                                    samples_per_round=samples_per_round,
+                                                                                )
+                                                                                if is_obs_likelihood_model_name(model_name)
+                                                                                else (
+                                                                                    resolve_coeff_inverse_samples_per_round(
+                                                                                        model_name,
+                                                                                        samples_per_round=samples_per_round,
+                                                                                    )
+                                                                                    if is_coeff_inverse_model_name(model_name)
+                                                                                    else None
+                                                                                )
+                                                                            )
                                                                         )
                                                                     )
                                                                 )

@@ -81,6 +81,14 @@ from astar.student.predictor.settlement_state_field_blend import (
     is_settlement_state_field_blend_model_name,
     load_or_fit_named_settlement_state_field_blend_predictor,
 )
+from astar.student.predictor.observation_likelihood_mixture import (
+    is_obs_likelihood_model_name,
+    load_or_fit_named_obs_likelihood_predictor,
+)
+from astar.student.predictor.coefficient_inverse import (
+    is_coeff_inverse_model_name,
+    load_or_fit_named_coeff_inverse_predictor,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -400,6 +408,34 @@ def build_online_predictor(
             workspace_paths,
             model_name=normalized,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_obs_likelihood_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = load_or_fit_named_obs_likelihood_predictor(
+            normalized,
+            paths=workspace_paths,
+            historical_round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_coeff_inverse_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = load_or_fit_named_coeff_inverse_predictor(
+            normalized,
+            paths=workspace_paths,
+            historical_round_ids=None if historical_round_ids is None else list(historical_round_ids),
             policy_name=resolved_policy_name,
             samples_per_round=samples_per_round,
         )
