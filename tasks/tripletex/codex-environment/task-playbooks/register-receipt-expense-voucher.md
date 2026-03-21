@@ -10,7 +10,7 @@ Use for tasks like:
 - use the correct expense account and VAT treatment based on the receipt line text
 
 Three proven branches:
-- **Branch A**: business-lunch / representation line (e.g., `Forretningslunsj`, `Kundemøte lunsj`) → account `7360`, no VAT deduction
+- **Branch A**: business-lunch / representation / coffee meeting line (e.g., `Forretningslunsj`, `Kundemøte lunsj`, `Kaffemøte`) → account `7360`, no VAT deduction
 - **Branch B**: office furniture / equipment / supplies line (e.g., `Kontorstoler`) → account `6540`, incoming 25% VAT deductible
 - **Branch C**: travel / accommodation line (e.g., `Overnatting`, `Togbillett`) → account `7140`, incoming 25% VAT deductible
 
@@ -40,7 +40,7 @@ All known task 22 receipts are NET:
 
 | Receipt line text | Account | VAT treatment |
 |---|---|---|
-| `Forretningslunsj` / `Kundemøte lunsj` / business lunch / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction. Amount = GROSS (full cost incl. non-recoverable VAT) |
+| `Forretningslunsj` / `Kundemøte lunsj` / `Kaffemøte` / business lunch / coffee meeting / customer meeting lunch / restaurant meal | `7360` (non-deductible representation) | VAT code `0`, no deduction. Amount = GROSS (full cost incl. non-recoverable VAT) |
 | `Kontorstoler` / office chairs / furniture / equipment | `6540` (Inventar) | Incoming 25% VAT (vatType id from account), fully deductible |
 | `Overnatting` / hotel / accommodation | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
 | `Togbillett` / train ticket / transport | `7140` (Reisekostnad, ikke oppgavepliktig) | Incoming 25% VAT (`vatType: { id: 1 }`), fully deductible |
@@ -84,9 +84,16 @@ Verified in persistent sandbox on 2026-03-21 (CORRECTED tests with NET→GROSS c
   - expense posting: amount=11350 (net), amountGross=14187.50, vatType.id=1
   - auto-VAT: amount=2837.50
 
+### Branch A production proof (2026-03-21, SUCCESS — 4c7f5f3e, Kaffemøte)
+- Kaffemøte (coffee meeting) 6600 NET → GROSS = 8250, dept "Utvikling", account 7360, Portuguese prompt
+- 4 calls, 0 errors: POST dept → GET accounts → POST voucher?sendToLedger=true → POST attachment
+- Voucher 609125374 #1 (booked): amount=8250, amountGross=8250, vatType.id=0, dept 953714
+- Confirms: "Kaffemøte" is Branch A (representation), NET→GROSS conversion, 4-call minimum
+
 ### Common findings
 - `GET /department?name=Drift&isInactive=false&fields=*` is a containing search; local exact filtering mandatory
 - `department: { "name": "Drift" }` on voucher postings silently persists `department=null`
+- `account: { number: 7360, name: "..." }` (no id) → 422; account.id is mandatory on voucher postings
 - `POST /ledger/voucher/importDocument` creates uneditable voucher shell; not usable for this flow
 - Account 7140's default vatType is 12% (statutory), but receipt says 25% — must override to vatType id=1
 

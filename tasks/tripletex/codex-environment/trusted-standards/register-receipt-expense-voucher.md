@@ -11,7 +11,7 @@
 - the receipt already shows the purchase was paid by company card / business card
 - the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
 - three proven expense-type branches exist:
-  - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` or `Kundemøte lunsj` → account `7360`, VAT code `0`
+  - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal / coffee meeting such as `Forretningslunsj`, `Kundemøte lunsj`, or `Kaffemøte` → account `7360`, VAT code `0`
   - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
   - **Branch C (deductible travel/accommodation, 25% VAT)**: receipt line is hotel / accommodation / train ticket such as `Overnatting` or `Togbillett` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 25% VAT (vatType id=`1`)
 - select the branch based on the receipt line text, not the receipt vendor or total
@@ -24,7 +24,7 @@
 - the prompt explicitly gives another expense account or another VAT treatment
 
 ## Account Selection Rule
-- `Forretningslunsj` / `Kundemøte lunsj` / restaurant meals / business lunch / customer meeting lunch → `7360` (non-deductible representation)
+- `Forretningslunsj` / `Kundemøte lunsj` / `Kaffemøte` / restaurant meals / business lunch / coffee meeting / customer meeting lunch → `7360` (non-deductible representation)
 - `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
 - `Overnatting` / hotel / accommodation → `7140` (Reisekostnad, ikke oppgavepliktig)
 - `Togbillett` / train ticket / transport → `7140` (Reisekostnad, ikke oppgavepliktig)
@@ -230,6 +230,19 @@
 - **run 1519c2a7** (Togbillett 11350): used 12% VAT, treated 11350 as gross, no sendToLedger → 0/5 (all three issues)
 - These proofs demonstrate the WRONG approach. The corrected sandbox proofs above show the RIGHT approach.
 
+### Branch A production proof (2026-03-21, SUCCESS — 4c7f5f3e)
+- **run 4c7f5f3e** (Kaffemøte 6600, Portuguese prompt, Starbucks receipt, dept Utvikling): 4 calls, 0 errors
+  1. `POST /department` → created "Utvikling" id=953714
+  2. `GET /ledger/account?number=7360,1920&fields=*` → 7360 id=470464239, 1920 id=470463927
+  3. `POST /ledger/voucher?sendToLedger=true` — date 2026-01-04, description "Kaffemøte", GROSS=8250 (6600×1.25), account 7360, dept 953714, vatType=0 → voucher 609125374 #1 (booked)
+  4. `POST /ledger/voucher/609125374/attachment` → attached receipt PDF
+- Confirms: Kaffemøte (coffee meeting) → Branch A (7360), NET→GROSS conversion correct, 4-call minimum path
+
+### Sandbox proof: account number+name refs fail (2026-03-21)
+- `account: { number: 7360, name: "Representasjon, ikke fradragsberettiget" }` (no id) → 422 "Internt felt (account): Feltet må fylles ut"
+- `account: { number: 7360 }` (no id, no name) → 422 "postings.account.name: Kan ikke være null"
+- Confirms: GET /ledger/account is mandatory; account.id is required on voucher postings
+
 ## Winning Payload Shapes
 
 ### Branch A — Non-deductible representation
@@ -264,7 +277,6 @@
 }
 ```
 Where `GROSS = line_amount × 1.25` for NET-priced receipts, or `GROSS = line_amount` for GROSS-priced receipts.
-```
 
 ### Branch B — Deductible purchase
 **URL**: `POST /ledger/voucher?sendToLedger=true`
