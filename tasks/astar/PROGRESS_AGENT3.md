@@ -415,6 +415,30 @@
    - extra transcript diversity clearly helped `v8`
    - next most plausible remaining nearby branch is to test whether the near-tied `v10` also benefits from `samples_per_round=2`
    - that is a cheaper targeted follow-up than another full new family rewrite
+53. `query_residual_v10` samples-2 targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v10_samples2_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative held-out rounds as earlier targeted probes
+     - model `query_residual_v10`
+     - `samples_per_round=2`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `60.8660`
+     - mean weighted KL `0.166175`
+   - per-round:
+     - `36e581...`: score `64.2292`, KL `0.147661`
+     - `f1dac9...`: score `57.5029`, KL `0.184688`
+54. Interpretation of item 53:
+   - `v10` also improves with extra transcript diversity relative to its samples-1 targeted result
+   - but it still does not beat the samples-2 `v11` / `v8` branch on the same targeted holdout
+   - comparison on the representative 2-round/7-train holdout:
+     - `v11`/`v8` samples-2: `60.9581`
+     - `v10` samples-2: `60.8660`
+   - conclusion:
+     - current lead remains the `v11` branch
+     - top-heavy stratification still looks slightly inferior to the plain stratified selector once transcript diversity is increased
 
 ## Open Questions
 
