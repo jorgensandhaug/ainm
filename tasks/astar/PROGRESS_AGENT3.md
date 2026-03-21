@@ -4625,8 +4625,25 @@
    - All 5 seeds submitted
    - This is our best VALIDATED model that works with actual live viewport queries
 
+505. **LIVE-COMPATIBLE cellwise LightGBM** (uses viewport query evidence):
+   - v1 (no barren cal, floor=0.003): **81.14** (NEW LIVE-COMPATIBLE BEST!)
+   - lf (barren cal, floor=0.001): 80.98
+   - bc (barren cal, floor=0.003): 80.57
+   - bc2 (aggressive barren cal): 80.40
+   - KEY FINDING: barren calibration HURTS the LGB - it already handles barren rounds natively
+   - vs adaptive_ensemble_v17 (79.98): +1.16 improvement
+   - Per-round: especially strong on active rounds (ae78003a: 86.06 vs 78.18)
+   - Weak on: 71451d74 (73.91 vs 80.15) - needs investigation
+
+506. Updated live-compatible leaderboard:
+   - **1st: cellwise live LGB v1 = 81.14** (NEW LIVE BEST!)
+   - 2nd: adaptive_ensemble_v17 = 79.98
+   - 3rd: adaptive_ensemble_v23 = 79.95
+   - 4th: query_residual_v19 = 76.89
+
 ## Open Questions
 
-- Can the cellwise LGB be adapted to use viewport queries instead of replay grids as evidence?
-- Can the remaining worst round (36e581f1 at 66.58) be improved?
-- What was the actual live score for round 16?
+- Can the LGB model be improved further with better features or hyperparameters?
+- Why does 71451d74 regress so much with LGB (73.91 vs 80.15)?
+- Can we ensemble LGB + adaptive_ensemble for best-of-both-worlds?
+- Need to wire the live LGB into the run-live-online pipeline for actual live submissions
