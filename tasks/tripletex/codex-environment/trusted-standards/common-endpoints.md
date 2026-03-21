@@ -269,6 +269,15 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - trust the `POST /project/projectActivity` response for `id`, linked `project.id`, `activity.id`, `budgetHours`, and `budgetFeeCurrency` unless a scored field is unexpectedly missing
 
+## Project Participant
+- `/project/participant`
+  - `POST` add single participant (marked [BETA] in spec but works in production and sandbox)
+- `/project/participant/list`
+  - `POST` batch-add multiple participants in one call; returns `{ values: [...] }`; saves 1 call when adding 2+ participants; marked [BETA] but works; sandbox-verified 2026-03-22
+- Standard create note:
+  - use `adminAccess: true` for the prompt-designated project manager, `adminAccess: false` for others
+  - prefer `POST /project/participant/list` over individual calls when adding 2+ participants
+
 ## Project Orderline
 - `/project/orderline`
   - `GET` search
