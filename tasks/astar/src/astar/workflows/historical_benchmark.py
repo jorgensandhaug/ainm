@@ -97,6 +97,10 @@ from astar.student.predictor.spatial_observation_correction import (
     is_spatial_correction_model_name,
     resolve_spatial_correction_samples_per_round,
 )
+from astar.student.predictor.adaptive_ensemble import (
+    is_adaptive_ensemble_model_name,
+    resolve_adaptive_ensemble_samples_per_round,
+)
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -443,7 +447,14 @@ def run_historical_benchmark(
                                                                                         samples_per_round=samples_per_round,
                                                                                     )
                                                                                     if is_spatial_correction_model_name(normalized_model_name)
-                                                                                    else None
+                                                                                    else (
+                                                                                        resolve_adaptive_ensemble_samples_per_round(
+                                                                                            normalized_model_name,
+                                                                                            samples_per_round=samples_per_round,
+                                                                                        )
+                                                                                        if is_adaptive_ensemble_model_name(normalized_model_name)
+                                                                                        else None
+                                                                                    )
                                                                                 )
                                                                             )
                                                                         )
@@ -486,6 +497,7 @@ def run_historical_benchmark(
         or is_obs_likelihood_model_name(normalized_model_name)
         or is_coeff_inverse_model_name(normalized_model_name)
         or is_spatial_correction_model_name(normalized_model_name)
+        or is_adaptive_ensemble_model_name(normalized_model_name)
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""

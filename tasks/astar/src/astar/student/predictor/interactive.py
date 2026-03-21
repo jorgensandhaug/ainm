@@ -93,6 +93,10 @@ from astar.student.predictor.spatial_observation_correction import (
     is_spatial_correction_model_name,
     load_or_fit_named_spatial_correction_predictor,
 )
+from astar.student.predictor.adaptive_ensemble import (
+    is_adaptive_ensemble_model_name,
+    load_or_fit_named_adaptive_ensemble_predictor,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -451,6 +455,20 @@ def build_online_predictor(
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         predictor = load_or_fit_named_spatial_correction_predictor(
+            normalized,
+            paths=workspace_paths,
+            historical_round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_adaptive_ensemble_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = load_or_fit_named_adaptive_ensemble_predictor(
             normalized,
             paths=workspace_paths,
             historical_round_ids=None if historical_round_ids is None else list(historical_round_ids),
