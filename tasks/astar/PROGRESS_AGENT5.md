@@ -888,3 +888,61 @@
   - next highest-value model work is still:
     - better online adaptation / student posterior than fixed coefficient knn
     - likely something closer to discrete+continuous regime inference or better hybrid gating that does not collapse on `36e581...`
+
+### 2026-03-21T10:30:00Z
+
+- Experimental branch checkpoint committed + pushed:
+  - local commit:
+    - `3a1f7159 [astar] add experimental coefficient knn predictor`
+  - remote equivalent on `origin/agent5`:
+    - `e67144d8`
+- Branch contents:
+  - legal-only `greybox_coefficient_knn_v01`
+  - registry/eval integration
+  - kept in tree as explicit experimental branch, not lead
+
+- Promoted hybrid lead code to explicit new internal version:
+  - local commit:
+    - `d1118448 [astar] promote hybrid lowrank queryres v03`
+  - remote equivalent on `origin/agent5`:
+    - `f430efd7`
+  - change:
+    - `greybox_hybrid_lowrank_queryres_v03`
+    - `lowrank_weight=0.35`
+
+- Re-verified after `v03` promotion:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `15 passed in 46.29s`
+
+- Official full 8-round benchmark for the promoted lead:
+  - command path:
+    - `run_historical_benchmark(... model_name='greybox_hybrid_lowrank_queryres', mode='online_interactive', policy_name='coverage', samples_per_round=4, budget=50, episode_seed=0, max_workers=8, benchmark_name='agent5_hybrid_lowrank_queryres_online50_v03')`
+  - artifact:
+    - `data/artifacts/benchmarks/agent5_hybrid_lowrank_queryres_online50_v03/result.json`
+  - report summary:
+    - mean score `74.942088`
+    - mean weighted KL `0.099138`
+    - total runtime `417.087s`
+    - summed eval runtime `3146.226s`
+  - round means:
+    - `36e581...`: `66.1974`
+    - `71451d...`: `79.3881`
+    - `76909e...`: `83.1980`
+    - `8e8399...`: `86.3316`
+    - `ae7800...`: `78.8787`
+    - `c5cdf...`: `71.4961`
+    - `f1dac...`: `55.6710`
+    - `fd3c92...`: `78.3757`
+
+- Interpretation:
+  - official benchmark still beats the visible old report:
+    - `74.9421` vs `73.9505`
+    - delta about `+0.9916`
+  - also edges the earlier fixed hybrid session result:
+    - `74.9421` vs `74.8676`
+    - delta about `+0.0745`
+  - but it is lower than the earlier sweep estimate (`75.3965`)
+    - gap about `-0.4544`
+  - conclusion:
+    - sweep harness remains useful for search/ranking candidate regions
+    - official historical benchmark remains the canonical model-selection metric
+    - current practical lead is still `greybox_hybrid_lowrank_queryres_v03`, but with less margin than the sweep had suggested
