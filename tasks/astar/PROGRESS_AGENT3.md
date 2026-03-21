@@ -2143,6 +2143,36 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_class_scale tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_spatial_gate tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_historical_benchmark.py::test_teacher_student_blend_v28_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+235. Machine-wide health before extending the queue again:
+   - snapshot:
+     - memory used: about `985 GiB`
+     - memory available: about `1.9 TiB`
+   - observed active corrected-holdout processes on this branch:
+     - `teacher_student_blend_v17`
+     - `teacher_student_blend_v18`
+     - `teacher_student_blend_v19`
+     - `teacher_student_blend_v20`
+     - `teacher_student_blend_v21`
+     - `teacher_student_blend_v22`
+     - `teacher_student_blend_v23`
+     - `teacher_student_blend_v24`
+     - `teacher_student_blend_v25`
+     - `teacher_student_blend_v26`
+   - decision:
+     - headroom remained large enough for one more narrow outer wave
+     - keep `jobs=1`
+236. Fifth corrected-holdout outer wave launched:
+   - file-backed launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - models:
+     - `teacher_student_blend_v27`
+     - `teacher_student_blend_v28`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launch policy:
+     - `jobs=1` inside each model
+     - outer model parallelism only
 
 
 ## Open Questions
