@@ -22,11 +22,11 @@
 3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs
 4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager
 
-## Standard Flow (16 calls, 5 sequential steps, 0 errors)
+## Standard Flow (15 calls, 5 sequential steps, 0 errors)
 
 1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (6 parallel — frontload ALL reads)
 2. `POST /employee/list` (both employees in one batch) + `POST /project` with `isFixedPrice: true` + `fixedprice` + (if 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`) (2-3 parallel)
-3. `POST /project/projectActivity` with `budgetHours` + `POST /project/participant` (PM, `adminAccess: true`) + `POST /project/participant` (other, `adminAccess: false`) (3 parallel)
+3. `POST /project/projectActivity` with `budgetHours` + `POST /project/participant/list` (both participants in one batch — PM `adminAccess: true`, other `adminAccess: false`) (2 parallel)
 4. `POST /timesheet/entry/list` + `POST /supplier` + `POST /project/orderline` (3 parallel)
 5. `POST /ledger/voucher` + `POST /invoice?sendToCustomer=false` (2 parallel — voucher and invoice are independent)
 
@@ -62,11 +62,15 @@
 [{ "employee": { "id": "<empId>" }, "project": { "id": "<projId>" }, "activity": { "id": "<actId>" }, "date": "<date>", "hours": 7.5 }]
 ```
 
-### Project Participant (POST /project/participant)
+### Project Participants (POST /project/participant/list) — batch both in ONE call
 ```json
-{ "project": { "id": "<projId>" }, "employee": { "id": "<empId>" }, "adminAccess": true }
+[
+  { "project": { "id": "<projId>" }, "employee": { "id": "<pmEmpId>" }, "adminAccess": true },
+  { "project": { "id": "<projId>" }, "employee": { "id": "<otherEmpId>" }, "adminAccess": false }
+]
 ```
 - PM employee: `adminAccess: true`; other: `adminAccess: false`
+- returns `{ values: [part1, part2] }` — saves 1 call vs two separate POST /project/participant
 
 ### Supplier Cost — Orderline (POST /project/orderline)
 ```json
@@ -104,6 +108,7 @@
 ## Do NOT
 - include `employments[]` on employees (avoids division/startDate traps, saves GET /division)
 - use two separate `POST /employee` calls — use `POST /employee/list` batch (saves 1 call)
+- use two separate `POST /project/participant` calls — use `POST /project/participant/list` batch (saves 1 call)
 - use `POST /supplierInvoice` (no POST method in spec)
 - use individual `POST /timesheet/entry` (use batch /list)
 - use `POST /order` + `PUT /order/:invoice` (use direct POST /invoice)

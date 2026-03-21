@@ -24,10 +24,12 @@ See `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoic
 
 ## Production History Summary
 
-- **16 calls, 0 errors** is the proven optimal baseline (or 17 with bank-account fix)
-- key optimization: `POST /employee/list` batches both employees in 1 call (saves 1 vs 2× `POST /employee`)
-- sandbox-verified on 2026-03-22: full lifecycle with `POST /employee/list`, all 4 critical fields, and restructured parallelism completed in 16 calls, 0 errors
+- **16 calls, 0 errors** is the proven optimal baseline (or 17 with bank-account fix), with 5 sequential steps
+- key optimizations: (1) `POST /employee/list` batches both employees in 1 call; (2) frontload all reads (accounts, voucherType, vatType) to step 1, enabling voucher + invoice to be parallel in the final step
+- sandbox-verified on 2026-03-22: full lifecycle with frontloaded reads, `POST /employee/list`, all 4 critical fields: 16 calls, 0 errors, 5 sequential steps
+- production run `Dataplattform Brattli` (c31672b0) on 2026-03-21 completed in 18 calls (17 + bank fix), 0 errors, all scored fields correct — used 2× `POST /employee` instead of batch and old 7-step sequencing; would have been 17 with batch + frontloaded reads
 - production run `Systemupgrade Brückentor` (166fec82) on 2026-03-21 completed in 18 calls (17 + bank fix), 0 errors — used 2× `POST /employee` instead of batch; would have been 17 with batch
 - all pre-fix runs scored 4/11 due to 4 omitted fields: `isFixedPrice`+`fixedprice`, `budgetHours`, `adminAccess: true` for PM, project orderline
 - common 422 causes: missing `userType` on employee, `isChargeable` on projectActivity root (must be inside `activity`), missing `activityType` on activity, missing `row` on voucher postings, local-time Date construction shifting dates, hardcoded voucherType ID, invalid bank account number
 - 2026-03-21 run `Datenplattform Grünfeld` (5cd19b53) timed out with 0 API calls because agent read both trusted standard + playbook + AGENTS.md, consuming all 300s in processing — fix: read only trusted standard, then script immediately
+- `POST /project/participant/list` (batch 2 participants in 1 call) works in sandbox (2026-03-22) despite [BETA] label — saves 1 call; not yet production-tested
