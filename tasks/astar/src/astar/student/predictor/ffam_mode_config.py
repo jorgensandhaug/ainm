@@ -35,6 +35,8 @@ class FFAMModeConfig(BaseModel):
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -540,6 +542,74 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         posterior_bandwidth=1.0,
         prior_blend=0.1,
         posterior_ood_prior_blend=0.28,
+    ),
+    "ffam_mode_v37": FFAMModeConfig(
+        model_name="ffam_mode_v37",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="local_linear",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+        hazard_decoder_blend=0.05,
+        hazard_decoder_ood_scale=0.15,
+    ),
+    "ffam_mode_v38": FFAMModeConfig(
+        model_name="ffam_mode_v38",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="local_linear",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+        hazard_decoder_blend=0.10,
+        hazard_decoder_ood_scale=0.25,
+    ),
+    "ffam_mode_v39": FFAMModeConfig(
+        model_name="ffam_mode_v39",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="local_linear",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+        hazard_decoder_blend=0.15,
+        hazard_decoder_ood_scale=0.35,
+    ),
+    "ffam_mode_v40": FFAMModeConfig(
+        model_name="ffam_mode_v40",
+        projected_mode_dim=3,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="local_linear",
+        decoder_method="cluster_mode_projection",
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.1,
+        posterior_ood_prior_blend=0.28,
+        hazard_decoder_blend=0.08,
+        hazard_decoder_ood_scale=0.45,
     ),
 }
 

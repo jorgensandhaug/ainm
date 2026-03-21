@@ -2207,3 +2207,69 @@ Framework should accept unique query-residual family variant names directly so b
     - semimechanistic hazard decoder
     - stronger decoder ensemble / OOD-gated blend
     - or a new query-policy family aimed more directly at regime identifiability
+
+### 2026-03-21T13:15Z approx
+
+- Machine/load check before next batch:
+  - CPUs: `384`
+  - RAM: `2.9 TiB total`, `1.0 TiB free`, `1.3 TiB available`
+  - load average: `38.58 / 39.34 / 44.43`
+  - other agents still active, but load is comfortably below the prior check, so another bounded `4`-way FFAM benchmark batch is fine
+
+### 2026-03-21T13:16Z approx
+
+- Moved to handoff sections:
+  - `12.3 Semimechanistic hazard decoder`
+  - `12.4 Mixed decoder ensemble`
+  - `16.3 Baseline shrinkage`
+  - `16.4 Ensemble blending`
+- New hypothesis:
+  - current `v17` summary-input posterior already does a good job of locating regime coordinates
+  - remaining error is partly decoder/OOD error
+  - a semimechanistic hazard decoder, blended in lightly and more aggressively under low posterior confidence, may improve robustness on the hard rounds without giving back the current FFAM gains
+- Implemented in [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py):
+  - replay-backed regression from mode coordinates to semimechanistic hazard coefficient vectors
+  - hazard tensor decoder reused inside FFAM prediction path
+  - OOD-gated blend:
+    - `hazard_decoder_blend`
+    - `hazard_decoder_ood_scale`
+- Added variants in [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py):
+  - `ffam_mode_v37`
+  - `ffam_mode_v38`
+  - `ffam_mode_v39`
+  - `ffam_mode_v40`
+- Added validation coverage in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py):
+  - benchmark harness recognizes `v37..v40`
+  - added checkpoint roundtrip for `v37`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `97`
+- Next action:
+  - launch hard-gate probes for `v37..v40` on rounds `{7,3,6,8}`
+  - only spend full 8-round dev budget if one clears current `v17` hard-gate `62.3382`
+- Probe batch launched on hard gate `{7,3,6,8}`:
+  - `agent7_fast_probe_ffam_mode_v37_exploration_r3_r3r6r7r8_s2` (session `29712`)
+  - `agent7_fast_probe_ffam_mode_v38_exploration_r3_r3r6r7r8_s2` (session `65521`)
+  - `agent7_fast_probe_ffam_mode_v39_exploration_r3_r3r6r7r8_s2` (session `12593`)
+  - `agent7_fast_probe_ffam_mode_v40_exploration_r3_r3r6r7r8_s2` (session `65879`)
+
+### 2026-03-21T13:22Z approx
+
+- Semimechanistic hazard-blend hard-gate results:
+  - [`ffam_mode_v37`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v37_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `61.5958`
+    - mean weighted KL `0.170252`
+  - [`ffam_mode_v38`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v38_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `60.4077`
+    - mean weighted KL `0.178228`
+  - [`ffam_mode_v39`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v39_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `58.8729`
+    - mean weighted KL `0.188658`
+  - [`ffam_mode_v40`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v40_exploration_r3_r3r6r7r8_s2/result.json)
+    - mean score `58.6013`
+    - mean weighted KL `0.190639`
+- Interpretation:
+  - low-weight hazard fallback (`v37`) is the least bad version, but it still misses current `v17` hard-gate `62.3382` by about `0.7424`
+  - stronger hazard blend is monotonically worse in this sweep
+  - direct semimechanistic decoder blending is directionally plausible but not promotable in this form
+  - no full-dev spend justified

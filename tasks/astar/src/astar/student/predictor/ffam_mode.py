@@ -10,7 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.prediction import PredictionBundle
 from astar.core.score import entropy_map
 from astar.core.terrain import CLASS_COUNT, CLASS_NAMES
+from astar.envs.types import build_round_context_from_detail
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
+from astar.history.episodes.build import build_round_episode
+from astar.history.summaries.round_coefficients import (
+    fit_round_semimechanistic_coefficients,
+    seed_feature_dict,
+    seed_feature_matrix,
+    seed_feature_names,
+)
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
@@ -320,6 +328,111 @@ def _quadratic_coord_features(coords: np.ndarray) -> np.ndarray:
     return np.asarray(stacked, dtype=np.float64)
 
 
+_HAZARD_FEATURE_COUNT = len(seed_feature_names())
+
+
+def _hazard_sigmoid(values: np.ndarray) -> np.ndarray:
+    return np.asarray(
+        1.0 / (1.0 + np.exp(-np.clip(values, -25.0, 25.0))),
+        dtype=np.float64,
+    )
+
+
+def _split_hazard_coefficient_vector(
+    coefficient_vector: np.ndarray,
+) -> tuple[float, np.ndarray, float, np.ndarray, float, np.ndarray]:
+    expected_dim = 3 + 3 * _HAZARD_FEATURE_COUNT
+    if coefficient_vector.shape[0] != expected_dim:
+        raise ValueError(
+            f"expected hazard coefficient dim {expected_dim}, got {coefficient_vector.shape[0]}",
+        )
+    offset = 0
+    build_intercept = float(coefficient_vector[offset])
+    offset += 1
+    build_coef = np.asarray(coefficient_vector[offset : offset + _HAZARD_FEATURE_COUNT], dtype=np.float64)
+    offset += _HAZARD_FEATURE_COUNT
+    port_intercept = float(coefficient_vector[offset])
+    offset += 1
+    port_coef = np.asarray(coefficient_vector[offset : offset + _HAZARD_FEATURE_COUNT], dtype=np.float64)
+    offset += _HAZARD_FEATURE_COUNT
+    ruin_intercept = float(coefficient_vector[offset])
+    offset += 1
+    ruin_coef = np.asarray(coefficient_vector[offset : offset + _HAZARD_FEATURE_COUNT], dtype=np.float64)
+    return (
+        build_intercept,
+        build_coef,
+        port_intercept,
+        port_coef,
+        ruin_intercept,
+        ruin_coef,
+    )
+
+
+def _decode_hazard_tensor(initial_state, coefficient_vector: np.ndarray) -> np.ndarray:
+    (
+        build_intercept,
+        build_coef,
+        port_intercept,
+        port_coef,
+        ruin_intercept,
+        ruin_coef,
+    ) = _split_hazard_coefficient_vector(np.asarray(coefficient_vector, dtype=np.float64))
+    _, feature_stack = seed_feature_matrix(initial_state)
+    feature_dict = seed_feature_dict(initial_state)
+    grid = np.asarray(initial_state.grid, dtype=np.int64)
+
+    build_score = build_intercept + np.tensordot(build_coef, feature_stack, axes=(0, 0))
+    port_score = port_intercept + np.tensordot(port_coef, feature_stack, axes=(0, 0))
+    ruin_score = ruin_intercept + np.tensordot(ruin_coef, feature_stack, axes=(0, 0))
+
+    buildable = feature_dict["buildable"] > 0.5
+    coast = feature_dict["coast"] > 0.5
+    ocean = feature_dict["initial_ocean"] > 0.5
+    mountain = feature_dict["initial_mountain"] > 0.5
+
+    build_prob = _hazard_sigmoid(build_score) * buildable.astype(np.float64)
+    ruin_cond = _hazard_sigmoid(ruin_score)
+    port_cond = _hazard_sigmoid(port_score) * coast.astype(np.float64)
+
+    ruin_prob = build_prob * ruin_cond
+    port_prob = build_prob * (1.0 - ruin_cond) * port_cond
+    settlement_prob = build_prob * (1.0 - ruin_cond) * (1.0 - port_cond)
+    forest_prior = np.where(grid == 4, 0.70, 0.05)
+    forest_prob = np.where(
+        buildable,
+        np.clip((1.0 - build_prob) * forest_prior, 0.0, 1.0),
+        0.0,
+    )
+
+    empty_prob = 1.0 - (settlement_prob + port_prob + ruin_prob + forest_prob)
+    empty_prob = np.clip(empty_prob, 0.0, 1.0)
+
+    probs = np.stack(
+        [
+            empty_prob,
+            settlement_prob,
+            port_prob,
+            ruin_prob,
+            forest_prob,
+            mountain.astype(np.float64),
+        ],
+        axis=-1,
+    ).astype(np.float64)
+
+    soft_mask = ~(ocean | mountain)
+    prior = np.asarray([0.84, 0.05, 0.02, 0.02, 0.05, 0.02], dtype=np.float64)
+    probs[soft_mask] = 0.98 * probs[soft_mask] + 0.02 * prior
+    probs[ocean] = np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
+    probs[mountain] = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+
+    sums = probs.sum(axis=-1, keepdims=True)
+    valid = sums[:, :, 0] > 0.0
+    probs[valid] = probs[valid] / sums[valid]
+    if np.any(~valid):
+        probs[~valid] = prior
+    return np.asarray(probs, dtype=np.float64)
+
+
 class FFAMModePredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -347,6 +460,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -391,6 +506,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     decoder_method: str = "mode_projection"
     decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
     decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_dim: int = Field(default=8, ge=1)
     posterior_neighbor_count: int = Field(default=16, ge=1)
     posterior_bandwidth: float = Field(default=1.0, gt=0.0)
@@ -418,6 +535,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_fallback_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     quadratic_decoder_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     quadratic_decoder_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    hazard_decoder_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    hazard_decoder_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     round_cluster_ids: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.int64))
     cluster_operator_mean_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     cluster_basis_bank: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1, 1), dtype=np.float64))
@@ -520,6 +639,23 @@ class FFAMModePredictor(BaseRoundPredictor):
             round_operator_bank,
             ridge_alpha=config.operator_ridge_lambda,
         )
+        hazard_decoder_intercept = np.zeros(1, dtype=np.float64)
+        hazard_decoder_weights = np.zeros((1, 1), dtype=np.float64)
+        if config.hazard_decoder_blend > 0.0 or config.hazard_decoder_ood_scale > 0.0:
+            hazard_coefficient_bank = np.stack(
+                [
+                    fit_round_semimechanistic_coefficients(
+                        build_round_episode(paths, round_id),
+                    ).combined_vector()
+                    for round_id in mode_round_ids
+                ],
+                axis=0,
+            ).astype(np.float64)
+            hazard_decoder_intercept, hazard_decoder_weights = _fit_linear_map(
+                mode_coord_bank,
+                hazard_coefficient_bank,
+                ridge_alpha=config.operator_ridge_lambda,
+            )
         effective_cluster_count = max(1, min(config.cluster_count, mode_coord_bank.shape[0]))
         round_cluster_ids = _cluster_mode_vectors(
             mode_coord_bank,
@@ -689,6 +825,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             decoder_method=config.decoder_method,
             decoder_particle_blend=config.decoder_particle_blend,
             decoder_particle_ood_scale=config.decoder_particle_ood_scale,
+            hazard_decoder_blend=config.hazard_decoder_blend,
+            hazard_decoder_ood_scale=config.hazard_decoder_ood_scale,
             posterior_metric_dim=config.posterior_metric_dim,
             posterior_neighbor_count=config.posterior_neighbor_count,
             posterior_bandwidth=config.posterior_bandwidth,
@@ -716,6 +854,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_fallback_weights=np.asarray(posterior_fallback_weights, dtype=np.float64),
             quadratic_decoder_intercept=np.asarray(quadratic_decoder_intercept, dtype=np.float64),
             quadratic_decoder_weights=np.asarray(quadratic_decoder_weights, dtype=np.float64),
+            hazard_decoder_intercept=np.asarray(hazard_decoder_intercept, dtype=np.float64),
+            hazard_decoder_weights=np.asarray(hazard_decoder_weights, dtype=np.float64),
             round_cluster_ids=np.asarray(round_cluster_ids, dtype=np.int64),
             cluster_operator_mean_bank=np.asarray(cluster_operator_mean_bank, dtype=np.float64),
             cluster_basis_bank=np.asarray(cluster_basis_bank, dtype=np.float64),
@@ -755,6 +895,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             decoder_method=self.decoder_method,
             decoder_particle_blend=self.decoder_particle_blend,
             decoder_particle_ood_scale=self.decoder_particle_ood_scale,
+            hazard_decoder_blend=self.hazard_decoder_blend,
+            hazard_decoder_ood_scale=self.hazard_decoder_ood_scale,
             posterior_metric_dim=self.posterior_metric_dim,
             posterior_neighbor_count=self.posterior_neighbor_count,
             posterior_bandwidth=self.posterior_bandwidth,
@@ -791,6 +933,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_fallback_weights=self.posterior_fallback_weights,
             quadratic_decoder_intercept=self.quadratic_decoder_intercept,
             quadratic_decoder_weights=self.quadratic_decoder_weights,
+            hazard_decoder_intercept=self.hazard_decoder_intercept,
+            hazard_decoder_weights=self.hazard_decoder_weights,
             round_cluster_ids=self.round_cluster_ids,
             cluster_operator_mean_bank=self.cluster_operator_mean_bank,
             cluster_basis_bank=self.cluster_basis_bank,
@@ -845,6 +989,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             decoder_method=checkpoint.decoder_method,
             decoder_particle_blend=checkpoint.decoder_particle_blend,
             decoder_particle_ood_scale=checkpoint.decoder_particle_ood_scale,
+            hazard_decoder_blend=checkpoint.hazard_decoder_blend,
+            hazard_decoder_ood_scale=checkpoint.hazard_decoder_ood_scale,
             posterior_metric_dim=checkpoint.posterior_metric_dim,
             posterior_neighbor_count=checkpoint.posterior_neighbor_count,
             posterior_bandwidth=checkpoint.posterior_bandwidth,
@@ -899,6 +1045,14 @@ class FFAMModePredictor(BaseRoundPredictor):
                 arrays["quadratic_decoder_weights"]
                 if "quadratic_decoder_weights" in arrays
                 else np.zeros((1, arrays["base_operator_vector"].shape[0]), dtype=np.float64),
+                dtype=np.float64,
+            ),
+            hazard_decoder_intercept=np.asarray(
+                arrays["hazard_decoder_intercept"] if "hazard_decoder_intercept" in arrays else np.zeros(1),
+                dtype=np.float64,
+            ),
+            hazard_decoder_weights=np.asarray(
+                arrays["hazard_decoder_weights"] if "hazard_decoder_weights" in arrays else np.zeros((1, 1)),
                 dtype=np.float64,
             ),
             round_cluster_ids=np.asarray(
@@ -1248,6 +1402,23 @@ class FFAMModePredictor(BaseRoundPredictor):
         operator_vector = (blend * particle_operator) + ((1.0 - blend) * cluster_operator)
         return np.asarray(operator_vector, dtype=np.float64), max(cluster_confidence, particle_confidence)
 
+    def _hazard_predictions_by_seed(
+        self,
+        round_detail: RoundDetail,
+        mode_coords: np.ndarray,
+    ) -> dict[int, np.ndarray]:
+        if self.hazard_decoder_intercept.size <= 1 or self.hazard_decoder_weights.size <= 1:
+            return {}
+        coefficient_vector = np.asarray(
+            self.hazard_decoder_intercept + (mode_coords @ self.hazard_decoder_weights),
+            dtype=np.float64,
+        )
+        round_context = build_round_context_from_detail(round_detail)
+        return {
+            seed.seed_index: _decode_hazard_tensor(seed.initial_state, coefficient_vector)
+            for seed in round_context.seeds
+        }
+
     def _exact_cell_blend(
         self,
         prediction: np.ndarray,
@@ -1296,6 +1467,22 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_input_vector,
             fallback_input_vector=fallback_input_vector,
         )
+        hazard_predictions_by_seed: dict[int, np.ndarray] = {}
+        hazard_blend = 0.0
+        if self.hazard_decoder_blend > 0.0 or self.hazard_decoder_ood_scale > 0.0:
+            mode_coords, _ = self._predict_mode_coords(
+                posterior_input_vector,
+                fallback_input_vector=fallback_input_vector,
+            )
+            hazard_predictions_by_seed = self._hazard_predictions_by_seed(round_detail, mode_coords)
+            hazard_blend = float(
+                np.clip(
+                    self.hazard_decoder_blend
+                    + (self.hazard_decoder_ood_scale * (1.0 - posterior_confidence)),
+                    0.0,
+                    1.0,
+                ),
+            )
         intercept, coefficients = _split_mode_operator_vector(
             operator_vector,
             feature_count=len(self.mode_feature_names),
@@ -1318,6 +1505,11 @@ class FFAMModePredictor(BaseRoundPredictor):
             delta *= np.asarray(self.residual_class_scale, dtype=np.float64)[None, None, :]
             logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -4.0, 4.0)
             prediction = softmax_logits(logits)
+            if hazard_blend > 0.0 and seed_index in hazard_predictions_by_seed:
+                prediction = (
+                    ((1.0 - hazard_blend) * prediction)
+                    + (hazard_blend * np.asarray(hazard_predictions_by_seed[seed_index], dtype=np.float64))
+                )
             prediction = self._exact_cell_blend(
                 prediction,
                 np.asarray(derived.exact_counts[seed_index], dtype=np.float64),
