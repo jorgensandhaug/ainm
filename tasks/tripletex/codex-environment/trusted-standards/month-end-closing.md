@@ -118,6 +118,14 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - Depreciation: Math.round((111100/60)*100)/100 = 1851.67
 - Account mapping: 1710→6390 is first production use of this variant
 
+### Run 4 (2026-03-21, 1720→6300 + 6020→1029 variant, 3 calls)
+- Task: March 2026, prepaid 8050 (1720→6300), depreciation 179850/4yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: 179850/48 = 3746.88
+- Missing account: only 1029. Existing: 1720, 5000, 2900, 6020, 6300
+- First production confirmation of 1720 as prepaid source account
+- Confirms 1720 exists in fresh Tripletex default chart
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -129,4 +137,5 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - 1710→6390 mapping confirmed working: sandbox voucher with 6 postings (prepaid 2450, dep 1851.67, salary 45000) created successfully
   - Account 1109 (Akk. avskr. bygninger) is only month-end account missing in sandbox
   - Comprehensive account survey: all prepaid source accounts (1700, 1710, 1720, 1740), all periodization targets (6300, 6390, 8150), all depreciation expense accounts (6000, 6010, 6020, 6030), and accumulated depreciation accounts 1249, 1209 exist in sandbox
-  - Only 1029 confirmed missing in fresh production (Run 1); only 1109 confirmed missing in sandbox
+  - 1720→6300 mapping confirmed working: sandbox voucher with 6 postings (prepaid 8050, dep 3746.88, salary 45000) created successfully
+  - Only 1029 confirmed missing in fresh production (Runs 1, 4); only 1109 confirmed missing in sandbox
