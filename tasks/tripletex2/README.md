@@ -76,7 +76,7 @@ That is why deterministic per-task strategies are the center of gravity.
 ```text
 tripletex2/
   codex-environment/         # Codex tmux cwd and prompt reference material
-    AGENTS.md                # Codex task-understanding contract
+    AGENTS.md                # Codex scenario knowledge + task-understanding contract
     openapi.json             # Runtime-only Tripletex API spec (gitignored)
     trusted-standards/       # Low-risk reference flows copied from Tripletex1
     task-playbooks/          # Broader task-flow references copied from Tripletex1

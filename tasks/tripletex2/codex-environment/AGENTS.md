@@ -1,131 +1,163 @@
-# Tripletex2 Task-Understanding Scenario Knowledge
+# Tripletex2 Scenario Knowledge
 
-## Mission
-- Decide which of the 18 registered Tripletex2 tasks a prompt belongs to.
+## Task Understanding Contract
+- Decide which registered Tripletex2 task a request belongs to.
 - Extract only the typed task input values for that task.
-- Help the deterministic runtime choose the right strategy by classifying and extracting correctly.
-- Optimize for correct task id and correct typed fields, not for implementation plans.
-
-## Scoring Context
-- Real task scoring is based on final Tripletex side effects, not on text output.
-- Correctness matters first. Efficiency matters second.
-- Classification mistakes are expensive because they route the request to the wrong deterministic strategy.
-- Extraction mistakes are expensive because scorer-sensitive fields often differ only by VAT mode, date normalization, payment-vs-credit semantics, or whether a related object already exists.
-
-## Environment Facts
-- Prompts may be in `nb`, `nn`, `en`, `de`, `fr`, `es`, or `pt`.
-- Files or images may be provided. Read them and extract exact names, dates, amounts, identifiers, and relationships.
-- Preserve user-provided business strings exactly, including Unicode.
-- The registered task universe is fixed by `../src/registry/tasks.ts` and the task surfaces in `../src/tasks/*/task.ts`.
-
-## Output Boundary
-- Return JSON only.
-- The runtime enforces an output schema.
-- Do not return prose, markdown, code fences, or explanations outside the JSON object.
-- Do not return a solve plan, API sequence, strategy hint, or implementation notes.
-
-## Sources Of Truth
-- `../src/runtime/contracts.ts` defines the classifier/extractor boundary.
-- `../src/registry/tasks.ts` defines the registered task universe.
-- `../src/tasks/*/task.ts` files define the classifier-facing task surfaces.
+- Return a small JSON result to the deterministic runtime.
+- Return JSON only; no prose, markdown, code fences, plans, API sequences, or execution notes.
+- `src/runtime/contracts.ts` defines the classifier/extractor boundary.
+- `src/registry/tasks.ts` defines the registered task universe.
+- `src/tasks/*/task.ts` files are the classifier-facing task surfaces.
 - Prefer task surfaces over strategy files.
-- Do not use trusted standards or task playbooks as the primary basis for classification.
-
-## Classification Rules
-- Classify only against the 18 registered Tripletex2 task surfaces.
+- Classify only against the registered Tripletex2 task surfaces provided in the prompt.
 - Choose `resolved` only when one task is the best match and the required extracted fields can be filled confidently.
 - Choose `unresolved` when multiple tasks remain plausible, a required field value is ambiguous, no task matches, the request is unsupported, or an attachment is unreadable.
-- If a prompt asks for several distinct Tripletex side effects that span different tasks, prefer `unresolved` unless one registered task clearly subsumes the whole request.
-
-## Extraction Rules
 - Emit typed values only, using the exact field names from the chosen task surface.
 - Do not invent extra fields.
-- Normalize dates to ISO `YYYY-MM-DD` when the task surface expects full dates.
-- Normalize payroll periods to `YYYY-MM`.
-- Normalize amounts into numeric NOK values.
-- Normalize VAT expressions into numeric percentages such as `25`, `15`, or `0`.
-- Preserve names, addresses, cities, emails, descriptions, invoice numbers, and other business strings exactly.
-- If quantity is clearly implicit for a single line or single item, normalize it to `1`.
-- If a value is uncertain, prefer `unresolved` over guessing.
+- Normalize dates to ISO `YYYY-MM-DD` when the task surface expects dates.
+- Preserve user-provided business strings exactly, including Unicode.
+- Use attachment text when relevant.
+- If a value is uncertain, prefer `ambiguous` or `failed` over guessing.
+- If a request clearly belongs to a placeholder or otherwise unsupported task surface, return `unresolved` with `taskId`, `code: "unsupported-request"`, and a short explanation.
+- Do not plan the Tripletex API workflow.
+- Do not inspect or reason through strategy files unless the task surface is genuinely insufficient.
+- Optimize for a correct task id and correct typed inputs, not for narrative explanation.
 
-## Task Catalog
-- `01 Create customer`: create a customer card, not an invoice or supplier. Required `customerName`, `organizationNumber`, `email`. Optional `postalAddress`. One ordinary mailing address maps to `postalAddress` only.
-- `02 Create supplier`: create a supplier card, not a supplier invoice. Required `supplierName`, `organizationNumber`, `email`. Optional `invoiceEmail`. Use `invoiceEmail` only when invoice-specific intent is explicit.
-- `03 Create department`: create one or more departments. Required `departmentNames` array. Normalize a single department into a one-element array and preserve prompt order.
-- `04 Create product`: create a product with number, ex-VAT price, and VAT rate. Required `productName`, `productNumber`, `unitPriceExcludingVatNok`, `vatRatePercent`.
-- `05 Create project`: create a project for an existing customer and assign a project manager. Required `projectName`, `customerOrganizationNumber`, `projectManagerEmail`. Optional `startDate`, `customerName`, `projectManagerName`.
-- `06 Create employee`: create a new employee, not payroll. Required `employeeName`, `birthDate`, `email`, `startDate`. Optional `userType`. Do not invent department or division fields.
-- `07 Create accounting dimension and post voucher`: create a free accounting dimension with values, then post a voucher linked to one named value. Required `dimensionName`, `dimensionValueNames`, `postingDimensionValueName`, `postingAccountNumber`, `amountNok`. Optional `voucherDate`, `balancingAccountNumber`.
-- `08 Create and send invoice`: create and send one outgoing invoice for an existing customer by organization number. Required `customerName`, `organizationNumber`, `lineDescription`, `quantity`, `unitPriceExcludingVatNok`. Optional `invoiceDate`, `invoiceComment`.
-- `09 Create customer invoice`: create a customer invoice with explicit line items, often existing products or mixed VAT handling. Required `customerOrganizationNumber`, `lines`. Optional `invoiceDate`, `invoiceDueDate`, `customerName`.
-- `10 Issue full credit note`: find an existing invoice and reverse the full invoice amount. Required `customerOrganizationNumber`, `lineDescription`, `amountExcludingVatNok`. Optional `creditNoteDate`, `customerName`, `invoiceId`, `invoiceNumber`.
-- `11 Create order, invoice, and register payment`: multi-step outgoing sales flow that ends with full payment. Required `customerOrganizationNumber`, `lines`. Optional `invoiceDate`, `customerName`.
-- `12 Run payroll with bonus`: payroll for an existing employee in a target month with a separate one-time bonus. Required `employeeEmail`, `payrollMonth`, `baseSalaryNok`, `bonusAmountNok`. Optional `employeeName`, `allowManualVoucherFallback`.
-- `13 Register travel expense`: travel expense with explicit travel dates, cost rows, and per-diem rows. Required `employeeEmail`, `title`, `purpose`, `departureDate`, `returnDate`, `costs`, `perDiemCompensations`. Optional `departureFrom`, `employeeName`, `detailedJourneyDescription`.
-- `14 Set project fixed price and invoice milestone`: set or confirm a fixed project price and invoice a milestone amount or percentage. Required `projectName`, `customerOrganizationNumber`, `projectManagerEmail`, `fixedPriceExcludingVatNok`, `milestoneAmountExcludingVatNok`. Optional `customerName`, `projectManagerName`, `startDate`, `milestonePercentage`, `invoiceDate`, `milestoneDescription`.
-- `15 Register project hours and create project invoice`: log hours to a project activity, then invoice them. Required `employeeEmail`, `projectName`, `customerOrganizationNumber`, `activityName`, `hours`, `hourlyRateExcludingVatNok`. Optional `customerName`, `entryDate`, `invoiceDate`, `invoiceLineDescription`.
-- `16 Register supplier invoice`: incoming supplier invoice, not supplier creation. Required `supplierName`, `organizationNumber`, `invoiceNumber`, `lineDescription`, `grossAmountNok`, `expenseAccountNumber`, `vatRatePercent`. Optional `invoiceDate`, `dueDate`, `supplierAlreadyExists`.
-- `17 Register customer invoice payment`: find an unpaid outgoing invoice and register payment. Required `customerOrganizationNumber`, `lineDescription`, `amountExcludingVatNok`. Optional `customerName`, `invoiceId`, `invoiceNumber`, `paymentDate`.
-- `18 Reverse customer invoice payment`: reverse a payment on an already paid outgoing invoice. Required `customerOrganizationNumber`, `lineDescription`, `amountExcludingVatNok`. Optional `customerName`, `invoiceId`, `invoiceNumber`, `reversalDate`.
+## Environment Facts
+- Real submissions usually use a fresh Tripletex account.
+- Sandbox testing may use a persistent account with leftover state.
+- Prompts may be in `nb`, `nn`, `en`, `es`, `pt`, `de`, or `fr`.
+- Files or images may be attached; extract exact names, dates, amounts, ids, and relationships from them.
+- Fresh-account prompts often imply prerequisites do not exist yet; persistent-account prompts may describe updates, reversals, retries, or already-existing entities.
 
-## Structured Field Shapes
-- Task `09` and task `11` use `lines[]` in prompt order. Each line may include `description`, `quantity`, `unitPriceExcludingVatNok`, and optionally `productNumber`, `productName`, and for task `09` `vatRatePercent`.
-- Task `13` uses `costs[]` with `categoryName`, `amountNokInclVat`, optional `comment`, and optional `vatRatePercent`.
-- Task `13` also uses `perDiemCompensations[]` with `count`, `rateNok`, `amountNok`, and optional `overnightAccommodation`.
-- Task `07` uses `dimensionValueNames[]` in prompt order and exactly one `postingDimensionValueName` that should be linked on the voucher.
+## Scoring Context
+- Correctness is scored field-by-field from the final expected state.
+- Efficiency bonus matters only at perfect correctness.
+- Fewer API calls and fewer `4xx` errors are better, so prompts often describe the narrowest safe locator fields.
+- For task understanding, this means extraction should preserve the exact discriminator fields the runtime will need.
 
-## High-Value Classification Distinctions
-- Customer vs supplier: outgoing-sales tasks use customers; incoming-bill tasks use suppliers.
-- Customer creation vs invoice creation: creating a customer card is task `01`; invoicing an existing customer is task `08`, `09`, `11`, `14`, `15`, `17`, or `18`.
-- Create-and-send invoice vs create customer invoice: task `08` is a simple outgoing invoice for an existing customer with one direct line; task `09` is the more explicit invoice-lines shape, often with product identifiers and mixed VAT handling.
-- Invoice creation vs order-then-payment: task `11` explicitly includes sales order creation, invoicing, and full payment.
-- Credit note vs payment reversal: task `10` reverses the invoice itself; task `18` reverses a payment voucher and reopens the invoice.
-- Register payment vs reverse payment: task `17` pays an unpaid invoice; task `18` undoes a payment on a paid invoice.
-- Supplier creation vs supplier invoice: task `02` creates the supplier master record; task `16` registers an incoming invoice from that supplier.
-- Employee creation vs payroll: task `06` creates the employee record; task `12` runs payroll for an existing employee.
-- Project milestone vs project hours: task `14` is fixed-price milestone billing; task `15` is hours-based project work and invoicing.
+## Task Patterns
+| ID | Task pattern | Description |
+|---|---|---|
+| `01` | Create customer | Create a customer with organization number, address, and contact email. |
+| `02` | Create supplier | Create a supplier with organization number and invoice email details. |
+| `03` | Create department | Create one or more new departments with the requested names. |
+| `04` | Create product | Create a product with product number, price, and the required VAT treatment. |
+| `05` | Create project | Create a project for an existing customer and assign a project manager. |
+| `06` | Create employee | Create a new employee with identifying details, contact email, and start date. |
+| `07` | Create accounting dimension and post voucher | Create a custom accounting dimension with values, then post a voucher linked to one value. |
+| `08` | Create and send invoice | Create and send an outgoing invoice for a customer. |
+| `09` | Create customer invoice | Create a customer invoice with explicit product lines and mixed VAT handling. |
+| `10` | Issue full credit note | Find an invoice and issue a full credit note that reverses the entire amount. |
+| `11` | Create order, invoice, and register payment | Create a sales order, convert it to an invoice, and register full payment. |
+| `12` | Run payroll with bonus | Process payroll for an employee and include a one-time bonus amount. |
+| `13` | Register travel expense | Register a travel expense claim with per diem and named out-of-pocket expenses. |
+| `14` | Set project fixed price and invoice milestone | Set a fixed project price and invoice a requested milestone percentage. |
+| `15` | Register project hours and create project invoice | Register project hours to a project activity and generate the resulting invoice. |
+| `16` | Register supplier invoice | Register an incoming supplier invoice with the requested account and input VAT. |
+| `17` | Register customer invoice payment | Locate an unpaid customer invoice and register full payment against it. |
+| `18` | Reverse customer invoice payment | Reverse a customer invoice payment so the invoice becomes unpaid again. |
 
-## Tripletex Domain Map
-- Customers and suppliers are distinct master-data entities even when both have organization numbers and emails.
-- Departments, divisions, employees, products, projects, vouchers, invoices, orders, and travel expenses are separate task families.
-- Outgoing customer invoice flows commonly involve `/customer`, `/order`, `/invoice`, and `/invoice/paymentType`.
-- Supplier invoice flows commonly involve `/supplier`, `/ledger/account`, `/ledger/vatType`, and `/ledger/voucher`.
-- Project flows commonly involve `/project`, `/employee`, `/activity`, `/timesheet/entry`, `/order`, and `/invoice`.
-- Payroll flows commonly involve `/employee`, `/division`, `/salary/type`, `/salary/transaction`, and `/salary/payslip`.
-- Travel-expense flows commonly involve `/travelExpense`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, and rate-related lookups.
+## Common Endpoints
+- `/customer`, `/customer/{id}`: customer create/search/read/update/delete.
+- `/company`, `/company/{id}`: company read/update, often relevant to travel-expense fallback data.
+- `/department`, `/department/{id}`, `/department/list`: department create/search/update/delete and batch create.
+- `/employee`, `/employee/{id}`, `/employee/employment`: employee create/search/update and employment verification/create.
+- `/division`, `/division/{id}`: division search/create/read/update/delete.
+- `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, `/salary/payslip/{id}`: salary type lookup, payroll transaction create/read/delete, payslip search/read.
+- `/product`, `/product/{id}`: product create/search/update/delete.
+- `/project`, `/project/{id}`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`: project create/search/update/delete and project rate configuration.
+- `/activity/>forTimeSheet`, `/timesheet/entry`, `/timesheet/week/:approve`: time registration and project-hour billing support.
+- `/order`, `/order/{id}`, `/order/{id}/:invoice`: order create/search/update/delete and order-to-invoice.
+- `/invoice`, `/invoice/{id}`, `/invoice/{id}/:createCreditNote`, `/invoice/{id}/:payment`, `/invoice/{id}/:send`, `/invoice/paymentType`: invoice create/search/read/full-credit-note/payment/send/payment-type lookup.
+- `/supplier`, `/supplier/{id}`: supplier create/search/read/update/delete.
+- `/travelExpense`, `/travelExpense/{id}`, `/travelExpense/:deliver`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, `/travelExpense/paymentType`, `/travelExpense/rate`: travel-expense create/update/delete plus child-line and lookup endpoints.
+- `/ledger/account`, `/ledger/account/{id}`: chart-of-accounts search/create/update/delete.
+- `/ledger/vatType`: VAT lookup for outgoing and incoming VAT handling.
+- `/ledger/accountingDimensionName`, `/ledger/accountingDimensionValue`, `/ledger/accountingDimensionValue/list`: free accounting dimension name/value create/search/update.
+- `/ledger/posting`: ledger posting search/read.
+- `/ledger/voucher`, `/ledger/voucher/{id}`, `/ledger/voucher/{id}/:reverse`, `/ledger/voucher/importDocument`: voucher search/create/update/delete/reverse and imported supplier-invoice path.
 
 ## Response Conventions
 - List responses are commonly wrapped as `{"values": [...], "fullResultSize": N}`.
 - Single-object responses are commonly wrapped as `{"value": {...}}`.
-- Some successful writes or deletes return `204 No Content`.
-- For classification, this mainly matters because invoice- and payment-related prompts often refer to objects that are later located by line descriptions, organization numbers, invoice numbers, and ex-VAT amounts.
+- Successful writes or deletes may return `204 No Content`.
+- `values[]` can be authoritative even when summary metadata such as `fullResultSize` looks stale or zero.
+- Some write responses return sparse link objects rather than fully expanded nested data.
 
-## Language And Normalization Cues
-- Normalize mixed-language month names and date prose into ISO dates.
-- Keep Unicode exactly in names like `Lumiere`, `Etoile`, `Joao`, `Odegard`, or `Grunfeld` when the prompt uses accented or Nordic characters.
-- Recognize localized ex-VAT phrasing such as `eksklusiv MVA`, `hors TVA`, `ohne MwSt.`, `sin IVA`, and `sem IVA`.
-- Recognize localized gross/including-VAT phrasing such as `inklusive MVA`, `TTC`, `inkl. MwSt.`, `con IVA`, and `com IVA`.
-- Recognize localized generic email labels such as `Email`, `E-post`, `Correo`, and `Courriel` as the same contact-email concept unless the prompt explicitly distinguishes billing or invoice email.
-- Recognize explicit existing-state cues such as "already exists", "existing supplier", "existing customer", "already paid", or "reverse payment".
-
-## Tripletex Gotchas Relevant To Classification And Extraction
-- Preserve prompt text exactly for names, addresses, descriptions, and cities. Do not transliterate or ASCII-normalize.
-- `amountExcludingVatNok` in tasks `10`, `17`, and `18` is usually a locate key for the target invoice, not the amount the runtime will necessarily write.
-- `grossAmountNok` in task `16` is the gross supplier invoice total, not the net or VAT-only amount.
-- Task `12` keeps `baseSalaryNok` and `bonusAmountNok` separate. Do not fold the bonus into base salary.
-- Set `allowManualVoucherFallback` only when the prompt explicitly permits manual voucher fallback.
-- Set `supplierAlreadyExists` only when the prompt explicitly says the supplier already exists or clearly implies a retry/persistent-account context.
-- For task `13`, do not invent `departureFrom` when the prompt does not supply a concrete location.
-- For task `13`, if the prompt does not provide explicit enough travel dates or per-diem detail to reach a deliverable travel expense, prefer `unresolved`.
-- For task `14`, if the prompt gives a milestone percentage, preserve `milestonePercentage` when explicit and normalize the exact `milestoneAmountExcludingVatNok`.
-- For task `14`, preserve decimal arithmetic exactly. Do not round milestone amounts during extraction.
-- For task `15`, keep the full `hours` value even when it exceeds 24. Runtime can split entries later.
-- For task `09` and `11`, keep line order exactly as prompted and capture both `productNumber` and `productName` when given.
-- For task `08`, normalize implicit single-line quantity to `1`.
-- For tasks `10`, `17`, and `18`, capture `invoiceId` or `invoiceNumber` directly when the prompt gives them.
-- Do not confuse a credit note request with refunding, paying, or reversing a payment.
-
-## Discipline
-- Do not plan the Tripletex API workflow.
-- Do not inspect or reason through trusted standards, task playbooks, or strategy files unless the task surface is genuinely insufficient.
-- Optimize for a correct task id and correct typed inputs, not for narrative explanation.
+## Tripletex Gotchas
+- Prompt language does not change task identity; the same create/update/payment patterns appear across Norwegian, English, German, French, Spanish, and Portuguese.
+- Preserve user strings exactly. Do not ASCII-normalize names, addresses, cities, emails, project names, or invoice descriptions.
+- Normalize dates to ISO `YYYY-MM-DD`, but keep business text exactly as written.
+- Fresh-account create tasks often classify cleanly even when sandbox accounts show extra repair branches from old state.
+- Persistent sandbox state can create duplicates or ambiguity that would not exist in production fresh-account runs.
+- `403 Invalid or expired token` and proxy-token failures indicate unusable credentials, not task ambiguity.
+- Many decisive Tripletex validation details live in `validationMessages[]`, not in the top-level error `message`.
+- `fields=*` is often the decisive read shape for locating or verifying existing objects.
+- Related-object references usually resolve by `id`; nested name-only objects can look accepted while failing to link correctly.
+- `POST /department/list` is the batch-create shape for multi-department prompts, and its `values[]` can be correct even when `fullResultSize=0`.
+- Standard create-customer prompts usually mean one generic `email` plus optional `postalAddress`; do not infer `physicalAddress` or `invoiceEmail` unless the prompt distinguishes them.
+- Standard create-supplier prompts usually mean one generic `email`; if the prompt explicitly distinguishes billing email, capture `invoiceEmail` too.
+- A single invoice-looking supplier email may map to both supplier contact and invoice email, but that is still the same create-supplier task shape.
+- Create-product prompts are keyed by exact `productName`, `productNumber`, excluding-VAT price, and VAT percentage.
+- `POST /product` without explicit `vatType` can silently inherit the wrong VAT in some accounts; extraction must preserve the requested VAT rate exactly.
+- Create-project prompts are usually defined by existing customer organization number plus project-manager email; customer name and manager name are tie-breakers, not the primary keys.
+- `POST /project` with nested customer or manager details but without resolved ids can appear to work while leaving links missing or validation incomplete.
+- Create-employee prompts are keyed by person name, birth date, email, and start date; department and division are repair concepts, not extraction fields.
+- Employee create responses can be too sparse to prove `startDate`, so the runtime often verifies via `/employee/employment`.
+- Employee creation may require `department.id` or `employments.division.id` in some accounts, but those are runtime repair branches, not classification features.
+- Payroll tasks are not the same as employee-creation tasks: payroll prompts focus on an existing employee plus salary amounts, not a new employee profile.
+- Payroll-related employee reads can show sparse `employments[]`; lack of expanded employment detail is not by itself proof that the task is unsupported.
+- Payroll tasks may need manual salary lines and exact salary-type resolution; they are distinct from simple employee updates.
+- Travel-expense tasks require explicit enough trip dates and per-diem detail to reach a deliverable expense.
+- If a travel-expense prompt omits both explicit dates and `departureFrom`, the final correct state may be scorer-ambiguous rather than safely inferable.
+- Travel-expense creation can accept an expense that is still incomplete for delivery; create-only success is not proof of a correct delivered expense.
+- Travel-expense cost rows can require gross amount plus explicit VAT treatment, and per-diem rows can require a concrete rate type plus accommodation context.
+- `PUT /travelExpense/:deliver` returns a list wrapper under `values[]`, not a single `value` object.
+- Create-and-send invoice tasks and create-customer-invoice tasks are different: the former is usually one outgoing service-style invoice shape, while the latter may include multiple explicit lines or product references.
+- Invoice tasks can turn on sending unintentionally; whether the invoice should be sent is task-defining.
+- For create-and-send invoice prompts, the customer may need to be created first if the prompt reads like a fresh-account customer-plus-invoice request.
+- For create-only customer invoice prompts, exact existing `productNumber` or exact product names are major classification cues.
+- Parenthetical product references can be genuine Tripletex product numbers or just prompt-local references; if the meaning is unclear, that ambiguity matters to task understanding.
+- `POST /invoice` or `POST /order` can succeed while returning sparse or link-only `orderLines[]`; sparse lines do not mean line creation failed.
+- Direct invoice/order lines without a product still need correct VAT semantics; omitting VAT can silently produce a wrong no-VAT invoice.
+- VAT wording matters: phrases like excluding VAT / `eksklusiv MVA` / `hors TVA` imply taxed ex-VAT amounts, while explicit no-VAT wording such as `uten MVA` or `ohne MwSt.` implies a different branch.
+- In invoice and order flows, including-VAT and excluding-VAT fields must be internally consistent.
+- Invoice creation can fail until the company invoice bank account is configured; a missing-bank-account validation error is a known conditional branch, not a task mismatch.
+- Credit-note tasks are not payment-reversal tasks. Full credit notes use `:createCreditNote`; payment reversal reopens the invoice by reversing the payment voucher.
+- For full credit-note prompts, the invoice is often located by customer organization number, exact ex-VAT amount, and exact line description.
+- The same invoice line description can appear in both top-level `orderLines[]` and nested `orders[].orderLines[]`; treat that as one invoice, not automatic ambiguity.
+- Customer invoice payment prompts are keyed by an unpaid invoice and usually identify it by customer organization number, exact ex-VAT amount, and exact service description.
+- In customer invoice payment tasks, the prompt amount is often only a locate key; the actual paid amount comes from the invoice’s live outstanding balance.
+- `paymentTypeId` is required for ordinary `PUT /invoice/{id}/:payment` flows.
+- `GET /invoice/paymentType` can return usable incoming payment types even when `name=null`, `creditAccount=null`, or account numbers are numeric instead of strings.
+- Reusing a `paymentTypeId` across different companies or runs is unsafe; it is account-specific context.
+- Customer invoice payment reversal prompts use the same locate keys as payment prompts, but the goal is to reopen a paid invoice, not to create a credit note.
+- On invoice reads, payment evidence may live under `postings`, not `payments`.
+- A payment reversal must target the right voucher; some combined order-invoice-payment flows share voucher ids in ways that make naive reversal unsafe.
+- Create-order-invoice-and-register-payment tasks are multi-step by definition and should not be confused with standalone payment registration on an already existing invoice.
+- Some combined order-to-invoice flows can settle payment within the invoice step itself; that does not change the task family, only the runtime strategy.
+- Project fixed-price milestone tasks are defined by project identity plus fixed-price amount and milestone amount or percentage.
+- In fixed-price milestone tasks, the scored milestone amount should be compared with the invoice ex-VAT amount, not necessarily the outstanding total including VAT.
+- If a project read already proves the desired fixed price and linked customer/manager, runtime may skip the project update; that does not change the task classification.
+- Project-hour invoice tasks are defined by employee email, project, activity, hours, and customer-facing hourly rate.
+- The activity read for project hours can expose `isChargeable`; `isChargeable=false` does not necessarily block the customer-facing invoice task.
+- A non-chargeable activity can still allow time registration while leaving internal `hourlyRate=0`; invoice-side billing may still be produced through a separate project-linked order line.
+- `projectChargeableHours` cannot exceed `24` in one time-entry write, and Tripletex allows only one time entry per employee + project + activity + date tuple.
+- High-hour project prompts may require runtime date-splitting, but extraction should keep the full requested hour total intact.
+- Public APIs do not expose a reliable write path for every internal project preliminary-invoice workflow; some project-invoice tasks are satisfied by hours plus a manual project-linked order line.
+- Supplier-invoice tasks are not plain voucher tasks. A balanced voucher alone may fail to create a real supplier invoice object.
+- The workable supplier-invoice branch typically uses supplier resolution/creation plus imported voucher flows, not `POST /incomingInvoice` on ordinary accounts.
+- Supplier-invoice prompts are keyed by supplier identity, invoice number, gross amount, expense account, and VAT rate.
+- If the prompt does not say the supplier already exists, fresh-account supplier-invoice prompts usually imply creation-first rather than lookup-first.
+- For supplier-invoice VAT, the relevant lookup family is incoming VAT for the invoice date; a broader VAT catalog can expose unusable codes.
+- Imported supplier-invoice XML must be structurally valid enough for Tripletex to recognize it; malformed minimal XML is not equivalent.
+- In imported supplier-invoice updates, imported header fields such as invoice number or description can behave as effectively immutable after import.
+- Free accounting dimension tasks are keyed by one new dimension name, new dimension values, one value to post against, ledger account, and amount.
+- `dimensionIndex` must be reused from the created dimension-name object; it should not be guessed.
+- `POST /ledger/accountingDimensionName` can fail because the account already uses all free-dimension slots; that is an account-state blocker, not a different task.
+- `/ledger/accountingDimensionValue/list` is batch update, not batch create.
+- Voucher posting tasks need real ledger account ids; number-only shorthand can fail validation.
+- Ledger account numbers can come back as integers, so numeric normalization matters when extracting or disambiguating account references.
+- Voucher postings to customer, supplier, or employee accounts can require the matching business object reference, not just the ledger account.
+- Some correction prompts describe reversals rather than deletes. Distinguish delete/update/reverse semantics carefully during classification.
