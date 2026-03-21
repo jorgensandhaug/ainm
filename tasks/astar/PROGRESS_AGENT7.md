@@ -2682,6 +2682,31 @@ Framework should accept unique query-residual family variant names directly so b
 | R1 | 82.0 | 85.5 | **+3.5** |
 | **Mean** | **77.76** | **85.50** | **+7.74** |
 
+### 2026-03-21T17:00Z approx
+
+- Additional radical changes:
+  - v139: Removed residual_class_scale damping → 85.79 (+0.29 from v132)
+  - Delta clip (4→6→8→12→20) had ZERO effect - clipping is never triggered
+  - v143: Removed prior blend entirely (prior_blend=0, ood=0) → **86.14** (+0.35)
+  - Zero prior blend means model fully trusts its own predictions
+- Current absolute champion: **v143 = 86.14**
+
+## Current Champion
+
+- model: `ffam_mode_v143`
+- policy: `exploration_r3`, `samples_per_round=2`
+- score: **86.1383**
+- total improvement from v44: **+8.38 points** (77.76 → 86.14, +10.8%)
+- per-round vs v44:
+  - R3: 64.1 → 89.7 (+25.6!!!)
+  - R8: 80.3 → 93.5 (+13.2)
+  - R6: 78.7 → 87.7 (+9.0)
+  - R7: 65.4 → 73.2 (+7.8)
+  - R4: 87.0 → 93.1 (+6.1)
+  - R5: 79.6 → 84.0 (+4.4)
+  - R2: 84.9 → 86.5 (+1.6)
+  - R1: 82.0 → 81.3 (-0.7)
+
 ## Exhaustive Full-Dev Score Table (all evaluated variants)
 
 | Rank | Model | Score | Key difference vs v104 |

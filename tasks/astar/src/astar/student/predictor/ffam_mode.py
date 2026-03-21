@@ -604,6 +604,7 @@ class FFAMModePredictorCheckpoint(BaseModel):
     beta_min: float = Field(ge=0.0)
     beta_scale: float = Field(ge=0.0)
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
+    delta_clip: float = Field(default=4.0, gt=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -655,6 +656,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     beta_min: float = Field(default=2.0, ge=0.0)
     beta_scale: float = Field(default=8.0, ge=0.0)
     beta_repeat_discount: float = Field(default=0.0, ge=0.0)
+    delta_clip: float = Field(default=4.0, gt=0.0)
     synthetic_dataset_version: str = "v2"
     regime_input_variant: RegimeInputVariant = "motif_v1"
     posterior_input_source: str = "regime_input"
@@ -1041,6 +1043,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta_min=config.beta_min,
             beta_scale=config.beta_scale,
             beta_repeat_discount=config.beta_repeat_discount,
+            delta_clip=config.delta_clip,
             synthetic_dataset_version=config.synthetic_dataset_version,
             regime_input_variant=config.regime_input_variant,
             posterior_input_source=config.posterior_input_source,
@@ -1807,7 +1810,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)
             delta *= np.asarray(self.residual_class_scale, dtype=np.float64)[None, None, :]
-            logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -4.0, 4.0)
+            logits = _safe_log_probs(prior, self.probability_floor) + np.clip(delta, -self.delta_clip, self.delta_clip)
             prediction = softmax_logits(logits)
             if hazard_blend > 0.0 and seed_index in hazard_predictions_by_seed:
                 prediction = (
