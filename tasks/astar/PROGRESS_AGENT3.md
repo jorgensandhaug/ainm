@@ -2723,6 +2723,37 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v56_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v58_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+297. Machine-wide health check before launching the gated exact-local-evidence wave:
+   - snapshot before launch:
+     - memory used: about `1.5 TiB`
+     - memory available: about `1.4 TiB`
+   - live family queue count from machine-wide process scan:
+     - about `49` agent3 teacher-student benchmark processes / wrappers
+   - decision:
+     - still enough headroom for one more 4-model corrected-holdout wave at `jobs=1`
+298. Thirteenth corrected-holdout outer wave launched from pushed commit `b87ab703`:
+   - models:
+     - `teacher_student_blend_v55`
+     - `teacher_student_blend_v56`
+     - `teacher_student_blend_v57`
+     - `teacher_student_blend_v58`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - sessions:
+     - `v55`: `95391`
+     - `v56`: `52465`
+     - `v57`: `69932`
+     - `v58`: `7802`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
+299. Read after item 298:
+   - machine still has substantial shared headroom, but the family queue is now large enough that the next step should be to wait for finished signals before adding another full 4-model wave
+   - active priority promotion runs are now:
+     - `v51` full corrected LOO
+     - `v52` full corrected LOO
+     - `v45` full corrected LOO as the previous-family baseline
 
 
 ## Open Questions
