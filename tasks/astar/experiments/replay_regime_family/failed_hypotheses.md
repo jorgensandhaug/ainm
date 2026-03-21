@@ -24,3 +24,22 @@
   - coverage: both variants `76.6419` / `0.091278`
   - exploration: both variants `75.1636` / `0.098387`
   - Conclusion: this axis is flat; spend budget on posterior shrinkage/data volume and full-round validation instead.
+- Increasing synthetic transcript-bank size (`samples_per_round=4` or `8`) should strengthen the new v4 transcript-summary neighbor policy.
+  - Evidence: matched hard 3-round multi-seed probes with `exploration` and v4
+  - baseline `s1`: `76.7472` / `0.090999`
+  - tested denser banks:
+    - `s4`: `75.4359` / `0.097188`
+    - `s8`: `75.6882` / `0.095868`
+    - stronger-shrinkage `l32/m70, s8`: `75.9030` / `0.094822`
+  - Conclusion: denser synthetic banks are net harmful in the current v4 setup; stop widening this axis for now.
+- For the stronger replay-regime family, static `coverage` / `exploration_v2` is already sufficient query behavior.
+  - Evidence: adaptive `regime_probe_v1` matched hard 3-round multi-seed probes
+  - v3 `coverage`: `76.8128` / `0.090407`
+  - v3 `regime_probe_v1`: `78.1285` / `0.085231`
+  - v4 `exploration_v2`: `76.7472` / `0.090999`
+  - v4 `regime_probe_v1` with `l32/m70`: `78.4806` / `0.083675`
+  - Conclusion: adaptive regime-disambiguation querying is a major missing component; static plans are no longer acceptable as the mainline.
+- Hard-slice frontier selection alone is reliable enough to promote models without broader validation.
+  - Evidence: `hazard_posterior_v3_k5_r3_l16_m50 + coverage` was the hard-slice leader at `76.8128` / `0.090407`
+  - Full 8-round multi-seed promotion result: `72.3675` / `0.114380`
+  - Conclusion: every future frontier candidate must clear broader multi-round validation before being considered a true promotion.

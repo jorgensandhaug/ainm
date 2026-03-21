@@ -18,6 +18,7 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
+from astar.envs.base import InteractiveQueryPolicy
 from astar.policy.interactive import QueryPlanPolicyAdapter, build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
 from astar.workflows.materialize_episode import materialize_round_episode
@@ -50,13 +51,15 @@ class SyntheticEpisodeArtifact(BaseModel):
 
 
 def _plan_budget(
-    policy: QueryPlanPolicyAdapter,
+    policy: InteractiveQueryPolicy,
     round_id: str,
     oracle: SyntheticActiveOracle,
 ) -> int:
-    round_context = oracle.get_round_context(round_id)
-    plan = policy.policy.build_plan(round_context.to_round_detail())
-    return sum(item.repeats for item in plan.items)
+    if isinstance(policy, QueryPlanPolicyAdapter):
+        round_context = oracle.get_round_context(round_id)
+        plan = policy.policy.build_plan(round_context.to_round_detail())
+        return sum(item.repeats for item in plan.items)
+    return int(getattr(policy, "max_queries", 50))
 
 
 def _target_info(

@@ -68,6 +68,28 @@
   - `hazard_posterior_v3_k5_r3_l16_m20 + coverage`: `76.4455`, weighted KL `0.092286`
   - `hazard_posterior_v3_k5_r3_l16_m50 + coverage`: `76.8128`, weighted KL `0.090407`
   - implication: stronger ridge plus higher predicted-latent weight is currently the best tested v3 setting on the hard slice
+- The first v4 transcript-summary-neighbor posterior made policy choice much more important:
+  - `hazard_posterior_v4_k5_r3_l16_m50 + coverage`: `75.2911`, weighted KL `0.096954`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration_v2`: `76.7472`, weighted KL `0.090999`
+  - implication: once the posterior is strong enough, more regime-focused querying matters again
+- Larger synthetic transcript banks hurt the current v4 family instead of helping:
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration_v2, s4`: `75.4359`, weighted KL `0.097188`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration_v2, s8`: `75.6882`, weighted KL `0.095868`
+  - best dense-bank variant tested: `hazard_posterior_v4_k5_r3_l32_m70 + exploration_v2, s8` => `75.9030`, weighted KL `0.094822`
+  - implication: the current transcript-summary neighbor model is harmed by wider synthetic bank volume; do not widen this axis further without redesign
+- The previous "exploration" policy was not actually adaptive:
+  - code inspection showed it is just a static `CoverageThenReplicatePolicy`
+  - it does not use belief state or posterior state
+  - implication: a real regime-disambiguation policy was still missing from the stack
+- Adding a genuinely adaptive observation-driven policy immediately created a new hard-slice frontier:
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_v1`: `77.6423`, weighted KL `0.087387`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_v1`: `78.1285`, weighted KL `0.085231`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_v1`: `78.4806`, weighted KL `0.083675`
+  - implication: adaptive regime-disambiguation querying is now the strongest known lever in this family
+- The first full 8-round multi-seed promotion of the old hard-slice v3 leader generalized poorly:
+  - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
+  - mean score `72.3675`, weighted KL `0.114380`
+  - implication: hard-slice selection can be badly misleading; broader multi-round validation is mandatory
 
 ## Strongly Supported Hypotheses
 
@@ -80,6 +102,8 @@
 - For the new v2 family, broad `coverage` is at least slightly better than `exploration_v2` on the current hard slice.
 - The main remaining bottleneck after v2 was the posterior model, not the regime-manifold decoder; replacing kNN summary lookup with a distilled posterior produces a much larger gain than v2 decoder/rank tweaks.
 - Within the new distilled-posterior family, posterior shrinkage / mixing is now a real optimization axis, unlike larger k/rank which appears flat.
+- Adaptive, observation-driven query selection is now a larger lever than synthetic-bank widening for the current replay-regime family.
+- The modeling problem has likely shifted from “better static query template” to “better online regime identification”.
 
 ## Rejected / Weak Hypotheses
 
@@ -99,10 +123,16 @@
 - Increasing k/rank from `k5/r3` to `k9/r4` is a useful v3 search axis.
   - Evidence: both coverage and exploration results are exactly identical across those settings on the current hard slice.
   - Conclusion: stop spending immediate budget here.
+- Larger synthetic transcript banks should help the transcript-summary neighbor v4 family because they provide a denser match set.
+  - Evidence: all tested `s4`/`s8` variants are below the simple `s1` baseline on the hard slice.
+  - Conclusion: this is false in the current formulation.
+- Static coverage / static exploration should remain the best query policies once the posterior family is stronger.
+  - Evidence: `regime_probe_v1` materially beats both on the matched hard slice for both v3 and v4.
+  - Conclusion: this is false; adaptive querying is now mainline.
 
 ## Open Questions
 
-- Does the v3 hard-slice win survive full 8-round multi-seed evaluation?
-- Do more synthetic transcript samples per training round (`s4`) help the distilled posterior enough to justify the extra cost?
-- Does stronger ridge / different mean-vs-neighbor posterior mixing beat the default `l8/m35` configuration?
-- Is the remaining v3 weakness now concentrated on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`, and if so is that a posterior issue or a decoder/calibration issue?
+- Do the in-flight full 8-round multi-seed `regime_probe` promotions (`v4 l32/m70`, `v3 l16/m50`) preserve their hard-slice gains?
+- Is `v4 l32/m70` genuinely better than `v3 l16/m50` on the broader 8-round set, or only on the current hard slice?
+- Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
+- Would exposing actual predictor/posterior state to the policy yield another step beyond the observation-only `regime_probe_v1` heuristic?

@@ -26,6 +26,9 @@ from astar.student.predictor.hazard_posterior_v2 import (
 from astar.student.predictor.hazard_posterior_v3 import (
     hazard_posterior_v3_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v4 import (
+    hazard_posterior_v4_spec_for_model_name,
+)
 from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -208,6 +211,7 @@ def run_historical_benchmark(
         or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v3_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v4_spec_for_model_name(normalized_model_name) is not None
     )
     resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
     if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
@@ -219,6 +223,7 @@ def run_historical_benchmark(
         or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v3_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v4_spec_for_model_name(normalized_model_name) is not None
     ):
         raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":

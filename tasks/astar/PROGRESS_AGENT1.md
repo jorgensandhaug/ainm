@@ -3,6 +3,121 @@
 ### Session Continuation
 
 - date: 2026-03-21 UTC
+- resumed commit: `55495d1`
+- branch: `agent1`
+- remote tracking: `origin/agent1`
+- `br` check at resume: unavailable (`command not found`)
+- mandatory re-reads completed again before more model work:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent1.md`
+- machine snapshot before new launch:
+  - load avg: `40.01 / 42.57 / 62.47`
+  - mem used: `733 GiB`
+  - mem free: `2.1 TiB`
+- other-agent activity visible:
+  - heavy agent4/agent5/agent2/agent3 historical runs active
+  - enough headroom remains for more agent1 parallelism
+- own in-flight run still active at resume:
+  - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
+  - no `result.json` yet
+- new model development completed locally before next sweep:
+  - added `ObservationSetRefinedStudent`
+    - keeps v3 amortized ridge latent-mean prediction
+    - switches posterior particles from regime-space nearest neighbors to transcript-summary nearest neighbors
+    - keeps explicit `predicted_particle_weight` mixing
+  - added new predictor family `hazard_posterior_v4`
+  - wired v4 through predictor selection, historical benchmark online gating, CLI aliases, and tests
+- validation:
+  - `python3 -m compileall src/astar/student/posterior/deepset_student.py src/astar/student/predictor/hazard_posterior_v4.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_historical_benchmark.py -q`
+  - result: `13 passed`
+- immediate next step after this log entry:
+  - run an expanded hard-slice v4 sweep over transcript-kNN / shrinkage configs using the Python workflow entrypoint
+  - compare directly against current hard-slice best `hazard_posterior_v3_k5_r3_l16_m50 + coverage`
+- first v4 sweep execution notes:
+  - initial Python launcher attempt failed immediately on two non-model issues:
+    - `WorkspacePaths` needs `from_root(...)`, not `repo_root=...`
+    - `run_historical_benchmark(...)` takes `visualization_policy`, not `with_png`
+  - exploration relaunch also needed a naming fix:
+    - benchmark workflow expects policy token `exploration`
+    - registry-normalized policy name remains `exploration_v2`
+- first v4 hard-slice results completed on matched 3-round, 2-episode-seed benchmark:
+  - `hazard_posterior_v4_k1_r3_l16_m50 + coverage`: `73.7773`, KL `0.103554`
+  - `hazard_posterior_v4_k3_r3_l16_m50 + coverage`: `75.2911`, KL `0.096954`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + coverage`: `75.2911`, KL `0.096954`
+  - `hazard_posterior_v4_k9_r4_l16_m50 + coverage`: `75.2911`, KL `0.096954`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + coverage`: `75.2906`, KL `0.096686`
+  - `hazard_posterior_v4_k5_r3_l8_m30 + coverage`: `75.0404`, KL `0.098551`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration`: `76.7472`, KL `0.090999`
+  - `hazard_posterior_v4_k9_r4_l16_m50 + exploration`: `76.7472`, KL `0.090999`
+- current interpretation from first v4 sweep:
+  - transcript-summary neighbor refinement is real but does not yet beat current hard-slice best `hazard_posterior_v3_k5_r3_l16_m50 + coverage` (`76.8128`, KL `0.090407`)
+  - gap to current best is tiny: `-0.0656` score, `+0.000592` KL for v4 exploration
+  - policy matters much more for v4 than for earlier raw hazard families:
+    - `exploration` beats matched v4 coverage by `+1.4561` score and `-0.005956` KL
+  - `k>=3` is effectively a dead axis on this slice; `k=1` is too local
+  - heavier ridge / predicted-mean weight marginally improves KL but not score under coverage
+  - next targeted sweep should focus on:
+    - exploration-only shrinkage tuning
+    - denser synthetic transcript banks via larger `samples_per_round`, which should matter more for transcript-space kNN than it did for v3
+- second targeted v4 sweep results:
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration, s4`: `75.4359`, KL `0.097188`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + exploration, s8`: `75.6882`, KL `0.095868`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + exploration, s4`: `75.3015`, KL `0.097756`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + exploration, s8`: `75.9030`, KL `0.094822`
+  - `hazard_posterior_v4_k5_r3_l64_m85 + exploration, s4`: `75.1656`, KL `0.098376`
+- conclusion from the dense-bank sweep:
+  - transcript-space kNN does **not** want larger synthetic-live banks in the current formulation
+  - both `s4` and `s8` regress badly vs the simple `s1` frontier (`76.7472`, KL `0.090999`)
+  - `samples_per_round` is now a frozen/deprioritized axis for v4
+- major gap discovered while analyzing policy code:
+  - current `exploration` is only a static `CoverageThenReplicatePolicy`
+  - it ignores belief state and predictor/posterior entirely
+  - that violates the handoff’s intended “identify regime, not just cover map” direction
+- new implementation after that finding:
+  - added adaptive `RegimeProbePolicy` in `src/astar/policy/regime_probe.py`
+    - uses motif-rich viewport prior
+    - balances early queries across seeds
+    - adaptively repeats windows with strong observed stochastic/activity signal
+    - expands into nearby motif-rich windows around observed hotspots
+  - wired adaptive policy through `build_interactive_policy(...)`
+  - updated synthetic-live dataset generation so non-plan policies can declare `max_queries` instead of requiring a static query plan
+  - added tests:
+    - dynamic seed-balancing unit test
+    - `hazard_posterior_v4 + regime_probe` historical benchmark smoke test
+- validation after adaptive-policy implementation:
+  - `python3 -m compileall src/astar/policy/regime_probe.py src/astar/policy/interactive.py src/astar/history/datasets/synthetic_live.py src/astar/policy/__init__.py tests/test_exploration_policy.py tests/test_historical_benchmark.py`
+  - `uv run --with pytest python -m pytest tests/test_exploration_policy.py tests/test_historical_benchmark.py -q`
+  - result: `16 passed`
+- currently in flight after the adaptive-policy patch:
+  - `probe_hazard_v4_k5_r3_l16_m50_regime_probe_3rounds_seed0to1`
+  - `probe_hazard_v4_k5_r3_l32_m70_regime_probe_3rounds_seed0to1`
+  - `probe_hazard_v3_k5_r3_l16_m50_regime_probe_3rounds_seed0to1`
+  - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
+  - `dev_hazard_v4_k5_r3_l16_m50_exploration_online50_v1`
+- adaptive-policy probe results completed:
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_v1`: `77.6423`, KL `0.087387`
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_v1`: `78.1285`, KL `0.085231`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_v1`: `78.4806`, KL `0.083675`
+- conclusion from the adaptive-policy probes:
+  - adaptive querying is a bigger lever than any recent posterior/bank tweak
+  - `regime_probe_v1` beats the old v3 hard-slice leader by `+1.6678` score and `-0.006733` KL with the best v4 config
+  - `v4 l32/m70 + regime_probe_v1` is the new hard-slice frontier
+- first full promotion result completed during this sweep:
+  - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
+  - full 8-round multi-seed score: `72.3675`
+  - weighted KL: `0.114380`
+  - implication: hard-slice-only model selection badly overstates generalization; broader promotion is mandatory
+- new full promotions launched immediately after the adaptive-policy win:
+  - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`
+  - left older comparator running:
+    - `dev_hazard_v4_k5_r3_l16_m50_exploration_online50_v1`
+
+### Session Continuation
+
+- date: 2026-03-21 UTC
 - resumed commit: `cbc6262`
 - branch: `agent1`
 - remote tracking: `origin/agent1`

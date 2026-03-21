@@ -1,15 +1,18 @@
 # Next Steps
 
-1. Finish the in-flight full 8-round v3 promotion:
-   - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1`
-2. Finish the in-flight v3 posterior sweeps on the hard slice:
-   - `samples-per-round=4` coverage / exploration
-   - stronger-ridge `l16` coverage variants with different mean-vs-neighbor mix
-3. Current v3 mainline is `l16/m50`; only supersede it if the in-flight `s4` probes beat it on both score and KL.
-4. Analyze the new v3 tradeoff structure:
-   - big gains on `8e839...` and `ae780...`
-   - regression on `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
-5. Use that analysis to target the next v4 work at posterior calibration/shrinkage rather than larger latent rank:
-   - better transcript-to-regime regularization
-   - possible probability-floor or uncertainty-aware decoding
-   - more synthetic episode volume only if `s4` materially helps
+1. Finish the in-flight full 8-round multi-seed `regime_probe` promotions:
+   - `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`
+   - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`
+   - also finish the older comparator `dev_hazard_v4_k5_r3_l16_m50_exploration_online50_v1`
+2. Compare those full results against the completed failure case:
+   - `dev_hazard_v3_k5_r3_l16_m50_coverage_online50_v1` => `72.3675` / `0.114380`
+   - identify whether the adaptive policy fixes true generalization or only the hard slice
+3. If `v4 l32/m70 + regime_probe` survives full validation, center the next sweep around:
+   - nearby shrinkage/mix settings around `l32/m70`
+   - policy hyperparameters inside `regime_probe`
+4. Analyze query traces from `regime_probe_v1` vs static exploration:
+   - which windows get repeated
+   - whether the gains come from same-window stochastic probing or hotspot expansion
+   - which rounds gain the most
+5. If full `regime_probe` still undergeneralizes, next major code move should be:
+   - expose actual predictor/posterior state to the policy rather than relying on observation-only heuristics
