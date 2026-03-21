@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import hashlib
 import json
 from pathlib import Path
 
@@ -87,6 +88,27 @@ def _load_existing_dataset_ref(
         total_query_count=int(summary["total_query_count"]),
         samples_per_round=int(summary["samples_per_round"]),
     )
+
+
+def _dataset_variant_name(
+    dataset_name: str,
+    *,
+    policy_name: str,
+    budget: int | None,
+    samples_per_round: int,
+    round_ids: list[str],
+) -> str:
+    payload = json.dumps(
+        {
+            "policy_name": policy_name,
+            "budget": budget,
+            "samples_per_round": samples_per_round,
+            "round_ids": round_ids,
+        },
+        sort_keys=True,
+    )
+    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
+    return f"{dataset_name}__cfg_{digest}"
 
 
 def resolve_synthetic_episode_path(
@@ -184,6 +206,21 @@ def build_synthetic_live_dataset(
     )
     if existing is not None:
         return existing
+    if summary_path.exists() or index_path.exists():
+        return build_synthetic_live_dataset(
+            paths,
+            policy_name=policy_name,
+            round_ids=selected_round_ids,
+            samples_per_round=samples_per_round,
+            dataset_name=_dataset_variant_name(
+                dataset_name,
+                policy_name=policy.name,
+                budget=budget,
+                samples_per_round=samples_per_round,
+                round_ids=selected_round_ids,
+            ),
+            budget=budget,
+        )
 
     rows: list[dict[str, str | int]] = []
     total_query_count = 0

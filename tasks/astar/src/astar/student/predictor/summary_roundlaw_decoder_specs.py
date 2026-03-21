@@ -15,6 +15,8 @@ class SummaryRoundLawDecoderModelSpec(BaseModel):
     law_rank: int = Field(default=0, ge=0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     include_teacher_logits: bool = False
+    summary_feature_variant: str = "basic"
+    guide_target_family: str | None = None
 
 
 SUMMARY_ROUNDLAW_DECODER_MODEL_SPECS = (
@@ -37,6 +39,34 @@ SUMMARY_ROUNDLAW_DECODER_MODEL_SPECS = (
         model_name="f1_summary_roundlaw_decoder_teacher_r3_v01",
         law_rank=3,
         include_teacher_logits=True,
+    ),
+    SummaryRoundLawDecoderModelSpec(
+        request_names=("f1_summary_roundlaw_decoder_hrates_r3_v01",),
+        model_name="f1_summary_roundlaw_decoder_hrates_r3_v01",
+        law_rank=3,
+        guide_target_family="rates",
+    ),
+    SummaryRoundLawDecoderModelSpec(
+        request_names=("f1_summary_roundlaw_decoder_teacher_hrates_r3_v01",),
+        model_name="f1_summary_roundlaw_decoder_teacher_hrates_r3_v01",
+        law_rank=3,
+        include_teacher_logits=True,
+        guide_target_family="rates",
+    ),
+    SummaryRoundLawDecoderModelSpec(
+        request_names=("f1_summary_roundlaw_decoder_hstress_r3_v01",),
+        model_name="f1_summary_roundlaw_decoder_hstress_r3_v01",
+        law_rank=3,
+        summary_feature_variant="stress_v1",
+        guide_target_family="birth_collapse_timing_stress",
+    ),
+    SummaryRoundLawDecoderModelSpec(
+        request_names=("f1_summary_roundlaw_decoder_teacher_hstress_r3_v01",),
+        model_name="f1_summary_roundlaw_decoder_teacher_hstress_r3_v01",
+        law_rank=3,
+        include_teacher_logits=True,
+        summary_feature_variant="stress_v1",
+        guide_target_family="birth_collapse_timing_stress",
     ),
 )
 

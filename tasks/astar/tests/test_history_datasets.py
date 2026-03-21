@@ -94,6 +94,31 @@ def _write_replays_for_all_seeds(
             )
 
 
+def _duplicate_round_fixture(
+    paths: RepoPaths,
+    *,
+    source_round_id: str,
+    target_round_id: str,
+    round_number: int,
+) -> None:
+    round_payload = json.loads(paths.raw_round_path(source_round_id).read_text(encoding="utf-8"))
+    round_payload["round"]["id"] = target_round_id
+    round_payload["round"]["round_number"] = round_number
+    paths.raw_round_path(target_round_id).write_text(
+        json.dumps(round_payload, indent=2),
+        encoding="utf-8",
+    )
+    target_query_dir = paths.raw_query_dir(target_round_id)
+    target_query_dir.mkdir(parents=True, exist_ok=True)
+    for source_path in sorted(paths.raw_query_dir(source_round_id).glob("*.json")):
+        payload = json.loads(source_path.read_text(encoding="utf-8"))
+        payload["request"]["round_id"] = target_round_id
+        (target_query_dir / source_path.name).write_text(
+            json.dumps(payload, indent=2),
+            encoding="utf-8",
+        )
+
+
 def test_teacher_datasets_build_from_replay_backed_round(sample_paths: RepoPaths) -> None:
     _write_replays_for_all_seeds(sample_paths, run_count=2)
 
@@ -260,3 +285,41 @@ def test_synthetic_live_dataset_reuses_matching_cached_dataset(
 
     assert reused == dataset
     assert summary["round_ids"] == [ROUND_ID]
+
+
+def test_synthetic_live_dataset_forks_dataset_name_on_config_mismatch(
+    sample_paths: RepoPaths,
+) -> None:
+    round_id_2 = "00000000-0000-0000-0000-000000000002"
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=round_id_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=round_id_2)
+
+    original = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_immutable_name_test",
+        budget=4,
+    )
+    forked = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID, round_id_2],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_immutable_name_test",
+        budget=4,
+    )
+
+    original_summary = json.loads(original.summary_path.read_text(encoding="utf-8"))
+    forked_summary = json.loads(forked.summary_path.read_text(encoding="utf-8"))
+
+    assert forked.dataset_name != original.dataset_name
+    assert original_summary["round_ids"] == [ROUND_ID]
+    assert forked_summary["round_ids"] == [ROUND_ID, round_id_2]

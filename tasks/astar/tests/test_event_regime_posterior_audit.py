@@ -5,6 +5,7 @@ import json
 from astar.workflows.event_regime_posterior_audit import run_event_regime_posterior_audit
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from tests.conftest import ROUND_ID
+from tests.test_historical_bucket_baseline import _write_sample_analysis
 from tests.test_history_datasets import _write_replays_for_all_seeds
 
 ROUND_ID_2 = "00000000-0000-0000-0000-000000000002"
@@ -164,3 +165,43 @@ def test_event_regime_posterior_audit_supports_stress_summary_features(
 
     assert result.summary_feature_variant == "stress_v1"
     assert result.target_family == "collapse_portsplit"
+
+
+def test_event_regime_posterior_audit_supports_collapse_terminal_shock_family(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID_2, seed_index=0)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_collapse_terminal_shock_test",
+        audit_name="event_regime_posterior_collapse_terminal_shock_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        collapse_dataset_name="collapse_riskset_regime_posterior_collapse_terminal_shock_test",
+        target_family="collapse_terminal_shock",
+    )
+
+    assert result.target_family == "collapse_terminal_shock"
+    assert result.target_names == [
+        "collapse_logit_rate",
+        "collapse_port_gap_logit",
+        "collapse_food_gap_z",
+        "collapse_defense_gap_z",
+        "collapse_timing_skew",
+        "ruin_buildable_mean",
+        "ruin_coast_mean",
+        "port_coast_mean",
+        "live_buildable_mean",
+    ]

@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
+from astar.features.geometry import compute_round_features
 from astar.history.datasets.event_ledger import build_replay_event_ledger_dataset
 from astar.history.datasets.hazard_riskset import build_hazard_riskset_dataset
 from astar.history.datasets.synthetic_live import (
@@ -14,6 +15,7 @@ from astar.history.datasets.synthetic_live import (
     resolve_synthetic_episode_path,
 )
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.student.posterior.deepset_student import (
     SUPPORTED_SUMMARY_FEATURE_VARIANTS,
@@ -26,6 +28,7 @@ SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
     "birth_collapse_portsplit",
     "collapse_timing_stress",
     "birth_collapse_timing_stress",
+    "collapse_terminal_shock",
 )
 
 def _weighted_positive_rate(frame: pl.DataFrame) -> pl.DataFrame:
@@ -65,6 +68,64 @@ def _safe_ratio_expr(
 def _logit_expr(expr: pl.Expr) -> pl.Expr:
     clipped = expr.clip(1.0e-4, 1.0 - 1.0e-4)
     return (clipped / (1.0 - clipped)).log()
+
+
+def _analysis_terminal_slice_frame(
+    paths: WorkspacePaths,
+    *,
+    round_ids: list[str],
+) -> pl.DataFrame:
+    rows: list[dict[str, float | str]] = []
+    for round_id in round_ids:
+        analyses = read_analysis_records(paths, round_id)
+        if not analyses:
+            continue
+        round_detail = read_round_record(paths, round_id).round
+        features = compute_round_features(round_detail)
+        per_seed_rows: list[dict[str, float]] = []
+        for seed_index, analysis_record in sorted(analyses.items()):
+            ground_truth = np.asarray(analysis_record.analysis.ground_truth, dtype=np.float64)
+            seed_features = features.per_seed[seed_index]
+            buildable_mask = seed_features.feature("buildable") > 0.5
+            coastal_buildable_mask = buildable_mask & (seed_features.feature("coast") > 0.5)
+            buildable_denom = max(int(np.count_nonzero(buildable_mask)), 1)
+            coastal_buildable_denom = max(int(np.count_nonzero(coastal_buildable_mask)), 1)
+            per_seed_rows.append(
+                {
+                    "ruin_buildable_mean": float(np.sum(ground_truth[:, :, 3] * buildable_mask) / buildable_denom),
+                    "ruin_coast_mean": float(
+                        np.sum(ground_truth[:, :, 3] * coastal_buildable_mask) / coastal_buildable_denom
+                    ),
+                    "port_coast_mean": float(
+                        np.sum(ground_truth[:, :, 2] * coastal_buildable_mask) / coastal_buildable_denom
+                    ),
+                    "live_buildable_mean": float(
+                        np.sum((ground_truth[:, :, 1] + ground_truth[:, :, 2]) * buildable_mask) / buildable_denom
+                    ),
+                },
+            )
+        if not per_seed_rows:
+            continue
+        rows.append(
+            {
+                "round_id": round_id,
+                "ruin_buildable_mean": float(np.mean([row["ruin_buildable_mean"] for row in per_seed_rows])),
+                "ruin_coast_mean": float(np.mean([row["ruin_coast_mean"] for row in per_seed_rows])),
+                "port_coast_mean": float(np.mean([row["port_coast_mean"] for row in per_seed_rows])),
+                "live_buildable_mean": float(np.mean([row["live_buildable_mean"] for row in per_seed_rows])),
+            },
+        )
+    if not rows:
+        return pl.DataFrame(
+            schema={
+                "round_id": pl.Utf8,
+                "ruin_buildable_mean": pl.Float64,
+                "ruin_coast_mean": pl.Float64,
+                "port_coast_mean": pl.Float64,
+                "live_buildable_mean": pl.Float64,
+            },
+        )
+    return pl.DataFrame(rows).sort("round_id")
 
 
 def _knn_predict(
@@ -223,7 +284,7 @@ def _round_target_frame(
     event_ledger_dir = paths.dataset_dir(event_ledger_dataset_name)
     event_ledger_path = event_ledger_dir / "events.parquet"
     if (
-        target_family in {"collapse_timing_stress", "birth_collapse_timing_stress"}
+        target_family in {"collapse_timing_stress", "birth_collapse_timing_stress", "collapse_terminal_shock"}
         and not event_ledger_path.exists()
     ):
         build_replay_event_ledger_dataset(
@@ -241,10 +302,13 @@ def _round_target_frame(
     label = pl.col("label").cast(pl.Float64, strict=False)
     port_mask = pl.col("before_has_port").fill_null(False)
     nonport_mask = ~port_mask
+    positive_weight = label * weight
+    food_before = pl.col("food_before").cast(pl.Float64, strict=False).fill_null(0.0)
+    defense_before = pl.col("defense_before").cast(pl.Float64, strict=False).fill_null(0.0)
 
     collapse = pl.read_parquet(
         collapse_dir / "riskset.parquet",
-        columns=["round_id", "label", "sample_weight", "before_has_port"],
+        columns=["round_id", "label", "sample_weight", "before_has_port", "food_before", "defense_before"],
     ).group_by("round_id").agg(
         _logit_expr(
             _safe_ratio_expr(
@@ -270,6 +334,50 @@ def _round_target_frame(
                 (label * weight).sum(),
             ),
         ).alias("collapse_pos_port_share_logit"),
+        _safe_ratio_expr(
+            (food_before * weight).sum(),
+            weight.sum(),
+            default=0.0,
+        ).alias("collapse_food_weighted_mean"),
+        _safe_ratio_expr(
+            (food_before * food_before * weight).sum(),
+            weight.sum(),
+            default=0.0,
+        ).alias("collapse_food_weighted_sq_mean"),
+        _safe_ratio_expr(
+            (food_before * positive_weight).sum(),
+            positive_weight.sum(),
+            default=0.0,
+        ).alias("collapse_food_positive_mean"),
+        _safe_ratio_expr(
+            (defense_before * weight).sum(),
+            weight.sum(),
+            default=0.0,
+        ).alias("collapse_defense_weighted_mean"),
+        _safe_ratio_expr(
+            (defense_before * defense_before * weight).sum(),
+            weight.sum(),
+            default=0.0,
+        ).alias("collapse_defense_weighted_sq_mean"),
+        _safe_ratio_expr(
+            (defense_before * positive_weight).sum(),
+            positive_weight.sum(),
+            default=0.0,
+        ).alias("collapse_defense_positive_mean"),
+    ).with_columns(
+        (pl.col("collapse_logit_nonport") - pl.col("collapse_logit_port")).alias("collapse_port_gap_logit"),
+        (
+            (pl.col("collapse_food_positive_mean") - pl.col("collapse_food_weighted_mean"))
+            / (pl.col("collapse_food_weighted_sq_mean") - pl.col("collapse_food_weighted_mean") ** 2)
+            .clip(1.0e-6, None)
+            .sqrt()
+        ).alias("collapse_food_gap_z"),
+        (
+            (pl.col("collapse_defense_positive_mean") - pl.col("collapse_defense_weighted_mean"))
+            / (pl.col("collapse_defense_weighted_sq_mean") - pl.col("collapse_defense_weighted_mean") ** 2)
+            .clip(1.0e-6, None)
+            .sqrt()
+        ).alias("collapse_defense_gap_z"),
     ).sort("round_id")
     if target_family == "collapse_portsplit":
         return collapse.select(
@@ -279,7 +387,7 @@ def _round_target_frame(
             "collapse_logit_nonport",
             "collapse_pos_port_share_logit",
         )
-    if target_family in {"collapse_timing_stress", "birth_collapse_timing_stress"}:
+    if target_family in {"collapse_timing_stress", "birth_collapse_timing_stress", "collapse_terminal_shock"}:
         collapse_timing = pl.scan_parquet(event_ledger_path).filter(
             pl.col("event_type") == "collapse",
         ).group_by("round_id").agg(
@@ -294,6 +402,8 @@ def _round_target_frame(
             pl.col("food_before").mean().alias("collapse_food_before_mean"),
             pl.col("defense_before").mean().alias("collapse_defense_before_mean"),
             pl.col("population_before").mean().alias("collapse_population_before_mean"),
+        ).with_columns(
+            (pl.col("collapse_early_share_logit") - pl.col("collapse_late_share_logit")).alias("collapse_timing_skew"),
         ).sort("round_id").collect()
         collapse_stress = collapse.join(collapse_timing, on="round_id", how="inner")
         if target_family == "collapse_timing_stress":
@@ -307,6 +417,20 @@ def _round_target_frame(
                 "collapse_food_before_mean",
                 "collapse_defense_before_mean",
                 "collapse_population_before_mean",
+            )
+        if target_family == "collapse_terminal_shock":
+            terminal_slice = _analysis_terminal_slice_frame(paths, round_ids=collapse_stress["round_id"].to_list())
+            return collapse_stress.join(terminal_slice, on="round_id", how="inner").sort("round_id").select(
+                "round_id",
+                "collapse_logit_rate",
+                "collapse_port_gap_logit",
+                "collapse_food_gap_z",
+                "collapse_defense_gap_z",
+                "collapse_timing_skew",
+                "ruin_buildable_mean",
+                "ruin_coast_mean",
+                "port_coast_mean",
+                "live_buildable_mean",
             )
 
     if not birth_dir.joinpath("riskset.parquet").exists():

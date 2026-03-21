@@ -2770,3 +2770,168 @@
 - Immediate next action from this checkpoint:
   - launch parallel current-smoke benchmarks for the 4 guided-law variants
   - only carry winners to broader dev5
+
+- Guided `summary_roundlaw_decoder` smoke sweep on the exact current 3-round smoke slice:
+  - rounds:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `f1_summary_roundlaw_decoder_hrates_r3_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_hrates_r3_v01_probe3_current/result.json`
+    - result:
+      - score `67.9159`
+      - KL `0.138430`
+      - runtime `71.480s`
+    - paired compare vs old unguided `f1_summary_roundlaw_decoder_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_roundlaw_decoder_v01__candidate=f1_summary_roundlaw_decoder_hrates_r3_v01.json`
+      - mean score delta `+0.0000`
+      - KL delta `-0.000000`
+      - read:
+        - numerically identical to the old unguided plain branch
+  - `f1_summary_roundlaw_decoder_hstress_r3_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_hstress_r3_v01_probe3_current/result.json`
+    - result:
+      - score `67.8531`
+      - KL `0.138688`
+      - runtime `83.782s`
+    - read:
+      - tiny negative vs old unguided plain branch
+  - `f1_summary_roundlaw_decoder_teacher_hrates_r3_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_teacher_hrates_r3_v01_probe3_current/result.json`
+    - result:
+      - score `67.4569`
+      - KL `0.140407`
+      - runtime `415.082s`
+    - paired compare vs old unguided `f1_summary_roundlaw_decoder_teacher_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_roundlaw_decoder_teacher_v01__candidate=f1_summary_roundlaw_decoder_teacher_hrates_r3_v01.json`
+      - mean score delta `+0.0000`
+      - KL delta `-0.000000`
+      - read:
+        - numerically identical to the old unguided teacher branch
+  - `f1_summary_roundlaw_decoder_teacher_hstress_r3_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_teacher_hstress_r3_v01_probe3_current/result.json`
+    - result:
+      - score `67.4678`
+      - KL `0.140359`
+      - runtime `392.998s`
+    - read:
+      - tiny negative vs old unguided teacher branch
+
+- Main read from the guided-roundlaw block:
+  - the alignment bug was real and fixed
+  - but once fixed, guide-target orientation did not help at all
+  - `hrates` reproduced the old unguided result exactly, plain and teacher
+  - stronger read:
+    - with only 2 effective train rounds per smoke fold, the full-law manifold is too degenerate for guide orientation to matter
+    - guided full-law compression is exhausted as a smoke-time family branch
+
+- New latent-target branch: `collapse_terminal_shock`
+  - target definition:
+    - collapse severity / port-gap / food-gap / defense-gap / timing-skew
+    - joined with terminal ruin/port/live spatial slice summaries from analyses
+  - implementation:
+    - `src/astar/workflows/event_regime_posterior_audit.py`
+    - `src/astar/student/predictor/summary_rate_decoder.py`
+    - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - tests updated in:
+      - `tests/test_event_regime_posterior_audit.py`
+      - `tests/test_summary_rate_decoder_predictor.py`
+
+- Real-corpus posterior audit for `collapse_terminal_shock` on `f1_synthetic_live_coverage_b50_s4_v2`:
+  - basic summary features:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_terminal_shock_b50s4_v01/result.json`
+    - result:
+      - standardized baseline MAE `1.056946`
+      - standardized kNN MAE `0.782003`
+      - standardized MAE gain `+0.274943`
+  - `stress_v1` summary features:
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_terminal_shock_stress_b50s4_v01/result.json`
+    - result:
+      - standardized baseline MAE `1.056946`
+      - standardized kNN MAE `0.745827`
+      - standardized MAE gain `+0.311119`
+  - compare to old best small-latent audit:
+    - old `rates/basic` standardized MAE gain was `+0.224329`
+  - read:
+    - this is a real posterior-audit win
+    - `stress_v1` is clearly better than `basic` for this latent
+
+- Smoke sweep on `collapse_terminal_shock` stress variants:
+  - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.1635`
+      - KL `0.130835`
+      - runtime `89.839s`
+  - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.1635`
+      - KL `0.130835`
+      - runtime `90.182s`
+    - read:
+      - rank `2` and rank `3` were numerically identical on smoke
+  - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.4025`
+      - KL `0.130052`
+      - runtime `405.285s`
+  - `f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_stress_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_stress_v01_probe3_current/result.json`
+    - result:
+      - score `69.4025`
+      - KL `0.130052`
+      - runtime `406.736s`
+    - read:
+      - rank `2` and rank `3` were again numerically identical
+
+- Paired compare for best `collapse_terminal_shock` smoke branch:
+  - vs best earlier summary-rate family baseline `f1_summary_rate_decoder_collapse_portsplit_teacher_v01`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_v01__candidate=f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01.json`
+    - result:
+      - score delta `-0.4990`
+      - KL delta `+0.002394`
+      - win rate `0.067`
+      - CI95 `[-0.7164, -0.3229]`
+  - vs current external best `f1_student_query_residual_supportx_v01`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01.json`
+    - result:
+      - score delta `-3.5149`
+      - KL delta `+0.024356`
+      - win rate `0.467`
+      - CI95 `[-12.0240, 4.1850]`
+    - important per-round read:
+      - massive wins on round 4
+      - catastrophic losses on round 6
+
+- Main contradiction from the `collapse_terminal_shock` block:
+  - transcript→latent inference got much better
+  - but benchmark score still stayed below the older family baseline
+  - same pattern as before:
+    - better posterior target does not automatically fix terminal tensor decode
+  - strongest read:
+    - decoder translation remains the main bottleneck
+    - the family now has repeated evidence that the hidden collapse/winter signal is inferable
+    - what fails is converting that signal into the right terminal tensor corrections on hard rounds, especially round 6
+
+- Updated next-best path after this block:
+  - stop spending time on “better raw latent target alone”
+  - next main branch should be one of:
+    - `rates + 1 terminal-law residual stress axis`
+    - a collapse-sensitive partial-law head instead of full-law compression
+  - both match the subagent diagnosis:
+    - preserve the stable low-dimensional scaffold
+    - spend the extra degree of freedom directly on the round-6 hidden-stress residual

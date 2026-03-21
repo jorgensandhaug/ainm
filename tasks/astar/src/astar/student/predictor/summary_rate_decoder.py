@@ -78,6 +78,21 @@ def _target_frame(
     collapse_dataset_name: str,
     target_family: str,
 ) -> pl.DataFrame:
+    if target_family in {"collapse_terminal_shock_pca_r2", "collapse_terminal_shock_pca_r3"}:
+        raw_target_frame = _audit_round_target_frame(
+            paths,
+            birth_dataset_name=birth_dataset_name,
+            collapse_dataset_name=collapse_dataset_name,
+            target_family="collapse_terminal_shock",
+        ).filter(
+            pl.col("round_id").is_in(list(round_ids)),
+        )
+        rank = int(target_family.rsplit("r", 1)[1])
+        return _compress_target_frame(
+            raw_target_frame,
+            rank=rank,
+            prefix="collapse_terminal_shock_pca",
+        )
     if target_family in {"event_pca_r2", "event_pca_r3"}:
         raw_target_frame = _audit_round_target_frame(
             paths,

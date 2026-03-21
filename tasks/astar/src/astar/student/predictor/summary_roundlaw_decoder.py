@@ -39,6 +39,7 @@ from astar.student.predictor.summary_bank_decoder import (
     _weighted_standardize,
 )
 from astar.teacher.regime.base import RegimePosteriorState
+from astar.workflows.event_regime_posterior_audit import _round_target_frame as _audit_round_target_frame
 
 
 def _law_design_tensor(
@@ -126,6 +127,84 @@ def _compress_law_matrix(
     return np.asarray(targets, dtype=np.float64), np.asarray(center, dtype=np.float64), basis
 
 
+def _compress_law_matrix_guided(
+    law_matrix: np.ndarray,
+    guide_matrix: np.ndarray,
+    *,
+    law_rank: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    center = np.mean(law_matrix, axis=0)
+    centered_law = law_matrix - center[None, :]
+    if law_rank <= 0:
+        return law_matrix, np.asarray(center, dtype=np.float64), np.zeros(
+            (0, law_matrix.shape[1]),
+            dtype=np.float64,
+        )
+    guide_means, guide_scales = _standardize(guide_matrix)
+    normalized_guide = (guide_matrix - guide_means[None, :]) / guide_scales[None, :]
+    _, _, vt = np.linalg.svd(normalized_guide.T @ centered_law, full_matrices=False)
+    rank = min(law_rank, vt.shape[0], law_matrix.shape[0] - 1)
+    if rank <= 0:
+        return law_matrix, np.asarray(center, dtype=np.float64), np.zeros(
+            (0, law_matrix.shape[1]),
+            dtype=np.float64,
+        )
+    basis = np.asarray(vt[:rank], dtype=np.float64)
+    targets = centered_law @ basis.T
+    return np.asarray(targets, dtype=np.float64), np.asarray(center, dtype=np.float64), basis
+
+
+def _guide_target_matrix(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str],
+    guide_target_family: str,
+    birth_dataset_name: str,
+    collapse_dataset_name: str,
+) -> tuple[list[str], np.ndarray]:
+    guide_frame = _audit_round_target_frame(
+        paths,
+        birth_dataset_name=birth_dataset_name,
+        collapse_dataset_name=collapse_dataset_name,
+        target_family=guide_target_family,
+    ).filter(
+        pl.col("round_id").is_in(list(round_ids)),
+    )
+    ordered = guide_frame.sort("round_id")
+    guide_names = [name for name in ordered.columns if name != "round_id"]
+    guide_matrix = ordered.select(guide_names).to_numpy().astype(np.float64)
+    return ordered["round_id"].to_list(), guide_matrix
+
+
+def _align_guide_targets(
+    law_round_ids: Sequence[str],
+    law_matrix: np.ndarray,
+    guide_round_ids: Sequence[str],
+    guide_matrix: np.ndarray,
+) -> tuple[list[str], np.ndarray, np.ndarray]:
+    guide_by_round = {
+        round_id: np.asarray(guide_matrix[index], dtype=np.float64)
+        for index, round_id in enumerate(guide_round_ids)
+    }
+    aligned_round_ids: list[str] = []
+    aligned_law_rows: list[np.ndarray] = []
+    aligned_guide_rows: list[np.ndarray] = []
+    for index, round_id in enumerate(law_round_ids):
+        guide_row = guide_by_round.get(round_id)
+        if guide_row is None:
+            continue
+        aligned_round_ids.append(round_id)
+        aligned_law_rows.append(np.asarray(law_matrix[index], dtype=np.float64))
+        aligned_guide_rows.append(guide_row)
+    if len(aligned_round_ids) < 2:
+        raise ValueError("guided summary round-law decoder requires at least two rounds with guide targets")
+    return (
+        aligned_round_ids,
+        np.stack(aligned_law_rows, axis=0),
+        np.stack(aligned_guide_rows, axis=0),
+    )
+
+
 class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
     name: str = "f1_summary_roundlaw_decoder_v01"
     base_predictor: HistoricalBucketPriorPredictor
@@ -144,6 +223,8 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
     k_neighbors: int = Field(default=7, ge=1)
     law_rank: int = Field(default=0, ge=0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    summary_feature_variant: str = "basic"
+    guide_target_family: str | None = None
 
     @classmethod
     def fit_from_workspace(
@@ -161,6 +242,10 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
         law_rank: int = 0,
         include_teacher_logits: bool = False,
         synthetic_dataset_name: str | None = None,
+        summary_feature_variant: str = "basic",
+        guide_target_family: str | None = None,
+        birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
+        collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
     ) -> SummaryRoundLawDecoderPredictor:
         selected_round_ids = _round_ids_with_replays_and_analyses(paths, round_ids)
         if len(selected_round_ids) < 2:
@@ -183,6 +268,7 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
                 model_name=f"{model_name}__summary_teacher",
                 probability_floor=probability_floor,
                 synthetic_dataset_name=synthetic_dataset_name,
+                summary_feature_variant=summary_feature_variant,
             )
             if include_teacher_logits
             else None
@@ -258,8 +344,31 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
             )
             law_vectors.append(_flatten_law_vector(intercept, decoder_weights))
         law_matrix = np.stack(law_vectors, axis=0)
+        if guide_target_family is None:
+            compressed_targets, law_center, law_basis = _compress_law_matrix(
+                law_matrix,
+                law_rank=law_rank,
+            )
+        else:
+            guide_round_ids, guide_matrix = _guide_target_matrix(
+                paths,
+                round_ids=law_round_ids,
+                guide_target_family=guide_target_family,
+                birth_dataset_name=birth_dataset_name,
+                collapse_dataset_name=collapse_dataset_name,
+            )
+            law_round_ids, law_matrix, guide_matrix = _align_guide_targets(
+                law_round_ids,
+                law_matrix,
+                guide_round_ids,
+                guide_matrix,
+            )
+            compressed_targets, law_center, law_basis = _compress_law_matrix_guided(
+                law_matrix,
+                guide_matrix,
+                law_rank=law_rank,
+            )
         default_law_vector = np.mean(law_matrix, axis=0)
-        compressed_targets, law_center, law_basis = _compress_law_matrix(law_matrix, law_rank=law_rank)
         law_targets_by_round = {
             round_id: np.asarray(target_vector, dtype=np.float64)
             for round_id, target_vector in zip(law_round_ids, compressed_targets, strict=True)
@@ -292,7 +401,10 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
                 dataset.dataset_dir,
                 Path(str(row["episode_path"])),
             )
-            summary_vector, _ = _summary_vector_from_artifact(episode_path)
+            summary_vector, _ = _summary_vector_from_artifact(
+                episode_path,
+                feature_variant=summary_feature_variant,
+            )
             summary_vectors.append(summary_vector)
             law_targets.append(law_targets_by_round[round_id])
         if not summary_vectors:
@@ -317,6 +429,8 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
             k_neighbors=k_neighbors,
             law_rank=law_rank,
             probability_floor=probability_floor,
+            summary_feature_variant=summary_feature_variant,
+            guide_target_family=guide_target_family,
         )
 
     def _reconstruct_law_vector(self, law_target: np.ndarray) -> np.ndarray:
@@ -327,7 +441,10 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
     def infer_law_vector(self, evidence: RoundEvidenceBundle | None) -> np.ndarray:
         if evidence is None or evidence.total_queries == 0 or self.summary_vectors.shape[0] == 0:
             return np.asarray(self.default_law_vector, dtype=np.float64)
-        summary_vector = _summary_vector_from_evidence(evidence)
+        summary_vector = _summary_vector_from_evidence(
+            evidence,
+            feature_variant=self.summary_feature_variant,
+        )
         normalized = (summary_vector - self.summary_means) / self.summary_scales
         distances = np.linalg.norm(self.summary_vectors - normalized[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, self.summary_vectors.shape[0])]
@@ -382,5 +499,4 @@ class SummaryRoundLawDecoderPredictor(BaseRoundPredictor):
             predictions_by_seed=predictions_by_seed,
         )
 
-
-__all__ = ["SummaryRoundLawDecoderPredictor"]
+__all__ = ["SummaryRoundLawDecoderPredictor", "_align_guide_targets"]

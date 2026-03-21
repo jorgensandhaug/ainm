@@ -296,6 +296,8 @@ def build_online_predictor(
             ridge_lambda=summary_roundlaw_decoder_spec.ridge_lambda,
             law_rank=summary_roundlaw_decoder_spec.law_rank,
             include_teacher_logits=summary_roundlaw_decoder_spec.include_teacher_logits,
+            summary_feature_variant=summary_roundlaw_decoder_spec.summary_feature_variant,
+            guide_target_family=summary_roundlaw_decoder_spec.guide_target_family,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

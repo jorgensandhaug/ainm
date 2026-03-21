@@ -93,6 +93,25 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
 
     assert event_pca_adapter.name == "f1_summary_rate_decoder_event_pca_r2_v01"
 
+    collapse_terminal_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert collapse_terminal_adapter.name == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_v01"
+
+    collapse_terminal_stress_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_terminal_stress_adapter.name
+        == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r2_teacher_stress_v01"
+    )
+
     stress_adapter = build_online_predictor(
         "f1_summary_rate_decoder_teacher_stress_v01",
         paths=sample_paths,
@@ -178,6 +197,34 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
         ],
     )
     assert parsed_event_pca.model == "f1_summary_rate_decoder_event_pca_r3_teacher_v01"
+
+    parsed_collapse_terminal = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_terminal.model
+        == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_v01"
+    )
+
+    parsed_collapse_terminal_stress = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_stress_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_terminal_stress.model
+        == "f1_summary_rate_decoder_collapse_terminal_shock_pca_r3_teacher_stress_v01"
+    )
 
     parsed_stress = parser.parse_args(
         [
