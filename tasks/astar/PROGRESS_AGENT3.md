@@ -3580,6 +3580,28 @@
    - large active loads from other agents are still present, especially multiple `20-26 GiB` workers on `agent1`
    - only one heavy agent3 long run is still alive:
      - `agent3_dev_teacher_student_blend_v59_full_corrected`
+406. Committed and pushed the evidence-field family wiring:
+   - commit:
+     - `342e1b6d`
+   - message:
+     - `agent3: add evidence-field blend family`
+407. First evidence-field corrected-gate sweep launched from commit `342e1b6d`:
+   - pre-launch memory gate:
+     - `available_gib=1418`
+   - `tmux` sessions:
+     - `agent3_evidence_v1_gate`
+     - `agent3_evidence_v2_gate`
+     - `agent3_evidence_v3_gate`
+     - `agent3_evidence_v4_gate`
+     - `agent3_evidence_v5_gate`
+     - `agent3_evidence_v6_gate`
+   - commands:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v1 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v1_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v2 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v2_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v3 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v3_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v4 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v4_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v5 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v5_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v6 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v6_targeted_holdout_2rounds_corrected --jobs 1`
 
 
 ## Open Questions
