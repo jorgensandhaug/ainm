@@ -82,6 +82,35 @@
     - `hazard_posterior_v5_k5_c3_r1_l16_m50`
     - `hazard_posterior_v5_k5_c3_r2_l16_m50`
     - `hazard_posterior_v5_k5_c2_r2_l16_m50`
+- commit/push completed immediately after the patch:
+  - commit: `b81a4226`
+  - pushed to `origin/agent1`
+- machine snapshot before the first v5 sweep launch:
+  - load avg: `24.10 / 29.80 / 35.90`
+  - mem used: `1.0 TiB`
+  - mem free: `1.8 TiB`
+  - shared machine was busy, but well below memory pressure
+- first v5 benchmark batch launched with `jobs=3` per run:
+  - session `7728`: `proxy5_hazard_v5_k5_c3_r1_regime_probe_seed0to1`
+  - session `68883`: `proxy5_hazard_v5_k5_c3_r2_regime_probe_seed0to1`
+  - session `85355`: `proxy5_hazard_v5_k5_c2_r2_regime_probe_seed0to1`
+  - session `59426`: `probe_hazard_v5_k5_c3_r1_regime_probe_3rounds_seed0to1`
+  - session `72749`: `probe_hazard_v5_k5_c3_r2_regime_probe_3rounds_seed0to1`
+  - session `12718`: `probe_hazard_v5_k5_c2_r2_regime_probe_3rounds_seed0to1`
+- launch rationale:
+  - proxy-5 is the current best cheap selector for broad behavior
+  - hard-3 is still useful for faster early signal and continuity with the older frontier numbers
+- validation tooling upgrade completed while the v5 runs were in flight:
+  - `factorize-round-summaries` now supports `--summary-version v2`
+  - manifold artifacts now record:
+    - summary version
+    - explained variance
+    - reconstruction RMSE by retained rank
+  - this turns the v2 low-rank diagnostic into a reproducible CLI artifact instead of an ad hoc script
+- validation for that tooling patch:
+  - `python3 -m compileall src/astar/history/summaries/manifold.py src/astar/workflows/factorize_round_summaries.py src/astar/cli_output.py src/astar/cli.py tests/test_history_manifold.py`
+  - `uv run --with pytest python -m pytest tests/test_history_manifold.py -q`
+  - result: `2 passed`
 
 ### Session Continuation
 

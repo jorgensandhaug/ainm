@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,15 +12,28 @@ from astar.history.summaries.round_coefficients import (
     RoundSemimechanisticCoefficients,
     fit_round_semimechanistic_coefficients,
 )
+from astar.history.summaries.round_coefficients_v2 import (
+    RoundSemimechanisticCoefficientsV2,
+    fit_round_semimechanistic_coefficients_v2,
+)
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 
 
+def _row_regime_vector(
+    row: RoundSemimechanisticCoefficients | RoundSemimechanisticCoefficientsV2,
+) -> np.ndarray:
+    if hasattr(row, "regime_vector"):
+        return np.asarray(row.regime_vector, dtype=np.float64)
+    return np.asarray(row.summary_vector, dtype=np.float64)
+
+
 class RoundRegimeManifold(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
+    summary_version: str = "v1"
     feature_names: list[str]
     round_ids: tuple[str, ...]
     round_numbers: tuple[int, ...]
@@ -31,13 +45,15 @@ class RoundRegimeManifold(BaseModel):
     explained_variance_ratio: np.ndarray
     basis: np.ndarray
     coordinates: np.ndarray
+    reconstruction_rmse_by_rank: tuple[float, ...] = ()
     effective_rank: int = Field(ge=1)
 
 
 def factorize_round_coefficients(
-    coefficient_rows: list[RoundSemimechanisticCoefficients],
+    coefficient_rows: list[RoundSemimechanisticCoefficients | RoundSemimechanisticCoefficientsV2],
     *,
     max_rank: int = 3,
+    summary_version: str = "v1",
 ) -> RoundRegimeManifold:
     if not coefficient_rows:
         raise ValueError("no round coefficients available for factorization")
@@ -46,7 +62,7 @@ def factorize_round_coefficients(
         axis=0,
     ).astype(np.float64)
     regime_matrix = np.stack(
-        [row.regime_vector for row in coefficient_rows],
+        [_row_regime_vector(row) for row in coefficient_rows],
         axis=0,
     ).astype(np.float64)
     mean_vector = np.mean(coefficient_matrix, axis=0)
@@ -55,6 +71,23 @@ def factorize_round_coefficients(
     effective_rank = max(1, min(max_rank, vt_matrix.shape[0]))
     basis = vt_matrix[:effective_rank]
     coordinates = centered @ basis.T
+    reconstruction_rmse_by_rank = tuple(
+        float(
+            np.sqrt(
+                np.mean(
+                    (
+                        coefficient_matrix
+                        - (
+                            mean_vector[None, :]
+                            + (centered @ vt_matrix[:rank].T) @ vt_matrix[:rank]
+                        )
+                    )
+                    ** 2,
+                ),
+            ),
+        )
+        for rank in range(1, effective_rank + 1)
+    )
     variance = singular_values**2
     variance_sum = float(np.sum(variance))
     if variance_sum > 0.0:
@@ -62,6 +95,7 @@ def factorize_round_coefficients(
     else:
         explained_variance_ratio = np.zeros(effective_rank, dtype=np.float64)
     return RoundRegimeManifold(
+        summary_version=summary_version,
         feature_names=coefficient_rows[0].feature_names,
         round_ids=tuple(row.round_id for row in coefficient_rows),
         round_numbers=tuple(row.round_number for row in coefficient_rows),
@@ -73,6 +107,7 @@ def factorize_round_coefficients(
         explained_variance_ratio=np.asarray(explained_variance_ratio, dtype=np.float64),
         basis=np.asarray(basis, dtype=np.float64),
         coordinates=np.asarray(coordinates, dtype=np.float64),
+        reconstruction_rmse_by_rank=reconstruction_rmse_by_rank,
         effective_rank=effective_rank,
     )
 
@@ -102,19 +137,27 @@ def factorize_round_regime_manifold(
     round_ids: list[str] | None = None,
     max_rank: int = 3,
     summary_name: str = "round_regime_manifold_v1",
+    summary_version: str = "v1",
 ) -> tuple[RoundRegimeManifold, Path, Path]:
     selected_round_ids = round_ids or sorted(
         round_dir.name
         for round_dir in paths.raw_dir.joinpath("replays").glob("*")
         if round_dir.is_dir()
     )
-    coefficient_rows: list[RoundSemimechanisticCoefficients] = []
+    coefficient_rows: list[Any] = []
     for round_id in selected_round_ids:
         episode = build_round_episode(paths, round_id)
         if episode.replay_run_count == 0:
             continue
-        coefficient_rows.append(fit_round_semimechanistic_coefficients(episode))
-    manifold = factorize_round_coefficients(coefficient_rows, max_rank=max_rank)
+        if summary_version == "v2":
+            coefficient_rows.append(fit_round_semimechanistic_coefficients_v2(episode))
+        else:
+            coefficient_rows.append(fit_round_semimechanistic_coefficients(episode))
+    manifold = factorize_round_coefficients(
+        coefficient_rows,
+        max_rank=max_rank,
+        summary_version=summary_version,
+    )
 
     artifact_dir = paths.artifacts_dir / "replays" / "manifold"
     artifact_dir.mkdir(parents=True, exist_ok=True)

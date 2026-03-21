@@ -301,8 +301,10 @@ def render_factorize_round_summaries(result: FactorizeRoundSummariesResult) -> s
         [
             "factorize-round-summaries",
             f"rounds: {result.round_count}",
+            f"summary_version: {result.summary_version}",
             f"effective_rank: {result.effective_rank}",
             f"explained_variance_ratio: {result.manifold.explained_variance_ratio.tolist()}",
+            f"reconstruction_rmse_by_rank: {list(result.manifold.reconstruction_rmse_by_rank)}",
             f"summary: {result.summary_path}",
             f"basis: {result.basis_path}",
         ],

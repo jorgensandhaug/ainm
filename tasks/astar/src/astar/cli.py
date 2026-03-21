@@ -215,6 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
     factorize_rounds_parser = subparsers.add_parser("factorize-round-summaries")
     factorize_rounds_parser.add_argument("--round-id", action="append", default=None)
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
+    factorize_rounds_parser.add_argument("--summary-version", choices=["v1", "v2"], default="v1")
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
     teacher_transition_parser.add_argument("--round-id", action="append", default=None)
@@ -480,6 +481,7 @@ def _main() -> int:
             paths,
             round_ids=args.round_id,
             max_rank=args.max_rank,
+            summary_version=args.summary_version,
         )
         _emit(args.json, factorized, render_factorize_round_summaries(factorized))
         return 0

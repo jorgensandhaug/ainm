@@ -13,6 +13,7 @@ class FactorizeRoundSummariesResult(BaseModel):
 
     round_count: int = Field(ge=1)
     effective_rank: int = Field(ge=1)
+    summary_version: str = "v1"
     summary_path: Path
     basis_path: Path
     manifold: RoundRegimeManifold
@@ -24,16 +25,19 @@ def factorize_round_summaries(
     round_ids: list[str] | None = None,
     max_rank: int = 3,
     summary_name: str = "round_regime_manifold_v1",
+    summary_version: str = "v1",
 ) -> FactorizeRoundSummariesResult:
     manifold, summary_path, basis_path = factorize_round_regime_manifold(
         paths,
         round_ids=round_ids,
         max_rank=max_rank,
         summary_name=summary_name,
+        summary_version=summary_version,
     )
     return FactorizeRoundSummariesResult(
         round_count=len(manifold.round_ids),
         effective_rank=manifold.effective_rank,
+        summary_version=manifold.summary_version,
         summary_path=summary_path,
         basis_path=basis_path,
         manifold=manifold,
