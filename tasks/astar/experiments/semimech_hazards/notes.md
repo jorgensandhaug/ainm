@@ -53,6 +53,11 @@
   - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321/`
   - mean score: `74.5110`
   - mean weighted KL: `0.101290`
+  - note: best fixed-blend line before adaptive follow-up
+- `query_residual_v9_v10_adaptive025_v001` full 8-round exploration line
+  - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321/`
+  - mean score: `74.5181`
+  - mean weighted KL: `0.101208`
   - note: current best full local round-held-out result in this checkout
 - Existing repo artifact to beat:
   - `data/artifacts/benchmarks/dev_query_residual_online50_v7/`
@@ -95,3 +100,17 @@
     - full result: `74.5077 / 0.101335`
     - vs `blend025`: `-0.003219` score, `+0.000045829` weighted KL
     - interpretation: reducing the `ae78003a...` giveback was not enough to offset the smaller `c5cdf100...` / `f1dac9a9...` recovery
+- Adaptive-blend follow-up read:
+  - `query_residual_v9_v10_adaptive025_v001` beats the fixed `blend025` winner on full 8-round eval:
+    - `74.5181 / 0.101208`
+    - vs `blend025`: `+0.007162` score, `-0.000081729` weighted KL
+  - the adaptive mechanism is real, but the wins are still concentrated:
+    - positive deltas mainly from `c5cdf100...`, `f1dac9a9...`, and a smaller lift on `8e839974...`
+    - main giveback remains `ae78003a...`
+  - two cheap cached follow-ups did not beat the linear `25%` adaptive target:
+    - `adaptive025sqrt`: full `74.5158 / 0.101245`
+    - `adaptive020`: full `74.5164 / 0.101253`
+  - the new fold-keyed holdout checkpoint caching is high-signal infrastructure:
+    - first full adaptive run: about `3006s`
+    - later cached full reruns: about `180s`
+    - meaning: future local search over this blend family is now cheap without weakening the round-held-out protocol

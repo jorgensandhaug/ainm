@@ -742,4 +742,4 @@
     - first full adaptive run: `3005.827s`
     - later full reruns with cached components: about `180s`
   - among the tested adaptive variants, `query_residual_v9_v10_adaptive025_v001` remains the best local full result
-  - remove the losing temporary registrations `adaptive025sqrt` and `adaptive020` after recording them, keeping only the winning adaptive path plus the reusable checkpoint caching improvement
+  - removed the losing temporary registrations `adaptive025sqrt` and `adaptive020` after recording them, keeping only the winning adaptive path plus the reusable checkpoint caching improvement

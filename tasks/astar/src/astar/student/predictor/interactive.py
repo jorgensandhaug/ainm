@@ -22,9 +22,7 @@ QUERY_RESIDUAL_V8 = "query_residual_v8"
 QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
 QUERY_RESIDUAL_V9_LOCALGATE_V001 = "query_residual_v9_locgate_v001"
-QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001 = "query_residual_v9_v10_adaptive020_v001"
 QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001 = "query_residual_v9_v10_adaptive025_v001"
-QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001 = "query_residual_v9_v10_adaptive025sqrt_v001"
 QUERY_RESIDUAL_V9_V10_BLEND025_V001 = "query_residual_v9_v10_blend025_v001"
 
 
@@ -500,17 +498,6 @@ def build_online_predictor(
             blend_name=QUERY_RESIDUAL_V9_V10_BLEND025_V001,
             right_weight=0.25,
         )
-    if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001:
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        return _build_query_residual_v9_v10_adaptive025_adapter(
-            workspace_paths,
-            historical_round_ids=historical_round_ids,
-            policy_name=policy_name,
-            samples_per_round=samples_per_round,
-            blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE020_V001,
-            target_right_weight=0.20,
-            weight_exponent=1.0,
-        )
     if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return _build_query_residual_v9_v10_adaptive025_adapter(
@@ -521,17 +508,6 @@ def build_online_predictor(
             blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE025_V001,
             target_right_weight=0.25,
             weight_exponent=1.0,
-        )
-    if normalized == QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001:
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        return _build_query_residual_v9_v10_adaptive025_adapter(
-            workspace_paths,
-            historical_round_ids=historical_round_ids,
-            policy_name=policy_name,
-            samples_per_round=samples_per_round,
-            blend_name=QUERY_RESIDUAL_V9_V10_ADAPTIVE025SQRT_V001,
-            target_right_weight=0.25,
-            weight_exponent=0.5,
         )
     if normalized == SMH_RESID_LOCALGATE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
