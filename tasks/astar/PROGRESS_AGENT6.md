@@ -4200,6 +4200,23 @@
 3. supportx_v01: 76.23
 4. baseline query_residual: 75.97
 
+### Summary of all new approaches tried this session:
+| Approach | Best Score (probe3) | Status |
+|----------|-------------------|--------|
+| **Hazard posterior V2 port** | **73.29** | **WINNER** - new best |
+| Cell-type transfer | 71.03 | Modest positive |
+| Summary rate decoder (prior family best) | 69.92 | Plateau |
+| MLP decoder | 45.64 | Catastrophic reject |
+| Terminal retrieval | 14.29 | Catastrophic reject |
+
+### Key scientific findings:
+1. The decoder bottleneck that blocked all prior family work was actually caused by using the old V1 teacher with inferior coefficient fitting and no SVD compression
+2. Porting agent1's V2 teacher infrastructure immediately unlocked +3 points over the old family ceiling
+3. Position-invariant cell-type-transfer works modestly but the real gain is in the teacher quality
+4. Nonlinear decoders (MLP) overfit catastrophically with few training rounds
+5. Raw terminal tensor retrieval fails because spatial layouts differ between rounds
+6. kNN neighbor count saturates when the synthetic episode bank is small
+
 ### Current scoreboard on probe3:
 1. **hazard_posterior_v2 k5_r3: 73.05** (NEW BEST)
 2. supportx_v01: 72.92
