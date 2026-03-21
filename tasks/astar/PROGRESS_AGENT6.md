@@ -4254,6 +4254,9 @@
   - The `build_prediction_bundle_from_context` path needs more work to properly propagate observations
 - Agent2's best (smh_glmmlatent) reaches 78.40 on full 8 rounds with exploration
 - Agent5's best (greybox_tristack) reaches 77.39 on full 8 rounds
+- V3 teacher (multi-scale box filtering, prototype mixtures): worse than V2
+  - V3 k5_r3: 72.44 vs V2 k5_r3: 73.05
+  - V3's extra complexity overfits with few training rounds
 
 ---
 
