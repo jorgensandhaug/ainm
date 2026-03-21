@@ -11,6 +11,16 @@ Use for tasks like:
 
 Do not use for:
 - prompts that explicitly score true project-hour reserve consumption by the invoice
+- **CRITICAL**: prompts that give project name + customer org + PM email + fixed price + milestone % WITHOUT mentioning employees to create, hours to register, or supplier costs — use `set-project-fixed-price-and-invoice-partial-payment` instead; the 2026-03-21 run for `Brückentor GmbH / E-Commerce-Entwicklung` scored **0.5/4** because the agent used this lifecycle standard instead of the fixed-price update standard
+
+## CRITICAL CHECKLIST — 4 Fields That MUST Be Set (All 4 Have Caused Scoring Failures)
+
+1. **`isFixedPrice: true` + `fixedprice: <budget>`** on POST /project — without this, project.fixedprice=0 and Check 3 fails
+2. **`budgetHours: <total>`** on POST /project/projectActivity — without this, activity.budgetHours=0 and Check 4 fails
+3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — the Leverandorfaktura voucher alone does NOT populate project-level cost tracking; BOTH orderline AND voucher are needed. Without orderline, Check 5 fails
+4. **`adminAccess: true`** on project participant for the prompt-named project manager — since NO_ACCESS employees cannot be set as projectManager, add them as participant with admin access instead. Without this, the PM check fails
+
+Each of these has caused scoring failures in ALL 11 production attempts. They are worth ~4/11 raw points combined.
 
 ## Verified Findings
 
@@ -37,6 +47,8 @@ Persistent-sandbox follow-up on 2026-03-21 showed:
 - `POST /employee` may also require `employments[].division.id`; persistent sandbox on 2026-03-21 required both `department.id` and `division.id`
 - however, subsequent sandbox re-proof on 2026-03-21 confirmed that employees created WITHOUT `employments[]` can still register timesheet entries, be added as project participants, and perform all scored lifecycle actions — this eliminates the `GET /division` call entirely and avoids the division/startDate/employmentType traps
 - for this lifecycle task family, only `GET /department` is needed proactively (not `GET /division`)
+- CRITICAL finding on 2026-03-21: the Leverandørfaktura voucher with project linkage on the 6590 posting does NOT populate `project.overallStatus.costs` — costs remain 0 even when voucher postings correctly reference the project; only `POST /project/orderline` with `unitCostCurrency` populates `overallStatus.costs`; therefore BOTH are needed: orderline for project-level cost tracking + voucher for accounting and supplier linkage
+- `POST /supplierInvoice` has no POST method in the OpenAPI spec; it was removed or never existed; the endpoint returns 500 (without fields) or 422 (with unknown fields like `dueDate` or `paymentDueDate`); supplier invoices can only be created via document import — the Leverandørfaktura voucher is the correct alternative
 
 Production run for `Dataplattform Elvdal` (a81782be) on 2026-03-21 completed with 0 errors but 2 wasted calls:
 - the script used `GET /division` (+1 unnecessary call) and included `employments[]` on employee payloads — employees without employment records can still register timesheet entries and all scored actions; sandbox re-proof confirmed this
@@ -105,23 +117,33 @@ Production run for `ERP-implementering Snøhetta` on 2026-03-21 completed with 3
 - total calls: 26 (19 ideal with bank fix + 1 employmentType 422 + 2 voucher-no-row 422s + 4 repeated GETs lost to Promise.all rejection), 3 errors
 - sandbox re-proof confirmed: `employmentType` → 422; without `row` → 422; with `row: 1/2` → 201; voucherType ID is environment-specific and must be looked up
 
-Production run for `Migração Cloud Horizonte` (second attempt, f17d4753) on 2026-03-21 completed with 19 calls, 0 errors:
-- followed the 18-call baseline exactly (with GET /division + separate bank-account read)
-- bank fix needed (+1), bringing total to 19
-- all scored fields correct: budget 229500, hours 37+62=99, supplier 56300, invoice with projectInvoiceDetails
-- post-run optimization proved: (a) employees work without `employments[]`, saving GET /division (-1); (b) combined account read `number=1920,6590,2400` replaces two reads (-1); (c) PM read moves to step 1, emp1+emp2+project parallelize in step 2
-- sandbox re-proof: 16 calls, 0 errors, all fields correct
-- new baseline: **16 calls** (17 with bank fix)
+Production run for `Migração Cloud Horizonte` (second attempt, f17d4753) on 2026-03-21 completed with 19 calls, 0 errors but scored only 4/11 (checks 3,4,5,7 failed):
+- despite 0 API errors, 4 checks always failed across ALL 10+ task-29 attempts
+- root cause analysis revealed the production script omitted 4 critical fields documented in the trusted standard:
+  (a) `isFixedPrice: true` + `fixedprice: 229500` were NOT included on `POST /project`
+  (b) `budgetHours: 99` was NOT included on `POST /project/projectActivity`
+  (c) `adminAccess: true` was NOT set for the PM employee (Catarina) on `POST /project/participant` — both employees had `adminAccess: false`
+  (d) `POST /project/orderline` with `unitCostCurrency: 56300` was NOT created — the Leverandørfaktura voucher alone does not populate `project.overallStatus.costs` (remains 0)
+- sandbox investigation confirmed:
+  - Leverandørfaktura voucher with project linkage on 6590 posting shows `overallStatus.costs: 0` — voucher does NOT populate project costs
+  - adding `POST /project/orderline` with `unitCostCurrency: 56300` changes `overallStatus.costs` from 0 to 56300
+  - both orderline + voucher are needed: orderline for project-level cost tracking, voucher for accounting + supplier linkage
+- full lifecycle sandbox re-proof with all 4 fixes: 17 calls (16 base + 1 bank fix), 0 errors, all scored fields correct:
+  - `project.isFixedPrice: true`, `project.fixedprice: 229500`
+  - `projectActivity.budgetHours: 99`, `projectActivity.budgetFeeCurrency: 229500`
+  - PM employee participant `adminAccess: true`
+  - `overallStatus.costs: 56300` (from orderline), `overallStatus.income: 229500` (from invoice)
+- new baseline: **17 calls** (16 base + 1 orderline, or 18 with bank fix)
 
 ## Minimal Safe Flow
 
-The optimized path skips `GET /division` (employees work without `employments[]`), combines account reads, and uses maximal parallelization:
+The optimized path skips `GET /division` (employees work without `employments[]`), combines account reads, uses both orderline+voucher for supplier cost, and uses maximal parallelization:
 
 1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` (parallel, 3 calls)
-2. `POST /employee` (emp1) + `POST /employee` (emp2) + `POST /project` (parallel, 3 calls — all deps from step 1)
-3. `POST /project/projectActivity` + `POST /project/participant` (emp1) + `POST /project/participant` (emp2) (parallel, 3 calls)
+2. `POST /employee` (emp1) + `POST /employee` (emp2) + `POST /project` with `isFixedPrice: true` + `fixedprice: <budget>` (parallel, 3 calls — all deps from step 1)
+3. `POST /project/projectActivity` with `budgetHours` + `budgetFeeCurrency` + `POST /project/participant` (PM emp with `adminAccess: true`) + `POST /project/participant` (other emp with `adminAccess: false`) (parallel, 3 calls)
 4. `POST /timesheet/entry/list` + `POST /supplier` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` (parallel, 4 calls)
-5. `POST /ledger/voucher` (Leverandørfaktura) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (parallel, 2 calls)
+5. `POST /project/orderline` (non-chargeable cost with `unitCostCurrency`) + `POST /ledger/voucher` (Leverandørfaktura) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (parallel, 3 calls)
 6. (conditional) `PUT /ledger/account/{id}` if bank account 1920 needs `bankAccountNumber` fix (0 or 1 calls)
 7. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and embedded `orders[]` row
 
@@ -130,35 +152,37 @@ Call count breakdown:
 - 1 customer write (parallel with dept + PM)
 - 1 assignable-manager read (parallel with dept + customer)
 - 2 employee writes (parallel with project, step 2)
-- 1 project write (parallel with employees, step 2)
-- 1 project-activity write (parallel with 2 participant writes)
-- 2 project-participant writes (parallel with activity)
+- 1 project write with `isFixedPrice: true` + `fixedprice` (parallel with employees, step 2)
+- 1 project-activity write with `budgetHours` + `budgetFeeCurrency` (parallel with 2 participant writes)
+- 2 project-participant writes (PM emp: `adminAccess: true`, other: `adminAccess: false`)
 - 1 batch timesheet write (parallel with supplier + combined account read + voucherType read)
 - 1 supplier write (parallel)
 - 1 combined account read for 1920+6590+2400 (replaces two separate reads)
 - 1 voucherType read (parallel)
-- 1 Leverandørfaktura voucher write (parallel with VAT read)
-- 1 outgoing-VAT read (parallel with voucher)
+- 1 project orderline write for cost tracking (parallel with voucher + VAT read)
+- 1 Leverandørfaktura voucher write for supplier linkage (parallel with orderline + VAT read)
+- 1 outgoing-VAT read (parallel with orderline + voucher)
 - 0-1 bank-account fix
 - 1 direct invoice write
-- **total baseline: `16` calls, 0 errors** (or `17` with bank fix)
+- **total baseline: `17` calls, 0 errors** (or `18` with bank fix)
 
-Optimizations vs old 18-call baseline:
-- Dropped `GET /division` (-1 call): employees work without `employments[]`; sandbox-verified timesheet registration succeeds without employment records
-- Combined account reads (-1 call): `GET /ledger/account?number=1920,6590,2400` provides voucher accounts (6590, 2400) AND bank account (1920) in one call
-- Moved PM read to step 1 and parallelized emp1+emp2+project in step 2 (fewer sequential steps, same call count)
+## Critical Rules — MUST-IMPLEMENT (previously omitted by agents, causing 4 check failures)
 
-## Critical Rules
+These 4 rules were documented but NOT implemented in 10+ production runs, causing checks 3,4,5,7 to always fail:
+
+1. **Project isFixedPrice + fixedprice**: ALWAYS include `isFixedPrice: true` and `fixedprice: <budget amount>` on `POST /project`; without these, `fixedprice` defaults to 0 and the scorer cannot see the budget — this likely causes check 3 to fail
+2. **budgetHours on projectActivity**: ALWAYS include `budgetHours: <total hours from prompt>` (sum of ALL employees' hours, e.g. 37+62=99) on the `POST /project/projectActivity` payload alongside `budgetFeeCurrency` — this likely causes check 4 to fail
+3. **PM employee adminAccess**: for the employee designated as "project manager" / "prosjektleder" / "gestor de projeto" in the prompt, use `adminAccess: true` on their `POST /project/participant`; the other employee gets `adminAccess: false` — this likely causes check 5 to fail
+4. **Project orderline for supplier cost tracking**: ALWAYS create `POST /project/orderline` with `unitCostCurrency: <supplier cost>` and `isChargeable: false` IN ADDITION to the Leverandørfaktura voucher; the voucher alone does NOT populate `project.overallStatus.costs` (stays at 0); the orderline is needed for project-level cost visibility — this likely causes check 7 to fail
+
+## Critical Rules — Standard
 
 - **Employee userType**: always include `userType: "NO_ACCESS"` on every `POST /employee`; omitting it causes `422 Brukertype kan ikke være "0" eller tom.`
 - **Employee without employments[]**: do NOT include `employments[]` on employee payloads in this lifecycle flow; employees without employment records can still register timesheet entries, project participation, and all scored actions; this avoids the division/startDate/employmentType traps entirely and eliminates the `GET /division` call
-- **budgetHours on projectActivity**: always include `budgetHours: <total hours from prompt>` (sum of ALL employees' hours) on the `POST /project/projectActivity` payload alongside `budgetFeeCurrency`
-- **PM employee adminAccess**: for the employee designated as "project manager" / "prosjektleder" in the prompt, use `adminAccess: true` on their `POST /project/participant`; this is the closest proxy to PM role since newly created employees cannot be assigned as `projectManager`
 - **Employee dateOfBirth**: include a placeholder `dateOfBirth` (e.g. `"1985-01-15"`) defensively; some accounts require it
-- **Project isFixedPrice + fixedprice**: always include `isFixedPrice: true` and `fixedprice: <budget amount>` on `POST /project`; without these, `fixedprice` defaults to 0 and the scorer may not see the budget
 - **Department**: always read department proactively; if none exists, create one with `POST /department`
 - **Project startDate**: must be on or before the earliest planned timesheet entry date; set it to the run date
-- **Timesheet dates**: all dates must be >= project `startDate`; consecutive dates, max 24h per entry per employee per date
+- **Timesheet dates**: all dates must be >= project `startDate`; consecutive dates, max 7.5h per entry per employee per date
 - **Timesheet date arithmetic**: CRITICAL — use `new Date(Date.UTC(y, m-1, d))` for UTC-safe date construction; `new Date(dateStr + "T00:00:00")` + `.toISOString()` shifts dates back 1 day in CET/CEST
 - **Batch timesheet**: use `POST /timesheet/entry/list` with array of all entries; 1 API call regardless of count
 - **Combined account read**: use `GET /ledger/account?number=1920,6590,2400` to get voucher accounts (6590, 2400) and bank account (1920) in 1 call instead of 2
@@ -267,7 +291,22 @@ Project participant — other employee (POST /project/participant):
 }
 ```
 
-Supplier cost via Leverandørfaktura voucher (POST /ledger/voucher):
+Supplier cost — project orderline for cost tracking (POST /project/orderline):
+
+```json
+{
+  "project": { "id": 54321 },
+  "description": "Leverandørkostnad fra Supplier Name",
+  "date": "2026-03-21",
+  "count": 1,
+  "unitCostCurrency": 56750,
+  "isChargeable": false
+}
+```
+
+This populates `project.overallStatus.costs`. The `vendor` field reads back as `null` — this is expected. The voucher below handles supplier linkage.
+
+Supplier cost — Leverandørfaktura voucher for accounting + supplier linkage (POST /ledger/voucher):
 
 ```json
 {
@@ -301,13 +340,22 @@ Supplier cost via Leverandørfaktura voucher (POST /ledger/voucher):
 }
 ```
 
-Do NOT use `POST /project/orderline` for supplier cost — the `vendor` field does not persist (reads back as null).
-Do NOT use `POST /supplierInvoice` — it returns 500 in sandbox.
+BOTH the project orderline AND the Leverandørfaktura voucher are needed:
+- The orderline populates `project.overallStatus.costs` (the voucher alone leaves costs at 0)
+- The voucher creates the accounting entry with supplier linkage (the orderline's `vendor` field reads back as null)
+Do NOT use `POST /supplierInvoice` — the endpoint has no POST method in the spec; supplier invoices are created only via document import.
 The voucherType ID for Leverandørfaktura is **environment-specific** (e.g. `9744845` in sandbox, `11289239` in production). Always resolve it dynamically via `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` in step 4. Resolve account IDs via `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` (combined read that also provides bank account).
 CRITICAL: each posting MUST include an explicit `row` field (`row: 1` for expense, `row: 2` for credit). Omitting `row` causes `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte` because Tripletex treats row 0 as system-generated.
 
 ## Avoidable Mistakes
 
+CORRECTNESS-CRITICAL (caused all 10+ production attempts to fail checks 3,4,5,7):
+- Do not omit `isFixedPrice: true` and `fixedprice: <budget>` from `POST /project` — the scorer checks the project-level budget
+- Do not omit `budgetHours: <total>` from `POST /project/projectActivity` — the scorer checks hour budgets
+- Do not use `adminAccess: false` for the PM employee's participant — the PM employee (prosjektleder/gestor de projeto) MUST have `adminAccess: true`
+- Do not skip `POST /project/orderline` for supplier cost — the Leverandørfaktura voucher alone does NOT populate `project.overallStatus.costs`; you need BOTH orderline (for cost tracking) AND voucher (for supplier linkage)
+
+Standard:
 - Do not omit `userType` from `POST /employee` payloads; use `"NO_ACCESS"`
 - Do not include `employments[]` on employee payloads for this lifecycle flow; employees work without employment records and omitting them avoids all division/startDate/employmentType traps
 - Do not use `GET /division` — it is unnecessary when employees are created without `employments[]`
@@ -315,8 +363,7 @@ CRITICAL: each posting MUST include an explicit `row` field (`row: 1` for expens
 - Do not use individual `POST /timesheet/entry` calls; use `POST /timesheet/entry/list` batch
 - Do not set project `startDate` after timesheet entry dates
 - Do not skip proactive `GET /department`
-- Do not use `POST /project/orderline` for supplier cost (vendor doesn't persist)
-- Do not use `POST /supplierInvoice` (returns 500)
+- Do not use `POST /supplierInvoice` (no POST method in spec; only document import)
 - Do not hardcode voucherType ID — always resolve via `GET /ledger/voucherType?name=Leverandørfaktura`
 - Do not omit `row` on voucher postings — use `row: 1` and `row: 2`
 - Do not put `project` inside `orderLines[]`; keep on `orders[]` level

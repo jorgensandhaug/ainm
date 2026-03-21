@@ -308,6 +308,7 @@ In real tasks, replace VAT id `3` with the VAT type actually returned by the fil
 
 ## Avoidable Mistakes
 
+- **CRITICAL: Do not use the lifecycle standard (`register-project-lifecycle-budget-hours-cost-and-invoice`) for this task shape** — the 2026-03-21 run for `Brückentor GmbH / E-Commerce-Entwicklung / 292550 / 33%` scored **0.5/4** because the agent created everything from scratch instead of finding and updating the existing project; for this task shape, the project/customer/PM ALREADY EXIST — always start with `GET /project?name=...`
 - Do not use the old 2-call `POST /order` + `PUT /order/:invoice` path; `POST /invoice?sendToCustomer=false` with embedded `orders[]` replaces both in 1 call — sandbox-verified 2026-03-21
 - Do not hardcode VAT code `3`; the filtered account-specific outgoing VAT list may only expose another code such as `6`
 - Do not blindly choose the highest outgoing VAT percentage when the filtered result already shows the account only allows `0%` on the invoice date

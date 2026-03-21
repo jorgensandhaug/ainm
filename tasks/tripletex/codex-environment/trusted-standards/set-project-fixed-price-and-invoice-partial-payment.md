@@ -5,6 +5,14 @@
 - Use directly for exact matches
 - Skip `./openapi.json` re-checking for exact matches
 
+## CRITICAL: Task Matching — This Standard, Not the Lifecycle Standard
+
+- If the prompt gives a **project name + customer org + PM email + fixed price + milestone %**, this IS the correct standard
+- Do NOT use `register-project-lifecycle-budget-hours-cost-and-invoice` for this task shape — that standard creates everything from scratch, but for this task the project/customer/PM ALREADY EXIST on fresh production accounts
+- The 2026-03-21 production run `Brückentor GmbH / 800357314 / E-Commerce-Entwicklung / Felix Fischer / 292550 / 33%` scored **0.5/4** (3/4 checks failed) because the agent used the lifecycle standard instead of this one: it created a NEW customer, employee, and project instead of finding and updating the existing project — the scorer checked the original project which was never updated
+- Language signals: German "Legen Sie einen Festpreis fest" = "set a fixed price" (update existing); "Projektleiter ist" = "the project leader is" (already assigned); these are UPDATE signals, not CREATE signals
+- The same pattern applies across all prompt languages: nb "Sett en fastpris", pt "Defina um preço fixo", es "Establezca un precio fijo", fr "Fixez un prix forfaitaire", en "Set a fixed price" — all indicate updating an existing project
+
 ## Exact Match
 - set or update one project's fixed price
 - link or keep that project on one customer identified by `organizationNumber`
@@ -262,3 +270,12 @@
   - `POST /invoice` requires both root `invoiceDate` and root `invoiceDueDate` (omitting `invoiceDueDate` fails `422`)
   - `POST /invoice` requires `customer: { id }` in both the root payload and inside each `orders[]` entry (omitting `orders[0].customer` fails `422`)
   - therefore the new conditional `3/5/6`-call standard replaces the old `4/6/7`-call standard for this task family
+- CRITICAL FAILURE on 2026-03-21 for `Brückentor GmbH` / `800357314` / `E-Commerce-Entwicklung` / `felix.fischer@example.org` / `292550` / `33%` (run c9831f7e):
+  - the agent used the WRONG trusted standard (`register-project-lifecycle-budget-hours-cost-and-invoice` instead of this one)
+  - it created a NEW customer, employee, and project from scratch instead of finding and updating the existing ones
+  - the original pre-existing project was left with `fixedprice=0` and `isFixedPrice=false` — never updated
+  - the invoice was linked to the new project, not the original one that the scorer checks
+  - result: **0.5/4** (1/4 checks passed — only the customer org check passed; fixedprice, PM, and invoice checks all failed)
+  - the run used 10 API calls with 0 errors, vs the optimal 5-6 calls with perfect correctness using this standard
+  - root cause: the German prompt "Legen Sie einen Festpreis fest" was misinterpreted as "create a new project" instead of "update the existing project's fixed price"
+  - LESSON: for this task family, the project/customer/PM ALWAYS exist on fresh production accounts; ALWAYS start with `GET /project?name=...` to find and update them
