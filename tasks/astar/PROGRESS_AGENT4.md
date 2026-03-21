@@ -1528,3 +1528,20 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
       - `(32,12,6)`
       - `(64,24,12)`
       - `(96,32,16)`
+
+### 2026-03-21T11:20Z
+
+- First explicit event-hazard probe completed:
+  - `tmp_hazard_teacher_mapprior_probe3_jobs3`
+  - mean score `42.2922`
+  - mean weighted KL `0.468442`
+  - runtime `49.974s`
+- Interpretation:
+  - current semimechanistic hazard decoder is far too weak as a standalone prior
+  - the 3-round probe is bad enough that the full 8-round hazard-mapprior run is not worth continuing
+- Action:
+  - killed `dev_hazard_teacher_mapprior_prior1_jobs8`
+  - kept running:
+    - `tmp_gbx_transition_teacher_mapprior_probe3_jobs3_cached`
+    - `dev_gbx_transition_teacher_mapprior_prior1_jobs8`
+    - map-only bucket sweep
