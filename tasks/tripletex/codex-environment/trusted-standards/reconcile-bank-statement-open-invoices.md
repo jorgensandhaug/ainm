@@ -34,8 +34,10 @@ GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)
 GET /supplier?count=1000&fields=*
 GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)
 GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*
-GET /ledger/accountingPeriod?count=100&fields=*
+GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after-first>&count=1&fields=*
 ```
+
+The accounting period query uses the first-of-month computed from the last CSV entry date. Example: last CSV date 2026-02-08 → `startFrom=2026-02-01&startTo=2026-02-02`. Sandbox-verified: returns exactly 1 period with the needed ID. This avoids fetching all periods.
 
 ### Step 2: Select payment type
 
@@ -158,9 +160,10 @@ await post("bank/reconciliation", {
 
 ## Proven production results
 
-**All 8 completed runs scored 0.6/6 (Check 1 failed, Check 2 passed) — none created a bank reconciliation.**
+**All 9 completed runs scored 0.6/6 (Check 1 failed, Check 2 passed) — none created a bank reconciliation.**
 
-- German run (655f6c99): 11 calls, 0 errors, 5 customer (1 partial: Müller GmbH 12593.75 of 25187.50) + 3 supplier + 2 Skattetrekk (Inn+Ut) combined into 1 voucher (10 postings) — scored 0.6; ran OLD 5-read path (no accountingPeriod GET, no bank reconciliation)
+- German run 2 (5fc92ebf): 11 calls, 0 errors, 5 customer (4 full + 1 partial: Meyer GmbH 10750 of 21500) + 3 supplier + 3 Bankgebyr (1 Ut + 2 Inn refunds) combined into 1 voucher (12 postings) — ran OLD 5-read path (no accountingPeriod, no bank reconciliation); Wagner GmbH had 2 invoices matched in sequence; CSV had only Bankgebyr non-invoice lines (no Renteinntekter/Skattetrekk); 2nd German-prompt confirmation
+- German run 1 (655f6c99): 11 calls, 0 errors, 5 customer (1 partial: Müller GmbH 12593.75 of 25187.50) + 3 supplier + 2 Skattetrekk (Inn+Ut) combined into 1 voucher (10 postings) — scored 0.6; ran OLD 5-read path (no accountingPeriod GET, no bank reconciliation)
 - Portuguese run 2 (5c02a044): 11 calls, 0 errors, 5 customer (1 partial: Costa Lda 11300 of 28250) + 3 supplier + 3 non-invoice combined into 1 voucher (12 postings) — **scored 0.6 despite including non-invoice lines** (disproved the theory that Check 1 failed due to skipped non-invoice lines)
 - English run 4: 11 calls, 0 errors, 5 customer (1 partial) + 3 supplier combined into 1 voucher — scored 0.6
 - Nynorsk run 2 (c76bbef3): 11 calls, 0 errors, 5 customer (all full) + 3 supplier combined into 1 voucher — scored 0.6
@@ -169,11 +172,11 @@ await post("bank/reconciliation", {
 - Spanish run (bc688ea1): **0 calls, TIMED OUT** — scored 0/1
 - Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2) — scored 0.6
 
-**Next run MUST add Step 6 (bank reconciliation) — 8 consecutive runs without it all scored 0.6/6. This is the only untested fix.**
+**Next run MUST add Step 6 (bank reconciliation) — 9 consecutive runs without it all scored 0.6/6. This is the only untested fix.**
 
 ## Critical pitfalls
 
-- **BANK RECONCILIATION REQUIRED**: All 8 completed runs without a bank reconciliation scored exactly 0.6/6 (Check 1 always failed). The next run MUST create a closed bank reconciliation (Step 6). If the proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10). The 655f6c99 run (German prompt) used the OLD 5-read path and still scored 0.6 — confirming that bank reconciliation is the missing piece.
+- **BANK RECONCILIATION REQUIRED**: All 9 completed runs without a bank reconciliation scored exactly 0.6/6 (Check 1 always failed). The next run MUST create a closed bank reconciliation (Step 6). If the proxy blocks `/bank/reconciliation`, fall back gracefully (Check 2 still scores 2/10). Both German runs (655f6c99, 5fc92ebf) used the OLD 5-read path — confirming that bank reconciliation is the missing piece.
 - **TIMEOUT RISK**: This is the most timeout-prone task shape. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Three production runs scored 0 due to timeout: bc688ea1 (spent 300s reading docs, 0 API calls), 2f10e207 (LLM output took 4.5 min generating script, API executed in 4s but proxy expired), and one earlier run. The API execution takes ~4–15s; all remaining time is wasted on documentation or LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes `400`

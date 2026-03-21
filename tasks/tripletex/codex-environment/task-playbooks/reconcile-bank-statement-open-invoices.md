@@ -21,12 +21,17 @@ The task has a hard 300s budget. **Three production runs have scored 0 due to ti
 
 ## Production Run Results (2026-03-21)
 
-### German run (655f6c99, 11 calls, 0 errors) — SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
+### German run 2 (5fc92ebf, 11 calls, 0 errors) — likely SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
+- 5 reads fired in parallel (OLD path, no `/ledger/accountingPeriod`), 5 customer payments (4 full + 1 partial: Meyer GmbH 10750 of 21500), 3 supplier payments + 3 Bankgebyr (1 Ut expense + 2 Inn refunds) combined into 1 voucher (12 postings)
+- Wagner GmbH had 2 invoices (#1 outstanding 23625, #2 outstanding 28812.50) — matched in order correctly
+- CSV non-invoice lines were ALL Bankgebyr (no Renteinntekter/Skattetrekk) — new variant shape
+- Ran the pre-Step-6 trusted standard — did NOT create bank reconciliation
+- **9th consecutive run without bank reconciliation**
+
+### German run 1 (655f6c99, 11 calls, 0 errors) — SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
 - 5 reads fired in parallel (OLD path, no `/ledger/accountingPeriod`), 5 customer payments (1 partial: Müller GmbH 12593.75 of 25187.50), 3 supplier payments + 2 Skattetrekk (Inn 393.31 + Ut 301.90) combined into 1 voucher (10 postings)
 - Ran the pre-Step-6 trusted standard — did NOT create bank reconciliation
-- **8th consecutive run scoring 0.6 without bank reconciliation confirms this is the sole remaining blocker**
 - CSV: Weber GmbH, Meyer GmbH, Schneider GmbH, Müller GmbH (2 invoices); suppliers: Becker GmbH, Schneider GmbH, Meyer GmbH
-- First German-prompt confirmation of this task shape
 
 ### Portuguese run 2 (5c02a044, 11 calls, 0 errors) — SCORED 0.6/6 (included non-invoice lines, no bank reconciliation)
 - 6 reads fired in parallel (added `/ledger/accountingPeriod`), 5 customer payments (1 partial: Costa Lda 11300 of 28250), 3 supplier payments + 3 non-invoice lines combined into 1 voucher (12 postings)
@@ -170,7 +175,7 @@ Key findings:
    - `GET /supplier?count=1000&fields=*`
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
    - `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` (speculative; needed if no supplier invoices)
-   - `GET /ledger/accountingPeriod?count=100&fields=*` (needed for bank reconciliation)
+   - `GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after>&count=1&fields=*` (needed for bank reconciliation)
 3. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
 4. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
 5. `PUT /invoice/{id}/:payment` once per matched incoming line
