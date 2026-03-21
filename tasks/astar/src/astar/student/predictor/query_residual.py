@@ -984,20 +984,26 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
     names.extend(["local_blur15_coverage", "local_blur40_coverage"])
     if normalized in {"v1", "v2_state", "v3_state_tails"}:
         return names
+    blurred_state_names = [
+        "local_blur15_population",
+        "local_blur40_population",
+        "local_blur15_food",
+        "local_blur40_food",
+        "local_blur15_defense",
+        "local_blur40_defense",
+        "local_blur15_distress",
+        "local_blur40_distress",
+    ]
+    if normalized == "v5_localblur":
+        names.extend(blurred_state_names)
+        return names
     names.extend(
         [
             "local_population",
             "local_food",
             "local_defense",
             "local_distress",
-            "local_blur15_population",
-            "local_blur40_population",
-            "local_blur15_food",
-            "local_blur40_food",
-            "local_blur15_defense",
-            "local_blur40_defense",
-            "local_blur15_distress",
-            "local_blur40_distress",
+            *blurred_state_names,
         ],
     )
     return names
@@ -1033,6 +1039,8 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
     if normalized == "v3_state_tails":
         return (len(_global_summary_names()), len(_seed_summary_names()))
     if normalized == "v4_localstate":
+        return (state_global_len, state_seed_len)
+    if normalized == "v5_localblur":
         return (state_global_len, state_seed_len)
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 

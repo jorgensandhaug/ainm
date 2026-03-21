@@ -1410,3 +1410,60 @@
   - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
   - result:
     - `25 passed`
+- Next `query_residual` branch started after fit-audit calibration:
+  - hypothesis:
+    - `localstate_v01` may have failed because the raw per-cell settlement-state maps overfit observed settlement coordinates
+    - the useful part might be only the low-frequency local pressure carried by the blurred settlement-state channels
+  - planned variant:
+    - keep the existing `v2_state` summaries
+    - add only the blurred local `population / food / defense / distress` maps
+    - do not add the raw local maps
+  - target model name:
+    - `f1_student_query_residual_localblur_v01`
+  - validation plan:
+    - screen with the new `query_residual` fit audit first
+    - only pay for a smoke benchmark if the audit actually improves baseline residual fit
+- Implemented `f1_student_query_residual_localblur_v01`:
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/student/predictor/query_residual_specs.py`
+    - `tests/test_query_residual_feature_variants.py`
+  - change:
+    - added a new `v5_localblur` feature slice
+    - keeps the `v2_state` summaries
+    - adds only the blurred local `population / food / defense / distress` channels
+    - does not add the raw local settlement-state maps
+- Validation after landing `localblur` support:
+  - `uv run pytest tests/test_query_residual_feature_variants.py tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `15 passed`
+- Real fit-audit screen for `f1_student_query_residual_localblur_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-query-residual-fit-audit --model f1_student_query_residual_localblur_v01 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --dataset-name f1_query_residual_fit_probe3_b50_s2_v01 --name f1_query_residual_fit_f1_student_query_residual_localblur_v01_probe3_b50s2_v01 --policy coverage --samples-per-round 2 --budget 50`
+  - report:
+    - `data/artifacts/family1/query_residual_fit_audit/f1_query_residual_fit_f1_student_query_residual_localblur_v01_probe3_b50s2_v01/report.md`
+  - result:
+    - aggregate score `71.968633`
+    - weighted KL `0.110134`
+    - regime MAE `0.066319`
+    - regime MSE `0.010029`
+    - raw-delta RMSE `0.596066`
+    - served-delta RMSE `0.574474`
+    - wall `0:40.24`
+    - max RSS about `0.29 GB`
+- `localblur` branch conclusion:
+  - reject at audit stage
+  - it is effectively tied with `localstate_v01` and worse than `state_v01`
+  - important read:
+    - dropping the raw local maps did not help
+    - the entire local settlement-state map family now looks dead, not just the raw-map subcase
+  - decision:
+    - no smoke benchmark for `f1_student_query_residual_localblur_v01`
+    - the audit screen did exactly what it was supposed to do and saved a more expensive benchmark
+  - next best path:
+    - stop spending time on local settlement-state map slices
+    - move to a different residual-feature family, likely one about transcript support / reliability / mismatch rather than more queried settlement-state maps
+- Broader validation after `localblur` audit-stage reject:
+  - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `25 passed`
