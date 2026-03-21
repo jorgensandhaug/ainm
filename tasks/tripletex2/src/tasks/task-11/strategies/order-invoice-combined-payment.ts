@@ -62,7 +62,6 @@ interface ProductResolutionResult {
   usedCatalogFallback: boolean;
 }
 
-const FULL_PAYMENT_SEED_AMOUNT = 0.01;
 const BANK_ACCOUNT_VALIDATION_MESSAGE =
   "Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.";
 
@@ -71,22 +70,23 @@ export const strategy = {
   strategyPath:
     "src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
   taskId: CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_TASK_ID,
-  name: "Order, invoice, and combined payment",
+  name: "Order, invoice, and payment",
   summary:
-    "Resolves the customer, products, and payment type first, then creates the order and settles the invoice in the same invoice write.",
+    "Resolves the customer and products, creates the order, invoices it without sending, then pays the live outstanding amount with one exact incoming payment write.",
   hypothesis:
-    "The best production flow for exact existing-customer plus existing-product prompts is the 5-call branch that combines invoice creation and payment instead of defaulting to a second payment write.",
+    "The best production flow for exact existing-customer plus existing-product prompts is the 6-call branch that creates the invoice first, then resolves one usable incoming payment type and pays the exact outstanding amount.",
   expectedCallProfile: {
-    targetCalls: 5,
-    maxCalls: 8,
+    targetCalls: 6,
+    maxCalls: 9,
   },
   stepOutline: [
     "API call 1: GET /customer by organization number to resolve the existing customer ID.",
     "API call 2: GET /product using repeated productNumber params, with deterministic fallbacks only if exact product resolution is incomplete.",
-    "API call 3: GET /invoice/paymentType to resolve one usable incoming payment type.",
-    "API call 4: POST /order with embedded order lines in prompt order.",
-    "API call 5: PUT /order/{id}/:invoice with paymentTypeId, paidAmount=0.01, and paymentTypeIdRestAmount to settle the invoice immediately.",
-    "Conditional recovery: repair one bank account and retry the same invoice write if the company-bank-account prerequisite blocks invoice creation, and use one standalone invoice payment call only if the invoice still has a remaining balance afterward.",
+    "API call 3: POST /order with embedded order lines in prompt order.",
+    "API call 4: PUT /order/{id}/:invoice with invoiceDate and sendToCustomer=false.",
+    "API call 5: GET /invoice/paymentType to resolve one usable incoming payment type after the invoice exists.",
+    "API call 6: PUT /invoice/{id}/:payment with the invoice response's live outstanding amount.",
+    "Conditional recovery: repair one bank account and retry the same invoice write if the company-bank-account prerequisite blocks invoice creation.",
   ],
   status: "draft",
   async run(
@@ -125,17 +125,6 @@ export const strategy = {
 
     const productResolution = await resolveProducts(ctx, input.lines);
 
-    const paymentTypeResponse = await ctx.tripletex.get<ListResponse<PaymentTypeSummary>>(
-      "/invoice/paymentType",
-      {
-        query: {
-          count: 1000,
-          fields: "*,debitAccount(*),creditAccount(*)",
-        },
-      },
-    );
-    const paymentType = choosePaymentType(paymentTypeResponse.values ?? []);
-
     const orderResponse = await ctx.tripletex.post<ResponseWrapper<OrderSummary>>(
       "/order",
       {
@@ -154,32 +143,38 @@ export const strategy = {
     );
     const orderId = requireId(orderResponse.value?.id, "order");
 
-    let invoiceResponse = await createInvoiceWithCombinedPayment(
+    const invoiceOutcome = await createInvoiceWithRepair(
       ctx,
       orderId,
       invoiceDate,
-      paymentType.id,
     );
+    const invoiceResponse = invoiceOutcome.response;
+    const usedBankAccountRepair = invoiceOutcome.usedBankAccountRepair;
 
     const invoiceId = requireId(invoiceResponse.value?.id, "invoice");
-    let remainingOutstanding = readOutstandingAmount(invoiceResponse.value);
-    let usedStandalonePaymentFallback = false;
-
-    if (remainingOutstanding !== 0) {
-      usedStandalonePaymentFallback = true;
-      const paymentResponse = await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
-        `/invoice/${invoiceId}/:payment`,
-        {
-          query: {
-            paymentDate: invoiceDate,
-            paymentTypeId: paymentType.id,
-            paidAmount: remainingOutstanding,
-          },
+    const outstandingAmount = readOutstandingAmount(invoiceResponse.value);
+    const paymentTypeResponse = await ctx.tripletex.get<ListResponse<PaymentTypeSummary>>(
+      "/invoice/paymentType",
+      {
+        query: {
+          count: 1000,
+          fields: "*,debitAccount(*),creditAccount(*)",
         },
-      );
-      invoiceResponse = paymentResponse;
-      remainingOutstanding = readOutstandingAmount(paymentResponse.value);
-    }
+      },
+    );
+    const paymentType = choosePaymentType(paymentTypeResponse.values ?? []);
+
+    const paymentResponse = await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
+      `/invoice/${invoiceId}/:payment`,
+      {
+        query: {
+          paymentDate: invoiceDate,
+          paymentTypeId: paymentType.id,
+          paidAmount: outstandingAmount,
+        },
+      },
+    );
+    const remainingOutstanding = readOutstandingAmount(paymentResponse.value);
 
     if (remainingOutstanding !== 0) {
       throw new Error(
@@ -209,9 +204,9 @@ export const strategy = {
         "Product resolution required one catalog read fallback to resolve the requested lines locally.",
       );
     }
-    if (usedStandalonePaymentFallback) {
+    if (usedBankAccountRepair) {
       notes.push(
-        "The combined invoice write left a remaining balance, so the strategy finished with one standalone invoice payment call.",
+        "The first invoice write was blocked by a missing company bank account number, so the strategy repaired one bank account and retried the same invoice write.",
       );
     }
 
@@ -224,11 +219,12 @@ export const strategy = {
       notes,
       verification: {
         invoiceDate,
-        invoiceNumber: invoiceResponse.value?.invoiceNumber,
+        invoiceNumber: paymentResponse.value?.invoiceNumber,
         paymentTypeId: paymentType.id,
         sendToCustomerRequested: false,
+        paidAmount: outstandingAmount,
         remainingOutstanding,
-        usedStandalonePaymentFallback,
+        usedBankAccountRepair,
       },
     };
   },
@@ -406,25 +402,27 @@ function resolveProductFromCatalog(
   );
 }
 
-async function createInvoiceWithCombinedPayment(
+async function createInvoiceWithRepair(
   ctx: StrategyContext,
   orderId: number,
   invoiceDate: string,
-  paymentTypeId: number,
-): Promise<ResponseWrapper<InvoiceSummary>> {
+): Promise<{
+  response: ResponseWrapper<InvoiceSummary>;
+  usedBankAccountRepair: boolean;
+}> {
   try {
-    return await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
+    return {
+      response: await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
       `/order/${orderId}/:invoice`,
       {
         query: {
           invoiceDate,
           sendToCustomer: false,
-          paymentTypeId,
-          paidAmount: FULL_PAYMENT_SEED_AMOUNT,
-          paymentTypeIdRestAmount: paymentTypeId,
         },
       },
-    );
+      ),
+      usedBankAccountRepair: false,
+    };
   } catch (error) {
     if (!isMissingBankAccountError(error)) {
       throw error;
@@ -451,18 +449,18 @@ async function createInvoiceWithCombinedPayment(
       },
     });
 
-    return ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
-      `/order/${orderId}/:invoice`,
-      {
-        query: {
-          invoiceDate,
-          sendToCustomer: false,
-          paymentTypeId,
-          paidAmount: FULL_PAYMENT_SEED_AMOUNT,
-          paymentTypeIdRestAmount: paymentTypeId,
+    return {
+      response: await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
+        `/order/${orderId}/:invoice`,
+        {
+          query: {
+            invoiceDate,
+            sendToCustomer: false,
+          },
         },
-      },
-    );
+      ),
+      usedBankAccountRepair: true,
+    };
   }
 }
 
