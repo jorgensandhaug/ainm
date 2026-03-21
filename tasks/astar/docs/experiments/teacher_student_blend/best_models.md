@@ -45,10 +45,14 @@ Active queue now includes:
 - `teacher_student_blend_v48`
 - `teacher_student_blend_v49`
 - `teacher_student_blend_v50`
+- `teacher_student_blend_v51`
+- `teacher_student_blend_v52`
+- `teacher_student_blend_v53`
+- `teacher_student_blend_v54`
 - full LOO live: `teacher_student_blend_v13`
 - full LOO live: `teacher_student_blend_v15`
 - full LOO live: `teacher_student_blend_v45`
 - next promotion target is `teacher_student_blend_v45`
-- next corrected-gate branch is `teacher_student_blend_v47` through `teacher_student_blend_v50`
+- newest corrected-gate branch is `teacher_student_blend_v51` through `teacher_student_blend_v54`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

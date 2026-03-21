@@ -2638,6 +2638,40 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v52_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v54_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `3 passed`
+286. Machine-wide health check before adding the exact-local-evidence wave:
+   - snapshot before launch:
+     - memory used: about `1.2 TiB`
+     - memory available: about `1.7 TiB`
+   - live family queue count from machine-wide process scan:
+     - about `33` agent3 teacher-student benchmark processes / wrappers
+   - decision:
+     - still enough headroom for one more 4-model corrected-gate wave at `jobs=1`
+287. Twelfth corrected-holdout outer wave launched from pushed commit `1f9318a8`:
+   - models:
+     - `teacher_student_blend_v51`
+     - `teacher_student_blend_v52`
+     - `teacher_student_blend_v53`
+     - `teacher_student_blend_v54`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - sessions:
+     - `v51`: `44814`
+     - `v52`: `36837`
+     - `v53`: `3001`
+     - `v54`: `57005`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
+288. Post-launch machine-wide health check for item 287:
+   - snapshot after launch:
+     - memory used: about `1.2 TiB`
+     - memory available: about `1.7 TiB`
+   - active new exact-local-evidence jobs confirmed live:
+     - `v51`
+     - `v52`
+     - `v53`
+     - `v54`
 
 
 ## Open Questions
