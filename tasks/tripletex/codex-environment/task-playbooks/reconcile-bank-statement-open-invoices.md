@@ -185,4 +185,6 @@ Key findings:
 - `putPostings` fails on vouchers that already have postings
 - do not overfit to sandbox noise such as already-credited customer invoices when selecting proof targets
 - do not spend the 300s budget on debug/exploration scripts after the main work
-- always include `row: 1` and `row: 2` on manual voucher postings (row 0 is system-reserved)
+- row 0 is system-reserved; start manual voucher postings at `row: 1` and increment per posting
+- do not create M separate `POST /ledger/voucher` calls for M supplier payments; combine all into one voucher with 2M postings
+- fire `GET /ledger/account?number=2400,1920&fields=*` speculatively in the initial parallel batch; it is wasted only in the rare has-supplier-invoices case
