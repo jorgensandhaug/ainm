@@ -324,17 +324,17 @@ Note: Barren correction does NOT trigger on the actual worst round (36e581f1). T
 
 ## Cross-Agent Intelligence Report (2026-03-21T21:00Z)
 
-### Score Leaderboard Across ALL Agents
+### VERIFIED Score Leaderboard Across ALL Agents (from actual result.json files)
 
-| Agent | Model | Score | Key Approach |
-|-------|-------|-------|-------------|
-| Agent 7 | ffam_mode_v169 | **87.12** | Operator manifold + residual MLP posterior + extreme calibration tuning |
-| Agent 3 | CatBoost cellwise | **85.29** | Per-cell GBT + entropy-weighted training + 160 features |
-| Agent 1 | hazard_posterior_v15 | **83.79** | Original coefficients + particle-refined posterior |
-| Agent 4 | LGB evidence v2 | **83.06** | LightGBM per-cell + evidence features |
-| Agent 2 (us) | GLMM z2 | **78.40** | Our current best |
-| Agent 5 | stacked expansion w35 | **77.35** | QR + expansion-conditioned cell kNN |
-| Agent 6 | ensemble hv2+sx | **74.70** | HazardPosteriorV2 + QR geometric mean |
+| Agent | Model | Verified Score | Key Approach |
+|-------|-------|---------------|-------------|
+| **Agent 7** | `ffam_mode_v186` | **87.36** | Operator manifold + residual MLP + cluster-operator hybrid + extreme calibration |
+| **Agent 3** | CatBoost cb_ob30 | **85.31** | Per-cell CatBoost + obs blend t=30 + entropy-weighted + 140 features |
+| **Agent 1** | `hazard_posterior_v15` m20 q1 | **83.89** | Original coefficients (not SVD) + particle posterior + regime probe policy |
+| **Agent 2 (us)** | `glmm_dt_ensemble_v007` | **80.84** | GLMM + direct terminal 50/50 ensemble |
+| **Agent 5** | `query_residual` recal | **80.24** | QR with recalibration |
+| **Agent 4** | `qr_v11_covtrain_p0_b624_t100` | **79.65** | QR + calibration sweep (prior_blend=0, temp=1.0) |
+| **Agent 6** | ensemble hv2+sx | **74.70** (full8) | HazardV2 + QR geometric mean |
 
 ### Key Techniques I MUST Incorporate
 
