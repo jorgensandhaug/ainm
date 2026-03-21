@@ -11,6 +11,10 @@ from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
+from astar.student.predictor.evidence_field import (
+    is_evidence_field_model_name,
+    load_or_fit_named_evidence_field_predictor,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import (
     is_query_residual_model_name,
@@ -127,6 +131,20 @@ def build_online_predictor(
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         predictor = load_or_fit_named_summary_bank_predictor(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_evidence_field_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = load_or_fit_named_evidence_field_predictor(
             workspace_paths,
             model_name=normalized,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),

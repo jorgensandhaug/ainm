@@ -17,6 +17,12 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.evidence_field import (
+    is_evidence_field_model_name,
+    load_or_fit_named_evidence_field_predictor,
+    resolve_evidence_field_samples_per_round,
+    resolve_evidence_field_variant_spec,
+)
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
@@ -267,6 +273,30 @@ def _build_prediction_bundle(
             spec.samples_per_round,
         )
 
+    if is_evidence_field_model_name(normalized):
+        predictor = load_or_fit_named_evidence_field_predictor(
+            paths,
+            model_name=normalized,
+            round_ids=list(training_round_ids),
+            policy_name="coverage",
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
+        spec = resolve_evidence_field_variant_spec(
+            normalized,
+            samples_per_round=samples_per_round,
+        )
+        return (
+            bundle,
+            {},
+            0,
+            spec.samples_per_round,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -408,7 +438,14 @@ def evaluate_model_on_round(
                     samples_per_round=samples_per_round,
                 ).samples_per_round
                 if is_summary_bank_model_name(model_name)
-                else None
+                else (
+                    resolve_evidence_field_samples_per_round(
+                        model_name,
+                        samples_per_round=samples_per_round,
+                    )
+                    if is_evidence_field_model_name(model_name)
+                    else None
+                )
             )
         )
         resolved_budget = None
@@ -446,7 +483,14 @@ def evaluate_model_on_round(
                     samples_per_round=samples_per_round,
                 ).samples_per_round
                 if is_summary_bank_model_name(model_name)
-                else None
+                else (
+                    resolve_evidence_field_samples_per_round(
+                        model_name,
+                        samples_per_round=samples_per_round,
+                    )
+                    if is_evidence_field_model_name(model_name)
+                    else None
+                )
             )
         )
         resolved_budget = budget

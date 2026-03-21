@@ -15,6 +15,10 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.evidence_field import (
+    is_evidence_field_model_name,
+    resolve_evidence_field_samples_per_round,
+)
 from astar.student.predictor.query_residual import (
     is_query_residual_model_name,
     resolve_query_residual_samples_per_round,
@@ -110,6 +114,8 @@ def run_targeted_holdout_benchmark(
         raise ValueError("query_residual targeted holdout requires replay-backed training rounds")
     if is_summary_bank_model_name(normalized_model_name) and len(training_round_ids) < 1:
         raise ValueError("teacher_student_blend targeted holdout requires replay-backed training rounds")
+    if is_evidence_field_model_name(normalized_model_name) and len(training_round_ids) < 1:
+        raise ValueError("evidence_field_blend targeted holdout requires replay-backed training rounds")
 
     resolved_policy_name = (
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
@@ -126,12 +132,21 @@ def run_targeted_holdout_benchmark(
                 samples_per_round=samples_per_round,
             ).samples_per_round
             if is_summary_bank_model_name(normalized_model_name)
-            else None
+            else (
+                resolve_evidence_field_samples_per_round(
+                    normalized_model_name,
+                    samples_per_round=samples_per_round,
+                )
+                if is_evidence_field_model_name(normalized_model_name)
+                else None
+            )
         )
     )
 
     model_suffix = ""
     if is_query_residual_model_name(normalized_model_name) or is_summary_bank_model_name(
+        normalized_model_name,
+    ) or is_evidence_field_model_name(
         normalized_model_name,
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"

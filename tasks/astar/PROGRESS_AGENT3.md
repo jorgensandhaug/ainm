@@ -3516,6 +3516,70 @@
    - machine remained healthy:
      - about `1.7 TiB` used
      - about `1.2 TiB` available
+399. Corrected-gate results landed for the observation-count-routed wave:
+   - artifacts:
+     - `data/artifacts/benchmarks/agent3_teacher_student_blend_v107_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_teacher_student_blend_v108_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_teacher_student_blend_v109_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_teacher_student_blend_v110_targeted_holdout_2rounds_corrected/result.json`
+   - aggregate results:
+     - `v107`: mean score `65.4595`, mean weighted KL `0.141831`
+     - `v108`: mean score `65.4131`, mean weighted KL `0.142083`
+     - `v109`: mean score `64.9455`, mean weighted KL `0.144493`
+     - `v110`: mean score `64.9147`, mean weighted KL `0.144665`
+400. Read from item 399:
+   - observation-count routing is slightly more informative than binary coverage routing, but still not enough to beat the `v59` anchor
+   - temporal secondary expert nearly ties the anchor, semantic secondary expert is clearly worse
+   - router-only changes look exhausted; next branch must alter cellwise probabilities directly rather than only switching experts
+401. New radical hypothesis after item 400:
+   - the missing headroom may be in local map-space refinement, not only round-level latent inference
+   - build a new `evidence_field_blend` family that starts from the strongest summary-bank base model and then adds local blurred empirical evidence fields directly into per-cell logits
+   - expected win mode:
+     - propagate observed built-class evidence into nearby plausible cells
+     - strengthen ports/ruins differently from generic settlement mass
+     - help lightly seen or unseen cells without damping already well-observed cells
+402. Implemented the new `evidence_field_blend` family:
+   - new file:
+     - `src/astar/student/predictor/evidence_field.py`
+   - new reproducible model names:
+     - `evidence_field_blend`
+     - `evidence_field_blend_v1`
+     - `evidence_field_blend_v2`
+     - `evidence_field_blend_v3`
+     - `evidence_field_blend_v4`
+     - `evidence_field_blend_v5`
+     - `evidence_field_blend_v6`
+   - family structure:
+     - base predictor is `teacher_student_blend_v59` or `teacher_student_blend_v60`
+     - local evidence field uses blurred observed class counts
+     - field is gated by low local support and nearby evidence support
+     - class-specific logit deltas are applied for settlement / port / ruin / forest / empty
+     - all variants fix `samples_per_round=4`
+403. Reproducibility and framework wiring fixes for item 402:
+   - `interactive.py` now resolves evidence-field model names through the standard online predictor path
+   - `historical_benchmark.py` and `targeted_holdout_benchmark.py` now resolve evidence-field sample-count defaults and model suffixes correctly
+   - `model_eval.py` now imports the evidence-field spec resolver and records evidence-field sample-count defaults correctly in benchmark seed results
+   - `cli.py` no longer hardcodes stale giant model lists for online-capable models; it now uses centralized dynamic choice sets, which also exposes evidence-field variants through:
+     - `visualize-model-prediction`
+     - `run-synthetic-tournament`
+     - `run-synthetic-benchmark`
+     - `run-historical-benchmark`
+     - `run-live-online`
+404. Focused validation for the new family and CLI wiring:
+   - command:
+     - `uv run pytest tests/test_cli.py tests/test_teacher_student.py::test_evidence_field_local_refinement_spreads_built_signal_to_neighbors tests/test_historical_benchmark.py::test_evidence_field_blend_v2_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `4 passed`
+   - new regression coverage:
+     - CLI accepts evidence-field models for historical and live commands
+     - local evidence-field refinement increases nearby built-class mass
+     - evidence-field historical benchmark defaults to `samples_per_round=4`
+405. Fresh machine-wide check before the first evidence-field launch wave:
+   - about `1.6 TiB` used
+   - about `1.3 TiB` available
+   - large active loads from other agents are still present, especially multiple `20-26 GiB` workers on `agent1`
+   - only one heavy agent3 long run is still alive:
+     - `agent3_dev_teacher_student_blend_v59_full_corrected`
 
 
 ## Open Questions

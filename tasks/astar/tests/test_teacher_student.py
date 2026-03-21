@@ -849,6 +849,65 @@ def test_summary_bank_secondary_student_count_route_prefers_smoother_low_count_c
     assert weight_map[1, 0, 0] == 1.0
 
 
+def test_evidence_field_local_refinement_spreads_built_signal_to_neighbors() -> None:
+    from astar.features.geometry import SeedFeatureBundle
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.evidence_field import _apply_local_evidence_field_refinement
+
+    prediction = np.full((3, 3, 6), 1.0 / 6.0, dtype=np.float64)
+    count_tensor = np.zeros((3, 3, 6), dtype=np.int64)
+    count_tensor[1, 1, 1] = 4
+    observed_class_counts = np.sum(count_tensor, axis=(0, 1))
+    observed_class_frequencies = observed_class_counts.astype(np.float64) / float(
+        np.sum(observed_class_counts),
+    )
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=4,
+        repeated_window_groups=0,
+        coverage_counts=np.asarray([[0, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.int64),
+        observed_class_counts=observed_class_counts,
+        observed_class_frequencies=observed_class_frequencies,
+        observed_class_count_tensor=count_tensor,
+    )
+    seed_features = SeedFeatureBundle(
+        round_id="round",
+        seed_index=0,
+        height=3,
+        width=3,
+        features={
+            "buildable": np.ones((3, 3), dtype=np.float64),
+            "settlement_proximity": np.ones((3, 3), dtype=np.float64),
+            "coastal_exposure": np.ones((3, 3), dtype=np.float64),
+            "maritime_access": np.ones((3, 3), dtype=np.float64),
+            "frontier_score": np.ones((3, 3), dtype=np.float64),
+            "forest_density": np.zeros((3, 3), dtype=np.float64),
+            "mountain_density": np.zeros((3, 3), dtype=np.float64),
+        },
+    )
+
+    refined = _apply_local_evidence_field_refinement(
+        prediction,
+        seed_evidence=seed_evidence,
+        seed_features=seed_features,
+        initial_scored_grid=np.zeros((3, 3), dtype=np.int64),
+        blur_radius=1,
+        blur_sigma=1.0,
+        count_scale=3.0,
+        field_strength=1.5,
+        port_strength=1.0,
+        ruin_strength=1.0,
+        forest_strength=1.0,
+        empty_strength=1.0,
+        probability_floor=0.01,
+    )
+
+    assert np.allclose(refined.sum(axis=-1), 1.0)
+    assert refined[1, 2, 1] > prediction[1, 2, 1]
+    assert np.allclose(refined[1, 1], prediction[1, 1])
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
