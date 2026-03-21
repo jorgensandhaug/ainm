@@ -2257,6 +2257,40 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_student_temporal_multiscale_residual_checkpoint_roundtrip tests/test_teacher_student.py::test_summary_temporal_multiscale_encoder_zero_observation_shape tests/test_historical_benchmark.py::test_teacher_student_blend_v30_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_teacher_student_blend_v32_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+246. Machine-wide health check before launching item 244:
+   - snapshot:
+     - memory used: about `762 GiB`
+     - memory available: about `2.2 TiB`
+   - largest competing workers still belonged to other agents:
+     - agent5 hybrid sweeps at about `57-75 GiB` RSS
+   - active corrected-holdout workers on this branch before the new wave:
+     - `teacher_student_blend_v17`
+     - `teacher_student_blend_v18`
+     - `teacher_student_blend_v19`
+     - `teacher_student_blend_v20`
+     - `teacher_student_blend_v21`
+     - `teacher_student_blend_v22`
+     - `teacher_student_blend_v23`
+     - `teacher_student_blend_v24`
+     - `teacher_student_blend_v26`
+   - decision:
+     - headroom was large enough for one more narrow outer wave
+     - keep `jobs=1` inside every new run
+247. Sixth corrected-holdout outer wave launched from pushed commit `52d2fcc`:
+   - models:
+     - `teacher_student_blend_v31`
+     - `teacher_student_blend_v32`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - sessions:
+     - `v31`: `73788`
+     - `v32`: `3076`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
 
 
 ## Open Questions
