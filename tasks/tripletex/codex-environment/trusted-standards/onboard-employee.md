@@ -343,3 +343,11 @@ Standard worktime (per-employee):
   - sandbox re-verification on 2026-03-21: POST /employee with occupationCode {id: 752} → 201, readback confirmed occupationCode.id=752, nameNO=BRUKERSTØTTE IKT, code=3120130, percentageOfFullTimeEquivalent=100, annualSalary=750000, employmentForm=PERMANENT, hoursPerDay=7.5
   - hardcoding STYRK 3512 → id 752 saves 1 call, reducing optimal flow from 5 to 4 calls for this contract shape
   - 15 total onboard-employee production runs; 13 of the last 14 used 3-5 calls with 0 errors
+- production run on 2026-03-21 (seventeenth run, HR-rådgiver offer letter, Portuguese prompt, Catarina Oliveira / 1990-02-26 / dept Økonomi / start 2026-06-26 / 100% / 610000 / standard worktime 7.5h) used 4 calls: GET /division, POST /department, POST /employee, POST /employee/standardTime — all succeeded, 0 errors
+  - 2nd HR-rådgiver production run; 1st to use hardcoded HR-rådgiver → id 4169 (PERSONALRÅDGIVER) mapping, saving 1 call vs 7th run (which used dynamic `nameNO=personalrådgiver` lookup with 5 calls)
+  - GET /division returned results, division included in payload
+  - POST /employee included nested employmentDetails with occupationCode { id: 4169 }, percentageOfFullTimeEquivalent 100, annualSalary 610000, employmentForm PERMANENT
+  - POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-06-26
+  - sandbox re-verification on 2026-03-21: id 4169 confirmed as PERSONALRÅDGIVER (code 2512149), `nameNO=HR-rådgiver` returns 0 results, `nameNO=personalrådgiver` returns exactly 1 result (id 4169)
+  - confirms the minimum-call floor for the HR-rådgiver + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
+  - 17 total onboard-employee production runs; 15 of the last 16 used 3-5 calls with 0 errors

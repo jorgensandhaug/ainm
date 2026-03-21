@@ -292,3 +292,11 @@ Run 2026-03-21 (STYRK 3512 contract, Norwegian prompt, Olav Johansen / 1984-07-2
 - sandbox re-verification: occupationCode.id=752, nameNO=BRUKERSTØTTE IKT, code=3120130, percentageOfFullTimeEquivalent=100, annualSalary=750000, employmentForm=PERMANENT, hoursPerDay=7.5
 - hardcoding STYRK 3512 → id 752 saves 1 call, reducing optimal flow from 5 to 4 calls
 - 16 total onboard-employee production runs; 14 of the last 15 used 3-5 calls with 0 errors
+
+Run 2026-03-21 (HR-rådgiver offer letter, Portuguese prompt, Catarina Oliveira / 1990-02-26 / Økonomi / start 2026-06-26 / 100% / 610000 / 7.5h): 4 calls, 0 errors
+- 2nd HR-rådgiver production run; 1st to use hardcoded HR-rådgiver → id 4169 (PERSONALRÅDGIVER) mapping, saving 1 call vs 7th run (5 calls with dynamic lookup)
+- GET /division → POST /department → POST /employee → POST /employee/standardTime
+- POST /employee included nested employmentDetails with occupationCode { id: 4169 }, percentageOfFullTimeEquivalent 100, annualSalary 610000, employmentForm PERMANENT
+- POST /employee/standardTime with hoursPerDay 7.5 from startDate 2026-06-26
+- confirms the minimum-call floor for the hardcoded-occupation-code + standard-worktime shape: 4 calls
+- 17 total onboard-employee production runs; 15 of the last 16 used 3-5 calls with 0 errors
