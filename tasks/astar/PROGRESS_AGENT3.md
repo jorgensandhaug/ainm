@@ -2436,6 +2436,41 @@
      - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v40_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_teacher_student_blend_v42_online_historical_benchmark_defaults_to_samples_1 tests/test_teacher_student.py::test_summary_bank_residual_confidence_shrinks_far_neighbor_residual tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `4 passed`
+263. Machine-wide health check before the next expansion:
+   - snapshot:
+     - memory used: about `720 GiB`
+     - memory available: about `2.2 TiB`
+   - branch-local corrected-holdout jobs remained about `31-37 GiB` RSS each
+   - decision:
+     - safe to add four more targeted gates
+     - also safe to start one full corrected LOO on the current leader
+264. Ninth corrected-holdout outer wave launched from pushed commit `c7874239`:
+   - models:
+     - `teacher_student_blend_v39`
+     - `teacher_student_blend_v40`
+     - `teacher_student_blend_v41`
+     - `teacher_student_blend_v42`
+   - held-out rounds:
+     - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+     - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+   - launcher:
+     - `scripts/run_targeted_holdout_benchmark.py`
+   - sessions:
+     - `v39`: `26893`
+     - `v40`: `88818`
+     - `v41`: `63576`
+     - `v42`: `75836`
+   - launch policy:
+     - `jobs=1`
+     - outer model parallelism only
+265. Promotion benchmark launched in parallel from pushed commit `c7874239`:
+   - command:
+     - `uv run astar run-historical-benchmark --model teacher_student_blend_v13 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_teacher_student_blend_v13_full_corrected --jobs 4`
+   - session:
+     - `60249`
+   - reason:
+     - `v13` is still current best finished corrected-gate model
+     - full corrected LOO is now worth running while new low-sample gates evaluate
 
 
 ## Open Questions
