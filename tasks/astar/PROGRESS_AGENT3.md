@@ -4703,9 +4703,129 @@
    - cellwise LGB v3 2ep: 83.34 (+6.45)
    - **cellwise LGB v4 1ep: 84.81 (+7.92)**
 
+514. Cellwise LGB v5 results (activity heatmap features):
+   - **v5_d8: 84.94** (NEW BEST! deeper model + heatmap features)
+   - v5_2ep: 84.90
+   - v5_mt: 84.62
+   - v5_def: 84.49
+   - Marginal gain from heatmap features (+0.13 vs v4)
+
+---
+
+## DETAILED MODEL EXPLANATION (Current Best: Cellwise LGB v5_d8, score 84.94)
+
+### What is this model?
+
+A **per-cell LightGBM gradient-boosted decision tree** model that predicts the probability distribution of terrain classes at each cell of a 40x40 game map after a 50-year simulation. Six separate LightGBM regressors are trained, one for each terrain class: Empty/Ocean, Settlement, Port, Ruin, Forest, Mountain.
+
+### Why LightGBM?
+
+1. **Handles nonlinear interactions**: Settlement dynamics involve complex interactions between geography, proximity to other settlements, coastline access, etc. Trees capture these naturally.
+2. **Works with small data**: We only have 8 historical rounds (~56K training cells per fold). LGB handles this well with regularization, unlike neural networks which would overfit.
+3. **Fast training**: ~20 seconds per fold on our hardware, enabling rapid iteration.
+4. **Feature importance interpretability**: We can see which features matter.
+
+### Architecture
+
+```
+For each fold (leave-one-round-out):
+  1. TRAIN on 7 rounds × 5 seeds × 1600 cells = 56,000 training examples
+  2. TEST on 1 held-out round × 5 seeds
+
+For each training/test cell:
+  Input: ~160 features per cell
+  Output: 6 class probabilities (one per terrain class)
+```
+
+### Input Features (~160 features per cell)
+
+**Group 1: Map Features (~60 features)**
+Static features derived from the INITIAL map state (visible before any queries):
+- **Terrain one-hot** (6 features): What terrain class is this cell at year 0?
+- **Geographic masks** (6): is_land, is_sea, is_mountain, is_buildable, is_coast, is_forest
+- **Settlement/port presence** (2): Does this cell start with a settlement/port?
+- **Neighborhood composition** (28): At radii 1,2,3,5 - how many forest/mountain/settlement/port/coast/buildable/land cells are nearby? Captures local spatial context.
+- **Distance to nearest initial settlement** (1): Euclidean distance, normalized.
+- **Map-level statistics** (6): Total settlement count, port count, land fraction, forest fraction, coast fraction, mountain fraction. These are global context features replicated per cell.
+- **Position** (3): Normalized y, x coordinates and distance to map center.
+- **Local terrain entropy** (2): At radii 1,2 - how heterogeneous is the local terrain?
+- **Settlement density** (2): At radii 4,7 - initial settlement density.
+
+**Why these matter**: The initial map geometry determines WHERE settlements can grow. Cells near coasts can become ports. Cells near existing settlements are more likely to see new settlements. Mountainous/forested areas don't develop.
+
+**Group 2: Viewport Evidence Features (~39 features)**
+Features from the 50 viewport queries (what we observe during live play):
+- **Observation mask** (1): Was this cell directly observed?
+- **Observed class frequencies** (6): At observed cells, what class was seen?
+- **Observation entropy** (1): How uncertain is the observation?
+- **Neighborhood evidence** (21): At radii 1,2,3 - what did nearby observed cells show? This propagates evidence spatially to unobserved cells.
+- **Settlement statistics** (7): From observed viewports - mean population, food, wealth, defense, alive fraction, port fraction.
+- **Neighborhood settlement stats** (4): Propagated at radii 2,4.
+- **Global observation summary** (3): Total queries, build rate, coverage fraction.
+
+**Why these matter**: The 50 queries reveal the ACTUAL final state at observed locations. Nearby unobserved cells are likely similar. Settlement stats reveal the round's dynamics (prosperous vs harsh).
+
+**Group 3: Cross-Seed Evidence (~15 features)**
+Evidence from OTHER seeds in the same round:
+- **Other seeds' observation mask** (1)
+- **Other seeds' class frequencies** (6)
+- **Other seeds' build rate** (1)
+- **Other seeds' settlement info** (2)
+- **Propagated at radii 2,4** (4)
+
+**Why these matter**: All 5 seeds share the same hidden parameters. If other seeds show lots of settlement activity, this seed probably will too. Cross-seed information is VERY powerful for regime detection.
+
+**Group 4: Settlement Proximity (~7 features)**
+Distance-based features from observed settlement locations:
+- **Distance to nearest observed alive settlement** (2): Raw + Gaussian-decayed
+- **Distance to nearest observed port** (1)
+- **Settlement density at radii 3,6** (2)
+- **Global observed settlement/port count** (2)
+
+**Why these matter**: Settlements tend to cluster. Knowing where settlements were observed helps predict where MORE settlements might be at unobserved locations.
+
+**Group 5: Activity Heatmap Features (~22 features)**
+Multi-scale spatial activity patterns:
+- **Raw activity rates** (4): Settlement, port, ruin, total activity at observed cells
+- **Multi-scale smoothed heatmaps** (12): Activity smoothed at radii 1.5, 3, 5, 8 - for total activity, settlement, and ruin separately
+- **Activity gradient** (2): Magnitude and direction of spatial activity change
+- **Global activity stats** (2): Overall activity rate and unique settlement count
+
+**Why these matter**: Settlement dynamics have SPATIAL STRUCTURE. Smoothed heatmaps capture where the "hot zone" of development is, and the gradient shows the expansion frontier.
+
+### Training Details
+
+- **Loss function**: MSE regression, per-class
+- **Sample weights**: Entropy-weighted. Cells where the ground truth is uncertain (high entropy - e.g., 50% settlement / 50% empty) get MUCH more weight than deterministic cells (100% ocean). This is critical because the SCORING metric is entropy-weighted KL divergence. The scoring metric penalizes errors on uncertain cells far more than errors on deterministic cells.
+- **Hyperparameters**: 800 trees, max depth 8, learning rate 0.02, subsample 0.7, 63 leaves
+- **Probability floor**: 0.0001 (very low - allows precise predictions at deterministic cells)
+- **Post-processing**: Clip to [0,1], normalize to sum to 1, apply floor, re-normalize
+
+### Why Entropy-Weighted Training is Critical (+1.2 points)
+
+The scoring formula is `score = 100 * exp(-3 * weighted_kl)` where KL is weighted by ground truth entropy. This means:
+- A cell that's 99% ocean and 1% settlement barely contributes to the score
+- A cell that's 50% settlement and 50% empty contributes a LOT
+- Getting the dynamic/uncertain cells right is 10-100x more important than static cells
+
+Without entropy weights, the model tries equally hard to predict ocean cells (trivially 100%) and settlement frontiers (the actual challenge). With entropy weights, it focuses its capacity where the score is decided.
+
+### Session Improvement Trajectory
+
+| Model | Score | Delta | Key Innovation |
+|-------|-------|-------|----------------|
+| query_residual_v19 | 76.89 | - | Starting point (ridge regression) |
+| adaptive_ensemble_v17 | 79.98 | +3.09 | Barren-round detection + calibration |
+| cellwise LGB v1 | 82.38 | +5.49 | Per-cell LightGBM with viewport evidence |
+| cellwise LGB v3 (2ep) | 83.34 | +6.45 | Multi-episode diverse training |
+| cellwise LGB v4 (entropy) | 84.81 | +7.92 | Entropy-weighted training + cross-seed |
+| **cellwise LGB v5 (heatmap)** | **84.94** | **+8.05** | Activity heatmap features |
+
+---
+
 ## Open Questions
 
 - Can we push past 85?
-- Need to wire v4 LGB into live pipeline for next round submission
+- Need to wire best LGB into live pipeline for next round submission
 - Can we improve the query policy to get better evidence?
-- The hardest round (36e581f1) is still ~70 - can we do better there?
+- The hardest round (36e581f1) is still ~71 - can we do better there?
