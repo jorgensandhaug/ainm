@@ -159,6 +159,16 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - **Root cause of extra call**: hardcoded "known missing" list instead of dynamically detecting all missing accounts from GET response
 - Existing: 1720, 5000, 2900, 6300. Missing: 6030, 1209
 
+### Run 8 (2026-03-21, 1710→6390 + 6020→1029 variant, Portuguese prompt, 3 calls)
+- Task: March 2026, prepaid 12250 (1710→6390), depreciation 144950/9yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((144950/108)*100)/100 = 1342.13
+- Missing account: only 1029. Existing: 1710, 5000, 2900, 6020, 6390
+- First successful production confirmation of 1710→6390 variant (Run 3 had same mapping but was blocked by credentials)
+- Portuguese prompt correctly mapped: "conta 1710 para despesa" → 1710→6390
+- 5th consecutive optimal run for 6020→1029 variant (Runs 1, 4, 5, 6, 8)
+- Confirms 9-year useful life (108 months) works correctly with rounding
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -176,3 +186,4 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - 6030→1209 mapping confirmed working: sandbox voucher with 6 postings (prepaid 9200, dep 7661.11, salary 45000) created successfully
   - Confirmed missing in fresh production: 1029 (Runs 1, 4, 5, 6), 6030 + 1209 (Run 7); confirmed missing in sandbox default: 1109
   - **ID range analysis**: default chart accounts have ids ~424190xxx; accounts with ids ~462xxxxxx were created during testing and do NOT exist in fresh instances
+  - 1710→6390 + 6020→1029 with 144950/9yr (dep 1342.13) sandbox-verified: 6 postings created successfully
