@@ -73,6 +73,10 @@ SPATIAL_CORRECTION_V1 = "spatial_correction_v1"
 SPATIAL_CORRECTION_V2 = "spatial_correction_v2"
 SPATIAL_CORRECTION_V3 = "spatial_correction_v3"
 SPATIAL_CORRECTION_V4 = "spatial_correction_v4"
+SPATIAL_CORRECTION_V5 = "spatial_correction_v5"
+SPATIAL_CORRECTION_V6 = "spatial_correction_v6"
+SPATIAL_CORRECTION_V7 = "spatial_correction_v7"
+SPATIAL_CORRECTION_V8 = "spatial_correction_v8"
 
 SPATIAL_CORRECTION_MODEL_NAMES = frozenset({
     SPATIAL_CORRECTION_ALIAS,
@@ -80,6 +84,10 @@ SPATIAL_CORRECTION_MODEL_NAMES = frozenset({
     SPATIAL_CORRECTION_V2,
     SPATIAL_CORRECTION_V3,
     SPATIAL_CORRECTION_V4,
+    SPATIAL_CORRECTION_V5,
+    SPATIAL_CORRECTION_V6,
+    SPATIAL_CORRECTION_V7,
+    SPATIAL_CORRECTION_V8,
 })
 
 SPATIAL_CORRECTION_MODEL_CHOICE_LIST = [
@@ -88,6 +96,10 @@ SPATIAL_CORRECTION_MODEL_CHOICE_LIST = [
     SPATIAL_CORRECTION_V2,
     SPATIAL_CORRECTION_V3,
     SPATIAL_CORRECTION_V4,
+    SPATIAL_CORRECTION_V5,
+    SPATIAL_CORRECTION_V6,
+    SPATIAL_CORRECTION_V7,
+    SPATIAL_CORRECTION_V8,
 ]
 
 
@@ -159,6 +171,47 @@ def resolve_spatial_correction_variant_spec(
             observation_radius=5.0,
             cross_seed_blend=0.25,
             activity_calibration=False,
+        ),
+        # v5-v8: refined variants based on v3's success (gentle correction, wide sigma)
+        SPATIAL_CORRECTION_V5: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V5,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=5.0,
+            correction_strength=0.08,
+            observation_radius=8.0,
+            cross_seed_blend=0.05,
+            activity_calibration=True,
+        ),
+        SPATIAL_CORRECTION_V6: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V6,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=4.0,
+            correction_strength=0.10,
+            observation_radius=7.0,
+            cross_seed_blend=0.05,
+            activity_calibration=True,
+        ),
+        SPATIAL_CORRECTION_V7: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V7,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=6.0,
+            correction_strength=0.12,
+            observation_radius=10.0,
+            cross_seed_blend=0.08,
+            activity_calibration=True,
+        ),
+        SPATIAL_CORRECTION_V8: SpatialCorrectionVariantSpec(
+            model_name=SPATIAL_CORRECTION_V8,
+            base_model="query_residual_v19",
+            samples_per_round=2,
+            correction_sigma=4.0,
+            correction_strength=0.15,
+            observation_radius=7.0,
+            cross_seed_blend=0.0,
+            activity_calibration=True,
         ),
     }
     resolved_name = normalized if normalized != SPATIAL_CORRECTION_ALIAS else SPATIAL_CORRECTION_V1
