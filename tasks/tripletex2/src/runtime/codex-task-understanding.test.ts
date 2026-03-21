@@ -26,26 +26,35 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
   assert.match(prompt, /Registered task surfaces:/);
   assert.match(prompt, /Attachment text:/);
   assert.match(prompt, /hello tripletex/);
-  assert.match(prompt, /create-and-send-invoice/);
+  assert.match(prompt, /"taskId": "08"/);
+  assert.match(prompt, /"taskName": "Create and send invoice"/);
 });
 
-test("adaptCodexTaskUnderstandingResult rejects placeholder tasks as unsupported", () => {
+test("adaptCodexTaskUnderstandingResult accepts newly implemented task surfaces", () => {
   const adapted = adaptCodexTaskUnderstandingResult(
     {
       status: "resolved",
-      taskId: "create-employee",
-      input: {},
+      taskId: "06",
+      input: {
+        employeeName: "Joao Rodrigues",
+        birthDate: "1980-09-05",
+        email: "joao.rodrigues@example.org",
+        startDate: "2026-08-08",
+      },
       notes: ["Matched the employee-creation prompt shape."],
     },
     taskSpecs,
   );
 
   assert.deepEqual(adapted.result, {
-    status: "unresolved",
-    code: "unsupported-request",
-    message:
-      'Request matched "create-employee", but Tripletex2 does not yet implement deterministic extraction/runtime for that task.',
-    taskId: "create-employee",
+    status: "resolved",
+    taskId: "06",
+    input: {
+      employeeName: "Joao Rodrigues",
+      birthDate: "1980-09-05",
+      email: "joao.rodrigues@example.org",
+      startDate: "2026-08-08",
+    },
   });
   assert.deepEqual(adapted.notes, [
     "Matched the employee-creation prompt shape.",
@@ -56,7 +65,7 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
   const adapted = adaptCodexTaskUnderstandingResult(
     {
       status: "resolved",
-      taskId: "create-and-send-invoice",
+      taskId: "08",
       input: {
         customerName: "Nordhav AS",
         organizationNumber: "876520427",
@@ -73,8 +82,8 @@ test("adaptCodexTaskUnderstandingResult rejects fields outside the task surface"
     status: "unresolved",
     code: "invalid-field-value",
     message:
-      'Extracted field "surpriseField" is not part of task "create-and-send-invoice".',
-    taskId: "create-and-send-invoice",
+      'Extracted field "surpriseField" is not part of task "08".',
+    taskId: "08",
     partialInput: {
       customerName: "Nordhav AS",
       organizationNumber: "876520427",

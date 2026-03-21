@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "sandbox-2026-03-21T11-17-56-441Z-b3b84302",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-21T11:17:56.441Z",
+  "payload": {
+    "notes": [
+      "Captured 3 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 0,
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "id,name,organizationNumber",
+          "organizationNumber": "876520427"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 0,
+        "index": 2,
+        "method": "GET",
+        "path": "/ledger/vatType",
+        "query": {
+          "fields": "id,percentage",
+          "typeOfVat": "OUTGOING",
+          "vatDate": "2026-03-21"
+        },
+        "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+        "responseSummary": "vatType list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 0,
+        "entityIds": {
+          "invoiceId": 9001
+        },
+        "index": 3,
+        "method": "POST",
+        "path": "/invoice",
+        "query": {
+          "sendToCustomer": true
+        },
+        "requestSummary": "create invoice by sendToCustomer with invoiceDate, invoiceDueDate, customer, orders",
+        "responseSummary": "invoiceId 9001",
+        "status": 200
+      }
+    ]
+  }
+}

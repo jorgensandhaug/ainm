@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,9 +12,13 @@ import type {
   TaskUnderstandingResult,
 } from "./contracts";
 
-const REPO_ROOT = path.resolve(
+const TRIPLETEX2_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
+);
+const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
+  TRIPLETEX2_ROOT,
+  "codex-environment",
 );
 const DEFAULT_CODEX_EXECUTABLE = process.env.CODEX_BIN ?? "codex";
 const DEFAULT_CODEX_MODEL =
@@ -106,7 +110,7 @@ export async function runCodexTaskUnderstanding(
   input: ClassifierExtractorInput,
   options: CodexTaskUnderstandingOptions = {},
 ): Promise<CodexTaskUnderstandingRunResult> {
-  const cwd = options.cwd ?? REPO_ROOT;
+  const cwd = options.cwd ?? DEFAULT_CODEX_ENVIRONMENT_DIR;
   const executable = options.executable ?? DEFAULT_CODEX_EXECUTABLE;
   const model = options.model ?? DEFAULT_CODEX_MODEL;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;

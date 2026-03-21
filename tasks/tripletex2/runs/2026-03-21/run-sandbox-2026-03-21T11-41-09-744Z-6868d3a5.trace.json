@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "sandbox-2026-03-21T11-41-09-744Z-6868d3a5",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-21T11:41:09.744Z",
+  "payload": {
+    "notes": [
+      "No Tripletex API calls were made before the canonical artifact was written."
+    ],
+    "trace": []
+  }
+}

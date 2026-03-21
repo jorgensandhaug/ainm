@@ -166,7 +166,7 @@ test("writeCanonicalRunArtifact rejects missing evidence sidecar references and 
         artifact: createArtifact({
           attribution: {
             status: "matched",
-            attributedTaskId: "create-and-send-invoice",
+            attributedTaskId: "08",
             source: "leaderboard-diff",
             confidence: "high",
             taskIdMatchesDeclared: true,
@@ -243,16 +243,16 @@ function createArtifact(
     createdAt: "2026-03-20T20:30:00Z",
     mode: "sandbox",
     task: {
-      taskId: "create-and-send-invoice",
+      taskId: "08",
       taskName: "Create and send invoice",
       taskConfidence: "high",
       taskSource: "manual-label",
     },
     strategy: {
-      strategyId: "create-and-send-invoice.order-then-send",
+      strategyId: "08.order-then-send",
       strategyName: "Order then send",
       strategyPath:
-        "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
+        "src/tasks/task-08/strategies/order-then-invoice-send.ts",
       strategyStatus: "active",
     },
     selection: {
@@ -266,7 +266,7 @@ function createArtifact(
       credentialSource: "tripletex-proxy",
     },
     input: {
-      inputSchemaId: "create-and-send-invoice.v1",
+      inputSchemaId: "08.v1",
       status: "resolved",
       source: "manual",
       confidence: "high",
@@ -306,7 +306,7 @@ function createArtifact(
     },
     attribution: {
       status: "matched",
-      attributedTaskId: "create-and-send-invoice",
+      attributedTaskId: "08",
       source: "leaderboard-diff",
       confidence: "high",
       taskIdMatchesDeclared: true,

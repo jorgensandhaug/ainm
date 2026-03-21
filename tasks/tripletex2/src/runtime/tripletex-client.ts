@@ -18,6 +18,13 @@ interface NormalizedTripletexQuery {
   queryString: string;
 }
 
+interface NormalizedTripletexRequestBody {
+  body?: BodyInit;
+  logged?: unknown;
+  contentType?: string;
+  summary?: string;
+}
+
 interface TripletexErrorEnvelope {
   status?: number;
   code?: number | string;
@@ -86,7 +93,7 @@ export function createTripletexClient(
   ): Promise<TResponse> {
     const normalizedPath = normalizeTripletexPath(path);
     const normalizedQuery = normalizeTripletexQuery(options?.query);
-    const normalizedBody = normalizeTripletexBody(options?.body);
+    const normalizedBody = normalizeTripletexRequestBody(options);
     const requestUrl = buildTripletexRequestUrl(
       baseUrl,
       normalizedPath,
@@ -94,7 +101,8 @@ export function createTripletexClient(
     );
     const requestSummary = summarizeTripletexRequest(method, normalizedPath, {
       query: normalizedQuery.logged,
-      body: normalizedBody,
+      body: normalizedBody.logged,
+      bodySummary: normalizedBody.summary,
     });
     const headers: Record<string, string> = {
       Accept: "application/json",
@@ -102,10 +110,12 @@ export function createTripletexClient(
       ...defaultHeaders,
     };
 
-    let requestBody: string | undefined;
-    if (normalizedBody !== undefined) {
-      headers["Content-Type"] = "application/json; charset=utf-8";
-      requestBody = JSON.stringify(normalizedBody);
+    let requestBody: BodyInit | undefined;
+    if (normalizedBody.body !== undefined) {
+      requestBody = normalizedBody.body;
+      if (normalizedBody.contentType) {
+        headers["Content-Type"] = normalizedBody.contentType;
+      }
     }
 
     const startedAt = Date.now();
@@ -236,6 +246,39 @@ export function normalizeTripletexBody(body: unknown): unknown {
   return normalizeJsonValue(body, "$", new Set<object>());
 }
 
+function normalizeTripletexRequestBody(
+  options?: TripletexRequestOptions,
+): NormalizedTripletexRequestBody {
+  if (!options) {
+    return {};
+  }
+
+  if (options.body !== undefined && options.rawBody !== undefined) {
+    throw new Error(
+      "Tripletex request options cannot include both body and rawBody.",
+    );
+  }
+
+  if (options.rawBody !== undefined) {
+    return {
+      body: options.rawBody,
+      contentType: options.contentType,
+      summary: summarizeRawBody(options.rawBody),
+    };
+  }
+
+  if (options.body === undefined) {
+    return {};
+  }
+
+  const normalized = normalizeTripletexBody(options.body);
+  return {
+    body: JSON.stringify(normalized),
+    logged: normalized,
+    contentType: "application/json; charset=utf-8",
+  };
+}
+
 export function sanitizeTripletexValue(value: unknown): unknown {
   return sanitizeValue(value, 0);
 }
@@ -246,6 +289,7 @@ export function summarizeTripletexRequest(
   input: {
     query?: Record<string, SerializedQueryValue>;
     body?: unknown;
+    bodySummary?: string;
   },
 ): string | undefined {
   const resource = describeTripletexResource(path);
@@ -263,6 +307,10 @@ export function summarizeTripletexRequest(
 
   if (bodyKeys.length > 0) {
     return `${action} ${resource} with ${bodyKeys.join(", ")}`;
+  }
+
+  if (input.bodySummary) {
+    return `${action} ${resource} with ${input.bodySummary}`;
   }
 
   return `${action} ${resource}`;
@@ -562,6 +610,31 @@ function summarizeBodyKeys(body: unknown): string[] {
   }
 
   return Object.keys(body).slice(0, 4);
+}
+
+function summarizeRawBody(body: BodyInit): string {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    const keys = Array.from(body.keys());
+    if (keys.length === 0) {
+      return "multipart form";
+    }
+
+    return `multipart form ${keys.join(", ")}`;
+  }
+
+  if (typeof Blob !== "undefined" && body instanceof Blob) {
+    return "binary body";
+  }
+
+  if (typeof body === "string") {
+    return "raw string body";
+  }
+
+  if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) {
+    return "urlencoded form";
+  }
+
+  return "raw body";
 }
 
 function describeTripletexMethod(method: HttpMethod): string {

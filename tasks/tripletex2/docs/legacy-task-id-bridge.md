@@ -22,7 +22,9 @@ See `src/registry/legacy-tripletex1-task-bridge.ts`.
 The module provides:
 
 - a canonical task registry seed with stable semantic `tripletex2` task ids,
+- the fixed canonical `tx_task_id` numbering `01` through `18`,
 - an explicit bridge table from legacy `tx_task_id` to canonical task id,
+- bidirectional `txTaskId`/slug lookups,
 - a `bridgeLegacyTripletex1TaskAttribution(...)` helper that returns `RunAttributionInfo`-shaped output for future ingest.
 
 ## Registry seeding status
@@ -36,9 +38,8 @@ The canonical registry seed is broader than the currently implemented task folde
 ## Provenance rules
 
 - The bridge maps task identity only. It does not invent legacy strategy identity.
-- `tx_task_id` `05` remains unmapped because no checked-in uniquely attributed run identifies it.
-- Legacy ids `04`, `09`, and `17` are mapped with only `medium` confidence because the checked-in prompt/task ledger contains semantic outliers for those ids.
-- `metadata_changed`, `ambiguous`, and `no_change_detected` legacy outcomes are preserved as low-confidence or unmatched attribution states rather than upgraded to fake certainty.
+- The canonical `tx_task_id` mapping follows the fixed Tripletex1 production numbering used for leaderboard attribution.
+- `metadata_changed`, `ambiguous`, and `no_change_detected` legacy outcomes are still preserved as low-confidence or unmatched attribution states rather than upgraded to fake certainty.
 
 ## Future ingest expectation
 

@@ -1,7 +1,35 @@
 {
   "schemaVersion": "tripletex2.active-strategy-selection.v1",
-  "selectionConfigId": "active-strategies-2026-03-20-a",
+  "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a",
   "taskStrategies": {
-    "create-and-send-invoice": "create-and-send-invoice.order-then-invoice-send.v1"
+    "07": "07.create-dimension-and-post-voucher.v1",
+    "08": "08.order-then-invoice-send.v1",
+    "01": "01.create-customer-post.v1",
+    "09": "09.create-customer-invoice.v1",
+    "03": "03.direct-create-departments.v1",
+    "06": "06.create-employee.v1",
+    "11": "11.order-invoice-combined-payment.v1",
+    "04": "04.direct-create-product.v1",
+    "05": "05.create-project.v1",
+    "02": "02.create-supplier-post.v1",
+    "10": "10.issue-full-credit-note.v1",
+    "17": "17.register-payment.v1",
+    "15": "15.register-hours-then-project-order-invoice.v1",
+    "16": "16.import-then-book-voucher.v1",
+    "13": "13.create-and-deliver-travel-expense.v1",
+    "18": "18.reverse-payment.v1",
+    "12": "12.repair-aware-payroll.v1",
+    "14": "14.set-fixed-price-milestone.v1",
+    "19": "19.not-implemented.v1",
+    "20": "20.not-implemented.v1",
+    "21": "21.not-implemented.v1",
+    "22": "22.not-implemented.v1",
+    "23": "23.not-implemented.v1",
+    "25": "25.not-implemented.v1",
+    "26": "26.not-implemented.v1",
+    "27": "27.not-implemented.v1",
+    "28": "28.not-implemented.v1",
+    "29": "29.not-implemented.v1",
+    "30": "30.not-implemented.v1"
   }
 }

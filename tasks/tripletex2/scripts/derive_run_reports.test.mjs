@@ -34,7 +34,7 @@ test("deriveRunReports groups matched legacy attribution into the canonical task
       },
       attribution: {
         status: "matched",
-        attributedTaskId: "create-product",
+        attributedTaskId: "04",
         source: "leaderboard-diff",
         confidence: "high",
         taskIdMatchesDeclared: false,
@@ -54,14 +54,14 @@ test("deriveRunReports groups matched legacy attribution into the canonical task
       runId: "run-native-product",
       createdAt: "2026-03-20T11:00:00Z",
       task: {
-        taskId: "create-product",
+        taskId: "04",
         taskName: "Create product",
         taskSource: "manual-label",
       },
       strategy: {
-        strategyId: "create-product.direct",
+        strategyId: "04.direct",
         strategyName: "Direct create product",
-        strategyPath: "src/tasks/task-create-product/strategies/direct.ts",
+        strategyPath: "src/tasks/task-04/strategies/direct.ts",
         strategyStatus: "active",
       },
       evaluation: {
@@ -83,10 +83,11 @@ test("deriveRunReports groups matched legacy attribution into the canonical task
 
   const derived = await deriveRunReports({ runsDir });
   const createProduct = derived.reports.taskStatus.tasks.find(
-    (task) => task.taskId === "create-product",
+    (task) => task.taskId === "04",
   );
 
   assert.ok(createProduct);
+  assert.equal(createProduct.txTaskId, "04");
   assert.equal(createProduct.runCount, 2);
   assert.equal(createProduct.status, "solved-estimated");
   assert.equal(createProduct.sourceCoverage.sourceMix, "combined");
@@ -125,14 +126,14 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
       runId: "run-native-invoice",
       createdAt: "2026-03-20T12:00:00Z",
       task: {
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         taskName: "Create and send invoice",
         taskSource: "manual-label",
       },
       strategy: {
-        strategyId: "create-and-send-invoice.order-then-send",
+        strategyId: "08.order-then-send",
         strategyName: "Order then send",
-        strategyPath: "src/tasks/task-create-and-send-invoice/strategies/order.ts",
+        strategyPath: "src/tasks/task-08/strategies/order.ts",
         strategyStatus: "active",
       },
       evaluation: {
@@ -169,7 +170,7 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
   );
   const productFrontier = JSON.parse(
     await fs.readFile(
-      path.join(reportsDir, "task-frontiers", "create-product.json"),
+      path.join(reportsDir, "task-frontiers", "04.json"),
       "utf8",
     ),
   );
@@ -181,13 +182,24 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
   assert.equal(taskStatus.source.legacyImportArtifactCount, 0);
   assert.ok(
     taskStatus.tasks.some(
-      (task) => task.taskId === "create-product" && task.status === "not-run",
+      (task) =>
+        task.taskId === "04" &&
+        task.txTaskId === "04" &&
+        task.status === "not-run",
     ),
   );
   assert.ok(
     openTasks.tasks.some(
-      (task) => task.taskId === "create-product" && task.openCategory === "missing-coverage",
+      (task) =>
+        task.taskId === "04" &&
+        task.txTaskId === "04" &&
+        task.openCategory === "missing-coverage",
     ),
+  );
+  assert.equal(
+    strategyComparison.tasks.find((task) => task.taskId === "08")
+      ?.txTaskId,
+    "08",
   );
   assert.equal(
     strategyComparison.reportSchemaVersion,
@@ -198,13 +210,22 @@ test("writeRunReports writes deterministic top-level reports and includes zero-r
     strategyComparisonMarkdown,
     /\| Task \| Status \| Sources \| Current best \| Verified best \|/,
   );
-  assert.match(strategyComparisonMarkdown, /create-and-send-invoice/);
+  assert.match(strategyComparisonMarkdown, /\[08\] Create and send invoice/);
   assert.match(taskStatusMarkdown, /# Combined Task Status/);
+  assert.match(taskStatusMarkdown, /\[04\] Create product/);
   assert.match(taskStatusMarkdown, /combined live\+native evidence|Tasks with native runs/);
   assert.match(openTasksMarkdown, /# Open Optimization Targets/);
+  assert.match(openTasksMarkdown, /\[04\] Create product/);
   assert.match(openTasksMarkdown, /Target: Add first canonical run coverage/);
-  assert.equal(productFrontier.task.taskId, "create-product");
+  assert.equal(productFrontier.task.taskId, "04");
+  assert.equal(productFrontier.task.txTaskId, "04");
   assert.equal(productFrontier.task.frontier.length, 0);
+  assert.equal(
+    derived.reports.strategyFrontiers.tasks.find(
+      (task) => task.taskId === "08",
+    )?.txTaskId,
+    "08",
+  );
   assert.equal(derived.reports.strategyFrontiers.tasks.length, taskStatus.tasks.length);
   assert.equal(derived.reports.openTasks.summary.highestPriorityOpenTasks > 0, true);
 });
@@ -221,14 +242,14 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
       runId: "run-estimated-leader",
       createdAt: "2026-03-20T10:00:00Z",
       task: {
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         taskName: "Create and send invoice",
         taskSource: "manual-label",
       },
       strategy: {
-        strategyId: "create-and-send-invoice.estimated",
+        strategyId: "08.estimated",
         strategyName: "Estimated leader",
-        strategyPath: "src/tasks/task-create-and-send-invoice/strategies/estimated.ts",
+        strategyPath: "src/tasks/task-08/strategies/estimated.ts",
         strategyStatus: "active",
       },
       evaluation: {
@@ -254,14 +275,14 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
       runId: "run-verified-faster",
       createdAt: "2026-03-20T11:00:00Z",
       task: {
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         taskName: "Create and send invoice",
         taskSource: "manual-label",
       },
       strategy: {
-        strategyId: "create-and-send-invoice.direct-fast",
+        strategyId: "08.direct-fast",
         strategyName: "Direct fast",
-        strategyPath: "src/tasks/task-create-and-send-invoice/strategies/direct-fast.ts",
+        strategyPath: "src/tasks/task-08/strategies/direct-fast.ts",
         strategyStatus: "active",
       },
       evaluation: {
@@ -287,14 +308,14 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
       runId: "run-verified-slower",
       createdAt: "2026-03-20T12:00:00Z",
       task: {
-        taskId: "create-and-send-invoice",
+        taskId: "08",
         taskName: "Create and send invoice",
         taskSource: "manual-label",
       },
       strategy: {
-        strategyId: "create-and-send-invoice.direct-slow",
+        strategyId: "08.direct-slow",
         strategyName: "Direct slow",
-        strategyPath: "src/tasks/task-create-and-send-invoice/strategies/direct-slow.ts",
+        strategyPath: "src/tasks/task-08/strategies/direct-slow.ts",
         strategyStatus: "active",
       },
       evaluation: {
@@ -316,34 +337,36 @@ test("deriveRunReports ranks strategies by score then api-call count and keeps v
 
   const derived = await deriveRunReports({ runsDir });
   const comparisonTask = derived.reports.strategyComparison.tasks.find(
-    (task) => task.taskId === "create-and-send-invoice",
+    (task) => task.taskId === "08",
   );
   const bestStrategiesTask = derived.reports.bestStrategies.tasks.find(
-    (task) => task.taskId === "create-and-send-invoice",
+    (task) => task.taskId === "08",
   );
 
   assert.ok(comparisonTask);
   assert.deepEqual(
     comparisonTask.rankedStrategies.map((strategy) => strategy.strategyId),
     [
-      "create-and-send-invoice.estimated",
-      "create-and-send-invoice.direct-fast",
-      "create-and-send-invoice.direct-slow",
+      "08.estimated",
+      "08.direct-fast",
+      "08.direct-slow",
     ],
   );
   assert.equal(
     comparisonTask.bestKnownStrategy?.strategyId,
-    "create-and-send-invoice.estimated",
+    "08.estimated",
   );
+  assert.equal(comparisonTask.txTaskId, "08");
   assert.equal(
     comparisonTask.bestVerifiedStrategy?.strategyId,
-    "create-and-send-invoice.direct-fast",
+    "08.direct-fast",
   );
   assert.equal(comparisonTask.leaderEvidenceClass, "estimated");
   assert.equal(comparisonTask.leaderNeedsVerification, true);
   assert.equal(comparisonTask.sourceCoverage.sourceMix, "native-only");
-  assert.equal(bestStrategiesTask.bestKnownStrategy?.strategyId, "create-and-send-invoice.estimated");
-  assert.equal(bestStrategiesTask.bestVerifiedStrategy?.strategyId, "create-and-send-invoice.direct-fast");
+  assert.equal(bestStrategiesTask.txTaskId, "08");
+  assert.equal(bestStrategiesTask.bestKnownStrategy?.strategyId, "08.estimated");
+  assert.equal(bestStrategiesTask.bestVerifiedStrategy?.strategyId, "08.direct-fast");
 });
 
 async function writeArtifact(filePath, artifact) {
@@ -358,7 +381,7 @@ function createArtifact(overrides = {}) {
     createdAt: "2026-03-20T00:00:00Z",
     mode: "sandbox",
     task: {
-      taskId: "create-and-send-invoice",
+      taskId: "08",
       taskName: "Create and send invoice",
       taskSource: "manual-label",
     },

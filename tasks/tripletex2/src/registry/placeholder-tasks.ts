@@ -7,10 +7,10 @@ type PlaceholderTaskRegistration = TaskRegistration<PlaceholderTaskInput, string
 
 function formatLegacyTaskIds(legacyTaskIds: readonly string[]): string {
   if (legacyTaskIds.length === 1) {
-    return `legacy tx_task_id ${legacyTaskIds[0]}`;
+    return `tx_task_id ${legacyTaskIds[0]}`;
   }
 
-  return `legacy tx_task_ids ${legacyTaskIds.join(", ")}`;
+  return `tx_task_ids ${legacyTaskIds.join(", ")}`;
 }
 
 export function createPlaceholderTaskRegistration(
@@ -18,6 +18,7 @@ export function createPlaceholderTaskRegistration(
 ): PlaceholderTaskRegistration {
   const task = {
     taskId: entry.taskId,
+    txTaskId: entry.txTaskId,
     taskName: entry.taskName,
     implementationStatus: "placeholder",
     signature: `${entry.taskId}(<task-specific-inputs-pending>)`,
@@ -26,7 +27,7 @@ export function createPlaceholderTaskRegistration(
     requiredFields: [] as const,
     extractionNotes: [
       "Placeholder only. This task has a stable canonical id and summary, but its typed extraction contract and runtime strategy are not implemented in tripletex2 yet.",
-      `Registry seed evidence comes from the legacy bridge via ${formatLegacyTaskIds(entry.legacyTripletex1TaskIds)}.`,
+      `Registry seed evidence comes from the canonical tx_task_id mapping via ${formatLegacyTaskIds(entry.legacyTripletex1TaskIds)}.`,
     ] as const,
   } satisfies TaskSpec<PlaceholderTaskInput, string>;
 

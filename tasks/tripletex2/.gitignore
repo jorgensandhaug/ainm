@@ -12,6 +12,10 @@ tmp/
 
 # Tripletex OpenAPI spec (3.6MB, fetch from sandbox if needed)
 openapi.json
+codex-environment/openapi.json
 
 # Node/Bun
 node_modules/
+
+# Local sandbox credentials
+.sandbox.env

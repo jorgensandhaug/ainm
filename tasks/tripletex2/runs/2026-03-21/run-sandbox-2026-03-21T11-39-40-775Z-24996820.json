@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "sandbox-2026-03-21T11-39-40-775Z-24996820",
+  "createdAt": "2026-03-21T11:39:40.775Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "08",
+    "taskName": "Create and send invoice",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "system.not-run.unresolved-task-understanding.v1",
+    "strategyName": "Not run due to unresolved task understanding",
+    "strategyPath": "src/runtime/solve-pipeline.ts",
+    "strategyStatus": "baseline"
+  },
+  "selection": {
+    "selectionConfigId": "not-selected",
+    "selectionConfigPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/configs/active-strategies.json",
+    "requestedTaskId": "08"
+  },
+  "request": {
+    "requestFingerprint": "req:0d0ea1f309074a11fd2a167b38af46ef50cd8a89782b22b5fb1f0f59de06aee3",
+    "promptText": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "promptSummary": "Opprett og send en faktura til kunden Nordhav AS (org.nr 876520427) på 7850 kr eksklusiv MVA. Fakturaen gjelder Analyserapport.",
+    "files": [],
+    "credentialSource": "fixture"
+  },
+  "input": {
+    "inputSchemaId": "08.v1",
+    "status": "resolved",
+    "source": "fixture",
+    "value": {
+      "customerName": "Nordhav AS",
+      "lineDescription": "Analyserapport",
+      "organizationNumber": "876520427",
+      "quantity": 1,
+      "unitPriceExcludingVatNok": 7850
+    }
+  },
+  "execution": {
+    "deadlineMs": 300000,
+    "runtimeStatus": "not-run",
+    "apiCallCount": 0,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [],
+    "error": {
+      "code": "unknown-error",
+      "message": "Unknown execution error."
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-sandbox-2026-03-21T11-39-40-775Z-24996820.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-21T11:39:40.775Z",
+      "sha256": "sha256:efd297b76a4307a0a384f30d08c5c0fb686d4a2f9600915f2d702499f7fc954b",
+      "summary": "Sanitized trace for a not-run solve attempt."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Deterministic runtime did not start because task understanding or strategy selection was unresolved."
+    ]
+  }
+}

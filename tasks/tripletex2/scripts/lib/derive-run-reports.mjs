@@ -50,6 +50,7 @@ export async function deriveRunReports(options = {}) {
 
   const bestStrategies = tasks.map((task) => ({
     taskId: task.taskId,
+    txTaskId: task.txTaskId,
     taskName: task.taskName,
     status: task.status,
     sourceCoverage: task.sourceCoverage,
@@ -70,6 +71,7 @@ export async function deriveRunReports(options = {}) {
 
   const strategyFrontiers = tasks.map((task) => ({
     taskId: task.taskId,
+    txTaskId: task.txTaskId,
     taskName: task.taskName,
     status: task.status,
     openReason: task.openReason,
@@ -356,6 +358,7 @@ function buildTaskReport({ taskId, runs, registryById }) {
 
   return {
     taskId,
+    txTaskId: taskMeta?.txTaskId ?? null,
     taskName: taskMeta?.taskName ?? taskRuns[0]?.effectiveTaskName ?? taskId,
     taskSummary: taskMeta?.summary ?? null,
     registeredTask: Boolean(taskMeta),
@@ -477,6 +480,7 @@ function buildStrategyComparisonReport(task) {
 
   return {
     taskId: task.taskId,
+    txTaskId: task.txTaskId,
     taskName: task.taskName,
     status: task.status,
     sourceCoverage: task.sourceCoverage,
@@ -623,6 +627,7 @@ function summarizeTaskStatuses(tasks) {
 function toTaskStatusEntry(task) {
   return {
     taskId: task.taskId,
+    txTaskId: task.txTaskId,
     taskName: task.taskName,
     taskSummary: task.taskSummary,
     registeredTask: task.registeredTask,
@@ -1089,7 +1094,7 @@ function compareTaskReports(left, right) {
     return bestRunComparison;
   }
 
-  return compareTextAsc(left.taskId, right.taskId);
+  return compareTaskIdentity(left, right);
 }
 
 function compareOpenTasks(left, right) {
@@ -1115,6 +1120,25 @@ function compareOpenTasks(left, right) {
   );
   if (bestRunComparison !== 0) {
     return bestRunComparison;
+  }
+
+  return compareTaskIdentity(left, right);
+}
+
+function compareTaskIdentity(left, right) {
+  const leftTxTaskId = left.txTaskId ?? undefined;
+  const rightTxTaskId = right.txTaskId ?? undefined;
+  if (leftTxTaskId === undefined && rightTxTaskId !== undefined) {
+    return 1;
+  }
+  if (leftTxTaskId !== undefined && rightTxTaskId === undefined) {
+    return -1;
+  }
+  if (leftTxTaskId !== undefined && rightTxTaskId !== undefined) {
+    const txTaskIdComparison = compareTextAsc(leftTxTaskId, rightTxTaskId);
+    if (txTaskIdComparison !== 0) {
+      return txTaskIdComparison;
+    }
   }
 
   return compareTextAsc(left.taskId, right.taskId);
@@ -1389,7 +1413,7 @@ function formatStrategyComparisonMarkdown({
     ...strategyComparisons.map((task) =>
       [
         "|",
-        task.taskId,
+        formatTaskLabel(task),
         "|",
         task.status,
         "|",
@@ -1411,7 +1435,7 @@ function formatStrategyComparisonMarkdown({
   if (detailedTasks.length > 0) {
     lines.push("", "## Ranked Strategies", "");
     for (const task of detailedTasks) {
-      lines.push(`### ${task.taskId}`);
+      lines.push(`### ${formatTaskLabel(task)}`);
       lines.push(`Status: ${task.status}`);
       if (task.openReason) {
         lines.push(`Open reason: ${task.openReason}`);
@@ -1470,7 +1494,7 @@ function formatTaskStatusMarkdown({
     ...tasks.map((task) =>
       [
         "|",
-        task.taskId,
+        formatTaskLabel(task),
         "|",
         task.status,
         "|",
@@ -1517,7 +1541,7 @@ function formatOpenTasksMarkdown({
 
   openTasks.forEach((task, index) => {
     lines.push(
-      `${index + 1}. \`${task.taskId}\` | ${task.status} | ${task.sourceCoverage.sourceMixLabel}`,
+      `${index + 1}. \`${formatTaskLabel(task)}\` | ${task.status} | ${task.sourceCoverage.sourceMixLabel}`,
     );
     lines.push(`Target: ${task.optimizationTarget?.headline ?? task.openReason ?? "Open task"}`);
     if (task.bestKnownEvidence?.summary) {
@@ -1538,6 +1562,11 @@ function formatStrategyMarkdownCell(strategy) {
     `\`${strategy.strategyId}\``,
     formatRunMetricSummary(strategy.bestKnownRun),
   ].join(" ");
+}
+
+function formatTaskLabel(task) {
+  const displayName = task.taskName ?? task.taskId;
+  return task.txTaskId ? `[${task.txTaskId}] ${displayName}` : displayName;
 }
 
 function formatEvidenceSummary(run) {

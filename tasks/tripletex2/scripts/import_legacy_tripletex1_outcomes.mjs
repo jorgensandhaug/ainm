@@ -19,119 +19,144 @@ const LEGACY_SELECTION_CONFIG_ID = "legacy-tripletex1-implicit-selection.v1";
 
 export const CANONICAL_TASK_REGISTRY = [
   {
-    taskId: "create-employee",
-    taskName: "Create employee",
-    summary:
-      "Create a new employee with identifying details, contact email, and start date.",
-    legacyTripletex1TaskIds: ["01"],
-  },
-  {
-    taskId: "create-customer",
+    taskId: "01",
+    txTaskId: "01",
     taskName: "Create customer",
     summary:
       "Create a customer with organization number, address, and contact email.",
-    legacyTripletex1TaskIds: ["02"],
+    legacyTripletex1TaskIds: ["01"],
   },
   {
-    taskId: "create-product",
-    taskName: "Create product",
-    summary:
-      "Create a product with product number, price, and the required VAT treatment.",
-    legacyTripletex1TaskIds: ["03"],
-  },
-  {
-    taskId: "create-supplier",
+    taskId: "02",
+    txTaskId: "02",
     taskName: "Create supplier",
     summary:
       "Create a supplier with organization number and invoice email details.",
+    legacyTripletex1TaskIds: ["02"],
+  },
+  {
+    taskId: "03",
+    txTaskId: "03",
+    taskName: "Create department",
+    summary:
+      "Create one or more new departments with the requested names.",
+    legacyTripletex1TaskIds: ["03"],
+  },
+  {
+    taskId: "04",
+    txTaskId: "04",
+    taskName: "Create product",
+    summary:
+      "Create a product with product number, price, and the required VAT treatment.",
     legacyTripletex1TaskIds: ["04"],
   },
   {
-    taskId: "create-and-send-invoice",
-    taskName: "Create and send invoice",
-    summary:
-      "Create and send an outgoing invoice for an existing customer identified by organization number.",
-    legacyTripletex1TaskIds: ["06"],
-  },
-  {
-    taskId: "register-customer-invoice-payment",
-    taskName: "Register customer invoice payment",
-    summary:
-      "Locate an unpaid customer invoice and register full payment against it.",
-    legacyTripletex1TaskIds: ["07"],
-  },
-  {
-    taskId: "create-project",
+    taskId: "05",
+    txTaskId: "05",
     taskName: "Create project",
     summary:
       "Create a project for an existing customer and assign a project manager.",
+    legacyTripletex1TaskIds: ["05"],
+  },
+  {
+    taskId: "06",
+    txTaskId: "06",
+    taskName: "Create employee",
+    summary:
+      "Create a new employee with identifying details, contact email, and start date.",
+    legacyTripletex1TaskIds: ["06"],
+  },
+  {
+    taskId: "07",
+    txTaskId: "07",
+    taskName: "Create accounting dimension and post voucher",
+    summary:
+      "Create a custom accounting dimension with values, then post a voucher linked to one value.",
+    legacyTripletex1TaskIds: ["07"],
+  },
+  {
+    taskId: "08",
+    txTaskId: "08",
+    taskName: "Create and send invoice",
+    summary:
+      "Create and send an outgoing invoice for an existing customer identified by organization number.",
     legacyTripletex1TaskIds: ["08"],
   },
   {
-    taskId: "create-customer-invoice",
+    taskId: "09",
+    txTaskId: "09",
     taskName: "Create customer invoice",
     summary:
       "Create a customer invoice with explicit product lines and mixed VAT handling.",
     legacyTripletex1TaskIds: ["09"],
   },
   {
-    taskId: "create-order-invoice-and-register-payment",
-    taskName: "Create order, invoice, and register payment",
+    taskId: "10",
+    txTaskId: "10",
+    taskName: "Issue full credit note",
     summary:
-      "Create a sales order, convert it to an invoice, and register full payment.",
+      "Find an invoice and issue a full credit note that reverses the entire amount.",
     legacyTripletex1TaskIds: ["10"],
   },
   {
-    taskId: "register-supplier-invoice",
-    taskName: "Register supplier invoice",
+    taskId: "11",
+    txTaskId: "11",
+    taskName: "Create order, invoice, and register payment",
     summary:
-      "Register an incoming supplier invoice with the requested account and input VAT.",
+      "Create a sales order, convert it to an invoice, and register full payment.",
     legacyTripletex1TaskIds: ["11"],
   },
   {
-    taskId: "run-payroll-with-bonus",
+    taskId: "12",
+    txTaskId: "12",
     taskName: "Run payroll with bonus",
     summary:
       "Process payroll for an employee and include a one-time bonus amount.",
     legacyTripletex1TaskIds: ["12"],
   },
   {
-    taskId: "register-travel-expense",
+    taskId: "13",
+    txTaskId: "13",
     taskName: "Register travel expense",
     summary:
       "Register a travel expense claim with per diem and named out-of-pocket expenses.",
     legacyTripletex1TaskIds: ["13"],
   },
   {
-    taskId: "issue-full-credit-note",
-    taskName: "Issue full credit note",
-    summary:
-      "Find an invoice and issue a full credit note that reverses the entire amount.",
-    legacyTripletex1TaskIds: ["14"],
-  },
-  {
-    taskId: "set-project-fixed-price-and-invoice-milestone",
+    taskId: "14",
+    txTaskId: "14",
     taskName: "Set project fixed price and invoice milestone",
     summary:
       "Set a fixed project price and invoice a requested milestone percentage.",
-    legacyTripletex1TaskIds: ["15"],
+    legacyTripletex1TaskIds: ["14"],
   },
   {
-    taskId: "register-project-hours-and-create-project-invoice",
+    taskId: "15",
+    txTaskId: "15",
     taskName: "Register project hours and create project invoice",
     summary:
       "Register billable hours to a project activity and generate the resulting project invoice.",
+    legacyTripletex1TaskIds: ["15"],
+  },
+  {
+    taskId: "16",
+    txTaskId: "16",
+    taskName: "Register supplier invoice",
+    summary:
+      "Register an incoming supplier invoice with the requested account and input VAT.",
     legacyTripletex1TaskIds: ["16"],
   },
   {
-    taskId: "create-accounting-dimension-and-post-voucher",
-    taskName: "Create accounting dimension and post voucher",
+    taskId: "17",
+    txTaskId: "17",
+    taskName: "Register customer invoice payment",
     summary:
-      "Create a custom accounting dimension with values, then post a voucher linked to one value.",
+      "Locate an unpaid customer invoice and register full payment against it.",
     legacyTripletex1TaskIds: ["17"],
   },
   {
-    taskId: "reverse-customer-invoice-payment",
+    taskId: "18",
+    txTaskId: "18",
     taskName: "Reverse customer invoice payment",
     summary:
       "Reverse a customer invoice payment so the invoice becomes unpaid again.",
@@ -143,255 +168,28 @@ const canonicalTaskRegistryById = new Map(
   CANONICAL_TASK_REGISTRY.map((task) => [task.taskId, task]),
 );
 
-const LEGACY_TRIPLETEX1_TASK_BRIDGE = {
-  "01": {
-    legacyTaskId: "01",
+function createCanonicalBridgeEntry(task) {
+  return {
+    legacyTaskId: task.txTaskId,
     status: "mapped",
-    canonicalTaskId: "create-employee",
+    canonicalTaskId: task.taskId,
     mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 1,
-    representativeRunIds: ["prod-2026-03-20-161444237Z-7ff6c14f"],
-    notes: [
-      "Observed run wrote create-employee scripts and matched the employee-creation prompt surface.",
-    ],
-  },
-  "02": {
-    legacyTaskId: "02",
-    status: "mapped",
-    canonicalTaskId: "create-customer",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 1,
-    representativeRunIds: ["prod-2026-03-20-161358871Z-64b4936f"],
-    notes: [
-      "Observed run wrote create-customer scripts and matched the customer-creation prompt surface.",
-    ],
-  },
-  "03": {
-    legacyTaskId: "03",
-    status: "mapped",
-    canonicalTaskId: "create-product",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-153520312Z-5a2e316c",
-      "prod-2026-03-20-155616083Z-a5c9d6f7",
-    ],
-    notes: [
-      "Both observed runs wrote product-creation scripts with VAT-rate variants and no semantic conflicts.",
-    ],
-  },
-  "04": {
-    legacyTaskId: "04",
-    status: "mapped",
-    canonicalTaskId: "create-supplier",
-    mappingConfidence: "medium",
-    observedUniqueAttemptDeltaRuns: 4,
-    representativeRunIds: [
-      "prod-2026-03-20-145225168Z-dc5e0842",
-      "prod-2026-03-20-151341519Z-53e2b675",
-      "prod-2026-03-20-153720412Z-89e67e11",
-      "prod-2026-03-20-163443454Z-106632cf",
-    ],
-    conflictingRunIds: ["prod-2026-03-20-151341523Z-1e345deb"],
-    notes: [
-      "Most observed runs look like supplier creation, but at least one checked-in prompt ledger row on tx_task_id 04 is semantically closer to customer-invoice creation.",
-    ],
-  },
-  "05": {
-    legacyTaskId: "05",
-    status: "unmapped",
-    mappingConfidence: "low",
     observedUniqueAttemptDeltaRuns: 0,
     representativeRunIds: [],
     notes: [
-      "Keep this unmapped until a real attributed run or another trustworthy legacy surface identifies the task.",
+      `Canonical Tripletex1 production evidence fixes tx_task_id ${task.txTaskId} to "${task.taskId}".`,
     ],
-  },
-  "06": {
-    legacyTaskId: "06",
-    status: "mapped",
-    canonicalTaskId: "create-and-send-invoice",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 1,
-    representativeRunIds: ["prod-2026-03-20-154043711Z-89cff08b"],
-    notes: [
-      "Observed run wrote an order-then-send-invoice script and matched the create-and-send-invoice prompt.",
-    ],
-  },
-  "07": {
-    legacyTaskId: "07",
-    status: "mapped",
-    canonicalTaskId: "register-customer-invoice-payment",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 1,
-    representativeRunIds: ["prod-2026-03-20-170929424Z-66e3c043"],
-    notes: [
-      "Observed run prompt and script clearly matched customer-invoice payment registration.",
-    ],
-  },
-  "08": {
-    legacyTaskId: "08",
-    status: "mapped",
-    canonicalTaskId: "create-project",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-153900671Z-45ae2eea",
-      "prod-2026-03-20-161541786Z-a6c6e550",
-    ],
-    notes: [
-      "Observed runs consistently matched project creation prompts and script names.",
-    ],
-  },
-  "09": {
-    legacyTaskId: "09",
-    status: "mapped",
-    canonicalTaskId: "create-customer-invoice",
-    mappingConfidence: "medium",
-    observedUniqueAttemptDeltaRuns: 3,
-    representativeRunIds: [
-      "prod-2026-03-20-164443065Z-17460256",
-      "prod-2026-03-20-164819645Z-9f5748e9",
-      "prod-2026-03-20-161924575Z-8d76beb2",
-    ],
-    conflictingRunIds: ["prod-2026-03-20-164819684Z-afc5fde0"],
-    notes: [
-      "Most observed runs match customer-invoice creation, but one checked-in unique-attribution run wrote project-hours/project-invoice scripts under tx_task_id 09.",
-    ],
-  },
-  "10": {
-    legacyTaskId: "10",
-    status: "mapped",
-    canonicalTaskId: "create-order-invoice-and-register-payment",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-160046246Z-46063efb",
-      "prod-2026-03-20-163628397Z-e88605ae",
-    ],
-    notes: [
-      "Observed runs consistently matched create-order, invoice, and payment-registration scripts.",
-    ],
-  },
-  "11": {
-    legacyTaskId: "11",
-    status: "mapped",
-    canonicalTaskId: "register-supplier-invoice",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 3,
-    representativeRunIds: [
-      "prod-2026-03-20-154655744Z-a290e68c",
-      "prod-2026-03-20-165244395Z-bc4931a3",
-      "prod-2026-03-20-171831120Z-b3c40a84",
-    ],
-    notes: [
-      "Observed runs consistently matched supplier-invoice registration prompts and scripts.",
-    ],
-  },
-  "12": {
-    legacyTaskId: "12",
-    status: "mapped",
-    canonicalTaskId: "run-payroll-with-bonus",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-150924105Z-0739668d",
-      "prod-2026-03-20-163122837Z-479d120a",
-    ],
-    notes: [
-      "Observed runs consistently matched payroll-with-bonus prompts and payroll script names.",
-    ],
-  },
-  "13": {
-    legacyTaskId: "13",
-    status: "mapped",
-    canonicalTaskId: "register-travel-expense",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 5,
-    representativeRunIds: [
-      "prod-2026-03-20-155453364Z-2b715dd4",
-      "prod-2026-03-20-160800981Z-954e2459",
-      "prod-2026-03-20-165556973Z-643ba711",
-      "prod-2026-03-20-171053373Z-9afcb1d0",
-      "prod-2026-03-20-174515766Z-e717c4c5",
-    ],
-    notes: [
-      "Observed runs consistently matched travel-expense prompts and script names.",
-    ],
-  },
-  "14": {
-    legacyTaskId: "14",
-    status: "mapped",
-    canonicalTaskId: "issue-full-credit-note",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 3,
-    representativeRunIds: [
-      "prod-2026-03-20-150538277Z-1f4cda78",
-      "prod-2026-03-20-151148780Z-105d5e03",
-      "prod-2026-03-20-164234744Z-dedde543",
-    ],
-    notes: [
-      "Observed runs consistently matched full credit-note prompts and script names.",
-    ],
-  },
-  "15": {
-    legacyTaskId: "15",
-    status: "mapped",
-    canonicalTaskId: "set-project-fixed-price-and-invoice-milestone",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 1,
-    representativeRunIds: ["prod-2026-03-20-160359065Z-2f6565df"],
-    notes: [
-      "Observed run matched fixed-price project milestone invoicing.",
-    ],
-  },
-  "16": {
-    legacyTaskId: "16",
-    status: "mapped",
-    canonicalTaskId: "register-project-hours-and-create-project-invoice",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-152251584Z-b8bed751",
-      "prod-2026-03-20-174017094Z-4fe3d9a5",
-    ],
-    notes: [
-      "Observed runs matched project-hours registration and project-invoice generation.",
-    ],
-  },
-  "17": {
-    legacyTaskId: "17",
-    status: "mapped",
-    canonicalTaskId: "create-accounting-dimension-and-post-voucher",
-    mappingConfidence: "medium",
-    observedUniqueAttemptDeltaRuns: 5,
-    representativeRunIds: [
-      "prod-2026-03-20-150729812Z-1a23bc86",
-      "prod-2026-03-20-154433946Z-4a4ca7f1",
-      "prod-2026-03-20-160147983Z-6643f998",
-      "prod-2026-03-20-162758119Z-9a637e03",
-      "prod-2026-03-20-163321702Z-4c9f352a",
-    ],
-    conflictingRunIds: ["prod-2026-03-20-154433919Z-c844c6eb"],
-    notes: [
-      "Most observed runs match free-dimension creation and voucher posting, but one checked-in prompt ledger row on tx_task_id 17 is semantically closer to customer-invoice creation.",
-    ],
-  },
-  "18": {
-    legacyTaskId: "18",
-    status: "mapped",
-    canonicalTaskId: "reverse-customer-invoice-payment",
-    mappingConfidence: "high",
-    observedUniqueAttemptDeltaRuns: 2,
-    representativeRunIds: [
-      "prod-2026-03-20-151734977Z-7b560c69",
-      "prod-2026-03-20-161217166Z-8061a8df",
-    ],
-    notes: [
-      "Observed runs consistently matched reversing customer invoice payments.",
-    ],
-  },
-};
+  };
+}
+
+const LEGACY_TRIPLETEX1_TASK_BRIDGE = Object.freeze(
+  Object.fromEntries(
+    CANONICAL_TASK_REGISTRY.map((task) => [
+      task.txTaskId,
+      createCanonicalBridgeEntry(task),
+    ]),
+  ),
+);
 
 function parseArgs(argv) {
   const parsed = {

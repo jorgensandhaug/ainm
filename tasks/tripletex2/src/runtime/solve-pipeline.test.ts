@@ -9,6 +9,7 @@ import type {
   TripletexFetch,
   TripletexFetchResponse,
 } from "./contracts";
+import { taskRegistrations } from "../registry/tasks";
 import { runCompetitionSolvePipeline } from "./solve-pipeline";
 
 test("runCompetitionSolvePipeline executes the pinned strategy and writes canonical plus staging lineage", async (t) => {
@@ -41,6 +42,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
     },
     {
       mode: "sandbox",
+      selectionConfigOverride: await createSelectionConfigOverride({}),
       now,
       runContext: {
         runId: "sandbox-fixed-run",
@@ -50,7 +52,7 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
       taskUnderstanding: {
         result: {
           status: "resolved",
-          taskId: "create-and-send-invoice",
+          taskId: "08",
           input: {
             customerName: "Nordhav AS",
             organizationNumber: "876520427",
@@ -96,10 +98,13 @@ test("runCompetitionSolvePipeline executes the pinned strategy and writes canoni
     sidecars?: Array<{ kind: string; path: string }>;
   };
 
-  assert.equal(artifact.selection.selectionConfigId, "active-strategies-2026-03-20-a");
+  assert.equal(
+    artifact.selection.selectionConfigId,
+    "active-strategies-test-selection",
+  );
   assert.equal(
     artifact.strategy.strategyPath,
-    "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-send.ts",
+    "src/tasks/task-08/strategies/order-then-invoice-send.ts",
   );
   assert.equal(artifact.execution.runtimeStatus, "completed");
   assert.equal(artifact.execution.apiCallCount, 3);
@@ -163,13 +168,10 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
     },
     {
       mode: "sandbox",
-      selectionConfigOverride: {
-        schemaVersion: "tripletex2.active-strategy-selection.v1",
-        selectionConfigId: "active-strategies-2026-03-20-explicit-invoice-send",
-        taskStrategies: {
-          "create-and-send-invoice": "create-and-send-invoice.order-then-invoice-then-send.v1",
-        },
-      },
+      selectionConfigOverride: await createSelectionConfigOverride({
+        "08":
+          "08.order-then-invoice-then-send.v1",
+      }, "active-strategies-2026-03-20-explicit-invoice-send"),
       runContext: {
         runId: "sandbox-explicit-send-run",
         stageDirectory,
@@ -178,7 +180,7 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
       taskUnderstanding: {
         result: {
           status: "resolved",
-          taskId: "create-and-send-invoice",
+          taskId: "08",
           input: {
             customerName: "Nordhav AS",
             organizationNumber: "876520427",
@@ -216,11 +218,11 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
   );
   assert.equal(
     artifact.strategy.strategyId,
-    "create-and-send-invoice.order-then-invoice-then-send.v1",
+    "08.order-then-invoice-then-send.v1",
   );
   assert.equal(
     artifact.strategy.strategyPath,
-    "src/tasks/task-create-and-send-invoice/strategies/order-then-invoice-then-send.ts",
+    "src/tasks/task-08/strategies/order-then-invoice-then-send.ts",
   );
   assert.equal(artifact.execution.runtimeStatus, "completed");
   assert.equal(artifact.execution.apiCallCount, 4);
@@ -234,7 +236,110 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
   );
 });
 
-test("runCompetitionSolvePipeline uses Codex/AGENTS task understanding by default", async (t) => {
+test("runCompetitionSolvePipeline can execute the supplier-invoice import strategy when pinned", async (t) => {
+  const tempRoot = await mkdtemp(
+    path.join(os.tmpdir(), "tripletex2-solve-pipeline-supplier-invoice-"),
+  );
+  const artifactRoot = path.join(tempRoot, "runs");
+  const stageDirectory = path.join(
+    tempRoot,
+    "data",
+    "sandbox",
+    "runs",
+    "sandbox-supplier-invoice-run",
+  );
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+  const now = createFrozenNow("2026-03-20T22:05:00.000Z");
+
+  const result = await runCompetitionSolvePipeline(
+    {
+      prompt:
+        "Registrer leverandorfaktura fra Elvdal AS (org.nr 889157917), fakturanummer INV-2026-8662, kontortenester, 39750 kr inkludert mva pa konto 6500 med 25 prosent mva.",
+      files: [],
+      tripletex_credentials: {
+        base_url: "https://example.invalid",
+        session_token: "redacted-for-test",
+        credential_source: "fixture",
+      },
+    },
+    {
+      mode: "sandbox",
+      now,
+      selectionConfigOverride: await createSelectionConfigOverride({
+        "16": "16.import-then-book-voucher.v1",
+      }, "active-strategies-2026-03-20-supplier-invoice-import"),
+      now: createFrozenNow("2026-03-20T21:10:15.000Z"),
+      runContext: {
+        runId: "sandbox-supplier-invoice-run",
+        stageDirectory,
+        artifactRoot,
+      },
+      taskUnderstanding: {
+        result: {
+          status: "resolved",
+          taskId: "16",
+          input: {
+            supplierName: "Elvdal AS",
+            organizationNumber: "889157917",
+            invoiceNumber: "INV-2026-8662",
+            lineDescription: "kontortenester",
+            grossAmountNok: 39750,
+            expenseAccountNumber: 6500,
+            vatRatePercent: 25,
+          },
+        } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+        taskSource: "manual-label",
+        inputSource: "fixture",
+        notes: ["Fixture-labeled replay for supplier-invoice strategy validation."],
+      },
+      fetch: createSupplierInvoiceFixtureTripletexFetch(),
+      requestId: "req-supplier-invoice-1",
+    },
+  );
+
+  const artifact = JSON.parse(
+    await readFile(result.artifactPath, "utf8"),
+  ) as {
+    selection: { selectionConfigId: string };
+    strategy: { strategyPath: string; strategyId: string };
+    execution: {
+      runtimeStatus: string;
+      apiCallCount: number;
+      result?: {
+        createdEntityIds?: Record<string, number>;
+        verification?: Record<string, unknown>;
+      };
+    };
+  };
+
+  assert.equal(
+    artifact.selection.selectionConfigId,
+    "active-strategies-2026-03-20-supplier-invoice-import",
+  );
+  assert.equal(
+    artifact.strategy.strategyId,
+    "16.import-then-book-voucher.v1",
+  );
+  assert.equal(
+    artifact.strategy.strategyPath,
+    "src/tasks/task-16/strategies/import-then-book-voucher.ts",
+  );
+  assert.equal(artifact.execution.runtimeStatus, "completed");
+  assert.equal(artifact.execution.apiCallCount, 5);
+  assert.deepEqual(artifact.execution.result?.createdEntityIds, {
+    supplierId: 108244534,
+    voucherId: 608856087,
+  });
+  assert.equal(artifact.execution.result?.verification?.netAmount, 31800);
+  assert.equal(
+    artifact.execution.result?.verification?.sendToLedgerRequested,
+    false,
+  );
+});
+
+test("runCompetitionSolvePipeline uses Codex codex-environment task understanding by default", async (t) => {
   const outputRoot = await mkdtemp(
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-codex-"),
   );
@@ -256,6 +361,7 @@ test("runCompetitionSolvePipeline uses Codex/AGENTS task understanding by defaul
     },
     {
       mode: "sandbox",
+      selectionConfigOverride: await createSelectionConfigOverride({}),
       now,
       runContext: {
         runId: "sandbox-codex-run",
@@ -270,7 +376,7 @@ test("runCompetitionSolvePipeline uses Codex/AGENTS task understanding by defaul
 
           return JSON.stringify({
             status: "resolved",
-            taskId: "create-and-send-invoice",
+            taskId: "08",
             inputJson: JSON.stringify({
               customerName: "Nordhav AS",
               organizationNumber: "876520427",
@@ -381,7 +487,7 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
   assert.equal(artifact.execution.apiCallCount, 0);
   assert.equal(artifact.analysis?.failureMode, "no-task-match");
   assert.deepEqual(artifact.analysis?.notes, [
-    "Task understanding used an injected extractor instead of the default Codex/AGENTS path.",
+    "Task understanding used an injected extractor instead of the default Codex codex-environment path.",
     "Deterministic runtime did not start because task understanding or strategy selection was unresolved.",
   ]);
 
@@ -397,6 +503,37 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
 
 function createFrozenNow(timestamp: string): () => Date {
   return () => new Date(timestamp);
+}
+
+async function createSelectionConfigOverride(
+  overrides: Record<string, string>,
+  selectionConfigId = "active-strategies-test-selection",
+): Promise<{
+  schemaVersion: "tripletex2.active-strategy-selection.v1";
+  selectionConfigId: string;
+  taskStrategies: Record<string, string>;
+}> {
+  const taskStrategies = Object.fromEntries(
+    await Promise.all(
+      taskRegistrations.map(async (registration) => {
+        const taskModule = await registration.loadTaskModule();
+        return [
+          registration.task.taskId,
+          taskModule.strategies[0]?.strategyId ??
+            `${registration.task.taskId}.missing-strategy`,
+        ];
+      }),
+    ),
+  );
+
+  return {
+    schemaVersion: "tripletex2.active-strategy-selection.v1",
+    selectionConfigId,
+    taskStrategies: {
+      ...taskStrategies,
+      ...overrides,
+    },
+  };
 }
 
 function createFixtureTripletexFetch(): TripletexFetch {
@@ -437,6 +574,97 @@ function createFixtureTripletexFetch(): TripletexFetch {
 
     if (init.method === "PUT" && url.pathname === "/invoice/9001/:send") {
       return createResponse(200, {});
+    }
+
+    throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);
+  };
+}
+
+function createSupplierInvoiceFixtureTripletexFetch(): TripletexFetch {
+  return async (input, init) => {
+    const url = new URL(input);
+    if (init.method === "POST" && url.pathname === "/supplier") {
+      return createResponse(201, {
+        value: {
+          id: 108244534,
+          name: "Elvdal AS",
+          organizationNumber: "889157917",
+          ledgerAccount: {
+            id: 424190921,
+          },
+        },
+      });
+    }
+
+    if (init.method === "GET" && url.pathname === "/ledger/account") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 424191158,
+            number: 6500,
+            isApplicableForSupplierInvoice: true,
+          },
+        ],
+      });
+    }
+
+    if (init.method === "GET" && url.pathname === "/ledger/vatType") {
+      return createResponse(200, {
+        values: [
+          {
+            id: 1,
+            number: "1",
+            percentage: 25,
+          },
+        ],
+      });
+    }
+
+    if (
+      init.method === "POST" &&
+      url.pathname === "/ledger/voucher/importDocument"
+    ) {
+      assert.ok(init.body instanceof FormData);
+      return createResponse(201, {
+        values: [
+          {
+            id: 608856087,
+            version: 4,
+          },
+        ],
+      });
+    }
+
+    if (init.method === "PUT" && url.pathname === "/ledger/voucher/608856087") {
+      return createResponse(200, {
+        value: {
+          id: 608856087,
+          postings: [
+            {
+              row: 1,
+              amount: 31800,
+              amountGross: 39750,
+              account: { id: 424191158 },
+              vatType: { id: 1 },
+            },
+            {
+              row: 2,
+              amount: -39750,
+              amountGross: -39750,
+              invoiceNumber: "INV-2026-8662",
+              termOfPayment: "2026-03-20",
+              account: { id: 424190921 },
+              supplier: { id: 108244534 },
+            },
+            {
+              row: 3,
+              amount: 7950,
+              amountGross: 7950,
+              account: { id: 424190999 },
+            },
+          ],
+        },
+      });
     }
 
     throw new Error(`Unexpected Tripletex fixture request: ${init.method} ${url.pathname}`);

@@ -21,7 +21,7 @@ startSolveServer({
   taskUnderstanding: {
     result: {
       status: "resolved",
-      taskId: "create-and-send-invoice",
+      taskId: "08",
       input: {
         customerName: "Nordhav AS",
         organizationNumber: "876520427",

@@ -16,6 +16,7 @@ import {
   type CodexTaskUnderstandingOptions,
   runCodexTaskUnderstanding,
 } from "./codex-task-understanding";
+import { isNotImplementedStrategyId } from "../tasks/shared/not-implemented";
 import {
   RUN_ARTIFACT_SCHEMA_VERSION,
   type ActiveStrategySelectionConfig,
@@ -127,6 +128,15 @@ interface EffectiveTaskUnderstanding {
   notes: readonly string[];
 }
 
+export interface DeterministicSolveSelection {
+  taskUnderstanding: EffectiveTaskUnderstanding;
+  taskId?: string;
+  taskSpec?: ReturnType<typeof getTaskSpec>;
+  activeStrategyResolver?: ActiveStrategyResolver;
+  selection?: ResolvedActiveTaskStrategy;
+  selectionError?: RunExecutionError;
+}
+
 export function normalizeCompetitionSolveRequest(
   request: CompetitionSolveRequest,
 ): SolveRequest {
@@ -164,40 +174,18 @@ export async function runDeterministicSolvePipeline(
     runContext,
   });
 
-  const taskUnderstanding = await resolveTaskUnderstanding(request, options);
-  const taskId = getTaskUnderstandingTaskId(taskUnderstanding.result);
-  const taskSpec = taskId ? getTaskSpec(taskId) : undefined;
-
-  let activeStrategyResolver: ActiveStrategyResolver | undefined;
-  let selection: ResolvedActiveTaskStrategy | undefined;
-  let selectionError: RunExecutionError | undefined;
-
-  if (taskId) {
-    try {
-      activeStrategyResolver = await loadActiveStrategyResolver(
-        options.selectionConfigPath,
-        options.selectionConfigOverride,
-      );
-      selection = activeStrategyResolver.getResolvedSelection(taskId);
-    } catch (error) {
-      if (taskUnderstanding.result.status === "resolved") {
-        selectionError = toRunExecutionError(error);
-      }
-    }
-
-    if (
-      taskUnderstanding.result.status === "resolved" &&
-      !selection &&
-      !selectionError
-    ) {
-      selectionError = {
-        code: "strategy-not-selected",
-        message:
-          `Task "${taskId}" did not resolve to an active deterministic strategy ` +
-          `in "${options.selectionConfigPath ?? DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH}".`,
-      };
-    }
-  }
+  const selectionResult = await resolveDeterministicSolveSelection(
+    request,
+    options,
+  );
+  const {
+    taskUnderstanding,
+    taskId,
+    taskSpec,
+    activeStrategyResolver,
+    selection,
+    selectionError: initialSelectionError,
+  } = selectionResult;
 
   const callLog = createTripletexCallLog();
   const tripletex = createTripletexClient({
@@ -215,7 +203,7 @@ export async function runDeterministicSolvePipeline(
 
   let runtimeStatus: RunArtifactV1["execution"]["runtimeStatus"] = "not-run";
   let strategyResult: RunArtifactV1["execution"]["result"];
-  let executionError = selectionError;
+  let executionError = initialSelectionError;
   let startedAt: string | undefined;
   let completedAt: string | undefined;
   let durationMs: number | undefined;
@@ -223,7 +211,7 @@ export async function runDeterministicSolvePipeline(
   if (
     taskUnderstanding.result.status === "resolved" &&
     selection &&
-    !selectionError
+    !executionError
   ) {
     startedAt = resolveNow(options.now).toISOString();
     const startedAtMs = Date.parse(startedAt);
@@ -364,6 +352,64 @@ export async function runCompetitionSolvePipeline(
   );
 }
 
+export async function resolveDeterministicSolveSelection(
+  request: SolveRequest,
+  options: SolvePipelineOptions = {},
+): Promise<DeterministicSolveSelection> {
+  const taskUnderstanding = await resolveTaskUnderstanding(request, options);
+  const taskId = getTaskUnderstandingTaskId(taskUnderstanding.result);
+  const taskSpec = taskId ? getTaskSpec(taskId) : undefined;
+
+  let activeStrategyResolver: ActiveStrategyResolver | undefined;
+  let selection: ResolvedActiveTaskStrategy | undefined;
+  let selectionError: RunExecutionError | undefined;
+
+  if (taskId) {
+    try {
+      activeStrategyResolver = await loadActiveStrategyResolver(
+        options.selectionConfigPath,
+        options.selectionConfigOverride,
+      );
+      selection = activeStrategyResolver.getResolvedSelection(taskId);
+    } catch (error) {
+      if (taskUnderstanding.result.status === "resolved") {
+        selectionError = toRunExecutionError(error);
+      }
+    }
+
+    if (
+      taskUnderstanding.result.status === "resolved" &&
+      !selection &&
+      !selectionError
+    ) {
+      selectionError = {
+        code: "strategy-not-selected",
+        message:
+          `Task "${taskId}" did not resolve to an active deterministic strategy ` +
+          `in "${options.selectionConfigPath ?? DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH}".`,
+      };
+    }
+  }
+
+  return {
+    taskUnderstanding,
+    taskId,
+    taskSpec,
+    activeStrategyResolver,
+    selection,
+    selectionError,
+  };
+}
+
+export function isNotImplementedStrategySelection(
+  selection: ResolvedActiveTaskStrategy | undefined,
+): boolean {
+  return (
+    selection !== undefined &&
+    isNotImplementedStrategyId(selection.strategy.strategyId)
+  );
+}
+
 async function resolveTaskUnderstanding(
   request: SolveRequest,
   options: SolvePipelineOptions,
@@ -413,7 +459,7 @@ async function resolveTaskUnderstanding(
     taskSource: "llm-classifier",
     inputSource: "llm-extractor",
     notes: [
-      "Task understanding used an injected extractor instead of the default Codex/AGENTS path.",
+      "Task understanding used an injected extractor instead of the default Codex codex-environment path.",
     ],
   };
 }
