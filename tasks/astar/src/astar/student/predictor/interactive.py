@@ -10,7 +10,11 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
+from astar.student.predictor.heuristic import (
+    EventRegimePredictor,
+    GeometryPriorPredictor,
+    LatentRegimePredictor,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.query_residual_specs import (
@@ -104,6 +108,12 @@ def build_online_predictor(
         return RoundPredictorAdapter(
             predictor=latent_predictor,
             name=latent_predictor.name,
+        )
+    if normalized == "f1_event_regime_v01":
+        event_predictor = EventRegimePredictor()
+        return RoundPredictorAdapter(
+            predictor=event_predictor,
+            name=event_predictor.name,
         )
     query_residual_spec = resolve_query_residual_model_spec(normalized)
     if query_residual_spec is not None:

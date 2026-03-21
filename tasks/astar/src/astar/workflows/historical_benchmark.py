@@ -123,8 +123,10 @@ def run_historical_benchmark(
     normalized_model_name = model_name.strip().lower()
     if resolve_query_residual_model_spec(normalized_model_name) is not None and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
-    if mode == "prior_only" and normalized_model_name == "latent_regime":
-        raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
+    if mode == "prior_only" and normalized_model_name in {"latent_regime", "f1_event_regime_v01"}:
+        raise ValueError(
+            f"{normalized_model_name} requires mode=online_interactive for historical benchmark",
+        )
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
     if mode not in {"prior_only", "online_interactive"}:

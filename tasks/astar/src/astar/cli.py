@@ -120,6 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
         "geometry_prior",
         "historical_bucket_prior",
         "latent_regime",
+        "f1_event_regime_v01",
         *supported_query_residual_model_names(),
     ]
     historical_models = [

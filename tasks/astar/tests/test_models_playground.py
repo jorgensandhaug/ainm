@@ -7,7 +7,11 @@ from astar.features.geometry import compute_round_features
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record
 from astar.observe.evidence import build_round_evidence
-from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
+from astar.student.predictor.heuristic import (
+    EventRegimePredictor,
+    GeometryPriorPredictor,
+    LatentRegimePredictor,
+)
 from tests.conftest import ROUND_ID
 
 
@@ -32,6 +36,20 @@ def test_latent_regime_predictor_uses_evidence(sample_paths: RepoPaths) -> None:
     features = compute_round_features(round_record.round)
     evidence = build_round_evidence(sample_paths, ROUND_ID)
     predictor = LatentRegimePredictor()
+
+    posterior = predictor.infer_regime_posterior(round_record.round, features, evidence)
+    bundle = predictor.build_prediction_bundle(round_record.round, features, evidence)
+
+    assert posterior.evidence_queries == evidence.total_queries
+    assert bundle.predictions_by_seed[0].shape[-1] == 6
+    assert np.allclose(bundle.predictions_by_seed[0].sum(axis=-1), 1.0)
+
+
+def test_event_regime_predictor_uses_evidence(sample_paths: RepoPaths) -> None:
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    features = compute_round_features(round_record.round)
+    evidence = build_round_evidence(sample_paths, ROUND_ID)
+    predictor = EventRegimePredictor()
 
     posterior = predictor.infer_regime_posterior(round_record.round, features, evidence)
     bundle = predictor.build_prediction_bundle(round_record.round, features, evidence)

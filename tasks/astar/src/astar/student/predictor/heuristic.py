@@ -72,6 +72,41 @@ class GeometryPriorPredictor(BaseRoundPredictor):
         )
 
 
+def _neighbor_count(mask: np.ndarray) -> np.ndarray:
+    mask_array = np.asarray(mask, dtype=np.int64)
+    height, width = mask_array.shape
+    padded = np.pad(mask_array, 1, mode="constant", constant_values=0)
+    out = np.zeros((height, width), dtype=np.int64)
+    for dy in range(3):
+        for dx in range(3):
+            out += padded[dy : dy + height, dx : dx + width]
+    return out
+
+
+def _normalize_population(value: float | None) -> float:
+    if value is None:
+        return 0.0
+    return float(value) / 4.5
+
+
+def _normalize_food(value: float | None) -> float:
+    if value is None:
+        return 0.0
+    return float(value) / 1.1
+
+
+def _normalize_wealth(value: float | None) -> float:
+    if value is None:
+        return 0.0
+    return float(value) / 1.5
+
+
+def _normalize_defense(value: float | None) -> float:
+    if value is None:
+        return 0.0
+    return float(value)
+
+
 class RoundRegimePosterior(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -216,6 +251,256 @@ class LatentRegimePredictor(BaseRoundPredictor):
                 self.probability_floor,
             )
 
+        return PredictionBundle(
+            round_id=round_detail.id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+
+class EventRegimePosterior(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    birth: float = Field(ge=-1.0, le=1.0)
+    maritime: float = Field(ge=-1.0, le=1.0)
+    collapse: float = Field(ge=-1.0, le=1.0)
+    reclamation: float = Field(ge=-1.0, le=1.0)
+    evidence_queries: int = Field(ge=0)
+
+
+class EventStructuralPriorPredictor(BaseRoundPredictor):
+    name: str = "f1_event_regime_v01__structural_prior"
+    probability_floor: float = Field(default=0.02, gt=0.0, lt=1.0)
+
+    def build_prediction_bundle(
+        self,
+        round_detail: RoundDetail,
+        features: RoundFeatureBundle,
+        evidence: object | None = None,
+    ) -> PredictionBundle:
+        del evidence
+        base_bundle = GeometryPriorPredictor(probability_floor=self.probability_floor).build_prediction_bundle(
+            round_detail,
+            features,
+        )
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed_index, initial_state in enumerate(round_detail.initial_states):
+            base_prediction = base_bundle.predictions_by_seed[seed_index]
+            seed_features = features.per_seed[seed_index]
+            scored_grid = collapse_internal_grid(np.asarray(initial_state.grid, dtype=np.int64))
+            buildable = seed_features.feature("buildable")
+            coast = seed_features.feature("coast")
+            settlement_proximity = seed_features.feature("settlement_proximity")
+            maritime_access = seed_features.feature("maritime_access")
+            frontier_score = seed_features.feature("frontier_score")
+            forest_density = seed_features.feature("forest_density")
+            mountain_density = seed_features.feature("mountain_density")
+            coastal_exposure = seed_features.feature("coastal_exposure")
+
+            settlement_neighbors = _neighbor_count(scored_grid == 1).astype(np.float64) / 9.0
+            port_neighbors = _neighbor_count(scored_grid == 2).astype(np.float64) / 9.0
+            ruin_neighbors = _neighbor_count(scored_grid == 3).astype(np.float64) / 9.0
+
+            birth_signal = (
+                2.0 * settlement_neighbors
+                + 0.45 * settlement_proximity
+                + 0.40 * port_neighbors
+                + 0.30 * ruin_neighbors
+                + 0.10 * coast
+                + 0.08 * mountain_density
+                - 0.05 * forest_density
+            )
+            port_signal = 1.5 * coast * maritime_access + 0.4 * port_neighbors + 0.3 * coastal_exposure
+            active_signal = ((scored_grid == 1) | (scored_grid == 2)).astype(np.float64)
+            fragility_signal = 0.35 * ruin_neighbors + 0.12 * frontier_score - 0.18 * settlement_neighbors
+
+            logits = np.log(np.maximum(base_prediction, 1e-6))
+            birth_mask = buildable * (active_signal < 0.5)
+            logits[..., 1] += birth_mask * (1.10 * birth_signal)
+            logits[..., 2] += birth_mask * (0.55 * birth_signal + 0.55 * port_signal)
+            logits[..., 0] -= birth_mask * (0.45 * birth_signal)
+            logits[..., 3] += active_signal * fragility_signal
+            logits[..., 1] += (scored_grid == 1).astype(np.float64) * 0.30
+            logits[..., 2] += (scored_grid == 2).astype(np.float64) * 0.30
+            logits[..., 4] += (scored_grid == 4).astype(np.float64) * 0.15
+
+            shifted = logits - np.max(logits, axis=-1, keepdims=True)
+            probabilities = np.exp(shifted)
+            predictions_by_seed[seed_index] = apply_probability_floor(
+                probabilities / np.sum(probabilities, axis=-1, keepdims=True),
+                self.probability_floor,
+            )
+        return PredictionBundle(
+            round_id=round_detail.id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+
+class EventRegimeInferer(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = "f1_event_regime_v01__inferer"
+    food_center: float = Field(default=1.0)
+    wealth_center: float = Field(default=1.0)
+    defense_center: float = Field(default=0.8)
+
+    def infer(
+        self,
+        base_predictions: PredictionBundle,
+        evidence: RoundEvidenceBundle,
+    ) -> EventRegimePosterior:
+        expected_counts = np.zeros(6, dtype=np.float64)
+        observed_counts = np.zeros(6, dtype=np.float64)
+        food_values: list[float] = []
+        wealth_values: list[float] = []
+        defense_values: list[float] = []
+        population_values: list[float] = []
+
+        for seed_index, seed_evidence in evidence.per_seed.items():
+            prediction = base_predictions.predictions_by_seed[seed_index]
+            coverage = seed_evidence.coverage_counts.astype(np.float64)
+            expected_counts += np.sum(prediction * coverage[..., None], axis=(0, 1))
+            observed_counts += seed_evidence.observed_class_counts.astype(np.float64)
+            population_values.append(_normalize_population(seed_evidence.mean_population))
+            food_values.append(_normalize_food(seed_evidence.mean_food))
+            wealth_values.append(_normalize_wealth(seed_evidence.mean_wealth))
+            defense_values.append(_normalize_defense(seed_evidence.mean_defense))
+
+        observed_total = float(np.sum(observed_counts))
+        if observed_total == 0.0:
+            return EventRegimePosterior(
+                birth=0.0,
+                maritime=0.0,
+                collapse=0.0,
+                reclamation=0.0,
+                evidence_queries=0,
+            )
+
+        expected_total = float(np.sum(expected_counts))
+        expected_frequencies = expected_counts / max(expected_total, 1e-6)
+        observed_frequencies = observed_counts / observed_total
+        residual = observed_frequencies - expected_frequencies
+
+        mean_food = float(np.mean(food_values)) if food_values else self.food_center
+        mean_wealth = float(np.mean(wealth_values)) if wealth_values else self.wealth_center
+        mean_defense = float(np.mean(defense_values)) if defense_values else self.defense_center
+        mean_population = float(np.mean(population_values)) if population_values else 0.0
+
+        food_deficit = np.clip(self.food_center - mean_food, -1.0, 1.0)
+        wealth_deficit = np.clip(self.wealth_center - mean_wealth, -1.0, 1.0)
+        defense_deficit = np.clip(self.defense_center - mean_defense, -1.0, 1.0)
+
+        birth = float(
+            np.clip(
+                residual[1] + 0.6 * residual[2] - 0.5 * residual[3] + 0.15 * mean_population,
+                -1.0,
+                1.0,
+            ),
+        )
+        maritime = float(np.clip(2.5 * residual[2] + 0.2 * birth, -1.0, 1.0))
+        collapse = float(
+            np.clip(
+                1.9 * residual[3]
+                - 0.7 * residual[1]
+                - 0.3 * residual[2]
+                + 0.8 * food_deficit
+                + 0.35 * wealth_deficit
+                + 0.25 * defense_deficit,
+                -1.0,
+                1.0,
+            ),
+        )
+        reclamation = float(np.clip(1.4 * residual[4] - 0.6 * residual[3], -1.0, 1.0))
+
+        return EventRegimePosterior(
+            birth=birth,
+            maritime=maritime,
+            collapse=collapse,
+            reclamation=reclamation,
+            evidence_queries=evidence.total_queries,
+        )
+
+
+class EventRegimePredictor(BaseRoundPredictor):
+    name: str = "f1_event_regime_v01"
+    base_predictor: EventStructuralPriorPredictor = Field(default_factory=EventStructuralPriorPredictor)
+    inferer: EventRegimeInferer = Field(default_factory=EventRegimeInferer)
+    probability_floor: float = Field(default=0.02, gt=0.0, lt=1.0)
+
+    def infer_regime_posterior(
+        self,
+        round_detail: RoundDetail,
+        features: RoundFeatureBundle,
+        evidence: RoundEvidenceBundle | None,
+    ) -> EventRegimePosterior:
+        if evidence is None or evidence.total_queries == 0:
+            return EventRegimePosterior(
+                birth=0.0,
+                maritime=0.0,
+                collapse=0.0,
+                reclamation=0.0,
+                evidence_queries=0,
+            )
+        base_predictions = self.base_predictor.build_prediction_bundle(round_detail, features)
+        return self.inferer.infer(base_predictions, evidence)
+
+    def build_prediction_bundle(
+        self,
+        round_detail: RoundDetail,
+        features: RoundFeatureBundle,
+        evidence: RoundEvidenceBundle | None = None,
+    ) -> PredictionBundle:
+        base_predictions = self.base_predictor.build_prediction_bundle(round_detail, features)
+        if evidence is None or evidence.total_queries == 0:
+            return PredictionBundle(
+                round_id=round_detail.id,
+                model_name=self.name,
+                predictions_by_seed=base_predictions.predictions_by_seed,
+            )
+
+        posterior = self.inferer.infer(base_predictions, evidence)
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed_index, initial_state in enumerate(round_detail.initial_states):
+            base_prediction = base_predictions.predictions_by_seed[seed_index]
+            seed_features = features.per_seed[seed_index]
+            scored_grid = collapse_internal_grid(np.asarray(initial_state.grid, dtype=np.int64))
+            buildable = seed_features.feature("buildable")
+            settlement_proximity = seed_features.feature("settlement_proximity")
+            coastal_exposure = seed_features.feature("coastal_exposure")
+            maritime_access = seed_features.feature("maritime_access")
+            frontier_score = seed_features.feature("frontier_score")
+            forest_density = seed_features.feature("forest_density")
+
+            settlement_neighbors = _neighbor_count(scored_grid == 1).astype(np.float64) / 9.0
+            port_neighbors = _neighbor_count(scored_grid == 2).astype(np.float64) / 9.0
+            ruin_neighbors = _neighbor_count(scored_grid == 3).astype(np.float64) / 9.0
+
+            birth_mask = buildable * (~np.isin(scored_grid, (1, 2, 3))).astype(np.float64)
+            active_map = ((scored_grid == 1) | (scored_grid == 2)).astype(np.float64)
+            collapse_support = np.clip(active_map + 0.8 * settlement_neighbors + 0.6 * port_neighbors, 0.0, 2.0)
+
+            logits = np.log(np.maximum(base_prediction, 1e-6))
+            logits[..., 1] += posterior.birth * birth_mask * (0.9 * settlement_proximity + 0.6 * settlement_neighbors)
+            logits[..., 2] += posterior.maritime * birth_mask * (
+                0.8 * coastal_exposure * maritime_access + 0.4 * port_neighbors
+            )
+            logits[..., 3] += posterior.collapse * collapse_support * (
+                0.8 + 0.6 * frontier_score + 0.5 * ruin_neighbors
+            )
+            logits[..., 1] -= posterior.collapse * collapse_support * (0.8 * settlement_proximity)
+            logits[..., 2] -= posterior.collapse * collapse_support * (
+                0.6 * coastal_exposure + 0.4 * port_neighbors
+            )
+            logits[..., 4] += posterior.reclamation * (0.9 * forest_density - 0.5 * ruin_neighbors)
+            logits[..., 0] += posterior.collapse * 0.3 * buildable
+
+            shifted = logits - np.max(logits, axis=-1, keepdims=True)
+            probabilities = np.exp(shifted)
+            predictions_by_seed[seed_index] = apply_probability_floor(
+                probabilities / np.sum(probabilities, axis=-1, keepdims=True),
+                self.probability_floor,
+            )
         return PredictionBundle(
             round_id=round_detail.id,
             model_name=self.name,

@@ -60,7 +60,8 @@
    - richer collapse-sensitive state if returning to Gate 1 refinement
    - held-out hazard fitting for birth + collapse is now positive
    - observed-only collapse fitting is now almost flat, which means collapse needs latent-state / posterior machinery rather than a purely structural live-safe formula
-   - next missing piece is first benchmarkable event-hazard model plus memory-safe dataset building
+   - first benchmarkable hand-built event-regime heuristic has now been tried and rejected
+   - next missing piece is a learned or teacher-backed collapse posterior, plus memory-safe dataset building
    - only after that revisit low-rank coupling / live regime inference
 
 ## Active Experiment
@@ -69,7 +70,7 @@
   - `f1_birth_riskset_nr8_v1`
   - `f1_collapse_riskset_nr8_v1`
 - Hypothesis:
-  - the first benchmarkable semimechanistic event-hazard baseline should split by observability:
+  - the next benchmarkable semimechanistic event-hazard baseline should split by observability:
     - birth can lean on structural features
     - collapse likely needs latent-state/posterior machinery from queried settlement stats, not only static structure
   - build/birth addresses the dominant Gate 2 miss
@@ -109,6 +110,8 @@
 - `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md`
 - `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md`
 - `data/artifacts/family1/hazard_glm/f1_collapse_glm_observed_audit_v01/report.md`
+- `data/artifacts/benchmarks/tmp_f1_event_regime_v01_online_b10/result.json`
+- `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=10__episode_seed=0__baseline=latent_regime__candidate=f1_event_regime_v01.json`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/history/datasets/event_ledger.py`
@@ -479,3 +482,42 @@
     - birth is a good candidate for structural modeling
     - collapse should be modeled through a latent stress / winter / fragility posterior inferred from queried settlement stats
   - this is exactly the kind of validation distinction that should help live rounds, because it prevents overcommitting to a collapse model that only works with replay-only state access
+- Implemented first benchmarkable event-regime heuristic candidate:
+  - model name: `f1_event_regime_v01`
+  - files:
+    - `src/astar/student/predictor/heuristic.py`
+    - `src/astar/student/predictor/interactive.py`
+  - idea:
+    - structural birth prior from initial map + initial neighborhood context
+    - hand-coded collapse posterior from live settlement means and observed ruin residuals
+    - immutable new model name; no mutation of `latent_regime`
+- Validation rerun after adding `f1_event_regime_v01`:
+  - `uv run pytest tests/test_models_playground.py tests/test_birth_hazard_glm.py tests/test_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `24 passed`
+- Smoke historical benchmark for `f1_event_regime_v01` completed:
+  - command: `uv run astar run-historical-benchmark --model f1_event_regime_v01 --mode online_interactive --policy coverage --budget 10 --with-png none --name tmp_f1_event_regime_v01_online_b10`
+  - artifact: `data/artifacts/benchmarks/tmp_f1_event_regime_v01_online_b10/result.json`
+  - report: `data/artifacts/benchmarks/tmp_f1_event_regime_v01_online_b10/report.md`
+  - rounds: `8`
+  - seeds: `40`
+  - mean_score: `6.8918`
+  - mean_weighted_kl: `1.048352`
+  - runtime: `137.287s`
+- Paired comparison against existing latent-regime smoke baseline:
+  - comparison artifact: `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=10__episode_seed=0__baseline=latent_regime__candidate=f1_event_regime_v01.json`
+  - mean_score_delta: `-3.7967`
+  - mean_weighted_kl_delta: `+0.182550`
+  - win_rate: `0.000`
+  - loss_rate: `1.000`
+  - CI95 score delta: `[-4.4574, -3.0532]`
+- Rejection read for `f1_event_regime_v01`:
+  - reject
+  - hand-coded birth+collapse heuristic is worse than even the old weak `latent_regime` smoke baseline
+  - this is consistent with the observed-collapse audit: collapse posterior logic cannot just be hand-designed from a few summary statistics
+  - next benchmarkable attempt should not be another manually tuned event heuristic unless it is much more learned/data-backed
+- Updated next-step read:
+  - do not spend more time on hand-crafted collapse heuristics
+  - strongest next path is:
+    - memory-safe dataset builder
+    - then a learned collapse posterior / student over query settlement stats
+    - and only then another benchmarkable event-hazard model
