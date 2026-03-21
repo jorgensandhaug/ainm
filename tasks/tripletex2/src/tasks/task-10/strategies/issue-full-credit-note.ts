@@ -27,13 +27,18 @@ interface InvoiceEvidenceOrder {
 interface InvoiceSummary {
   id?: number;
   invoiceNumber?: number | string | null;
+  invoiceDate?: string | null;
   customer?: {
     name?: string | null;
     organizationNumber?: string | number | null;
   } | null;
   isCreditNote?: boolean | null;
   isCredited?: boolean | null;
-  creditedInvoice?: number | string | null;
+  creditedInvoice?:
+    | number
+    | string
+    | { id?: number | string | null }
+    | null;
   amountExcludingVatCurrency?: number | null;
   amountExcludingVat?: number | null;
   orderLines?: InvoiceEvidenceLine[] | null;
@@ -69,28 +74,23 @@ export const strategy = {
       input.customerOrganizationNumber,
     );
     const normalizedDescription = normalizeText(input.lineDescription);
-
-    const originalInvoice = input.invoiceId
-      ? await loadInvoiceById(ctx, input.invoiceId)
-      : await loadInvoiceList(ctx, creditNoteDate).then((response) =>
-          selectExactInvoice(response.values ?? [], {
-            invoiceId: input.invoiceId,
-            invoiceNumber: input.invoiceNumber,
-            organizationNumber: normalizedOrgNumber,
-            lineDescription: normalizedDescription,
-            customerName: normalizeText(input.customerName),
-            amountExcludingVatNok: input.amountExcludingVatNok,
-          }),
-        );
-
-    validateInvoiceMatch(originalInvoice, {
+    const normalizedCustomerName = normalizeText(input.customerName);
+    const requirement: InvoiceRequirement = {
       invoiceId: input.invoiceId,
       invoiceNumber: input.invoiceNumber,
       organizationNumber: normalizedOrgNumber,
       lineDescription: normalizedDescription,
-      customerName: normalizeText(input.customerName),
+      customerName: normalizedCustomerName,
       amountExcludingVatNok: input.amountExcludingVatNok,
-    });
+    };
+
+    const originalInvoice = input.invoiceId
+      ? await loadInvoiceById(ctx, input.invoiceId)
+      : await loadInvoiceList(ctx, creditNoteDate).then((response) =>
+          selectExactInvoice(response.values ?? [], requirement),
+        );
+
+    validateInvoiceMatch(originalInvoice, requirement);
 
     const originalInvoiceId = requireNumber(originalInvoice.id, "invoice id");
     const creditResponse = await ctx.tripletex.put<ResponseWrapper<InvoiceSummary>>(
@@ -114,11 +114,13 @@ export const strategy = {
       throw new Error("Tripletex did not confirm isCreditNote=true.");
     }
 
-    if (requireComparableNumber(creditNote.creditedInvoice) !== originalInvoiceId) {
+    if (resolveCreditedInvoiceId(creditNote.creditedInvoice) !== originalInvoiceId) {
       throw new Error(
         `Tripletex credit note response did not link back to invoice ${originalInvoiceId}.`,
       );
     }
+
+    verifyFullCreditAmount(originalInvoice, creditNote);
 
     return {
       createdEntityIds: {
@@ -188,8 +190,8 @@ function selectExactInvoice(
   invoices: readonly InvoiceSummary[],
   requirement: InvoiceRequirement,
 ): InvoiceSummary {
-  const matches = invoices.filter((invoice) =>
-    invoiceMatches(invoice, requirement),
+  const matches = dedupeInvoicesById(
+    invoices.filter((invoice) => invoiceMatches(invoice, requirement)),
   );
 
   if (matches.length === 0) {
@@ -305,6 +307,63 @@ function exVatAmount(invoice: InvoiceSummary): number | null {
     comparableNumber(invoice.amountExcludingVatCurrency) ??
     comparableNumber(invoice.amountExcludingVat)
   );
+}
+
+function absoluteExVatAmount(invoice: InvoiceSummary): number | null {
+  const amount = exVatAmount(invoice);
+  return amount === null ? null : Math.abs(amount);
+}
+
+function verifyFullCreditAmount(
+  originalInvoice: InvoiceSummary,
+  creditNote: InvoiceSummary,
+): void {
+  const originalAmount = absoluteExVatAmount(originalInvoice);
+  const creditNoteAmount = absoluteExVatAmount(creditNote);
+
+  if (originalAmount === null || creditNoteAmount === null) {
+    return;
+  }
+
+  if (creditNoteAmount !== originalAmount) {
+    throw new Error(
+      `Tripletex credit note amount ${creditNoteAmount} did not fully reverse original invoice amount ${originalAmount}.`,
+    );
+  }
+}
+
+function dedupeInvoicesById(
+  invoices: readonly InvoiceSummary[],
+): InvoiceSummary[] {
+  const unique: InvoiceSummary[] = [];
+  const seenIds = new Set<number>();
+
+  for (const invoice of invoices) {
+    const invoiceId = requireComparableNumber(invoice.id);
+    if (invoiceId === undefined) {
+      unique.push(invoice);
+      continue;
+    }
+
+    if (seenIds.has(invoiceId)) {
+      continue;
+    }
+
+    seenIds.add(invoiceId);
+    unique.push(invoice);
+  }
+
+  return unique;
+}
+
+function resolveCreditedInvoiceId(
+  value: InvoiceSummary["creditedInvoice"],
+): number | undefined {
+  if (value && typeof value === "object") {
+    return requireComparableNumber(value.id);
+  }
+
+  return requireComparableNumber(value);
 }
 
 function requireComparableNumber(value: unknown): number | undefined {
