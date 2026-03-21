@@ -336,6 +336,42 @@
     - let the calbase run finish the shared dataset build
     - re-run hybrid residual variants serially now that cache exists
 
+### 2026-03-21T11:48Z full promotion read + rescue branch
+
+- Completed full promotion of pure semh residual student:
+  - experiment: `agent2_full_smh_calbase_resid_8rounds_coverage_20260321`
+  - model: `smh_coeffbank_z0_h0_covlike_calbase_resid_v001`
+  - result: `72.0272 / 0.111177`
+  - artifact: `data/artifacts/benchmarks/agent2_full_smh_calbase_resid_8rounds_coverage_20260321/result.json`
+- Full-read interpretation:
+  - path4 dev win was real but over-specialized
+  - pure residual student massively improved:
+    - `ae78003a...`
+    - `f1dac9a9...`
+  - but gave back too much on:
+    - `fd3c92ff...`
+    - `8e839974...`
+    - `71451d74...`
+    - `76909e29...`
+  - net effect: worse than current standalone semh full best `hbblend50_exactobs`
+- Completed direct comparison rerun:
+  - `agent2_dev10_smh_hbblend50_exactobs_resid_path4_b50_coverage_20260321`
+  - result: `73.8420 / 0.103312`
+  - conclusion: hybrid exactobs residual student is clearly weaker than pure calbase residual on the hard dev slice
+- New branch opened from the full-read:
+  - keep both strong semh lines
+    - stable full-line anchor: `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001`
+    - hard-round specialist: `smh_coeffbank_z0_h0_covlike_calbase_resid_v001`
+  - test semh-to-semh outer blends instead of abandoning the student branch
+- Added new semh rescue blend model names:
+  - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001`
+- Validation after adding rescue blends:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_coeffbank or smh_resid'`
+  - result: `16 passed`
+- Active run now:
+  - `agent2_full_smh_hbexact_calresid_blend025_8rounds_coverage_20260321`
+
 ## 2026-03-21 Standalone Semimech Pivot
 
 ### 2026-03-21T09:27:36Z intent correction

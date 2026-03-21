@@ -41,6 +41,12 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_RESID_V001 = (
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_resid_v001"
 )
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001"
+)
 SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001 = "smh_knn5_z12_h0_covsum_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBASE_V001 = "smh_knn5_z12_h0_covaug_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBANK_V001 = "smh_knn5_z12_h0_covaug_calbank_v001"
@@ -1017,6 +1023,87 @@ def _build_smh_residual_student_adapter(
     )
 
 
+def _load_smh_hbexact_calresid_components(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+) -> tuple[BaseRoundPredictor, BaseRoundPredictor]:
+    left_predictor = build_online_predictor(
+        SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001,
+        paths=workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    ).predictor
+    right_predictor = build_online_predictor(
+        SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
+        paths=workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    ).predictor
+    return left_predictor, right_predictor
+
+
+def _build_smh_hbexact_calresid_blend_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    right_weight: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_smh_hbexact_calresid_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    predictor = FixedPredictionBlendPredictor(
+        left_predictor=left_predictor,
+        right_predictor=right_predictor,
+        right_weight=right_weight,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
+def _build_smh_hbexact_calresid_adaptive_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    blend_name: str,
+    target_right_weight: float,
+) -> RoundPredictorAdapter:
+    left_predictor, right_predictor = _load_smh_hbexact_calresid_components(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    predictor = AdaptiveEntropyDisagreementBlendPredictor(
+        left_predictor=left_predictor,
+        right_predictor=right_predictor,
+        target_right_weight=target_right_weight,
+        min_right_weight=0.05,
+        max_right_weight=0.45,
+        weight_exponent=1.0,
+        name=blend_name,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
@@ -1204,6 +1291,26 @@ def build_online_predictor(
             model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
             base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
             fit_kwargs=_smh_calbase_resid_fit_kwargs(),
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001,
+            right_weight=0.25,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_adaptive_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001,
+            target_right_weight=0.25,
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTFOCUS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

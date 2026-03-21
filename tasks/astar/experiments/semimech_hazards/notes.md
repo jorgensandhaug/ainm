@@ -205,3 +205,23 @@
   - stopping read for this axis:
     - the `xwide` variant already spans the full current round-target clip range `[0.05, 0.45]`
     - future gains likely need a new axis such as per-cell floor/cap changes or a learned round-target map, not just more spread on the same formula
+
+## Semh residual-student restart read
+
+- The first real semh-native transcript-conditioned residual student is not a marginal tweak.
+- `smh_coeffbank_z0_h0_covlike_calbase_resid_v001` on the hard path4 dev slice:
+  - `74.3819 / 0.098890`
+  - versus the prior standalone semh full winner family (`hbblend50_exactobs`-style branch), this is a regime change, not a small gain
+- Interpretation:
+  - the main missing ingredient was indeed a stronger transcript-conditioned student
+  - the pure semh coeffbank prior was not the bottleneck once a real residual student was added
+  - the earlier hybrid exactobs line was compensating for student weakness, not defining the best long-run family
+- Direct comparison inside the new branch:
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_resid_v001` only reached `73.8420 / 0.103312`
+  - biggest visible failure was on `ae78003a...`
+  - read: importing historical-bucket structure into the residual-student base hurts this branch; the stronger student wants the cleaner semh prior
+- Infra/runtime read from this restart:
+  - the old scoped coverage synthetic-live dataset dir was incomplete: episodes existed but `index.parquet` and `summary.json` were missing
+  - first residual-student run spent most of its runtime finishing that cache
+  - after cache completion, follow-up residual-student runs dropped sharply in runtime
+  - widened DuckDB catalog lock retries were necessary because parallel materialization otherwise failed too early on the shared box

@@ -120,6 +120,8 @@ def run_historical_benchmark(
         "smh_resid_z12_h0_covbase_locgate_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_resid_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001",
         "smh_coeffbank_z0_h0_covlike_builtfocus_v001",
         "smh_coeffbank_z0_h0_covlike_builtsharp_v001",
         "smh_coeffbank_z0_h0_covlike_hbblend25_v001",
