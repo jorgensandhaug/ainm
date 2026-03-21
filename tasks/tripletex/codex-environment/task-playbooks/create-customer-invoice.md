@@ -93,10 +93,14 @@ Do not use for:
   - after setup, the winning proof path itself was exactly four calls: `GET /customer?organizationNumber=851635875&fields=*` -> `GET /product?count=1000&fields=*` -> `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` -> `POST /invoice?sendToCustomer=false`
   - that proof invoice succeeded with `amountExcludingVatCurrency=53050` and `amountCurrency=53050`
   - because the sandbox still exposed only `0%` outgoing VAT, this analog proved the product-resolution and single-script callback/fallback lesson, but not the exact mixed `25%` / `15%` / `0%` VAT combination itself
-- the 2026-03-21 production run for `Ridgepoint Ltd` / `970844708` / products `3957` + `8149` + `8092` / VAT `25%` + `15% food` + `0% exempt` scored `0/1` (timeout) because the agent spent all `300s` reading documentation files (`AGENTS.md` too large at 27703 tokens, then trusted standard, then partial `AGENTS.md`) and never wrote or executed the API script; no API calls were made at all
-  - this was an exact trusted-standard match for the `3`-call fast path: `GET /customer` -> `GET /product?productNumber=...` -> `POST /invoice?sendToCustomer=false`
+- the first 2026-03-21 production run for `Ridgepoint Ltd` / `970844708` / products `3957` + `8149` + `8092` / VAT `25%` + `15% food` + `0% exempt` scored `0/1` (timeout) because the agent spent all `300s` reading documentation files and never executed the API script
   - the root cause was excessive file reading before execution, not an API-flow issue
-  - persistent sandbox re-proof on 2026-03-21 re-confirmed that both explicit `vatType: { id: product.vatType.id }` and omitted `vatType` produce identical product-linked invoice readback
+- the immediate retry (second 2026-03-21 production run, cdea5ca9) for the same task succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=970844708&fields=*` -> `GET /product?number=3957,8149,8092&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - third production confirmation of the comma-separated `number=X,Y,Z` product query approach; returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=32350` / `amountCurrency=34912.5`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - second production run achieving the optimal 6-call path (3 core + 3 bank-account repair)
 - the 2026-03-21 production run for `Elvdal AS` / `810713909` / products `Nettverksteneste (7765)` + `Konsulenttimar (4369)` + `Vedlikehald (5331)` / VAT `25%` + `15% food` + `0% exempt` succeeded but used 7 calls instead of the optimal 6:
   - the wasted call was a speculative `GET /product?productNumber=7765&productNumber=4369&productNumber=5331&fields=*` that returned only product `5331`; the broader `GET /product?count=1000&fields=*` fallback then found all three by local `number` filtering
   - this confirms that for the "names + parenthetical numbers" prompt pattern, the catalog read is always strictly equal or better than the speculative productNumber query: both are 1 call, but the speculative query can waste an extra call when it returns partial results
