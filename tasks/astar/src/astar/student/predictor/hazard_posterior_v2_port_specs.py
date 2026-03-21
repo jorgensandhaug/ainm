@@ -186,6 +186,23 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         predicted_particle_weight=0.7,
         samples_per_round=8,
     ),
+    # === SAMPLES_PER_ROUND=1 (agent1's approach) ===
+    "f1_hazard_posterior_v2_k5_r3_s1_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_s1_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        samples_per_round=1,
+    ),
+    "f1_hazard_posterior_v2_k7_r3_s1_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k7_r3_s1_v01",
+        k_neighbors=7,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        samples_per_round=1,
+    ),
     # === V3 TEACHER VARIANTS (richer spatial features) ===
     # V3 teacher with k5 r3
     "f1_hazard_posterior_v3_k5_r3_v01": HazardPosteriorV2PortModelSpec(
