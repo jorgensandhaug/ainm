@@ -1,0 +1,41 @@
+{
+  "val_dir": "data/yolo/val",
+  "settings": "raw-logits ONNX, conf=0.0005, nms_iou=0.55, context rules disabled (baseline inference)",
+  "models": {
+    "finalfull_e20": {
+      "weights": "runs/finalfull_e20_img640_b8_lr0.0006_mix0.05_cp0.1_seed123/weights/best.pt",
+      "onnx": "sweep_results/eval_finalfull_raw.onnx",
+      "predictions": "sweep_results/pred_eval_finalfull.json",
+      "det_ap50": 0.9287,
+      "cls_map50_present": 0.7354,
+      "hybrid_present": 0.8707
+    },
+    "confcurr_s2": {
+      "weights": "runs/confcurr_s2_e18_img640_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+      "onnx": "sweep_results/eval_confcurr_s2_raw.onnx",
+      "predictions": "sweep_results/pred_eval_confcurr_s2.json",
+      "det_ap50": 0.9321,
+      "cls_map50_present": 0.7445,
+      "hybrid_present": 0.8758,
+      "delta_hybrid_vs_finalfull": 0.0051
+    }
+  },
+  "threshold_sweep_confcurr_onnx": {
+    "onnx": "sweep_results/eval_confcurr_s2_raw.onnx",
+    "nms_iou": 0.55,
+    "conf_values_tried": [0.0003, 0.0004, 0.0005, 0.0006, 0.0007],
+    "best": {
+      "conf_thres": 0.0003,
+      "det_ap50": 0.9325,
+      "cls_map50_present": 0.7448,
+      "hybrid_present": 0.8762,
+      "predictions": "sweep_results/sweep_preds/pred_c0p0003_iou0p55.json"
+    },
+    "delta_hybrid_vs_conf_at_0p0005": 0.0004
+  },
+  "notes": [
+    "Confusion-pair curriculum + metric-aligned stage2 improved cls mAP (+0.0091) and hybrid (+0.0051) at fixed inference settings.",
+    "Reranking (context/neighbor) did not change hybrid on val with prior settings; primary lever remains model + threshold tuning.",
+    "On confcurr_s2, val hybrid peaks slightly lower conf (0.0003 vs 0.0005): +0.0004 hybrid vs same model at conf=0.0005."
+  ]
+}

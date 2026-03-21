@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "name": "baseline",
+      "args": [
+        "--disable-context-rule",
+        "--conf-thres",
+        "0.0005",
+        "--nms-iou",
+        "0.55"
+      ],
+      "predictions": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/sweep_results/rerank_baseline.json",
+      "pred_boxes": 17560.0,
+      "det_ap50": 0.9287,
+      "cls_map50_present": 0.7354,
+      "hybrid_present": 0.8707
+    },
+    {
+      "name": "context_only",
+      "args": [
+        "--conf-thres",
+        "0.0005",
+        "--nms-iou",
+        "0.55",
+        "--context-alpha",
+        "0.15",
+        "--context-topk",
+        "60"
+      ],
+      "predictions": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/sweep_results/rerank_context_only.json",
+      "pred_boxes": 17577.0,
+      "det_ap50": 0.9287,
+      "cls_map50_present": 0.7354,
+      "hybrid_present": 0.8707
+    },
+    {
+      "name": "context_plus_neighbor",
+      "args": [
+        "--conf-thres",
+        "0.0005",
+        "--nms-iou",
+        "0.55",
+        "--context-alpha",
+        "0.15",
+        "--context-topk",
+        "60",
+        "--enable-neighbor-rule",
+        "--neighbor-alpha",
+        "0.12",
+        "--neighbor-k",
+        "6",
+        "--neighbor-self-weight",
+        "0.5"
+      ],
+      "predictions": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/sweep_results/rerank_context_plus_neighbor.json",
+      "pred_boxes": 17592.0,
+      "det_ap50": 0.9287,
+      "cls_map50_present": 0.7354,
+      "hybrid_present": 0.8707
+    }
+  ],
+  "best": {
+    "name": "baseline",
+    "args": [
+      "--disable-context-rule",
+      "--conf-thres",
+      "0.0005",
+      "--nms-iou",
+      "0.55"
+    ],
+    "predictions": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/sweep_results/rerank_baseline.json",
+    "pred_boxes": 17560.0,
+    "det_ap50": 0.9287,
+    "cls_map50_present": 0.7354,
+    "hybrid_present": 0.8707
+  }
+}

@@ -1,0 +1,664 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Label Review Panels</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; background: #f4f6f8; }
+    h1 { margin: 0 0 8px 0; }
+    .hint { margin-bottom: 16px; color: #555; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 14px; }
+    .card { background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+    .card img { width: 100%; display: block; }
+    .meta { padding: 10px 12px; font-size: 13px; line-height: 1.4; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Label Review Panels</h1>
+  <div class="hint">Review images here, then record decisions with annotate_review_queue.py.</div>
+  <div class="grid">
+    
+            <div class="card">
+              <img src="idx_0000.png" alt="idx 0">
+              <div class="meta">
+                <div><b>idx</b> 0 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.922</div>
+                <div><b>gt</b> 21 (KNEKKEBRØD RUNDA SESAM&amp;HAVSALT 290G WASA)</div>
+                <div><b>pred</b> 39 (KNEKKEBRØD RUNDA KANEL 330G WASA)</div>
+                <div><b>iou</b> 0.969 | <b>score</b> 0.890</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00296.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00296.txt @ line 118</div>
+                <div><b>label_line</b> <code>21 0.153150 0.286045 0.043403 0.082011</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0001.png" alt="idx 1">
+              <div class="meta">
+                <div><b>idx</b> 1 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.911</div>
+                <div><b>gt</b> 21 (KNEKKEBRØD RUNDA SESAM&amp;HAVSALT 290G WASA)</div>
+                <div><b>pred</b> 39 (KNEKKEBRØD RUNDA KANEL 330G WASA)</div>
+                <div><b>iou</b> 0.904 | <b>score</b> 0.916</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00302.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00302.txt @ line 108</div>
+                <div><b>label_line</b> <code>21 0.649430 0.572421 0.030506 0.064153</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0002.png" alt="idx 2">
+              <div class="meta">
+                <div><b>idx</b> 2 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.889</div>
+                <div><b>gt</b> 261 (MÜSLI HASSELNØTT 600G AXA)</div>
+                <div><b>pred</b> 260 (MUSLI ENERGI 675G AXA)</div>
+                <div><b>iou</b> 0.969 | <b>score</b> 0.836</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00195.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00195.txt @ line 0</div>
+                <div><b>label_line</b> <code>261 0.085518 0.322864 0.081149 0.103015</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0003.png" alt="idx 3">
+              <div class="meta">
+                <div><b>idx</b> 3 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.884</div>
+                <div><b>gt</b> 49 (EVERGOOD DARK ROAST FILTERMALT 250G)</div>
+                <div><b>pred</b> 347 (EVERGOOD DARK ROAST PRESSMALT 250G)</div>
+                <div><b>iou</b> 0.854 | <b>score</b> 0.904</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00026.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00026.txt @ line 20</div>
+                <div><b>label_line</b> <code>49 0.702515 0.527885 0.104076 0.137821</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0004.png" alt="idx 4">
+              <div class="meta">
+                <div><b>idx</b> 4 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.874</div>
+                <div><b>gt</b> 355 (unknown_product)</div>
+                <div><b>pred</b> 150 (Sætre GullBar)</div>
+                <div><b>iou</b> 0.923 | <b>score</b> 0.841</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00251.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00251.txt @ line 73</div>
+                <div><b>label_line</b> <code>355 0.503375 0.078333 0.062250 0.079333</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0005.png" alt="idx 5">
+              <div class="meta">
+                <div><b>idx</b> 5 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.863</div>
+                <div><b>gt</b> 355 (unknown_product)</div>
+                <div><b>pred</b> 150 (Sætre GullBar)</div>
+                <div><b>iou</b> 0.845 | <b>score</b> 0.876</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt @ line 67</div>
+                <div><b>label_line</b> <code>355 0.656250 0.868552 0.042659 0.056548</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0006.png" alt="idx 6">
+              <div class="meta">
+                <div><b>idx</b> 6 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.862</div>
+                <div><b>gt</b> 259 (REGIA KAKAO ORIGINAL 260G)</div>
+                <div><b>pred</b> 56 (SJOKOLADEDRIKK 10PK 320G REGIA)</div>
+                <div><b>iou</b> 0.908 | <b>score</b> 0.831</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt @ line 39</div>
+                <div><b>label_line</b> <code>259 0.755625 0.631333 0.040250 0.066667</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0007.png" alt="idx 7">
+              <div class="meta">
+                <div><b>idx</b> 7 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.847</div>
+                <div><b>gt</b> 261 (MÜSLI HASSELNØTT 600G AXA)</div>
+                <div><b>pred</b> 260 (MUSLI ENERGI 675G AXA)</div>
+                <div><b>iou</b> 0.903 | <b>score</b> 0.810</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00178.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00178.txt @ line 45</div>
+                <div><b>label_line</b> <code>261 0.873305 0.458362 0.083898 0.082582</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0008.png" alt="idx 8">
+              <div class="meta">
+                <div><b>idx</b> 8 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.829</div>
+                <div><b>gt</b> 189 (YELLOW LABEL TEA 25POS LIPTON)</div>
+                <div><b>pred</b> 27 (YELLOW LABEL TEA 50POS LIPTON)</div>
+                <div><b>iou</b> 0.923 | <b>score</b> 0.766</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt @ line 54</div>
+                <div><b>label_line</b> <code>189 0.524625 0.640333 0.048250 0.037333</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0009.png" alt="idx 9">
+              <div class="meta">
+                <div><b>idx</b> 9 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.825</div>
+                <div><b>gt</b> 61 (MUSLI BLÅBÆR 630G AXA)</div>
+                <div><b>pred</b> 315 (4-KORN 675G AXA)</div>
+                <div><b>iou</b> 0.924 | <b>score</b> 0.760</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt @ line 40</div>
+                <div><b>label_line</b> <code>61 0.038938 0.221065 0.077877 0.106151</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0010.png" alt="idx 10">
+              <div class="meta">
+                <div><b>idx</b> 10 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.824</div>
+                <div><b>gt</b> 355 (unknown_product)</div>
+                <div><b>pred</b> 150 (Sætre GullBar)</div>
+                <div><b>iou</b> 0.863 | <b>score</b> 0.798</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt @ line 69</div>
+                <div><b>label_line</b> <code>355 0.698041 0.876488 0.047371 0.061839</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0011.png" alt="idx 11">
+              <div class="meta">
+                <div><b>idx</b> 11 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.820</div>
+                <div><b>gt</b> 355 (unknown_product)</div>
+                <div><b>pred</b> 150 (Sætre GullBar)</div>
+                <div><b>iou</b> 0.837 | <b>score</b> 0.809</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt @ line 66</div>
+                <div><b>label_line</b> <code>355 0.656250 0.813823 0.042659 0.065476</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0012.png" alt="idx 12">
+              <div class="meta">
+                <div><b>idx</b> 12 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.816</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.804 | <b>score</b> 0.824</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt @ line 92</div>
+                <div><b>label_line</b> <code>100 0.249132 0.673115 0.050347 0.096892</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0013.png" alt="idx 13">
+              <div class="meta">
+                <div><b>idx</b> 13 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.812</div>
+                <div><b>gt</b> 21 (KNEKKEBRØD RUNDA SESAM&amp;HAVSALT 290G WASA)</div>
+                <div><b>pred</b> 39 (KNEKKEBRØD RUNDA KANEL 330G WASA)</div>
+                <div><b>iou</b> 0.870 | <b>score</b> 0.773</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00272.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00272.txt @ line 50</div>
+                <div><b>label_line</b> <code>21 0.799000 0.629167 0.041500 0.097000</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0014.png" alt="idx 14">
+              <div class="meta">
+                <div><b>idx</b> 14 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.811</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.838 | <b>score</b> 0.792</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt @ line 90</div>
+                <div><b>label_line</b> <code>100 0.153646 0.676587 0.053819 0.087963</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0015.png" alt="idx 15">
+              <div class="meta">
+                <div><b>idx</b> 15 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.809</div>
+                <div><b>gt</b> 160 (ALI ORIGINAL KOKMALT 250G)</div>
+                <div><b>pred</b> 171 (ALI ORIGINAL FILTERMALT 250G)</div>
+                <div><b>iou</b> 0.837 | <b>score</b> 0.790</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00064.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00064.txt @ line 108</div>
+                <div><b>label_line</b> <code>160 0.108333 0.861719 0.026389 0.053646</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0016.png" alt="idx 16">
+              <div class="meta">
+                <div><b>idx</b> 16 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.799</div>
+                <div><b>gt</b> 160 (ALI ORIGINAL KOKMALT 250G)</div>
+                <div><b>pred</b> 171 (ALI ORIGINAL FILTERMALT 250G)</div>
+                <div><b>iou</b> 0.921 | <b>score</b> 0.718</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt @ line 95</div>
+                <div><b>label_line</b> <code>160 0.188120 0.832176 0.040923 0.114749</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0017.png" alt="idx 17">
+              <div class="meta">
+                <div><b>idx</b> 17 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.788</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.957 | <b>score</b> 0.676</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt @ line 92</div>
+                <div><b>label_line</b> <code>100 0.374876 0.687335 0.051339 0.110780</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0018.png" alt="idx 18">
+              <div class="meta">
+                <div><b>idx</b> 18 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.784</div>
+                <div><b>gt</b> 240 (SUPERGRANOLA GLUTENFRI 350G BARE BRA)</div>
+                <div><b>pred</b> 47 (GRANOLA EPLE&amp;KANEL 430G BARE BRA)</div>
+                <div><b>iou</b> 0.879 | <b>score</b> 0.720</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt @ line 40</div>
+                <div><b>label_line</b> <code>240 0.374250 0.436000 0.042000 0.072000</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0019.png" alt="idx 19">
+              <div class="meta">
+                <div><b>idx</b> 19 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.781</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.879 | <b>score</b> 0.716</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt @ line 89</div>
+                <div><b>label_line</b> <code>100 0.104167 0.673446 0.052083 0.091601</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0020.png" alt="idx 20">
+              <div class="meta">
+                <div><b>idx</b> 20 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.780</div>
+                <div><b>gt</b> 61 (MUSLI BLÅBÆR 630G AXA)</div>
+                <div><b>pred</b> 315 (4-KORN 675G AXA)</div>
+                <div><b>iou</b> 0.869 | <b>score</b> 0.720</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00205.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00205.txt @ line 15</div>
+                <div><b>label_line</b> <code>61 0.865500 0.394000 0.040000 0.078667</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0021.png" alt="idx 21">
+              <div class="meta">
+                <div><b>idx</b> 21 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.773</div>
+                <div><b>gt</b> 240 (SUPERGRANOLA GLUTENFRI 350G BARE BRA)</div>
+                <div><b>pred</b> 47 (GRANOLA EPLE&amp;KANEL 430G BARE BRA)</div>
+                <div><b>iou</b> 0.849 | <b>score</b> 0.723</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt @ line 4</div>
+                <div><b>label_line</b> <code>240 0.306452 0.246867 0.087097 0.187970</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0022.png" alt="idx 22">
+              <div class="meta">
+                <div><b>idx</b> 22 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.772</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.922 | <b>score</b> 0.671</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt @ line 94</div>
+                <div><b>label_line</b> <code>100 0.475694 0.686177 0.050595 0.108466</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0023.png" alt="idx 23">
+              <div class="meta">
+                <div><b>idx</b> 23 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.768</div>
+                <div><b>gt</b> 186 (SUPERGRØT SKOGSBÆR 57G BARE BRA)</div>
+                <div><b>pred</b> 268 (SUPERGRØT KANEL&amp;PUFFET QUINOA 54G)</div>
+                <div><b>iou</b> 0.882 | <b>score</b> 0.692</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00186.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00186.txt @ line 79</div>
+                <div><b>label_line</b> <code>186 0.151804 0.607531 0.045876 0.059023</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0024.png" alt="idx 24">
+              <div class="meta">
+                <div><b>idx</b> 24 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.764</div>
+                <div><b>gt</b> 61 (MUSLI BLÅBÆR 630G AXA)</div>
+                <div><b>pred</b> 315 (4-KORN 675G AXA)</div>
+                <div><b>iou</b> 0.820 | <b>score</b> 0.727</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt @ line 38</div>
+                <div><b>label_line</b> <code>61 0.170759 0.239583 0.060268 0.088294</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0025.png" alt="idx 25">
+              <div class="meta">
+                <div><b>idx</b> 25 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.762</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.921 | <b>score</b> 0.655</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt @ line 93</div>
+                <div><b>label_line</b> <code>100 0.424975 0.686508 0.051835 0.109127</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0026.png" alt="idx 26">
+              <div class="meta">
+                <div><b>idx</b> 26 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.760</div>
+                <div><b>gt</b> 141 (EVERGOOD CLASSIC PRESSMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.970 | <b>score</b> 0.620</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt @ line 68</div>
+                <div><b>label_line</b> <code>141 0.068700 0.311839 0.054067 0.105820</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0027.png" alt="idx 27">
+              <div class="meta">
+                <div><b>idx</b> 27 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.757</div>
+                <div><b>gt</b> 21 (KNEKKEBRØD RUNDA SESAM&amp;HAVSALT 290G WASA)</div>
+                <div><b>pred</b> 39 (KNEKKEBRØD RUNDA KANEL 330G WASA)</div>
+                <div><b>iou</b> 0.896 | <b>score</b> 0.663</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00272.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00272.txt @ line 51</div>
+                <div><b>label_line</b> <code>21 0.839750 0.631167 0.050000 0.093667</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0028.png" alt="idx 28">
+              <div class="meta">
+                <div><b>idx</b> 28 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.755</div>
+                <div><b>gt</b> 117 (GRANOLA HASSELNØTT&amp;KOKOS 450G BARE BRA)</div>
+                <div><b>pred</b> 78 (MUSLI HAVRE&amp;MANDEL 400G BARE BRA)</div>
+                <div><b>iou</b> 0.971 | <b>score</b> 0.611</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt @ line 0</div>
+                <div><b>label_line</b> <code>117 0.709677 0.194236 0.087097 0.177945</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0029.png" alt="idx 29">
+              <div class="meta">
+                <div><b>idx</b> 29 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.753</div>
+                <div><b>gt</b> 240 (SUPERGRANOLA GLUTENFRI 350G BARE BRA)</div>
+                <div><b>pred</b> 47 (GRANOLA EPLE&amp;KANEL 430G BARE BRA)</div>
+                <div><b>iou</b> 0.875 | <b>score</b> 0.672</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt @ line 18</div>
+                <div><b>label_line</b> <code>240 0.336833 0.313250 0.063000 0.080500</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0030.png" alt="idx 30">
+              <div class="meta">
+                <div><b>idx</b> 30 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.749</div>
+                <div><b>gt</b> 240 (SUPERGRANOLA GLUTENFRI 350G BARE BRA)</div>
+                <div><b>pred</b> 47 (GRANOLA EPLE&amp;KANEL 430G BARE BRA)</div>
+                <div><b>iou</b> 0.889 | <b>score</b> 0.655</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt @ line 5</div>
+                <div><b>label_line</b> <code>240 0.227419 0.240602 0.087097 0.185464</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0031.png" alt="idx 31">
+              <div class="meta">
+                <div><b>idx</b> 31 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.749</div>
+                <div><b>gt</b> 348 (ALI ORIGINAL HELE BØNNER 250G)</div>
+                <div><b>pred</b> 171 (ALI ORIGINAL FILTERMALT 250G)</div>
+                <div><b>iou</b> 0.874 | <b>score</b> 0.665</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt @ line 77</div>
+                <div><b>label_line</b> <code>348 0.672500 0.726167 0.039500 0.076333</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0032.png" alt="idx 32">
+              <div class="meta">
+                <div><b>idx</b> 32 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.744</div>
+                <div><b>gt</b> 137 (NESCAFE AZERA ESPRESSO 100G)</div>
+                <div><b>pred</b> 292 (NESCAFE AZERA AMERICANO 100G)</div>
+                <div><b>iou</b> 0.978 | <b>score</b> 0.588</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt @ line 82</div>
+                <div><b>label_line</b> <code>137 0.649802 0.264220 0.033234 0.061508</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0033.png" alt="idx 33">
+              <div class="meta">
+                <div><b>idx</b> 33 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.737</div>
+                <div><b>gt</b> 189 (YELLOW LABEL TEA 25POS LIPTON)</div>
+                <div><b>pred</b> 27 (YELLOW LABEL TEA 50POS LIPTON)</div>
+                <div><b>iou</b> 0.943 | <b>score</b> 0.600</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00060.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00060.txt @ line 95</div>
+                <div><b>label_line</b> <code>189 0.728381 0.628324 0.080562 0.042553</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0034.png" alt="idx 34">
+              <div class="meta">
+                <div><b>idx</b> 34 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.733</div>
+                <div><b>gt</b> 117 (GRANOLA HASSELNØTT&amp;KOKOS 450G BARE BRA)</div>
+                <div><b>pred</b> 78 (MUSLI HAVRE&amp;MANDEL 400G BARE BRA)</div>
+                <div><b>iou</b> 0.871 | <b>score</b> 0.641</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt @ line 38</div>
+                <div><b>label_line</b> <code>117 0.295000 0.428333 0.043000 0.072000</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0035.png" alt="idx 35">
+              <div class="meta">
+                <div><b>idx</b> 35 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.729</div>
+                <div><b>gt</b> 355 (unknown_product)</div>
+                <div><b>pred</b> 150 (Sætre GullBar)</div>
+                <div><b>iou</b> 0.865 | <b>score</b> 0.639</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt @ line 68</div>
+                <div><b>label_line</b> <code>355 0.699033 0.821098 0.049355 0.064815</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0036.png" alt="idx 36">
+              <div class="meta">
+                <div><b>idx</b> 36 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.725</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.834 | <b>score</b> 0.652</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00062.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00062.txt @ line 50</div>
+                <div><b>label_line</b> <code>100 0.320370 0.577642 0.055556 0.096748</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0037.png" alt="idx 37">
+              <div class="meta">
+                <div><b>idx</b> 37 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.724</div>
+                <div><b>gt</b> 141 (EVERGOOD CLASSIC PRESSMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.777 | <b>score</b> 0.689</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00005.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00005.txt @ line 71</div>
+                <div><b>label_line</b> <code>141 0.337922 0.400298 0.042411 0.116733</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0038.png" alt="idx 38">
+              <div class="meta">
+                <div><b>idx</b> 38 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.721</div>
+                <div><b>gt</b> 61 (MUSLI BLÅBÆR 630G AXA)</div>
+                <div><b>pred</b> 315 (4-KORN 675G AXA)</div>
+                <div><b>iou</b> 0.857 | <b>score</b> 0.630</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt @ line 39</div>
+                <div><b>label_line</b> <code>61 0.109127 0.229828 0.075893 0.097222</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <img src="idx_0039.png" alt="idx 39">
+              <div class="meta">
+                <div><b>idx</b> 39 | <b>unresolved</b></div>
+                <div><b>type</b> class_confusion | <b>priority</b> 0.714</div>
+                <div><b>gt</b> 100 (EVERGOOD CLASSIC FILTERMALT 250G)</div>
+                <div><b>pred</b> 304 (EVERGOOD CLASSIC KOKMALT 250G)</div>
+                <div><b>iou</b> 0.842 | <b>score</b> 0.629</div>
+                <div><b>image</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg</div>
+                <div><b>label</b> /cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt @ line 91</div>
+                <div><b>label_line</b> <code>100 0.203125 0.675595 0.053075 0.094577</code></div>
+                <div><b>suggested_action</b> Verify GT class vs sibling class; fix inconsistent SKU labeling first.</div>
+                <div><b>note</b> </div>
+              </div>
+            </div>
+            
+  </div>
+</body>
+</html>

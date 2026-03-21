@@ -16,6 +16,7 @@ def export_yolo_to_onnx(
     opset: int = 17,
     dynamic: bool = False,
     fp16: bool = False,
+    raw_logits: bool = False,
 ) -> Path:
     """Export a trained Ultralytics YOLO detector to ONNX."""
     weights = Path(weights_path).expanduser().resolve()
@@ -23,13 +24,18 @@ def export_yolo_to_onnx(
     output.parent.mkdir(parents=True, exist_ok=True)
 
     model = YOLO(str(weights))
+    if raw_logits:
+        # Force pre-NMS head export. Some checkpoints are trained/stored as end2end=True.
+        if hasattr(model.model, "end2end"):
+            model.model.end2end = False
     exported_path = model.export(
         format="onnx",
         imgsz=imgsz,
-        simplify=True,
+        simplify=not raw_logits,
         dynamic=dynamic,
         opset=opset,
         half=fp16,
+        nms=not raw_logits,
     )
 
     exported = Path(exported_path).resolve()
@@ -109,6 +115,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Export model in FP16 where supported.",
     )
+    yolo_parser.add_argument(
+        "--raw-logits",
+        action="store_true",
+        help="Export raw detection head outputs (disable baked-in NMS).",
+    )
 
     dino_parser = subparsers.add_parser("dino", help="Export a DINOv2 embedder.")
     dino_parser.add_argument(
@@ -143,6 +154,7 @@ def main() -> None:
             opset=args.opset,
             dynamic=args.dynamic,
             fp16=args.fp16,
+            raw_logits=args.raw_logits,
         )
     else:
         output = export_dino_to_onnx(

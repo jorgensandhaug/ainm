@@ -1,0 +1,4165 @@
+{
+  "config": {
+    "predictions": "sweep_results/rerank_baseline.json",
+    "val_dir": "data/yolo/val",
+    "iou": 0.5,
+    "near_iou": 0.35,
+    "score_threshold": 0.0,
+    "top_pairs": 20,
+    "max_per_pair": 120,
+    "max_near_miss": 400
+  },
+  "counts": {
+    "total_misclassified_matches": 348,
+    "total_near_miss": 53,
+    "queue_size": 143
+  },
+  "top_pairs": [
+    {
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "count": 8
+    },
+    {
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "count": 8
+    },
+    {
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "count": 7
+    },
+    {
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "count": 6
+    },
+    {
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "count": 5
+    },
+    {
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "count": 5
+    },
+    {
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "count": 5
+    },
+    {
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "count": 5
+    },
+    {
+      "gt_class_id": 117,
+      "gt_class_name": "GRANOLA HASSELN\u00d8TT&KOKOS 450G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "count": 4
+    },
+    {
+      "gt_class_id": 261,
+      "gt_class_name": "M\u00dcSLI HASSELN\u00d8TT 600G AXA",
+      "pred_class_id": 260,
+      "pred_class_name": "MUSLI ENERGI 675G AXA",
+      "count": 4
+    },
+    {
+      "gt_class_id": 61,
+      "gt_class_name": "MUSLI BL\u00c5B\u00c6R 630G AXA",
+      "pred_class_id": 315,
+      "pred_class_name": "4-KORN 675G AXA",
+      "count": 4
+    },
+    {
+      "gt_class_id": 345,
+      "gt_class_name": "KNEKKEBR\u00d8D URTER&HAVSALT 220G SIGDAL",
+      "pred_class_id": 92,
+      "pred_class_name": "KNEKKEBR\u00d8D GODT FOR DEG 235G SIGDAL",
+      "count": 4
+    },
+    {
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 39,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA KANEL 330G WASA",
+      "count": 4
+    },
+    {
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 106,
+      "pred_class_name": "NESCAFE GOLD KOFFEINFRI 100G",
+      "count": 3
+    },
+    {
+      "gt_class_id": 141,
+      "gt_class_name": "EVERGOOD CLASSIC PRESSMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "count": 3
+    },
+    {
+      "gt_class_id": 259,
+      "gt_class_name": "REGIA KAKAO ORIGINAL 260G",
+      "pred_class_id": 56,
+      "pred_class_name": "SJOKOLADEDRIKK 10PK 320G REGIA",
+      "count": 3
+    },
+    {
+      "gt_class_id": 49,
+      "gt_class_name": "EVERGOOD DARK ROAST FILTERMALT 250G",
+      "pred_class_id": 347,
+      "pred_class_name": "EVERGOOD DARK ROAST PRESSMALT 250G",
+      "count": 3
+    },
+    {
+      "gt_class_id": 178,
+      "gt_class_name": "NESCAFE GOLD ORGANIC&FAIRTRADE 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "count": 3
+    },
+    {
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "count": 3
+    },
+    {
+      "gt_class_id": 137,
+      "gt_class_name": "NESCAFE AZERA ESPRESSO 100G",
+      "pred_class_id": 292,
+      "pred_class_name": "NESCAFE AZERA AMERICANO 100G",
+      "count": 3
+    }
+  ],
+  "queue": [
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.921556,
+      "image_id": 296,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00296.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00296.txt",
+      "label_line_index": 118,
+      "label_line": "21 0.153150 0.286045 0.043403 0.082011",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 39,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA KANEL 330G WASA",
+      "pred_score": 0.889948,
+      "iou": 0.968968,
+      "gt_bbox_xyxy": [
+        530.0,
+        741.0,
+        705.0,
+        989.0
+      ],
+      "pred_bbox_xyxy": [
+        530.4,
+        739.1,
+        706.9,
+        986.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.911446,
+      "image_id": 302,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00302.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00302.txt",
+      "label_line_index": 108,
+      "label_line": "21 0.649430 0.572421 0.030506 0.064153",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 39,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA KANEL 330G WASA",
+      "pred_score": 0.916479,
+      "iou": 0.903897,
+      "gt_bbox_xyxy": [
+        2557.0,
+        1634.0,
+        2680.0,
+        1828.0
+      ],
+      "pred_bbox_xyxy": [
+        2559.8,
+        1634.6,
+        2673.2,
+        1824.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.888862,
+      "image_id": 195,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00195.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00195.txt",
+      "label_line_index": 0,
+      "label_line": "261 0.085518 0.322864 0.081149 0.103015",
+      "gt_class_id": 261,
+      "gt_class_name": "M\u00dcSLI HASSELN\u00d8TT 600G AXA",
+      "pred_class_id": 260,
+      "pred_class_name": "MUSLI ENERGI 675G AXA",
+      "pred_score": 0.835625,
+      "iou": 0.968718,
+      "gt_bbox_xyxy": [
+        36.0,
+        216.0,
+        101.0,
+        298.0
+      ],
+      "pred_bbox_xyxy": [
+        36.6,
+        216.0,
+        100.9,
+        296.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.883869,
+      "image_id": 26,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00026.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00026.txt",
+      "label_line_index": 20,
+      "label_line": "49 0.702515 0.527885 0.104076 0.137821",
+      "gt_class_id": 49,
+      "gt_class_name": "EVERGOOD DARK ROAST FILTERMALT 250G",
+      "pred_class_id": 347,
+      "pred_class_name": "EVERGOOD DARK ROAST PRESSMALT 250G",
+      "pred_score": 0.904077,
+      "iou": 0.853557,
+      "gt_bbox_xyxy": [
+        750.0,
+        716.0,
+        870.0,
+        931.0
+      ],
+      "pred_bbox_xyxy": [
+        763.1,
+        721.1,
+        868.4,
+        931.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.87369,
+      "image_id": 251,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00251.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00251.txt",
+      "label_line_index": 73,
+      "label_line": "355 0.503375 0.078333 0.062250 0.079333",
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "pred_score": 0.841007,
+      "iou": 0.922714,
+      "gt_bbox_xyxy": [
+        1889.0,
+        116.0,
+        2138.0,
+        354.0
+      ],
+      "pred_bbox_xyxy": [
+        1878.6,
+        117.8,
+        2145.6,
+        353.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.863405,
+      "image_id": 317,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt",
+      "label_line_index": 67,
+      "label_line": "355 0.656250 0.868552 0.042659 0.056548",
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "pred_score": 0.876001,
+      "iou": 0.844512,
+      "gt_bbox_xyxy": [
+        2560.0,
+        2541.0,
+        2732.0,
+        2712.0
+      ],
+      "pred_bbox_xyxy": [
+        2553.5,
+        2546.5,
+        2723.8,
+        2703.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.861791,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 39,
+      "label_line": "259 0.755625 0.631333 0.040250 0.066667",
+      "gt_class_id": 259,
+      "gt_class_name": "REGIA KAKAO ORIGINAL 260G",
+      "pred_class_id": 56,
+      "pred_class_name": "SJOKOLADEDRIKK 10PK 320G REGIA",
+      "pred_score": 0.831251,
+      "iou": 0.9076,
+      "gt_bbox_xyxy": [
+        2942.0,
+        1794.0,
+        3103.0,
+        1994.0
+      ],
+      "pred_bbox_xyxy": [
+        2949.9,
+        1793.5,
+        3101.6,
+        1987.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.847355,
+      "image_id": 178,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00178.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00178.txt",
+      "label_line_index": 45,
+      "label_line": "261 0.873305 0.458362 0.083898 0.082582",
+      "gt_class_id": 261,
+      "gt_class_name": "M\u00dcSLI HASSELN\u00d8TT 600G AXA",
+      "pred_class_id": 260,
+      "pred_class_name": "MUSLI ENERGI 675G AXA",
+      "pred_score": 0.810284,
+      "iou": 0.902961,
+      "gt_bbox_xyxy": [
+        981.0,
+        601.0,
+        1080.0,
+        720.0
+      ],
+      "pred_bbox_xyxy": [
+        986.7,
+        598.8,
+        1078.0,
+        719.5
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.828644,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 54,
+      "label_line": "189 0.524625 0.640333 0.048250 0.037333",
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "pred_score": 0.765995,
+      "iou": 0.922617,
+      "gt_bbox_xyxy": [
+        2002.0,
+        1865.0,
+        2195.0,
+        1977.0
+      ],
+      "pred_bbox_xyxy": [
+        1998.7,
+        1866.6,
+        2204.9,
+        1977.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.825383,
+      "image_id": 183,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt",
+      "label_line_index": 40,
+      "label_line": "61 0.038938 0.221065 0.077877 0.106151",
+      "gt_class_id": 61,
+      "gt_class_name": "MUSLI BL\u00c5B\u00c6R 630G AXA",
+      "pred_class_id": 315,
+      "pred_class_name": "4-KORN 675G AXA",
+      "pred_score": 0.75987,
+      "iou": 0.923653,
+      "gt_bbox_xyxy": [
+        -0.0,
+        508.0,
+        314.0,
+        829.0
+      ],
+      "pred_bbox_xyxy": [
+        0.1,
+        496.4,
+        314.1,
+        815.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.824291,
+      "image_id": 317,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt",
+      "label_line_index": 69,
+      "label_line": "355 0.698041 0.876488 0.047371 0.061839",
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "pred_score": 0.798493,
+      "iou": 0.862988,
+      "gt_bbox_xyxy": [
+        2719.0,
+        2557.0,
+        2910.0,
+        2744.0
+      ],
+      "pred_bbox_xyxy": [
+        2719.6,
+        2576.9,
+        2909.4,
+        2739.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.820296,
+      "image_id": 317,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt",
+      "label_line_index": 66,
+      "label_line": "355 0.656250 0.813823 0.042659 0.065476",
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "pred_score": 0.809122,
+      "iou": 0.837057,
+      "gt_bbox_xyxy": [
+        2560.0,
+        2362.0,
+        2732.0,
+        2560.0
+      ],
+      "pred_bbox_xyxy": [
+        2557.4,
+        2384.1,
+        2734.2,
+        2553.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.816224,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 92,
+      "label_line": "100 0.249132 0.673115 0.050347 0.096892",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.824108,
+      "iou": 0.804398,
+      "gt_bbox_xyxy": [
+        903.0,
+        1889.0,
+        1106.0,
+        2182.0
+      ],
+      "pred_bbox_xyxy": [
+        904.4,
+        1912.7,
+        1084.2,
+        2178.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.811929,
+      "image_id": 272,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00272.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00272.txt",
+      "label_line_index": 50,
+      "label_line": "21 0.799000 0.629167 0.041500 0.097000",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 39,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA KANEL 330G WASA",
+      "pred_score": 0.773094,
+      "iou": 0.870181,
+      "gt_bbox_xyxy": [
+        3113.0,
+        1742.0,
+        3279.0,
+        2033.0
+      ],
+      "pred_bbox_xyxy": [
+        3108.0,
+        1767.3,
+        3282.5,
+        2033.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.810518,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 90,
+      "label_line": "100 0.153646 0.676587 0.053819 0.087963",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.792114,
+      "iou": 0.838123,
+      "gt_bbox_xyxy": [
+        511.0,
+        1913.0,
+        728.0,
+        2179.0
+      ],
+      "pred_bbox_xyxy": [
+        509.4,
+        1918.5,
+        700.0,
+        2176.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.808592,
+      "image_id": 64,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00064.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00064.txt",
+      "label_line_index": 108,
+      "label_line": "160 0.108333 0.861719 0.026389 0.053646",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.789679,
+      "iou": 0.836962,
+      "gt_bbox_xyxy": [
+        137.0,
+        1603.0,
+        175.0,
+        1706.0
+      ],
+      "pred_bbox_xyxy": [
+        137.8,
+        1602.6,
+        180.6,
+        1704.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.799409,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 95,
+      "label_line": "160 0.188120 0.832176 0.040923 0.114749",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.718289,
+      "iou": 0.921089,
+      "gt_bbox_xyxy": [
+        676.0,
+        2343.0,
+        841.0,
+        2690.0
+      ],
+      "pred_bbox_xyxy": [
+        669.3,
+        2354.8,
+        841.5,
+        2687.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.788215,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 92,
+      "label_line": "100 0.374876 0.687335 0.051339 0.110780",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.675526,
+      "iou": 0.957249,
+      "gt_bbox_xyxy": [
+        1408.0,
+        1911.0,
+        1615.0,
+        2246.0
+      ],
+      "pred_bbox_xyxy": [
+        1405.2,
+        1910.5,
+        1617.7,
+        2251.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.783743,
+      "image_id": 119,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt",
+      "label_line_index": 40,
+      "label_line": "240 0.374250 0.436000 0.042000 0.072000",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.720477,
+      "iou": 0.878641,
+      "gt_bbox_xyxy": [
+        1413.0,
+        1200.0,
+        1581.0,
+        1416.0
+      ],
+      "pred_bbox_xyxy": [
+        1407.0,
+        1194.4,
+        1588.3,
+        1422.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.781192,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 89,
+      "label_line": "100 0.104167 0.673446 0.052083 0.091601",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.716113,
+      "iou": 0.87881,
+      "gt_bbox_xyxy": [
+        315.0,
+        1898.0,
+        525.0,
+        2175.0
+      ],
+      "pred_bbox_xyxy": [
+        319.0,
+        1908.7,
+        513.3,
+        2171.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.779835,
+      "image_id": 205,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00205.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00205.txt",
+      "label_line_index": 15,
+      "label_line": "61 0.865500 0.394000 0.040000 0.078667",
+      "gt_class_id": 61,
+      "gt_class_name": "MUSLI BL\u00c5B\u00c6R 630G AXA",
+      "pred_class_id": 315,
+      "pred_class_name": "4-KORN 675G AXA",
+      "pred_score": 0.720484,
+      "iou": 0.868862,
+      "gt_bbox_xyxy": [
+        1691.0,
+        532.0,
+        1771.0,
+        650.0
+      ],
+      "pred_bbox_xyxy": [
+        1683.2,
+        529.7,
+        1770.3,
+        652.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.773388,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 4,
+      "label_line": "240 0.306452 0.246867 0.087097 0.187970",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.723001,
+      "iou": 0.848969,
+      "gt_bbox_xyxy": [
+        163.0,
+        61.0,
+        217.0,
+        136.0
+      ],
+      "pred_bbox_xyxy": [
+        161.4,
+        61.8,
+        222.6,
+        133.6
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.771513,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 94,
+      "label_line": "100 0.475694 0.686177 0.050595 0.108466",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.671463,
+      "iou": 0.921587,
+      "gt_bbox_xyxy": [
+        1816.0,
+        1911.0,
+        2020.0,
+        2239.0
+      ],
+      "pred_bbox_xyxy": [
+        1815.7,
+        1895.0,
+        2026.7,
+        2239.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.76786,
+      "image_id": 186,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00186.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00186.txt",
+      "label_line_index": 79,
+      "label_line": "186 0.151804 0.607531 0.045876 0.059023",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.691786,
+      "iou": 0.881971,
+      "gt_bbox_xyxy": [
+        250.0,
+        852.0,
+        339.0,
+        939.0
+      ],
+      "pred_bbox_xyxy": [
+        243.5,
+        852.4,
+        341.4,
+        941.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.764423,
+      "image_id": 183,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt",
+      "label_line_index": 38,
+      "label_line": "61 0.170759 0.239583 0.060268 0.088294",
+      "gt_class_id": 61,
+      "gt_class_name": "MUSLI BL\u00c5B\u00c6R 630G AXA",
+      "pred_class_id": 315,
+      "pred_class_name": "4-KORN 675G AXA",
+      "pred_score": 0.727136,
+      "iou": 0.820354,
+      "gt_bbox_xyxy": [
+        567.0,
+        591.0,
+        810.0,
+        858.0
+      ],
+      "pred_bbox_xyxy": [
+        554.7,
+        567.5,
+        801.2,
+        849.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.761633,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 93,
+      "label_line": "100 0.424975 0.686508 0.051835 0.109127",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.65546,
+      "iou": 0.920892,
+      "gt_bbox_xyxy": [
+        1609.0,
+        1911.0,
+        1818.0,
+        2241.0
+      ],
+      "pred_bbox_xyxy": [
+        1606.8,
+        1901.8,
+        1824.2,
+        2246.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.760024,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 68,
+      "label_line": "141 0.068700 0.311839 0.054067 0.105820",
+      "gt_class_id": 141,
+      "gt_class_name": "EVERGOOD CLASSIC PRESSMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.620155,
+      "iou": 0.969827,
+      "gt_bbox_xyxy": [
+        168.0,
+        783.0,
+        386.0,
+        1103.0
+      ],
+      "pred_bbox_xyxy": [
+        165.7,
+        781.4,
+        384.3,
+        1105.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.756602,
+      "image_id": 272,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00272.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00272.txt",
+      "label_line_index": 51,
+      "label_line": "21 0.839750 0.631167 0.050000 0.093667",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 39,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA KANEL 330G WASA",
+      "pred_score": 0.66341,
+      "iou": 0.89639,
+      "gt_bbox_xyxy": [
+        3259.0,
+        1753.0,
+        3459.0,
+        2034.0
+      ],
+      "pred_bbox_xyxy": [
+        3260.1,
+        1776.3,
+        3456.2,
+        2034.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.755099,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 0,
+      "label_line": "117 0.709677 0.194236 0.087097 0.177945",
+      "gt_class_id": 117,
+      "gt_class_name": "GRANOLA HASSELN\u00d8TT&KOKOS 450G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_score": 0.611303,
+      "iou": 0.970794,
+      "gt_bbox_xyxy": [
+        413.0,
+        42.0,
+        467.0,
+        113.0
+      ],
+      "pred_bbox_xyxy": [
+        412.9,
+        42.6,
+        467.2,
+        111.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.753287,
+      "image_id": 116,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt",
+      "label_line_index": 18,
+      "label_line": "240 0.336833 0.313250 0.063000 0.080500",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.672133,
+      "iou": 0.875019,
+      "gt_bbox_xyxy": [
+        916.0,
+        1092.0,
+        1105.0,
+        1414.0
+      ],
+      "pred_bbox_xyxy": [
+        921.1,
+        1088.3,
+        1091.2,
+        1408.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.7488,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 5,
+      "label_line": "240 0.227419 0.240602 0.087097 0.185464",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.655448,
+      "iou": 0.888827,
+      "gt_bbox_xyxy": [
+        114.0,
+        59.0,
+        168.0,
+        133.0
+      ],
+      "pred_bbox_xyxy": [
+        111.5,
+        58.8,
+        171.5,
+        132.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.748596,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 77,
+      "label_line": "348 0.672500 0.726167 0.039500 0.076333",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.665164,
+      "iou": 0.873744,
+      "gt_bbox_xyxy": [
+        2611.0,
+        2064.0,
+        2769.0,
+        2293.0
+      ],
+      "pred_bbox_xyxy": [
+        2614.9,
+        2067.0,
+        2785.2,
+        2292.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.744201,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 82,
+      "label_line": "137 0.649802 0.264220 0.033234 0.061508",
+      "gt_class_id": 137,
+      "gt_class_name": "NESCAFE AZERA ESPRESSO 100G",
+      "pred_class_id": 292,
+      "pred_class_name": "NESCAFE AZERA AMERICANO 100G",
+      "pred_score": 0.588391,
+      "iou": 0.977917,
+      "gt_bbox_xyxy": [
+        2553.0,
+        706.0,
+        2687.0,
+        892.0
+      ],
+      "pred_bbox_xyxy": [
+        2553.3,
+        706.4,
+        2688.2,
+        893.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.737193,
+      "image_id": 60,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00060.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00060.txt",
+      "label_line_index": 95,
+      "label_line": "189 0.728381 0.628324 0.080562 0.042553",
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "pred_score": 0.599684,
+      "iou": 0.943457,
+      "gt_bbox_xyxy": [
+        931.0,
+        913.0,
+        1040.0,
+        977.0
+      ],
+      "pred_bbox_xyxy": [
+        932.8,
+        915.4,
+        1040.2,
+        977.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.733093,
+      "image_id": 119,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt",
+      "label_line_index": 38,
+      "label_line": "117 0.295000 0.428333 0.043000 0.072000",
+      "gt_class_id": 117,
+      "gt_class_name": "GRANOLA HASSELN\u00d8TT&KOKOS 450G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_score": 0.641129,
+      "iou": 0.871039,
+      "gt_bbox_xyxy": [
+        1094.0,
+        1177.0,
+        1266.0,
+        1393.0
+      ],
+      "pred_bbox_xyxy": [
+        1084.7,
+        1179.1,
+        1263.9,
+        1407.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.729428,
+      "image_id": 317,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00317.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00317.txt",
+      "label_line_index": 68,
+      "label_line": "355 0.699033 0.821098 0.049355 0.064815",
+      "gt_class_id": 355,
+      "gt_class_name": "unknown_product",
+      "pred_class_id": 150,
+      "pred_class_name": "S\u00e6tre GullBar",
+      "pred_score": 0.639013,
+      "iou": 0.86505,
+      "gt_bbox_xyxy": [
+        2719.0,
+        2385.0,
+        2918.0,
+        2581.0
+      ],
+      "pred_bbox_xyxy": [
+        2731.2,
+        2392.1,
+        2924.8,
+        2583.6
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.724505,
+      "image_id": 62,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00062.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00062.txt",
+      "label_line_index": 50,
+      "label_line": "100 0.320370 0.577642 0.055556 0.096748",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.65164,
+      "iou": 0.833804,
+      "gt_bbox_xyxy": [
+        395.0,
+        651.0,
+        470.0,
+        770.0
+      ],
+      "pred_bbox_xyxy": [
+        390.9,
+        648.4,
+        474.2,
+        776.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.723991,
+      "image_id": 5,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00005.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00005.txt",
+      "label_line_index": 71,
+      "label_line": "141 0.337922 0.400298 0.042411 0.116733",
+      "gt_class_id": 141,
+      "gt_class_name": "EVERGOOD CLASSIC PRESSMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.688937,
+      "iou": 0.776572,
+      "gt_bbox_xyxy": [
+        1277.0,
+        1034.0,
+        1448.0,
+        1387.0
+      ],
+      "pred_bbox_xyxy": [
+        1254.4,
+        1056.3,
+        1436.6,
+        1387.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.720735,
+      "image_id": 183,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt",
+      "label_line_index": 39,
+      "label_line": "61 0.109127 0.229828 0.075893 0.097222",
+      "gt_class_id": 61,
+      "gt_class_name": "MUSLI BL\u00c5B\u00c6R 630G AXA",
+      "pred_class_id": 315,
+      "pred_class_name": "4-KORN 675G AXA",
+      "pred_score": 0.62987,
+      "iou": 0.857034,
+      "gt_bbox_xyxy": [
+        287.0,
+        548.0,
+        593.0,
+        842.0
+      ],
+      "pred_bbox_xyxy": [
+        265.3,
+        532.9,
+        597.3,
+        834.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.714058,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 91,
+      "label_line": "100 0.203125 0.675595 0.053075 0.094577",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.628997,
+      "iou": 0.841649,
+      "gt_bbox_xyxy": [
+        712.0,
+        1900.0,
+        926.0,
+        2186.0
+      ],
+      "pred_bbox_xyxy": [
+        711.0,
+        1914.9,
+        905.7,
+        2182.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.711047,
+      "image_id": 26,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00026.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00026.txt",
+      "label_line_index": 34,
+      "label_line": "141 0.608846 0.669231 0.081526 0.119231",
+      "gt_class_id": 141,
+      "gt_class_name": "EVERGOOD CLASSIC PRESSMALT 250G",
+      "pred_class_id": 304,
+      "pred_class_name": "EVERGOOD CLASSIC KOKMALT 250G",
+      "pred_score": 0.569671,
+      "iou": 0.92311,
+      "gt_bbox_xyxy": [
+        655.0,
+        951.0,
+        749.0,
+        1137.0
+      ],
+      "pred_bbox_xyxy": [
+        654.4,
+        951.7,
+        745.7,
+        1143.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.702397,
+      "image_id": 119,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt",
+      "label_line_index": 39,
+      "label_line": "117 0.332250 0.431333 0.043000 0.074000",
+      "gt_class_id": 117,
+      "gt_class_name": "GRANOLA HASSELN\u00d8TT&KOKOS 450G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_score": 0.553921,
+      "iou": 0.925111,
+      "gt_bbox_xyxy": [
+        1243.0,
+        1183.0,
+        1415.0,
+        1405.0
+      ],
+      "pred_bbox_xyxy": [
+        1245.2,
+        1188.3,
+        1415.5,
+        1413.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.700774,
+      "image_id": 119,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00119.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00119.txt",
+      "label_line_index": 41,
+      "label_line": "240 0.410375 0.438000 0.044750 0.075333",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.626837,
+      "iou": 0.81168,
+      "gt_bbox_xyxy": [
+        1552.0,
+        1201.0,
+        1731.0,
+        1427.0
+      ],
+      "pred_bbox_xyxy": [
+        1569.4,
+        1198.7,
+        1747.7,
+        1429.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.696097,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 122,
+      "label_line": "160 0.478423 0.688492 0.035218 0.091931",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.554084,
+      "iou": 0.909116,
+      "gt_bbox_xyxy": [
+        1858.0,
+        1943.0,
+        2000.0,
+        2221.0
+      ],
+      "pred_bbox_xyxy": [
+        1859.0,
+        1958.6,
+        2002.8,
+        2217.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.691758,
+      "image_id": 116,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt",
+      "label_line_index": 19,
+      "label_line": "240 0.298833 0.313125 0.055667 0.079750",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.618294,
+      "iou": 0.801953,
+      "gt_bbox_xyxy": [
+        813.0,
+        1093.0,
+        980.0,
+        1412.0
+      ],
+      "pred_bbox_xyxy": [
+        805.2,
+        1099.0,
+        961.0,
+        1400.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.690887,
+      "image_id": 252,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00252.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00252.txt",
+      "label_line_index": 13,
+      "label_line": "345 0.231250 0.376667 0.039500 0.037333",
+      "gt_class_id": 345,
+      "gt_class_name": "KNEKKEBR\u00d8D URTER&HAVSALT 220G SIGDAL",
+      "pred_class_id": 92,
+      "pred_class_name": "KNEKKEBR\u00d8D GODT FOR DEG 235G SIGDAL",
+      "pred_score": 0.69551,
+      "iou": 0.683952,
+      "gt_bbox_xyxy": [
+        846.0,
+        1074.0,
+        1004.0,
+        1186.0
+      ],
+      "pred_bbox_xyxy": [
+        849.2,
+        1029.4,
+        1007.5,
+        1185.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.684246,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 35,
+      "label_line": "325 0.492125 0.284500 0.025750 0.083000",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.653831,
+      "iou": 0.729869,
+      "gt_bbox_xyxy": [
+        1917.0,
+        729.0,
+        2020.0,
+        978.0
+      ],
+      "pred_bbox_xyxy": [
+        1911.1,
+        727.4,
+        2050.1,
+        980.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.681339,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 49,
+      "label_line": "259 0.428250 0.578333 0.039000 0.067333",
+      "gt_class_id": 259,
+      "gt_class_name": "REGIA KAKAO ORIGINAL 260G",
+      "pred_class_id": 56,
+      "pred_class_name": "SJOKOLADEDRIKK 10PK 320G REGIA",
+      "pred_score": 0.557671,
+      "iou": 0.866842,
+      "gt_bbox_xyxy": [
+        1635.0,
+        1634.0,
+        1791.0,
+        1836.0
+      ],
+      "pred_bbox_xyxy": [
+        1624.9,
+        1621.1,
+        1789.0,
+        1834.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.677639,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 11,
+      "label_line": "97 0.447581 0.790727 0.104839 0.233083",
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "pred_score": 0.594825,
+      "iou": 0.801861,
+      "gt_bbox_xyxy": [
+        245.0,
+        269.0,
+        310.0,
+        362.0
+      ],
+      "pred_bbox_xyxy": [
+        243.4,
+        279.3,
+        306.2,
+        360.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.675617,
+      "image_id": 5,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00005.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00005.txt",
+      "label_line_index": 3,
+      "label_line": "325 0.342386 0.115906 0.035466 0.079696",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 106,
+      "pred_class_name": "NESCAFE GOLD KOFFEINFRI 100G",
+      "pred_score": 0.549269,
+      "iou": 0.865139,
+      "gt_bbox_xyxy": [
+        1309.0,
+        230.0,
+        1452.0,
+        471.0
+      ],
+      "pred_bbox_xyxy": [
+        1299.7,
+        222.7,
+        1457.4,
+        475.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.658611,
+      "image_id": 60,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00060.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00060.txt",
+      "label_line_index": 96,
+      "label_line": "189 0.732077 0.663896 0.076127 0.032580",
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "pred_score": 0.473118,
+      "iou": 0.936851,
+      "gt_bbox_xyxy": [
+        939.0,
+        974.0,
+        1042.0,
+        1023.0
+      ],
+      "pred_bbox_xyxy": [
+        938.6,
+        976.6,
+        1042.1,
+        1023.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.654305,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 17,
+      "label_line": "261 0.607258 0.409774 0.075806 0.147870",
+      "gt_class_id": 261,
+      "gt_class_name": "M\u00dcSLI HASSELN\u00d8TT 600G AXA",
+      "pred_class_id": 260,
+      "pred_class_name": "MUSLI ENERGI 675G AXA",
+      "pred_score": 0.456468,
+      "iou": 0.95106,
+      "gt_bbox_xyxy": [
+        353.0,
+        134.0,
+        400.0,
+        193.0
+      ],
+      "pred_bbox_xyxy": [
+        352.3,
+        132.1,
+        399.9,
+        193.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.652763,
+      "image_id": 26,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00026.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00026.txt",
+      "label_line_index": 2,
+      "label_line": "348 0.398959 0.038462 0.109280 0.076923",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.456803,
+      "iou": 0.946702,
+      "gt_bbox_xyxy": [
+        397.0,
+        0.0,
+        523.0,
+        120.0
+      ],
+      "pred_bbox_xyxy": [
+        397.1,
+        0.2,
+        527.6,
+        122.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.64386,
+      "image_id": 178,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00178.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00178.txt",
+      "label_line_index": 47,
+      "label_line": "186 0.790678 0.572519 0.057627 0.049965",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.550102,
+      "iou": 0.784497,
+      "gt_bbox_xyxy": [
+        899.0,
+        789.0,
+        967.0,
+        861.0
+      ],
+      "pred_bbox_xyxy": [
+        889.8,
+        785.5,
+        966.5,
+        865.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.634314,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 77,
+      "label_line": "325 0.781994 0.249008 0.029266 0.083995",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.477734,
+      "iou": 0.869183,
+      "gt_bbox_xyxy": [
+        3094.0,
+        626.0,
+        3212.0,
+        880.0
+      ],
+      "pred_bbox_xyxy": [
+        3094.3,
+        618.5,
+        3224.1,
+        882.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.633473,
+      "image_id": 152,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00152.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00152.txt",
+      "label_line_index": 14,
+      "label_line": "240 0.767733 0.417328 0.051339 0.096561",
+      "gt_class_id": 240,
+      "gt_class_name": "SUPERGRANOLA GLUTENFRI 350G BARE BRA",
+      "pred_class_id": 47,
+      "pred_class_name": "GRANOLA EPLE&KANEL 430G BARE BRA",
+      "pred_score": 0.566257,
+      "iou": 0.734298,
+      "gt_bbox_xyxy": [
+        2992.0,
+        1116.0,
+        3199.0,
+        1408.0
+      ],
+      "pred_bbox_xyxy": [
+        2945.1,
+        1114.5,
+        3186.3,
+        1395.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.626288,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 12,
+      "label_line": "97 0.349194 0.788221 0.104839 0.233083",
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "pred_score": 0.452284,
+      "iou": 0.887293,
+      "gt_bbox_xyxy": [
+        184.0,
+        268.0,
+        249.0,
+        361.0
+      ],
+      "pred_bbox_xyxy": [
+        183.7,
+        272.4,
+        247.0,
+        357.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.623752,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 85,
+      "label_line": "49 0.185144 0.560020 0.045883 0.090939",
+      "gt_class_id": 49,
+      "gt_class_name": "EVERGOOD DARK ROAST FILTERMALT 250G",
+      "pred_class_id": 347,
+      "pred_class_name": "EVERGOOD DARK ROAST PRESSMALT 250G",
+      "pred_score": 0.409188,
+      "iou": 0.945598,
+      "gt_bbox_xyxy": [
+        654.0,
+        1556.0,
+        839.0,
+        1831.0
+      ],
+      "pred_bbox_xyxy": [
+        652.9,
+        1566.5,
+        841.2,
+        1831.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.617975,
+      "image_id": 34,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00034.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00034.txt",
+      "label_line_index": 72,
+      "label_line": "189 0.788814 0.434358 0.060764 0.038029",
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "pred_score": 0.432823,
+      "iou": 0.895702,
+      "gt_bbox_xyxy": [
+        3058.0,
+        1256.0,
+        3303.0,
+        1371.0
+      ],
+      "pred_bbox_xyxy": [
+        3058.1,
+        1266.0,
+        3303.4,
+        1373.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.60311,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 75,
+      "label_line": "348 0.603750 0.721000 0.031000 0.054667",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.46671,
+      "iou": 0.807709,
+      "gt_bbox_xyxy": [
+        2353.0,
+        2081.0,
+        2477.0,
+        2245.0
+      ],
+      "pred_bbox_xyxy": [
+        2351.7,
+        2057.4,
+        2475.3,
+        2235.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.595653,
+      "image_id": 168,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00168.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00168.txt",
+      "label_line_index": 25,
+      "label_line": "97 0.823711 0.582862 0.105155 0.111560",
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "pred_score": 0.430566,
+      "iou": 0.843284,
+      "gt_bbox_xyxy": [
+        374.0,
+        652.0,
+        425.0,
+        790.0
+      ],
+      "pred_bbox_xyxy": [
+        376.7,
+        648.1,
+        423.1,
+        783.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.594919,
+      "image_id": 64,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00064.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00064.txt",
+      "label_line_index": 79,
+      "label_line": "325 0.284375 0.612500 0.036806 0.046875",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.559903,
+      "iou": 0.647444,
+      "gt_bbox_xyxy": [
+        383.0,
+        1131.0,
+        436.0,
+        1221.0
+      ],
+      "pred_bbox_xyxy": [
+        380.5,
+        1090.7,
+        435.5,
+        1219.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.591464,
+      "image_id": 183,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt",
+      "label_line_index": 25,
+      "label_line": "261 0.721354 0.302083 0.037946 0.070437",
+      "gt_class_id": 261,
+      "gt_class_name": "M\u00dcSLI HASSELN\u00d8TT 600G AXA",
+      "pred_class_id": 260,
+      "pred_class_name": "MUSLI ENERGI 675G AXA",
+      "pred_score": 0.43012,
+      "iou": 0.83348,
+      "gt_bbox_xyxy": [
+        2832.0,
+        807.0,
+        2985.0,
+        1020.0
+      ],
+      "pred_bbox_xyxy": [
+        2839.0,
+        815.5,
+        2992.7,
+        1010.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.589086,
+      "image_id": 243,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00243.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00243.txt",
+      "label_line_index": 3,
+      "label_line": "117 0.308700 0.248884 0.113208 0.064732",
+      "gt_class_id": 117,
+      "gt_class_name": "GRANOLA HASSELN\u00d8TT&KOKOS 450G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_score": 0.445312,
+      "iou": 0.804746,
+      "gt_bbox_xyxy": [
+        481.0,
+        873.0,
+        697.0,
+        1134.0
+      ],
+      "pred_bbox_xyxy": [
+        480.7,
+        883.0,
+        671.6,
+        1149.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.585009,
+      "image_id": 152,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00152.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00152.txt",
+      "label_line_index": 54,
+      "label_line": "186 0.880952 0.607804 0.026786 0.038360",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.600894,
+      "iou": 0.56118,
+      "gt_bbox_xyxy": [
+        3498.0,
+        1780.0,
+        3606.0,
+        1896.0
+      ],
+      "pred_bbox_xyxy": [
+        3516.6,
+        1771.5,
+        3635.5,
+        1884.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.583652,
+      "image_id": 168,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00168.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00168.txt",
+      "label_line_index": 26,
+      "label_line": "97 0.900000 0.565885 0.109278 0.101859",
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "pred_score": 0.446011,
+      "iou": 0.790113,
+      "gt_bbox_xyxy": [
+        410.0,
+        637.0,
+        463.0,
+        763.0
+      ],
+      "pred_bbox_xyxy": [
+        417.8,
+        632.6,
+        461.2,
+        764.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.583025,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 163,
+      "label_line": "49 0.186250 0.423333 0.037000 0.088000",
+      "gt_class_id": 49,
+      "gt_class_name": "EVERGOOD DARK ROAST FILTERMALT 250G",
+      "pred_class_id": 347,
+      "pred_class_name": "EVERGOOD DARK ROAST PRESSMALT 250G",
+      "pred_score": 0.420474,
+      "iou": 0.826851,
+      "gt_bbox_xyxy": [
+        671.0,
+        1138.0,
+        819.0,
+        1402.0
+      ],
+      "pred_bbox_xyxy": [
+        649.4,
+        1140.9,
+        825.6,
+        1403.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.576763,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 17,
+      "label_line": "137 0.413070 0.589451 0.041419 0.072421",
+      "gt_class_id": 137,
+      "gt_class_name": "NESCAFE AZERA ESPRESSO 100G",
+      "pred_class_id": 292,
+      "pred_class_name": "NESCAFE AZERA AMERICANO 100G",
+      "pred_score": 0.574202,
+      "iou": 0.580606,
+      "gt_bbox_xyxy": [
+        1582.0,
+        1673.0,
+        1749.0,
+        1892.0
+      ],
+      "pred_bbox_xyxy": [
+        1593.3,
+        1680.6,
+        1713.0,
+        1858.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.57648,
+      "image_id": 168,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00168.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00168.txt",
+      "label_line_index": 27,
+      "label_line": "97 0.967010 0.547696 0.065979 0.092967",
+      "gt_class_id": 97,
+      "gt_class_name": "CHEERIOS MULTI 375G NESTLE",
+      "pred_class_id": 181,
+      "pred_class_name": "CHEERIOS HAVRE 375G NESTLE",
+      "pred_score": 0.357287,
+      "iou": 0.90527,
+      "gt_bbox_xyxy": [
+        453.0,
+        620.0,
+        485.0,
+        735.0
+      ],
+      "pred_bbox_xyxy": [
+        454.0,
+        622.3,
+        484.9,
+        740.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.567559,
+      "image_id": 62,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00062.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00062.txt",
+      "label_line_index": 87,
+      "label_line": "189 0.847778 0.434146 0.062963 0.035772",
+      "gt_class_id": 189,
+      "gt_class_name": "YELLOW LABEL TEA 25POS LIPTON",
+      "pred_class_id": 27,
+      "pred_class_name": "YELLOW LABEL TEA 50POS LIPTON",
+      "pred_score": 0.339376,
+      "iou": 0.909833,
+      "gt_bbox_xyxy": [
+        1102.0,
+        512.0,
+        1187.0,
+        556.0
+      ],
+      "pred_bbox_xyxy": [
+        1104.6,
+        511.5,
+        1190.8,
+        555.6
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.554687,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 76,
+      "label_line": "348 0.632250 0.726167 0.035000 0.076333",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.32506,
+      "iou": 0.899127,
+      "gt_bbox_xyxy": [
+        2459.0,
+        2064.0,
+        2599.0,
+        2293.0
+      ],
+      "pred_bbox_xyxy": [
+        2462.9,
+        2058.4,
+        2604.8,
+        2289.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.554184,
+      "image_id": 116,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt",
+      "label_line_index": 66,
+      "label_line": "186 0.822167 0.753625 0.080333 0.054250",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.489507,
+      "iou": 0.651199,
+      "gt_bbox_xyxy": [
+        2346.0,
+        2906.0,
+        2587.0,
+        3123.0
+      ],
+      "pred_bbox_xyxy": [
+        2339.4,
+        2921.6,
+        2541.7,
+        3157.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.551406,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 18,
+      "label_line": "137 0.385665 0.589451 0.040179 0.071098",
+      "gt_class_id": 137,
+      "gt_class_name": "NESCAFE AZERA ESPRESSO 100G",
+      "pred_class_id": 292,
+      "pred_class_name": "NESCAFE AZERA AMERICANO 100G",
+      "pred_score": 0.492004,
+      "iou": 0.640509,
+      "gt_bbox_xyxy": [
+        1474.0,
+        1675.0,
+        1636.0,
+        1890.0
+      ],
+      "pred_bbox_xyxy": [
+        1477.2,
+        1680.8,
+        1604.9,
+        1855.5
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.549952,
+      "image_id": 15,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00015.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00015.txt",
+      "label_line_index": 12,
+      "label_line": "325 0.534557 0.575893 0.040675 0.061839",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 106,
+      "pred_class_name": "NESCAFE GOLD KOFFEINFRI 100G",
+      "pred_score": 0.489943,
+      "iou": 0.639966,
+      "gt_bbox_xyxy": [
+        1555.0,
+        1648.0,
+        1678.0,
+        1835.0
+      ],
+      "pred_bbox_xyxy": [
+        1560.9,
+        1581.8,
+        1686.3,
+        1827.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.540414,
+      "image_id": 296,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00296.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00296.txt",
+      "label_line_index": 148,
+      "label_line": "345 0.614955 0.316634 0.019097 0.025463",
+      "gt_class_id": 345,
+      "gt_class_name": "KNEKKEBR\u00d8D URTER&HAVSALT 220G SIGDAL",
+      "pred_class_id": 92,
+      "pred_class_name": "KNEKKEBR\u00d8D GODT FOR DEG 235G SIGDAL",
+      "pred_score": 0.361736,
+      "iou": 0.808431,
+      "gt_bbox_xyxy": [
+        2441.0,
+        919.0,
+        2518.0,
+        996.0
+      ],
+      "pred_bbox_xyxy": [
+        2443.1,
+        918.8,
+        2527.1,
+        1001.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.538623,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 29,
+      "label_line": "160 0.490823 0.876653 0.027282 0.082672",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.486941,
+      "iou": 0.616147,
+      "gt_bbox_xyxy": [
+        1924.0,
+        2526.0,
+        2034.0,
+        2776.0
+      ],
+      "pred_bbox_xyxy": [
+        1911.4,
+        2534.3,
+        2008.5,
+        2755.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.513872,
+      "image_id": 252,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00252.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00252.txt",
+      "label_line_index": 58,
+      "label_line": "143 0.311000 0.478000 0.078000 0.020667",
+      "gt_class_id": 143,
+      "gt_class_name": "KORNMO KNEKKEBR\u00d8D HAVRE&SOLSIKKE 200G",
+      "pred_class_id": 143,
+      "pred_class_name": "KORNMO KNEKKEBR\u00d8D HAVRE&SOLSIKKE 200G",
+      "pred_score": 0.894526,
+      "iou": 0.425537,
+      "gt_bbox_xyxy": [
+        1088.0,
+        1403.0,
+        1400.0,
+        1465.0
+      ],
+      "pred_bbox_xyxy": [
+        1073.5,
+        1404.4,
+        1391.4,
+        1537.3
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.506594,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 3,
+      "label_line": "178 0.405250 0.287333 0.048000 0.112667",
+      "gt_class_id": 178,
+      "gt_class_name": "NESCAFE GOLD ORGANIC&FAIRTRADE 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.395508,
+      "iou": 0.673223,
+      "gt_bbox_xyxy": [
+        1525.0,
+        693.0,
+        1717.0,
+        1031.0
+      ],
+      "pred_bbox_xyxy": [
+        1527.1,
+        695.6,
+        1674.7,
+        991.6
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.504647,
+      "image_id": 296,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00296.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00296.txt",
+      "label_line_index": 147,
+      "label_line": "345 0.598338 0.316468 0.020089 0.025794",
+      "gt_class_id": 345,
+      "gt_class_name": "KNEKKEBR\u00d8D URTER&HAVSALT 220G SIGDAL",
+      "pred_class_id": 92,
+      "pred_class_name": "KNEKKEBR\u00d8D GODT FOR DEG 235G SIGDAL",
+      "pred_score": 0.283778,
+      "iou": 0.835949,
+      "gt_bbox_xyxy": [
+        2372.0,
+        918.0,
+        2453.0,
+        996.0
+      ],
+      "pred_bbox_xyxy": [
+        2374.2,
+        921.4,
+        2451.4,
+        1003.4
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.498211,
+      "image_id": 26,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00026.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00026.txt",
+      "label_line_index": 3,
+      "label_line": "348 0.500434 0.038462 0.114484 0.076923",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.225318,
+      "iou": 0.907552,
+      "gt_bbox_xyxy": [
+        511.0,
+        0.0,
+        643.0,
+        120.0
+      ],
+      "pred_bbox_xyxy": [
+        515.7,
+        0.2,
+        648.5,
+        122.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.494718,
+      "image_id": 75,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00075.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00075.txt",
+      "label_line_index": 48,
+      "label_line": "213 0.689145 0.251759 0.042763 0.047236",
+      "gt_class_id": 213,
+      "gt_class_name": "EGG FRITTG\u00c5ENDE M/L 6PK PRIOR",
+      "pred_class_id": 213,
+      "pred_class_name": "EGG FRITTG\u00c5ENDE M/L 6PK PRIOR",
+      "pred_score": 0.912826,
+      "iou": 0.458037,
+      "gt_bbox_xyxy": [
+        812.0,
+        227.0,
+        864.0,
+        274.0
+      ],
+      "pred_bbox_xyxy": [
+        766.2,
+        225.9,
+        860.7,
+        269.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.492486,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 78,
+      "label_line": "348 0.715875 0.730833 0.041750 0.071000",
+      "gt_class_id": 348,
+      "gt_class_name": "ALI ORIGINAL HELE B\u00d8NNER 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.260743,
+      "iou": 0.840099,
+      "gt_bbox_xyxy": [
+        2780.0,
+        2086.0,
+        2947.0,
+        2299.0
+      ],
+      "pred_bbox_xyxy": [
+        2775.7,
+        2064.1,
+        2955.4,
+        2298.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.488934,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 87,
+      "label_line": "160 0.672375 0.870500 0.025750 0.081667",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.333524,
+      "iou": 0.722049,
+      "gt_bbox_xyxy": [
+        2638.0,
+        2489.0,
+        2741.0,
+        2734.0
+      ],
+      "pred_bbox_xyxy": [
+        2642.6,
+        2468.0,
+        2761.4,
+        2728.3
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.483439,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 4,
+      "label_line": "178 0.434000 0.286333 0.039000 0.112667",
+      "gt_class_id": 178,
+      "gt_class_name": "NESCAFE GOLD ORGANIC&FAIRTRADE 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.266432,
+      "iou": 0.808948,
+      "gt_bbox_xyxy": [
+        1658.0,
+        690.0,
+        1814.0,
+        1028.0
+      ],
+      "pred_bbox_xyxy": [
+        1660.2,
+        698.7,
+        1808.1,
+        987.1
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.483245,
+      "image_id": 15,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00015.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00015.txt",
+      "label_line_index": 11,
+      "label_line": "325 0.501984 0.575728 0.036376 0.064815",
+      "gt_class_id": 325,
+      "gt_class_name": "NESCAFE GULL 100G",
+      "pred_class_id": 106,
+      "pred_class_name": "NESCAFE GOLD KOFFEINFRI 100G",
+      "pred_score": 0.353044,
+      "iou": 0.678547,
+      "gt_bbox_xyxy": [
+        1463.0,
+        1643.0,
+        1573.0,
+        1839.0
+      ],
+      "pred_bbox_xyxy": [
+        1461.4,
+        1583.3,
+        1581.5,
+        1832.0
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.480445,
+      "image_id": 122,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00122.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00122.txt",
+      "label_line_index": 30,
+      "label_line": "186 0.884677 0.611529 0.056452 0.090226",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.294622,
+      "iou": 0.759178,
+      "gt_bbox_xyxy": [
+        531.0,
+        226.0,
+        566.0,
+        262.0
+      ],
+      "pred_bbox_xyxy": [
+        526.1,
+        223.9,
+        567.8,
+        260.2
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.478196,
+      "image_id": 15,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00015.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00015.txt",
+      "label_line_index": 9,
+      "label_line": "178 0.433366 0.577546 0.038690 0.067130",
+      "gt_class_id": 178,
+      "gt_class_name": "NESCAFE GOLD ORGANIC&FAIRTRADE 100G",
+      "pred_class_id": 146,
+      "pred_class_name": "NESCAFE GULL 200G NESTLE",
+      "pred_score": 0.344091,
+      "iou": 0.679354,
+      "gt_bbox_xyxy": [
+        1252.0,
+        1645.0,
+        1369.0,
+        1848.0
+      ],
+      "pred_bbox_xyxy": [
+        1242.2,
+        1583.9,
+        1373.2,
+        1845.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.471294,
+      "image_id": 261,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00261.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00261.txt",
+      "label_line_index": 10,
+      "label_line": "333 0.393375 0.343667 0.077750 0.061333",
+      "gt_class_id": 333,
+      "gt_class_name": "MELBATOAST RUND 110G MEULEN",
+      "pred_class_id": 333,
+      "pred_class_name": "MELBATOAST RUND 110G MEULEN",
+      "pred_score": 0.883355,
+      "iou": 0.466472,
+      "gt_bbox_xyxy": [
+        1418.0,
+        939.0,
+        1729.0,
+        1123.0
+      ],
+      "pred_bbox_xyxy": [
+        1571.2,
+        948.4,
+        1736.7,
+        1126.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.467282,
+      "image_id": 270,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00270.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00270.txt",
+      "label_line_index": 23,
+      "label_line": "82 0.610294 0.453053 0.029412 0.077765",
+      "gt_class_id": 82,
+      "gt_class_name": "FR\u00d8 & HAVSALT 200G LEKSANDS",
+      "pred_class_id": 82,
+      "pred_class_name": "FR\u00d8 & HAVSALT 200G LEKSANDS",
+      "pred_score": 0.904901,
+      "iou": 0.483609,
+      "gt_bbox_xyxy": [
+        2754.0,
+        1438.0,
+        2890.0,
+        1708.0
+      ],
+      "pred_bbox_xyxy": [
+        2765.6,
+        1433.1,
+        2899.7,
+        1589.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.455637,
+      "image_id": 296,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00296.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00296.txt",
+      "label_line_index": 93,
+      "label_line": "66 0.790551 0.399967 0.045387 0.022817",
+      "gt_class_id": 66,
+      "gt_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_class_id": 66,
+      "pred_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_score": 0.865096,
+      "iou": 0.47331,
+      "gt_bbox_xyxy": [
+        3096.0,
+        1175.0,
+        3279.0,
+        1244.0
+      ],
+      "pred_bbox_xyxy": [
+        3098.5,
+        1180.2,
+        3193.3,
+        1245.6
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.45126,
+      "image_id": 303,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00303.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00303.txt",
+      "label_line_index": 97,
+      "label_line": "109 0.382688 0.539187 0.073413 0.052579",
+      "gt_class_id": 109,
+      "gt_class_name": "KNEKKEBR\u00d8D 100 FR\u00d8&HAVSALT 245G WASA",
+      "pred_class_id": 109,
+      "pred_class_name": "KNEKKEBR\u00d8D 100 FR\u00d8&HAVSALT 245G WASA",
+      "pred_score": 0.847075,
+      "iou": 0.467272,
+      "gt_bbox_xyxy": [
+        1395.0,
+        1551.0,
+        1691.0,
+        1710.0
+      ],
+      "pred_bbox_xyxy": [
+        1404.1,
+        1561.6,
+        1570.2,
+        1694.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.443799,
+      "image_id": 261,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00261.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00261.txt",
+      "label_line_index": 37,
+      "label_line": "236 0.011750 0.432500 0.023500 0.040333",
+      "gt_class_id": 236,
+      "gt_class_name": "LEKSANDS KNEKKE RUTBIT 200G",
+      "pred_class_id": 236,
+      "pred_class_name": "LEKSANDS KNEKKE RUTBIT 200G",
+      "pred_score": 0.723873,
+      "iou": 0.38691,
+      "gt_bbox_xyxy": [
+        0.0,
+        1237.0,
+        94.0,
+        1358.0
+      ],
+      "pred_bbox_xyxy": [
+        0.0,
+        1246.4,
+        41.1,
+        1369.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.443368,
+      "image_id": 261,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00261.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00261.txt",
+      "label_line_index": 31,
+      "label_line": "212 0.202000 0.425667 0.039000 0.039333",
+      "gt_class_id": 212,
+      "gt_class_name": "KNEKKEBR\u00d8D 220G SIGDAL",
+      "pred_class_id": 212,
+      "pred_class_name": "KNEKKEBR\u00d8D 220G SIGDAL",
+      "pred_score": 0.858556,
+      "iou": 0.483588,
+      "gt_bbox_xyxy": [
+        730.0,
+        1218.0,
+        886.0,
+        1336.0
+      ],
+      "pred_bbox_xyxy": [
+        786.5,
+        1225.1,
+        913.9,
+        1328.6
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.44286,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 168,
+      "label_line": "282 0.866875 0.859167 0.047750 0.063667",
+      "gt_class_id": 282,
+      "gt_class_name": "FILTERPOSER NR.4 200STK ALI",
+      "pred_class_id": 282,
+      "pred_class_name": "FILTERPOSER NR.4 200STK ALI",
+      "pred_score": 0.809754,
+      "iou": 0.453093,
+      "gt_bbox_xyxy": [
+        3372.0,
+        2482.0,
+        3563.0,
+        2673.0
+      ],
+      "pred_bbox_xyxy": [
+        3290.4,
+        2479.2,
+        3515.6,
+        2639.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.442386,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 11,
+      "label_line": "66 0.553571 0.424769 0.036210 0.053241",
+      "gt_class_id": 66,
+      "gt_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_class_id": 66,
+      "pred_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_score": 0.814335,
+      "iou": 0.456751,
+      "gt_bbox_xyxy": [
+        2159.0,
+        1204.0,
+        2305.0,
+        1365.0
+      ],
+      "pred_bbox_xyxy": [
+        2175.2,
+        1201.7,
+        2330.9,
+        1296.4
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.437218,
+      "image_id": 252,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00252.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00252.txt",
+      "label_line_index": 9,
+      "label_line": "333 0.702000 0.353333 0.083000 0.062000",
+      "gt_class_id": 333,
+      "gt_class_name": "MELBATOAST RUND 110G MEULEN",
+      "pred_class_id": 333,
+      "pred_class_name": "MELBATOAST RUND 110G MEULEN",
+      "pred_score": 0.838588,
+      "iou": 0.478626,
+      "gt_bbox_xyxy": [
+        2642.0,
+        967.0,
+        2974.0,
+        1153.0
+      ],
+      "pred_bbox_xyxy": [
+        2662.6,
+        975.9,
+        2834.7,
+        1164.2
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.405229,
+      "image_id": 261,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00261.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00261.txt",
+      "label_line_index": 81,
+      "label_line": "21 0.295875 0.512667 0.018250 0.062000",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 21,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_score": 0.74869,
+      "iou": 0.458749,
+      "gt_bbox_xyxy": [
+        1147.0,
+        1445.0,
+        1220.0,
+        1631.0
+      ],
+      "pred_bbox_xyxy": [
+        1160.9,
+        1449.5,
+        1273.4,
+        1632.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.396246,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 12,
+      "label_line": "66 0.520461 0.424769 0.036458 0.053241",
+      "gt_class_id": 66,
+      "gt_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_class_id": 66,
+      "pred_class_name": "RYVITA KNEKKEBR\u00d8D SESAM 250G",
+      "pred_score": 0.781042,
+      "iou": 0.492671,
+      "gt_bbox_xyxy": [
+        2025.0,
+        1204.0,
+        2172.0,
+        1365.0
+      ],
+      "pred_bbox_xyxy": [
+        2039.4,
+        1210.5,
+        2177.0,
+        1300.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.392485,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 73,
+      "label_line": "160 0.546000 0.830167 0.020500 0.065667",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.283266,
+      "iou": 0.556314,
+      "gt_bbox_xyxy": [
+        2143.0,
+        2392.0,
+        2225.0,
+        2589.0
+      ],
+      "pred_bbox_xyxy": [
+        2103.0,
+        2392.5,
+        2225.4,
+        2628.8
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.392232,
+      "image_id": 270,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00270.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00270.txt",
+      "label_line_index": 24,
+      "label_line": "233 0.568231 0.452909 0.039576 0.082085",
+      "gt_class_id": 233,
+      "gt_class_name": "LEKSANDS KNEKKE GODT STEKT 200G",
+      "pred_class_id": 233,
+      "pred_class_name": "LEKSANDS KNEKKE GODT STEKT 200G",
+      "pred_score": 0.660644,
+      "iou": 0.406289,
+      "gt_bbox_xyxy": [
+        2536.0,
+        1430.0,
+        2719.0,
+        1715.0
+      ],
+      "pred_bbox_xyxy": [
+        2529.1,
+        1425.6,
+        2673.7,
+        1589.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.38088,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 27,
+      "label_line": "63 0.383681 0.873677 0.048115 0.083995",
+      "gt_class_id": 63,
+      "gt_class_name": "ALI M\u00d8RKBRENT FILTERMALT 250G",
+      "pred_class_id": 63,
+      "pred_class_name": "ALI M\u00d8RKBRENT FILTERMALT 250G",
+      "pred_score": 0.720019,
+      "iou": 0.471014,
+      "gt_bbox_xyxy": [
+        1450.0,
+        2515.0,
+        1644.0,
+        2769.0
+      ],
+      "pred_bbox_xyxy": [
+        1475.2,
+        2552.6,
+        1607.6,
+        2727.9
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.375172,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 128,
+      "label_line": "68 0.267113 0.340112 0.009921 0.028108",
+      "gt_class_id": 68,
+      "gt_class_name": "MAISKAKER SOURCREAM&ONION 125G FRIGGS",
+      "pred_class_id": 68,
+      "pred_class_name": "MAISKAKER SOURCREAM&ONION 125G FRIGGS",
+      "pred_score": 0.673316,
+      "iou": 0.4428,
+      "gt_bbox_xyxy": [
+        1057.0,
+        986.0,
+        1097.0,
+        1071.0
+      ],
+      "pred_bbox_xyxy": [
+        1052.9,
+        987.3,
+        1142.4,
+        1071.2
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.374778,
+      "image_id": 15,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00015.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00015.txt",
+      "label_line_index": 53,
+      "label_line": "337 0.898148 0.365079 0.056878 0.063492",
+      "gt_class_id": 337,
+      "gt_class_name": "FEEL NEW URTETE \u00d8KOLOGISK 20POS PUKKA",
+      "pred_class_id": 337,
+      "pred_class_name": "FEEL NEW URTETE \u00d8KOLOGISK 20POS PUKKA",
+      "pred_score": 0.746879,
+      "iou": 0.498208,
+      "gt_bbox_xyxy": [
+        2630.0,
+        1008.0,
+        2802.0,
+        1200.0
+      ],
+      "pred_bbox_xyxy": [
+        2626.7,
+        1010.4,
+        2726.2,
+        1184.4
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.358388,
+      "image_id": 272,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00272.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00272.txt",
+      "label_line_index": 35,
+      "label_line": "82 0.286875 0.526333 0.051750 0.048000",
+      "gt_class_id": 82,
+      "gt_class_name": "FR\u00d8 & HAVSALT 200G LEKSANDS",
+      "pred_class_id": 82,
+      "pred_class_name": "FR\u00d8 & HAVSALT 200G LEKSANDS",
+      "pred_score": 0.706427,
+      "iou": 0.492676,
+      "gt_bbox_xyxy": [
+        1044.0,
+        1507.0,
+        1251.0,
+        1651.0
+      ],
+      "pred_bbox_xyxy": [
+        1129.4,
+        1508.1,
+        1283.4,
+        1656.4
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.338236,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 105,
+      "label_line": "259 0.942708 0.606316 0.051587 0.064484",
+      "gt_class_id": 259,
+      "gt_class_name": "REGIA KAKAO ORIGINAL 260G",
+      "pred_class_id": 56,
+      "pred_class_name": "SJOKOLADEDRIKK 10PK 320G REGIA",
+      "pred_score": 0.104538,
+      "iou": 0.688784,
+      "gt_bbox_xyxy": [
+        3697.0,
+        1736.0,
+        3905.0,
+        1931.0
+      ],
+      "pred_bbox_xyxy": [
+        3735.1,
+        1745.2,
+        3924.3,
+        1939.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.327718,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 126,
+      "label_line": "188 0.238963 0.350529 0.008185 0.023148",
+      "gt_class_id": 188,
+      "gt_class_name": "MAISKAKER POPCORN 125G FRIGGS",
+      "pred_class_id": 188,
+      "pred_class_name": "MAISKAKER POPCORN 125G FRIGGS",
+      "pred_score": 0.53191,
+      "iou": 0.383884,
+      "gt_bbox_xyxy": [
+        947.0,
+        1025.0,
+        980.0,
+        1095.0
+      ],
+      "pred_bbox_xyxy": [
+        906.2,
+        1023.1,
+        985.8,
+        1098.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.319033,
+      "image_id": 303,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00303.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00303.txt",
+      "label_line_index": 40,
+      "label_line": "73 0.393353 0.318287 0.053571 0.047950",
+      "gt_class_id": 73,
+      "gt_class_name": "MELLOMBAR SJOKOLADE&KRISP 138G ELDORADO",
+      "pred_class_id": 73,
+      "pred_class_name": "MELLOMBAR SJOKOLADE&KRISP 138G ELDORADO",
+      "pred_score": 0.546685,
+      "iou": 0.416422,
+      "gt_bbox_xyxy": [
+        1478.0,
+        890.0,
+        1694.0,
+        1035.0
+      ],
+      "pred_bbox_xyxy": [
+        1574.1,
+        889.9,
+        1723.6,
+        1011.3
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.297303,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 85,
+      "label_line": "160 0.738375 0.881333 0.031250 0.075333",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.000782,
+      "iou": 0.742084,
+      "gt_bbox_xyxy": [
+        2891.0,
+        2531.0,
+        3016.0,
+        2757.0
+      ],
+      "pred_bbox_xyxy": [
+        2897.2,
+        2536.0,
+        3016.9,
+        2814.9
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.292559,
+      "image_id": 108,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00108.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00108.txt",
+      "label_line_index": 45,
+      "label_line": "275 0.585483 0.586806 0.179563 0.044147",
+      "gt_class_id": 275,
+      "gt_class_name": "EGG FRITTG\u00c5ENDE 18STK S/M FIRST PRICE",
+      "pred_class_id": 275,
+      "pred_class_name": "EGG FRITTG\u00c5ENDE 18STK S/M FIRST PRICE",
+      "pred_score": 0.572455,
+      "iou": 0.48894,
+      "gt_bbox_xyxy": [
+        1499.0,
+        2277.0,
+        2042.0,
+        2455.0
+      ],
+      "pred_bbox_xyxy": [
+        1631.4,
+        2277.8,
+        2050.7,
+        2394.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.291039,
+      "image_id": 36,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00036.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00036.txt",
+      "label_line_index": 25,
+      "label_line": "63 0.454117 0.873677 0.041171 0.083995",
+      "gt_class_id": 63,
+      "gt_class_name": "ALI M\u00d8RKBRENT FILTERMALT 250G",
+      "pred_class_id": 63,
+      "pred_class_name": "ALI M\u00d8RKBRENT FILTERMALT 250G",
+      "pred_score": 0.561064,
+      "iou": 0.481272,
+      "gt_bbox_xyxy": [
+        1748.0,
+        2515.0,
+        1914.0,
+        2769.0
+      ],
+      "pred_bbox_xyxy": [
+        1740.1,
+        2543.6,
+        1864.6,
+        2723.5
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.290127,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 125,
+      "label_line": "188 0.229787 0.352513 0.010169 0.023810",
+      "gt_class_id": 188,
+      "gt_class_name": "MAISKAKER POPCORN 125G FRIGGS",
+      "pred_class_id": 188,
+      "pred_class_name": "MAISKAKER POPCORN 125G FRIGGS",
+      "pred_score": 0.53191,
+      "iou": 0.454557,
+      "gt_bbox_xyxy": [
+        906.0,
+        1030.0,
+        947.0,
+        1102.0
+      ],
+      "pred_bbox_xyxy": [
+        906.2,
+        1023.1,
+        985.8,
+        1098.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.275154,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 21,
+      "label_line": "160 0.419750 0.572500 0.040500 0.075667",
+      "gt_class_id": 160,
+      "gt_class_name": "ALI ORIGINAL KOKMALT 250G",
+      "pred_class_id": 171,
+      "pred_class_name": "ALI ORIGINAL FILTERMALT 250G",
+      "pred_score": 0.00197,
+      "iou": 0.684929,
+      "gt_bbox_xyxy": [
+        1598.0,
+        1604.0,
+        1760.0,
+        1831.0
+      ],
+      "pred_bbox_xyxy": [
+        1557.5,
+        1620.9,
+        1776.1,
+        1835.7
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.269785,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 6,
+      "label_line": "5 0.343626 0.322090 0.031994 0.030423",
+      "gt_class_id": 5,
+      "gt_class_name": "GRISSINI HVITL\u00d8K 125G GRANFORNO",
+      "pred_class_id": 5,
+      "pred_class_name": "GRISSINI HVITL\u00d8K 125G GRANFORNO",
+      "pred_score": 0.480766,
+      "iou": 0.438844,
+      "gt_bbox_xyxy": [
+        1321.0,
+        928.0,
+        1450.0,
+        1020.0
+      ],
+      "pred_bbox_xyxy": [
+        1306.4,
+        913.7,
+        1554.9,
+        1016.4
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.258774,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 5,
+      "label_line": "5 0.369916 0.317295 0.031994 0.031415",
+      "gt_class_id": 5,
+      "gt_class_name": "GRISSINI HVITL\u00d8K 125G GRANFORNO",
+      "pred_class_id": 5,
+      "pred_class_name": "GRISSINI HVITL\u00d8K 125G GRANFORNO",
+      "pred_score": 0.480766,
+      "iou": 0.461747,
+      "gt_bbox_xyxy": [
+        1427.0,
+        912.0,
+        1556.0,
+        1007.0
+      ],
+      "pred_bbox_xyxy": [
+        1306.4,
+        913.7,
+        1554.9,
+        1016.4
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.254572,
+      "image_id": 152,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00152.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00152.txt",
+      "label_line_index": 58,
+      "label_line": "268 0.868056 0.637401 0.023313 0.038690",
+      "gt_class_id": 268,
+      "gt_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.480809,
+      "iou": 0.470535,
+      "gt_bbox_xyxy": [
+        3453.0,
+        1869.0,
+        3547.0,
+        1986.0
+      ],
+      "pred_bbox_xyxy": [
+        3415.4,
+        1875.9,
+        3524.6,
+        1971.9
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.249128,
+      "image_id": 300,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00300.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00300.txt",
+      "label_line_index": 45,
+      "label_line": "338 0.073578 0.878844 0.138558 0.101438",
+      "gt_class_id": 338,
+      "gt_class_name": "HUSMAN KNEKKEBR\u00d8D 520G WASA",
+      "pred_class_id": 338,
+      "pred_class_name": "HUSMAN KNEKKEBR\u00d8D 520G WASA",
+      "pred_score": 0.458018,
+      "iou": 0.456074,
+      "gt_bbox_xyxy": [
+        13.0,
+        3339.0,
+        432.0,
+        3748.0
+      ],
+      "pred_bbox_xyxy": [
+        4.6,
+        3531.2,
+        396.9,
+        3771.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.240612,
+      "image_id": 89,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00089.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00089.txt",
+      "label_line_index": 35,
+      "label_line": "110 0.076224 0.549231 0.151786 0.055804",
+      "gt_class_id": 110,
+      "gt_class_name": "BREMYKT 250G",
+      "pred_class_id": 110,
+      "pred_class_name": "BREMYKT 250G",
+      "pred_score": 0.474971,
+      "iou": 0.493418,
+      "gt_bbox_xyxy": [
+        1.0,
+        2102.0,
+        460.0,
+        2327.0
+      ],
+      "pred_bbox_xyxy": [
+        9.2,
+        2110.4,
+        338.6,
+        2265.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "class_confusion",
+      "priority": 0.227954,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 139,
+      "label_line": "345 0.341766 0.384590 0.026290 0.031085",
+      "gt_class_id": 345,
+      "gt_class_name": "KNEKKEBR\u00d8D URTER&HAVSALT 220G SIGDAL",
+      "pred_class_id": 92,
+      "pred_class_name": "KNEKKEBR\u00d8D GODT FOR DEG 235G SIGDAL",
+      "pred_score": 0.026325,
+      "iou": 0.530397,
+      "gt_bbox_xyxy": [
+        1325.0,
+        1116.0,
+        1431.0,
+        1210.0
+      ],
+      "pred_bbox_xyxy": [
+        1352.8,
+        1131.5,
+        1428.3,
+        1201.5
+      ],
+      "suggested_action": "Verify GT class vs sibling class; fix inconsistent SKU labeling first."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.223829,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 58,
+      "label_line": "100 0.176625 0.889000 0.037250 0.082667",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 100,
+      "pred_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_score": 0.429156,
+      "iou": 0.478443,
+      "gt_bbox_xyxy": [
+        632.0,
+        2543.0,
+        781.0,
+        2791.0
+      ],
+      "pred_bbox_xyxy": [
+        620.7,
+        2554.2,
+        727.7,
+        2750.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.209634,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 9,
+      "label_line": "0 0.413938 0.376819 0.026290 0.030754",
+      "gt_class_id": 0,
+      "gt_class_name": "FR\u00d8KRISP KNEKKEBR\u00d8D \u00d8KOLOGISK 170G BERIT",
+      "pred_class_id": 0,
+      "pred_class_name": "FR\u00d8KRISP KNEKKEBR\u00d8D \u00d8KOLOGISK 170G BERIT",
+      "pred_score": 0.349879,
+      "iou": 0.400837,
+      "gt_bbox_xyxy": [
+        1616.0,
+        1093.0,
+        1722.0,
+        1186.0
+      ],
+      "pred_bbox_xyxy": [
+        1656.1,
+        1078.0,
+        1712.4,
+        1169.2
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.19738,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 107,
+      "label_line": "349 0.305928 0.500331 0.012649 0.016534",
+      "gt_class_id": 349,
+      "gt_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_class_id": 349,
+      "pred_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_score": 0.351233,
+      "iou": 0.438038,
+      "gt_bbox_xyxy": [
+        1208.0,
+        1488.0,
+        1259.0,
+        1538.0
+      ],
+      "pred_bbox_xyxy": [
+        1211.4,
+        1487.6,
+        1307.1,
+        1542.6
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.188817,
+      "image_id": 116,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt",
+      "label_line_index": 68,
+      "label_line": "186 0.880833 0.726250 0.076333 0.048500",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 186,
+      "pred_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_score": 0.37583,
+      "iou": 0.4976,
+      "gt_bbox_xyxy": [
+        2528.0,
+        2808.0,
+        2757.0,
+        3002.0
+      ],
+      "pred_bbox_xyxy": [
+        2507.5,
+        2837.4,
+        2730.2,
+        3087.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.186421,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 106,
+      "label_line": "349 0.318700 0.500000 0.016369 0.017196",
+      "gt_class_id": 349,
+      "gt_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_class_id": 349,
+      "pred_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_score": 0.351233,
+      "iou": 0.469237,
+      "gt_bbox_xyxy": [
+        1252.0,
+        1486.0,
+        1318.0,
+        1538.0
+      ],
+      "pred_bbox_xyxy": [
+        1211.4,
+        1487.6,
+        1307.1,
+        1542.6
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.164792,
+      "image_id": 13,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00013.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00013.txt",
+      "label_line_index": 30,
+      "label_line": "225 0.435375 0.180000 0.031750 0.058667",
+      "gt_class_id": 225,
+      "gt_class_name": "EVERGOOD CLASSIC KAFFEKAPSEL 10STK",
+      "pred_class_id": 225,
+      "pred_class_name": "EVERGOOD CLASSIC KAFFEKAPSEL 10STK",
+      "pred_score": 0.313781,
+      "iou": 0.474819,
+      "gt_bbox_xyxy": [
+        1678.0,
+        452.0,
+        1805.0,
+        628.0
+      ],
+      "pred_bbox_xyxy": [
+        1661.7,
+        396.0,
+        1800.9,
+        576.3
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.138691,
+      "image_id": 270,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00270.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00270.txt",
+      "label_line_index": 25,
+      "label_line": "233 0.499892 0.451037 0.031791 0.082949",
+      "gt_class_id": 233,
+      "gt_class_name": "LEKSANDS KNEKKE GODT STEKT 200G",
+      "pred_class_id": 233,
+      "pred_class_name": "LEKSANDS KNEKKE GODT STEKT 200G",
+      "pred_score": 0.241799,
+      "iou": 0.42642,
+      "gt_bbox_xyxy": [
+        2238.0,
+        1422.0,
+        2385.0,
+        1710.0
+      ],
+      "pred_bbox_xyxy": [
+        2216.4,
+        1554.4,
+        2371.8,
+        1699.3
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.127473,
+      "image_id": 302,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00302.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00302.txt",
+      "label_line_index": 107,
+      "label_line": "21 0.631076 0.573413 0.012649 0.060847",
+      "gt_class_id": 21,
+      "gt_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_class_id": 21,
+      "pred_class_name": "KNEKKEBR\u00d8D RUNDA SESAM&HAVSALT 290G WASA",
+      "pred_score": 0.1517,
+      "iou": 0.362636,
+      "gt_bbox_xyxy": [
+        2519.0,
+        1642.0,
+        2570.0,
+        1826.0
+      ],
+      "pred_bbox_xyxy": [
+        2452.0,
+        1643.3,
+        2563.2,
+        1831.8
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.126441,
+      "image_id": 75,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00075.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00075.txt",
+      "label_line_index": 136,
+      "label_line": "80 0.584293 0.912060 0.122533 0.023116",
+      "gt_class_id": 80,
+      "gt_class_name": "FROKOSTEGG FRITTG\u00c5ENDE L 12STK PRIOR",
+      "pred_class_id": 80,
+      "pred_class_name": "FROKOSTEGG FRITTG\u00c5ENDE L 12STK PRIOR",
+      "pred_score": 0.1454,
+      "iou": 0.367797,
+      "gt_bbox_xyxy": [
+        636.0,
+        896.0,
+        785.0,
+        919.0
+      ],
+      "pred_bbox_xyxy": [
+        634.3,
+        891.6,
+        794.4,
+        949.8
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.125287,
+      "image_id": 183,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00183.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00183.txt",
+      "label_line_index": 106,
+      "label_line": "7 0.845238 0.700397 0.064484 0.062169",
+      "gt_class_id": 7,
+      "gt_class_name": "PUFFET HAVRE 340G FIRST PRICE",
+      "pred_class_id": 7,
+      "pred_class_name": "PUFFET HAVRE 340G FIRST PRICE",
+      "pred_score": 0.002501,
+      "iou": 0.373563,
+      "gt_bbox_xyxy": [
+        3278.0,
+        2024.0,
+        3538.0,
+        2212.0
+      ],
+      "pred_bbox_xyxy": [
+        3268.3,
+        2036.4,
+        3520.0,
+        2113.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.123298,
+      "image_id": 254,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00254.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00254.txt",
+      "label_line_index": 18,
+      "label_line": "349 0.988011 0.589750 0.023091 0.056000",
+      "gt_class_id": 349,
+      "gt_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_class_id": 349,
+      "pred_class_name": "KNEKKEBR\u00d8D SPORT+ 210G WASA",
+      "pred_score": 0.210905,
+      "iou": 0.415388,
+      "gt_bbox_xyxy": [
+        2199.0,
+        2247.0,
+        2251.0,
+        2471.0
+      ],
+      "pred_bbox_xyxy": [
+        2143.1,
+        2225.1,
+        2252.0,
+        2482.6
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.122767,
+      "image_id": 304,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00304.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00304.txt",
+      "label_line_index": 111,
+      "label_line": "244 0.309772 0.426422 0.011409 0.013558",
+      "gt_class_id": 244,
+      "gt_class_name": "RUGSPR\u00d8 HAVRE 180G WASA",
+      "pred_class_id": 244,
+      "pred_class_name": "RUGSPR\u00d8 HAVRE 180G WASA",
+      "pred_score": 0.064671,
+      "iou": 0.386167,
+      "gt_bbox_xyxy": [
+        1226.0,
+        1269.0,
+        1272.0,
+        1310.0
+      ],
+      "pred_bbox_xyxy": [
+        1211.2,
+        1243.8,
+        1274.3,
+        1321.2
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.12119,
+      "image_id": 303,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00303.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00303.txt",
+      "label_line_index": 22,
+      "label_line": "307 0.834821 0.085813 0.035714 0.020833",
+      "gt_class_id": 307,
+      "gt_class_name": "MAISKAKER OST 125G FRIGGS",
+      "pred_class_id": 307,
+      "pred_class_name": "MAISKAKER OST 125G FRIGGS",
+      "pred_score": 0.058684,
+      "iou": 0.39405,
+      "gt_bbox_xyxy": [
+        3294.0,
+        228.0,
+        3438.0,
+        291.0
+      ],
+      "pred_bbox_xyxy": [
+        3313.3,
+        234.5,
+        3428.9,
+        355.9
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.121032,
+      "image_id": 303,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00303.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00303.txt",
+      "label_line_index": 20,
+      "label_line": "307 0.801711 0.108300 0.057788 0.061177",
+      "gt_class_id": 307,
+      "gt_class_name": "MAISKAKER OST 125G FRIGGS",
+      "pred_class_id": 307,
+      "pred_class_name": "MAISKAKER OST 125G FRIGGS",
+      "pred_score": 0.000806,
+      "iou": 0.394839,
+      "gt_bbox_xyxy": [
+        3116.0,
+        235.0,
+        3349.0,
+        420.0
+      ],
+      "pred_bbox_xyxy": [
+        3031.3,
+        255.3,
+        3338.3,
+        536.2
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.119384,
+      "image_id": 12,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00012.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00012.txt",
+      "label_line_index": 90,
+      "label_line": "100 0.303000 0.703167 0.028500 0.079000",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 100,
+      "pred_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_score": 0.135884,
+      "iou": 0.40308,
+      "gt_bbox_xyxy": [
+        1155.0,
+        1991.0,
+        1269.0,
+        2228.0
+      ],
+      "pred_bbox_xyxy": [
+        1134.1,
+        1921.8,
+        1343.5,
+        2241.9
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.114938,
+      "image_id": 251,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00251.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00251.txt",
+      "label_line_index": 77,
+      "label_line": "85 0.177375 0.908000 0.031250 0.143333",
+      "gt_class_id": 85,
+      "gt_class_name": "RIS PUFFET 260G FIRST PRICE",
+      "pred_class_id": 85,
+      "pred_class_name": "RIS PUFFET 260G FIRST PRICE",
+      "pred_score": 0.008738,
+      "iou": 0.42531,
+      "gt_bbox_xyxy": [
+        647.0,
+        2509.0,
+        772.0,
+        2939.0
+      ],
+      "pred_bbox_xyxy": [
+        543.4,
+        2547.8,
+        816.6,
+        2916.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.113845,
+      "image_id": 62,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00062.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00062.txt",
+      "label_line_index": 58,
+      "label_line": "100 0.441111 0.871951 0.045185 0.056098",
+      "gt_class_id": 100,
+      "gt_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_class_id": 100,
+      "pred_class_name": "EVERGOOD CLASSIC FILTERMALT 250G",
+      "pred_score": 0.064273,
+      "iou": 0.430773,
+      "gt_bbox_xyxy": [
+        565.0,
+        1038.0,
+        626.0,
+        1107.0
+      ],
+      "pred_bbox_xyxy": [
+        580.6,
+        1048.8,
+        623.9,
+        1144.9
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.113721,
+      "image_id": 195,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00195.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00195.txt",
+      "label_line_index": 54,
+      "label_line": "78 0.882647 0.526382 0.024969 0.090452",
+      "gt_class_id": 78,
+      "gt_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_class_id": 78,
+      "pred_class_name": "MUSLI HAVRE&MANDEL 400G BARE BRA",
+      "pred_score": 0.000503,
+      "iou": 0.431395,
+      "gt_bbox_xyxy": [
+        697.0,
+        383.0,
+        717.0,
+        455.0
+      ],
+      "pred_bbox_xyxy": [
+        677.3,
+        379.1,
+        715.5,
+        457.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.110412,
+      "image_id": 108,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00108.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00108.txt",
+      "label_line_index": 46,
+      "label_line": "275 0.587632 0.555184 0.204365 0.047867",
+      "gt_class_id": 275,
+      "gt_class_name": "EGG FRITTG\u00c5ENDE 18STK S/M FIRST PRICE",
+      "pred_class_id": 275,
+      "pred_class_name": "EGG FRITTG\u00c5ENDE 18STK S/M FIRST PRICE",
+      "pred_score": 0.001724,
+      "iou": 0.44794,
+      "gt_bbox_xyxy": [
+        1468.0,
+        2142.0,
+        2086.0,
+        2335.0
+      ],
+      "pred_bbox_xyxy": [
+        1590.8,
+        2203.1,
+        2067.2,
+        2379.1
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.107465,
+      "image_id": 116,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00116.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00116.txt",
+      "label_line_index": 65,
+      "label_line": "186 0.885667 0.771125 0.088000 0.085250",
+      "gt_class_id": 186,
+      "gt_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_class_id": 186,
+      "pred_class_name": "SUPERGR\u00d8T SKOGSB\u00c6R 57G BARE BRA",
+      "pred_score": 0.002749,
+      "iou": 0.462673,
+      "gt_bbox_xyxy": [
+        2525.0,
+        2914.0,
+        2789.0,
+        3255.0
+      ],
+      "pred_bbox_xyxy": [
+        2503.1,
+        2999.2,
+        2699.7,
+        3252.3
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.105208,
+      "image_id": 251,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00251.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00251.txt",
+      "label_line_index": 53,
+      "label_line": "235 0.815625 0.896000 0.065750 0.038667",
+      "gt_class_id": 235,
+      "gt_class_name": "FLATBR\u00d8D \u00d8KOLOGISK 190G R\u00d8ROS",
+      "pred_class_id": 235,
+      "pred_class_name": "FLATBR\u00d8D \u00d8KOLOGISK 190G R\u00d8ROS",
+      "pred_score": 0.003608,
+      "iou": 0.473958,
+      "gt_bbox_xyxy": [
+        3131.0,
+        2630.0,
+        3394.0,
+        2746.0
+      ],
+      "pred_bbox_xyxy": [
+        3133.8,
+        2577.7,
+        3467.3,
+        2730.8
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.104358,
+      "image_id": 152,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00152.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00152.txt",
+      "label_line_index": 56,
+      "label_line": "268 0.894221 0.634425 0.021577 0.033399",
+      "gt_class_id": 268,
+      "gt_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_class_id": 268,
+      "pred_class_name": "SUPERGR\u00d8T KANEL&PUFFET QUINOA 54G",
+      "pred_score": 0.001538,
+      "iou": 0.478212,
+      "gt_bbox_xyxy": [
+        3562.0,
+        1868.0,
+        3649.0,
+        1969.0
+      ],
+      "pred_bbox_xyxy": [
+        3567.2,
+        1823.1,
+        3665.6,
+        1953.5
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.103635,
+      "image_id": 243,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00243.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00243.txt",
+      "label_line_index": 4,
+      "label_line": "305 0.389937 0.315352 0.117400 0.072669",
+      "gt_class_id": 305,
+      "gt_class_name": "GRANOLA KAKAO&BRINGEB\u00c6R 430G BARE BRA",
+      "pred_class_id": 305,
+      "pred_class_name": "GRANOLA KAKAO&BRINGEB\u00c6R 430G BARE BRA",
+      "pred_score": 0.000579,
+      "iou": 0.481823,
+      "gt_bbox_xyxy": [
+        632.0,
+        1125.0,
+        856.0,
+        1418.0
+      ],
+      "pred_bbox_xyxy": [
+        667.6,
+        1187.7,
+        811.8,
+        1407.0
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.101442,
+      "image_id": 251,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00251.jpg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00251.txt",
+      "label_line_index": 24,
+      "label_line": "86 0.512625 0.750833 0.061750 0.039667",
+      "gt_class_id": 86,
+      "gt_class_name": "HAVRE KNEKKEBR\u00d8D 300G WASA",
+      "pred_class_id": 86,
+      "pred_class_name": "HAVRE KNEKKEBR\u00d8D 300G WASA",
+      "pred_score": 0.002064,
+      "iou": 0.492789,
+      "gt_bbox_xyxy": [
+        1927.0,
+        2193.0,
+        2174.0,
+        2312.0
+      ],
+      "pred_bbox_xyxy": [
+        1930.2,
+        2240.7,
+        2175.6,
+        2335.5
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    },
+    {
+      "issue_type": "box_near_miss",
+      "priority": 0.100443,
+      "image_id": 152,
+      "image_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/images/img_00152.jpeg",
+      "label_path": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/data/yolo/val/labels/img_00152.txt",
+      "label_line_index": 27,
+      "label_line": "214 0.818576 0.733631 0.056300 0.108135",
+      "gt_class_id": 214,
+      "gt_class_name": "HAVREGR\u00d8T ROSIN&VANILJE 525G AXA",
+      "pred_class_id": 214,
+      "pred_class_name": "HAVREGR\u00d8T ROSIN&VANILJE 525G AXA",
+      "pred_score": 0.016794,
+      "iou": 0.497785,
+      "gt_bbox_xyxy": [
+        3187.0,
+        2055.0,
+        3414.0,
+        2382.0
+      ],
+      "pred_bbox_xyxy": [
+        3256.6,
+        2074.1,
+        3400.6,
+        2330.7
+      ],
+      "suggested_action": "Check bbox tightness/extent for occluded or adjacent items."
+    }
+  ]
+}

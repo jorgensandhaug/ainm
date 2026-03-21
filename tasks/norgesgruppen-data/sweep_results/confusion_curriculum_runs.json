@@ -1,0 +1,14 @@
+{
+  "base_weights": "runs/finalfull_e20_img640_b8_lr0.0006_mix0.05_cp0.1_seed123/weights/best.pt",
+  "confusion_json": "sweep_results/error_analysis.json",
+  "curriculum_yaml": "data/yolo_confusion_curriculum/data.yaml",
+  "full_yaml": "data/yolo/data.yaml",
+  "stage1": {
+    "run_name": "confcurr_s1_e12_img640_b8_lr0.0002_mix0.02_cp0.03_seed123",
+    "best_pt": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/runs/confcurr_s1_e12_img640_b8_lr0.0002_mix0.02_cp0.03_seed123/weights/best.pt"
+  },
+  "stage2": {
+    "run_name": "confcurr_s2_e18_img640_b8_lr8e-05_mix0_cp0_seed123",
+    "best_pt": "/cluster/home/oskarjor/ainm/tasks/norgesgruppen-data/runs/confcurr_s2_e18_img640_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt"
+  }
+}

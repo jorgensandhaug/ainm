@@ -217,15 +217,32 @@ def evaluate_hybrid(
 
     class_aps_present = []
     class_aps_full = []
+    per_class = []
     for class_id in range(num_classes):
         class_gt = [g for g in gt_flat if int(g["category_id"]) == class_id]
         class_pred = [p for p in pred_flat if int(p["category_id"]) == class_id]
         if len(class_gt) == 0:
             class_aps_full.append(0.0)
+            per_class.append(
+                {
+                    "class_id": class_id,
+                    "ap50": 0.0,
+                    "gt_count": 0,
+                    "pred_count": len(class_pred),
+                }
+            )
             continue
         ap, _ = compute_single_ap(class_gt, class_pred, iou_threshold=iou_threshold)
         class_aps_full.append(ap)
         class_aps_present.append(ap)
+        per_class.append(
+            {
+                "class_id": class_id,
+                "ap50": ap,
+                "gt_count": len(class_gt),
+                "pred_count": len(class_pred),
+            }
+        )
 
     classification_map_present = (
         sum(class_aps_present) / len(class_aps_present) if class_aps_present else 0.0
@@ -258,7 +275,27 @@ def evaluate_hybrid(
         "present_gt_classes": len({int(g["category_id"]) for g in gt_flat}),
         "counts_detection": det_counts,
         "per_image": per_image,
+        "per_class": per_class,
     }
+
+
+def load_category_names(categories_json: Path | None) -> dict[int, str]:
+    if categories_json is None:
+        return {}
+    raw = json.loads(categories_json.read_text())
+    if isinstance(raw, dict):
+        raw = raw.get("categories", [])
+    if not isinstance(raw, list):
+        raise ValueError(f"Expected a JSON list or dict with 'categories' in {categories_json}, got {type(raw).__name__}")
+    names: dict[int, str] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        class_id = int(item.get("id", -1))
+        if class_id < 0:
+            continue
+        names[class_id] = str(item.get("name", ""))
+    return names
 
 
 def main() -> None:
@@ -288,10 +325,23 @@ def main() -> None:
         default=10,
         help="Show top-N images by largest prediction-vs-gt box count gap.",
     )
+    parser.add_argument(
+        "--show-worst-classes",
+        type=int,
+        default=0,
+        help="Show N worst classes by AP@0.5 among classes with GT.",
+    )
+    parser.add_argument(
+        "--categories-json",
+        type=Path,
+        default=Path("data/classifier/categories.json"),
+        help="Category names JSON with [{'id': int, 'name': str}, ...].",
+    )
     args = parser.parse_args()
 
     gt_by_image = load_ground_truth(args.val_dir)
     pred_by_image = load_predictions(args.predictions, args.score_threshold)
+    category_names = load_category_names(args.categories_json if args.categories_json.exists() else None)
     metrics = evaluate_hybrid(
         gt_by_image=gt_by_image,
         pred_by_image=pred_by_image,
@@ -346,6 +396,23 @@ def main() -> None:
             print(
                 f"  image_id={row['image_id']:>5} "
                 f"gt={row['gt']:>3} pred={row['pred']:>3} gap={abs(row['pred'] - row['gt']):>3}"
+            )
+
+    if args.show_worst_classes > 0:
+        print("")
+        print(f"Worst {args.show_worst_classes} classes by AP@0.5 (GT-present classes only):")
+        classes_with_gt = [row for row in metrics["per_class"] if row["gt_count"] > 0]
+        ranked = sorted(
+            classes_with_gt,
+            key=lambda row: (row["ap50"], -row["gt_count"]),
+        )
+        for row in ranked[: args.show_worst_classes]:
+            class_id = int(row["class_id"])
+            class_name = category_names.get(class_id, "")
+            suffix = f" name={class_name!r}" if class_name else ""
+            print(
+                f"  class_id={class_id:>3} ap50={row['ap50']:.4f} "
+                f"gt={row['gt_count']:>4} pred={row['pred_count']:>4}{suffix}"
             )
 
 

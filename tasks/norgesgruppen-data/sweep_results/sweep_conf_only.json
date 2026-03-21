@@ -1,0 +1,68 @@
+{
+  "results": [
+    {
+      "det_ap50": 0.8864,
+      "cls_map50_present": 0.5996,
+      "hybrid_present": 0.8003,
+      "conf": 0.001,
+      "infer_seconds": 10.977,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p001_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8864,
+      "cls_map50_present": 0.5996,
+      "hybrid_present": 0.8003,
+      "conf": 0.003,
+      "infer_seconds": 11.37,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p003_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8864,
+      "cls_map50_present": 0.5996,
+      "hybrid_present": 0.8003,
+      "conf": 0.005,
+      "infer_seconds": 11.229,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p005_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8852,
+      "cls_map50_present": 0.5994,
+      "hybrid_present": 0.7995,
+      "conf": 0.01,
+      "infer_seconds": 11.107,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p01_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8805,
+      "cls_map50_present": 0.598,
+      "hybrid_present": 0.7958,
+      "conf": 0.02,
+      "infer_seconds": 11.007,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p02_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8746,
+      "cls_map50_present": 0.5949,
+      "hybrid_present": 0.7907,
+      "conf": 0.03,
+      "infer_seconds": 11.052,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p03_iou0p45.json"
+    },
+    {
+      "det_ap50": 0.8666,
+      "cls_map50_present": 0.5929,
+      "hybrid_present": 0.7845,
+      "conf": 0.05,
+      "infer_seconds": 11.16,
+      "predictions_path": "sweep_results/sweep_preds/pred_c0p05_iou0p45.json"
+    }
+  ],
+  "best_by_hybrid_present": {
+    "det_ap50": 0.8864,
+    "cls_map50_present": 0.5996,
+    "hybrid_present": 0.8003,
+    "conf": 0.001,
+    "infer_seconds": 10.977,
+    "predictions_path": "sweep_results/sweep_preds/pred_c0p001_iou0p45.json"
+  }
+}

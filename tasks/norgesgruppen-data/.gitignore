@@ -2,6 +2,7 @@ yolo/dataset/
 runs/
 
 yolo*.pt
+*.onnx
 
 .venv/
 
