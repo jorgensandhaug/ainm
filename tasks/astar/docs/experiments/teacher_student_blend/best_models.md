@@ -18,5 +18,7 @@ Current active gate queue:
 - `teacher_student_blend_v24`
 - `teacher_student_blend_v25`
 - `teacher_student_blend_v26`
+- `teacher_student_blend_v27`
+- `teacher_student_blend_v28`
 
 Use `/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md` for the timestamped run ledger until corrected holdout results land.

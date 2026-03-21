@@ -9,6 +9,7 @@
 - `v21` / `v22`: exact local evidence posterior updates should improve observed-cell calibration because queried terminal samples directly estimate local marginals
 - `v23` / `v24`: blurred local residual diffusion should improve nearby unobserved cells because query windows contain local spatial signal beyond the exact queried pixels
 - `v25` / `v26`: geometry-gated blurred diffusion should beat ungated blur by preventing local evidence from leaking into implausible cells
+- `v27` / `v28`: class-weighted geometry-gated diffusion should beat uniform diffusion by emphasizing built-class signal over empty/static spill
 
 ## Evaluation Rule
 

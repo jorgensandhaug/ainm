@@ -2121,6 +2121,28 @@
      - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_spatial_gate tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_updates_neighboring_unobserved_cells tests/test_historical_benchmark.py::test_teacher_student_blend_v26_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
    - result:
      - `5 passed`
+232. New hypothesis after item 231:
+   - even geometry-gated blur may overpropagate the dominant empty class
+   - test class-weighted diffusion:
+     - emphasize settlement / port / ruin signal
+     - suppress empty and mountain spill
+233. Implemented class-weighted blur variants:
+   - new variants:
+     - `teacher_student_blend_v27`
+     - `teacher_student_blend_v28`
+   - class weights for blurred local diffusion:
+     - empty `0.25`
+     - settlement `1.0`
+     - port `1.25`
+     - ruin `1.0`
+     - forest `0.5`
+     - mountain `0.0`
+   - added direct unit test that zero class-scale suppresses the blur update entirely
+234. Validation for item 233:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_class_scale tests/test_teacher_student.py::test_summary_bank_local_blur_evidence_respects_spatial_gate tests/test_teacher_student.py::test_summary_bank_variants_share_base_prior_and_teacher_cache tests/test_historical_benchmark.py::test_teacher_student_blend_v28_online_historical_benchmark_defaults_to_samples_8 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `5 passed`
 
 
 ## Open Questions
