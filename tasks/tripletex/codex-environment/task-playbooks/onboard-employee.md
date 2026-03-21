@@ -58,11 +58,18 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 | Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
 | Innkjøper / 3323 | `innkjøper` | `2503` | `3416102` |
+| Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
 For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
 For the exact STYRK-only `3323` contract shape, also use hardcoded id `2503` and skip the occupation-code GET.
+
+### Compound Job Titles with "Senior" Prefix
+- `nameNO=seniorutvikler` returns 0 results — this compound title does not exist in Tripletex
+- do NOT fall back to `nameNO=utvikler` — returns DRIFTSUTVIKLER (IT operations, id 1173), wrong for software developers
+- for "Seniorutvikler", use hardcoded id 5935 (SYSTEMUTVIKLER, code 2130109)
+- some "Senior" prefixed titles DO exist (SENIORINGENIØR, SENIORKONSULENT, SENIORPROGRAMMERER) but "SENIORUTVIKLER" does not
 
 ### Dynamic Lookup
 For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
@@ -155,3 +162,17 @@ Standard worktime (per-employee):
 - Do not include `division.id` when `GET /division` returns zero rows — fresh accounts work without it
 - Do not assume the 4-digit STYRK code from the contract matches the first 4 digits of the Tripletex 7-digit code — e.g., STYRK 3323 maps to code `3416102`, and `code=3323` returns 0 results
 - When the contract gives only a STYRK code and no job title, resolve the STYRK code to its Norwegian occupation name (e.g., 3323 → "innkjøper"), then check hardcoded mappings before doing a dynamic lookup
+- Do not search `nameNO=seniorutvikler` — returns 0 results; use hardcoded id 5935 (SYSTEMUTVIKLER)
+- Do not fall back to `nameNO=utvikler` for software developer titles — returns DRIFTSUTVIKLER (IT operations, id 1173), wrong occupation code
+
+## Production Run History
+
+Run 2026-03-21 (Salgssjef offer letter): scored 11/14 (78.57%), 2 failed checks — missing occupation code, wrong standard-time endpoint
+
+Run 2026-03-21 (STYRK 3323 contract): 4 calls, 0 errors — correct flow but occupation-code lookup could have been hardcoded
+
+Run 2026-03-21 (Seniorutvikler offer letter): 6 calls, 0 4xx errors but wrong occupation code used
+- `nameNO=seniorutvikler` → 0 results (wasted call)
+- fallback `nameNO=utvikler` → id 1173 DRIFTSUTVIKLER (wrong — IT operations, not software dev)
+- correct: id 5935 SYSTEMUTVIKLER (code 2130109), now hardcoded
+- optimal was 4 calls with hardcoded mapping; actual was 6 calls with wrong code

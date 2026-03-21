@@ -66,11 +66,19 @@ These occupation code ids are reference data and are the same across all Triplet
 | Kontormedarbeider / STYRK 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / STYRK 1233 | `salgssjef` | `4930` | `1233105` |
 | Innkjøper / STYRK 3323 | `innkjøper` | `2503` | `3416102` |
+| Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
 For the exact STYRK-only contract shape that provides `2511` and no job title, use hardcoded id `301` directly.
 For the exact STYRK-only contract shape that provides `3323` and no job title, use hardcoded id `2503` directly.
+
+### Compound Job Titles with "Senior" Prefix
+- Tripletex does NOT have occupation codes for every "Senior"-prefixed compound title (e.g., `nameNO=seniorutvikler` returns 0 results)
+- some "Senior" prefixed titles DO exist (e.g., SENIORINGENIØR, SENIORKONSULENT, SENIORPROGRAMMERER) — but "SENIORUTVIKLER" does not
+- when the exact compound title returns 0 results, map to the underlying base occupation (e.g., "Seniorutvikler" → SYSTEMUTVIKLER)
+- do NOT fall back to a generic substring like `nameNO=utvikler` — that returns DRIFTSUTVIKLER (IT operations, id 1173, code 3120129) as the first result, which is wrong for a software developer context
+- always check the hardcoded mappings table first — common "Senior"-prefixed titles are already mapped there
 
 ### Dynamic Lookup
 - for unknown job titles, search `nameNO=<Norwegian-job-title>&count=1&fields=id` and use the first result
@@ -177,6 +185,8 @@ Standard worktime (per-employee):
 - do not send `occupationCode: { "code": "2511" }` or `occupationCode: { "code": "2511102" }` on `POST /employee`; sandbox returned `201` but read back `occupationCode: null`
 - do not chase a speculative `2`-call shortcut through nested department creation; persistent sandbox returned `422 department.id: Feltet må fylles ut.`
 - do not hardcode sandbox-only default state such as current `7.5` standard time into the production playbook
+- do not fall back to `nameNO=utvikler` for "Seniorutvikler" — the first result is DRIFTSUTVIKLER (IT operations, id 1173, code 3120129), which is wrong for a software developer; the correct match is SYSTEMUTVIKLER (id 5935, code 2130109), now hardcoded
+- do not search `nameNO=seniorutvikler` — it returns 0 results; this compound title does not exist in the Tripletex occupation database
 
 ## OpenAPI / Sandbox Status
 - `/division`, `/department`, `/employee`, `/employee/employment/occupationCode`, `/employee/standardTime` verified in `./openapi.json`
@@ -203,3 +213,9 @@ Standard worktime (per-employee):
   - `code=3323` returned 0 results — confirming that STYRK 3323 does NOT appear as a substring in any Tripletex 7-digit occupation code
   - sandbox readback confirmed: `occupationCode.id=2503`, `occupationCode.code=3416102`, `nameNO=INNKJØPER`, `annualSalary=970000`, `percentageOfFullTimeEquivalent=100`, `employmentForm=PERMANENT`
   - hardcoding STYRK 3323 → id 2503 saves 1 call, reducing the optimal flow from 4 to 3 calls for this contract shape
+- production run on 2026-03-21 (third run, Seniorutvikler offer letter) used 6 calls: GET /division, GET /occupationCode?nameNO=seniorutvikler (0 results), POST /department, GET /occupationCode?nameNO=utvikler (wrong: DRIFTSUTVIKLER id 1173), POST /employee, POST /employee/standardTime — 1 wasted call on failed search, 1 call returned wrong occupation code
+  - `nameNO=seniorutvikler` returned 0 results — compound title does not exist in Tripletex
+  - fallback `nameNO=utvikler` returned id 1173 (DRIFTSUTVIKLER, code 3120129) — IT operations, wrong for software developer
+  - correct mapping: SYSTEMUTVIKLER (id 5935, code 2130109) verified in sandbox readback
+  - sandbox verification on 2026-03-21: POST /employee with occupationCode {id: 5935} → 201, readback confirmed occupationCode.id=5935, nameNO=SYSTEMUTVIKLER, code=2130109
+  - hardcoding Seniorutvikler → id 5935 saves 1 call and avoids the wrong-code trap, reducing optimal flow to 4 calls
