@@ -1192,6 +1192,52 @@
      - `teacher_blend` remains operationally inert in this family even after driving `prior_blend` to `0.0`
      - do not promote `query_residual_v20`
      - keep `query_residual_v19` as best verified model and current serving candidate
+136. Next post-`v20` hypothesis:
+   - the remaining conservative local anchor is the exact-cell pseudocount blend
+   - current exact-cell shrinkage:
+     - `beta_min=8`
+     - `beta_scale=24`
+   - that is strong smoothing against directly observed cells, so a moderate reduction may let legal exact observations matter more without destabilizing the whole tensor
+137. Implemented `query_residual_v21`:
+   - semantics:
+     - same architecture as `query_residual_v19`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.0`
+     - reduced exact-cell shrinkage:
+       - `beta_min=4.0`
+       - `beta_scale=12.0`
+   - plumbing change:
+     - named query-residual variants now carry `beta_min` / `beta_scale` explicitly, so this variant is reproducible by model name
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+138. Validation after `query_residual_v21` wiring:
+   - minimal command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_query_residual_v21_online_historical_benchmark_defaults_to_samples_2 -q`
+   - result:
+     - `1 passed`
+   - full command:
+     - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result:
+     - `27 passed`
+139. Representative 2-round/7-train holdout result for `query_residual_v21`:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v21_targeted_holdout_2rounds_7train/result.json`
+   - result:
+     - mean score `67.9598`
+     - mean weighted KL `0.128841`
+   - per-round:
+     - `36e581...`: score `67.0394`, KL `0.133360`
+     - `f1dac9...`: score `68.8802`, KL `0.124323`
+140. Interpretation of item 139:
+   - `query_residual_v21` is a clear targeted improvement over `query_residual_v19`
+   - delta versus current verified leader targeted:
+     - mean score `+0.4328`
+     - mean weighted KL `-0.002136`
+   - both held-out hard rounds improved
+   - promotion decision:
+     - run full corrected LOO for `query_residual_v21`
 
 ## Open Questions
 
