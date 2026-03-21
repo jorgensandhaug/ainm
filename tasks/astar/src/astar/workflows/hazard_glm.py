@@ -41,6 +41,7 @@ class HazardGlmAuditResult(BaseModel):
 
     audit_name: str
     event_type: str
+    feature_profile: str
     dataset_name: str
     aggregation_mode: str
     round_ids: list[str]
@@ -69,6 +70,7 @@ class HazardGlmAuditResult(BaseModel):
 @dataclass(frozen=True)
 class HazardGlmSpec:
     event_type: str
+    feature_profile: str
     dataset_name: str
     audit_name: str
     feature_names: tuple[str, ...]
@@ -239,9 +241,35 @@ def _collapse_design_matrix(frame: pl.DataFrame) -> tuple[np.ndarray, np.ndarray
     return features, labels, weights
 
 
-HAZARD_GLM_SPECS: dict[str, HazardGlmSpec] = {
-    "birth": HazardGlmSpec(
+def _collapse_observed_design_matrix(
+    frame: pl.DataFrame,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    current_is_port = (
+        frame.get_column("current_class").to_numpy().astype(np.int64) == 2
+    ).astype(np.float64)
+    feature_arrays = [
+        _bool_column(frame, "coast"),
+        _float_column(frame, "settlement_proximity"),
+        _float_column(frame, "maritime_access"),
+        _float_column(frame, "frontier_score"),
+        _float_column(frame, "forest_density"),
+        _float_column(frame, "mountain_density"),
+        _float_column(frame, "settlement_neighbors"),
+        _float_column(frame, "port_neighbors"),
+        _float_column(frame, "ruin_neighbors"),
+        _float_column(frame, "forest_neighbors"),
+        current_is_port,
+    ]
+    features = np.stack(feature_arrays, axis=1).astype(np.float64)
+    labels = _float_column(frame, "label")
+    weights = _float_column(frame, "sample_weight")
+    return features, labels, weights
+
+
+HAZARD_GLM_SPECS: dict[tuple[str, str], HazardGlmSpec] = {
+    ("birth", "default"): HazardGlmSpec(
         event_type="birth",
+        feature_profile="default",
         dataset_name="f1_birth_riskset_nr8_v1",
         audit_name="f1_birth_glm_staticlocal_audit_v01",
         feature_names=(
@@ -279,8 +307,9 @@ HAZARD_GLM_SPECS: dict[str, HazardGlmSpec] = {
             "birth feature set uses static spatial context plus local yearly neighborhood counts",
         ),
     ),
-    "collapse": HazardGlmSpec(
+    ("collapse", "full"): HazardGlmSpec(
         event_type="collapse",
+        feature_profile="full",
         dataset_name="f1_collapse_riskset_nr8_v1",
         audit_name="f1_collapse_glm_staticlocal_audit_v01",
         feature_names=(
@@ -329,18 +358,76 @@ HAZARD_GLM_SPECS: dict[str, HazardGlmSpec] = {
             "collapse feature set adds pre-event settlement state because starvation and fragility are not visible in static map features alone",
         ),
     ),
+    ("collapse", "observed"): HazardGlmSpec(
+        event_type="collapse",
+        feature_profile="observed",
+        dataset_name="f1_collapse_riskset_nr8_v1",
+        audit_name="f1_collapse_glm_observed_audit_v01",
+        feature_names=(
+            "coast",
+            "settlement_proximity",
+            "maritime_access",
+            "frontier_score",
+            "forest_density",
+            "mountain_density",
+            "settlement_neighbors",
+            "port_neighbors",
+            "ruin_neighbors",
+            "forest_neighbors",
+            "current_is_port",
+        ),
+        parquet_columns=(
+            "round_id",
+            "label",
+            "sample_weight",
+            "current_class",
+            "coast",
+            "settlement_proximity",
+            "maritime_access",
+            "frontier_score",
+            "forest_density",
+            "mountain_density",
+            "settlement_neighbors",
+            "port_neighbors",
+            "ruin_neighbors",
+            "forest_neighbors",
+        ),
+        design_matrix_fn=_collapse_observed_design_matrix,
+        notes=(
+            "evaluation is leave-one-round-out on the weighted sampled collapse risk set",
+            "observed collapse feature set removes hidden settlement-state columns and keeps only structural context visible in replay frames and approximable in live-safe models",
+        ),
+    ),
 }
 
 
 def supported_hazard_glm_events() -> list[str]:
-    return sorted(HAZARD_GLM_SPECS)
+    return sorted({event_type for event_type, _ in HAZARD_GLM_SPECS})
+
+def supported_hazard_glm_profiles(event_type: str) -> list[str]:
+    normalized_event = event_type.strip().lower()
+    return sorted(
+        profile
+        for event_name, profile in HAZARD_GLM_SPECS
+        if event_name == normalized_event
+    )
 
 
-def resolve_hazard_glm_spec(event_type: str) -> HazardGlmSpec:
-    normalized = event_type.strip().lower()
-    spec = HAZARD_GLM_SPECS.get(normalized)
+def resolve_hazard_glm_spec(
+    event_type: str,
+    feature_profile: str | None = None,
+) -> HazardGlmSpec:
+    normalized_event = event_type.strip().lower()
+    normalized_profile = (
+        feature_profile.strip().lower()
+        if feature_profile is not None
+        else {"birth": "default", "collapse": "full"}.get(normalized_event, "default")
+    )
+    spec = HAZARD_GLM_SPECS.get((normalized_event, normalized_profile))
     if spec is None:
-        raise ValueError(f"unsupported hazard glm event: {event_type}")
+        raise ValueError(
+            f"unsupported hazard glm spec: event={event_type} profile={normalized_profile}",
+        )
     return spec
 
 
@@ -349,6 +436,7 @@ def _render_report(result: HazardGlmAuditResult, spec: HazardGlmSpec) -> str:
         f"hazard-glm-audit {result.audit_name}",
         "",
         f"event_type: {result.event_type}",
+        f"feature_profile: {result.feature_profile}",
         f"dataset: {result.dataset_name}",
         f"rounds: {result.round_count}",
         f"rows: {result.row_count}",
@@ -401,13 +489,14 @@ def run_hazard_glm_audit(
     paths: WorkspacePaths,
     *,
     event_type: str,
+    feature_profile: str | None = None,
     dataset_name: str | None = None,
     audit_name: str | None = None,
     ridge_lambda: float = 1.0,
     max_iter: int = 12,
     tol: float = 1e-5,
 ) -> HazardGlmAuditResult:
-    spec = resolve_hazard_glm_spec(event_type)
+    spec = resolve_hazard_glm_spec(event_type, feature_profile)
     resolved_dataset_name = dataset_name or spec.dataset_name
     resolved_audit_name = audit_name or spec.audit_name
     dataset_dir = paths.dataset_dir(resolved_dataset_name)
@@ -508,6 +597,7 @@ def run_hazard_glm_audit(
     result = HazardGlmAuditResult(
         audit_name=resolved_audit_name,
         event_type=spec.event_type,
+        feature_profile=spec.feature_profile,
         dataset_name=resolved_dataset_name,
         aggregation_mode="equal_round_mean_primary",
         round_ids=round_ids,
@@ -543,4 +633,5 @@ __all__ = [
     "HazardGlmRoundMetric",
     "run_hazard_glm_audit",
     "supported_hazard_glm_events",
+    "supported_hazard_glm_profiles",
 ]

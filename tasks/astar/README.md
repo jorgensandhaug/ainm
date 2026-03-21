@@ -338,6 +338,7 @@ uv run astar build-event-ledger
 uv run astar build-hazard-riskset --event birth --negative-ratio 8
 uv run astar build-hazard-riskset --event collapse --negative-ratio 8
 uv run astar run-hazard-glm-audit --event collapse
+uv run astar run-hazard-glm-audit --event collapse --profile observed
 uv run astar run-birth-hazard-glm-audit
 uv run astar dataset-summary
 uv run astar corpus-summary

@@ -338,6 +338,7 @@ def render_hazard_glm_audit(result: HazardGlmAuditResult) -> str:
     lines = [
         f"hazard-glm-audit {result.audit_name}",
         f"event_type: {result.event_type}",
+        f"feature_profile: {result.feature_profile}",
         f"dataset: {result.dataset_name}",
         f"rounds: {result.round_count}",
         f"aggregation: {result.aggregation_mode}",

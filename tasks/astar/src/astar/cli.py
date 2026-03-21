@@ -256,6 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     hazard_glm_parser = subparsers.add_parser("run-hazard-glm-audit")
     hazard_glm_parser.add_argument("--event", required=True, choices=supported_hazard_glm_events())
+    hazard_glm_parser.add_argument("--profile", default=None)
     hazard_glm_parser.add_argument("--dataset-name", default=None)
     hazard_glm_parser.add_argument("--name", default=None)
     hazard_glm_parser.add_argument("--ridge-lambda", type=float, default=1.0)
@@ -579,6 +580,7 @@ def _main() -> int:
         result = run_hazard_glm_audit(
             paths,
             event_type=args.event,
+            feature_profile=args.profile,
             dataset_name=args.dataset_name,
             audit_name=args.name,
             ridge_lambda=args.ridge_lambda,

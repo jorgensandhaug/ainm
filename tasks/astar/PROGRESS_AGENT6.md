@@ -59,7 +59,8 @@
    - replay event-ledger is now built; birth + collapse risk-set datasets are now built
    - richer collapse-sensitive state if returning to Gate 1 refinement
    - held-out hazard fitting for birth + collapse is now positive
-   - next missing piece is first benchmarkable event-hazard model and memory-safe dataset building
+   - observed-only collapse fitting is now almost flat, which means collapse needs latent-state / posterior machinery rather than a purely structural live-safe formula
+   - next missing piece is first benchmarkable event-hazard model plus memory-safe dataset building
    - only after that revisit low-rank coupling / live regime inference
 
 ## Active Experiment
@@ -68,13 +69,14 @@
   - `f1_birth_riskset_nr8_v1`
   - `f1_collapse_riskset_nr8_v1`
 - Hypothesis:
-  - the first benchmarkable semimechanistic event-hazard baseline should combine the two clearly positive event modules:
-    - birth
-    - collapse
+  - the first benchmarkable semimechanistic event-hazard baseline should split by observability:
+    - birth can lean on structural features
+    - collapse likely needs latent-state/posterior machinery from queried settlement stats, not only static structure
   - build/birth addresses the dominant Gate 2 miss
-  - collapse addresses the strongest Gate 1 lag-sensitive event and has much larger held-out predictive gain
+  - collapse addresses the strongest Gate 1 lag-sensitive event, but mostly through hidden settlement state rather than observable structure
 - Validation plan:
   - keep equal-round leave-one-round-out as the primary module-level validation
+  - compare full vs observed feature profiles whenever an event model uses replay-only state, so live-safe feasibility is explicit
   - for benchmarkable models, compare against the strongest current online-safe baseline, not only eventwise prevalence baselines
   - separately reduce risk-set build memory before adding more dense event sweeps
 
@@ -106,6 +108,7 @@
 - `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/summary.json`
 - `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md`
 - `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md`
+- `data/artifacts/family1/hazard_glm/f1_collapse_glm_observed_audit_v01/report.md`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/history/datasets/event_ledger.py`
@@ -434,6 +437,45 @@
 - Updated next-step read:
   - highest-value next implementation is no longer more audits
   - it is now:
-    - build the first benchmarkable semimechanistic event-hazard baseline combining at least birth + collapse
+    - build the first benchmarkable semimechanistic event-hazard baseline with:
+      - structural birth module
+      - collapse posterior module, not a purely observed collapse formula
     - likely keep port/rebuild/reclaim simpler at first
     - separately fix risk-set builder memory usage before broader event sweeps
+- Added stricter live-safe validation split for hazard GLMs:
+  - `run-hazard-glm-audit` now supports `--profile`
+  - current collapse profiles:
+    - `full`
+    - `observed`
+- Validation rerun after observed-profile support:
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py -q`
+  - result: `5 passed`
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `21 passed`
+- Full-corpus observed-collapse audit completed:
+  - command: `uv run astar run-hazard-glm-audit --event collapse --profile observed --dataset-name f1_collapse_riskset_nr8_v1 --name f1_collapse_glm_observed_audit_v01`
+  - artifact: `data/artifacts/family1/hazard_glm/f1_collapse_glm_observed_audit_v01/result.json`
+  - report: `data/artifacts/family1/hazard_glm/f1_collapse_glm_observed_audit_v01/report.md`
+  - same held-out rounds and same risk-set population as the full collapse audit
+- Observed-collapse audit aggregate metrics:
+  - round_mean_baseline_log_loss: `0.294123`
+  - round_mean_glm_log_loss: `0.293948`
+  - round_mean_log_loss_gain: `0.000174`
+  - pooled_baseline_log_loss: `0.273039`
+  - pooled_glm_log_loss: `0.271575`
+  - pooled_log_loss_gain: `0.001464`
+  - round_mean_baseline_brier: `0.0787077`
+  - round_mean_glm_brier: `0.0786598`
+  - round_mean_brier_gain: `0.0000479`
+- Full-vs-observed collapse read:
+  - full collapse profile gain: `+0.026390` round-mean log-loss
+  - observed collapse profile gain: `+0.000174`
+  - retained fraction of full round-mean gain: only about `0.66%`
+  - several held-out rounds go negative under observed-only collapse
+- Interpretation update from the stricter validation:
+  - collapse is predictively real, but almost all of that value sits in replay settlement-state columns that are not directly available to a static live-safe formula
+  - therefore collapse should not be treated as a simple geometry-driven hazard in the first benchmarkable model
+  - instead:
+    - birth is a good candidate for structural modeling
+    - collapse should be modeled through a latent stress / winter / fragility posterior inferred from queried settlement stats
+  - this is exactly the kind of validation distinction that should help live rounds, because it prevents overcommitting to a collapse model that only works with replay-only state access
