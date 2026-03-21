@@ -159,6 +159,18 @@ Standard names for commonly missing accounts:
 - Existing accounts: 1700, 2920, 6010, 6300
 - Note: asset accounts (1210, 1230, 1240) from prompt are informational only — all depreciation postings use 6010 (expense) and 1209 (accumulated)
 
+## Production Verification (2026-03-21, run 3 — French prompt)
+- Task: 2025 year-end closing with 3 assets (Programvare 111950/9yr acct 1250, Kontormaskiner 351450/9yr acct 1200, Inventar 418800/10yr acct 1240), 79750 prepaid reversal (1700→6300), 22% tax (8700→2920)
+- Prompt language: French ("Effectuez la clôture annuelle simplifiée pour 2025")
+- Depreciation: 12438.89 + 39050.00 + 41880.00 = 93368.89
+- Balance sheet sum: -1239757.26, preTaxProfit: 1239757.26, tax: 272747
+- Used 8 calls: 1 GET (accounts) + 1 POST (batch create 1209+8700) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax)
+- 0 errors, all calls succeeded on first attempt
+- Missing accounts: 1209, 8700 (as expected)
+- Existing accounts: 1700, 2920, 6010, 6300
+- Used post-then-read approach (balance sheet GET after all vouchers posted) — no manual adjustment needed
+- Confirms: 8 calls is the minimum for this task shape with missing accounts
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `POST /ledger/voucher` with `row: 1` / `row: 2` succeeded for balanced two-line depreciation entries

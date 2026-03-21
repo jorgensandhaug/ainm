@@ -152,6 +152,16 @@ Standard names for commonly missing accounts:
 - 0 errors, all calls succeeded on first attempt
 - Asset accounts from prompt (1210, 1230, 1240) are informational; all postings use 6010 + 1209
 
+## Production Verification (2026-03-21, run 3 — French prompt)
+- Task: 2025 year-end closing with 3 assets (Programvare 111950/9yr acct 1250, Kontormaskiner 351450/9yr acct 1200, Inventar 418800/10yr acct 1240), 79750 prepaid reversal (1700→6300), 22% tax (8700→2920)
+- Prompt language: French
+- Depreciation: 12438.89 + 39050.00 + 41880.00 = 93368.89
+- Balance sheet sum: -1239757.26, preTaxProfit: 1239757.26, tax: 272747
+- Used 8 calls: 1 GET + 1 POST (create) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) = 8 calls
+- 0 errors, all calls succeeded on first attempt
+- Used post-then-read approach — safer than parallel GETs with manual adjustment
+- Confirms 8-call minimum for task shape with missing accounts (1209, 8700)
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `POST /ledger/voucher` with `row: 1` / `row: 2` succeeded for balanced two-line depreciation entries
