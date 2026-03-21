@@ -365,8 +365,8 @@ class CoeffInversePredictor(BaseModel):
                     context.geometry_bundle,
                     context.evidence_bundle,
                 )
-                if seed_index in prior_bundle.predictions:
-                    prior_pred = prior_bundle.predictions[seed_index]
+                if seed_index in prior_bundle.predictions_by_seed:
+                    prior_pred = prior_bundle.predictions_by_seed[seed_index]
                     pred = (1.0 - self.spec.prior_blend) * pred + self.spec.prior_blend * prior_pred
 
             # Apply floor
@@ -375,7 +375,8 @@ class CoeffInversePredictor(BaseModel):
 
         return PredictionBundle(
             round_id=round_detail.id,
-            predictions=seed_predictions,
+            model_name=self.name,
+            predictions_by_seed=seed_predictions,
         )
 
 
