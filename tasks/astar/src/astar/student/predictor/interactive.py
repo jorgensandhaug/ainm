@@ -16,6 +16,12 @@ from astar.student.predictor.ffam_config import (
     ffam_checkpoint_name,
     is_ffam_model_name,
 )
+from astar.student.predictor.ffam_mode import FFAMModePredictor
+from astar.student.predictor.ffam_mode_config import (
+    available_ffam_mode_model_names,
+    ffam_mode_checkpoint_name,
+    is_ffam_mode_model_name,
+)
 from astar.student.predictor.ffam_operator import FFAMOperatorPredictor
 from astar.student.predictor.ffam_operator_config import (
     available_ffam_operator_model_names,
@@ -153,6 +159,40 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if is_ffam_mode_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMModePredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_mode_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMModePredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMModePredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     if is_ffam_operator_model_name(model_name):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
@@ -229,6 +269,7 @@ __all__ = [
     "OnlinePredictor",
     "RoundPredictorAdapter",
     "available_ffam_model_names",
+    "available_ffam_mode_model_names",
     "available_ffam_operator_model_names",
     "build_online_predictor",
 ]

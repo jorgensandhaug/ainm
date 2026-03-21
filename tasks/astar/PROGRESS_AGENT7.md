@@ -1490,3 +1490,55 @@ Framework should accept unique query-residual family variant names directly so b
   - next rational branch is:
     - stronger decoder integration
     - likely reusing richer residual-decoder machinery with fifth-family posterior/manifold ideas rather than more pure-hazard-decoder tuning
+
+### 2026-03-21T10:55Z approx
+
+- Re-checked machine headroom before new heavy work.
+  - `384` CPUs visible
+  - load about `33.74 / 38.84 / 58.08`
+  - `2.1 TiB` RAM available
+  - other agents are active, but machine remains far from saturation
+- Closed the current `ffam_operator` line as effectively exhausted.
+  - `v8` and `v9` retained the same catastrophic round-8 collapse seen earlier
+  - `v10` and `v11` also converged to the same pattern and were killed
+  - common failure mode on hard gate `{3,6,7,8}`:
+    - round 6 about `18.5339`
+    - round 7 about `12.4520`
+    - round 8 about `4.6316`
+  - conclusion: tuning the linear operator posterior/fallback is not enough; decoder family is the blocker
+- Pivoted to a new fifth-family branch aligned with handoff sections `12.1`, `12.4`, `14.1`, and `14.2`:
+  - new family: `ffam_mode_*`
+  - goal: map-conditioned shared decoder with low-rank residual response modes and transcript-to-mode posterior inference
+- Implemented new files:
+  - [`src/astar/student/predictor/ffam_mode.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode.py)
+  - [`src/astar/student/predictor/ffam_mode_config.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/ffam_mode_config.py)
+- Implemented framework plumbing for `ffam_mode_*`:
+  - [`src/astar/student/predictor/interactive.py`](/home/jorge/agent7/tasks/astar/src/astar/student/predictor/interactive.py)
+  - [`src/astar/cli.py`](/home/jorge/agent7/tasks/astar/src/astar/cli.py)
+  - [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py)
+  - [`src/astar/workflows/model_eval.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/model_eval.py)
+  - [`src/astar/workflows/historical_benchmark.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/historical_benchmark.py)
+  - [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- `ffam_mode` design summary:
+  - base decoder fits a global map/prior-conditioned operator from static features + prior logits to final logit delta
+  - each historical round gets its own operator estimate
+  - round operator residuals are compressed with SVD into a tiny mode basis
+  - live transcript summaries infer mode coordinates via one of:
+    - `particle_mixture`
+    - `local_linear`
+    - `hybrid`
+  - final prediction = prior logits + decoded operator response + exact-cell blend + OOD-sensitive prior shrink
+- Added initial reproducible variants:
+  - `ffam_mode_v1` = particle mixture posterior
+  - `ffam_mode_v2` = local linear posterior
+  - `ffam_mode_v3` = hybrid posterior
+- Correctness fixes while bringing the family online:
+  - fit path now allows single training round in tiny LORO unit-test folds
+  - checkpoint test now asserts actual roundtrip equality instead of assuming rank `1`
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `50`
+- Current state:
+  - new family scaffolding is benchmark-ready
+  - no honest hard-gate benchmark result yet for `ffam_mode_*`
+  - next step is parallel probe on hard rounds `{3,6,7,8}` under `exploration_r3`

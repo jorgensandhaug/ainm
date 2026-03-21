@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from astar.policy.coverage import CoverageThenReplicatePolicy
 from astar.policy.query_plan import QueryPlanPolicy
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.features.motifs import ViewportMotifScorer
 
 DEFAULT_POLICY_NAME = "coverage"
 QUERY_RESIDUAL_DEFAULT_POLICY_NAME = "exploration_r3"
+FFAM_DEFAULT_POLICY_NAME = "exploration_r3"
 
 
 def _entropy_bias_scorer() -> ViewportMotifScorer:
@@ -27,6 +30,8 @@ def _entropy_bias_scorer() -> ViewportMotifScorer:
 def default_policy_name_for_model(model_name: str | None = None) -> str:
     if model_name is not None and is_query_residual_model_name(model_name):
         return QUERY_RESIDUAL_DEFAULT_POLICY_NAME
+    if model_name is not None and (is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name)):
+        return FFAM_DEFAULT_POLICY_NAME
     return DEFAULT_POLICY_NAME
 
 

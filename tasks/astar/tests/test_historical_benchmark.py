@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
+from astar.student.predictor.ffam_mode import FFAMModePredictor
 from astar.student.predictor.ffam_operator import FFAMOperatorPredictor
 from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
@@ -116,6 +117,9 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         "ffam_retrieval_v6",
         "ffam_retrieval_v7",
         "ffam_retrieval_v8",
+        "ffam_mode_v1",
+        "ffam_mode_v2",
+        "ffam_mode_v3",
         "ffam_operator_v1",
         "ffam_operator_v2",
         "ffam_operator_v3",
@@ -512,3 +516,27 @@ def test_ffam_operator_v4_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path
     assert loaded.posterior_method == "local_linear"
     assert loaded.posterior_neighbor_count == 12
     assert loaded.posterior_ood_prior_blend > 0.0
+
+
+def test_ffam_mode_v2_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    predictor = FFAMModePredictor.fit_named_from_workspace(
+        sample_paths,
+        model_name="ffam_mode_v2",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=2,
+    )
+    checkpoint_path = tmp_path / "ffam_mode_v2" / "checkpoint.json"
+    predictor.save_checkpoint(checkpoint_path)
+    loaded = FFAMModePredictor.load_checkpoint(checkpoint_path)
+
+    assert loaded.name == "ffam_mode_v2"
+    assert loaded.projected_mode_dim == 3
+    assert loaded.posterior_method == "local_linear"
+    assert loaded.mode_basis.shape == predictor.mode_basis.shape
