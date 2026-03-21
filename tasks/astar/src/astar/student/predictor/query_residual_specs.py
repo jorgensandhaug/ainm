@@ -39,6 +39,16 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         samples_per_round=4,
         budget_prefixes=(0, 5, 10, 20, 35, 45, 50),
     ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_tb0_v01",),
+        model_name="f1_student_query_residual_tb0_v01",
+        teacher_blend=0.0,
+    ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_tb6_v01",),
+        model_name="f1_student_query_residual_tb6_v01",
+        teacher_blend=0.06,
+    ),
 )
 
 _QUERY_RESIDUAL_MODEL_SPECS_BY_NAME = {

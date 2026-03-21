@@ -881,3 +881,82 @@
   - better next branch:
     - tune / extend the strong `query_residual` family directly, or
     - invent a richer latent target much closer to terminal tensor structure than round-level birth prevalence
+- New session start after the birth-residual rejection:
+  - re-read current tracker tail and current query-residual model specs
+  - branch started clean/synced at `d92df83c5530fa5961855a754b0e0385a205e79b`
+  - `br list` is still unavailable in this workspace (`/bin/bash: br: command not found`)
+- New direct-query-residual hypothesis:
+  - recent negative evidence is very consistent:
+    - direct semimechanistic teacher decoding is weak
+    - birth/posterior injections worsen score
+    - the current strong path is still the residual learner, not the teacher decoder
+  - so the most defensible low-cost next test is:
+    - keep the full `query_residual` learner fixed
+    - reduce or remove only the final teacher-prior output blend
+  - rationale:
+    - `query_residual` already uses the teacher prior as an input feature
+    - if the explicit post-softmax teacher mixture is the part hurting calibration, then lowering `teacher_blend` should help without changing the core residual machinery
+  - planned first immutable test:
+    - `f1_student_query_residual_tb0_v01`
+    - same as baseline `query_residual_v7`, but `teacher_blend=0.0`
+- First low-teacher-blend query-residual result:
+  - model:
+    - `f1_student_query_residual_tb0_v01`
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_tb0_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_tb0_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_tb0_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_tb0_v01.json`
+  - result:
+    - mean score `72.6319`
+    - mean weighted KL `0.107047`
+    - runtime `249.989s`
+    - wall `4:23.41`
+    - max RSS `13848244` kB (`~13.85 GB`)
+  - paired compare vs `tmp_query_residual_probe_3rounds_v7`:
+    - mean score delta `-0.4708`
+    - mean weighted KL delta `+0.002263`
+    - win rate `0.333`
+    - loss rate `0.667`
+    - CI still overlaps zero, but mean is negative
+  - read:
+    - fully removing the output teacher blend is not an improvement
+    - but the per-round pattern is interesting:
+      - round `8e839974-...` clearly worsened
+      - round `ae78003a-...` improved
+    - so there is still a plausible calibration branch at smaller-but-nonzero teacher blend values
+- Next tiny calibration branch:
+  - planned midpoint test:
+    - `f1_student_query_residual_tb6_v01`
+  - rationale:
+    - if `0.12` is slightly too much and `0.0` is slightly too little, then `0.06` is the cheapest next interpolation to test
+- Midpoint teacher-blend test:
+  - model:
+    - `f1_student_query_residual_tb6_v01`
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_tb6_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_tb6_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_tb6_v01_probe3/result.json`
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual__candidate=f1_student_query_residual_tb6_v01.json`
+  - result:
+    - mean score `72.6319`
+    - mean weighted KL `0.107047`
+    - runtime `237.659s`
+  - paired compare vs baseline:
+    - mean score delta `-0.4708`
+    - mean weighted KL delta `+0.002263`
+    - win rate `0.333`
+    - loss rate `0.667`
+  - read:
+    - on this smoke slice, `teacher_blend=0.06` is numerically identical to `teacher_blend=0.0`
+    - so the cheap “final teacher output blend” calibration branch is effectively exhausted
+    - teacher-output-mixture tweaks are not where the remaining score lives
+- Updated direct-query-residual read:
+  - strong negative evidence now says:
+    - removing teacher blend is not an improvement
+    - shrinking teacher blend halfway is also not an improvement
+    - the final output mixture with the current teacher is not a fruitful near-term knob
+  - next better direct branch should target something else:
+    - transcript sample diversity / training support,
+    - residual feature library,
+    - or a richer latent target closer to terminal tensor structure
