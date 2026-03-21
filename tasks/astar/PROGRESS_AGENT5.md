@@ -2743,6 +2743,125 @@
 - CellKNN adds minimal extra value on top of expansion-conditioned
 - The primary driver of all improvement is the expansion-rate conditioning
 
+---
+
+## Detailed Explanation of Current Best Model
+
+> **One-time special documentation requested by the user.**
+
+### Model Name: `greybox_stacked_expansion_w35` (Score: 77.35) or `greybox_tristack_e30_c05` (Score: 77.39)
+
+### Architecture Overview
+
+The best model is a **logit-space ensemble** of two (or three) fundamentally different prediction approaches. Each approach has complementary strengths:
+
+```
+Final prediction = softmax(
+    (1 - w_exp - w_cknn) * logit(QR_prediction) +
+    w_exp * logit(expansion_prediction) +
+    w_cknn * logit(cellknn_prediction)      # only in tristack
+)
+```
+
+### Component 1: Query Residual (QR) — `query_residual_v7` [65-70% weight]
+
+**What it does:** Parametric ridge regression that maps per-cell features to logit corrections on the prior prediction.
+
+**Input:** For each cell (y, x) in the 40×40 grid:
+- **Static features (25 dims):** terrain one-hot (6), settlement/port indicators (2), buildable/land/coast/coast_distance/land_distance/sea_distance (6), forest/mountain density (2), basin_gap/frontier/proximity/exposure/access (5), terrain neighborhood histogram (6)
+- **Prior logits (6):** log-probabilities from the historical bucket prior
+- **Teacher logits (6):** hazard teacher predictions (semimechanistic logistic regression on build/port/ruin events)
+- **Global summary (55 dims):** query count, observed cell fraction, pooled class residuals by zone (coastal/inland/buildable/near/mid/far), mean settlement stats (population/food/wealth/defense/owners)
+- **Seed summary (45 dims):** per-seed version of the global summary
+- **Regime summary (12 dims):** build/port/ruin hit rates, terminal class masses
+- **Local evidence (15 dims):** observed count, blurred residuals at two scales, blurred coverage
+- **Interaction features (34 dims):** regime × spatial, global residual × spatial
+
+**Target:** Logit delta between ground truth and prior, at entropy-weighted selected cells.
+
+**Training:** Weighted ridge regression (∼8000 cell-samples from ∼48 synthetic transcript prefixes across 7 training rounds × multiple budget levels).
+
+**Why this model:** Ridge regression is fast, stable, and generalizes well through its many interaction features. It captures the smooth per-cell correction pattern given transcript evidence. The hazard teacher provides a structural prior based on semimechanistic event rates (build/port/ruin), while the rich feature set allows the ridge to learn nuanced spatial corrections.
+
+**Why it's not enough alone:** It uses 51 compressed coefficients for the hazard teacher (massive information loss from full replay data) and can't represent extreme regimes well (like f1dac where settlement probability is 0.002).
+
+### Component 2: Expansion-Conditioned Cell kNN [30-35% weight]
+
+**What it does:** Non-parametric cell-level k-nearest-neighbor prediction using full-resolution terminal probability maps from replay data, conditioned on the estimated settlement expansion rate.
+
+**Input:**
+- **Cell features (13 dims):** buildable, ocean, mountain, forest, coast, land, land_distance, settlement_map, port_map, forest_density, mountain_density, settlement_density, settlement_proximity
+- **Expansion rate (1 dim, weighted ×2.0):** the estimated settlement expansion rate of the current round, computed from observed settlement density in query viewports
+
+**Training data bank:** For each of the 7 training rounds × 5 seeds:
+- Full ground truth terminal probability tensor (40×40×6) from organizer Monte Carlo
+- Cell features (40×40×13)
+- Round expansion rate (scalar) from replay survival curves
+
+**Prediction algorithm:**
+1. Estimate expansion rate from observations: `(observed_settlement_cells / observed_total_cells) × map_area / initial_settlements`
+2. For each test cell, build augmented feature vector: `[normalized_spatial_features, expansion_rate × 2.0]`
+3. Find k=24 nearest training cells in augmented feature space
+4. Weighted average (1/distance) of neighbors' terminal probabilities
+5. Apply spatial smoothing of observation residuals (σ=2.0 Gaussian kernel)
+6. Apply exact-cell Bayesian blending at observed cells
+
+**Why the expansion rate matters:** Settlement expansion rate ranges from -0.9x (f1dac, everything dies) to 6.7x (ae7800, explosive growth). This is the PRIMARY axis of variation between rounds. By including it in the kNN feature space, cells are matched against training cells from rounds with SIMILAR dynamics, which is much more informative than matching purely on spatial features.
+
+**Why it's not enough alone:** Mean score 73.79. It's non-parametric and can't extrapolate beyond training rounds. It's excellent on extreme regimes (f1dac: 75.92, c5cdf: 79.89) but worse on moderate/complex rounds where QR's richer feature set helps more.
+
+### Component 3 (Tristack only): CellKNN Per-Round [5-10% weight]
+
+**What it does:** Same as expansion-conditioned but builds SEPARATE kNN predictors per training round, then weights by Bayesian round posterior.
+
+**Difference from expansion-conditioned:** Instead of mixing all training cells with expansion-rate weighting, it keeps cells from each round completely separate and predicts independently, then averages with round weights. This avoids cross-round dilution.
+
+**Why included:** Provides marginal additional diversity (+0.04 points). The per-round separation captures subtleties that the expansion-rate dimension alone might miss.
+
+### Blending Mechanism
+
+The blend happens in **logit space** (log-probability space), which ensures the combined prediction is properly normalized and preserves the relative ordering of class probabilities better than probability-space blending.
+
+```python
+blended_logits = (1 - w) * log(QR_pred) + w * log(expansion_pred)
+blended_probs = softmax(blended_logits)
+```
+
+After blending, **exact-cell Bayesian blending** re-applies at observed cells:
+```python
+beta = beta_min + beta_scale * (1 - entropy / ln(6))
+final = (beta * blended + observed_counts) / (beta + total_counts)
+```
+
+This ensures directly observed cells are corrected toward their empirical frequency, with lower beta (more observation trust) for high-entropy cells.
+
+### Key Parameters and Why
+
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| `expansion_weight` | 0.35 | Optimal from sweep over [0.10, ..., 0.50]. Higher values trust expansion more on extreme rounds but hurt moderate rounds. |
+| `k_neighbors` | 24 | Balances between too-selective (noisy) and too-broad (diluted). With ∼8000 training cells per round, k=24 captures about 0.3% of each round's cells. |
+| `expansion_weight` (in feature space) | 2.0 | Scaling factor that controls how much the expansion rate dimension matters vs spatial features. Higher = more regime-sensitive, lower = more spatially-driven. |
+| `spatial_sigma` | 2.0 | Gaussian smoothing radius for propagating observation residuals to nearby unobserved cells. |
+| `observation_beta_min` | 3.0 | Minimum Bayesian prior strength for exact-cell blending. Lower = trust observations more. |
+| `prior_blend` | 0.15 | How much of the historical bucket prior to mix in. Low because the kNN+QR already captures most signal. |
+| `ridge_lambda` | 8.0 | Ridge penalty for QR regression. Prevents overfitting to the ∼8000 cell-samples. |
+| `temperature` | 1.15 | QR output temperature. Slightly above 1.0 for calibration (KL scoring punishes overconfidence). |
+| `policy` | `exploration_r3` | Query policy that covers the map but also repeats 3 viewports for variance estimation. Better than pure coverage. |
+| `samples_per_round` | 4 | Number of synthetic transcript episodes per training round. More = richer ridge training data. |
+
+### Why This Architecture Works
+
+The fundamental insight is that Astar Island prediction has two complementary challenges:
+
+1. **Smooth spatial interpolation**: Given observed cells and initial features, predict nearby unobserved cells. QR is best at this because its rich per-cell features capture local spatial structure.
+
+2. **Regime identification**: The hidden round parameters create dramatically different dynamics (from total collapse to explosive growth). The expansion-conditioned kNN is best at this because it uses full-resolution terminal probability maps and directly conditions on the most informative latent variable.
+
+Neither model alone can do both well. The logit-space blend at 35% expansion weight captures the best of both: QR's spatial generalization + expansion's regime sensitivity.
+
+---
+
 ## Key Technical Achievements
 
 1. **Cell-level kNN predictor** (`greybox_cellknn_v01`, `greybox_cellknn_perround_v01`)
