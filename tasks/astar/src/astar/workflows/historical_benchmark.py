@@ -50,6 +50,9 @@ from astar.student.predictor.hazard_posterior_v12 import (
 from astar.student.predictor.hazard_posterior_v13 import (
     hazard_posterior_v13_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v14 import (
+    hazard_posterior_v14_spec_for_model_name,
+)
 from astar.student.predictor.hazard_posterior_v8 import (
     hazard_posterior_v8_spec_for_model_name,
 )
@@ -248,6 +251,7 @@ def run_historical_benchmark(
         or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v13_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v14_spec_for_model_name(normalized_model_name) is not None
         or normalized_model_name == "hazard_posterior_v10_linear"
     )
     resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
@@ -270,6 +274,7 @@ def run_historical_benchmark(
         or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
         or hazard_posterior_v13_spec_for_model_name(normalized_model_name) is not None
+        or hazard_posterior_v14_spec_for_model_name(normalized_model_name) is not None
         or normalized_model_name == "hazard_posterior_v10_linear"
     ):
         raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")

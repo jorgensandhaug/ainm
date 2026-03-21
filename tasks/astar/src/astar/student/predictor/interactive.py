@@ -68,6 +68,10 @@ from astar.student.predictor.hazard_posterior_v13 import (
     HazardPosteriorV13Predictor,
     hazard_posterior_v13_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v14 import (
+    HazardPosteriorV14Predictor,
+    hazard_posterior_v14_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -605,6 +609,48 @@ def build_online_predictor(
                 f"__rff={rff_dim}"
                 f"__sig={rff_sigma:.1f}"
                 f"__blend={int(round(linear_blend * 100.0))}"
+            ),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    hazard_posterior_v14 = hazard_posterior_v14_spec_for_model_name(normalized)
+    if hazard_posterior_v14 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, latent_rank, ridge_alpha, mean_weight, observation_weight, prob_floor, obs_temp = hazard_posterior_v14
+        predictor = HazardPosteriorV14Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids)
+                if historical_round_ids is not None
+                else sorted(
+                    round_dir.name
+                    for round_dir in workspace_paths.raw_dir.joinpath("replays").glob("*")
+                    if round_dir.is_dir()
+                )
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+            k_neighbors=k_neighbors,
+            latent_rank=latent_rank,
+            ridge_alpha=ridge_alpha,
+            predicted_particle_weight=mean_weight,
+            observation_weight=observation_weight,
+            probability_floor=prob_floor,
+            obs_blend_temperature=obs_temp,
+            model_name=(
+                "hazard_posterior_v14"
+                f"__policy={resolved_policy_name}"
+                f"__samples={samples_per_round}"
+                f"__k={k_neighbors}"
+                f"__rank={latent_rank}"
+                f"__ridge={int(round(ridge_alpha))}"
+                f"__mix={int(round(mean_weight * 100.0))}"
+                f"__obs={int(round(observation_weight))}"
+                f"__floor={int(round(prob_floor * 1000.0))}"
+                f"__t={int(round(obs_temp * 10.0))}"
             ),
         )
         return RoundPredictorAdapter(
