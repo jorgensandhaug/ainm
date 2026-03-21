@@ -163,6 +163,8 @@ export const strategy = {
       notes,
       verification: {
         employeeName: normalizedEmployeeName,
+        firstName: name.firstName,
+        lastName: name.lastName,
         startDate: normalizedStartDate,
         userTypeRequested: userType,
         email: employee.email ?? normalizedEmail,

@@ -6,6 +6,8 @@ This document defines how strategy research should work in `tripletex2`.
 
 The repo is not just a runtime system. It is a search process over candidate strategies for 30 fixed task types. The workflow should make that search deliberate, cumulative, and inspectable.
 
+The durable operator surface for that loop now lives in `docs/research-os.md`. Use the sandbox verifier as the canonical proof mechanism for strategies instead of expanding per-strategy unit tests.
+
 ## Core idea
 
 We are not trying to make one magical agent that keeps getting vaguely better.

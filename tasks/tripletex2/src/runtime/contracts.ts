@@ -226,6 +226,7 @@ export interface ClassifierExtractorInput {
   };
   // Classifier agents should mainly read task.ts surfaces, not strategy files.
   taskSpecs: readonly TaskSpec<any, string>[];
+  retryContext?: ClassifierRetryContext;
 }
 
 export interface ClassifierTaskCandidate<TTaskId extends string = string> {
@@ -244,6 +245,22 @@ export type ClassifierExtractorIssueCode =
   | "invalid-field-value"
   | "unreadable-file"
   | "unsupported-request";
+
+export type NonEligibleTaskReasonCode = "already-perfect" | "non-eligible";
+
+export interface ClassifierRetryRejectedTask {
+  taskId: string;
+  reasonCode: NonEligibleTaskReasonCode;
+  reason: string;
+}
+
+export interface ClassifierRetryContext {
+  attemptNumber: number;
+  excludedTaskIds: readonly string[];
+  remainingTaskIds: readonly string[];
+  rejectedTasks: readonly ClassifierRetryRejectedTask[];
+  unresolvedIsInvalid: boolean;
+}
 
 export interface ClassifierExtractorIssue<TFieldName extends string = string> {
   code: ClassifierExtractorIssueCode;

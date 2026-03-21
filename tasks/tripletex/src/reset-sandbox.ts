@@ -50,6 +50,9 @@ const resourceTypes: ResourceType[] = [
   "invoices",
   "vouchers",
 ];
+const MAX_AUTOMATED_RESET_ITEMS = 200;
+const MAX_REPORTED_PLAN_ITEMS = 40;
+const MAX_APPLY_ERRORS = 12;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -344,6 +347,12 @@ function buildPlan(snapshot: ResourceSnapshot, baseline: BaselineSnapshot): Plan
   for (const record of extraRecords(snapshot, baseline, "travelExpenses")) {
     plan.push({ resourceType: "travelExpenses", record, action: "delete" });
   }
+  for (const record of extraRecords(snapshot, baseline, "invoices")) {
+    plan.push({ resourceType: "invoices", record, action: "credit-note" });
+  }
+  for (const record of extraRecords(snapshot, baseline, "vouchers")) {
+    plan.push({ resourceType: "vouchers", record, action: "reverse-voucher" });
+  }
   for (const record of extraRecords(snapshot, baseline, "orders")) {
     plan.push({ resourceType: "orders", record, action: "delete" });
   }
@@ -359,17 +368,53 @@ function buildPlan(snapshot: ResourceSnapshot, baseline: BaselineSnapshot): Plan
   for (const record of extraRecords(snapshot, baseline, "departments")) {
     plan.push({ resourceType: "departments", record, action: "delete" });
   }
-  for (const record of extraRecords(snapshot, baseline, "invoices")) {
-    plan.push({ resourceType: "invoices", record, action: "credit-note" });
-  }
-  for (const record of extraRecords(snapshot, baseline, "vouchers")) {
-    plan.push({ resourceType: "vouchers", record, action: "reverse-voucher" });
-  }
   for (const record of extraRecords(snapshot, baseline, "employees")) {
     plan.push({ resourceType: "employees", record, action: "unsupported" });
   }
 
   return plan;
+}
+
+function summarizePlan(plan: PlanItem[]): Record<string, number> {
+  const summary: Record<string, number> = {
+    total: plan.length,
+  };
+
+  for (const item of plan) {
+    const actionKey = `action.${item.action}`;
+    const resourceKey = `resource.${item.resourceType}`;
+    summary[actionKey] = (summary[actionKey] ?? 0) + 1;
+    summary[resourceKey] = (summary[resourceKey] ?? 0) + 1;
+  }
+
+  return summary;
+}
+
+function formatSummary(summary: Record<string, number>): string {
+  return JSON.stringify(summary);
+}
+
+function collectResetBlockers(plan: PlanItem[]): string[] {
+  const blockers: string[] = [];
+  const unsupported = plan.filter((item) => item.action === "unsupported");
+
+  if (plan.length > MAX_AUTOMATED_RESET_ITEMS) {
+    blockers.push(
+      `reset blocker: sandbox drift is too large for automated verifier reset (${plan.length} planned actions > ${MAX_AUTOMATED_RESET_ITEMS} limit)`,
+    );
+  }
+
+  if (unsupported.length > 0) {
+    const examples = unsupported
+      .slice(0, 5)
+      .map((item) => `${item.record.id} ${item.record.label}`)
+      .join(", ");
+    blockers.push(
+      `reset blocker: unsupported reset targets detected for ${unsupported.length} employee records${examples ? ` (${examples})` : ""}`,
+    );
+  }
+
+  return blockers;
 }
 
 function printPlan(plan: PlanItem[]): void {
@@ -378,15 +423,33 @@ function printPlan(plan: PlanItem[]): void {
     return;
   }
 
-  for (const item of plan) {
+  console.log(`reset summary: ${formatSummary(summarizePlan(plan))}`);
+
+  for (const item of plan.slice(0, MAX_REPORTED_PLAN_ITEMS)) {
     console.log(`${item.action}\t${item.resourceType}\t${item.record.id}\t${item.record.label}`);
+  }
+
+  if (plan.length > MAX_REPORTED_PLAN_ITEMS) {
+    console.log(
+      `reset plan truncated: ${plan.length - MAX_REPORTED_PLAN_ITEMS} additional items omitted`,
+    );
   }
 }
 
 async function applyPlan(client: TripletexSandboxClient, plan: PlanItem[]): Promise<void> {
+  const blockers = collectResetBlockers(plan);
+  if (blockers.length > 0) {
+    throw new Error(blockers.join("\n"));
+  }
+
   const errors: string[] = [];
 
   for (const item of plan) {
+    if (errors.length >= MAX_APPLY_ERRORS) {
+      errors.push(`reset aborted after ${MAX_APPLY_ERRORS} failures`);
+      break;
+    }
+
     try {
       switch (item.action) {
         case "delete":

@@ -1,0 +1,21 @@
+{
+  "customerOrganizationNumber": "975687821",
+  "customerName": "Waldstein GmbH",
+  "invoiceDate": "2026-03-20",
+  "lines": [
+    {
+      "description": "Netzwerkdienst",
+      "quantity": 1,
+      "productNumber": "4366",
+      "productName": "Netzwerkdienst",
+      "unitPriceExcludingVatNok": 32750
+    },
+    {
+      "description": "Beratungsstunden",
+      "quantity": 1,
+      "productNumber": "3402",
+      "productName": "Beratungsstunden",
+      "unitPriceExcludingVatNok": 17450
+    }
+  ]
+}
