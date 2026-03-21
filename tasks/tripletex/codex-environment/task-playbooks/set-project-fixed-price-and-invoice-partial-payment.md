@@ -168,8 +168,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `GET /project`
    - `POST /project` or `PUT /project/{id}`
    - `GET /ledger/vatType`
-   - `POST /order`
-   - `PUT /order/{id}/:invoice`
+   - `POST /invoice`
 2. First try a project-first resolver for update-shaped prompts
    - `GET /project?name=<project-name>&count=50&fields=*,customer(*),projectManager(*)`
    - if that one read already leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the returned `startDate`
@@ -197,40 +196,26 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `fixedprice: <full-fixed-price>`
    - `invoiceOnAccountVatHigh: false`
    - for `PUT /project/{id}` on an existing project, reuse the `startDate` returned by the project search unless the prompt explicitly asks to change it
-8. Resolve a valid outgoing VAT type for the invoice date
-   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
-   - choose from the filtered response, not from a hardcoded VAT code
-   - if the prompt implies a normal taxable service and the filtered result includes `25%`, use that `25%` row
-   - if the filtered result only exposes `0%`, use that one valid row rather than guessing another VAT code
-   - even if omitting `vatType` happens to work in a sandbox that only exposes one `0%` row, do not treat that as the scored-run fast path
-9. Create an order linked to the project with one real partial-billing line
-   - `POST /order`
-   - include:
-     - `customer`
-     - `project`
-     - `orderDate`
-     - `deliveryDate`
-     - one embedded `orderLines[]` entry for the partial amount
+8. On the update-needed branch (step 6 required `PUT /project`):
+   - run `PUT /project/{id}` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` in parallel (3 calls)
+   - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using `bankAccountNumber: "12345678903"` (0-1 calls)
+   - on the skip-`PUT /project` branch: just `GET /ledger/vatType` alone; do NOT add proactive bank check
+9. Create the invoice directly with `POST /invoice?sendToCustomer=false`
+   - include root `invoiceDate`, root `invoiceDueDate`, root `customer: { id }`
+   - include embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { id } }] }]`
    - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
-10. On the update-needed branch only (step 6 required `PUT /project`), proactively check the company bank account before attempting the invoice write:
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using a valid unique 11-digit number
-   - on the skip-`PUT /project` branch (step 6 was skipped), do NOT add this proactive check
-11. Invoice the order without sending it
-   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-12. If the invoice write still fails with the company-bank-account validation (should not happen if step 10 was followed), repair and retry once
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
-   - `PUT /ledger/account/{id}` with a valid unique 11-digit `bankAccountNumber`
-   - retry `PUT /order/{id}/:invoice?...` on the same order
-12.5. Bank-account strategy summary:
-   - update-needed branch: proactive hedge is the DEFAULT; `6` calls when configured, `7` when missing, `0` errors either way
-   - skip-`PUT /project` branch: optimistic is the DEFAULT; `4` calls, bank-account issues have never occurred on this branch in production
-   - do NOT use the old optimistic `5/8` path on the update-needed branch; production evidence (7/9 missing bank accounts, 78%) plus the double penalty (extra call + `422` error) makes it worse in expectation
-12. Verify from the write response first
+   - this replaces the old 2-call `POST /order` + `PUT /order/:invoice` path, saving 1 call on every branch
+10. If the invoice write fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`, repair and retry once
+   - `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
+   - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
+   - retry the same `POST /invoice` once
+10.5. Bank-account strategy summary:
+   - update-needed branch: proactive hedge is the DEFAULT; `5` calls when configured, `6` when missing, `0` errors either way
+   - skip-`PUT /project` branch: optimistic is the DEFAULT; `3` calls, bank-account issues have never occurred on this branch in production
+11. Verify from the write response first
    - reuse the invoice totals from `response.value`
-13. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
-14. Only for explicit linked-field verification or post-run research, do one decisive read
+12. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
+13. Only for explicit linked-field verification or post-run research, do one decisive read
    - `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
 
 ## Recommended Shapes
@@ -249,27 +234,30 @@ Project create/update:
 }
 ```
 
-Order create for the partial billing:
+Direct invoice for the partial billing (replaces old POST /order + PUT /order/:invoice):
 
 ```json
+POST /invoice?sendToCustomer=false
 {
+  "invoiceDate": "2026-03-21",
+  "invoiceDueDate": "2026-03-21",
   "customer": { "id": 12345 },
-  "project": { "id": 54321 },
-  "orderDate": "2026-03-20",
-  "deliveryDate": "2026-03-20",
-  "invoiceOnAccountVatHigh": false,
-  "orderLines": [
-    {
-      "description": "Partial billing 75% of fixed price",
+  "orders": [{
+    "customer": { "id": 12345 },
+    "project": { "id": 54321 },
+    "orderDate": "2026-03-21",
+    "deliveryDate": "2026-03-21",
+    "orderLines": [{
+      "description": "Milestone payment – 33% of fixed price",
       "count": 1,
-      "unitPriceExcludingVatCurrency": 281175,
-      "vatType": { "id": 6 }
-    }
-  ]
+      "unitPriceExcludingVatCurrency": 56265,
+      "vatType": { "id": 3 }
+    }]
+  }]
 }
 ```
 
-In real tasks, replace VAT id `6` with the VAT type actually returned by the filtered `GET /ledger/vatType` call for the invoice date.
+In real tasks, replace VAT id `3` with the VAT type actually returned by the filtered `GET /ledger/vatType` call for the invoice date.
 
 ## Exact-Match Fast Path
 
@@ -282,18 +270,16 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 - the lower-call exact-match flow is usually:
   1. `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`
   2. if that read already proves the exact project, nested customer match, nested manager email match, and `fixedprice=<prompt-fixed-price>`, skip the project write and go straight to:
-     `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /order` -> `PUT /order/{id}/:invoice?...`
+     `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /invoice?sendToCustomer=false`
   3. otherwise do one conditional `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
   4. if the project-first read did not already prove the customer, `GET /customer?organizationNumber=...&count=10&fields=*`
   5. optional `POST /customer` with `invoiceSendMethod: "MANUAL"` if missing
-  6. `POST /project` if missing, otherwise `PUT /project/{id}` when a real project mutation is still required
-  7. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
-  8. `POST /order` with one embedded partial-billing line
-  9. on the update-needed branch (step 6 required `PUT /project`): `GET /ledger/account?isBankAccount=true&fields=*` and fix `bankAccountNumber` if empty
-  10. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
-- on the update-needed branch, always add proactive `GET /ledger/account` between `POST /order` and `PUT /order/:invoice`; this is the default since production evidence (7/9 missing bank accounts, 78%, + double penalty for `422`) makes it clearly the better default
-- on the exact skip-`PUT /project` branch, do not chase a fictional `3`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
-- if the project-first read already finds the exact project, exact existing manager, and the target fixed price, this shape saves three API calls versus always doing customer-first plus employee-first lookup plus unconditional `PUT /project`
+  6. `PUT /project/{id}` (or `POST /project`) + `GET /ledger/vatType` + `GET /ledger/account` (parallel, 3 calls)
+  7. if bank account missing: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
+  8. `POST /invoice?sendToCustomer=false` with embedded `orders[]`
+- on the update-needed branch, `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account` are parallelized; this is the default since production evidence (9/11 missing bank accounts, 82%) makes the proactive hedge clearly better
+- on the exact skip-`PUT /project` branch, do not chase a fictional `2`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
+- canonical call counts: skip-PUT = **3**, update-needed+configured = **5**, update-needed+missing = **6**
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
 ## Verification Shape
@@ -306,16 +292,14 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
     - `projectManager.id`
     - `isFixedPrice`
     - `fixedprice`
-- `POST /order`
-  - trust the returned `id`
-  - do not over-trust `response.value.orderLines`
-- `PUT /order/{id}/:invoice`
+- `POST /invoice?sendToCustomer=false`
   - expect `ResponseWrapperInvoice`
   - verify:
     - `id`
     - `customer.id`
     - `amountExcludingVatCurrency`
     - `amountCurrencyOutstanding`
+    - `projectInvoiceDetails`
 - optional `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
   - use this one read only when the prompt explicitly requires linked-field proof or for post-run research
   - it can prove:
@@ -324,19 +308,17 @@ In real tasks, replace VAT id `6` with the VAT type actually returned by the fil
 
 ## Avoidable Mistakes
 
-- Do not assume `createOnAccount` lets you invoice a line-less order for this task shape
-- Do not trust `POST /order` returning `orderLines=[]` as proof that the embedded line was ignored
+- Do not use the old 2-call `POST /order` + `PUT /order/:invoice` path; `POST /invoice?sendToCustomer=false` with embedded `orders[]` replaces both in 1 call — sandbox-verified 2026-03-21
 - Do not hardcode VAT code `3`; the filtered account-specific outgoing VAT list may only expose another code such as `6`
 - Do not blindly choose the highest outgoing VAT percentage when the filtered result already shows the account only allows `0%` on the invoice date
-- Do not rely on `invoice.projectInvoiceDetails` for verification; it can be `null` even when the invoice is correctly linked to the project through `orders[0].project`
 - Do not round percentage-derived milestone amounts to whole NOK; Tripletex accepted `87662.5` directly for a `25%` milestone on `350650`
 - Do not invent customer email or address fields when the prompt does not provide them; `invoiceSendMethod: "MANUAL"` is the safer customer-create default for this unsent-invoice flow
-- Do not restart from `POST /project` or `POST /order` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same order
-- Do not add a scored-run `GET /invoice/{id}` only because `orders[0].project` is sparse or null in the invoice write response; that follow-up read is for explicit linked-field proof, not the default fast path
+- Do not restart from `POST /project` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same `POST /invoice`
+- Do not add a scored-run `GET /invoice/{id}` only because the invoice write response leaves some fields sparse; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- On the update-needed branch, DO insert `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/:invoice` as a proactive check; production evidence (8/10 update-needed runs had missing bank accounts, 80%) plus the double penalty of a failed `422` (extra call + error) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
-- Do not use the old optimistic `5/8` path on the update-needed branch; `Stormberg AS` (2026-03-21), `Elvdal AS` (2026-03-21), `Sjøbris AS` (2026-03-20), `Estrela Lda` 2nd run (2026-03-21), `Cascade SARL` (2026-03-21), `Havbris AS` (2026-03-21), `Solmar SL` (2026-03-21), and `Horizonte Lda` (2026-03-21) all had missing bank accounts — 8/10 update-needed runs (80%), costing extra calls and error penalties on the optimistic path
+- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`; production evidence (9/11 update-needed runs had missing bank accounts, 82%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
-- Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste and can be the difference between `2.96` and the task ceiling
-- Do not try to collapse the skip-`PUT /project` branch to `3` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
-- Do not assert the prompt-derived milestone amount against `amountCurrencyOutstanding` on taxable accounts; for the 2026-03-20 `Soleil SARL` production run, the correct `25%` milestone was `amountExcludingVatCurrency=31387.5` while `amountCurrencyOutstanding=39234.38` because VAT was included there
+- Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste
+- Do not try to collapse the skip-`PUT /project` branch to `2` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
+- Do not assert the prompt-derived milestone amount against `amountCurrencyOutstanding` on taxable accounts; the correct check field is `amountExcludingVatCurrency`
+- Do not omit `invoiceDueDate` from `POST /invoice` — it fails `422`; do not omit `customer` from `orders[0]` — it also fails `422`
