@@ -129,6 +129,15 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
 - sandbox proof on 2026-03-21 confirmed `POST /employee/employment` with inline `employmentDetails[]` persists `remunerationType=MONTHLY_WAGE`, `monthlySalary`, and `annualSalary` correctly — eliminates the separate `POST /employee/employment/details` call
 - sandbox proof on 2026-03-21 confirmed `POST /division` succeeds even when 18+ divisions already exist — creates new division 201 without errors; harmless duplicate; confirmed parallel execution with other API calls (120ms for both)
 - sandbox proof on 2026-03-21 confirmed the repair chain (PUT employee → POST employment with inline details) can be parallelized with the 3 reads (salary/type + voucherType + accounts) via `Promise.all` — they are independent
+- production run on 2026-03-22 for `Sarah Moreau` / `sarah.moreau@example.org` / `56900` + `15800` (08a38984, French prompt) confirmed the optimal 8-call underconfigured path:
+  - `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` — 3 reads in round 1
+  - employee `id=18690157` with `dateOfBirth=null` and `employments=[]` → underconfigured branch
+  - `Promise.all`: `POST /division` (id=108455971) + `PUT /employee` (dateOfBirth=1990-01-01) — round 2
+  - `POST /employee/employment` with inline `employmentDetails[]` (monthlySalary=56900, remunerationType=MONTHLY_WAGE) — round 3
+  - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` (id=6958416) + `POST /ledger/voucher?sendToLedger=true` (id=609208546, voucherType by name, amountGross+row) — round 4
+  - 8 calls, 0 errors, 4 rounds — first production run achieving the proven-minimum call count
+  - key optimizations that brought this from 11 to 8: (1) skip GET /division — always POST, (2) inline employmentDetails in POST employment, (3) use voucherType: { name: "Lønnsbilag" } — skip GET voucherType
+- sandbox proof on 2026-03-22 confirmed: `salaryType: { name: "Fastlønn" }` and `salaryType: { number: 2000 }` both fail 422; `account: { number: 5000, name: "Lønn til ansatte" }` also fails 422; GET /salary/type and GET /ledger/account are mandatory and not eliminable — 8 calls is the proven minimum for this branch
 
 ## Minimal Safe Flow
 
@@ -255,6 +264,7 @@ Replace the ids and amounts with the task-specific values.
   4. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { name: "Lønnsbilag" }` — independent writes run in parallel; voucher postings MUST use `amountGross`/`amountGrossCurrency` (not just `amount`) with explicit `row: 1, 2, 3`
   - do NOT spend `GET /ledger/voucherType` — use `voucherType: { name: "Lønnsbilag" }` inline; sandbox-verified 2026-03-21
   - do NOT add verification GETs — POST 201 proves the state
+  - production proof (08a38984, 2026-03-22, French prompt, Sarah Moreau / 56900 + 15800): 8 calls, 0 errors — first production run achieving the optimal 8-call underconfigured path; all parallelization correct
   - production proof (9f9c4770): 9-call version with 0 errors but voucher amounts stored as 0 (only `amount` sent); 8-call path fixes both the extra call and the amount bug
   - production proof (2b1b0da1): 11-call version scored 8/8, 4/4 checks; confirmed Check 5 verifies ledger entries
 - DEPRECATED fallback-permitted no-division branch: DO NOT USE — creates no payslip; always use the 8-call salary path with `POST /division` instead
@@ -314,4 +324,4 @@ Replace the ids and amounts with the task-specific values.
 - Parallelize the two final writes: `POST /salary/transaction` + `POST /ledger/voucher` are independent and should run in `Promise.all`
 - DEPRECATED: do NOT use the manual-voucher fallback branch — always use the 8-call salary path with `POST /division`
 - CRITICAL: on ALL `POST /ledger/voucher` postings, use `amountGross` and `amountGrossCurrency` (both required, same value for NOK); the `amount` field alone is silently accepted but stored as 0; sandbox-verified 2026-03-21; production run 9f9c4770 sent only `amount` → all voucher amounts stored as 0
-- `salaryType: { number }` does NOT work — must use `salaryType: { id }`; `account: { number }` does NOT work — must use `account: { id }`; sandbox-verified 2026-03-21
+- `salaryType: { number }` does NOT work — must use `salaryType: { id }`; `salaryType: { name }` also does NOT work — both fail 422 "Kan ikke opprette subelement"; `account: { number }` and `account: { number, name }` do NOT work — must use `account: { id }`; sandbox-verified 2026-03-21 and 2026-03-22

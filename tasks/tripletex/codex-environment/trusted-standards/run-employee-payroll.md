@@ -54,6 +54,7 @@
   4. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { name: "Lønnsbilag" }` — independent writes in parallel; voucher postings MUST use `amountGross`/`amountGrossCurrency` (not just `amount`) with explicit `row: 1, 2, 3`
   - do NOT spend `GET /ledger/voucherType` — use `voucherType: { name: "Lønnsbilag" }` inline; sandbox-verified 2026-03-21 that name-based resolution works
   - do NOT add verification GETs — POST 201 proves the state
+  - production proof on 2026-03-22 (08a38984, French prompt, Sarah Moreau / sarah.moreau@example.org / 56900 + 15800): 8 calls, 0 errors — first production run achieving the optimal 8-call path for the underconfigured branch; all parallelization correct (3 reads → 2 repairs → 1 employment → 2 writes)
   - production proof on 2026-03-21 (2b1b0da1): 11-call version scored 8/8 raw (4/4 checks including Check 5 for ledger entries); 9f9c4770 used 9 calls (the pre-optimization path); the optimized 8-call path saves 1 more call via voucherType-by-name
   - production proof on 2026-03-21 (989090e8): 11-call version scored 8/8 raw, normalized 3.0/4.0 (75% efficiency for 11 calls)
   - production proof on 2026-03-21 (9f9c4770): 9-call version with 0 errors but voucher postings had zero amounts (only `amount` sent, not `amountGross`); the 8-call path fixes both the extra call and the amount bug
@@ -148,12 +149,14 @@
 
 ## Known Recovery Branches
 - if `GET /employee?fields=*` returns employments as sparse stubs with null `startDate`/`division`, do one conditional `GET /employee/employment?employeeId=...&fields=*`
-- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, use the 9-call salary path (skip GET /division, always POST /division directly):
-  - `Promise.all`: `POST /division` + `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"`
-  - `Promise.all`: `POST /employee/employment` with inline `employmentDetails[]` + `GET /salary/type` + `GET /ledger/voucherType` + `GET /ledger/account`
-  - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true`
-- DEPRECATED: the voucher fallback branch (GET accounts → POST voucher with voucherType null) should NOT be used even when the prompt allows manual vouchers — it creates no payslip, scoring fails on payslip checks, and the `amount` field alone silently stores 0; use the 9-call salary path with `POST /division` instead
-- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, and `GET /division?count=1&fields=*` returns zero rows, and the prompt does not explicitly allow manual vouchers, create a division instead of stopping blocked:
+- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, use the 8-call salary path (skip GET /division, always POST /division directly; skip GET /ledger/voucherType, use `voucherType: { name: "Lønnsbilag" }` inline):
+  - step 1: `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` — all independent reads in one round
+  - step 2: `Promise.all`: `POST /division` + `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"`
+  - step 3: `POST /employee/employment` with inline `employmentDetails[]` (needs division.id from step 2)
+  - step 4: `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true`
+  - production proof on 2026-03-22 (08a38984, French prompt, Sarah Moreau / 56900 + 15800): 8 calls, 0 errors — first production run achieving the optimal 8-call path
+- DEPRECATED: the voucher fallback branch (GET accounts → POST voucher with voucherType null) should NOT be used even when the prompt allows manual vouchers — it creates no payslip, scoring fails on payslip checks, and the `amount` field alone silently stores 0; use the 8-call salary path with `POST /division` instead
+- if `GET /employee?...fields=*` returns one exact employee with `dateOfBirth=null` and no employments, always create a division (POST /division succeeds even when divisions exist, harmless duplicate) instead of stopping blocked:
   - `POST /division` with `name: "Hovudavdeling"`, a generated valid Norwegian 9-digit org number with correct checksum, `startDate: "YYYY-01-01"`, `municipalityDate: "YYYY-01-01"`, and `municipality: { id: 1 }` — hardcode municipality id `1`, do NOT spend a `GET /municipality` call
   - do NOT use the company's own org number; it is a juridisk enhet and will fail `422 Juridisk enhet kan ikke registreres som virksomhet/underenhet`
   - then continue with the normal repair branch using the newly created division
@@ -180,6 +183,9 @@
 - ALWAYS include explicit `row` field (starting from 1) on every posting in `POST /ledger/voucher` when using Lønnsbilag voucherType — without `row`, postings default to guiRow 0 which is system-reserved, causing `422 Posteringene på rad 0 er systemgenererte`; this applies to ALL accounts, not just some
 - use `GET /ledger/account?number=5000,1920&count=10&fields=*` (comma-separated) to resolve both accounts in a single call instead of two separate calls; put this in step 1 parallel with GET /employee
 - parallelize the two final writes: `POST /salary/transaction` + `POST /ledger/voucher` are independent (salary transaction creates payslip, voucher creates ledger entries) and should run in `Promise.all`
+- `salaryType: { name: "Fastlønn" }` does NOT work — must use `salaryType: { id }`; sandbox-verified 2026-03-22 that both `{ name }` and `{ number: 2000 }` fail with 422 "Kan ikke opprette subelement"; GET /salary/type is mandatory and cannot be eliminated
+- `account: { number: 5000 }` and `account: { number: 5000, name: "Lønn til ansatte" }` do NOT work — must use `account: { id }`; sandbox-verified 2026-03-22; GET /ledger/account is mandatory and cannot be eliminated
+- the 8-call underconfigured path is provably the minimum: all 3 reads (employee, salary/type, account) require id-based resolution that cannot be inlined by name/number; production-verified 2026-03-22 (08a38984)
 
 ## OpenAPI / Sandbox Status
 - `/employee`, `/employee/employment`, `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, and `/salary/payslip/{id}` verified in `./openapi.json`
@@ -349,3 +355,11 @@
   - they are independent: salary transaction creates payslip (employee-scoped), voucher creates ledger entries (account-scoped)
 - sandbox proof on 2026-03-21 confirmed `salaryType: { number: "2000" }` does NOT work — must use `salaryType: { id }` (422 "Kan ikke opprette subelement")
 - sandbox proof on 2026-03-21 confirmed `account: { number: 5000 }` does NOT work in voucher postings — must use `account: { id }` (422 "account.name: Kan ikke være null")
+- sandbox proof on 2026-03-22 re-confirmed: `salaryType: { name: "Fastlønn" }` → 422 "Kan ikke opprette subelement"; `salaryType: { number: 2000 }` (integer, not string) → same 422; `account: { number: 5000, name: "Lønn til ansatte" }` → 422 "Feltet må fylles ut" (account field); all three name/number-based resolutions fail — only `{ id }` works for salary types and accounts; GET /salary/type and GET /ledger/account are therefore mandatory and not eliminable
+- production run on 2026-03-22 for `Sarah Moreau` / `sarah.moreau@example.org` / `56900` + `15800` (08a38984, French prompt) confirmed the optimal 8-call underconfigured branch:
+  - `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` — all 3 reads parallelized in round 1
+  - employee `id=18690157` with `dateOfBirth=null` and `employments=[]` → underconfigured branch
+  - `Promise.all`: `POST /division` (id=108455971) + `PUT /employee` (dateOfBirth=1990-01-01) — round 2
+  - `POST /employee/employment` with inline `employmentDetails[]` — round 3
+  - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` (id=6958416) + `POST /ledger/voucher?sendToLedger=true` (id=609208546) — round 4
+  - 8 calls, 0 errors, 4 rounds — first production run achieving the proven-minimum call count for this branch
