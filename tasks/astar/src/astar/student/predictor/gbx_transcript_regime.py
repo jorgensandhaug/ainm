@@ -53,6 +53,8 @@ GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN = "gbx_transcript_regime_knn_terminal_
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA = "gbx_transcript_regime_knn_terminal_mapknn_delta_v1"
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPLLR = "gbx_transcript_regime_knn_terminal_mapllr_v1"
 GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPPRIOR = "gbx_transcript_regime_knn_terminal_mapprior_v1"
+GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN = "gbx_transcript_manifold_terminal_mapknn_v1"
+GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA = "gbx_transcript_manifold_terminal_mapknn_delta_v1"
 GBX_ROUNDBANK_TERMINAL_MAPKNN = "gbx_roundbank_terminal_mapknn_v1"
 GBX_RIDGE_TERMINAL_MAPKNN = "gbx_ridge_terminal_mapknn_v1"
 
@@ -113,6 +115,34 @@ _MODEL_SPECS: dict[str, tuple[str, str, str, int, int]] = {
         3,
         5,
     ),
+    "gbx_transcript_manifold_terminal_mapknn": (
+        GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN: (
+        GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    "gbx_transcript_manifold_terminal_mapknn_delta": (
+        GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
+    GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA: (
+        GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA,
+        GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
+        "map_summary_knn",
+        5,
+        5,
+    ),
     "gbx_roundbank_terminal_mapknn": (
         GBX_ROUNDBANK_TERMINAL_MAPKNN,
         GBX_TERMINAL_REGIME_MAPKNN_TEACHER_MODEL,
@@ -153,9 +183,18 @@ _RIDGE_MODEL_NAMES = {
     GBX_RIDGE_TERMINAL_MAPKNN,
 }
 
+_MANIFOLD_MODEL_NAMES = {
+    "gbx_transcript_manifold_terminal_mapknn",
+    GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN,
+    "gbx_transcript_manifold_terminal_mapknn_delta",
+    GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA,
+}
+
 _DELTA_FEATURE_MODEL_NAMES = {
     "gbx_transcript_regime_knn_terminal_mapknn_delta",
     GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA,
+    "gbx_transcript_manifold_terminal_mapknn_delta",
+    GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA,
 }
 
 
@@ -169,6 +208,10 @@ def is_gbx_transcript_regime_roundbank_model_name(model_name: str) -> bool:
 
 def is_gbx_transcript_regime_ridge_model_name(model_name: str) -> bool:
     return model_name.strip().lower() in _RIDGE_MODEL_NAMES
+
+
+def is_gbx_transcript_regime_manifold_model_name(model_name: str) -> bool:
+    return model_name.strip().lower() in _MANIFOLD_MODEL_NAMES
 
 
 def resolve_gbx_transcript_regime_training_spec(
@@ -672,6 +715,96 @@ def _fit_linear_map(
     penalty[0, 0] = 0.0
     solution = np.linalg.pinv(design.T @ design + ridge_alpha * penalty) @ (design.T @ targets)
     return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
+
+
+def _factorize_residual_bank(
+    residual_bank: np.ndarray,
+    *,
+    rank: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    residual_array = np.asarray(residual_bank, dtype=np.float64)
+    mean_vector = np.mean(residual_array, axis=0)
+    centered = residual_array - mean_vector[None, :]
+    _, singular_values, vt_matrix = np.linalg.svd(centered, full_matrices=False)
+    effective_rank = max(1, min(int(rank), vt_matrix.shape[0]))
+    basis = np.asarray(vt_matrix[:effective_rank], dtype=np.float64)
+    coordinates = np.asarray(centered @ basis.T, dtype=np.float64)
+    if np.allclose(singular_values, 0.0):
+        coordinates = np.zeros((residual_array.shape[0], effective_rank), dtype=np.float64)
+    return mean_vector, basis, coordinates
+
+
+def _round_order_from_labels(round_labels: Sequence[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for round_id in round_labels:
+        if round_id in seen:
+            continue
+        seen.add(round_id)
+        ordered.append(round_id)
+    return tuple(ordered)
+
+
+def _sample_round_indices(
+    sample_round_labels: Sequence[str],
+    round_ids_by_bank: Sequence[str],
+) -> np.ndarray:
+    round_index_by_id = {round_id: index for index, round_id in enumerate(round_ids_by_bank)}
+    return np.asarray([round_index_by_id[str(round_id)] for round_id in sample_round_labels], dtype=np.int64)
+
+
+def _select_manifold_rank(
+    standardized_feature_bank: np.ndarray,
+    sample_round_indices: np.ndarray,
+    round_residual_bank: np.ndarray,
+    *,
+    max_rank: int = 3,
+    ridge_alpha: float = 2.0,
+) -> tuple[int, tuple[int, ...], tuple[float, ...]]:
+    round_count = int(round_residual_bank.shape[0])
+    regime_dim = int(round_residual_bank.shape[1])
+    candidate_ranks = tuple(range(1, max(1, min(max_rank, round_count, regime_dim)) + 1))
+    if round_count <= 1:
+        return 1, candidate_ranks, tuple(0.0 for _ in candidate_ranks)
+
+    rank_scores: list[float] = []
+    for rank in candidate_ranks:
+        fold_errors: list[float] = []
+        for held_out_index in range(round_count):
+            train_round_mask = np.ones(round_count, dtype=bool)
+            train_round_mask[held_out_index] = False
+            train_round_indices = np.flatnonzero(train_round_mask)
+            train_residual_bank = np.asarray(round_residual_bank[train_round_mask], dtype=np.float64)
+            mean_vector, basis, train_coordinates = _factorize_residual_bank(train_residual_bank, rank=rank)
+
+            train_sample_mask = sample_round_indices != held_out_index
+            if not np.any(train_sample_mask):
+                continue
+            train_coordinate_index = np.asarray(
+                [int(np.searchsorted(train_round_indices, item)) for item in sample_round_indices[train_sample_mask]],
+                dtype=np.int64,
+            )
+            train_targets = np.asarray(train_coordinates[train_coordinate_index], dtype=np.float64)
+            intercept, weights = _fit_linear_map(
+                np.asarray(standardized_feature_bank[train_sample_mask], dtype=np.float64),
+                train_targets,
+                ridge_alpha=ridge_alpha,
+            )
+            held_out_sample_mask = sample_round_indices == held_out_index
+            if not np.any(held_out_sample_mask):
+                continue
+            predicted_coordinates = np.asarray(
+                intercept + (np.asarray(standardized_feature_bank[held_out_sample_mask], dtype=np.float64) @ weights),
+                dtype=np.float64,
+            )
+            reconstructed = np.asarray(mean_vector + (predicted_coordinates @ basis), dtype=np.float64)
+            target = np.asarray(round_residual_bank[held_out_index], dtype=np.float64)
+            fold_errors.extend(
+                np.mean((reconstructed - target[None, :]) ** 2, axis=1).astype(np.float64).tolist(),
+            )
+        rank_scores.append(0.0 if not fold_errors else float(np.mean(np.asarray(fold_errors, dtype=np.float64))))
+    selected_rank = int(candidate_ranks[int(np.argmin(np.asarray(rank_scores, dtype=np.float64)))])
+    return selected_rank, candidate_ranks, tuple(float(item) for item in rank_scores)
 
 
 class GreyBoxTranscriptRegimeCheckpoint(BaseModel):
@@ -1290,20 +1423,257 @@ class GreyBoxTranscriptRegimeRidgePredictor(GreyBoxTranscriptRegimeKNNPredictor)
         )
 
 
+class GreyBoxTranscriptRegimeManifoldCheckpoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    dataset_name: str
+    policy_name: str
+    samples_per_round: int = Field(ge=1)
+    checkpoint_npz_path: str
+    terminal_checkpoint_path: str
+    terminal_model_name: str
+    training_round_ids: list[str]
+    round_ids_by_bank: list[str]
+    feature_names: list[str]
+    sample_count: int = Field(ge=0)
+    round_count: int = Field(ge=1)
+    feature_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)
+    selected_rank: int = Field(ge=1)
+    candidate_ranks: list[int] = Field(default_factory=list)
+    rank_scores: list[float] = Field(default_factory=list)
+    ridge_alpha: float = Field(gt=0.0)
+    particle_neighbor_count: int = Field(ge=1)
+
+
+class GreyBoxTranscriptRegimeManifoldPredictor(GreyBoxTranscriptRegimeKNNPredictor):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN
+    round_ids_by_bank: tuple[str, ...] = ()
+    residual_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    residual_basis: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    coordinate_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    coordinate_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    round_coordinate_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    round_residual_regime_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    selected_rank: int = Field(default=1, ge=1)
+    candidate_ranks: tuple[int, ...] = ()
+    rank_scores: tuple[float, ...] = ()
+    ridge_alpha: float = Field(default=2.0, gt=0.0)
+    particle_neighbor_count: int = Field(default=3, ge=1)
+
+    @classmethod
+    def fit_from_workspace(
+        cls,
+        paths: WorkspacePaths,
+        *,
+        round_ids: Sequence[str] | None = None,
+        policy_name: str = "coverage",
+        samples_per_round: int = 4,
+        model_name: str = GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN,
+    ) -> GreyBoxTranscriptRegimeManifoldPredictor:
+        base_predictor = GreyBoxTranscriptRegimeKNNPredictor.fit_from_workspace(
+            paths,
+            round_ids=round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            model_name=model_name,
+        )
+        ridge_alpha = 2.0
+        particle_neighbor_count = 3
+        index_path = paths.dataset_dir(base_predictor.dataset_name) / "index.parquet"
+        index_table = pl.read_parquet(index_path, columns=["round_id"])
+        sample_round_labels = [str(item) for item in index_table["round_id"].to_list()]
+        round_ids_by_bank = _round_order_from_labels(sample_round_labels)
+        sample_round_indices = _sample_round_indices(sample_round_labels, round_ids_by_bank)
+
+        standardized_feature_bank = np.asarray(base_predictor.standardized_feature_bank, dtype=np.float64)
+        residual_regime_bank = np.asarray(base_predictor.residual_regime_bank, dtype=np.float64)
+
+        round_residual_bank: list[np.ndarray] = []
+        for round_index in range(len(round_ids_by_bank)):
+            mask = sample_round_indices == round_index
+            if not np.any(mask):
+                raise ValueError(f"manifold training bank missing samples for round_index={round_index}")
+            round_residual_bank.append(np.mean(residual_regime_bank[mask], axis=0))
+        round_residual_matrix = np.stack(round_residual_bank, axis=0)
+
+        selected_rank, candidate_ranks, rank_scores = _select_manifold_rank(
+            standardized_feature_bank,
+            sample_round_indices,
+            round_residual_matrix,
+            max_rank=3,
+            ridge_alpha=ridge_alpha,
+        )
+        residual_mean, residual_basis, round_coordinate_bank = _factorize_residual_bank(
+            round_residual_matrix,
+            rank=selected_rank,
+        )
+        sample_coordinate_targets = np.asarray(round_coordinate_bank[sample_round_indices], dtype=np.float64)
+        coordinate_intercept, coordinate_weights = _fit_linear_map(
+            standardized_feature_bank,
+            sample_coordinate_targets,
+            ridge_alpha=ridge_alpha,
+        )
+
+        return cls(
+            name=base_predictor.name,
+            dataset_name=base_predictor.dataset_name,
+            policy_name=base_predictor.policy_name,
+            samples_per_round=base_predictor.samples_per_round,
+            training_round_ids=base_predictor.training_round_ids,
+            terminal_checkpoint_path=base_predictor.terminal_checkpoint_path,
+            feature_names=base_predictor.feature_names,
+            standardized_feature_bank=standardized_feature_bank,
+            residual_regime_bank=residual_regime_bank,
+            feature_mean=np.asarray(base_predictor.feature_mean, dtype=np.float64),
+            feature_scale=np.asarray(base_predictor.feature_scale, dtype=np.float64),
+            k_neighbors=base_predictor.k_neighbors,
+            terminal_teacher=base_predictor.terminal_teacher,
+            round_ids_by_bank=tuple(round_ids_by_bank),
+            residual_mean=np.asarray(residual_mean, dtype=np.float64),
+            residual_basis=np.asarray(residual_basis, dtype=np.float64),
+            coordinate_intercept=np.asarray(coordinate_intercept, dtype=np.float64),
+            coordinate_weights=np.asarray(coordinate_weights, dtype=np.float64),
+            round_coordinate_bank=np.asarray(round_coordinate_bank, dtype=np.float64),
+            round_residual_regime_bank=np.asarray(round_residual_matrix, dtype=np.float64),
+            selected_rank=selected_rank,
+            candidate_ranks=tuple(int(item) for item in candidate_ranks),
+            rank_scores=tuple(float(item) for item in rank_scores),
+            ridge_alpha=ridge_alpha,
+            particle_neighbor_count=particle_neighbor_count,
+        )
+
+    def checkpoint(
+        self,
+        checkpoint_npz_path: Path,
+        terminal_checkpoint_path: Path,
+    ) -> GreyBoxTranscriptRegimeManifoldCheckpoint:
+        return GreyBoxTranscriptRegimeManifoldCheckpoint(
+            name=self.name,
+            dataset_name=self.dataset_name,
+            policy_name=self.policy_name,
+            samples_per_round=self.samples_per_round,
+            checkpoint_npz_path=str(checkpoint_npz_path),
+            terminal_checkpoint_path=str(terminal_checkpoint_path),
+            terminal_model_name=self.terminal_teacher.name,
+            training_round_ids=list(self.training_round_ids),
+            round_ids_by_bank=list(self.round_ids_by_bank),
+            feature_names=list(self.feature_names),
+            sample_count=int(self.standardized_feature_bank.shape[0]),
+            round_count=int(self.round_residual_regime_bank.shape[0]),
+            feature_dim=int(self.standardized_feature_bank.shape[1]),
+            regime_dim=int(self.round_residual_regime_bank.shape[1]),
+            selected_rank=self.selected_rank,
+            candidate_ranks=list(self.candidate_ranks),
+            rank_scores=list(self.rank_scores),
+            ridge_alpha=self.ridge_alpha,
+            particle_neighbor_count=self.particle_neighbor_count,
+        )
+
+    def save_checkpoint(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        npz_path = path.parent / "bank.npz"
+        np.savez_compressed(
+            npz_path,
+            standardized_feature_bank=self.standardized_feature_bank,
+            residual_regime_bank=self.residual_regime_bank,
+            feature_mean=self.feature_mean,
+            feature_scale=self.feature_scale,
+            residual_mean=self.residual_mean,
+            residual_basis=self.residual_basis,
+            coordinate_intercept=self.coordinate_intercept,
+            coordinate_weights=self.coordinate_weights,
+            round_coordinate_bank=self.round_coordinate_bank,
+            round_residual_regime_bank=self.round_residual_regime_bank,
+        )
+        checkpoint = self.checkpoint(npz_path, Path(self.terminal_checkpoint_path))
+        path.write_text(json.dumps(to_jsonable(checkpoint), indent=2), encoding="utf-8")
+        return path
+
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> GreyBoxTranscriptRegimeManifoldPredictor:
+        checkpoint = GreyBoxTranscriptRegimeManifoldCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        arrays = np.load(checkpoint.checkpoint_npz_path)
+        terminal_teacher = GreyBoxTerminalTeacher.load_checkpoint(Path(checkpoint.terminal_checkpoint_path))
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            policy_name=checkpoint.policy_name,
+            samples_per_round=checkpoint.samples_per_round,
+            training_round_ids=tuple(checkpoint.training_round_ids),
+            terminal_checkpoint_path=checkpoint.terminal_checkpoint_path,
+            feature_names=tuple(checkpoint.feature_names),
+            standardized_feature_bank=np.asarray(arrays["standardized_feature_bank"], dtype=np.float64),
+            residual_regime_bank=np.asarray(arrays["residual_regime_bank"], dtype=np.float64),
+            feature_mean=np.asarray(arrays["feature_mean"], dtype=np.float64),
+            feature_scale=np.asarray(arrays["feature_scale"], dtype=np.float64),
+            k_neighbors=5,
+            terminal_teacher=terminal_teacher,
+            round_ids_by_bank=tuple(checkpoint.round_ids_by_bank),
+            residual_mean=np.asarray(arrays["residual_mean"], dtype=np.float64),
+            residual_basis=np.asarray(arrays["residual_basis"], dtype=np.float64),
+            coordinate_intercept=np.asarray(arrays["coordinate_intercept"], dtype=np.float64),
+            coordinate_weights=np.asarray(arrays["coordinate_weights"], dtype=np.float64),
+            round_coordinate_bank=np.asarray(arrays["round_coordinate_bank"], dtype=np.float64),
+            round_residual_regime_bank=np.asarray(arrays["round_residual_regime_bank"], dtype=np.float64),
+            selected_rank=checkpoint.selected_rank,
+            candidate_ranks=tuple(int(item) for item in checkpoint.candidate_ranks),
+            rank_scores=tuple(float(item) for item in checkpoint.rank_scores),
+            ridge_alpha=checkpoint.ridge_alpha,
+            particle_neighbor_count=checkpoint.particle_neighbor_count,
+        )
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        current_map_prior = self.terminal_teacher.map_regime_prior(context.round_context.seeds)
+        feature_vector = self._feature_vector_from_context(context, current_map_prior)
+        standardized = (feature_vector - self.feature_mean) / self.feature_scale
+        coordinate_mean = np.asarray(
+            self.coordinate_intercept + (standardized @ self.coordinate_weights),
+            dtype=np.float64,
+        )
+        residual_mean = np.asarray(
+            self.residual_mean + (coordinate_mean @ self.residual_basis),
+            dtype=np.float64,
+        )
+        posterior_mean = _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + residual_mean)
+        distances = np.linalg.norm(self.round_coordinate_bank - coordinate_mean[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.particle_neighbor_count, len(distances))]
+        nearest_distances = distances[order]
+        weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
+        weights = weights / np.sum(weights)
+        particles = tuple(
+            _clip_regime(np.asarray(current_map_prior, dtype=np.float64) + self.round_residual_regime_bank[index])
+            for index in order
+        )
+        return RegimePosteriorState(
+            mean=posterior_mean,
+            particles=particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
+
+
 __all__ = [
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPKNN_DELTA",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPLLR",
     "GBX_TRANSCRIPT_REGIME_KNN_TERMINAL_MAPPRIOR",
+    "GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN",
+    "GBX_TRANSCRIPT_MANIFOLD_TERMINAL_MAPKNN_DELTA",
     "GBX_ROUNDBANK_TERMINAL_MAPKNN",
     "GBX_RIDGE_TERMINAL_MAPKNN",
     "GreyBoxTranscriptRegimeCheckpoint",
     "GreyBoxTranscriptRegimeKNNPredictor",
+    "GreyBoxTranscriptRegimeManifoldCheckpoint",
+    "GreyBoxTranscriptRegimeManifoldPredictor",
     "GreyBoxTranscriptRegimeRoundBankCheckpoint",
     "GreyBoxTranscriptRegimeRoundBankPredictor",
     "GreyBoxTranscriptRegimeRidgeCheckpoint",
     "GreyBoxTranscriptRegimeRidgePredictor",
     "gbx_transcript_regime_scoped_checkpoint_path",
+    "is_gbx_transcript_regime_manifold_model_name",
     "is_gbx_transcript_regime_model_name",
     "is_gbx_transcript_regime_roundbank_model_name",
     "is_gbx_transcript_regime_ridge_model_name",

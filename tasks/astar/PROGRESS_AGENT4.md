@@ -2523,3 +2523,101 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - One remaining infra annoyance found:
   - `compare-historical-benchmarks` cross-policy artifact writing can hit `OSError: [Errno 36] File name too long` for long model names because the auto-generated comparison filename is too long
   - I worked around that with a direct paired-analysis script instead of spending the turn on filename-shortening plumbing
+
+### 2026-03-21T12:58Z
+
+- Re-read `instructions/agent4.md`, `README.md`, `docs/game_facts.md` before continuing.
+- Re-checked machine state before launching new work:
+  - load about `31`
+  - memory about `2.0 TiB` available
+  - other agents are active but box is still heavily underused versus capacity
+- `br list` still unavailable here:
+  - `/bin/bash: br: command not found`
+- Main development pivot for this turn:
+  - stop adding more full-space transcript residual heuristics
+  - implement the handoff's actual missing piece: a small transcript-inferred residual manifold over round laws
+- Added new online student family in `src/astar/student/predictor/gbx_transcript_regime.py`:
+  - `gbx_transcript_manifold_terminal_mapknn`
+  - `gbx_transcript_manifold_terminal_mapknn_delta`
+  - training flow:
+    - build the usual synthetic live transcript bank
+    - group episodes by round
+    - average residual regime per round
+    - factorize round residuals to a low-rank basis
+    - choose rank by leave-one-round-out transcript-to-latent residual reconstruction MSE
+    - fit ridge from transcript features to manifold coordinates
+    - infer live posterior by reconstructing residual from predicted coordinates and using nearest training rounds as particles
+- Added blend aliases in `src/astar/student/predictor/interactive.py` and `src/astar/cli.py`:
+  - `gbx_maponly_transcriptmanifold_mapknn_blend20`
+  - `gbx_maponly_transcriptmanifolddelta_mapknn_blend20`
+- Added smoke coverage in `tests/test_historical_benchmark.py`.
+- Early verification passed:
+  - `uv run pytest tests/test_historical_benchmark.py::test_gbx_transcript_manifold_terminal_mapknn_online_historical_benchmark_runs tests/test_historical_benchmark.py::test_gbx_maponly_transcriptmanifold_mapknn_blend20_builds -q`
+  - result: `2 passed`
+  - `python3 -m py_compile src/astar/student/predictor/gbx_transcript_regime.py src/astar/student/predictor/interactive.py src/astar/cli.py`
+  - result: passed
+- Next immediate step:
+  - run full replay-backed online benchmarks for pure manifold and blended manifold variants in parallel
+  - compare directly against current champion `gbx_maponly_transcriptregime_mapknn_blend20`
+
+### 2026-03-21T13:14Z
+
+- Full benchmarked result for the new low-rank manifold branch:
+  - setup:
+    - `mode=online_interactive`
+    - `policy=coverage`
+    - `budget=50`
+    - `samples_per_round=4`
+    - `episode_seeds=0,1,2`
+    - `rounds=8`
+    - `evaluated_seeds=120`
+- Pure manifold models are not competitive as standalone predictors:
+  - `gbx_transcript_manifold_terminal_mapknn`:
+    - `41.3305 / 0.327477`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_transcript_manifold_terminal_mapknn_cov_seed02_jobs6_v1/report.md`
+  - `gbx_transcript_manifold_terminal_mapknn_delta`:
+    - `41.0529 / 0.330592`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_transcript_manifold_terminal_mapknn_delta_cov_seed02_jobs6_v1/report.md`
+- Weak blending over map prior makes the branch usable but still not winning:
+  - `gbx_maponly_transcriptmanifold_mapknn_blend20`:
+    - `67.7815 / 0.134582`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptmanifold_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+  - `gbx_maponly_transcriptmanifolddelta_mapknn_blend20`:
+    - `67.7071 / 0.135052`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptmanifolddelta_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+- Best use of the new manifold signal is as a sidecar to the stronger transcript-regime branch:
+  - `gbx_maponly_transcriptregime_manifold_mapknn_blend20`:
+    - `67.9183 / 0.133782`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_manifold_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+  - `gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20`:
+    - `67.8825 / 0.134004`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+  - `gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20`:
+    - `67.9009 / 0.133890`
+    - report:
+      - `data/artifacts/benchmarks/dev_gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20_cov_seed02_jobs6_v1/report.md`
+- One-off custom-weight probe to avoid hard-coding another alias before deciding:
+  - transcript-regime `0.15` + manifold `0.05`
+  - result:
+    - `67.981835 / 0.133406`
+  - still below current family champion `gbx_maponly_transcriptregime_mapknn_blend20`:
+    - champion remains `68.042288 / 0.133045`
+- Scientific read:
+  - the handoff-style low-rank round-law manifold is real enough to help once weakly blended
+  - but the current manifold decoder/regression path leaves too much signal on the floor compared with the direct transcript residual branch
+  - reducing the strong transcript branch from `0.20` to `0.10` hurt more than the manifold sidecar recovered
+  - even the better custom split `0.15 + 0.05` still failed to beat the current champion
+  - therefore this manifold branch is informative but not a new winner in its current form
+- Additional implementation/wiring added this turn:
+  - ensemble aliases for combining transcript-regime with manifold sidecars in `src/astar/student/predictor/interactive.py`
+  - matching CLI exposure in `src/astar/cli.py`
+  - extra smoke coverage in `tests/test_historical_benchmark.py`
+- Verification after the follow-up ensemble patch:
+  - `uv run pytest tests/test_historical_benchmark.py -q`
+  - result: `42 passed in 62.86s`

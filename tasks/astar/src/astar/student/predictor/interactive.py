@@ -21,10 +21,12 @@ from astar.student.predictor.gbx_map_prior import (
     GreyBoxMapOnlyBucketPredictor,
 )
 from astar.student.predictor.gbx_transcript_regime import (
+    GreyBoxTranscriptRegimeManifoldPredictor,
     GreyBoxTranscriptRegimeRoundBankPredictor,
     GreyBoxTranscriptRegimeRidgePredictor,
     GreyBoxTranscriptRegimeKNNPredictor,
     gbx_transcript_regime_scoped_checkpoint_path,
+    is_gbx_transcript_regime_manifold_model_name,
     is_gbx_transcript_regime_model_name,
     is_gbx_transcript_regime_ridge_model_name,
     is_gbx_transcript_regime_roundbank_model_name,
@@ -217,6 +219,30 @@ _GBX_TRANSCRIPT_REGIME_BLEND_SPECS: dict[str, tuple[str, str, float, str]] = {
         0.20,
         "uniform",
     ),
+    "gbx_maponly_transcriptmanifold_mapknn_blend20": (
+        "gbx_maponly_transcriptmanifold_mapknn_blend20_v1",
+        "gbx_transcript_manifold_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptmanifold_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptmanifold_mapknn_blend20_v1",
+        "gbx_transcript_manifold_terminal_mapknn",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptmanifolddelta_mapknn_blend20": (
+        "gbx_maponly_transcriptmanifolddelta_mapknn_blend20_v1",
+        "gbx_transcript_manifold_terminal_mapknn_delta",
+        0.20,
+        "uniform",
+    ),
+    "gbx_maponly_transcriptmanifolddelta_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptmanifolddelta_mapknn_blend20_v1",
+        "gbx_transcript_manifold_terminal_mapknn_delta",
+        0.20,
+        "uniform",
+    ),
     "gbx_maponly_roundbank_mapknn_blend10": (
         "gbx_maponly_roundbank_mapknn_blend10_v1",
         "gbx_roundbank_terminal_mapknn",
@@ -283,6 +309,56 @@ _GBX_TRANSCRIPT_ENSEMBLE_BLEND_SPECS: dict[str, tuple[str, tuple[str, ...], tupl
             "gbx_transcript_regime_knn_terminal_mapknn_delta",
         ),
         (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptregime_manifold_mapknn_blend20": (
+        "gbx_maponly_transcriptregime_manifold_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn",
+        ),
+        (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptregime_manifold_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptregime_manifold_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn",
+        ),
+        (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20": (
+        "gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn_delta",
+        ),
+        (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptregime_manifolddelta_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn_delta",
+        ),
+        (0.10, 0.10),
+    ),
+    "gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20": (
+        "gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn_delta",
+        ),
+        (0.10, 0.05, 0.05),
+    ),
+    "gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20_v1": (
+        "gbx_maponly_transcriptregime_manifoldtriple_mapknn_blend20_v1",
+        (
+            "gbx_transcript_regime_knn_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn",
+            "gbx_transcript_manifold_terminal_mapknn_delta",
+        ),
+        (0.10, 0.05, 0.05),
     ),
 }
 
@@ -358,7 +434,7 @@ class GreyBoxTranscriptRegimeBlendPredictor(BaseRoundPredictor):
     gate_mode: str = "uniform"
     probability_floor: float = 1e-4
     map_prior_predictor: GreyBoxMapOnlyBucketPredictor
-    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor
+    transcript_predictor: GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor
 
     def _transcript_predictions_with_confidence(self, context) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
         posterior = self.transcript_predictor.infer_regime(context)
@@ -467,7 +543,7 @@ class GreyBoxTranscriptEnsembleBlendPredictor(BaseRoundPredictor):
     probability_floor: float = 1e-4
     map_prior_predictor: GreyBoxMapOnlyBucketPredictor
     transcript_predictors: tuple[
-        GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor,
+        GreyBoxTranscriptRegimeKNNPredictor | GreyBoxTranscriptRegimeManifoldPredictor | GreyBoxTranscriptRegimeRoundBankPredictor | GreyBoxTranscriptRegimeRidgePredictor,
         ...,
     ]
     transcript_weights: tuple[float, ...]
@@ -701,6 +777,15 @@ def build_online_predictor(
                     samples_per_round=resolved_samples_per_round,
                     model_name=checkpoint_model_name,
                 )
+            if is_gbx_transcript_regime_manifold_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeManifoldPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeManifoldPredictor.fit_from_workspace(
+                    workspace_paths,
+                    round_ids=list(historical_round_ids),
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
             predictor = _load_or_fit_locked_checkpoint(
                 checkpoint_path,
                 loader=predictor_loader,
@@ -729,6 +814,14 @@ def build_online_predictor(
             if is_gbx_transcript_regime_ridge_model_name(normalized):
                 predictor_loader = GreyBoxTranscriptRegimeRidgePredictor.load_checkpoint
                 predictor_builder = lambda: GreyBoxTranscriptRegimeRidgePredictor.fit_from_workspace(
+                    workspace_paths,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=resolved_samples_per_round,
+                    model_name=checkpoint_model_name,
+                )
+            if is_gbx_transcript_regime_manifold_model_name(normalized):
+                predictor_loader = GreyBoxTranscriptRegimeManifoldPredictor.load_checkpoint
+                predictor_builder = lambda: GreyBoxTranscriptRegimeManifoldPredictor.fit_from_workspace(
                     workspace_paths,
                     policy_name=resolved_policy_name,
                     samples_per_round=resolved_samples_per_round,
