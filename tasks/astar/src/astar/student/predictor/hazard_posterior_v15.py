@@ -312,8 +312,8 @@ class HazardPosteriorV15Predictor(BaseRoundPredictor):
             basis=base_teacher.basis,
             coordinates=base_teacher.coordinates,
             latent_rank=base_teacher.latent_rank,
-            prior_blend_weight=0.0,  # Agent7: removing prior blend gives +1.5 pts
-            floor=0.0003,  # Agent7: 0.0003 is optimal (not 0.01!)
+            prior_blend_weight=0.02,  # Keep default: Agent7's 0.0 doesn't transfer to our model
+            floor=0.0003,  # Low floor from Agent7 is fine (similar to old implicit floor)
         )
 
         dataset = _ensure_synthetic_dataset(
