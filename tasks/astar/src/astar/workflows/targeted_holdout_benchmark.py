@@ -31,6 +31,10 @@ from astar.student.predictor.transcript_memory import (
     is_transcript_memory_model_name,
     resolve_transcript_memory_samples_per_round,
 )
+from astar.student.predictor.transcript_residual_memory import (
+    is_transcript_residual_memory_model_name,
+    resolve_transcript_residual_memory_samples_per_round,
+)
 from astar.workflows.historical_benchmark import (
     _effective_round_weight,
     _evaluate_round_worker,
@@ -122,6 +126,8 @@ def run_targeted_holdout_benchmark(
         raise ValueError("evidence_field_blend targeted holdout requires replay-backed training rounds")
     if is_transcript_memory_model_name(normalized_model_name) and len(training_round_ids) < 1:
         raise ValueError("transcript_memory targeted holdout requires replay-backed training rounds")
+    if is_transcript_residual_memory_model_name(normalized_model_name) and len(training_round_ids) < 1:
+        raise ValueError("transcript_residual_memory targeted holdout requires replay-backed training rounds")
 
     resolved_policy_name = (
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
@@ -150,7 +156,14 @@ def run_targeted_holdout_benchmark(
                         samples_per_round=samples_per_round,
                     )
                     if is_transcript_memory_model_name(normalized_model_name)
-                    else None
+                    else (
+                        resolve_transcript_residual_memory_samples_per_round(
+                            normalized_model_name,
+                            samples_per_round=samples_per_round,
+                        )
+                        if is_transcript_residual_memory_model_name(normalized_model_name)
+                        else None
+                    )
                 )
             )
         )
@@ -162,6 +175,8 @@ def run_targeted_holdout_benchmark(
     ) or is_evidence_field_model_name(
         normalized_model_name,
     ) or is_transcript_memory_model_name(
+        normalized_model_name,
+    ) or is_transcript_residual_memory_model_name(
         normalized_model_name,
     ):
         model_suffix = f"__samples={resolved_samples_per_round}"

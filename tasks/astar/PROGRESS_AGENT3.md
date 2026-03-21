@@ -3774,6 +3774,55 @@
      - `uv run python -m py_compile src/astar/student/predictor/transcript_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py`
    - robustness fix during validation:
      - transcript-memory target loading now falls back to raw analysis JSON when derived analysis `.npz` tensors are absent in small test workspaces
+429. Git checkpoint created + pushed for the new transcript-retrieval branch:
+   - commit:
+     - `46331340`
+   - message:
+     - `agent3: add transcript memory retrieval family`
+430. Launch state for item 426:
+   - machine headroom before launch:
+     - available memory about `1861 GiB`
+   - corrected targeted-holdout gate sessions started:
+     - `agent3_tmemory_v1_gate`
+     - `agent3_tmemory_v2_gate`
+     - `agent3_tmemory_v3_gate`
+     - `agent3_tmemory_v4_gate`
+     - `agent3_tmemory_v5_gate`
+     - `agent3_tmemory_v6_gate`
+   - command family:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model transcript_memory_vX --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_transcript_memory_vX_targeted_holdout_2rounds_corrected --jobs 1`
+431. New hypothesis branch started without waiting for item 430:
+   - family:
+     - `transcript_residual_memory`
+   - hypothesis:
+     - direct transcript-target averaging may be too blunt because it overwrites the strong `v59/v60` base everywhere
+     - nearest-neighbor transcript retrieval should work better as a correction memory: retrieve deltas between target tensors and base predictions at similar transcript states, then add only those local deltas back to the current base prediction
+   - objective:
+     - keep global calibration/structure from the strong base model while transferring sharper local corrections from replay-backed nearest transcripts
+432. Implemented + validated `transcript_residual_memory`:
+   - new file:
+     - `src/astar/student/predictor/transcript_residual_memory.py`
+   - reproducible models:
+     - `transcript_residual_memory`
+     - `transcript_residual_memory_v1`
+     - `transcript_residual_memory_v2`
+     - `transcript_residual_memory_v3`
+     - `transcript_residual_memory_v4`
+     - `transcript_residual_memory_v5`
+     - `transcript_residual_memory_v6`
+     - `transcript_residual_memory_v7`
+     - `transcript_residual_memory_v8`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, `k=5`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `8`, `k=5`, correction scale `1.00`
+     - `v5/v6`: base `v59/v60`, samples `16`, `k=3`, correction scale `1.00`
+     - `v7/v8`: base `v59/v60`, samples `16`, `k=3`, correction scale `1.25`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/transcript_residual_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_transcript_residual_memory_historical_benchmark_model tests/test_teacher_student.py::test_transcript_residual_memory_blend_with_residual_shifts_mass tests/test_historical_benchmark.py::test_transcript_residual_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

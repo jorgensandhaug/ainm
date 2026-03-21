@@ -69,6 +69,9 @@ from astar.student.predictor.interactive import build_online_predictor
 from astar.student.predictor.query_residual import QUERY_RESIDUAL_MODEL_NAMES
 from astar.student.predictor.summary_bank import SUMMARY_BANK_MODEL_NAMES
 from astar.student.predictor.transcript_memory import TRANSCRIPT_MEMORY_MODEL_CHOICE_LIST
+from astar.student.predictor.transcript_residual_memory import (
+    TRANSCRIPT_RESIDUAL_MEMORY_MODEL_CHOICE_LIST,
+)
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -109,6 +112,7 @@ ONLINE_MODEL_CHOICES = [
     *sorted(SUMMARY_BANK_MODEL_NAMES, key=_model_choice_sort_key),
     *EVIDENCE_FIELD_MODEL_CHOICE_LIST,
     *TRANSCRIPT_MEMORY_MODEL_CHOICE_LIST,
+    *TRANSCRIPT_RESIDUAL_MEMORY_MODEL_CHOICE_LIST,
     *sorted(QUERY_RESIDUAL_MODEL_NAMES, key=_model_choice_sort_key),
 ]
 PRIOR_AND_ONLINE_MODEL_CHOICES = [

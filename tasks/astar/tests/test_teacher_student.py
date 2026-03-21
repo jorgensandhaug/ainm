@@ -1101,6 +1101,24 @@ def test_transcript_memory_seed_vector_reflects_observed_class_counts() -> None:
     assert np.max(vector) > 0.0
 
 
+def test_transcript_residual_memory_blend_with_residual_shifts_mass() -> None:
+    from astar.student.predictor.transcript_residual_memory import _blend_with_residual
+
+    base = np.asarray([[[0.70, 0.20, 0.10]]], dtype=np.float64)
+    residual = np.asarray([[[-0.20, 0.15, 0.05]]], dtype=np.float64)
+
+    refined = _blend_with_residual(
+        base,
+        residual,
+        correction_scale=1.0,
+        probability_floor=0.01,
+    )
+
+    assert np.allclose(refined.sum(axis=-1), 1.0)
+    assert refined[0, 0, 1] > base[0, 0, 1]
+    assert refined[0, 0, 2] > base[0, 0, 2]
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
