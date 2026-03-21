@@ -26,6 +26,7 @@ from astar.student.predictor.smh_glmm import (
     SemhGlmmLatentPredictor,
     SemhGlmmPredictor,
 )
+from astar.student.predictor.direct_terminal import DirectTerminalPredictor
 from astar.student.predictor.smh_student import SemhResidualStudentPredictor
 
 SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001 = "smh_glmm_z0_h0_covbase_calnone_v001"
@@ -56,6 +57,9 @@ SMH_GLMM_QR_ENSEMBLE_V002 = "smh_glmm_qr_ensemble_v002"
 SMH_GLMM_QR_ENSEMBLE_V003 = "smh_glmm_qr_ensemble_v003"
 SMH_GLMM_QR_ENSEMBLE_V004 = "smh_glmm_qr_ensemble_v004"
 SMH_GLMM_QR_ENSEMBLE_V005 = "smh_glmm_qr_ensemble_v005"
+DIRECT_TERMINAL_Z2_V001 = "direct_terminal_z2_v001"
+DIRECT_TERMINAL_Z2_V002 = "direct_terminal_z2_v002"
+DIRECT_TERMINAL_Z2_V003 = "direct_terminal_z2_v003"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1151,6 +1155,39 @@ def _load_or_fit_smh_glmm_latent_predictor(
     return predictor
 
 
+def _build_direct_terminal_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    checkpoint_stem: str,
+    model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    checkpoint_dir = workspace_paths.checkpoint_dir(checkpoint_stem)
+    if historical_round_ids is not None:
+        round_hash = hashlib.sha1(
+            ",".join(sorted(historical_round_ids)).encode()
+        ).hexdigest()[:10]
+        checkpoint_dir = workspace_paths.checkpoint_dir(
+            f"{checkpoint_stem}__rounds=n={len(historical_round_ids)}__sha1={round_hash}"
+        )
+    json_path = checkpoint_dir / "direct_terminal_predictor.json"
+    if json_path.exists():
+        predictor = DirectTerminalPredictor.load_checkpoint(json_path)
+    else:
+        predictor = DirectTerminalPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            model_name=model_name,
+            **(fit_kwargs or {}),
+        )
+        predictor.save_checkpoint(checkpoint_dir)
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def _build_smh_glmm_latent_adapter(
     workspace_paths: WorkspacePaths,
     *,
@@ -1881,6 +1918,33 @@ def build_online_predictor(
                     "nbr_ruin_frac",
                 ),
             },
+        )
+    if normalized == DIRECT_TERMINAL_Z2_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V001,
+            model_name=DIRECT_TERMINAL_Z2_V001,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.01, "max_epochs": 100},
+        )
+    if normalized == DIRECT_TERMINAL_Z2_V002:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V002,
+            model_name=DIRECT_TERMINAL_Z2_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
+        )
+    if normalized == DIRECT_TERMINAL_Z2_V003:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V003,
+            model_name=DIRECT_TERMINAL_Z2_V003,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.1, "max_epochs": 100},
         )
     if normalized in (SMH_GLMM_QR_ENSEMBLE_V001, SMH_GLMM_QR_ENSEMBLE_V002, SMH_GLMM_QR_ENSEMBLE_V003, SMH_GLMM_QR_ENSEMBLE_V004, SMH_GLMM_QR_ENSEMBLE_V005):
         workspace_paths = paths or WorkspacePaths.from_root(".")
