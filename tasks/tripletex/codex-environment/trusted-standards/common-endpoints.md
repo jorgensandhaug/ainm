@@ -198,7 +198,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - when the prompt clearly provides exact existing product numbers, the lower-call first resolver is one decisive `GET /product?productNumber=<a>&productNumber=<b>...&fields=*`
   - for invoice/order tasks where the prompt gives exact product names plus parenthetical numeric refs of unclear semantics, the lower-call product resolver is one decisive `GET /product?count=1000&fields=*` with local exact filtering by `number` and/or `name`
   - only switch from the direct `productNumber` query to the broader catalog read when those numeric refs are unclear semantics or the direct numeric query returns an incomplete/ambiguous subset
-  - only spend `GET /product?ids=...` after the catalog read or numeric query if the earlier resolver still left the products unresolved
+  - do NOT use `GET /product?ids=<ref>` as a fallback for prompt refs — prompt refs (e.g. `5271`) are never Tripletex internal IDs (which are in the 84M+ range); `ids` always returns empty for such refs
+  - when `productNumber` partially fails, skip `ids` and go directly to `GET /product?count=1000&fields=*` + local filter by `number` field and exact name
+  - do NOT combine `productNumber` and `number` query params in one call — Tripletex treats them as AND (intersection), not OR; combining returns fewer results when they match different products
   - for explicit-VAT invoice tasks, do not assume that product search alone proves the VAT percentage; if the prompt scores exact VAT and the product read is sparse, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` before the invoice write
 
 ## Project

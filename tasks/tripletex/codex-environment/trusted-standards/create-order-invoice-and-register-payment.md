@@ -21,8 +21,8 @@
 ## Standard Flow
 1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
 2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-3. only if that first product read does not resolve every product, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
-4. only if both numeric reads miss and the prompt also gives exact product names, do one final decisive `GET /product?count=1000&fields=*` and filter locally
+3. only if that first product read does not resolve every product, do one fallback `GET /product?count=1000&fields=*` and filter locally by both the `number` field and exact product name from the prompt
+4. do NOT use `GET /product?ids=<ref>,<ref>&fields=*` as a fallback — prompt refs are never Tripletex internal IDs (which are in the 84M+ range)
 5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
 6. `POST /order` with embedded `orderLines`
 7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
@@ -65,9 +65,10 @@
 
 ## Known Recovery Branches
 - if the first product-number lookup only partially resolves:
-  - try one fallback `GET /product?ids=...&fields=*`
-  - only then consider one final `GET /product?count=1000&fields=*` name-filter fallback
+  - skip the `ids` fallback entirely — prompt refs (e.g. 5271) are never Tripletex internal IDs (84M+ range), so `ids=<ref>` always returns empty
+  - go directly to one `GET /product?count=1000&fields=*` and filter locally by both the `number` response field and exact product name from the prompt
   - do not let a name-only match from the first product-number read count as resolution for a missing numeric ref
+  - do NOT combine `productNumber` and `number` query params in a single call — Tripletex treats them as AND (intersection), not OR, so combining returns fewer results when they match different products
 - if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` using the minimal payload `{ "bankAccountNumber": "12345678903" }`
@@ -114,3 +115,14 @@
 - production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance
 - production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`
 - later production reflection on 2026-03-20 also showed the opposite risk: turning that `/ledger/account` hedge into a default step would spend a sixth call on accounts where the plain 5-call exact path already works, so the hedge must stay conditional rather than canonical
+- production run on 2026-03-21 for Spanish prompt `Luna SL` / `966920963` / `Desarrollo de sistemas (5271)` / `Asesoría de datos (3613)` / prices `6950` + `7000` completed in 7 calls because `productNumber=5271` did not resolve:
+  - `GET /customer?organizationNumber=966920963&fields=*`
+  - `GET /product?productNumber=5271&productNumber=3613&fields=*` → found only 3613, missed 5271
+  - `GET /product?ids=5271&fields=*` → empty (5271 is not a Tripletex ID)
+  - `GET /product?count=1000&fields=*` → found 5271 by name filter
+  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  - `POST /order`
+  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-21&sendToCustomer=false&paymentTypeId=28097792&paidAmount=0.01&paymentTypeIdRestAmount=28097792`
+  - the `ids` fallback was provably useless (prompt refs are small integers, not Tripletex IDs in the 84M+ range); skipping it would have saved 1 call (7→6)
+- sandbox verification on 2026-03-21 confirmed that `productNumber` and `number` API query params use AND semantics when combined: `GET /product?productNumber=X&number=Y` returns only products matching BOTH, not either, so combining them for cross-field matching does not work
+- the 2-tier product resolution (productNumber first, then count=1000 name+number filter) is now the standard; worst case is 6 calls instead of the previous 7

@@ -98,6 +98,13 @@ Exact-match tasks should now prefer the trusted standard:
   - `PUT /invoice/{id}/:payment?...`
   - the prompt line-price sum excluding VAT was `50400`, but the actual payment amount from the invoice response was `63000`; this exact Spanish-language prompt again confirmed that payment must use invoice outstanding, not prompt arithmetic
 
+- production run on 2026-03-21 for Spanish prompt `Luna SL` / `966920963` / `Desarrollo de sistemas (5271)` / `Asesoría de datos (3613)` / prices `6950` + `7000`:
+  - `GET /product?productNumber=5271&productNumber=3613&fields=*` found only 3613, missed 5271
+  - `GET /product?ids=5271&fields=*` returned empty (5271 is not a Tripletex ID — IDs are 84M+)
+  - `GET /product?count=1000&fields=*` found product by name filter
+  - this proved the `ids` fallback is wasted: prompt refs are never Tripletex internal IDs; the 2-tier approach (productNumber first, then count=1000) saves 1 call
+  - sandbox verification on 2026-03-21 also proved that `productNumber` and `number` API query params use AND semantics when combined, so mixing them in one call does not help cross-field matching
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -110,8 +117,8 @@ Exact-match tasks should now prefer the trusted standard:
    - usually `GET /customer?organizationNumber=...&fields=*`
 3. Resolve the products from prompt refs
    - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-   - if that does not uniquely resolve the products, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`
-   - if both numeric lookups fail and the prompt also gives exact product names, do one final decisive fallback `GET /product?count=1000&fields=*` and filter locally by exact prompt names
+   - normalize both `number` and `productNumber` from the response when checking which refs resolved
+   - if that does not resolve every product, skip the `ids` fallback (prompt refs are never Tripletex internal IDs) and go directly to one `GET /product?count=1000&fields=*`, then filter locally by both the `number` response field and exact product name from the prompt
 4. Resolve one usable incoming payment type
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
    - prefer a bank-style incoming payment type whose debit account is `19xx`
@@ -145,11 +152,10 @@ Exact-match tasks should now prefer the trusted standard:
 - the winning path is usually 5 Tripletex API calls when the first product-number read succeeds and the run does not already hold a reusable incoming `paymentTypeId`:
   1. `GET /customer?organizationNumber=...&fields=*`
   2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-  3. if that misses, `GET /product?ids=<ref>,<ref>&fields=*`
-  4. only if both numeric lookups miss and the prompt also gives exact product names, `GET /product?count=1000&fields=*` and filter locally by exact names
-  5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-  6. `POST /order` with embedded `orderLines`
-  7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+  3. if that misses any product, skip `ids` and go directly to `GET /product?count=1000&fields=*` + local filter by `number` field and exact name (worst case: 6 calls)
+  4. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
+  5. `POST /order` with embedded `orderLines`
+  6. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
 - if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, the same exact task drops to 4 downstream calls by skipping step 5
 - Do not insert an automatic `GET /order/{id}` just because `POST /order` echoed empty `orderLines`
 - Do not insert an automatic `GET /ledger/account` before the first invoice write; on this exact task shape that turns the canonical 5-call path into a 6-call hedge
@@ -209,15 +215,15 @@ Exact-match tasks should now prefer the trusted standard:
 - When the prompt names existing products with numeric refs in parentheses, try product-number resolution first
 - Use:
   - `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`
-- If that first read already returns both target products, stop there and reuse those IDs directly
+- If that first read already returns all target products, stop there and reuse those IDs directly
 - normalize both `number` and `productNumber` from the returned product objects before deciding a ref is missing
-- If that does not uniquely resolve the products, do one fallback:
-  - `GET /product?ids=<ref>,<ref>&fields=*`
-- If both numeric reads fail and the prompt also gives exact product names, one final decisive fallback is allowed:
-  - `GET /product?count=1000&fields=*`
-  - filter locally by exact prompt names
+- If that does not resolve every product, skip the `ids` fallback entirely:
+  - prompt refs (e.g. `5271`) are never Tripletex internal IDs (which are in the 84M+ range), so `GET /product?ids=<ref>&fields=*` always returns empty
+  - go directly to one `GET /product?count=1000&fields=*`
+  - filter locally by both the `number` response field matching the prompt ref AND exact product name from the prompt
+- Do NOT combine `productNumber` and `number` query params in a single call — Tripletex treats them as AND (intersection), not OR; combining returns fewer results when they match different products
 - Do not let a name-only match from the initial `productNumber` response count as success for a still-missing numeric ref
-- Do not spray multiple exploratory `/product` reads after that final fallback
+- Do not spray multiple exploratory `/product` reads after the `count=1000` fallback
 - Reuse the resolved product objects for IDs and any needed VAT context
 
 ## Payment Rules
