@@ -203,6 +203,16 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - 5th consecutive optimal run for 6020→1029 variant (Runs 2, 5, 6, 7, 9)
 - First 9-year useful life (108 months): Math.round((144950/108)*100)/100 = 1342.13
 
+### Run 10 (1700→6300 + 6020→1029 variant, German prompt, 3 calls)
+- Task: March 2026, prepaid 3400 (1700→6300), depreciation 289700/7yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors, optimal for 6020→1029 variant
+- Missing: only 1029. Existing: 1700, 5000, 2900, 6020, 6300
+- German prompt: "Rechnungsabgrenzung", "Abschreibung", "Gehaltsrückstellung"
+- 6th consecutive optimal run for 6020→1029 variant (Runs 2, 5, 6, 7, 9, 10)
+- First 7-year useful life (84 months): Math.round((289700/84)*100)/100 = 3448.81
+- Confirmed language variants: nb, nn, en, es, fr, pt, de
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -213,4 +223,5 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Confirmed missing in fresh production: 1029 (Runs 2, 5, 6, 7), 6030 + 1209 (Run 8); 1109 missing in sandbox default
 - "kostkonto"/"kostnadskonto" maps to 6390 for 1710 source, 6300 for 1700 source
 - Portuguese "conta 1710 para despesa" maps to 1710→6390 (confirmed Run 9)
+- German "Rechnungsabgrenzung von Konto 1700 auf Aufwand" maps to 1700→6300 (confirmed Run 10)
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target

@@ -169,6 +169,16 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - 5th consecutive optimal run for 6020→1029 variant (Runs 1, 4, 5, 6, 8)
 - Confirms 9-year useful life (108 months) works correctly with rounding
 
+### Run 9 (2026-03-21, 1700→6300 + 6020→1029 variant, German prompt, 3 calls)
+- Task: March 2026, prepaid 3400 (1700→6300), depreciation 289700/7yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((289700/84)*100)/100 = 3448.81
+- Missing account: only 1029. Existing: 1700, 5000, 2900, 6020, 6300
+- German prompt: "Rechnungsabgrenzung" (periodization), "Abschreibung" (depreciation), "Gehaltsrückstellung" (salary accrual)
+- 6th consecutive optimal run for 6020→1029 variant (Runs 1, 4, 5, 6, 8, 9)
+- First 7-year useful life (84 months) confirmation
+- Confirmed language variants: nb, nn, en, es, fr, pt, de
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -187,3 +197,4 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - Confirmed missing in fresh production: 1029 (Runs 1, 4, 5, 6), 6030 + 1209 (Run 7); confirmed missing in sandbox default: 1109
   - **ID range analysis**: default chart accounts have ids ~424190xxx; accounts with ids ~462xxxxxx were created during testing and do NOT exist in fresh instances
   - 1710→6390 + 6020→1029 with 144950/9yr (dep 1342.13) sandbox-verified: 6 postings created successfully
+  - 1700→6300 + 6020→1029 with 289700/7yr (dep 3448.81) sandbox-verified: 6 postings created successfully (German prompt variant)
