@@ -72,7 +72,32 @@ class CatalogDB:
 
     def try_log_event(self, event: CatalogEvent) -> bool:
         try:
-            self.log_event(event)
+            self.initialize()
+        except duckdb.IOException as exc:
+            if "Could not set lock" not in str(exc):
+                raise
+            return False
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO event_log (
+                        event_id, happened_at, event_kind, round_id, seed_index, spec_name,
+                        status, artifact_path, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        event.event_id,
+                        event.happened_at,
+                        event.event_kind,
+                        event.round_id,
+                        event.seed_index,
+                        event.spec_name,
+                        event.status,
+                        None if event.artifact_path is None else str(event.artifact_path),
+                        json.dumps(to_jsonable(event.payload_json), sort_keys=True),
+                    ],
+                )
         except duckdb.IOException as exc:
             if "Could not set lock" not in str(exc):
                 raise
