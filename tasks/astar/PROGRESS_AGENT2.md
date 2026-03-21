@@ -308,19 +308,22 @@
   - `smh_knn5_z3_h0_covaug_calbase_v001`:
     - mean score `4.6773`
     - mean weighted KL `1.028932`
-    - runtime `321.649s`
+    - runtime `41.203s`
     - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z3_covaug_calbase_ae780_c5_spr1_b20_coverage_20260321/result.json`
   - `smh_knn5_z3_h0_covaug_calblend35_v001`:
     - mean score `4.6763`
     - mean weighted KL `1.030489`
+    - runtime `41.997s`
     - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z3_covaug_calblend35_ae780_c5_spr1_b20_coverage_20260321/result.json`
   - `smh_knn5_z12_h0_covaug_calbase_v001`:
     - mean score `4.6773`
     - mean weighted KL `1.028932`
+    - runtime `334.277s`
     - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z12_covaug_calbase_ae780_c5_spr1_b20_coverage_20260321/result.json`
   - `smh_knn5_z12_h0_covaug_calbank_v001`:
     - mean score `3.5254`
     - mean weighted KL `1.150352`
+    - runtime `293.840s`
     - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z12_covaug_calbank_ae780_c5_spr1_b20_coverage_20260321/result.json`
 - Read:
   - this first summary-bank student formulation is decisively bad,
