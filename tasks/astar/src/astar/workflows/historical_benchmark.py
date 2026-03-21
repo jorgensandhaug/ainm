@@ -173,6 +173,7 @@ def run_historical_benchmark(
         "greybox_regime_ridge",
         "greybox_regime_knn",
         "greybox_hazard_lowrank",
+        "greybox_hazard_phasefactored",
         "greybox_student_joint",
         "greybox_coefficient_knn",
         "greybox_hybrid_lowrank_coefficientknn",

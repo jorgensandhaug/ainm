@@ -74,6 +74,179 @@
 
 ## Work Log
 
+### 2026-03-21T11:05:00Z
+
+- Re-read current workspace state before more model work:
+  - full `instructions/agent5.md`
+  - `README.md`
+  - `docs/game_facts.md`
+  - current grey-box predictor stack in `src/astar/student/predictor/`
+- Re-checked machine health / competing load:
+  - load about `31.5 / 37.9 / 46.4` on `384` cores
+  - RAM about `2.0 TiB free`, `2.1 TiB available`
+  - other large jobs still active from `agent1` and `agent2`
+  - conclusion:
+    - plenty of room for more heavy experiments
+    - still avoid wasting cycles on already-rejected repeat-policy branches
+- Current branch triage after code review:
+  - already implemented:
+    - global low-rank hazard teacher
+    - direct regime ridge / knn
+    - coefficient knn
+    - crude prototype mixture
+    - gated hybrid
+    - direct joint tensor head
+  - handoff-aligned gap still missing in current code:
+    - stronger teacher parameterization than one monolithic coefficient manifold
+    - especially phase/head-factored teacher branch (`H7` / `H8` flavor)
+- New implementation decision:
+  - build a **phase/head-factored hazard predictor**
+  - idea:
+    - split semimechanistic round-law coefficients into separate `build`, `port`, `ruin` heads
+    - factorize each head independently instead of one shared monolithic low-rank manifold
+    - train transcript-to-head-coordinates maps on legal synthetic prefixes only
+    - decode through the existing `HazardTeacher`
+  - reason:
+    - closer to handoff than another raw residual tweak
+    - lower-risk than the already-rejected crude discrete prototype mixture
+    - may recover head-specific variation that the global rank-3 manifold is compressing away
+- Next:
+  - implement `greybox_hazard_phasefactored`
+  - integrate registry / benchmark / CLI / tests
+  - run hard-slice probes first
+
+### 2026-03-21T11:12:00Z
+
+- Implemented new handoff-aligned grey-box branch:
+  - `greybox_hazard_phasefactored`
+  - file:
+    - `src/astar/student/predictor/greybox_hazard_phasefactored.py`
+- Core design:
+  - keep the existing semimechanistic `HazardTeacher` decoder
+  - split round-law coefficients into separate `build`, `port`, `ruin` heads
+  - factorize each head independently instead of one monolithic coefficient manifold
+  - fit transcript-to-coordinate ridge maps for each head from legal synthetic prefixes only
+  - infer headwise coefficient vectors online, concatenate, decode through `HazardTeacher`
+  - keep same safety pieces:
+    - historical bucket prior blend
+    - exact observed-cell correction
+    - probability floor
+- Why this branch exists:
+  - directly targets handoff gap around stronger teacher parameterization (`H7` / `H8` flavor)
+  - more structured than current monolithic low-rank coefficient model
+  - lower-risk than the already-rejected crude discrete prototype mixture
+- Integrated into framework:
+  - predictor registry / live builder
+  - historical model-eval path
+  - historical benchmark transcript-model allowlist
+  - CLI model choices:
+    - visualize-model-prediction
+    - synthetic tournament
+    - synthetic benchmark
+    - historical benchmark
+    - live online
+  - historical benchmark smoke test matrix
+- Validation:
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_hazard_phasefactored.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `17 passed in 45.65s`
+- Official benchmarks launched:
+  - `agent5_phasefactored_coverage_online50_v01`
+    - model `greybox_hazard_phasefactored`
+    - policy `coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `44392`
+  - `agent5_phasefactored_explorationr3_online50_v01`
+    - model `greybox_hazard_phasefactored`
+    - policy `exploration_r3`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `31518`
+
+### 2026-03-21T11:20:00Z
+
+- Full official phase-factored benchmark results harvested:
+  - `agent5_phasefactored_coverage_online50_v01`
+    - mean score `66.7372`
+    - mean weighted KL `0.143396`
+  - `agent5_phasefactored_explorationr3_online50_v01`
+    - mean score `67.8866`
+    - mean weighted KL `0.136765`
+- Interpretation:
+  - current pure phase/head-factored branch is **not** competitive as a standalone lead
+  - `exploration_r3` is better than `coverage` for this branch, but still far below the current lead `75.1931`
+  - failure is concentrated on `f1dac...` and also large losses on `71451...`, `ae7800...`, `fd3c92...`
+  - however:
+    - phase-factored branch remains unusually strong on `c5cdf...`
+    - `c5cdf...` round mean under `exploration_r3` = `79.2568`
+    - this suggests possible value as a **small-weight expert** rather than a standalone model
+- Per-round comparison vs current lead `agent5_hybrid_lowrank_queryres_explorationr3_online50_v03w35`:
+  - phase-factored is much worse on most rounds
+  - only clear strong relative win is `c5cdf...`
+  - conclusion:
+    - do not promote pure `greybox_hazard_phasefactored`
+    - next best experiment is a convex hybrid with `query_residual`
+- New sweep launched to test exactly that:
+  - command:
+    - `uv run python scripts/agent5_hybrid_sweep.py --policy exploration_r3 --budget 50 --episode-seed 0 --lowrank-model greybox_hazard_phasefactored --lowrank-samples-per-round 4 --residual-model query_residual --residual-samples-per-round 1 --weight 0.0 --weight 0.05 --weight 0.10 --weight 0.15 --weight 0.20 --weight 0.25 --weight 0.30 --max-workers 8`
+  - stdout log:
+    - `data/artifacts/benchmarks/agent5_phasefactored_queryres_explorationr3_sweep_v01.log`
+  - session:
+    - `1549`
+
+### 2026-03-21T11:35:00Z
+
+- Phase-factored + `query_residual` hybrid sweeps finished.
+
+- Trusted hard-slice probe, full 8-round training universe, eval rounds `{36e581..., c5cdf..., f1dac...}`:
+  - command:
+    - `uv run python scripts/agent5_hybrid_sweep.py --policy exploration_r3 --budget 50 --episode-seed 0 --lowrank-model greybox_hazard_phasefactored --lowrank-samples-per-round 4 --residual-model query_residual --residual-samples-per-round 1 --eval-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --eval-round-id c5cdf100-a876-4fb7-b5d8-757162c97989 --eval-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --weight 0.0 --weight 0.05 --weight 0.10 --weight 0.15 --weight 0.20 --weight 0.25 --weight 0.30 --max-workers 3`
+  - log:
+    - `data/artifacts/benchmarks/agent5_phasefactored_queryres_explorationr3_probe3_v01.log`
+  - result summary:
+    - `weight=0.00`: mean score `62.8756`, mean weighted KL `0.155907`
+    - `weight=0.05`: mean score `63.0792`, mean weighted KL `0.155107`
+    - `weight=0.10`: mean score `63.2540`, mean weighted KL `0.154501`
+    - `weight=0.15`: mean score `63.4004`, mean weighted KL `0.154084`
+    - `weight=0.20`: mean score `63.5182`, mean weighted KL `0.153856`
+    - `weight=0.25`: mean score `63.6071`, mean weighted KL `0.153817`
+    - `weight=0.30`: mean score `63.6667`, mean weighted KL `0.153969`
+  - interpretation:
+    - phase weight helps `36e581...` and `c5cdf...`
+    - but steadily hurts `f1dac...`
+    - net gain on this slice is tiny and nowhere near a lead signal
+
+- Full 8-round sweep, policy `exploration_r3`:
+  - command:
+    - `uv run python scripts/agent5_hybrid_sweep.py --policy exploration_r3 --budget 50 --episode-seed 0 --lowrank-model greybox_hazard_phasefactored --lowrank-samples-per-round 4 --residual-model query_residual --residual-samples-per-round 1 --weight 0.0 --weight 0.05 --weight 0.10 --weight 0.15 --weight 0.20 --weight 0.25 --weight 0.30 --max-workers 8`
+  - log:
+    - `data/artifacts/benchmarks/agent5_phasefactored_queryres_explorationr3_sweep_v01.log`
+  - result summary:
+    - `weight=0.00`: mean score `74.6063`, mean weighted KL `0.100831`
+    - `weight=0.05`: mean score `74.6640`, mean weighted KL `0.100621`
+    - `weight=0.10`: mean score `74.6836`, mean weighted KL `0.100597`
+    - `weight=0.15`: mean score `74.6655`, mean weighted KL `0.100756`
+    - `weight=0.20`: mean score `74.6100`, mean weighted KL `0.101098`
+    - `weight=0.25`: mean score `74.5172`, mean weighted KL `0.101623`
+    - `weight=0.30`: mean score `74.3867`, mean weighted KL `0.102333`
+  - best:
+    - `weight=0.10`
+    - mean score `74.6836`
+    - mean weighted KL `0.100597`
+- Full-sweep interpretation:
+  - small phase weight can improve pure `query_residual`
+  - but even the best fixed blend stays clearly below the current official lead:
+    - `74.6836` vs `75.1931` for `greybox_hybrid_lowrank_queryres` with `exploration_r3`
+  - conclusion:
+    - reject fixed `phasefactored + query_residual` hybrid as a lead candidate
+    - keep phase-factored branch only as an experimental diagnostic branch for now
+
 ### 2026-03-20T00:00:00Z
 
 - Started.
