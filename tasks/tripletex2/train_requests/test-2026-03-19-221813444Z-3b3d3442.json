@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a customer in Tripletex test named Same Pane Auto Submit Test AS with email autopane@example.no and organization number 999888776. After completion, stop.",
-  "files": [],
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}

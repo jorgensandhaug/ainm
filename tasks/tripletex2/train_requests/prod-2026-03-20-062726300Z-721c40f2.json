@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a customer in Tripletex named Random Followup Probe AS with email probe-20260320@example.no and organization number 999777666. After completion, stop.",
-  "files": [],
-  "tripletex_credentials": {
-    "base_url": "REDACTED",
-    "session_token": "REDACTED"
-  }
-}
