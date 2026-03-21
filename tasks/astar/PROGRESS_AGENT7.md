@@ -2545,11 +2545,45 @@ Framework should accept unique query-residual family variant names directly so b
     - `posterior_ood_prior_blend=0.10` (was 0.28)
     - `temperature=1.0` (was 1.02)
 
+### 2026-03-21T15:30Z approx
+
+- v77-v82 full dev results:
+  - **v77 = 79.34** (posterior_ridge=2.0) ← beat v76
+  - v78 = 79.15 (q=5), v80 = 79.15 (bigger MLP), v82 = 79.13, v79 = 79.12, v81 = 79.11
+- v83-v88 full dev results:
+  - **v83 = 79.46** (posterior_ridge=1.0) ← beat v77
+  - v86 = 79.34, v88 = 79.34, v87 = 79.31, v84 = 79.31, v85 = 79.26
+- v89-v92 full dev results:
+  - **v89 = 79.57** (posterior_ridge=0.5) ← beat v83
+  - v91 = 79.48, v90 = 79.44, v92 = 79.44
+- Posterior ridge lambda trend (diminishing returns):
+  - 8.0 → 78.85, 4.0 → 79.13, 2.0 → 79.34, 1.0 → 79.46, 0.5 → 79.57
+- v93-v96 launched for final squeeze (posterior_ridge=0.25 etc)
+
+## Current Champion
+
+- best observed local full-dev system:
+  - model: `ffam_mode_v89`
+  - policy: `exploration_r3`
+  - `samples_per_round=2`
+  - score: `79.5659`
+  - key config vs v44:
+    - `projected_mode_dim=4` (was 3)
+    - `operator_ridge_lambda=4.0` (was 8.0)
+    - `posterior_ridge_lambda=0.5` (was 8.0)
+    - `prior_blend=0.02` (was 0.10)
+    - `posterior_ood_prior_blend=0.10` (was 0.28)
+    - `temperature=1.0` (was 1.02)
+    - `posterior_metric_dim=10` (was 8)
+    - `posterior_residual_hidden_dim=32` (was 24)
+    - `posterior_residual_steps=500` (was 400)
+
 ## Key Findings This Session
 
 1. **Prior blend was too conservative**: Reducing prior_blend from 0.10 to 0.02 gave +1.53 on hard gate
-2. **Ridge regularization was too strong**: Reducing both operator and posterior ridge from 8.0 to 4.0 improved full-dev by +0.28
+2. **Ridge regularization was too strong**: Systematic sweep from 8.0 to 0.5 improved full-dev by +0.72 total
 3. **Higher mode dim q=4 helps with MLP**: The nonlinear posterior can navigate the higher-dimensional space
 4. **Temperature=1.0 is optimal**: No temperature softening needed
 5. **More cells_per_seed hurts**: Increasing from 512 to 1024 dramatically worsened results
 6. **Cluster count=3 is neutral**: No improvement over 2 clusters
+7. **Total improvement vs v44**: 77.76 → 79.57 (+1.81 points, ~2.3% relative)
