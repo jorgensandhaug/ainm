@@ -38,16 +38,13 @@
    - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate
 5. if the prompt hour total is `<= 24`: `POST /timesheet/entry` once
    if the prompt hour total is `> 24`: `POST /timesheet/entry/list` with all date chunks in one batch call, each entry with `projectChargeableHours <= 24`
-6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
-7. `POST /order` with:
-   - `customer`
-   - `project`
-   - `orderDate`
-   - `deliveryDate`
-   - one real embedded `orderLines[]` entry using the prompt hours and prompt rate
-8. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
-   - keep `/ledger/account` out of the default exact-match path
-   - use the bank-account branch only after the specific missing-company-bank-account validation, or when earlier same-run evidence already proves the invoice account is unconfigured
+6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 2 calls)
+7. if the bank account lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
+8. `POST /invoice?sendToCustomer=false` with:
+   - root `invoiceDate` and `invoiceDueDate`
+   - root `customer: { id }`
+   - embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count, unitPriceExcludingVatCurrency, vatType: { id } }] }]`
+   - this replaces the older `POST /order` + `PUT /order/{id}/:invoice` two-call path and saves 1 call
 
 ## Payload Rules
 - use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable
@@ -59,7 +56,9 @@
 - when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists
 - if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`
 - if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live; use `POST /timesheet/entry/list` with all chunks in one batch call instead of N individual `POST /timesheet/entry` calls
-- the real invoice line should usually use:
+- `POST /invoice` requires `customer: { id }` in both the root payload and inside each `orders[]` entry; omitting `orders[0].customer` returns `422 orders.customer: Kan ikke være null.`
+- `POST /invoice` requires an explicit root `invoiceDueDate`; omitting it fails with `422`
+- the real invoice order line should usually use:
   - `description` from the prompt activity or prompt billing text
   - `count` equal to the prompt hours
   - `unitPriceExcludingVatCurrency` equal to the prompt rate
@@ -80,12 +79,12 @@
   - the created entry id(s)
   - `hourlyRate`
   - `chargeable`
-- from `POST /order`:
-  - the created order id
-- from `PUT /order/{id}/:invoice`:
+- from `POST /invoice`:
   - invoice id
   - invoice number
+  - `orders[0].id`
   - totals and outstanding amount
+  - `projectInvoiceDetails`
 
 ## Verification
 - trust the timesheet write response (`POST /timesheet/entry` or `POST /timesheet/entry/list`) to verify:
@@ -117,15 +116,12 @@
   - split the total across distinct dates, with at most `24` hours per date
   - use `POST /timesheet/entry/list` with all date chunks in one batch call; this saves `N-1` calls compared to `N` individual `POST /timesheet/entry` writes
   - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates
-- if `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
-  - `GET /ledger/account?isBankAccount=true&fields=*`
-  - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
-  - retry the same `PUT /order/{id}/:invoice?...` once
-  - for this exact task family, the tradeoff is explicit (≤24h / >24h with batch):
-    - optimistic branch costs `7` calls on configured non-chargeable accounts (`7` for both ≤24h and >24h with batch) and `10` when the company bank account is missing
-    - proactive hedge costs `8` calls on configured non-chargeable accounts and `9` when the company bank account is missing
-  - because this trusted standard is the lowest-call default, keep the optimistic branch as canonical and reserve the hedge for run-specific evidence
-- if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first
+- bank-account handling is now proactive (parallel GET in step 6), not reactive:
+  - `GET /ledger/account?isBankAccount=true&fields=*` runs in parallel with `GET /ledger/vatType` — costs 0 extra wall-clock time
+  - if `bankAccountNumber` is missing, `PUT /ledger/account/{id}` with `"12345678903"` before `POST /invoice`
+  - this eliminates the old reactive recovery branch (`POST /invoice` fail → GET → PUT → retry) which cost 3 extra calls and 1 error
+  - for non-chargeable accounts: `7` calls when configured, `8` when unconfigured, `0` errors in both cases
+  - the old `POST /order` + `PUT /order/:invoice` optimistic branch cost `7` when configured but `10` with `1` error when unconfigured; the new `POST /invoice` + proactive bank check dominates
 
 ## OpenAPI / Sandbox Status
 - `/activity/>forTimeSheet`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`, `/timesheet/entry`, `/ledger/vatType`, `/order`, and `/order/{id}/:invoice` re-verified on 2026-03-20
@@ -164,6 +160,10 @@
   - same-day persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `38` hours + `1400` on dates `2026-09-01` / `2026-09-02` confirmed the same 8-call >24-hour non-chargeable branch, returning `amountExcludingVatCurrency=53200`, and found no lower-call path for the >24-hour shape
   - the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing `11` calls with `1` error (`10` would have been proactive); the invoice returned `amountExcludingVatCurrency=33600` plus `amountCurrencyOutstanding=42000` with 25% VAT
   - persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `28` hours + `1200` on dates `2026-10-15` / `2026-10-16` confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call succeeds, reducing the >24-hour non-chargeable branch from `8` to `7` calls on configured accounts; the batch returned both entries with correct `hours` (24, 4) and `projectChargeableHours` (24, 4), and the full 7-call path `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry/list` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` returned `amountExcludingVatCurrency=33600`
+  - the 2026-03-21 production Nynorsk run `Dalheim AS` / `950103175` / `Sikkerheitsrevisjon` / `randi.lunde@example.org` / `Analyse` / `30` hours / `850` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing `10` calls with `1` error; the invoice returned `amountExcludingVatCurrency=25500` plus `amountCurrencyOutstanding=31875` with 25% VAT; this was the 3rd production run to hit missing bank account on this task shape
+  - persistent-sandbox re-proof on 2026-03-21 confirmed `POST /invoice?sendToCustomer=false` with embedded `orders[]` (containing `customer`, `project`, and `orderLines`) works for existing entities, replacing the 2-call `POST /order` + `PUT /order/:invoice` with 1 call; `orders[0].customer` must be explicitly set or the endpoint returns `422`
+  - persistent-sandbox re-proof on 2026-03-21 with `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + `30` hours + `850` on dates `2026-12-01` / `2026-12-02` confirmed the new 7-call proactive branch: `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry/list` -> parallel `GET /ledger/vatType` + `GET /ledger/account` -> `POST /invoice`, returning `amountExcludingVatCurrency=25500` with `projectInvoiceDetails.length=1` and `0` errors; on unconfigured accounts this becomes `8` calls with `0` errors (add `PUT /ledger/account`)
+  - the new `POST /invoice` + proactive bank check path strictly dominates the old `POST /order` + `PUT /order/:invoice` + optimistic bank check: same `7` calls on configured accounts, but `8` calls with `0` errors on unconfigured vs old `10` calls with `1` error
 
 ## Create From Scratch Variant
 

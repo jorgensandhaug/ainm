@@ -87,6 +87,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - same-day persistent-sandbox re-proof on 2026-03-21 with `38` hours + `1400` on dates `2026-09-01` / `2026-09-02` confirmed the same 8-call >24-hour non-chargeable branch, returning `amountExcludingVatCurrency=53200`
 - the 2026-03-21 production Nynorsk run `Fjelltopp AS` / `986191127` / `Datamigrering` / `bjrn.kvamme@example.org` / `Analyse` / `28` hours / `1200` matched the >24-hour non-chargeable optimistic branch but hit the missing-bank-account recovery, costing 11 calls with 1 error; proactive + batch would have been 9 calls with 0 errors
 - persistent-sandbox re-proof on 2026-03-21 confirmed that `POST /timesheet/entry/list` with both date chunks in one batch call works for >24-hour tasks, reducing the >24-hour non-chargeable branch from 8 to 7 calls on configured accounts; the full 7-call batch path returned `amountExcludingVatCurrency=33600`
+- the 2026-03-21 production Nynorsk run `Dalheim AS` / `950103175` / `Sikkerheitsrevisjon` / `randi.lunde@example.org` / `Analyse` / `30` hours / `850` used the old `POST /order` + `PUT /order/:invoice` optimistic branch, hit missing bank account, costed `10` calls with `1` error; the new `POST /invoice` + proactive bank check would have been `8` calls with `0` errors
+- persistent-sandbox re-proof on 2026-03-21 confirmed `POST /invoice?sendToCustomer=false` with embedded `orders[]` (containing `customer`, `project`, `orderLines`) works for existing entities, replacing `POST /order` + `PUT /order/:invoice` (saves 1 call); `orders[0].customer` must be set explicitly
+- persistent-sandbox re-proof on 2026-03-21 confirmed the new 7-call proactive path for >24h non-chargeable: `GET /employee` -> `GET /project` -> `GET /activity` -> `POST /timesheet/entry/list` -> parallel `GET /ledger/vatType` + `GET /ledger/account` -> `POST /invoice`, returning `amountExcludingVatCurrency=25500` (30h × 850), `0` errors; unconfigured adds `PUT /ledger/account` for `8` calls, `0` errors
 
 ### Create From Scratch Variant
 
@@ -113,8 +116,8 @@ Production run for `Nordlicht GmbH` (8f2323c7) on 2026-03-21 completed in 11 cal
    - `POST /project/hourlyRates/projectSpecificRates`
    - `POST /timesheet/entry` or `POST /timesheet/entry/list` (for >24h batch)
    - `GET /ledger/vatType`
-   - `POST /order`
-   - `PUT /order/{id}/:invoice`
+   - `GET /ledger/account`
+   - `POST /invoice`
 2. Resolve the employee
    - `GET /employee?email=<email>&count=10&fields=*`
    - exact-match locally because the email filter is containing
@@ -159,19 +162,18 @@ Production run for `Nordlicht GmbH` (8f2323c7) on 2026-03-21 completed in 11 cal
    - keep each entry at `projectChargeableHours <= 24`
    - if the prompt total exceeds `24`, plan one entry per distinct date before the first write
    - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
-12. Resolve VAT type
+12. Resolve VAT type and check bank account in parallel
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
-13. Create a real project-linked order line derived from the prompt hours and rate
-   - `POST /order`
+   - `GET /ledger/account?isBankAccount=true&fields=*` (parallel with the above)
+13. If the bank account lacks `bankAccountNumber`, fix it
+   - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
+14. Create the invoice directly
+   - `POST /invoice?sendToCustomer=false`
    - include:
-     - `customer`
-     - `project`
-     - `orderDate`
-     - `deliveryDate`
-     - one embedded `orderLines[]` row using the prompt hours and prompt rate
-14. Invoice that order without sending it
-   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
+     - root `invoiceDate` and `invoiceDueDate`
+     - root `customer: { id }`
+     - embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count, unitPriceExcludingVatCurrency, vatType: { id } }] }]`
+   - this replaces the older `POST /order` + `PUT /order/{id}/:invoice` two-call path
 
 ## Recommended Shapes
 
@@ -209,26 +211,29 @@ Timesheet entry:
 }
 ```
 
-Fallback public invoice order:
+Direct invoice (replaces POST /order + PUT /order/:invoice):
 
 ```json
 {
+  "invoiceDate": "2026-03-20",
+  "invoiceDueDate": "2026-04-20",
   "customer": { "id": 12345 },
-  "project": { "id": 54321 },
-  "orderDate": "2026-03-20",
-  "deliveryDate": "2026-03-20",
-  "orderLines": [
-    {
+  "orders": [{
+    "customer": { "id": 12345 },
+    "project": { "id": 54321 },
+    "orderDate": "2026-03-20",
+    "deliveryDate": "2026-03-20",
+    "orderLines": [{
       "description": "Design",
       "count": 5,
       "unitPriceExcludingVatCurrency": 1750,
       "vatType": { "id": 6 }
-    }
-  ]
+    }]
+  }]
 }
 ```
 
-Replace VAT id `6` with the filtered outgoing VAT type actually returned for the invoice date.
+Replace VAT id `6` with the filtered outgoing VAT type actually returned for the invoice date. Customer ID must appear in both root and `orders[0]`.
 
 ## Exact-Match Fast Path
 
@@ -244,18 +249,17 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   3. `GET /activity/>forTimeSheet?...`
   4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`
   5. if `activity.isChargeable=false` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
-  6. `GET /ledger/vatType?...`
-  7. `POST /order`
-  8. `PUT /order/{id}/:invoice?...sendToCustomer=false`
-  9. only if that invoice write fails on missing company bank account: `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry the same `PUT /order/{id}/:invoice`
-  10. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
+  6. `GET /ledger/vatType?...` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
+  7. if bank account lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`
+  8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, `invoiceDueDate`, `customer`, and embedded `orders[]` containing `customer`, `project`, and `orderLines`
+  9. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
   11. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
   12. if needed: conditional `PUT /project/hourlyRates/{id}`
   13. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
   14. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
-  15. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
-  16. if `activity.isChargeable=true` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
-  17. steps 6-9 apply to both chargeable and non-chargeable branches
+  14. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
+  15. if `activity.isChargeable=true` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
+  16. steps 6-8 apply to both chargeable and non-chargeable branches
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
 - do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
@@ -281,12 +285,14 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   - on the non-chargeable fallback branch, expect:
     - `chargeable=false`
     - `hourlyRate=0`
-- `PUT /order/{id}/:invoice`
+- `POST /invoice`
   - expect `ResponseWrapperInvoice`
   - verify:
     - `customer.id`
+    - `orders[0].id`
     - `amountExcludingVatCurrency`
     - `amountCurrencyOutstanding`
+    - `projectInvoiceDetails` (length >= 1)
 - optional `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`
   - use only if the invoice write response is too sparse for the scored fields
 
@@ -309,6 +315,7 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not treat writable-looking nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` as a working path; the server accepts or validates the payload but still persists `includeHours=false`
 - Do not rely on `PUT /invoice/{id}` or `PUT /invoice/details/{id}`; both were re-proven as method-not-allowed
 - Do not assume the fallback public invoice consumes the registered project-hour reserve; it creates the customer-facing invoice side effect but leaves `includeHours=false`
-- Do not insert a proactive `GET /ledger/account` hedge by rote on this exact task shape; on configured accounts it wastes one call, as re-proved on 2026-03-21
-- Do not ignore the bank-account tradeoff either: the optimistic non-chargeable branch is `7` calls when configured but `10` when missing, while the proactive hedge is `8` when configured and `9` when missing; with batch timesheet for >24h, both branches drop by 1 call each
-- If `PUT /order/{id}/:invoice` fails only on missing company bank account, repair the existing invoice account once and retry the same invoice write; do not create a second order or repeat earlier reads
+- Do use the proactive `GET /ledger/account` in parallel with `GET /ledger/vatType` — it costs 0 extra wall-clock time and eliminates the 4xx error on unconfigured accounts; 3 out of 8 production runs on 2026-03-21 hit missing bank accounts, making the proactive approach strictly better than the old optimistic default
+- Do not use `POST /order` + `PUT /order/{id}/:invoice` — use `POST /invoice?sendToCustomer=false` with embedded `orders[]` instead; it saves 1 call and is sandbox-verified for existing entities
+- Do not omit `customer` from `orders[0]` when using `POST /invoice`; the endpoint returns `422 orders.customer: Kan ikke være null.`
+- Do not omit `invoiceDueDate` from the root `POST /invoice` payload; it returns `422`
