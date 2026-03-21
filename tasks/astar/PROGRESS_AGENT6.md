@@ -4235,8 +4235,19 @@
 8. baseline query_residual: 72.55
 
 ### Current scoreboard on dev5:
-1. **ENSEMBLE hv2f0003+sxf0003 GEO 50/50: 84.12** (DEFINITIVE BEST, +8.15 vs baseline!)
-2. ensemble hv2f001+sxf001: 83.63
+1. **ENSEMBLE hv2f0001+sxf0001 GEO 50/50: 84.16** (DEFINITIVE BEST, +8.19 vs baseline!)
+2. ensemble hv2f0003+sxf0003: 84.12
+3. ensemble hv2f001+sxf001: 83.63
+
+### Floor sweep summary:
+| Floor | Probe3 | Dev5 |
+|-------|--------|------|
+| 0.01 | 75.38 | 79.57 |
+| 0.001 | 79.19 | 83.63 |
+| 0.0003 | 79.63 | 84.12 |
+| **0.0001** | **79.67** | **84.16** |
+- Floor sweep converges around f=0.0001-0.0003
+- Agent1's m=0.30 (trust particles more) slightly hurts our ensemble (79.29 vs 79.63 at same floor)
 2. ensemble hv2+qr GEO 50/50: 79.50
 3. ensemble hv2+sx ARITH 50/50: 79.48
 4. hazard_posterior_v2 k7_r3: 77.40
