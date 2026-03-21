@@ -262,6 +262,26 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         probability_floor=0.0001,
         obs_blend_temperature=10.0,
     ),
+    "f1_ensemble_hv2f0001_sxf0001_50_obs15_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0001_sxf0001_50_obs15_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0001,
+        obs_blend_temperature=15.0,
+    ),
+    "f1_ensemble_hv2f0001_sxf0001_50_obs30_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f0001_sxf0001_50_obs30_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.0001,
+        obs_blend_temperature=30.0,
+    ),
     "f1_ensemble_hv2f0003_sxf0003_50_obs20_v01": EnsembleModelSpec(
         model_name="f1_ensemble_hv2f0003_sxf0003_50_obs20_v01",
         component_model_names=(
