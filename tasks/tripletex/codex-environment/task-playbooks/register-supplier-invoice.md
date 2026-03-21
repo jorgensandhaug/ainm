@@ -158,6 +158,7 @@ Why this matters:
 - do not hardcode account ids across runs or accounts
 - the prompt gives account number, not Tripletex internal id
 - `isApplicableForSupplierInvoice=true` reduces wrong-account and `422` risk
+- `account: { number: ..., name: ... }` does NOT work in PUT postings — returns `422` ("Internt felt (account) — Feltet må fylles ut."); only `account: { id: <numeric-id> }` is accepted, so the GET is required and cannot be skipped
 
 ## VAT Resolution Rules
 
@@ -358,6 +359,16 @@ Proven outcome:
 - minor issue: used "Kontortjenester" (capital K) instead of prompt's "kontortjenester" — preserve exact casing
 - this is the 3rd consecutive optimal 5-call production run with 0 errors
 
+2026-03-21 production run for `Luz do Sol Lda` / `964942366` / `INV-2026-8987` / `30937` / `6500` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- PDF data fully extracted: address `Kirkegata 135, 5003 Bergen`, bank account `53342237408`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=24750, gross=30937 → Tripletex stored net=24749.6, VAT=6187.4
+- voucher `609107692`, supplier `108403892`
+- 2nd production confirmation of the full 5-call path with booking, 1st with PDF (address + bank)
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
@@ -418,7 +429,7 @@ Proven outcome:
 - always access the importDocument response via `values[0]`, never via `value`
 - always set explicit `row` values on PUT postings (1 for debit, 2 for supplier)
 - for 25% incoming VAT, hard-code `vatType: { id: 1 }` — do not waste a call on `GET /ledger/vatType`
-- `account: { number: ... }` does NOT work in PUT postings — the GET /ledger/account lookup is still required
+- `account: { number: ... }` and `account: { number: ..., name: ... }` do NOT work in PUT postings — only `account: { id }` is accepted; the GET /ledger/account lookup is still required
 - ALWAYS book the voucher after setting postings: `PUT sendToLedger=true` with only `{ version }` — without this the voucher is unbooked and scores 0%
 - NEVER send postings in the booking PUT — only send `{ version }`
 - preserve the prompt description's exact casing — do NOT capitalize or normalize; if the prompt says "kontortjenester" use exactly that, not "Kontortjenester"

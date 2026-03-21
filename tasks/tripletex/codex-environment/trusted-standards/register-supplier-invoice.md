@@ -181,7 +181,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
 - do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
 - do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
-- when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4
+- when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4; also confirmed: net=24750, gross=30937 → stored net=24749.6, VAT=6187.4
 - do NOT skip the booking step (step 5 `PUT sendToLedger=true`) — without it the voucher stays unbooked and the scorer returns 0%; every pre-2026-03-21 production run that omitted this step scored 0%
 - do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails because Tripletex clears postings before applying new ones
 - preserve the prompt description's exact casing — if the prompt says "kontortjenester" (lowercase), do NOT capitalize it to "Kontortjenester"; the description is stored exactly as sent and the scorer may do case-sensitive matching
@@ -342,3 +342,16 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - voucher `609103298`, supplier `108401290`
   - minor issue: used "Kontortjenester" (capital K) instead of prompt's "kontortjenester" (lowercase) — may affect scoring if description is case-checked
   - this is the 3rd consecutive optimal 5-call production run with 0 errors using this standard (after Bergvik AS and Luna SL)
+
+2026-03-21 production run for `Luz do Sol Lda` / `964942366` / `INV-2026-8987` / `30937` / `6500` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+- PDF data fully extracted: address `Kirkegata 135, 5003 Bergen`, bank account `53342237408`
+- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- VAT rounding: PDF net=24750, gross=30937 (24750×1.25=30937.5) → Tripletex stored net=24749.6, VAT=6187.4
+- voucher `609107692`, supplier `108403892`
+- description "Kontorrekvisita" preserved with exact casing from PDF
+- this is the 2nd production confirmation of the full 5-call path with booking (after Stormberg AS), and the 1st with a PDF attachment that included address and bank account
