@@ -19,6 +19,7 @@ from astar.cli_output import (
     render_factorize_round_summaries,
     render_fetch_analysis,
     render_fetch_round_analyses,
+    render_hazard_glm_audit,
     render_harvest_replays,
     render_historical_benchmark_comparison,
     render_historical_benchmark,
@@ -82,6 +83,7 @@ from astar.workflows.historical_benchmark import run_historical_benchmark
 from astar.workflows.live_online import run_live_online_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.markov_sufficiency import run_markov_sufficiency_audit
+from astar.workflows.hazard_glm import run_hazard_glm_audit, supported_hazard_glm_events
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
 from astar.workflows.results import QueryPlanSummary
 from astar.workflows.round_report import build_round_report
@@ -251,6 +253,13 @@ def build_parser() -> argparse.ArgumentParser:
     hazard_riskset_parser.add_argument("--round-id", action="append", default=None)
     hazard_riskset_parser.add_argument("--dataset-name", default=None)
     hazard_riskset_parser.add_argument("--negative-ratio", type=float, default=8.0)
+
+    hazard_glm_parser = subparsers.add_parser("run-hazard-glm-audit")
+    hazard_glm_parser.add_argument("--event", required=True, choices=supported_hazard_glm_events())
+    hazard_glm_parser.add_argument("--dataset-name", default=None)
+    hazard_glm_parser.add_argument("--name", default=None)
+    hazard_glm_parser.add_argument("--ridge-lambda", type=float, default=1.0)
+    hazard_glm_parser.add_argument("--max-iter", type=int, default=12)
 
     birth_hazard_glm_parser = subparsers.add_parser("run-birth-hazard-glm-audit")
     birth_hazard_glm_parser.add_argument("--dataset-name", default="f1_birth_riskset_nr8_v1")
@@ -564,6 +573,18 @@ def _main() -> int:
             max_iter=args.max_iter,
         )
         _emit(args.json, result, render_birth_hazard_glm_audit(result))
+        return 0
+
+    if args.command == "run-hazard-glm-audit":
+        result = run_hazard_glm_audit(
+            paths,
+            event_type=args.event,
+            dataset_name=args.dataset_name,
+            audit_name=args.name,
+            ridge_lambda=args.ridge_lambda,
+            max_iter=args.max_iter,
+        )
+        _emit(args.json, result, render_hazard_glm_audit(result))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":

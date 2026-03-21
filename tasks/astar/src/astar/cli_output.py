@@ -22,8 +22,8 @@ from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
 from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
 from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
-from astar.workflows.birth_hazard_glm import BirthHazardGlmAuditResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
+from astar.workflows.hazard_glm import HazardGlmAuditResult
 from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
 from astar.workflows.results import (
@@ -334,9 +334,10 @@ def render_round_dynamics_lowrank_audit(result: RoundDynamicsLowRankAuditResult)
     return "\n".join(lines)
 
 
-def render_birth_hazard_glm_audit(result: BirthHazardGlmAuditResult) -> str:
+def render_hazard_glm_audit(result: HazardGlmAuditResult) -> str:
     lines = [
-        f"birth-hazard-glm-audit {result.audit_name}",
+        f"hazard-glm-audit {result.audit_name}",
+        f"event_type: {result.event_type}",
         f"dataset: {result.dataset_name}",
         f"rounds: {result.round_count}",
         f"aggregation: {result.aggregation_mode}",
@@ -351,6 +352,10 @@ def render_birth_hazard_glm_audit(result: BirthHazardGlmAuditResult) -> str:
         f"artifact: {result.artifact_path}",
     ]
     return "\n".join(lines)
+
+
+def render_birth_hazard_glm_audit(result: HazardGlmAuditResult) -> str:
+    return render_hazard_glm_audit(result)
 
 
 def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:

@@ -1,0 +1,243 @@
+{
+  "audit_name": "f1_collapse_glm_staticlocal_audit_v01",
+  "event_type": "collapse",
+  "dataset_name": "f1_collapse_riskset_nr8_v1",
+  "aggregation_mode": "equal_round_mean_primary",
+  "round_ids": [
+    "2a341ace-0f57-4309-9b89-e59fe0f09179",
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "round_count": 9,
+  "row_count": 8478769,
+  "weighted_positive_rate": 0.07740115434778402,
+  "baseline_log_loss": 0.2941229161826498,
+  "glm_log_loss": 0.26773314935964615,
+  "log_loss_gain": 0.026389766823003646,
+  "baseline_brier": 0.07870766917326212,
+  "glm_brier": 0.07354287235684573,
+  "brier_gain": 0.005164796816416392,
+  "pooled_baseline_log_loss": 0.2730386440472547,
+  "pooled_glm_log_loss": 0.24298748658074884,
+  "pooled_log_loss_gain": 0.030051157466505857,
+  "pooled_baseline_brier": 0.07150434131845579,
+  "pooled_glm_brier": 0.06687932201935544,
+  "pooled_brier_gain": 0.00462501929910035,
+  "feature_names": [
+    "intercept",
+    "coast",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "forest_density",
+    "mountain_density",
+    "settlement_neighbors",
+    "port_neighbors",
+    "ruin_neighbors",
+    "forest_neighbors",
+    "current_is_port",
+    "log_population_before",
+    "log_food_before",
+    "log_wealth_before",
+    "log_defense_before",
+    "food_per_population",
+    "wealth_per_population",
+    "defense_per_population"
+  ],
+  "coefficients": [
+    {
+      "feature_name": "intercept",
+      "coefficient": -2.93550795372109
+    },
+    {
+      "feature_name": "coast",
+      "coefficient": -0.1117976746003889
+    },
+    {
+      "feature_name": "settlement_proximity",
+      "coefficient": -0.010685481789079071
+    },
+    {
+      "feature_name": "maritime_access",
+      "coefficient": 0.045206160102350616
+    },
+    {
+      "feature_name": "frontier_score",
+      "coefficient": 0.020290958944183615
+    },
+    {
+      "feature_name": "forest_density",
+      "coefficient": -0.002366913275034608
+    },
+    {
+      "feature_name": "mountain_density",
+      "coefficient": -0.0015267444777894205
+    },
+    {
+      "feature_name": "settlement_neighbors",
+      "coefficient": -0.14196080369537495
+    },
+    {
+      "feature_name": "port_neighbors",
+      "coefficient": -0.0725691663730726
+    },
+    {
+      "feature_name": "ruin_neighbors",
+      "coefficient": 0.05048604585762238
+    },
+    {
+      "feature_name": "forest_neighbors",
+      "coefficient": -0.004743303356791132
+    },
+    {
+      "feature_name": "current_is_port",
+      "coefficient": 0.03467002586423218
+    },
+    {
+      "feature_name": "log_population_before",
+      "coefficient": -0.6181261885058947
+    },
+    {
+      "feature_name": "log_food_before",
+      "coefficient": -1.1080211214962032
+    },
+    {
+      "feature_name": "log_wealth_before",
+      "coefficient": -0.3482558786090574
+    },
+    {
+      "feature_name": "log_defense_before",
+      "coefficient": 1.825221014745879
+    },
+    {
+      "feature_name": "food_per_population",
+      "coefficient": 0.9423091918806958
+    },
+    {
+      "feature_name": "wealth_per_population",
+      "coefficient": 0.344706244722353
+    },
+    {
+      "feature_name": "defense_per_population",
+      "coefficient": -1.6946755726575846
+    }
+  ],
+  "rounds": [
+    {
+      "round_id": "2a341ace-0f57-4309-9b89-e59fe0f09179",
+      "row_count": 130151,
+      "population_weight_sum": 186653.85169522557,
+      "weighted_positive_rate": 0.07945724058358321,
+      "baseline_log_loss": 0.2774720519375755,
+      "glm_log_loss": 0.25370008433281177,
+      "log_loss_gain": 0.023771967604763744,
+      "baseline_brier": 0.07314814769778478,
+      "glm_brier": 0.068715268879937,
+      "brier_gain": 0.004432878817847791
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "row_count": 1339167,
+      "population_weight_sum": 1939764.5814581083,
+      "weighted_positive_rate": 0.05844626769851577,
+      "baseline_log_loss": 0.22642400250702946,
+      "glm_log_loss": 0.20776435851038247,
+      "log_loss_gain": 0.01865964399664699,
+      "baseline_brier": 0.0555387326853361,
+      "glm_brier": 0.05457593187870659,
+      "brier_gain": 0.000962800806629513
+    },
+    {
+      "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+      "row_count": 1227895,
+      "population_weight_sum": 1778095.6830912377,
+      "weighted_positive_rate": 0.05902831945327567,
+      "baseline_log_loss": 0.22770588850624565,
+      "glm_log_loss": 0.19852576064222127,
+      "log_loss_gain": 0.02918012786402438,
+      "baseline_brier": 0.056006917362043634,
+      "glm_brier": 0.05231666837413012,
+      "brier_gain": 0.003690248987913515
+    },
+    {
+      "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+      "row_count": 1456345,
+      "population_weight_sum": 2094314.719968803,
+      "weighted_positive_rate": 0.07366371373367327,
+      "baseline_log_loss": 0.2631583119063917,
+      "glm_log_loss": 0.22953524447729168,
+      "log_loss_gain": 0.03362306742910004,
+      "baseline_brier": 0.06825774887109524,
+      "glm_brier": 0.06345570823359924,
+      "brier_gain": 0.004802040637496008
+    },
+    {
+      "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+      "row_count": 852252,
+      "population_weight_sum": 1225197.769305409,
+      "weighted_positive_rate": 0.07434309976881369,
+      "baseline_log_loss": 0.2648127418372505,
+      "glm_log_loss": 0.24894173590098098,
+      "log_loss_gain": 0.015871005936269528,
+      "baseline_brier": 0.06882776557723301,
+      "glm_brier": 0.06561557920378985,
+      "brier_gain": 0.003212186373443157
+    },
+    {
+      "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+      "row_count": 1821859,
+      "population_weight_sum": 2593316.952081654,
+      "weighted_positive_rate": 0.09537785182850723,
+      "baseline_log_loss": 0.31836015918385696,
+      "glm_log_loss": 0.26987498890057016,
+      "log_loss_gain": 0.048485170283286805,
+      "baseline_brier": 0.08680276283651257,
+      "glm_brier": 0.07926834102655839,
+      "brier_gain": 0.0075344218099541865
+    },
+    {
+      "round_id": "c5cdf100-a876-4fb7-b5d8-757162c97989",
+      "row_count": 393368,
+      "population_weight_sum": 555908.2620158753,
+      "weighted_positive_rate": 0.11086361583566463,
+      "baseline_log_loss": 0.35607802036640845,
+      "glm_log_loss": 0.349519806588865,
+      "log_loss_gain": 0.0065582137775434535,
+      "baseline_brier": 0.09980235417860105,
+      "glm_brier": 0.09438322432123572,
+      "brier_gain": 0.005419129857365326
+    },
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "row_count": 165726,
+      "population_weight_sum": 230554.34992628067,
+      "weighted_positive_rate": 0.14492895063868483,
+      "baseline_log_loss": 0.44097722798635464,
+      "glm_log_loss": 0.4094269714713908,
+      "log_loss_gain": 0.03155025651496385,
+      "baseline_brier": 0.12866234133886575,
+      "glm_brier": 0.11724707096409324,
+      "brier_gain": 0.01141527037477251
+    },
+    {
+      "round_id": "fd3c92ff-3178-4dc9-8d9b-acf389b3982b",
+      "row_count": 1092006,
+      "population_weight_sum": 1567678.970936734,
+      "weighted_positive_rate": 0.07729707564272116,
+      "baseline_log_loss": 0.27211784141273565,
+      "glm_log_loss": 0.24230939341230123,
+      "log_loss_gain": 0.029808448000434418,
+      "baseline_brier": 0.07132225201188704,
+      "glm_brier": 0.06630805832956146,
+      "brier_gain": 0.005014193682325571
+    }
+  ],
+  "artifact_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/result.json",
+  "report_path": "/home/jorge/agent6/tasks/astar/data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md"
+}

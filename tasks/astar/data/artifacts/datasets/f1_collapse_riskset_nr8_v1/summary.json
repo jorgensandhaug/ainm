@@ -1,0 +1,18 @@
+{
+  "dataset_name": "f1_collapse_riskset_nr8_v1",
+  "dataset_kind": "hazard_riskset",
+  "event_type": "collapse",
+  "negative_ratio": 8.0,
+  "negative_keep_probability": 0.6711563616960058,
+  "row_count": 8478769,
+  "round_count": 9,
+  "replay_run_count": 2313,
+  "eligible_count": 12171506,
+  "positive_count": 942087,
+  "negative_total": 11229419,
+  "sampled_negative_count": 7536682,
+  "sampled_positive_count": 942087,
+  "observed_positive_rate": 0.11111129457589893,
+  "population_positive_rate": 0.07740102169772582,
+  "index_path": "/home/jorge/agent6/tasks/astar/data/artifacts/datasets/f1_collapse_riskset_nr8_v1/riskset.parquet"
+}

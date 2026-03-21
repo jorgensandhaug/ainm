@@ -56,21 +56,27 @@
 2. Keep Gate 1 open but no longer blocked: current proxy says common transitions are near-Markov, with targeted lag sensitivity around collapse/port.
 3. Gate 2 result now says the current crude terminal-law parameterization is not predictively tiny-latent enough.
 4. Next work should shift toward richer per-round effective laws:
-   - replay event-ledger is now built; birth/build risk-set dataset is now also built
+   - replay event-ledger is now built; birth + collapse risk-set datasets are now built
    - richer collapse-sensitive state if returning to Gate 1 refinement
-   - next missing piece is actual held-out hazard fitting on top of the risk set
-   - only then revisit low-rank coupling / live regime inference
+   - held-out hazard fitting for birth + collapse is now positive
+   - next missing piece is first benchmarkable event-hazard model and memory-safe dataset building
+   - only after that revisit low-rank coupling / live regime inference
 
 ## Active Experiment
 
-- Dataset complete: `f1_birth_riskset_nr8_v1`
+- Datasets complete:
+  - `f1_birth_riskset_nr8_v1`
+  - `f1_collapse_riskset_nr8_v1`
 - Hypothesis:
-  - build/birth is the dominant miss from Gate 2, so the first real hazard-training substrate should target build eligibility directly
-  - weighted negative downsampling should make full-corpus build hazard training tractable without corrupting prevalence
+  - the first benchmarkable semimechanistic event-hazard baseline should combine the two clearly positive event modules:
+    - birth
+    - collapse
+  - build/birth addresses the dominant Gate 2 miss
+  - collapse addresses the strongest Gate 1 lag-sensitive event and has much larger held-out predictive gain
 - Validation plan:
-  - define birth event eligibility over full replay transitions
-  - include all positives, deterministically downsample negatives, and store inverse-probability weights
-  - materialize a versioned dataset and inspect prevalence / per-round mass before fitting the first hazard model
+  - keep equal-round leave-one-round-out as the primary module-level validation
+  - for benchmarkable models, compare against the strongest current online-safe baseline, not only eventwise prevalence baselines
+  - separately reduce risk-set build memory before adding more dense event sweeps
 
 ## Runtime Finding
 
@@ -97,10 +103,14 @@
 - `data/artifacts/family1/lowrank/f1_round_dynamics_lowrank_oracle_v1/report.md`
 - `data/artifacts/datasets/f1_replay_event_ledger_v1/summary.json`
 - `data/artifacts/datasets/f1_birth_riskset_nr8_v1/summary.json`
+- `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/summary.json`
+- `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md`
+- `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/history/datasets/event_ledger.py`
 - `src/astar/history/datasets/hazard_riskset.py`
+- `src/astar/workflows/hazard_glm.py`
 - `src/astar/workflows/model_eval.py`
 - `src/astar/workflows/historical_benchmark.py`
 - `src/astar/workflows/markov_sufficiency.py`
@@ -341,3 +351,88 @@
   - next best move remains:
     - fit collapse hazard second
     - then assemble the first benchmarkable semimechanistic event-hazard baseline rather than stopping at diagnostics
+- Refactored the birth-only audit into shared event-hazard GLM infrastructure:
+  - new shared workflow: `src/astar/workflows/hazard_glm.py`
+  - kept compatibility wrapper: `src/astar/workflows/birth_hazard_glm.py`
+  - added generic CLI entry:
+    - `uv run astar run-hazard-glm-audit --event <event>`
+  - current supported event audits:
+    - `birth`
+    - `collapse`
+- Added regression coverage for generic hazard GLM path:
+  - `tests/test_hazard_glm.py`
+- Validation rerun after generic hazard-GLM refactor:
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py -q`
+  - result: `4 passed`
+  - `uv run pytest tests/test_birth_hazard_glm.py tests/test_hazard_glm.py tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `20 passed`
+- Built full-corpus collapse risk-set artifact:
+  - dataset dir: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/`
+  - summary: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/summary.json`
+  - local parquet: `data/artifacts/datasets/f1_collapse_riskset_nr8_v1/riskset.parquet`
+  - event: `collapse`
+  - rows: `8478769`
+  - replay runs: `2313`
+  - eligible population size: `12171506`
+  - positives: `942087`
+  - sampled negatives: `7536682`
+  - negative keep probability: `0.671156`
+  - observed positive rate in stored sample: `0.111111`
+  - true population positive rate: `0.0774012`
+  - parquet size: `212M`
+- Important runtime / memory finding from collapse risk-set build:
+  - current builder is not memory-safe enough for denser event types
+  - collapse full build peaked around `13 GB` RSS before finishing
+  - birth build was acceptable; collapse build now proves the current list-of-dicts materialization path should be rewritten to a chunked / streaming parquet writer before larger sweeps
+- Full-corpus collapse hazard audit completed:
+  - command: `uv run astar run-hazard-glm-audit --event collapse --dataset-name f1_collapse_riskset_nr8_v1 --name f1_collapse_glm_staticlocal_audit_v01`
+  - artifact: `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/result.json`
+  - report: `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md`
+  - rounds: `9`
+  - rows: `8478769`
+  - weighted_positive_rate: `0.0774012`
+  - aggregation mode: `equal_round_mean_primary`
+- Collapse hazard audit aggregate metrics:
+  - round_mean_baseline_log_loss: `0.294123`
+  - round_mean_glm_log_loss: `0.267733`
+  - round_mean_log_loss_gain: `0.0263898`
+  - pooled_baseline_log_loss: `0.273039`
+  - pooled_glm_log_loss: `0.242987`
+  - pooled_log_loss_gain: `0.0300512`
+  - round_mean_baseline_brier: `0.0787077`
+  - round_mean_glm_brier: `0.0735429`
+  - round_mean_brier_gain: `0.00516480`
+- Collapse hazard coefficient readout (z-scored feature space):
+  - strongest negative collapse signals:
+    - `log_food_before = -1.1080`
+    - `log_population_before = -0.6181`
+    - `settlement_neighbors = -0.1420`
+  - strongest positive collapse signals:
+    - `log_defense_before = +1.8252`
+    - `food_per_population = +0.9423`
+    - `ruin_neighbors = +0.0505`
+  - caution:
+    - coefficient signs with both raw logs and per-capita ratios are not directly causal readouts because the features are collinear
+    - predictive value is real, but coefficient interpretation should be deferred until a cleaner collapse feature parameterization is chosen
+- Per-round collapse held-out behavior:
+  - positive log-loss gain on all `9/9` rounds
+  - largest gains:
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`: `+0.048485`
+    - `76909e29-f664-4b2f-b16b-61b7507277e9`: `+0.033623`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`: `+0.031550`
+  - smallest gain:
+    - `c5cdf100-a876-4fb7-b5d8-757162c97989`: `+0.006558`
+  - unlike birth, Brier improved on every held-out round here
+- Current interpretation update after collapse:
+  - collapse is a much stronger event-level target than birth under the current feature library
+  - this lines up with Gate 1, which already said collapse had the clearest lag sensitivity and nontrivial hidden-state pressure
+  - despite that caveat, observed-state collapse GLM already gives a large held-out gain, so collapse absolutely belongs in the first benchmarkable event-hazard baseline
+  - the event-hazard branch is now clearly justified on both dominant structural events:
+    - birth gives a modest but consistent gain
+    - collapse gives a large and uniform gain
+- Updated next-step read:
+  - highest-value next implementation is no longer more audits
+  - it is now:
+    - build the first benchmarkable semimechanistic event-hazard baseline combining at least birth + collapse
+    - likely keep port/rebuild/reclaim simpler at first
+    - separately fix risk-set builder memory usage before broader event sweeps
