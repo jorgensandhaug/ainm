@@ -1,5 +1,56 @@
 ## Agent1 Progress
 
+### Session Continuation — Radical New Directions
+
+- date: 2026-03-21 UTC (afternoon)
+- resumed commit: `bfb7c857`
+- branch: `agent1`
+
+#### Critical Insight: Scoring Formula Analysis
+- `score = 100 * exp(-3 * weighted_kl)`
+- Current v8 best broad: `79.1946` / KL `0.081417`
+- Current v8 worst round (36e581f1): `58.44` / KL `0.179`
+- v8's minimum probability floor is `~0.0004` (from 0.98*model + 0.02*[0.84,0.05,0.02,0.02,0.05,0.02])
+- Official docs recommend `0.01` floor!
+- When model predicts 0.0004 for a class with 5% true probability: KL = 0.05*ln(0.05/0.0004) = 0.241 (ENORMOUS)
+- With 0.01 floor: KL = 0.05*ln(0.05/0.01) = 0.080 (3x smaller)
+
+#### New Models Implemented
+1. **v10** — Nonlinear RFF teacher + enhanced v3 features (55 features)
+   - RFF: `31.25` — catastrophic overfitting with 2 training rounds per fold
+   - v10 linear (v3 features): `76.03` — WORSE than v8; 55 features too many for ridge
+   - **Conclusion**: Linear teacher with 27 v2 features is the right structure
+
+2. **v11** — Observation-frequency blending post-processing
+   - Temperature=3: `72.45` — too aggressive, single obs too noisy
+   - Temperature=10: `78.20` — nearly neutral
+   - **Temperature=15: `79.28`** (+0.80 over v8)
+   - **Temperature=20: `79.44`** (+0.96 over v8) ← BEST v11 config
+   - Temperature=50: `79.39` (+0.91 over v8)
+   - Proxy-5 t=10: `78.97` (vs v8 `78.46`, +0.51)
+   - **Conclusion**: Very conservative observation blending helps modestly
+
+3. **v12** — Adaptive calibration based on posterior uncertainty
+   - Hard-3: `78.12` — slightly WORSE than v8
+   - Temperature scaling hurts confident rounds more than it helps uncertain ones
+   - **Conclusion**: Not independently viable, but may help combined
+
+4. **v13** — Proper probability floor (0.01)
+   - Floor sweep in progress: f5 (0.005), f10 (0.01), f20 (0.02), f30 (0.03)
+   - Expected to disproportionately help worst rounds
+   - **Still running**
+
+5. **v14** — Combined v8 + v11(t=20) + v13(f=0.01) + v12(adaptive)
+   - Expected to compound the best individual improvements
+   - **Still running** on hard-3 and proxy-5
+
+#### Key Findings
+- The linear v2-features teacher is already well-suited to the data
+- More features or nonlinear models overfit with limited training rounds (9 total)
+- The biggest remaining gains come from CALIBRATION, not model expressiveness
+- Observation blending with very high temperature (+0.96) is the first independently validated gain beyond v8
+- Probability floor correction is theoretically critical (3x KL reduction on zero-floor errors)
+
 ### Session Continuation
 
 - date: 2026-03-21 UTC
@@ -1336,3 +1387,33 @@
   - decision:
     - acceptable under current headroom
     - do not widen further until one of these results lands
+- the full batch resolved quickly:
+  - broad promotion:
+    - `dev_hazard_v8_k5_r3_l32_m70_q8_regime_probe_online50_v1`
+    - score: `79.1946`
+    - weighted KL: `0.081417`
+    - vs prior broad leader `dev_hazard_v7_k5_r3_l32_m70_q8_regime_probe_online50_v1`:
+      - score delta: `+0.5355`
+      - weighted KL delta: `-0.002404`
+    - conclusion:
+      - `v8 + regime_probe_v1` is the new completed broad leader
+      - class-aware particle likelihood transfer is real, not just proxy noise
+  - `v9` inducing-attention proxy probes:
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u6_regime_probe_seed0to1`
+      - score: `76.6165`
+      - weighted KL: `0.091134`
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u10_regime_probe_seed0to1`
+      - score: `76.2613`
+      - weighted KL: `0.092625`
+    - comparison vs current proxy leader `v8 q8 + regime_probe`:
+      - `u6`: score delta `-1.8417`, weighted KL delta `+0.008216`
+      - `u10`: score delta `-2.1969`, weighted KL delta `+0.009707`
+    - conclusion:
+      - the first inducing-point attention transcript encoder is decisively below `v8`
+      - richer transcript pooling alone is not beating score-aware class-weighted likelihood refinement in the current family
+- machine check after the batch finished:
+  - `14:35 UTC`: load about `17.5 / 55.2 / 118.4`
+  - memory free about `1.3 TiB`
+  - no agent1 top-level benchmark jobs remained
+  - interpretation:
+    - plenty of immediate headroom for the next controlled sweep after this log/push

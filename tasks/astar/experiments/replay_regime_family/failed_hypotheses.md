@@ -71,3 +71,27 @@
   - `q8`: `76.5759` / `0.091411`
   - `q12`: `76.6016` / `0.091345`
   - Conclusion: false on the current proxy selector; lighter observation reweighting is better, so do not widen `q` upward without another structural change.
+- A first inducing-point attention transcript encoder (`hazard_posterior_v9`) should beat the class-aware `v8` family because richer transcript pooling is the next obvious posterior axis.
+  - Evidence:
+    - `proxy5_hazard_v8_k5_r3_l32_m70_q8_regime_probe_seed0to1` => `78.4582` / `0.082918`
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u6_regime_probe_seed0to1` => `76.6165` / `0.091134`
+    - `proxy5_hazard_v9_k5_r3_l32_m70_q8_u10_regime_probe_seed0to1` => `76.2613` / `0.092625`
+  - Conclusion: false for the first implementation; do not broad-promote `v9` as built.
+- Enhanced v3 spatial features (55 features) with LINEAR model should outperform v2 features (27 features).
+  - Evidence:
+    - `v10 linear (v3 features)` on hard-3: `76.0321` / `0.094469`
+    - `v8 (v2 features)` on hard-3: `~78.48`
+  - Conclusion: false; more features actually hurt because ridge regression can't regularize well enough with limited training data. The v2 feature set is already well-suited.
+- Random Fourier Features nonlinear decoder should capture patterns the linear model misses.
+  - Evidence:
+    - `v10 RFF` on hard-3: `31.2502` / `0.394949` (catastrophic overfitting)
+  - Conclusion: false; nonlinear models catastrophically overfit with only 2 training rounds per holdout fold.
+- Probability floor should help KL scoring by preventing zero-probability predictions.
+  - Evidence (v13 on hard-3, ALL values worse than v8's 78.48):
+    - Original (broken floor on all cells): f5=76.97, f10=75.07, f20=71.60, f30=67.92
+    - Fixed (floor only on uncertain cells): f5=76.93, f10=75.02, f20=71.55
+  - Conclusion: false; even when limited to uncertain cells, the floor adds probability mass to structurally impossible classes. The teacher's existing 0.98/0.02 prior blend is already sufficient.
+- Adaptive temperature calibration based on posterior uncertainty should help uncertain rounds.
+  - Evidence:
+    - `v12` on hard-3: `78.12` (vs v8 `78.48`)
+  - Conclusion: false; temperature scaling hurts confident rounds more than it helps uncertain ones. The best round dropped from 91.80 to 86.73.
