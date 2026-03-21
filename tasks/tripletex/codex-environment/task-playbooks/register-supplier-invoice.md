@@ -317,6 +317,19 @@ Proven outcome:
   - supplier row `-61600` linked to the created supplier id
   - system VAT row `12320`
 
+## Production Proof — 4-call Path
+
+2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
+- **first production confirmation of the 4-call path**
+- text-only prompt (no PDF), so no address/bank data to extract
+- 4 calls, 0 errors:
+  1. `POST /supplier` → supplier `108391283`
+  2. `GET /ledger/account?number=6300&isApplicableForSupplierInvoice=true&fields=*`
+  3. `POST /ledger/voucher/importDocument` → voucher `609080159` (accessed via `values[0]`)
+  4. `PUT /ledger/voucher/{id}?sendToLedger=false` with `vatType: { id: 1 }`, `row: 1`/`row: 2`
+- final state: expense 6300 amount=47840 amountGross=59800 vatType.id=1; supplier -59800; system VAT 11960
+- confirms the 4-call path works in production, not just sandbox
+
 ## Critical Implementation Details
 
 ### importDocument response shape

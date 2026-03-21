@@ -289,3 +289,16 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - supplier `108377138`, voucher `609037638`
   - final postings: expense row amount=20000, amountGross=25000, vatType.id=1; supplier row -25000; system VAT row 5000
   - this is now the new canonical minimum for 25% incoming VAT
+- 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
+  - **first production confirmation of the 4-call path** — used exactly 4 calls, 0 errors
+  - no PDF attachment (text-only prompt), so no address or bank data to extract
+  - hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+  - importDocument response correctly accessed via `values[0]`
+  - PUT postings correctly used `row: 1` and `row: 2`
+  - final state: expense row 6300, vatType.id=1, amount=47840, amountGross=59800; supplier row -59800; system VAT row 11960
+  - voucher `609080159`, supplier `108391283`
+  - confirms the 4-call path works in production, not just sandbox
+- 2026-03-21 persistent-sandbox re-proof of `account: { number: 6300 }` rejection:
+  - confirmed `account: { number: 6300 }` in PUT postings returns `422` requiring `account.name`
+  - this re-confirms the earlier finding for account 6340 — applies to all accounts, not just a specific one
+  - `GET /ledger/account` remains required; the 4-call path is the true minimum
