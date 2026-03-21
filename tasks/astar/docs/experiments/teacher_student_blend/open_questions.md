@@ -28,5 +28,7 @@
 - Does attenuating observed-cell student blending help because it reallocates effective capacity to unobserved cells?
 - If observed-cell damping helps, is simple attenuation enough, or should student mass be actively shifted toward unobserved cells?
 - Is the best regime zero student at observed cells plus boosted student on unobserved cells?
+- Are observed cells actually underweighted today, such that boosting student influence there beats the exact-evidence winner?
+- If the opposite branch helps, is the right observed-cell multiplier modest (`1.15`) or aggressive (`1.30`)?
 - Are `samples_per_round=8` variants consistently stronger than `samples_per_round=4` once corrected holdout is used?
 - After corrected holdout ranking lands, which variant deserves full leave-one-round-out promotion first?

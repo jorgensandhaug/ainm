@@ -41,6 +41,8 @@
 - `v85` / `v86`: test the stronger version of the same idea by removing observed-cell student blending entirely
 - `v87` / `v88`: if observed-aware damping helps, reallocate that removed student mass toward unobserved cells instead of only deleting it
 - `v89` / `v90`: test the stronger reallocation version on the zero-observed-blend branch
+- `v91` / `v92`: the damping branch failed badly, so test the opposite: boost student blending on observed cells above baseline
+- `v93` / `v94`: test a stronger observed-cell boost in case the observed-cell branch is underweighted today
 
 ## Evaluation Rule
 

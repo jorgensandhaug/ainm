@@ -3214,6 +3214,47 @@
    - machine remained healthy:
      - about `1.1 TiB` used
      - about `1.7 TiB` available
+362. Observed-aware damping and reallocation results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v83`
+     - `teacher_student_blend_v84`
+     - `teacher_student_blend_v85`
+     - `teacher_student_blend_v86`
+     - `teacher_student_blend_v87`
+     - `teacher_student_blend_v88`
+     - `teacher_student_blend_v89`
+     - `teacher_student_blend_v90`
+   - aggregate results:
+     - `v83`: mean score `59.3547`, mean weighted KL `0.175017`
+     - `v84`: mean score `59.3362`, mean weighted KL `0.175121`
+     - `v85`: mean score `55.5297`, mean weighted KL `0.198768`
+     - `v86`: mean score `55.5297`, mean weighted KL `0.198768`
+     - `v87`: mean score `59.3547`, mean weighted KL `0.175017`
+     - `v88`: mean score `59.3362`, mean weighted KL `0.175121`
+     - `v89`: mean score `55.5297`, mean weighted KL `0.198768`
+     - `v90`: mean score `55.5297`, mean weighted KL `0.198768`
+363. Read from item 362:
+   - observed-aware damping is catastrophically bad
+   - reallocating extra student mass to unobserved cells is completely inert once observed damping is active
+   - so the student must remain strong on observed cells; direct evidence does not make that branch redundant
+364. New hypothesis after item 363:
+   - if observed cells are that important, the next opposite test is to boost observed-cell student blending above baseline instead of damping it
+365. Implemented observed-cell boost variants:
+   - new variants:
+     - `teacher_student_blend_v91`
+     - `teacher_student_blend_v92`
+     - `teacher_student_blend_v93`
+     - `teacher_student_blend_v94`
+   - mapping:
+     - `v91` = `v59` backbone with observed-cell blend boost `1.15`
+     - `v92` = `v60` backbone with observed-cell blend boost `1.15`
+     - `v93` = `v59` backbone with observed-cell blend boost `1.30`
+     - `v94` = `v60` backbone with observed-cell blend boost `1.30`
+366. Validation for item 365:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v92_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v94_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
