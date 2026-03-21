@@ -4175,8 +4175,17 @@
   - The old 8-round qr baseline was 73.95 but on a stale corpus - not directly comparable
   - Need a fresh 8-round qr baseline on current corpus for fair comparison
 
+- Third sweep results (k saturation test):
+  - k9_r3_m80: **73.293** (tiny new best)
+  - k9_r3: 73.292
+  - k11_r3: 73.292 (identical - k saturated!)
+  - k15_r3: 73.292 (identical - k saturated!)
+  - k9_s8: 72.214 (more samples HURT - noise dilution)
+- Key finding: k saturates at k=9 because with 4 samples/round × 2 train rounds = 8 episodes per fold, k=9 already uses everything
+- Key finding: more synthetic samples per round is counterproductive here
+
 ### Current scoreboard on probe3:
-1. **hazard_posterior_v2 k9_r3: 73.29** (NEW BEST)
+1. **hazard_posterior_v2 k9_r3_m80: 73.293** (NEW BEST)
 2. hazard_posterior_v2 k7_r3_m80: 73.25
 3. hazard_posterior_v2 k7_r3: 73.25
 4. hazard_posterior_v2 k7_r3_m90: 73.21
