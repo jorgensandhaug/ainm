@@ -54,10 +54,10 @@
   - mean score: `74.5110`
   - mean weighted KL: `0.101290`
   - note: best fixed-blend line before adaptive follow-up
-- `query_residual_v9_v10_adaptive025_v001` full 8-round exploration line
-  - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321/`
-  - mean score: `74.5181`
-  - mean weighted KL: `0.101208`
+- `query_residual_v9_v10_builtfreqgatexwide_v001` full 8-round exploration line
+  - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321/`
+  - mean score: `74.6943`
+  - mean weighted KL: `0.100390`
   - note: current best full local round-held-out result in this checkout
 - Existing repo artifact to beat:
   - `data/artifacts/benchmarks/dev_query_residual_online50_v7/`
@@ -114,3 +114,24 @@
     - first full adaptive run: about `3006s`
     - later cached full reruns: about `180s`
     - meaning: future local search over this blend family is now cheap without weakening the round-held-out protocol
+- Built-frequency-gate follow-up read:
+  - the decisive missing signal turned out to be round harshness visible in the legal year-50 transcript itself
+  - simple observed built-frequency in the queried final maps separated the previously conflicting rounds very cleanly:
+    - prosperous `ae78003a...`: about `0.2723`
+    - intermediate `8e839974...`: about `0.1024`
+    - harsh `c5cdf100...`: about `0.0295`
+    - harshest `f1dac9a9...`: about `0.0035`
+  - first built-frequency-gated variant `query_residual_v9_v10_builtfreqgate_v001` was a major real win:
+    - full `74.6341 / 0.100659`
+    - vs prior adaptive winner: `+0.1160` score, `-0.000548` weighted KL
+    - it improved every round mean, with the biggest lifts on `ae78003a...`, `c5cdf100...`, and `f1dac9a9...`
+  - widening the round-target spread kept helping:
+    - `query_residual_v9_v10_builtfreqgatewide_v001`: `74.6677 / 0.100508`
+    - `query_residual_v9_v10_builtfreqgatexwide_v001`: `74.6943 / 0.100390`
+  - current best `xwide` result vs prior adaptive winner:
+    - `+0.1761` score
+    - `-0.000817` weighted KL
+    - win rate `0.975`
+  - stopping read for this axis:
+    - the `xwide` variant already spans the full current round-target clip range `[0.05, 0.45]`
+    - future gains likely need a new axis such as per-cell floor/cap changes or a learned round-target map, not just more spread on the same formula

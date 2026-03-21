@@ -743,3 +743,130 @@
     - later full reruns with cached components: about `180s`
   - among the tested adaptive variants, `query_residual_v9_v10_adaptive025_v001` remains the best local full result
   - removed the losing temporary registrations `adaptive025sqrt` and `adaptive020` after recording them, keeping only the winning adaptive path plus the reusable checkpoint caching improvement
+
+### 2026-03-21T18:02:00Z
+
+- New diagnostic read before the next blend-family sweep:
+  - compared `v10` vs `v9_locgate` on the decisive rounds using actual held-out online transcripts
+  - key finding:
+    - the sign of the `v10` effect is mostly round-level, not cell-level
+    - on harsh rounds `c5cdf100...` and `f1dac9a9...`, the high entropy-disagreement cells are exactly where `v10` helps most
+    - on prosperous round `ae78003a...`, those same high-signal cells are exactly where `v10` hurts most
+  - crucial separator found in the legal transcript itself:
+    - observed built-frequency in the queried year-50 maps
+    - `ae78003a...`: about `0.2723`
+    - `8e839974...`: about `0.1024`
+    - `c5cdf100...`: about `0.0295`
+    - `f1dac9a9...`: about `0.0035`
+- Hypothesis:
+  - `v10` is the better conservative/destructive residual on low-built harsh rounds
+  - `v9_locgate` is better on high-built prosperous rounds
+  - therefore the next blend should keep the existing per-cell entropy-disagreement allocation but adapt the round-level mean `v10` target from the observed built-frequency
+
+### 2026-03-21T18:10:00Z
+
+- Implemented the built-frequency-gated blend family:
+  - added `query_residual_v9_v10_builtfreqgate_v001`
+  - added `query_residual_v9_v10_builtfreqgatewide_v001`
+  - added `query_residual_v9_v10_builtfreqgatexwide_v001`
+  - structure:
+    - reuse cached held-out `v9_locgate` and `v10` component predictors
+    - keep the adaptive per-cell entropy-times-disagreement shape
+    - replace the fixed `25%` round mean target with a built-frequency-driven target computed from `RoundEvidenceBundle`
+  - current strongest variant spans the full existing per-cell clip range:
+    - round target in `[0.05, 0.45]`
+- Validation while exposing the new family:
+  - first addition: `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `13 passed`
+  - second addition: `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `14 passed`
+  - final addition: `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `15 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` stayed `1 passed`
+
+### 2026-03-21T18:18:00Z
+
+- Completed the first built-frequency-gated targeted probe:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_builtfreqgate_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_dev_query_residual_v9_v10_builtfreqgate_path4_exploration_20260321 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --round-id c5cdf100-a876-4fb7-b5d8-757162c97989 --round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - result:
+    - mean score: `72.6395`
+    - mean weighted KL: `0.110194`
+    - runtime: `66.594s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev_query_residual_v9_v10_builtfreqgate_path4_exploration_20260321/result.json`
+- Read:
+  - this is materially stronger than the previous adaptive screens on the same 4 rounds
+  - therefore the built-frequency gate earned a direct full benchmark
+
+### 2026-03-21T18:24:00Z
+
+- Completed the first full built-frequency-gated benchmark:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_builtfreqgate_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_builtfreqgate_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.6341`
+    - mean weighted KL: `0.100659`
+    - runtime: `173.201s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgate_8rounds_exploration_20260321/result.json`
+- Comparison vs prior best `query_residual_v9_v10_adaptive025_v001`:
+  - score delta: `+0.1160`
+  - weighted KL delta: `-0.000548`
+  - win rate: `0.975`
+  - score delta CI95: `[0.0714, 0.1624]`
+  - important pattern:
+    - improved every round mean, not just the hard pair
+    - largest round lifts:
+      - `ae78003a...`: `+0.446449`
+      - `c5cdf100...`: `+0.197509`
+      - `f1dac9a9...`: `+0.189090`
+- Interpretation:
+  - the missing signal was round harshness, not another local-only weighting tweak
+  - observed built-frequency is a real online-safe proxy for that harshness
+
+### 2026-03-21T18:36:00Z
+
+- Ran the first spread bracketing follow-up:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_builtfreqgatewide_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_builtfreqgatewide_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.6677`
+    - mean weighted KL: `0.100508`
+    - runtime: `164.123s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgatewide_8rounds_exploration_20260321/result.json`
+- Comparison vs `builtfreqgate_v001`:
+  - score delta: `+0.0336`
+  - weighted KL delta: `-0.000151`
+  - dominant wins remained concentrated in the same harsh-vs-prosperous separator rounds:
+    - `ae78003a...`
+    - `c5cdf100...`
+    - `f1dac9a9...`
+- Decision:
+  - the spread sweep was still moving in the right direction
+  - one last stronger bracket was justified
+
+### 2026-03-21T18:48:00Z
+
+- Completed the final stronger spread bracket:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v9_v10_builtfreqgatexwide_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321`
+  - result:
+    - mean score: `74.6943`
+    - mean weighted KL: `0.100390`
+    - runtime: `168.281s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321/result.json`
+- Comparison vs `query_residual_v9_v10_builtfreqgatewide_v001`:
+  - score delta: `+0.0266`
+  - weighted KL delta: `-0.000118`
+  - win rate: `0.850`
+  - score delta CI95: `[0.0128, 0.0433]`
+- Comparison vs prior adaptive best `query_residual_v9_v10_adaptive025_v001`:
+  - score delta: `+0.1761`
+  - weighted KL delta: `-0.000817`
+  - win rate: `0.975`
+  - score delta CI95: `[0.1045, 0.2581]`
+- Sweep conclusion for this turn:
+  - built-frequency-gated round targeting is the strongest result found so far in this checkout
+  - the monotone spread sweep kept improving through `xwide`
+  - stopping point for this turn:
+    - `xwide` already uses the full existing round-target clip range `[0.05, 0.45]`
+    - further gains now likely require a new axis such as per-cell floor/cap changes or a learned round-target map, not just more of the same spread increase
+  - current best full local result is now:
+    - `query_residual_v9_v10_builtfreqgatexwide_v001 + exploration_v2`
+    - `74.6943 / 0.100390`

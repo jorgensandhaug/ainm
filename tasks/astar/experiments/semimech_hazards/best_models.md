@@ -2,12 +2,12 @@
 
 ## Current Best
 
-- experiment: `agent2_full_query_residual_v9_v10_adaptive025_8rounds_exploration_20260321`
-- model: `query_residual_v9_v10_adaptive025_v001`
+- experiment: `agent2_full_query_residual_v9_v10_builtfreqgatexwide_8rounds_exploration_20260321`
+- model: `query_residual_v9_v10_builtfreqgatexwide_v001`
 - mode: `online_interactive`
 - policy: `exploration_v2`
-- mean score: `74.5181`
-- mean weighted KL: `0.101208`
+- mean score: `74.6943`
+- mean weighted KL: `0.100390`
 - note: best current full local round-held-out result in this checkout
 
 ## Previous Reference Line
