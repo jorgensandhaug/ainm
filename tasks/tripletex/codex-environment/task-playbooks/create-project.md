@@ -40,6 +40,7 @@ Production verification on 2026-03-20 additionally showed:
 - in that Norwegian production proof, the manager prompt name used `Ø` while the email local-part used ASCII `degard`; the exact-email match from the filtered employee read was still sufficient, so no extra name-based disambiguation read was needed
 - the French prompt shape `project name + customer name + customer org number + manager name + manager email + omitted startDate` also succeeded with the same 3-call path for `Migration Lumière` / `Lumière SARL` / `849572458` / `nathan.dubois@example.org`
 - in that French production proof, the Unicode `è` in both project and customer names did not justify any extra resolver read once the exact `organizationNumber` hit and exact `email` hit were already found
+- second French production run on 2026-03-21 for `Implémentation Montagne` / `Montagne SARL` / `842138248` / `jules.martin@example.org` also succeeded with the same 3-call path; `é` in project name handled without extra reads
 
 ## Minimal Safe Flow
 
