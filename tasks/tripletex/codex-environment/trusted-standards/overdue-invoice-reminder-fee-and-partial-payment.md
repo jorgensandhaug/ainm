@@ -173,3 +173,10 @@
   - payment type `37435187`
   - payment reduced outstanding to `18562.5`
   - 6th production confirmation of the `6`-call path; verified across `nb`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `50`, `60`, `70`
+- production proof on `2026-03-21` (`prod-2026-03-21-215357856Z-a1e81130`) confirmed the `6`-call path for Spanish prompt with fee `60`, 0 errors, 0 wasted calls:
+  - overdue invoice `#3` (`id=2147642065`), customer `108434854`, outstanding `35000`
+  - voucher `#1` (`id=609171478`)
+  - fee invoice `#4` (`id=2147642189`, amount `60`)
+  - payment type `37451308`
+  - payment reduced outstanding to `30000`
+  - 7th production confirmation of the `6`-call path; no new language or fee amount combination but re-confirms `es`+`60` stability

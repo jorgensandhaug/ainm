@@ -236,3 +236,10 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `37435187`
   - remaining outstanding `18562.5`
 - the `6`-call path is now confirmed across 6 production runs with fee amounts `35`, `50`, `60`, `70` and prompts in `pt`, `de`, `es`, `nb`, `fr`; no lower-call path exists
+- production run `prod-2026-03-21-215357856Z-a1e81130` matched the trusted `6`-call path exactly for a Spanish prompt with fee `60`, 0 errors:
+  - overdue invoice `#3` (`id=2147642065`), customer `108434854`, outstanding `35000`
+  - voucher `#1` (`id=609171478`)
+  - fee invoice `#4` (`id=2147642189`, amount `60`)
+  - payment type `37451308`
+  - remaining outstanding `30000`
+- the `6`-call path is now confirmed across 7 production runs; no lower-call path exists
