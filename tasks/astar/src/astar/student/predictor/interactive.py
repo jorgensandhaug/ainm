@@ -92,6 +92,10 @@ from astar.student.predictor.hazard_posterior_v19 import (
     HazardPosteriorV19Predictor,
     hazard_posterior_v19_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v20 import (
+    HazardPosteriorV20Predictor,
+    hazard_posterior_v20_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -635,6 +639,23 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    hazard_posterior_v20 = hazard_posterior_v20_spec_for_model_name(normalized)
+    if hazard_posterior_v20 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, latent_rank, ridge_alpha, mean_weight, observation_weight = hazard_posterior_v20
+        predictor = HazardPosteriorV20Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids) if historical_round_ids is not None
+                else sorted(rd.name for rd in workspace_paths.raw_dir.joinpath("replays").glob("*") if rd.is_dir())
+            ),
+            policy_name=resolved_policy_name, samples_per_round=samples_per_round,
+            k_neighbors=k_neighbors, latent_rank=latent_rank, ridge_alpha=ridge_alpha,
+            predicted_particle_weight=mean_weight, observation_weight=observation_weight,
+            model_name=f"hazard_posterior_v20__policy={resolved_policy_name}__k={k_neighbors}__r={latent_rank}",
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     hazard_posterior_v19 = hazard_posterior_v19_spec_for_model_name(normalized)
     if hazard_posterior_v19 is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
