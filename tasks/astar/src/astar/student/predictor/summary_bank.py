@@ -88,6 +88,10 @@ SUMMARY_BANK_STUDENT_V47 = "teacher_student_blend_v47"
 SUMMARY_BANK_STUDENT_V48 = "teacher_student_blend_v48"
 SUMMARY_BANK_STUDENT_V49 = "teacher_student_blend_v49"
 SUMMARY_BANK_STUDENT_V50 = "teacher_student_blend_v50"
+SUMMARY_BANK_STUDENT_V51 = "teacher_student_blend_v51"
+SUMMARY_BANK_STUDENT_V52 = "teacher_student_blend_v52"
+SUMMARY_BANK_STUDENT_V53 = "teacher_student_blend_v53"
+SUMMARY_BANK_STUDENT_V54 = "teacher_student_blend_v54"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
@@ -145,6 +149,10 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V48,
         SUMMARY_BANK_STUDENT_V49,
         SUMMARY_BANK_STUDENT_V50,
+        SUMMARY_BANK_STUDENT_V51,
+        SUMMARY_BANK_STUDENT_V52,
+        SUMMARY_BANK_STUDENT_V53,
+        SUMMARY_BANK_STUDENT_V54,
     },
 )
 
@@ -246,6 +254,10 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V48: 2,
         SUMMARY_BANK_STUDENT_V49: 1,
         SUMMARY_BANK_STUDENT_V50: 1,
+        SUMMARY_BANK_STUDENT_V51: 4,
+        SUMMARY_BANK_STUDENT_V52: 4,
+        SUMMARY_BANK_STUDENT_V53: 2,
+        SUMMARY_BANK_STUDENT_V54: 2,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -350,6 +362,78 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v49 fixes samples_per_round=1")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V50 and effective_samples_per_round != 1:
         raise ValueError("teacher_student_blend_v50 fixes samples_per_round=1")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V51 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v51 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V52 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v52 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V53 and effective_samples_per_round != 2:
+        raise ValueError("teacher_student_blend_v53 fixes samples_per_round=2")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V54 and effective_samples_per_round != 2:
+        raise ValueError("teacher_student_blend_v54 fixes samples_per_round=2")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V54:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V53:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V52:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V51:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=4.0,
+            local_evidence_beta_scale=12.0,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V50:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,

@@ -21,6 +21,8 @@
 - `v45` / `v46`: push the same idea to `k=1` to test whether a single nearest replay regime is better than a blended residual
 - `v47` / `v48`: if `k=1` is better because cross-round residual blending is the main overfit source, combine it with `samples=2` to cut synthetic within-round variance at the same time
 - `v49` / `v50`: push the same combined branch to `samples=1` to test whether the strongest line is simply nearest-neighbor residuals plus minimal synthetic duplication
+- `v51` / `v52`: exact observed-cell posterior updates may help much more on the new `k=1` line than they did on older branches, because the global prior is now stronger and local evidence only needs to correct queried cells
+- `v53` / `v54`: if that exact-local-evidence gain is real, stack it with the lower-sample `k=1` line instead of only testing it at `samples=4`
 
 ## Evaluation Rule
 

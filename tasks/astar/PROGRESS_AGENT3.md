@@ -2614,6 +2614,30 @@
      - corrected holdouts: `v47`, `v48`, `v49`, `v50`
      - full corrected LOO: `v45`
    - total family queue still remained well below the machine-wide memory ceiling
+283. New hypothesis while the queue from item 282 ran:
+   - exact observed-cell posterior correction may be more useful on the new `k=1` backbone than on the older gated branches
+   - reason:
+     - the current global / spatial prior is already stronger
+     - local evidence only needs to repair queried cells rather than compensate for a weaker backbone
+284. Implemented exact-local-evidence variants on top of the `k=1` line:
+   - new variants:
+     - `teacher_student_blend_v51`
+     - `teacher_student_blend_v52`
+     - `teacher_student_blend_v53`
+     - `teacher_student_blend_v54`
+   - mapping:
+     - `v51` = `v45` backbone + exact local evidence
+     - `v52` = `v46` backbone + exact local evidence
+     - `v53` = `v47` backbone + exact local evidence
+     - `v54` = `v48` backbone + exact local evidence
+   - exact-local-evidence settings:
+     - `local_evidence_beta_min=4.0`
+     - `local_evidence_beta_scale=12.0`
+285. Validation for item 284:
+   - focused command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_teacher_student_blend_v52_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v54_online_historical_benchmark_defaults_to_samples_2 tests/test_historical_benchmark.py::test_run_targeted_holdout_benchmark_uses_all_other_rounds_for_training -q`
+   - result:
+     - `3 passed`
 
 
 ## Open Questions
