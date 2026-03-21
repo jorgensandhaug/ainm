@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.historical_benchmark import run_historical_benchmark
@@ -100,7 +102,11 @@ def test_run_historical_benchmark_online_mode_reuses_online_episode_path(
         assert online_by_key[key].weighted_kl == prior_by_key[key].weighted_kl
 
 
-def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths) -> None:
+@pytest.mark.parametrize("model_name", ["query_residual", "query_residual_v8"])
+def test_query_residual_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+    model_name: str,
+) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
     _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
@@ -109,7 +115,7 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
 
     result = run_historical_benchmark(
         sample_paths,
-        model_name="query_residual",
+        model_name=model_name,
         round_ids=[ROUND_ID, TRAIN_ROUND_ID],
         mode="online_interactive",
         policy_name="coverage",

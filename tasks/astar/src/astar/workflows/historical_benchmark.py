@@ -12,6 +12,7 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -121,8 +122,7 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    resolved_samples_per_round = samples_per_round if normalized_model_name == "query_residual" else None
-    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
+    if is_query_residual_model_name(model_name) and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
@@ -133,20 +133,17 @@ def run_historical_benchmark(
     resolved_policy_name = (
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
-    model_suffix = ""
-    if normalized_model_name == "query_residual":
-        model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
         interactive_suffix = (
             f"__policy={resolved_policy_name}"
+            f"__samples={samples_per_round}"
             f"__budget={budget}"
             f"__episode_seed={episode_seed}"
         )
 
     run_name = benchmark_name or (
         f"historical__{mode}__{model_name}"
-        f"{model_suffix}"
         f"{interactive_suffix}"
         f"__rounds={len(selected_round_ids)}"
     )
@@ -279,7 +276,7 @@ def run_historical_benchmark(
         model_name=model_name,
         mode=mode,
         policy_name=resolved_policy_name,
-        samples_per_round=resolved_samples_per_round,
+        samples_per_round=samples_per_round if mode == "online_interactive" else None,
         budget=None if mode == "prior_only" else budget,
         episode_seed=None if mode == "prior_only" else episode_seed,
         round_ids=[item.round_id for item in round_results],
@@ -330,7 +327,6 @@ def run_historical_benchmark(
                 "round_count": len(result.rounds),
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,
-                "samples_per_round": result.samples_per_round,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,

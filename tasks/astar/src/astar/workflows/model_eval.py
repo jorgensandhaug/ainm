@@ -21,6 +21,7 @@ from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegi
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -219,9 +220,10 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
-        predictor = QueryResidualPredictor.fit_from_workspace(
+    if is_query_residual_model_name(model_name):
+        predictor = QueryResidualPredictor.fit_named_from_workspace(
             paths,
+            model_name=model_name,
             round_ids=list(training_round_ids),
             samples_per_round=samples_per_round,
         )
