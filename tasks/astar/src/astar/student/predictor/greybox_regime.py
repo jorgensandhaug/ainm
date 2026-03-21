@@ -755,10 +755,10 @@ class GreyboxHazardLowRankPredictor(BaseRoundPredictor):
 class GreyboxLowRankQueryResidualHybridPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "greybox_hybrid_lowrank_queryres_v02"
+    name: str = "greybox_hybrid_lowrank_queryres_v03"
     lowrank_predictor: GreyboxHazardLowRankPredictor
     residual_predictor: BaseRoundPredictor
-    lowrank_weight: float = Field(default=0.65, ge=0.0, le=1.0)
+    lowrank_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     samples_per_round: int = Field(default=4, ge=1)
     query_samples_per_round: int = Field(default=1, ge=1)
 
@@ -771,8 +771,8 @@ class GreyboxLowRankQueryResidualHybridPredictor(BaseRoundPredictor):
         policy_name: str = "coverage",
         samples_per_round: int = 4,
         query_samples_per_round: int = 1,
-        lowrank_weight: float = 0.65,
-        model_name: str = "greybox_hybrid_lowrank_queryres_v02",
+        lowrank_weight: float = 0.35,
+        model_name: str = "greybox_hybrid_lowrank_queryres_v03",
     ) -> GreyboxLowRankQueryResidualHybridPredictor:
         lowrank_predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
             paths,
