@@ -825,6 +825,71 @@
      - loss rate `0.200`
      - tie rate `0.000`
      - score-delta CI95 `[0.5134, 1.1407]`
+97. Immediate next exploration after the `v16` full win:
+   - the prior-blend family is now clearly live
+   - next decisive question:
+     - was `0.25` near-optimal, or were we still too conservative?
+   - smallest useful continuation:
+     - test a stronger de-anchoring step before touching other knobs
+98. Implemented stronger prior-deanchor branch:
+   - new model name: `query_residual_v17`
+   - semantics:
+     - same architecture as `query_residual_v16`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.15`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+99. Validation after `query_residual_v17` wiring:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `23 passed`
+100. `query_residual_v17` targeted holdout result:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v17_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - same representative 2-round/7-train holdout
+     - model `query_residual_v17`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.15`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `64.8429`
+     - mean weighted KL `0.144519`
+   - per-round:
+     - `36e581...`: score `65.6134`, KL `0.140534`
+     - `f1dac9...`: score `64.0725`, KL `0.148504`
+101. Interpretation of item 100:
+   - stronger de-anchoring continued the gain trend rather than reversing it
+   - versus `v16` targeted:
+     - score `+1.9064`
+     - weighted KL `-0.010095`
+   - versus prior best proxy `v11` / `v8` samples-2:
+     - score `+3.8848`
+     - weighted KL `-0.020998`
+   - importantly, `v17` again improves both representative rounds simultaneously
+   - promotion decision:
+     - run full corrected LOO for `query_residual_v17` immediately
+102. `query_residual_v17` full corrected LOO status at end of this turn:
+   - full run command launched:
+     - `uv run astar run-historical-benchmark --model query_residual_v17 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v17_full_corrected`
+   - run was intentionally interrupted to avoid leaving an orphan long-running process at turn end
+   - cached fold checkpoints already completed for `6/8` held-out folds:
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=7bc2d3ff56/checkpoint.json`
+     - `data/artifacts/models/query_residual_v17__policy=coverage__samples=2__rounds=n=7__sha1=ecfd58da91/checkpoint.json`
+   - rerunning the exact same command should resume from those cached folds rather than restart from zero
+103. Current verified leaderboard after this turn:
+   - best fully verified model:
+     - `query_residual_v16`
+   - best unverified but highly promising next branch:
+     - `query_residual_v17`
+     - targeted holdout score `64.8429` vs `v16` targeted `62.9365`
+     - full corrected LOO still pending completion
 
 ## Open Questions
 
