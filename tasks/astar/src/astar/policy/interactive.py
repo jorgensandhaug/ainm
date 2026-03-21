@@ -5,7 +5,11 @@ from pydantic import BaseModel, ConfigDict
 from astar.envs.base import InteractiveQueryPolicy, TranscriptBeliefState
 from astar.envs.types import ViewportQuery
 from astar.observe.query_plan import QueryPlanItem
-from astar.policy.regime_probe import PosteriorDisagreementPolicy, RegimeProbePolicy
+from astar.policy.regime_probe import (
+    PosteriorBlendPolicy,
+    PosteriorDisagreementPolicy,
+    RegimeProbePolicy,
+)
 from astar.policy.query_plan import QueryPlanPolicy
 from astar.policy.registry import build_named_policy
 
@@ -52,6 +56,8 @@ def build_interactive_policy(
         return RegimeProbePolicy()
     if normalized in {"regime_probe_posterior", "regime_probe_posterior_v1"}:
         return PosteriorDisagreementPolicy(predictor=predictor)
+    if normalized in {"regime_probe_posterior_blend", "regime_probe_posterior_blend_v1"}:
+        return PosteriorBlendPolicy(predictor=predictor)
     policy = build_named_policy(policy_name)
     return QueryPlanPolicyAdapter(policy=policy, name=policy.name)
 

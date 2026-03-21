@@ -621,3 +621,21 @@
     - static CLI choices were blocking legitimate frontier configs and slowing iteration
   - parser smoke:
     - custom names like `hazard_posterior_v4_k5_r3_l32_m70` now parse cleanly across those commands
+- first posterior-policy results:
+  - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_v1`:
+    - hard 3-round slice: `77.3567 / 0.088722`
+    - vs `regime_probe_v1`: worse by `-0.7718` score
+    - vs `coverage`: still better by about `+0.5438`
+  - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_v1`:
+    - hard 3-round slice: `77.7966 / 0.086753`
+    - vs `regime_probe_v1`: better by `+0.1543`, KL `-0.000634`
+  - `hazard_posterior_v4_k5_r3_l32_m70 + regime_probe_posterior_v1`:
+    - hard 3-round slice: `78.5039 / 0.083587`
+    - current best on this slice by a small margin over `regime_probe_v1`
+    - gain is small: `+0.0233` score, KL `-0.000087`
+- interpretation:
+  - posterior maps help the stronger v4 teacher/student family
+  - current additive posterior policy is too aggressive / unstable for v3
+  - next immediate policy variant should use posterior only as a conservative multiplier on proven regime-probe heuristics
+- implementing next:
+  - `regime_probe_posterior_blend_v1`
