@@ -16,6 +16,11 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.student.posterior.deepset_student import _summary_vector_from_artifact
 
+SUPPORTED_EVENT_REGIME_TARGET_FAMILIES = (
+    "rates",
+    "collapse_portsplit",
+    "birth_collapse_portsplit",
+)
 
 def _weighted_positive_rate(frame: pl.DataFrame) -> pl.DataFrame:
     return frame.group_by("round_id").agg(
@@ -40,6 +45,20 @@ def _standardize(
     means = np.mean(features, axis=0)
     scales = np.std(features, axis=0)
     return means, np.maximum(scales, 1.0e-6)
+
+
+def _safe_ratio_expr(
+    numerator: pl.Expr,
+    denominator: pl.Expr,
+    *,
+    default: float = 0.5,
+) -> pl.Expr:
+    return pl.when(denominator > 0.0).then(numerator / denominator).otherwise(default)
+
+
+def _logit_expr(expr: pl.Expr) -> pl.Expr:
+    clipped = expr.clip(1.0e-4, 1.0 - 1.0e-4)
+    return (clipped / (1.0 - clipped)).log()
 
 
 def _knn_predict(
@@ -85,6 +104,7 @@ class EventRegimePosteriorAuditResult(BaseModel):
     budget: int = Field(ge=1)
     samples_per_round: int = Field(ge=1)
     k_neighbors: int = Field(ge=1)
+    target_family: str
     target_names: list[str]
     round_count: int = Field(ge=2)
     episode_count: int = Field(ge=1)
@@ -95,6 +115,12 @@ class EventRegimePosteriorAuditResult(BaseModel):
     baseline_mse: float = Field(ge=0.0)
     knn_mse: float = Field(ge=0.0)
     mse_gain: float
+    standardized_baseline_mae: float = Field(ge=0.0)
+    standardized_knn_mae: float = Field(ge=0.0)
+    standardized_mae_gain: float
+    standardized_baseline_mse: float = Field(ge=0.0)
+    standardized_knn_mse: float = Field(ge=0.0)
+    standardized_mse_gain: float
     per_target_baseline_mae: dict[str, float]
     per_target_knn_mae: dict[str, float]
     per_target_baseline_mse: dict[str, float]
@@ -114,6 +140,7 @@ def _render_report(result: EventRegimePosteriorAuditResult) -> str:
         f"budget: {result.budget}",
         f"samples_per_round: {result.samples_per_round}",
         f"k_neighbors: {result.k_neighbors}",
+        f"target_family: {result.target_family}",
         f"rounds: {result.round_count}",
         f"episodes: {result.episode_count}",
         f"aggregation_mode: {result.aggregation_mode}",
@@ -123,6 +150,12 @@ def _render_report(result: EventRegimePosteriorAuditResult) -> str:
         f"baseline_mse: {result.baseline_mse:.6f}",
         f"knn_mse: {result.knn_mse:.6f}",
         f"mse_gain: {result.mse_gain:.6f}",
+        f"standardized_baseline_mae: {result.standardized_baseline_mae:.6f}",
+        f"standardized_knn_mae: {result.standardized_knn_mae:.6f}",
+        f"standardized_mae_gain: {result.standardized_mae_gain:.6f}",
+        f"standardized_baseline_mse: {result.standardized_baseline_mse:.6f}",
+        f"standardized_knn_mse: {result.standardized_knn_mse:.6f}",
+        f"standardized_mse_gain: {result.standardized_mse_gain:.6f}",
         "",
         "per_target:",
     ]
@@ -143,9 +176,11 @@ def _render_report(result: EventRegimePosteriorAuditResult) -> str:
         ],
     )
     for item in result.round_targets:
+        target_bits = " ".join(
+            f"{target_name}={float(item[target_name]):.6f}" for target_name in result.target_names
+        )
         lines.append(
-            f"- round={item['round_id']} birth_logit_rate={float(item['birth_logit_rate']):.6f} "
-            f"collapse_logit_rate={float(item['collapse_logit_rate']):.6f}",
+            f"- round={item['round_id']} {target_bits}",
         )
     lines.extend(
         [
@@ -169,15 +204,12 @@ def _round_target_frame(
     *,
     birth_dataset_name: str,
     collapse_dataset_name: str,
+    target_family: str,
 ) -> pl.DataFrame:
+    if target_family not in SUPPORTED_EVENT_REGIME_TARGET_FAMILIES:
+        raise ValueError(f"unsupported target family: {target_family}")
+
     birth_dir = paths.dataset_dir(birth_dataset_name)
-    if not birth_dir.joinpath("riskset.parquet").exists():
-        build_hazard_riskset_dataset(
-            paths,
-            event_type="birth",
-            dataset_name=birth_dataset_name,
-            negative_ratio=8.0,
-        )
     collapse_dir = paths.dataset_dir(collapse_dataset_name)
     if not collapse_dir.joinpath("riskset.parquet").exists():
         build_hazard_riskset_dataset(
@@ -186,30 +218,77 @@ def _round_target_frame(
             dataset_name=collapse_dataset_name,
             negative_ratio=8.0,
         )
+    weight = pl.col("sample_weight").cast(pl.Float64, strict=False)
+    label = pl.col("label").cast(pl.Float64, strict=False)
+    port_mask = pl.col("before_has_port").fill_null(False)
+    nonport_mask = ~port_mask
+
+    collapse = pl.read_parquet(
+        collapse_dir / "riskset.parquet",
+        columns=["round_id", "label", "sample_weight", "before_has_port"],
+    ).group_by("round_id").agg(
+        _logit_expr(
+            _safe_ratio_expr(
+                (label * weight).sum(),
+                weight.sum(),
+            ),
+        ).alias("collapse_logit_rate"),
+        _logit_expr(
+            _safe_ratio_expr(
+                pl.when(port_mask).then(label * weight).otherwise(0.0).sum(),
+                pl.when(port_mask).then(weight).otherwise(0.0).sum(),
+            ),
+        ).alias("collapse_logit_port"),
+        _logit_expr(
+            _safe_ratio_expr(
+                pl.when(nonport_mask).then(label * weight).otherwise(0.0).sum(),
+                pl.when(nonport_mask).then(weight).otherwise(0.0).sum(),
+            ),
+        ).alias("collapse_logit_nonport"),
+        _logit_expr(
+            _safe_ratio_expr(
+                pl.when(port_mask).then(label * weight).otherwise(0.0).sum(),
+                (label * weight).sum(),
+            ),
+        ).alias("collapse_pos_port_share_logit"),
+    ).sort("round_id")
+    if target_family == "collapse_portsplit":
+        return collapse.select(
+            "round_id",
+            "collapse_logit_rate",
+            "collapse_logit_port",
+            "collapse_logit_nonport",
+            "collapse_pos_port_share_logit",
+        )
+
+    if not birth_dir.joinpath("riskset.parquet").exists():
+        build_hazard_riskset_dataset(
+            paths,
+            event_type="birth",
+            dataset_name=birth_dataset_name,
+            negative_ratio=8.0,
+        )
     birth = _weighted_positive_rate(
         pl.read_parquet(
             birth_dir / "riskset.parquet",
             columns=["round_id", "label", "sample_weight"],
         ),
-    ).rename({"positive_rate": "birth_positive_rate"})
-    collapse = _weighted_positive_rate(
-        pl.read_parquet(
-            collapse_dir / "riskset.parquet",
-            columns=["round_id", "label", "sample_weight"],
-        ),
-    ).rename({"positive_rate": "collapse_positive_rate"})
-    target_frame = birth.join(collapse, on="round_id", how="inner").sort("round_id")
-    return target_frame.with_columns(
-        pl.col("birth_positive_rate").map_elements(_logit, return_dtype=pl.Float64).alias(
-            "birth_logit_rate",
-        ),
-        pl.col("collapse_positive_rate").map_elements(_logit, return_dtype=pl.Float64).alias(
-            "collapse_logit_rate",
-        ),
-    ).select(
+    ).with_columns(
+        pl.col("positive_rate")
+        .map_elements(_logit, return_dtype=pl.Float64)
+        .alias("birth_logit_rate"),
+    ).select("round_id", "birth_logit_rate")
+    if target_family == "rates":
+        return birth.join(collapse.select("round_id", "collapse_logit_rate"), on="round_id", how="inner").sort(
+            "round_id",
+        )
+    return birth.join(collapse, on="round_id", how="inner").sort("round_id").select(
         "round_id",
         "birth_logit_rate",
         "collapse_logit_rate",
+        "collapse_logit_port",
+        "collapse_logit_nonport",
+        "collapse_pos_port_share_logit",
     )
 
 
@@ -224,6 +303,7 @@ def run_event_regime_posterior_audit(
     k_neighbors: int = 7,
     birth_dataset_name: str = "f1_birth_riskset_nr8_v1",
     collapse_dataset_name: str = "f1_collapse_riskset_nr8_v1",
+    target_family: str = "rates",
 ) -> EventRegimePosteriorAuditResult:
     if samples_per_round <= 0:
         raise ValueError("samples_per_round must be positive")
@@ -236,10 +316,12 @@ def run_event_regime_posterior_audit(
         paths,
         birth_dataset_name=birth_dataset_name,
         collapse_dataset_name=collapse_dataset_name,
+        target_family=target_family,
     )
+    target_names = [name for name in target_frame.columns if name != "round_id"]
     target_by_round = {
         str(row["round_id"]): np.asarray(
-            [row["birth_logit_rate"], row["collapse_logit_rate"]],
+            [row[target_name] for target_name in target_names],
             dtype=np.float64,
         )
         for row in target_frame.iter_rows(named=True)
@@ -271,9 +353,9 @@ def run_event_regime_posterior_audit(
     round_ids = sorted({round_id for round_id, _, _ in examples})
     if len(round_ids) < 2:
         raise ValueError("posterior audit requires at least two rounds")
-    target_names = ["birth_logit_rate", "collapse_logit_rate"]
 
     round_metrics: list[EventRegimePosteriorRoundMetric] = []
+    standardized_round_metrics: list[tuple[float, float, float, float]] = []
     for held_out_round_id in round_ids:
         train = [item for item in examples if item[0] != held_out_round_id]
         test = [item for item in examples if item[0] == held_out_round_id]
@@ -308,6 +390,22 @@ def run_event_regime_posterior_audit(
         knn_abs = np.abs(knn_pred - test_y)
         baseline_sq = (baseline_pred - test_y) ** 2
         knn_sq = (knn_pred - test_y) ** 2
+        target_means, target_scales = _standardize(train_y)
+        baseline_pred_standardized = (baseline_pred - target_means[None, :]) / target_scales[None, :]
+        knn_pred_standardized = (knn_pred - target_means[None, :]) / target_scales[None, :]
+        test_y_standardized = (test_y - target_means[None, :]) / target_scales[None, :]
+        standardized_baseline_abs = np.abs(baseline_pred_standardized - test_y_standardized)
+        standardized_knn_abs = np.abs(knn_pred_standardized - test_y_standardized)
+        standardized_baseline_sq = (baseline_pred_standardized - test_y_standardized) ** 2
+        standardized_knn_sq = (knn_pred_standardized - test_y_standardized) ** 2
+        standardized_round_metrics.append(
+            (
+                float(np.mean(standardized_baseline_abs)),
+                float(np.mean(standardized_knn_abs)),
+                float(np.mean(standardized_baseline_sq)),
+                float(np.mean(standardized_knn_sq)),
+            ),
+        )
         round_metrics.append(
             EventRegimePosteriorRoundMetric(
                 round_id=held_out_round_id,
@@ -348,6 +446,7 @@ def run_event_regime_posterior_audit(
         budget=budget,
         samples_per_round=samples_per_round,
         k_neighbors=k_neighbors,
+        target_family=target_family,
         target_names=target_names,
         round_count=len(round_metrics),
         episode_count=len(examples),
@@ -358,6 +457,16 @@ def run_event_regime_posterior_audit(
         baseline_mse=float(np.mean([item.baseline_mse for item in round_metrics])),
         knn_mse=float(np.mean([item.knn_mse for item in round_metrics])),
         mse_gain=float(np.mean([item.mse_gain for item in round_metrics])),
+        standardized_baseline_mae=float(np.mean([item[0] for item in standardized_round_metrics])),
+        standardized_knn_mae=float(np.mean([item[1] for item in standardized_round_metrics])),
+        standardized_mae_gain=float(
+            np.mean([item[0] - item[1] for item in standardized_round_metrics]),
+        ),
+        standardized_baseline_mse=float(np.mean([item[2] for item in standardized_round_metrics])),
+        standardized_knn_mse=float(np.mean([item[3] for item in standardized_round_metrics])),
+        standardized_mse_gain=float(
+            np.mean([item[2] - item[3] for item in standardized_round_metrics]),
+        ),
         per_target_baseline_mae={
             name: float(np.mean([item.per_target_baseline_mae[name] for item in round_metrics]))
             for name in target_names
@@ -384,4 +493,8 @@ def run_event_regime_posterior_audit(
     return result
 
 
-__all__ = ["run_event_regime_posterior_audit", "EventRegimePosteriorAuditResult"]
+__all__ = [
+    "SUPPORTED_EVENT_REGIME_TARGET_FAMILIES",
+    "run_event_regime_posterior_audit",
+    "EventRegimePosteriorAuditResult",
+]

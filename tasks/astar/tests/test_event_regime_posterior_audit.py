@@ -64,3 +64,37 @@ def test_event_regime_posterior_audit_runs_on_two_round_sample(sample_paths: Rep
     assert result.target_names == ["birth_logit_rate", "collapse_logit_rate"]
     assert result.artifact_path.exists()
     assert result.report_path.exists()
+
+
+def test_event_regime_posterior_audit_supports_collapse_portsplit_family(
+    sample_paths: RepoPaths,
+) -> None:
+    _duplicate_round_fixture(
+        sample_paths,
+        source_round_id=ROUND_ID,
+        target_round_id=ROUND_ID_2,
+        round_number=2,
+    )
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID_2)
+
+    result = run_event_regime_posterior_audit(
+        sample_paths,
+        dataset_name="synthetic_live_regime_posterior_portsplit_test",
+        audit_name="event_regime_posterior_portsplit_test",
+        policy_name="coverage",
+        samples_per_round=1,
+        budget=2,
+        k_neighbors=1,
+        collapse_dataset_name="collapse_riskset_regime_posterior_portsplit_test",
+        target_family="collapse_portsplit",
+    )
+
+    assert result.target_family == "collapse_portsplit"
+    assert result.target_names == [
+        "collapse_logit_rate",
+        "collapse_logit_port",
+        "collapse_logit_nonport",
+        "collapse_pos_port_share_logit",
+    ]
+    assert result.standardized_mae_gain == result.standardized_baseline_mae - result.standardized_knn_mae

@@ -32,6 +32,16 @@ from astar.student.predictor.query_residual_specs import (
     supported_query_residual_model_names,
 )
 from astar.student.predictor.round import BaseRoundPredictor
+from astar.student.predictor.summary_birth_hybrid import SummaryBirthHybridPredictor
+from astar.student.predictor.summary_birth_hybrid_specs import (
+    resolve_summary_birth_hybrid_model_spec,
+    supported_summary_birth_hybrid_model_names,
+)
+from astar.student.predictor.summary_bank_decoder import SummaryBankDecoderPredictor
+from astar.student.predictor.summary_bank_decoder_specs import (
+    resolve_summary_bank_decoder_model_spec,
+    supported_summary_bank_decoder_model_names,
+)
 from astar.student.predictor.summary_bank import SummaryBankTeacherPredictor
 from astar.student.predictor.summary_bank_specs import (
     resolve_summary_bank_model_spec,
@@ -168,6 +178,54 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    summary_birth_hybrid_spec = resolve_summary_birth_hybrid_model_spec(normalized)
+    if summary_birth_hybrid_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = SummaryBirthHybridPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=summary_birth_hybrid_spec.policy_name,
+            budget=summary_birth_hybrid_spec.budget,
+            samples_per_round=summary_birth_hybrid_spec.samples_per_round,
+            k_neighbors=summary_birth_hybrid_spec.k_neighbors,
+            birth_signal_scale=summary_birth_hybrid_spec.birth_signal_scale,
+            birth_gain=summary_birth_hybrid_spec.birth_gain,
+            maritime_from_birth=summary_birth_hybrid_spec.maritime_from_birth,
+            teacher_gain=summary_birth_hybrid_spec.teacher_gain,
+            settlement_gain=summary_birth_hybrid_spec.settlement_gain,
+            port_gain=summary_birth_hybrid_spec.port_gain,
+            ruin_gain=summary_birth_hybrid_spec.ruin_gain,
+            forest_gain=summary_birth_hybrid_spec.forest_gain,
+            delta_clip=summary_birth_hybrid_spec.delta_clip,
+            birth_mode=summary_birth_hybrid_spec.birth_mode,
+            birth_local_gain=summary_birth_hybrid_spec.birth_local_gain,
+            model_name=summary_birth_hybrid_spec.model_name,
+            probability_floor=summary_birth_hybrid_spec.probability_floor,
+            birth_dataset_name=summary_birth_hybrid_spec.birth_dataset_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    summary_bank_decoder_spec = resolve_summary_bank_decoder_model_spec(normalized)
+    if summary_bank_decoder_spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = SummaryBankDecoderPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name or "coverage",
+            budget=summary_bank_decoder_spec.budget,
+            samples_per_round=summary_bank_decoder_spec.samples_per_round,
+            k_neighbors=summary_bank_decoder_spec.k_neighbors,
+            model_name=summary_bank_decoder_spec.model_name,
+            probability_floor=summary_bank_decoder_spec.probability_floor,
+            ridge_lambda=summary_bank_decoder_spec.ridge_lambda,
+            include_teacher_logits=summary_bank_decoder_spec.include_teacher_logits,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     query_residual_birth_blend_spec = resolve_query_residual_birth_blend_model_spec(normalized)
     if query_residual_birth_blend_spec is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
@@ -272,5 +330,7 @@ __all__ = [
     "supported_birth_posterior_model_names",
     "supported_query_residual_birth_blend_model_names",
     "supported_query_residual_model_names",
+    "supported_summary_birth_hybrid_model_names",
+    "supported_summary_bank_decoder_model_names",
     "supported_summary_bank_model_names",
 ]

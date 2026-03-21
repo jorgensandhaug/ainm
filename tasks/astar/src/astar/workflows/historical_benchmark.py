@@ -18,6 +18,12 @@ from astar.student.predictor.query_residual_birth_blend_specs import (
     supported_query_residual_birth_blend_model_names,
 )
 from astar.student.predictor.query_residual_specs import resolve_query_residual_model_spec
+from astar.student.predictor.summary_birth_hybrid_specs import (
+    supported_summary_birth_hybrid_model_names,
+)
+from astar.student.predictor.summary_bank_decoder_specs import (
+    supported_summary_bank_decoder_model_names,
+)
 from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
@@ -141,6 +147,8 @@ def run_historical_benchmark(
         "f1_event_regime_v01",
         *supported_birth_posterior_model_names(),
         *supported_query_residual_birth_blend_model_names(),
+        *supported_summary_birth_hybrid_model_names(),
+        *supported_summary_bank_decoder_model_names(),
         *supported_summary_bank_model_names(),
     }:
         raise ValueError(

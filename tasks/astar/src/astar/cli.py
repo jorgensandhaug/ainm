@@ -79,6 +79,12 @@ from astar.student.predictor.query_residual_birth_blend_specs import (
     supported_query_residual_birth_blend_model_names,
 )
 from astar.student.predictor.query_residual_specs import supported_query_residual_model_names
+from astar.student.predictor.summary_birth_hybrid_specs import (
+    supported_summary_birth_hybrid_model_names,
+)
+from astar.student.predictor.summary_bank_decoder_specs import (
+    supported_summary_bank_decoder_model_names,
+)
 from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
@@ -86,6 +92,9 @@ from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.birth_hazard_glm import run_birth_hazard_glm_audit
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.event_regime_posterior_audit import run_event_regime_posterior_audit
+from astar.workflows.event_regime_posterior_audit import (
+    SUPPORTED_EVENT_REGIME_TARGET_FAMILIES,
+)
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
@@ -136,6 +145,8 @@ def build_parser() -> argparse.ArgumentParser:
         "f1_event_regime_v01",
         *supported_birth_posterior_model_names(),
         *supported_query_residual_birth_blend_model_names(),
+        *supported_summary_birth_hybrid_model_names(),
+        *supported_summary_bank_decoder_model_names(),
         *supported_summary_bank_model_names(),
         *supported_query_residual_model_names(),
     ]
@@ -287,6 +298,11 @@ def build_parser() -> argparse.ArgumentParser:
     event_regime_posterior_parser.add_argument("--samples-per-round", type=int, default=4)
     event_regime_posterior_parser.add_argument("--budget", type=int, default=50)
     event_regime_posterior_parser.add_argument("--k-neighbors", type=int, default=7)
+    event_regime_posterior_parser.add_argument(
+        "--target-family",
+        choices=SUPPORTED_EVENT_REGIME_TARGET_FAMILIES,
+        default="rates",
+    )
 
     synthetic_transcript_audit_parser = subparsers.add_parser("run-synthetic-transcript-audit")
     synthetic_transcript_audit_parser.add_argument("--model", choices=online_models, required=True)
@@ -665,6 +681,7 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             budget=args.budget,
             k_neighbors=args.k_neighbors,
+            target_family=args.target_family,
         )
         _emit(args.json, result, render_event_regime_posterior_audit(result))
         return 0

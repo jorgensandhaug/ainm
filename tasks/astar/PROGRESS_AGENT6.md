@@ -1793,3 +1793,213 @@
   - next best path:
     - either run a fuller current tier once more when loop budget allows
     - or exploit the now-validated support-interaction idea in a stronger follow-up branch
+- New full-tier validation attempt after `supportx_v01` win:
+  - confirmed current analyzed∩replay slice is 8 rounds:
+    - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+    - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
+    - `76909e29-f664-4b2f-b16b-61b7507277e9`
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+    - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+    - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - plan:
+    - rerun fresh current 8-round baseline first
+    - only if that completes cleanly, rerun `supportx_v01` on the same slice
+  - reason:
+    - `supportx_v01` is now strong enough on smoke + dev5 that paying the fuller tier is justified
+- Hard pivot after user correction:
+  - stop treating `query_residual` as the family mainline
+  - new target is a genuinely new family-1 predictor built from:
+    - summary-bank transcript posterior
+    - birth-posterior local build signal
+    - low-gain semimechanistic teacher correction
+  - rationale:
+    - birth posterior is the strongest live-safe event posterior found so far
+    - summary-bank posterior is decent but the teacher decoder alone is too crude
+    - so the next real model should use those learned posterior signals inside a stronger hybrid decoder, not another `query_residual` tweak
+- User-directed family pivot:
+  - stop spending mainline effort on `query_residual` branches
+  - go back to the intended family stack:
+    - posterior over round regime
+    - fast terminal decoder
+    - semimechanistic / teacher-backed online model
+- New mainline model hypothesis:
+  - strongest current non-`query_residual` substrate is not another hand event overlay
+  - it is:
+    - `SummaryBank`-style regime inference from live transcript summaries
+    - plus a learned fast terminal decoder conditioned on:
+      - static map features
+      - historical prior logits
+      - inferred round regime
+  - why:
+    - the current `SummaryBankTeacherPredictor` already proved the posterior path is nontrivially informative
+    - but its decoder is the old crude `HazardTeacher` terminal-law map, which is exactly where quality still collapses
+    - this lines up with the handoff target `F_phi(M, z)` fast terminal decoder
+- New parallel exploration block:
+  - existing non-`query_residual` family candidates now worth sweeping in parallel on the fresh current smoke slice:
+    - `f1_summary_birth_hybrid_t20_v01`
+    - `f1_summary_birth_hybrid_t35_v01`
+    - `f1_summary_birth_hybrid_t20m25_v01`
+    - new decoder path `f1_summary_bank_decoder_v01`
+    - new decoder path `f1_summary_bank_decoder_teacher_v01`
+  - goal:
+    - find out quickly whether the family stack can produce a benchmarkable model through stronger decoder integration, not only through the weak old teacher decode
+- Landed new non-`query_residual` decoder family:
+  - files:
+    - `src/astar/student/predictor/summary_bank_decoder.py`
+    - `src/astar/student/predictor/summary_bank_decoder_specs.py`
+    - `tests/test_summary_bank_decoder_predictor.py`
+  - model idea:
+    - keep `SummaryBank` posterior inference over transcript summaries
+    - replace crude `HazardTeacher.posterior_predictive(...)` terminal-law decode with a learned entropy-weighted ridge decoder over:
+      - static spatial basis
+      - historical prior logits
+      - inferred regime vector
+      - optional teacher logits
+      - spatial × regime interactions
+  - important bug found and fixed:
+    - decoder family was wired into `build_online_predictor(...)`
+    - but not exposed in top-level `astar run-historical-benchmark --model ...` CLI choices
+    - fixed in `src/astar/cli.py`
+    - added parser regression coverage in `tests/test_summary_bank_decoder_predictor.py`
+- Completed current-smoke decoder family benchmarks on rounds:
+  - `8e839974-b13b-407b-a5e7-fc749d877195`
+  - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+- Fresh current family baseline:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_summary_bank_teacher_b50s4k7_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_summary_bank_teacher_b50s4k7_v01_probe3_current --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_bank_teacher_b50s4k7_v01_probe3_current/result.json`
+  - result:
+    - mean score `58.6812`
+    - weighted KL `0.184266`
+    - wall `4:11.84`
+    - max RSS `13.75 GB`
+  - paired compare vs current best `f1_student_query_residual_supportx_v01`:
+    - score delta `-14.2362`
+    - KL delta `+0.078570`
+    - win rate `0.000`
+    - CI95 `[-20.8383, -8.9649]`
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_bank_teacher_b50s4k7_v01.json`
+- First decoder results:
+  - `f1_summary_bank_decoder_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_bank_decoder_v01_probe3_current/result.json`
+    - result:
+      - mean score `69.3983`
+      - weighted KL `0.129872`
+      - wall `6:23.85`
+      - max RSS `13.73 GB`
+    - compare vs `supportx_v01`:
+      - score delta `-3.5191`
+      - KL delta `+0.024176`
+      - win rate `0.467`
+      - CI95 `[-11.8414, 4.0787]`
+    - compare vs `summary_bank_teacher_b50s4k7_v01`:
+      - score delta `+10.7171`
+      - KL delta `-0.054395`
+      - win rate `0.867`
+      - CI95 `[7.1971, 14.3592]`
+  - `f1_summary_bank_decoder_teacher_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_bank_decoder_teacher_v01_probe3_current/result.json`
+    - result:
+      - mean score `69.5816`
+      - weighted KL `0.129357`
+      - wall `6:53.02`
+      - max RSS `13.71 GB`
+    - compare vs `supportx_v01`:
+      - score delta `-3.3358`
+      - KL delta `+0.023661`
+      - win rate `0.467`
+      - CI95 `[-11.8958, 4.5422]`
+    - compare vs `summary_bank_teacher_b50s4k7_v01`:
+      - score delta `+10.9004`
+      - KL delta `-0.054910`
+      - win rate `0.867`
+      - CI95 `[7.3338, 14.7581]`
+  - read:
+    - decoder family is a real internal improvement over the old summary-bank teacher line
+    - but still not competitive with current best family output
+- Decoder regularization sweep after first positive internal lift:
+  - new immutable specs:
+    - `f1_summary_bank_decoder_r3_v02`
+    - `f1_summary_bank_decoder_teacher_r3_v02`
+    - `f1_summary_bank_decoder_teacher_r1_v02`
+  - results:
+    - `f1_summary_bank_decoder_r3_v02`
+      - mean score `69.3700`
+      - weighted KL `0.130022`
+      - worse than `f1_summary_bank_decoder_v01`
+    - `f1_summary_bank_decoder_teacher_r3_v02`
+      - mean score `69.4694`
+      - weighted KL `0.129853`
+      - worse than `f1_summary_bank_decoder_teacher_v01`
+    - `f1_summary_bank_decoder_teacher_r1_v02`
+      - mean score `69.4287`
+      - weighted KL `0.129984`
+      - worse than `f1_summary_bank_decoder_teacher_v01`
+  - read:
+    - simple lower-ridge tuning is not the missing ingredient
+    - decoder family currently plateaus at about `69.58` on current smoke
+    - still worth remembering because it closes most of the gap from `58.68` teacher baseline, but it is not yet promotable
+- Validation upgrade for posterior-target work:
+  - generalized `src/astar/workflows/event_regime_posterior_audit.py`
+    - new `target_family` support:
+      - `rates`
+      - `collapse_portsplit`
+      - `birth_collapse_portsplit`
+    - new standardized metrics added:
+      - `standardized_baseline_mae`
+      - `standardized_knn_mae`
+      - `standardized_mae_gain`
+      - `standardized_baseline_mse`
+      - `standardized_knn_mse`
+      - `standardized_mse_gain`
+    - why:
+      - raw MAE/MSE across different target families are not comparable because scales differ
+      - standardized equal-round metrics let target-family selection stay honest
+  - CLI/report wiring updated in:
+    - `src/astar/cli.py`
+    - `src/astar/cli_output.py`
+  - regression coverage updated in:
+    - `tests/test_event_regime_posterior_audit.py`
+- Real posterior-audit reruns on cached `f1_synthetic_live_coverage_b50_s4_v2`:
+  - `rates`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_rates_b50s4_v02/result.json`
+    - standardized gain:
+      - MAE `1.047355 -> 0.823027`, gain `+0.224329`
+      - MSE `2.545939 -> 1.581901`, gain `+0.964038`
+  - `collapse_portsplit`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_collapse_portsplit_b50s4_v01/result.json`
+    - standardized gain:
+      - MAE `0.994317 -> 0.879917`, gain `+0.114400`
+      - MSE `1.735929 -> 1.154295`, gain `+0.581634`
+  - `birth_collapse_portsplit`
+    - artifact:
+      - `data/artifacts/family1/posterior_audit/f1_event_regime_posterior_knn_birth_collapse_portsplit_b50s4_v01/result.json`
+    - standardized gain:
+      - MAE `1.012163 -> 0.834076`, gain `+0.178087`
+      - MSE `2.038628 -> 1.287696`, gain `+0.750931`
+  - read:
+    - richer collapse port-split targets are genuinely learnable from transcript summaries
+    - but the old `rates` family is still the strongest target family overall under the new standardized metric
+    - best interpretation:
+      - keep `rates` as the primary posterior audit gate
+      - use port-split collapse families as a secondary structural diagnostic, not yet the main target
+- Cleanup:
+  - removed accidental duplicate `data/data/...` synthetic dataset created by a bad `WorkspacePaths.from_root(...)` call during ad-hoc analysis
+  - removed partial `tmp_f1_summary_birth_hybrid_*_probe3_current` artifacts with null metrics; they were interrupted/no-result scratch artifacts, not real experiments
+- Current best read after this block:
+  - nothing in the instructions forced `query_residual`; that was my own local optimization mistake because it was the strongest immediately benchmarkable line
+  - after the user correction and this decoder/pseudo-teacher sweep, the family mainline should now be:
+    - richer posterior targets / latent targets
+    - then stronger decoder families only if they are fed a better posterior than the old summary-bank teacher latent
+  - specifically:
+    - the decoder bottleneck is no longer hypothetical; learned decode gives a big family lift
+    - but posterior/latent quality is still not good enough to beat the best current benchmarkable line
