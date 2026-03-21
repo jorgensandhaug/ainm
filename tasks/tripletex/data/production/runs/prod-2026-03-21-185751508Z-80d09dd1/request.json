@@ -1,0 +1,8 @@
+{
+  "prompt": "Register the supplier Silveroak Ltd with organization number 889586605. Email: faktura@silveroakltd.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "1b7dC1JmDrOBov31C_K_JUZsJN0C8TRyFe-Wg1bCqS4"
+  }
+}

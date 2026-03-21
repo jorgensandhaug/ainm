@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-191859667Z-28427a26",
+  "request_id": "0be54474",
+  "prompt_raw": "Vi har en ny ansatt som heter Ingrid Johansen, født 9. November 1995. Opprett vedkommende som ansatt med e-post ingrid.johansen@example.org og startdato 13. January 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:19:50Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:18:59.734Z",
+  "after_captured_at": "2026-03-21T19:20:21.043Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "01",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:20:21.044Z"
+}

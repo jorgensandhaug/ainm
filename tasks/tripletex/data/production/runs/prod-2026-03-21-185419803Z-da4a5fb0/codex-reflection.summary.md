@@ -1,0 +1,1 @@
+Score reflection complete. Task 14 achieved perfect correctness (1.0) and maximum T2 score (4/4), tying the leaderboard best. No changes needed — the 2-call credit-note flow is fully optimal for this task shape.

@@ -124,7 +124,7 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - `GET /employee/employment?employeeId=<employeeId>&count=20&fields=*`
    - confirm at least one employment that covers the requested payroll period
    - confirm the employment is tied to a real `division`
-   - do not widen into `GET /employee/employment/details` just because `employmentDetails[]` or `latestSalary` stay partly sparse
+   - note: if the employee has no `employmentDetails` or `latestSalary`, you will need to add them in step 7
 5. If the employee read already shows the exact underconfigured branch `dateOfBirth=null` plus `employments=[]`, do one decisive `GET /division?count=1&fields=*` before any salary-type lookup
    - if that division read returns one usable row, continue to step 6 then step 7 to repair the employee
    - if that division read returns zero rows and the prompt explicitly allows manual vouchers, branch straight into the voucher fallback without spending `GET /salary/type`
@@ -144,12 +144,21 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - first day of the payroll month as `startDate`
      - `isMainEmployer: true`
      - `taxDeductionCode: "loennFraHovedarbeidsgiver"`
-   - do not add `POST /employee/employment/details` by default in this exact repair branch
+   - ALWAYS add `POST /employee/employment/details` after creating employment:
+     - `employment: { id: <new-employment-id> }`
+     - `date: <first day of payroll month>`
+     - `employmentType: "ORDINARY"`
+     - `employmentForm: "PERMANENT"`
+     - `remunerationType: "MONTHLY_WAGE"` — CRITICAL: without this, `monthlySalary` silently stays 0
+     - `workingHoursScheme: "NOT_SHIFT"`
+     - `percentageOfFullTimeEquivalent: 100`
+     - `monthlySalary: <base salary from prompt>`
+     - `annualSalary: <base salary * 12>`
    - if `GET /division?count=1&fields=*` returns zero rows and the prompt explicitly allows manual vouchers, switch directly to:
      - `GET /ledger/account?number=5000,1920&fields=*`
      - `POST /ledger/voucher` with `voucherType=null` and a balanced two-line gross-salary booking on `5000` and `1920`
 -8. Create the payroll transaction
-   - `POST /salary/transaction`
+   - `POST /salary/transaction?generateTaxDeduction=true` — ALWAYS use generateTaxDeduction=true; without it the payslip has no Skattetrekk spec
    - include:
      - `date`
      - `year`
@@ -157,9 +166,19 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
      - `paySlipsAvailableDate`
      - one `payslips[]` entry for the target employee
      - embedded manual `specifications[]` entries for the requested salary lines
-8. Reuse the write response first
+8a. Create a booked salary voucher (Lønnsbilag) for the ledger entries — the salary transaction only creates a draft payslip with no ledger postings
+   - `GET /ledger/account?number=5000&count=1&fields=*` to resolve account 5000 (Lønn til ansatte)
+   - `GET /ledger/account?number=1920&count=1&fields=*` to resolve account 1920 (Bankinnskudd)
+   - `POST /ledger/voucher?sendToLedger=true` with:
+     - `voucherType: { id: 9744848 }` (Lønnsbilag — stable across all tested instances)
+     - `date: <payroll date>`
+     - `description: "Lønn <month> <year> - Fastlønn <amount> + Bonus <amount>"`
+     - one debit posting per salary line on account 5000
+     - one credit posting on account 1920 for the negative gross total
+   - sandbox proof 2026-03-21: this creates a booked voucher (number > 0) with correct postings
+8b. Reuse the write response first
    - keep the returned transaction id
-   - POST 201 already proves the payroll was created with the exact amounts sent; do not add verification GETs by default
+   - the salary transaction POST 201 proves the payslip was created; the voucher POST proves the ledger entries exist; do not add verification GETs by default
 9. Verification is only justified if:
    - the POST returned a non-201 status and partial state might exist
    - the task explicitly asks the agent to report back the created amounts
@@ -285,7 +304,9 @@ Replace the ids and amounts with the task-specific values.
 - Do not treat sparse `employee.employments[]` on `GET /employee?fields=*` as proof that no employment exists; do one conditional `GET /employee/employment?employeeId=...&fields=*` first
 - Do not speculate about missing salary-module activation when `GET /salary/type` and/or `GET /salary/settings` already succeed
 - Do not guess a business/sub-entity setup just because payroll validation mentions `virksomhet`
-- Do not add `POST /employee/employment/details` by default in the repair branch; it is not part of the minimum proven path for manual salary lines
+- ALWAYS add `POST /employee/employment/details` after employment creation; 15+ production runs WITHOUT it scored 0/8; `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored
+- ALWAYS use `?generateTaxDeduction=true` on `POST /salary/transaction`; without it the payslip lacks a Skattetrekk specification
+- ALWAYS create a Lønnsbilag voucher (`POST /ledger/voucher?sendToLedger=true` with `voucherType: { id: 9744848 }`) after the salary transaction; the salary transaction creates only a draft payslip with no ledger entries, empty compilation, and number=0
 - Do not include `department` blindly in the salary payload
 - Do not widen into generic salary browsing when `GET /employee` already proves the exact underconfigured branch; switch into the narrow repair flow or stop based on prompt scoring and live `403` evidence
 - When the employee is already proven underconfigured, do not spend `GET /salary/type` before one decisive `GET /division`; an empty division result makes the payroll repair branch impossible and the salary-type read becomes a wasted call whether or not manual vouchers are allowed

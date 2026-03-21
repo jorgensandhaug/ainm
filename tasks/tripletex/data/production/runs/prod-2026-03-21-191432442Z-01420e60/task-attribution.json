@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-191432442Z-01420e60",
+  "request_id": "7d594cc4",
+  "prompt_raw": "Necesitamos el gasto de Kundemøte lunsj de este recibo registrado en el departamento Drift. Usa la cuenta de gastos correcta y asegura el tratamiento correcto del IVA.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:15:38Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:14:32.500Z",
+  "after_captured_at": "2026-03-21T19:16:08.808Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "22",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:16:08.808Z"
+}

@@ -36,10 +36,16 @@ fractional depreciation and causes scoring failures.
 
 ## Prepaid Expense Contra Account
 The task typically says "reverser forskuddsbetalte kostnader på konto 1700" without specifying the expense contra.
-- Account 1700 in the standard Norwegian chart (NS 4102) = "Forskuddsbetalt leiekostnad" (prepaid rent)
-- Standard contra: **6300** (Leie lokale / Rent expense)
-- Include 6300 in the initial account lookup
-- If the task explicitly names a different expense contra, use that instead
+
+**Name-based mapping** (read account 1700 name from the initial GET response):
+- "Forskuddsbetalt leiekostnad" → **6300** (Leie lokale / Rent expense)
+- "Forskuddsbetalte forsikringspremier" → **7500** (Forsikringspremie)
+- "Forskuddsbetalte kostnader" (generic) → **6300** (default fallback)
+
+Include the contra account in the initial account lookup.
+If the task explicitly names a different expense contra, use that instead.
+
+**OPEN ISSUE (2026-03-21)**: Checks 4+5 fail in ALL 5 production runs despite using 6300 as contra when account name is "Forskuddsbetalt leiekostnad". Root cause uncertain — possible causes: scorer expects a different contra, or checks 4+5 validate something other than the prepaid reversal.
 
 ## Account Existence
 
@@ -56,30 +62,23 @@ Standard names for commonly missing accounts:
 - 1209: "Akkumulerte avskrivninger"
 - 8700: "Skattekostnad på ordinært resultat"
 
-## Canonical API Flow (7–8 calls)
+## Canonical API Flow (7–9 calls)
 
-### Phase 1: Two parallel GETs (2 calls)
+### Phase 1: Account lookup (1 GET)
 1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
    - Include ALL accounts: depreciation cost, accumulated depreciation, prepaid, expense contra, tax expense, tax payable
    - Example: `number=1209,6010,1700,6300,8700,2920`
    - Check which accounts were returned
-
-2. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=3000&accountNumberTo=8700&fields=*,account(id,number,name)&count=1000`
-   - `accountNumberTo=8700` is exclusive, so includes 3000–8699 (all revenue + expenses before tax)
-   - Sum `balanceOut` across all returned rows
-   - Revenue accounts (3xxx) have negative balanceOut (credit); expense accounts (4xxx–8xxx) have positive (debit)
-   - `preTaxProfit = -(sumOfBalanceOut)`
-   - Adjust for planned entries: `adjustedProfit = preTaxProfit - totalDepreciation - prepaidReversal`
-   - `taxAmount = Math.round(Math.max(0, adjustedProfit) * 0.22)`
+   - Read account 1700's name to determine the prepaid contra (see Prepaid Expense Contra Account)
 
 ### Phase 1b: Create missing accounts (0–1 call)
-3. If any accounts from step 1 were NOT returned:
+2. If any accounts from step 1 were NOT returned:
    - 1 missing → `POST /ledger/account`
    - 2+ missing → `POST /ledger/account/list` (batch create, single call)
    - Reuse returned IDs from the create response
 
-### Phase 2: Five POSTs (5 calls)
-4–6. Three `POST /ledger/voucher` for depreciation (one per asset):
+### Phase 2: Four POSTs — depreciation + prepaid (4 calls)
+3–5. Three `POST /ledger/voucher` for depreciation (one per asset):
 ```json
 {
   "date": "YYYY-12-31",
@@ -91,7 +90,7 @@ Standard names for commonly missing accounts:
 }
 ```
 
-7. One `POST /ledger/voucher` for prepaid expense reversal:
+6. One `POST /ledger/voucher` for prepaid expense reversal:
 ```json
 {
   "date": "YYYY-12-31",
@@ -103,6 +102,15 @@ Standard names for commonly missing accounts:
 }
 ```
 
+### Phase 3: Balance sheet for tax (1 GET — POST-THEN-READ)
+7. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=3000&accountNumberTo=8700&fields=*,account(id,number,name)&count=1000`
+   - Read AFTER posting depreciation + prepaid vouchers (post-then-read)
+   - The balance sheet now reflects all posted entries — no manual adjustment needed
+   - Sum `balanceOut` across all returned rows
+   - `preTaxProfit = -(sumOfBalanceOut)`
+   - `taxAmount = Math.round(Math.max(0, preTaxProfit) * 0.22)`
+
+### Phase 4: Tax voucher (0–1 POST)
 8. One `POST /ledger/voucher` for tax expense (only if `taxAmount > 0`):
 ```json
 {
@@ -116,8 +124,8 @@ Standard names for commonly missing accounts:
 ```
 
 ## Call Count Summary
-- All accounts exist: 2 GET + 5 POST = **7 calls**
-- Some accounts missing: 2 GET + 1 POST (create) + 5 POST (vouchers) = **8 calls**
+- All accounts exist: 1 GET (accounts) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) = **7 calls**
+- Some accounts missing: + 1 POST (create) = **8 calls**
 - Tax result ≤ 0: subtract 1 POST = **6 or 7 calls**
 
 ## Do NOT
@@ -129,6 +137,7 @@ Standard names for commonly missing accounts:
 - **Do NOT combine depreciation vouchers**: When the task says "eget bilag", each depreciation must be a separate voucher.
 - **Do NOT post zero-amount tax voucher**: If taxable result ≤ 0, skip the tax voucher entirely.
 - **Do NOT use `dateTo=YYYY-12-31`**: Balance sheet `dateTo` is exclusive. Use `dateTo=YYYY+1-01-01` to include all of December.
+- **Do NOT read the balance sheet BEFORE posting vouchers for tax**: The post-then-read approach reads the BS AFTER posting depreciation + prepaid, so the BS already includes those entries. No manual adjustment formula needed.
 
 ## Production Verification (2026-03-21, run 1)
 - Task: 2025 year-end closing with 3 assets (Kontormaskiner 222900/10yr, Inventar 254250/8yr, IT-utstyr 207900/6yr), 78250 prepaid reversal (1700→6300), 22% tax (8700→2920)

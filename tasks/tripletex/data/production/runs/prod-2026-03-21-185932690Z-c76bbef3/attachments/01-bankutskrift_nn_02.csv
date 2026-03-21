@@ -1,0 +1,12 @@
+Dato;Forklaring;Inn;Ut;Saldo
+2026-01-16;Innbetaling fra Neset AS / Faktura 1001;11312.50;;111312.50
+2026-01-18;Innbetaling fra Eide AS / Faktura 1002;13812.50;;125125.00
+2026-01-20;Innbetaling fra Lunde AS / Faktura 1003;11737.50;;136862.50
+2026-01-21;Innbetaling fra Stølsvik AS / Faktura 1004;28312.50;;165175.00
+2026-01-23;Innbetaling fra Haugen AS / Faktura 1005;27125.00;;192300.00
+2026-01-25;Betaling Leverandor Lunde AS;;-10950.00;181350.00
+2026-01-28;Betaling Leverandor Neset AS;;-8400.00;172950.00
+2026-01-30;Betaling Leverandor Stølsvik AS;;-5500.00;167450.00
+2026-02-01;Renteinntekter;1475.62;;168925.62
+2026-02-02;Bankgebyr;;-1904.62;167021.00
+2026-02-04;Renteinntekter;;-346.47;166674.53

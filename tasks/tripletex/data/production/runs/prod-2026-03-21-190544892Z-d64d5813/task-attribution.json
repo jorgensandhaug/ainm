@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-190544892Z-d64d5813",
+  "request_id": "ab7b2221",
+  "prompt_raw": "Defina um preço fixo de 313650 NOK no projeto \"Migração para nuvem\" para Estrela Lda (org. nº 922471126). O gestor de projeto é Leonor Sousa (leonor.sousa@example.org). Fature ao cliente 50 % do preço fixo como pagamento por etapa.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:06:59Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:05:44.944Z",
+  "after_captured_at": "2026-03-21T19:07:30.998Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:07:31.001Z"
+}

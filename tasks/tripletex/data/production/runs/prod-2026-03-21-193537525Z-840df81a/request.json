@@ -1,0 +1,8 @@
+{
+  "prompt": "Enviamos una factura por 18687 EUR a Solmar SL (org. nº 877276260) cuando el tipo de cambio era 10.33 NOK/EUR. El cliente ha pagado ahora, pero el tipo es 10.87 NOK/EUR. Registre el pago y contabilice la diferencia de tipo de cambio (agio) en la cuenta correcta.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "XTHRPLyEuyp2GjtatSNSEYu4wjCVikUnt4ownFpyOQc"
+  }
+}

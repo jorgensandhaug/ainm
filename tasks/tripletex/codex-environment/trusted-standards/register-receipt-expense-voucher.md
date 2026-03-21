@@ -13,8 +13,9 @@
 - three proven expense-type branches exist:
   - **Branch A (non-deductible representation)**: receipt line is a business-lunch / restaurant meal such as `Forretningslunsj` or `Kundemøte lunsj` → account `7360`, VAT code `0`
   - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
-  - **Branch C (deductible accommodation, 12% VAT)**: receipt line is hotel / accommodation such as `Overnatting` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 12% VAT (vatType id from account response)
+  - **Branch C (deductible travel/accommodation, 25% VAT)**: receipt line is hotel / accommodation / train ticket such as `Overnatting` or `Togbillett` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 25% VAT (vatType id=`1`)
 - select the branch based on the receipt line text, not the receipt vendor or total
+- **CRITICAL: receipt prices are NET (before VAT)**. Verify: `total × 0.25 == stated MVA` means NET; `total / 1.25 × 0.25 == stated MVA` means GROSS. All task 22 receipts use NET prices. Gross = line × 1.25.
 
 ## Do Not Use This Standard If
 - the task scores a real supplier invoice or supplier object linkage
@@ -26,8 +27,23 @@
 - `Forretningslunsj` / `Kundemøte lunsj` / restaurant meals / business lunch / customer meeting lunch → `7360` (non-deductible representation)
 - `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
 - `Overnatting` / hotel / accommodation → `7140` (Reisekostnad, ikke oppgavepliktig)
+- `Togbillett` / train ticket / transport → `7140` (Reisekostnad, ikke oppgavepliktig)
+- do not use `7100` for train tickets; 7100 is "Bilgodtgjørelse oppgavepliktig" (car allowance), vatLocked=true, fails with 422 if you try incoming 25% VAT
 - do not use `7350` for any representation receipt line; 2026-03-21 production scored `0/10` on that branch
 - if the receipt line text does not clearly map to a known account, check Norwegian standard chart of accounts (6500-series for office costs, 7100-series for travel/accommodation, 7300-series for representation)
+
+## Receipt Amount Interpretation — CRITICAL
+- **These receipts show NET prices (before VAT), not GROSS**
+- The "herav MVA 25%: X" line is VAT calculated as `total × 0.25`, NOT `total / 1.25 × 0.25`
+- **Detection rule**: compute both `total × 0.25` and `total / 1.25 × 0.25`. If the first matches the stated MVA, prices are NET. If the second matches, prices are GROSS.
+- **For NET-priced receipts**: `GROSS = line_amount × 1.25`
+- **For GROSS-priced receipts** (standard): `GROSS = line_amount`
+- All known task 22 receipts show NET prices:
+  - NSB: 11840 × 0.25 = 2960 ✓ (NET)
+  - Thon Hotels: 5330 × 0.25 = 1332.50 ✓ (NET)
+  - Peppes Pizza: 14380 × 0.25 = 3595 ✓ (NET)
+- The agent MUST multiply by 1.25 to get the correct gross amount
+- Previous production runs all scored 0/5 because the NET amount was booked as gross
 
 ## Standard Flow
 
@@ -35,44 +51,49 @@
 1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
 2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
 3. `GET /ledger/account?number=7360,1920&fields=*`
-4. `POST /ledger/voucher`
-5. `POST /ledger/voucher/{voucherId}/attachment`
-6. verify from the two write responses
-7. stop
+4. Detect NET vs GROSS: check if `receipt_total × 0.25 == stated_MVA`. If yes, `GROSS = line_amount × 1.25`. If no, `GROSS = line_amount`.
+5. `POST /ledger/voucher?sendToLedger=true` — **MUST include `?sendToLedger=true`** to book the voucher
+6. `POST /ledger/voucher/{voucherId}/attachment`
+7. verify from the two write responses
+8. stop
 - **Total: 4 API calls** (fresh account with POST department)
 
 ### Branch B — Deductible purchase (`6540` with incoming 25% VAT)
 1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
 2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
 3. `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)` — extract `vatType.id` from account `6540` response
-4. `POST /ledger/voucher` — with explicit `vatType: { id: <from step 3> }` on the expense posting
-5. `POST /ledger/voucher/{voucherId}/attachment`
-6. verify from the two write responses
-7. stop
+4. Detect NET vs GROSS: check if `receipt_total × 0.25 == stated_MVA`. If yes, `GROSS = line_amount × 1.25`. If no, `GROSS = line_amount`.
+5. `POST /ledger/voucher?sendToLedger=true` — with explicit `vatType: { id: <from step 3> }` on the expense posting. **MUST include `?sendToLedger=true`**
+6. `POST /ledger/voucher/{voucherId}/attachment`
+7. verify from the two write responses
+8. stop
 - **Total: 4 API calls** (fresh account with POST department)
 - **No separate `GET /ledger/vatType` needed** — the account's default vatType.id is extracted from step 3
 
-### Branch C — Deductible accommodation (`7140` with incoming 12% VAT)
+### Branch C — Deductible travel/accommodation (`7140` with incoming 25% VAT)
 1. If the prompt does not say the department already exists and the run is fresh-account-like, `POST /department`
 2. Otherwise `GET /department?name=...&isInactive=false&fields=*` and exact-filter locally by `department.name`
-3. `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*)` — extract `vatType.id` from account `7140` response
-4. `POST /ledger/voucher` — with explicit `vatType: { id: <from step 3> }` on the expense posting
-5. `POST /ledger/voucher/{voucherId}/attachment`
-6. verify from the two write responses
-7. stop
+3. `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*)` — note: account `7140` default vatType is 12% (statutory), but receipts state 25% — use vatType id=`1` (incoming 25%) instead
+4. Detect NET vs GROSS: check if `receipt_total × 0.25 == stated_MVA`. If yes, `GROSS = line_amount × 1.25`. If no, `GROSS = line_amount`.
+5. `POST /ledger/voucher?sendToLedger=true` — with explicit `vatType: { id: 1 }` (incoming 25%). **MUST include `?sendToLedger=true`**. Do NOT use the account's default vatType (12%); use the receipt's stated rate (25%).
+6. `POST /ledger/voucher/{voucherId}/attachment`
+7. verify from the two write responses
+8. stop
 - **Total: 4 API calls** (fresh account with POST department)
-- **No separate `GET /ledger/vatType` needed** — the account's default vatType.id is extracted from step 3
-- Identical flow to Branch B but with different account and VAT rate
+- **CRITICAL**: use `vatType: { id: 1 }` (incoming 25%), NOT the account's default `vatType.id=12` (incoming 12%). The receipt states 25% MVA. Using 12% produces wrong amounts and all scorer checks fail.
+- Do NOT make a separate `GET /ledger/vatType` call — hardcode `vatType: { id: 1 }` for 25% incoming
 
 ## Payload Rules
 
 ### Branch A — Non-deductible representation
 - expense account: `7360 Representasjon, ikke fradragsberettiget`
 - account `7360` is `vatLocked=true` with only VAT code `0`, so do not resolve `/ledger/vatType` and do not send an explicit `vatType`
-- book the selected receipt line amount repeated in all four fields:
-  - `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = receipt line price
-- balancing line on `1920` with negated amount in all four fields
+- **CRITICAL**: if receipt prices are NET, compute `GROSS = line_amount × 1.25` and use GROSS in all four fields:
+  - `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = GROSS (the full cost including non-recoverable VAT)
+- if receipt prices are GROSS, use the line amount directly
+- balancing line on `1920` with negated GROSS amount in all four fields
 - no auto-generated VAT posting (code `0`)
+- the company bears the full cost (NET + VAT) since VAT is not deductible
 
 ### Branch B — Deductible purchase
 - expense account: `6540 Inventar` (or other deductible expense account based on receipt line text)
@@ -84,23 +105,26 @@
   - auto-generated 3rd posting on account `2710` for the VAT recovery amount
 - balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated receipt line price
 
-### Branch C — Deductible accommodation
+### Branch C — Deductible travel/accommodation
 - expense account: `7140 Reisekostnad, ikke oppgavepliktig`
-- account `7140` is `vatLocked=false` with default `vatType.id=12` (incoming 12%, lav sats)
-- **CRITICAL**: must send explicit `vatType: { id: <from account response> }` on the expense posting; omitting vatType defaults to code `0` (no VAT), which is WRONG
-- set `amountGross` = `amountGrossCurrency` = receipt line price (gross amount including VAT)
+- account `7140` default vatType is 12% (statutory rate), but **use vatType id=`1` (incoming 25%)** because the receipt states 25% MVA
+- **CRITICAL**: must send explicit `vatType: { id: 1 }` on the expense posting — do NOT use the account's default (12%) and do NOT omit vatType (defaults to code 0)
+- **CRITICAL**: if receipt prices are NET, compute `GROSS = line_amount × 1.25` first
+- set `amountGross` = `amountGrossCurrency` = GROSS (= line_amount × 1.25 for NET-priced receipts)
 - Tripletex auto-calculates:
-  - `amount` = receipt line price / 1.12 (net)
-  - auto-generated 3rd posting on account `2711` or `2710` for the VAT recovery amount
-- balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated receipt line price
-- identical payload shape to Branch B; only the account number and VAT rate differ
+  - `amount` = GROSS / 1.25 = original NET line amount
+  - auto-generated 3rd posting on account `2710` for the VAT recovery amount (= GROSS × 0.2)
+- balancing line on `1920` with `amount` = `amountCurrency` = `amountGross` = `amountGrossCurrency` = negated GROSS
+- applies to: `Overnatting`, `Togbillett`, and any other travel/accommodation receipt lines
 
 ### Common rules (all branches)
-- use the selected line amount from the receipt, not the whole receipt total
+- **detect NET vs GROSS first**: check if `receipt_total × 0.25 == stated_MVA`. If yes, prices are NET and `GROSS = line_amount × 1.25`. If `receipt_total / 1.25 × 0.25 == stated_MVA`, prices are GROSS and `GROSS = line_amount`. All known task 22 receipts are NET.
+- use the selected line's GROSS amount (after NET→GROSS conversion if needed), not the whole receipt total
 - use the receipt date as voucher date
 - preserve the receipt line text exactly in voucher `description` and expense-posting `description`
 - attach the department only on the expense posting, using exact `department.id`
 - use existing bank account `1920` as the balancing line for this card-paid exact shape
+- **ALWAYS use `?sendToLedger=true`** on `POST /ledger/voucher` — without it the voucher stays in draft and the scorer cannot find it (all 5 checks fail)
 - preserve the receipt itself with `POST /ledger/voucher/{voucherId}/attachment`; do not treat the attachment as optional
 - do not use `POST /ledger/voucher/importDocument` as the default attachment path for this shape
 
@@ -202,6 +226,7 @@
 ## Winning Payload Shapes
 
 ### Branch A — Non-deductible representation
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -213,26 +238,29 @@
       "description": "<receipt-line-text>",
       "account": { "id": "<7360-id>" },
       "department": { "id": "<dept-id>" },
-      "amount": "<line-price>",
-      "amountCurrency": "<line-price>",
-      "amountGross": "<line-price>",
-      "amountGrossCurrency": "<line-price>"
+      "amount": "<GROSS>",
+      "amountCurrency": "<GROSS>",
+      "amountGross": "<GROSS>",
+      "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2,
       "date": "<receipt-date>",
       "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>",
-      "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>",
-      "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>",
+      "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>",
+      "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
+Where `GROSS = line_amount × 1.25` for NET-priced receipts, or `GROSS = line_amount` for GROSS-priced receipts.
+```
 
 ### Branch B — Deductible purchase
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -245,25 +273,27 @@
       "account": { "id": "<6540-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<line-price>",
-      "amountGrossCurrency": "<line-price>"
+      "amountGross": "<GROSS>",
+      "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2,
       "date": "<receipt-date>",
       "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>",
-      "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>",
-      "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>",
+      "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>",
+      "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
-- Tripletex will auto-compute `amount` on the expense posting (net = line-price / 1.25) and auto-generate a 3rd posting on `2710`
+- Where `GROSS = line_amount × 1.25` for NET-priced receipts, or `GROSS = line_amount` for GROSS-priced receipts
+- Tripletex will auto-compute `amount` on the expense posting (net = GROSS / 1.25) and auto-generate a 3rd posting on `2710`
 
-### Branch C — Deductible accommodation
+### Branch C — Deductible travel/accommodation
+**URL**: `POST /ledger/voucher?sendToLedger=true`
 ```json
 {
   "date": "<receipt-date>",
@@ -275,21 +305,24 @@
       "description": "<receipt-line-text>",
       "account": { "id": "<7140-id>" },
       "department": { "id": "<dept-id>" },
-      "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<line-price>",
-      "amountGrossCurrency": "<line-price>"
+      "vatType": { "id": 1 },
+      "amountGross": "<GROSS>",
+      "amountGrossCurrency": "<GROSS>"
     },
     {
       "row": 2,
       "date": "<receipt-date>",
       "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<line-price>",
-      "amountCurrency": "-<line-price>",
-      "amountGross": "-<line-price>",
-      "amountGrossCurrency": "-<line-price>"
+      "amount": "-<GROSS>",
+      "amountCurrency": "-<GROSS>",
+      "amountGross": "-<GROSS>",
+      "amountGrossCurrency": "-<GROSS>"
     }
   ]
 }
 ```
-- Tripletex will auto-compute `amount` on the expense posting (net = line-price / 1.12) and auto-generate a 3rd posting on `2711`
+- Where `GROSS = line_amount × 1.25` for NET-priced receipts, or `GROSS = line_amount` for GROSS-priced receipts
+- `vatType: { id: 1 }` = incoming 25% (NOT the account's default 12%)
+- Tripletex will auto-compute `amount` on the expense posting (net = GROSS / 1.25 = original NET line amount) and auto-generate a 3rd posting on `2710`
+- Applies to: `Overnatting`, `Togbillett`, and other travel/accommodation lines

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-21-192157347Z-2db258c9",
+  "request_id": "5d5d0d4e",
+  "prompt_raw": "Voce recebeu uma fatura de fornecedor (ver PDF anexo). Registe a fatura no Tripletex. Crie o fornecedor se nao existir. Use a conta de despesas correta e o IVA de entrada.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:23:24Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:21:57.396Z",
+  "after_captured_at": "2026-03-21T19:25:45.643Z",
+  "diff_entry_count": 0,
+  "inference_status": "no_change_detected",
+  "generated_at": "2026-03-21T19:25:45.646Z"
+}
