@@ -9,6 +9,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+catboost_info/
 
 # Astar data is intentionally versioned and shared through git.
 !data/
