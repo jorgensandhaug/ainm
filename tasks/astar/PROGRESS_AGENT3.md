@@ -4080,6 +4080,40 @@
      - only `4` variants live
      - `jobs=1` each
      - no additional wave stacked after this launch
+453. New hypothesis branch started while all transcript-based families still build/cache:
+   - family:
+     - `round_heatmap_factor_residual`
+   - hypothesis:
+     - ordered transcript encoders may still be overfitting query order and underusing the spatial observation pattern itself
+     - whole-round coverage maps and observed-class count tensors may provide a cleaner state representation for round-law inference
+     - low-rank regression from spatial evidence heatmaps to joint residual bundles could generalize better than transcript-sequence families
+   - objective:
+     - test a spatial evidence-state model, not a transcript-state model
+454. Implemented + validated `round_heatmap_factor_residual`:
+   - new file:
+     - `src/astar/student/predictor/round_heatmap_factor_residual.py`
+   - reproducible models:
+     - `round_heatmap_factor_residual`
+     - `round_heatmap_factor_residual_v1`
+     - `round_heatmap_factor_residual_v2`
+     - `round_heatmap_factor_residual_v3`
+     - `round_heatmap_factor_residual_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, rank `12`, ridge `1.0`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `16`, rank `24`, ridge `2.0`, correction scale `1.00`
+   - model form:
+     - whole-round spatial evidence heatmap vector -> ridge -> low-rank joint residual bundle -> apply jointly across all seeds on top of base `v59/v60`
+   - feature content:
+     - per-seed normalized coverage maps
+     - square-root normalized observed count-mass maps
+     - per-cell observed class-frequency tensors
+     - global observed class frequencies and structural summary stats
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/round_heatmap_factor_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_heatmap_factor_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_heatmap_factor_residual_vector_has_spatial_content tests/test_historical_benchmark.py::test_round_heatmap_factor_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions

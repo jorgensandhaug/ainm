@@ -1295,6 +1295,42 @@ def test_round_transcript_prototype_residual_kmeans_returns_centers() -> None:
     assert len(set(assignments.tolist())) == 2
 
 
+def test_round_heatmap_factor_residual_vector_has_spatial_content() -> None:
+    from astar.observe.evidence import RoundEvidenceBundle, SeedEvidenceBundle
+    from astar.student.predictor.round_heatmap_factor_residual import _round_heatmap_vector
+
+    count_tensor = np.zeros((2, 2, 6), dtype=np.int64)
+    count_tensor[0, 0, 1] = 2
+    count_tensor[1, 1, 4] = 1
+    round_evidence = RoundEvidenceBundle(
+        round_id="round",
+        per_seed={
+            seed_index: SeedEvidenceBundle(
+                round_id="round",
+                seed_index=seed_index,
+                query_count=2,
+                repeated_window_groups=1,
+                coverage_counts=np.asarray([[2, 1], [0, 1]], dtype=np.int64),
+                observed_class_counts=np.sum(count_tensor, axis=(0, 1)),
+                observed_class_frequencies=np.asarray([0.0, 2 / 3, 0.0, 0.0, 1 / 3, 0.0], dtype=np.float64),
+                observed_class_count_tensor=count_tensor,
+                mean_settlement_count=1.0,
+                alive_fraction=1.0,
+                port_fraction=0.0,
+                owner_count=0.2,
+                largest_owner_share=1.0,
+                owner_hhi=1.0,
+            )
+            for seed_index in range(2)
+        },
+    )
+
+    vector = _round_heatmap_vector(round_evidence)
+
+    assert vector.shape[0] > 100
+    assert np.max(np.abs(vector)) > 0.0
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
