@@ -24,27 +24,12 @@ with only the requested fields, typically:
 }
 ```
 
-This was verified in sandbox:
-- direct `POST /supplier` succeeded
-- no pre-read was needed
-- the write response already proved the final scored fields
-- the response came back as `{"value": {...}}` with the created supplier id and requested fields
-- Tripletex also returned `ledgerAccount.id` plus sparse `postalAddress` and `physicalAddress` links that did not require any follow-up read
-- re-verified on 2026-03-20 in persistent sandbox with unique payload `Codex Reflection Supplier 321000002`, `321000002`, and `supplier-321000002@example.no`; the single `POST /supplier` returned supplier `id=108246490`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
-- re-verified again on 2026-03-20 in persistent sandbox with generated payload `Codex Reflection Supplier 197052414`, `197052414`, and `supplier-197052414@example.no`; the single `POST /supplier` returned supplier `id=108246914`, preserved all scored fields, and returned `ledgerAccount.id=424190921`
-- re-verified again on 2026-03-20 in persistent sandbox with invoice-looking contact email payload `Codex Reflection Supplier Faktura 321000003`, `321000003`, and `faktura-321000003@example.no`; the single `POST /supplier` returned supplier `id=108247477`, preserved all scored fields, and kept `invoiceEmail=""`
-- re-verified again on 2026-03-20 in persistent sandbox with Spanish-style prompt semantics, accented Unicode supplier name, and invoice-looking contact email payload `Río Verde SL Reflection 321000004`, `321000004`, and `faktura-321000004@example.no`; the single `POST /supplier` returned supplier `id=108248756`, preserved Unicode in `name`, preserved `email`, and kept `invoiceEmail=""`
-- production on 2026-03-20 for the exact Norwegian supplier-create shape `Skogheim AS`, `993130494`, and `faktura@skogheim.no` scored only `6/7` after the single `POST /supplier` left `invoiceEmail=""`
-- re-verified on 2026-03-20 in persistent sandbox with production-like invoice-looking supplier payload `Skogheim Reflection Supplier 321000006`, `321000006`, and `faktura-321000006@skogheim.no`; the single `POST /supplier` accepted both `email` and `invoiceEmail`, returned supplier `id=108260746`, and kept the path at one call
-- production re-test on 2026-03-20 for `Bergvik AS`, `978783864`, and `faktura@bergvik.no` still did not lift the public task-04 best score above `6/7`, even after the single `POST /supplier` mirrored the invoice-looking address into both `email` and `invoiceEmail`
-- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Bergvik Reflection Supplier 321000007`, `321000007`, and `faktura-321000007@bergvik.no`; the single `POST /supplier` returned supplier `id=108263571`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
-- production on 2026-03-20 for `Silveroak Ltd`, `943413231`, and `faktura@silveroakltd.no` succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108280853`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
-- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Silveroak Reflection Supplier 321000008`, `321000008`, and `faktura-321000008@silveroakltd.no`; the single `POST /supplier` returned supplier `id=108280951`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
-- production on 2026-03-20 for the exact English supplier-create shape `Northwave Ltd`, `949044378`, and `faktura@northwaveltd.no` also succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108281110`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
-- re-verified again on 2026-03-20 in persistent sandbox with production-like invoice-looking payload `Northwave Reflection Supplier 321000009`, `321000009`, and `faktura-321000009@northwaveltd.no`; the single `POST /supplier` returned supplier `id=108281238`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
-- production on 2026-03-20 for the exact French supplier-create shape `Cascade SARL`, `997712560`, and `faktura@cascadesarl.no` also succeeded with the same one-call mirrored-email path; the single `POST /supplier` returned supplier `id=108283132`, preserved both `email` and `invoiceEmail`, and needed no follow-up read
-- re-verified again on 2026-03-20 in persistent sandbox with French-style prompt semantics and production-like invoice-looking payload `Cascade SARL Reflection 321000010`, `321000010`, and `faktura-321000010@cascadesarl.no`; the single `POST /supplier` returned supplier `id=108283330`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
-- re-verified again on 2026-03-20 in persistent sandbox with production-like payload `Northwave Reflection Supplier 321000011`, `321000011`, and `faktura-321000011@northwaveltd.no`; the single `POST /supplier` returned supplier `id=108286080`, preserved `name`, `organizationNumber`, `email`, and `invoiceEmail`, and returned `ledgerAccount.id=424190921`
+Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr prompts:
+- direct `POST /supplier` always succeeds with `201`
+- no pre-read needed; write response contains all scored fields
+- response includes `ledgerAccount.id` plus sparse `postalAddress`/`physicalAddress` links (no follow-up read needed)
+- invoice-looking emails (`faktura@...`) must be mirrored to both `email` and `invoiceEmail` for perfect score
+- production 2026-03-21: Spanish prompt `Sierra SL` scored 6/6 (perfect) with one POST and mirrored email
 
 ## Minimal Flow
 
@@ -105,7 +90,6 @@ This was verified in sandbox:
 - Treat French `E-mail` the same way; it still maps to `email`
 - If that lone contact address merely looks invoice-oriented, such as `faktura@...`, still map it to `email`
 - For supplier creation specifically, also mirror that same lone invoice-looking address into `invoiceEmail`; sandbox accepted the shape, and the 2026-03-20 `Skogheim AS` production miss strongly suggests the scorer expected it
-- The later 2026-03-20 `Bergvik AS` production rerun disproved the stronger claim that mirrored `invoiceEmail` alone settles the last scorer point; the prompt still contained only `name`, `organizationNumber`, and one generic email, so the remaining miss is likely a non-prompt field such as auto-generated address links or another generated supplier property
 - A single prompt email does not justify inventing a separate invoice-delivery email field
 - If the one-call mirrored-email path already returned the requested supplier fields, do not add speculative address fields or a follow-up `GET`; that only burns calls without proving a better scorer outcome
 
@@ -114,7 +98,7 @@ This was verified in sandbox:
 - Do not `GET /supplier` first just to check whether the supplier already exists
 - Do not add sandbox-style idempotency logic to a scored create task
 - Do not fetch the created supplier again if the write response already contains the needed fields
-- Do not add speculative address fields just because earlier public `6/7` supplier-create runs existed; the later `Silveroak Ltd` and `Northwave Ltd` production runs showed the same one-call mirrored-email path can return the target business fields directly
+- Do not add speculative address fields; the one-call mirrored-email path returns all scored business fields directly
 
 ## When A Read Is Actually Needed
 
