@@ -186,6 +186,23 @@ _HAZARD_POSTERIOR_V2_PORT_SPECS: dict[str, HazardPosteriorV2PortModelSpec] = {
         predicted_particle_weight=0.7,
         samples_per_round=8,
     ),
+    # === LOW PROBABILITY FLOOR (agent7 insight) ===
+    "f1_hazard_posterior_v2_k5_r3_f001_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_f001_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        probability_floor=0.001,
+    ),
+    "f1_hazard_posterior_v2_k5_r3_f005_v01": HazardPosteriorV2PortModelSpec(
+        model_name="f1_hazard_posterior_v2_k5_r3_f005_v01",
+        k_neighbors=5,
+        latent_rank=3,
+        ridge_alpha=32.0,
+        predicted_particle_weight=0.7,
+        probability_floor=0.005,
+    ),
     # === SAMPLES_PER_ROUND=1 (agent1's approach) ===
     "f1_hazard_posterior_v2_k5_r3_s1_v01": HazardPosteriorV2PortModelSpec(
         model_name="f1_hazard_posterior_v2_k5_r3_s1_v01",

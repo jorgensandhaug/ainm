@@ -182,7 +182,27 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.5, 0.5),
     ),
-    # LOW PROBABILITY FLOOR VARIANTS (agent7 insight: floor=0.01 is massively over-conservative)
+    # LOW PROBABILITY FLOOR COMPONENTS (agent7 insight: floor=0.01 is massively over-conservative)
+    # Both components use low floor, ensemble also uses low floor
+    "f1_ensemble_hv2f001_sxf001_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f001_sxf001_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f001_v01",
+            "f1_student_query_residual_supportx_f001_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.001,
+    ),
+    "f1_ensemble_hv2f005_sxf005_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2f005_sxf005_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_f005_v01",
+            "f1_student_query_residual_supportx_f005_v01",
+        ),
+        component_weights=(0.5, 0.5),
+        probability_floor=0.005,
+    ),
+    # LOW PROBABILITY FLOOR VARIANTS (ensemble-only floor, components keep 0.01)
     "f1_ensemble_hv2_sx_50_f005_v01": EnsembleModelSpec(
         model_name="f1_ensemble_hv2_sx_50_f005_v01",
         component_model_names=(

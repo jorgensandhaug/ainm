@@ -90,6 +90,19 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         model_name="f1_student_query_residual_supportx_v01",
         feature_variant="v8_supportxbase",
     ),
+    # Low probability floor variants (agent7 insight)
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_supportx_f001_v01",),
+        model_name="f1_student_query_residual_supportx_f001_v01",
+        feature_variant="v8_supportxbase",
+        probability_floor=0.001,
+    ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_supportx_f005_v01",),
+        model_name="f1_student_query_residual_supportx_f005_v01",
+        feature_variant="v8_supportxbase",
+        probability_floor=0.005,
+    ),
 )
 
 _QUERY_RESIDUAL_MODEL_SPECS_BY_NAME = {
