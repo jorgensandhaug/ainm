@@ -48,6 +48,12 @@ from astar.student.predictor.transcript_residual_memory import (
     resolve_transcript_residual_memory_samples_per_round,
     resolve_transcript_residual_memory_variant_spec,
 )
+from astar.student.predictor.transcript_sequence_residual_memory import (
+    is_transcript_sequence_residual_memory_model_name,
+    load_or_fit_named_transcript_sequence_residual_memory_predictor,
+    resolve_transcript_sequence_residual_memory_samples_per_round,
+    resolve_transcript_sequence_residual_memory_variant_spec,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -357,6 +363,30 @@ def _build_prediction_bundle(
             spec.samples_per_round,
         )
 
+    if is_transcript_sequence_residual_memory_model_name(normalized):
+        predictor = load_or_fit_named_transcript_sequence_residual_memory_predictor(
+            paths,
+            model_name=normalized,
+            round_ids=list(training_round_ids),
+            policy_name="coverage",
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
+        spec = resolve_transcript_sequence_residual_memory_variant_spec(
+            normalized,
+            samples_per_round=samples_per_round,
+        )
+        return (
+            bundle,
+            {},
+            0,
+            spec.samples_per_round,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -516,7 +546,14 @@ def evaluate_model_on_round(
                                 samples_per_round=samples_per_round,
                             )
                             if is_transcript_residual_memory_model_name(model_name)
-                            else None
+                            else (
+                                resolve_transcript_sequence_residual_memory_samples_per_round(
+                                    model_name,
+                                    samples_per_round=samples_per_round,
+                                )
+                                if is_transcript_sequence_residual_memory_model_name(model_name)
+                                else None
+                            )
                         )
                     )
                 )
@@ -575,7 +612,14 @@ def evaluate_model_on_round(
                                 samples_per_round=samples_per_round,
                             )
                             if is_transcript_residual_memory_model_name(model_name)
-                            else None
+                            else (
+                                resolve_transcript_sequence_residual_memory_samples_per_round(
+                                    model_name,
+                                    samples_per_round=samples_per_round,
+                                )
+                                if is_transcript_sequence_residual_memory_model_name(model_name)
+                                else None
+                            )
                         )
                     )
                 )

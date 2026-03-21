@@ -3842,6 +3842,43 @@
      - `agent3_tresid_v8_gate`
    - command family:
      - `uv run python scripts/run_targeted_holdout_benchmark.py --model transcript_residual_memory_vX --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_transcript_residual_memory_vX_targeted_holdout_2rounds_corrected --jobs 1`
+435. New hypothesis branch started while items 430 and 434 cache/build:
+   - family:
+     - `transcript_sequence_residual_memory`
+   - hypothesis:
+     - both `transcript_memory` and `transcript_residual_memory` still compress the transcript to order-agnostic bag statistics
+     - round law may depend on which windows were queried early vs late and on the actual local patch content trajectory
+     - nearest-neighbor residual retrieval should improve if the retrieval key includes an ordered query-token tape: viewport path, patch class histogram, and live settlement summary for the last few per-seed queries
+   - objective:
+     - test transcript-order sensitivity directly instead of only better bagging
+436. Implemented + validated `transcript_sequence_residual_memory`:
+   - new file:
+     - `src/astar/student/predictor/transcript_sequence_residual_memory.py`
+   - reproducible models:
+     - `transcript_sequence_residual_memory`
+     - `transcript_sequence_residual_memory_v1`
+     - `transcript_sequence_residual_memory_v2`
+     - `transcript_sequence_residual_memory_v3`
+     - `transcript_sequence_residual_memory_v4`
+     - `transcript_sequence_residual_memory_v5`
+     - `transcript_sequence_residual_memory_v6`
+     - `transcript_sequence_residual_memory_v7`
+     - `transcript_sequence_residual_memory_v8`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, samples `8`, last `4` queries, `k=5`, correction scale `0.75`
+     - `v3/v4`: base `v59/v60`, samples `8`, last `8` queries, `k=5`, correction scale `0.75`
+     - `v5/v6`: base `v59/v60`, samples `16`, last `4` queries, `k=3`, correction scale `1.00`
+     - `v7/v8`: base `v59/v60`, samples `16`, last `8` queries, `k=3`, correction scale `1.00`
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - representation:
+     - retrieval key is the bag-summary vector plus ordered per-query tokens containing viewport path, collapsed 6-class patch frequencies, and live settlement summary
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/transcript_sequence_residual_memory.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_transcript_sequence_residual_memory_historical_benchmark_model tests/test_teacher_student.py::test_transcript_sequence_query_token_vector_is_order_sensitive tests/test_historical_benchmark.py::test_transcript_sequence_residual_memory_v2_online_historical_benchmark_defaults_to_samples_8 -q`
+   - validation result:
+     - `3 passed`
+   - bug fixed during validation:
+     - query-token patch histograms must collapse raw internal terrain codes to the scored 6-class space before frequency encoding
 
 
 ## Open Questions

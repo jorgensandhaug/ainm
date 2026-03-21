@@ -1119,6 +1119,40 @@ def test_transcript_residual_memory_blend_with_residual_shifts_mass() -> None:
     assert refined[0, 0, 2] > base[0, 0, 2]
 
 
+def test_transcript_sequence_query_token_vector_is_order_sensitive() -> None:
+    from astar.core.grid import Viewport
+    from astar.core.trajectory import LiveQueryObs
+    from astar.core.world_state import LiveSettlementObs
+    from astar.student.predictor.transcript_sequence_residual_memory import _query_token_vector
+
+    obs_a = LiveQueryObs(
+        round_id="round",
+        seed_index=0,
+        viewport=Viewport(x=0, y=0, w=2, h=2),
+        grid=np.asarray([[0, 1], [1, 1]], dtype=np.int64),
+        settlements=(
+            LiveSettlementObs(x=0, y=0, population=2.0, food=0.5, wealth=0.3, defense=0.1, has_port=False, alive=True),
+        ),
+        query_index=0,
+    )
+    obs_b = LiveQueryObs(
+        round_id="round",
+        seed_index=0,
+        viewport=Viewport(x=2, y=1, w=2, h=2),
+        grid=np.asarray([[2, 2], [3, 3]], dtype=np.int64),
+        settlements=(
+            LiveSettlementObs(x=2, y=1, population=4.0, food=0.9, wealth=1.1, defense=0.7, has_port=True, alive=True),
+        ),
+        query_index=1,
+    )
+
+    token_a = _query_token_vector(obs_a, map_width=8, map_height=8)
+    token_b = _query_token_vector(obs_b, map_width=8, map_height=8)
+
+    assert token_a.shape == token_b.shape
+    assert not np.allclose(token_a, token_b)
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
