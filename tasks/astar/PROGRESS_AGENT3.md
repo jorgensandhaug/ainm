@@ -1612,8 +1612,42 @@
      - result:
        - `28 passed`
      - added coverage:
-       - semantic-encoder checkpoint roundtrip smoke
-       - `teacher_student_blend_v6` default-sample historical benchmark smoke
+     - semantic-encoder checkpoint roundtrip smoke
+      - `teacher_student_blend_v6` default-sample historical benchmark smoke
+174. Next hypothesis after the semantic kNN branch:
+   - even compact semantic summaries may still be a poor fit for pure nearest-neighbor retrieval
+   - stronger alternative:
+     - learn a direct ridge map from live semantic evidence summary to round regime vector
+   - rationale:
+     - should interpolate across rounds instead of snapping to nearest stored transcripts
+     - likely better with only a handful of replay-backed rounds
+175. Implemented ridge-head summary-bank path:
+   - `SummaryBankStudent` now supports:
+     - `inference_head=knn`
+     - `inference_head=ridge`
+     - `ridge_alpha`
+     - saved/loadable regime intercept + regime weights
+   - `ridge` head outputs a deterministic regime posterior mean from the summary vector
+176. New ridge-semantic model variants:
+   - `teacher_student_blend_v7`
+     - `samples_per_round=4`
+     - `summary_encoder=summary_semantic_v3`
+     - `inference_head=ridge`
+     - `ridge_alpha=2.0`
+     - `teacher_weight_max=0.60`
+   - `teacher_student_blend_v8`
+     - `samples_per_round=8`
+     - `summary_encoder=summary_semantic_v3`
+     - `inference_head=ridge`
+     - `ridge_alpha=2.0`
+     - `teacher_weight_max=0.65`
+177. Validation after item 175-176:
+   - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+   - result:
+     - `30 passed`
+   - added coverage:
+     - semantic-ridge checkpoint roundtrip smoke
+     - `teacher_student_blend_v8` default-sample historical benchmark smoke
 
 
 ## Open Questions

@@ -21,6 +21,9 @@ from astar.teacher.regime.base import RegimePosteriorState
 SUMMARY_ENCODER_V1 = "summary_v1"
 SUMMARY_ENCODER_SPATIAL_V2 = "summary_spatial_v2"
 SUMMARY_ENCODER_SEMANTIC_V3 = "summary_semantic_v3"
+SUMMARY_HEAD_KNN = "knn"
+SUMMARY_HEAD_RIDGE = "ridge"
+SUMMARY_HEADS = frozenset({SUMMARY_HEAD_KNN, SUMMARY_HEAD_RIDGE})
 SUMMARY_ENCODERS = frozenset(
     {SUMMARY_ENCODER_V1, SUMMARY_ENCODER_SPATIAL_V2, SUMMARY_ENCODER_SEMANTIC_V3},
 )
@@ -28,6 +31,24 @@ SUMMARY_ENCODERS = frozenset(
 
 def _optional_float(value: float | None) -> float:
     return 0.0 if value is None else float(value)
+
+
+def _fit_linear_map(
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    *,
+    ridge_alpha: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    design = np.concatenate(
+        [np.ones((inputs.shape[0], 1), dtype=np.float64), inputs],
+        axis=1,
+    )
+    penalty = np.eye(design.shape[1], dtype=np.float64)
+    penalty[0, 0] = 0.0
+    lhs = design.T @ design + ridge_alpha * penalty
+    rhs = design.T @ targets
+    solution = np.linalg.pinv(lhs) @ rhs
+    return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
 
 
 def _resolve_saved_path(path: str | Path) -> Path:
@@ -256,6 +277,8 @@ class SummaryBankStudentCheckpoint(BaseModel):
     regime_dim: int = Field(ge=1)
     summary_encoder: str = SUMMARY_ENCODER_V1
     normalize_summary: bool = False
+    inference_head: str = SUMMARY_HEAD_KNN
+    ridge_alpha: float = Field(default=1.0, gt=0.0)
 
 
 class SummaryBankStudent(BaseModel):
@@ -268,8 +291,12 @@ class SummaryBankStudent(BaseModel):
     k_neighbors: int = Field(default=5, ge=1)
     summary_encoder: str = SUMMARY_ENCODER_V1
     normalize_summary: bool = False
+    inference_head: str = SUMMARY_HEAD_KNN
+    ridge_alpha: float = Field(default=1.0, gt=0.0)
     feature_mean: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     feature_scale: np.ndarray = Field(default_factory=lambda: np.ones(1, dtype=np.float64))
+    regime_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
+    regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     teacher: HazardTeacher
 
     @classmethod
@@ -281,9 +308,13 @@ class SummaryBankStudent(BaseModel):
         k_neighbors: int = 5,
         summary_encoder: str = SUMMARY_ENCODER_V1,
         normalize_summary: bool = False,
+        inference_head: str = SUMMARY_HEAD_KNN,
+        ridge_alpha: float = 1.0,
     ) -> SummaryBankStudent:
         if summary_encoder not in SUMMARY_ENCODERS:
             raise ValueError(f"unsupported summary encoder: {summary_encoder}")
+        if inference_head not in SUMMARY_HEADS:
+            raise ValueError(f"unsupported inference head: {inference_head}")
         if dataset.index_path is None:
             raise ValueError("synthetic dataset requires an index path")
         index_table = pl.read_parquet(dataset.index_path)
@@ -309,6 +340,17 @@ class SummaryBankStudent(BaseModel):
             feature_scale = np.std(summary_stack, axis=0, dtype=np.float64)
             feature_scale = np.where(feature_scale > 1e-6, feature_scale, 1.0)
             summary_stack = (summary_stack - feature_mean[None, :]) / feature_scale[None, :]
+        regime_intercept = np.mean(regime_stack, axis=0, dtype=np.float64)
+        regime_weights = np.zeros(
+            (summary_stack.shape[1], regime_stack.shape[1]),
+            dtype=np.float64,
+        )
+        if inference_head == SUMMARY_HEAD_RIDGE:
+            regime_intercept, regime_weights = _fit_linear_map(
+                summary_stack,
+                regime_stack,
+                ridge_alpha=ridge_alpha,
+            )
         return cls(
             dataset_name=dataset.dataset_name,
             summary_vectors=summary_stack,
@@ -316,8 +358,12 @@ class SummaryBankStudent(BaseModel):
             k_neighbors=k_neighbors,
             summary_encoder=summary_encoder,
             normalize_summary=normalize_summary,
+            inference_head=inference_head,
+            ridge_alpha=ridge_alpha,
             feature_mean=feature_mean,
             feature_scale=feature_scale,
+            regime_intercept=regime_intercept,
+            regime_weights=regime_weights,
             teacher=teacher,
         )
 
@@ -337,6 +383,8 @@ class SummaryBankStudent(BaseModel):
             regime_dim=int(self.regime_vectors.shape[1]),
             summary_encoder=self.summary_encoder,
             normalize_summary=self.normalize_summary,
+            inference_head=self.inference_head,
+            ridge_alpha=self.ridge_alpha,
         )
 
     def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
@@ -349,6 +397,8 @@ class SummaryBankStudent(BaseModel):
             regime_vectors=self.regime_vectors,
             feature_mean=self.feature_mean,
             feature_scale=self.feature_scale,
+            regime_intercept=self.regime_intercept,
+            regime_weights=self.regime_weights,
         )
         json_path.write_text(
             json.dumps(
@@ -376,16 +426,32 @@ class SummaryBankStudent(BaseModel):
             if "feature_scale" in arrays.files
             else np.ones(summary_vectors.shape[1], dtype=np.float64)
         )
+        regime_vectors = np.asarray(arrays["regime_vectors"], dtype=np.float64)
+        regime_dim = regime_vectors.shape[1]
+        regime_intercept = (
+            np.asarray(arrays["regime_intercept"], dtype=np.float64)
+            if "regime_intercept" in arrays.files
+            else np.mean(regime_vectors, axis=0, dtype=np.float64)
+        )
+        regime_weights = (
+            np.asarray(arrays["regime_weights"], dtype=np.float64)
+            if "regime_weights" in arrays.files
+            else np.zeros((summary_vectors.shape[1], regime_dim), dtype=np.float64)
+        )
         return cls(
             name=checkpoint.name,
             dataset_name=checkpoint.dataset_name,
             summary_vectors=summary_vectors,
-            regime_vectors=np.asarray(arrays["regime_vectors"], dtype=np.float64),
+            regime_vectors=regime_vectors,
             k_neighbors=checkpoint.k_neighbors,
             summary_encoder=checkpoint.summary_encoder,
             normalize_summary=checkpoint.normalize_summary,
+            inference_head=checkpoint.inference_head,
+            ridge_alpha=checkpoint.ridge_alpha,
             feature_mean=feature_mean,
             feature_scale=feature_scale,
+            regime_intercept=regime_intercept,
+            regime_weights=regime_weights,
             teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
         )
 
@@ -397,6 +463,16 @@ class SummaryBankStudent(BaseModel):
         )
         if self.normalize_summary:
             query_vector = (query_vector - self.feature_mean) / self.feature_scale
+        if self.inference_head == SUMMARY_HEAD_RIDGE:
+            mean = np.asarray(
+                self.regime_intercept + (query_vector @ self.regime_weights),
+                dtype=np.float64,
+            )
+            return RegimePosteriorState(
+                mean=mean,
+                particles=(mean,),
+                weights=np.asarray([1.0], dtype=np.float64),
+            )
         distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
         order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
         nearest_distances = distances[order]

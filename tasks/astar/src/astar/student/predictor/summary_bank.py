@@ -22,6 +22,8 @@ from astar.student.posterior.deepset_student import (
     SUMMARY_ENCODER_SEMANTIC_V3,
     SUMMARY_ENCODER_SPATIAL_V2,
     SUMMARY_ENCODER_V1,
+    SUMMARY_HEAD_KNN,
+    SUMMARY_HEAD_RIDGE,
     SummaryBankStudent,
 )
 from astar.student.predictor.base import LiveInferenceContext
@@ -36,6 +38,8 @@ SUMMARY_BANK_STUDENT_V3 = "teacher_student_blend_v3"
 SUMMARY_BANK_STUDENT_V4 = "teacher_student_blend_v4"
 SUMMARY_BANK_STUDENT_V5 = "teacher_student_blend_v5"
 SUMMARY_BANK_STUDENT_V6 = "teacher_student_blend_v6"
+SUMMARY_BANK_STUDENT_V7 = "teacher_student_blend_v7"
+SUMMARY_BANK_STUDENT_V8 = "teacher_student_blend_v8"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
     {
         SUMMARY_BANK_STUDENT_ALIAS,
@@ -45,6 +49,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V4,
         SUMMARY_BANK_STUDENT_V5,
         SUMMARY_BANK_STUDENT_V6,
+        SUMMARY_BANK_STUDENT_V7,
+        SUMMARY_BANK_STUDENT_V8,
     },
 )
 
@@ -59,6 +65,8 @@ class SummaryBankVariantSpec(BaseModel):
     query_count_scale: float = Field(default=20.0, gt=0.0)
     summary_encoder: str = SUMMARY_ENCODER_V1
     normalize_summary: bool = False
+    inference_head: str = SUMMARY_HEAD_KNN
+    ridge_alpha: float = Field(default=1.0, gt=0.0)
 
 
 def is_summary_bank_model_name(model_name: str) -> bool:
@@ -88,6 +96,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V4: 8,
         SUMMARY_BANK_STUDENT_V5: 4,
         SUMMARY_BANK_STUDENT_V6: 8,
+        SUMMARY_BANK_STUDENT_V7: 4,
+        SUMMARY_BANK_STUDENT_V8: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -104,6 +114,34 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v5 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V6 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v6 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V7 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v7 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V8 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v8 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V8:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.65,
+            query_count_scale=15.0,
+            summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_RIDGE,
+            ridge_alpha=2.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V7:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.6,
+            query_count_scale=15.0,
+            summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_RIDGE,
+            ridge_alpha=2.0,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V6:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -379,6 +417,8 @@ def load_or_fit_named_summary_bank_predictor(
         k_neighbors=spec.k_neighbors,
         summary_encoder=spec.summary_encoder,
         normalize_summary=spec.normalize_summary,
+        inference_head=spec.inference_head,
+        ridge_alpha=spec.ridge_alpha,
     ).model_copy(
         update={
             "name": spec.model_name,
@@ -403,6 +443,8 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V4",
     "SUMMARY_BANK_STUDENT_V5",
     "SUMMARY_BANK_STUDENT_V6",
+    "SUMMARY_BANK_STUDENT_V7",
+    "SUMMARY_BANK_STUDENT_V8",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",
