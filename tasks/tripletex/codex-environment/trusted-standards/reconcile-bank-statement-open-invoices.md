@@ -73,6 +73,7 @@ Combine non-invoice postings into the same supplier voucher (if one exists) OR c
 | Bankgebyr (bank fee expense) | Ut (-) | credit (negative) | debit 7770 "Bank og kortgebyrer" | 7770 |
 | Bankgebyr (fee refund) | Inn (+) | debit (positive) | credit 7770 "Bank og kortgebyrer" | 7770 |
 | Skattetrekk (tax withholding) | Ut (-) | credit (negative) | debit 2600 "Forskuddstrekk" | 2600 |
+| Skattetrekk (tax refund) | Inn (+) | debit (positive) | credit 2600 "Forskuddstrekk" | 2600 |
 
 For each non-invoice line, add 2 postings:
 ```typescript
@@ -83,9 +84,13 @@ For each non-invoice line, add 2 postings:
 // Example: Skattetrekk 1413.40 (Ut column, negative/outgoing)
 { row: N+2, date: "<date>", description: "Skattetrekk",    account: { id: <2600_id> }, amount: 1413.40,  amountCurrency: 1413.40,  amountGross: 1413.40,  amountGrossCurrency: 1413.40  },
 { row: N+3, date: "<date>", description: "Skattetrekk",    account: { id: <1920_id> }, amount: -1413.40, amountCurrency: -1413.40, amountGross: -1413.40, amountGrossCurrency: -1413.40 },
+
+// Example: Skattetrekk 1269.93 (Inn column, positive/incoming refund)
+{ row: N+4, date: "<date>", description: "Skattetrekk",    account: { id: <1920_id> }, amount: 1269.93,  amountCurrency: 1269.93,  amountGross: 1269.93,  amountGrossCurrency: 1269.93  },
+{ row: N+5, date: "<date>", description: "Skattetrekk",    account: { id: <2600_id> }, amount: -1269.93, amountCurrency: -1269.93, amountGross: -1269.93, amountGrossCurrency: -1269.93 },
 ```
 
-Sandbox-verified on 2026-03-21: voucher #349 with all 3 non-invoice types (Renteinntekter/8050, Bankgebyr/7770, Skattetrekk/2600) booked successfully.
+Sandbox-verified on 2026-03-21: voucher #426 with Bankgebyr/7770, Skattetrekk Inn/2600, Skattetrekk Ut/2600 — all 12 postings booked successfully. Earlier voucher #349 verified Renteinntekter/8050 + Bankgebyr/7770 + Skattetrekk/2600.
 
 ## Call count
 
@@ -98,10 +103,12 @@ Sandbox-verified on 2026-03-21: voucher #349 with all 3 non-invoice types (Rente
 - English run 4: 11 calls, 0 errors, 5 customer (1 partial) + 3 supplier combined into 1 voucher
 - Nynorsk run 2 (c76bbef3): 11 calls, 0 errors, 5 customer (all full) + 3 supplier combined into 1 voucher — optimal
 - Portuguese run (d1297531): 11 calls, 0 errors, 5 customer (1 partial: Sousa Lda 5675 of 14187.50) + 3 supplier combined into 1 voucher — optimal
+- Spanish run (bc688ea1): **0 calls, TIMED OUT** — agent spent all 300s reading documentation and never executed a script; scored 0/1
 - Nynorsk run 1: 13 calls (used 3 separate vouchers instead of 1 combined — wasted 2)
 
 ## Critical pitfalls
 
+- **TIMEOUT RISK**: This is a time-critical task. Read this trusted standard, then IMMEDIATELY write and execute one comprehensive script. Do NOT also read AGENTS.md, openapi.json, or playbook files. Multiple production runs (including bc688ea1) scored 0 because the agent spent the entire 300s reading documentation and never executed a single API call.
 - Bank text invoice labels (e.g. `Faktura 1001`) do NOT equal Tripletex `invoiceNumber` — match on customer name + amount
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes `400`
 - For customer invoices use `amountCurrencyOutstanding` (both `amountOutstanding` and `amountCurrencyOutstanding` exist on `InvoiceDTO`; the latter is correct for foreign currency)

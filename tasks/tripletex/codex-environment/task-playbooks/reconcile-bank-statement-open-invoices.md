@@ -17,7 +17,7 @@ Do not use for:
 
 ## Critical Timing Rule
 
-The task has a hard 300s budget. Do not spend time on debug scripts, exploratory reads, or multiple fallback strategies within the same run. Plan the full flow before the first API call, execute it in one script, and stop.
+The task has a hard 300s budget. **Two production runs have scored 0 due to timeout** — agents spent all 300s reading docs and never executed a script. Do not read AGENTS.md, openapi.json, or additional playbook files once the trusted standard is loaded. Read the trusted standard, parse the CSV, write one comprehensive TypeScript script, and execute immediately. The entire API interaction takes ~15s; the remaining 285s is wasted if spent on documentation exploration.
 
 ## Production Run Results (2026-03-21)
 
@@ -44,6 +44,12 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 
 ### Earlier Nynorsk run 1 (task 23, 13 calls, 0 errors)
 - same shape but 3 separate supplier vouchers instead of 1 combined → wasted 2 calls
+
+### Spanish run (bc688ea1, 0 calls, timed out) — SCORED 0/1
+- Agent spent all 300s reading documentation (AGENTS.md, trusted standard, openapi.json) and never wrote or executed a script
+- CSV had 5 customer payments, 3 supplier payments, 1 Bankgebyr (-1083.95), 1 Skattetrekk Inn (+1269.93), 1 Skattetrekk Ut (-600.07)
+- This is the second timeout failure for this task shape; the correct approach takes ~15s to execute
+- **Lesson**: read ONLY the trusted standard, then immediately execute — do not read additional documentation files
 
 ### Earlier English run (task 23, score 0/0)
 - customer payments succeeded (4 full, 1 partial) but agent wasted 300s on supplier debug scripts after `/supplierInvoice` returned 0 → timed out
@@ -189,9 +195,10 @@ Book each non-invoice line with 2 postings (bank + contra account):
 | Bankgebyr (bank fee) | Ut (-) | credit | debit 7770 |
 | Bankgebyr (fee refund) | Inn (+) | debit | credit 7770 |
 | Skattetrekk (tax withholding) | Ut (-) | credit | debit 2600 |
+| Skattetrekk (tax refund) | Inn (+) | debit | credit 2600 |
 
 Add these postings to the combined supplier voucher (no extra API calls needed).
-Sandbox-verified: voucher #349 with all 3 non-invoice types booked successfully.
+Sandbox-verified: voucher #426 with Bankgebyr, Skattetrekk Inn (+), and Skattetrekk Ut (-) booked successfully. Earlier voucher #349 verified Renteinntekter + Bankgebyr + Skattetrekk.
 
 ## `/ledger/posting/openPost` Parameter Notes
 - requires `date` parameter (NOT `dateFrom`/`dateTo`)
