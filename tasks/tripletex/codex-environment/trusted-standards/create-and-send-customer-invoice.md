@@ -163,8 +163,9 @@
   - `POST /invoice?sendToCustomer=true` hit the known bank-account validation (422)
   - bank-account repair: `GET /ledger/account?isBankAccount=true&fields=*` → `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` → retry `POST /invoice?sendToCustomer=true` succeeded (201)
   - final invoice: id=2147643106, invoiceNumber=1, `amountExcludingVatCurrency=14150`, `amountCurrency=17687.5` (14150 × 1.25)
-  - this is the first production confirmation of the existing-customer direct-line create-and-send variant with bank-account repair; the existing-customer branch (3 core + 3 repair = 6 calls) matches the optimal new-customer + repair shape
+  - the existing-customer branch (3 core + 3 repair = 6 calls) matches the optimal new-customer + repair shape
   - the prompt "the customer Brightstone Ltd" with English definite article correctly triggered `GET /customer` instead of `POST /customer`
+  - the 2026-03-21 Nynorsk production run `Sjøbris AS` / `847830840` / `Nettverksteneste` / `7350` / `eksklusiv MVA` confirmed the same existing-customer + bank-repair shape in 6 calls and 0 avoidable errors: `GET /customer` (parallel with `GET /ledger/vatType`) → `POST /invoice` (422 bank) → `GET /ledger/account` → `PUT /ledger/account/{id}` → `POST /invoice` (201, `amountExcludingVatCurrency=7350`, `amountCurrency=9187.5`); this is the first Nynorsk definite-article "kunden" production confirmation of the existing-customer branch
   - persistent sandbox re-verification on 2026-03-21 confirmed the same create-and-send mechanics with `sendToCustomer=true` on the existing customer; sandbox only has 0% VAT so the exact 25% taxed outcome was not reproducible there
   - sandbox also re-confirmed that omitting `vatType` on a direct line creates 0% VAT (amountCurrency == amountExcludingVatCurrency), proving the VAT lookup is essential for the taxed branch
 - product-line order lines with batch-created products verified in persistent sandbox on 2026-03-21:
