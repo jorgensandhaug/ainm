@@ -266,3 +266,8 @@ Standard worktime (per-employee):
   - sandbox confirmed: POST /employee with occupationCode {id: 4169} → 201, readback confirmed occupationCode.id=4169, nameNO=PERSONALRÅDGIVER, code=2512149, percentageOfFullTimeEquivalent=100, annualSalary=650000, employmentForm=PERMANENT, hoursPerDay=7.5
   - hardcoding HR-rådgiver → id 4169 saves 1 call, reducing optimal flow from 5 to 4 calls
   - this is the minimum-call floor for the HR-rådgiver + standard-worktime shape: 4 calls (GET /division, POST /department, POST /employee, POST /employee/standardTime)
+- production run on 2026-03-21 (eighth run, STYRK 4110 contract with nationalIdentityNumber + bankAccountNumber, no standard worktime, 80% employment, Portuguese prompt) used 3 calls: GET /division, POST /department, POST /employee — all succeeded, 0 errors
+  - first production use of the hardcoded STYRK 4110 → id 2951 (KONTORMEDARBEIDER) mapping, saving the occupation-code lookup call
+  - POST /employee included nested employmentDetails with occupationCode { id: 2951 }, percentageOfFullTimeEquivalent 80, annualSalary 910000
+  - sandbox re-verification on 2026-03-21: all fields persisted correctly — occupationCode.id=2951, nameNO=KONTORMEDARBEIDER, code=4114105, percentageOfFullTimeEquivalent=80, annualSalary=910000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE, startDate=2026-08-07, nationalIdentityNumber and bankAccountNumber preserved
+  - this is the minimum-call floor for the hardcoded-occupation-code + no-standard-worktime shape: 3 calls (GET /division, POST /department, POST /employee)
