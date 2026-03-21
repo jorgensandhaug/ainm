@@ -1707,6 +1707,36 @@
      - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
    - training set for that gate:
      - all other currently analyzed historical rounds
+183. Next hypothesis after the temporal-ridge branch:
+   - predicting the regime vector may still be an unnecessary bottleneck because the hazard teacher itself maps regime -> coefficient vector linearly
+   - test a more direct student:
+     - live evidence summary -> teacher coefficient vector -> terminal tensor decode
+184. Implemented coefficient-head summary-bank path:
+   - `HazardTeacher` now exposes public coefficient decode:
+     - `terminal_tensor_from_coefficients(...)`
+   - `SummaryBankStudent` now supports:
+     - `inference_head=coefficient_ridge`
+   - for this head:
+     - training target is the teacher coefficient vector for the round
+     - prediction decodes terminal probabilities directly from predicted coefficients
+185. New temporal coefficient-ridge variants:
+   - `teacher_student_blend_v11`
+     - `samples_per_round=4`
+     - `summary_encoder=summary_temporal_v4`
+     - `inference_head=coefficient_ridge`
+     - `teacher_weight_max=0.70`
+   - `teacher_student_blend_v12`
+     - `samples_per_round=8`
+     - `summary_encoder=summary_temporal_v4`
+     - `inference_head=coefficient_ridge`
+     - `teacher_weight_max=0.75`
+186. Validation after item 183-185:
+   - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+   - result:
+     - `34 passed`
+   - added coverage:
+     - temporal coefficient-head checkpoint roundtrip smoke
+     - `teacher_student_blend_v12` default-sample historical benchmark smoke
 
 
 ## Open Questions

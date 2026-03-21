@@ -326,3 +326,64 @@ def test_summary_bank_student_temporal_ridge_checkpoint_roundtrip(sample_paths: 
     assert reloaded.inference_head == SUMMARY_HEAD_RIDGE
     assert reloaded.normalize_summary is True
     assert posterior.mean.ndim == 1
+
+
+def test_summary_bank_student_temporal_coefficient_checkpoint_roundtrip(sample_paths: RepoPaths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_temporal_coeff_test").fit([round_episode])
+    teacher_checkpoint_path = teacher.save_checkpoint(
+        sample_paths.model_dir("hazard_teacher_temporal_coeff_test") / "checkpoint.json",
+    )
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_summary_temporal_coeff_test",
+    )
+    from astar.student.posterior.deepset_student import (
+        SUMMARY_ENCODER_TEMPORAL_V4,
+        SUMMARY_HEAD_COEFFICIENT_RIDGE,
+        SummaryBankStudent,
+    )
+
+    student = SummaryBankStudent.fit_from_dataset(
+        dataset,
+        teacher,
+        k_neighbors=1,
+        summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+        normalize_summary=True,
+        inference_head=SUMMARY_HEAD_COEFFICIENT_RIDGE,
+        ridge_alpha=2.0,
+    )
+    checkpoint_path = student.save_checkpoint(
+        sample_paths.model_dir("summary_bank_student_temporal_coeff_test"),
+        teacher_checkpoint_path,
+    )
+    reloaded = SummaryBankStudent.load_checkpoint(checkpoint_path)
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    round_context = build_round_context_from_detail(round_record.round)
+    transcript_observations = (
+        round_episode.live_transcript.observations
+        if round_episode.live_transcript is not None
+        else ()
+    )
+    context = LiveInferenceContext(
+        online_episode=round_context_to_online_episode(
+            round_context,
+            transcript_observations,
+        ),
+        geometry_bundle=compute_round_features(round_record.round),
+        evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
+    )
+
+    prediction = reloaded.predict_seed(context, 0)
+
+    assert reloaded.summary_encoder == SUMMARY_ENCODER_TEMPORAL_V4
+    assert reloaded.inference_head == SUMMARY_HEAD_COEFFICIENT_RIDGE
+    assert reloaded.normalize_summary is True
+    assert prediction.shape[-1] == 6
+    assert np.allclose(prediction.sum(axis=-1), 1.0)

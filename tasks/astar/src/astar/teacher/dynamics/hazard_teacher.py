@@ -328,6 +328,18 @@ class HazardTeacher(BaseModel):
         coefficient_vector = self._coefficients_from_regime(np.asarray(regime, dtype=np.float64))
         return self._decode_terminal_tensor(seed, coefficient_vector)
 
+    def terminal_tensor_from_coefficients(
+        self,
+        seed: SeedLike,
+        coefficient_vector: np.ndarray,
+        n_rollouts: int = 256,
+    ) -> np.ndarray:
+        del n_rollouts
+        return self._decode_terminal_tensor(
+            seed,
+            np.asarray(coefficient_vector, dtype=np.float64),
+        )
+
     def posterior_predictive(
         self,
         seed: SeedLike,
