@@ -79,6 +79,42 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.4, 0.4, 0.2),
     ),
+    # k5 hazard + supportx (best individual models)
+    "f1_ensemble_hv2_sx_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+    ),
+    # k7 hazard + supportx
+    "f1_ensemble_hv2k7_sx_50_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2k7_sx_50_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k7_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.5, 0.5),
+    ),
+    # k5 hazard 60% + supportx 40%
+    "f1_ensemble_hv2_sx_60_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_60_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.6, 0.4),
+    ),
+    # k5 hazard 40% + supportx 60%
+    "f1_ensemble_hv2_sx_40_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_hv2_sx_40_v01",
+        component_model_names=(
+            "f1_hazard_posterior_v2_k5_r3_v01",
+            "f1_student_query_residual_supportx_v01",
+        ),
+        component_weights=(0.4, 0.6),
+    ),
 }
 
 
