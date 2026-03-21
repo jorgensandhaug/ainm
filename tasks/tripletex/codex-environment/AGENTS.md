@@ -96,6 +96,7 @@ Authentication:
 | Create product | `./trusted-standards/create-product.md` |
 | Create project | `./trusted-standards/create-project.md` |
 | Create project activity with budget | `./trusted-standards/create-project-activity-with-budget.md` |
+| Analyze expense increase and create internal projects | `./trusted-standards/analyze-expense-increase-create-internal-projects.md` |
 | Onboard employee | `./trusted-standards/onboard-employee.md` |
 | Set project fixed price and invoice partial payment | `./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md` |
 | Register project hours and create project invoice | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
@@ -133,6 +134,7 @@ Authentication:
 | Onboard employee | `./task-playbooks/onboard-employee.md` |
 | Create product | `./task-playbooks/create-product.md` |
 | Create project | `./task-playbooks/create-project.md` |
+| Analyze expense increase and create internal projects | `./task-playbooks/analyze-expense-increase-create-internal-projects.md` |
 | Register project lifecycle with budget, hours, cost, and invoice | `./task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
 | Register project hours and create project invoice | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
 | Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
@@ -157,7 +159,7 @@ Authentication:
 - `/salary/settings/standardTime` and `/salary/settings/standardTime/byDate` — company standard-worktime create/search/effective-date lookup
 - `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, and `/salary/payslip/{id}` — salary-type lookup, payroll transaction create/read/delete, and payslip search/read
 - `/product` and `/product/{id}` — product create/search/update/delete
-- `/project` and `/project/{id}` — project create/search/update/delete
+- `/project`, `/project/list`, and `/project/{id}` — project create/search/batch-create/update/delete
 - `/project/projectActivity` — project-activity create
 - `/project/orderline` and `/project/orderline/{id}` — project order-line create/search/read/update/delete
 - `/order`, `/order/{id}`, and `/order/{id}/:invoice` — order create/search/update/delete and order-to-invoice
@@ -257,6 +259,9 @@ Authentication:
 - For the richer exact onboarding shape `new employee + department + employment percentage + annual salary + standard worktime`, the simple create-employee standard is too weak. Persistent sandbox re-proof on 2026-03-21 confirmed that the lower-risk canonical path is `GET /division?count=1&fields=*` -> `POST /department` -> `POST /employee` with nested `employmentDetails[]` -> `POST /salary/settings/standardTime`, and that the tempting shortcut `department: { name: ... }` inside `POST /employee` still fails `422 department.id`. Production scoring feedback on the analogous 2026-03-21 offer-letter run was only `11/14` after omitting the up-front `division.id` and spending a separate `POST /employee/employment/details`, so use the division read on this fuller employment-relation task shape instead of blindly reusing the simpler employee-card fast path.
 - For the exact create-project shape `existing customer by organizationNumber + existing project manager by email`, the 2026-03-20 persistent sandbox re-proof confirmed there is still no safe 2-call shortcut: `POST /project` with nested `customer { name, organizationNumber }` can return `201` while leaving `customer=null`, and `projectManager` details without `id` still fail validation. Keep the canonical `3`-call path `GET /customer` -> `GET /employee?assignableProjectManagers=true` -> `POST /project`.
 - A newly created employee is not automatically a proven assignable project manager. Persistent sandbox follow-up on 2026-03-21 rejected `POST /project` with `projectManager.id: Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen` even though the employee itself had just been created successfully. If the prompt requires a new employee to become project manager, do not assume there is a cheap public access-toggle write; keep that family out of the exact create-project trusted standard unless corpus evidence already proves the path.
+- For the exact ledger-analysis shape `find the three expense accounts with the largest January->February increase, then create three internal projects and one activity per project`, the lower-call branch is one combined `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`, one `GET /employee?assignableProjectManagers=true&count=1&fields=*`, one `POST /project/list`, then three `POST /project/projectActivity` calls. Do not spend three separate `POST /project` writes here.
+- In that same internal-project branch, `POST /project` without `projectManager` is not safe even with `isInternal=true`; the 2026-03-21 persistent sandbox returned `422` with `Feltet "Prosjektleder" må fylles ut.`
+- When a prompt asks you to reuse a ledger account's name in a created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named rows remain distinguishable.
 - Never use `/incomingInvoice*` in scored runs. Those endpoints are beta-only and user guidance for this repo is that they will never work here; the 2026-03-21 reflection re-check also hit `403 You do not have permission to access this feature.` on `/incomingInvoice/search`.
 - For bank-statement reconciliation tasks, do not assume the bank text invoice label is the literal Tripletex `invoiceNumber`; the 2026-03-21 French CSV run used labels `1001..1005` while the live open invoices were `1..5`, and the correct resolver signal was customer name plus amount plus the open-invoice inventory.
 - For outgoing supplier-payment tasks, do not trust unfiltered `GET /supplierInvoice` or `voucherId=` lookup as a decisive resolver in every account. Persistent sandbox on 2026-03-21 returned real supplier invoices for `GET /supplierInvoice?...&supplierId=108269769...` while the corresponding `voucherId=` lookup returned `values=[]`.

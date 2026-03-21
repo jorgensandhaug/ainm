@@ -1,0 +1,95 @@
+# Analyze Expense Increase And Create Internal Projects
+
+## Trust Level
+- Trusted standard
+- Use directly for exact matches
+- Skip `./openapi.json` re-checking for exact matches
+
+## Exact Match
+- analyze January versus February ledger expenses
+- identify the three expense accounts with the largest increase in amount
+- create one internal project per selected account
+- create one project-specific activity per created project
+- prompt does not ask for invoice/customer linkage, project members beyond the default manager, or further accounting side effects
+
+## Do Not Use This Standard If
+- the prompt scores an existing-project update instead of project creation
+- the prompt specifies a particular project manager by identity that must be preserved
+- the prompt asks for a different month window or more complex analytics than simple January-vs-February increase
+- the account ranking depends on non-ledger sources or additional business filters not already visible on `/ledger/posting`
+
+## Standard Flow
+1. one decisive `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+2. aggregate signed `amount` by expense account and by month in local code
+3. select the top three accounts by `(february total - january total)` descending
+4. resolve one assignable manager with `GET /employee?assignableProjectManagers=true&count=1&fields=*`
+5. `POST /project/list` once with the three internal projects
+6. `POST /project/projectActivity` once per returned project id
+7. verify from write responses
+8. stop
+
+## Keep It Minimal
+- do not split the ledger analysis into separate January and February reads when one combined read already covers both months
+- do not add `GET /project`, `GET /project/{id}`, or `GET /activity` verification reads for this exact shape
+- do not loop over three separate `POST /project` calls when `POST /project/list` already supports batch create
+- do not `POST /activity` first; create the inline project-specific activity directly on `POST /project/projectActivity`
+
+## Payload Rules
+- on the ledger read:
+  - use `fields=*,account(*)`
+  - use `count=10000` on the first pass and paginate only if the response proves you need more
+- on the local ranking step:
+  - treat expense accounts as `account.type == "OPERATING_EXPENSES"`; if `type` is unexpectedly sparse, local fallback to `4000-8999` is acceptable
+  - aggregate signed company-currency `amount`, not `amountCurrency`
+  - prefer `account.displayName` for the project/activity name; if it is absent, fallback to `${account.number} ${account.name}` or bare `account.name`
+- on `GET /employee?assignableProjectManagers=true&count=1&fields=*`:
+  - reuse the first returned assignable manager id
+  - do not spend extra filtering calls when the prompt does not specify a particular manager
+- on `POST /project/list`, include for each row:
+  - `name`
+  - `startDate`
+  - `isInternal: true`
+  - `projectManager: { "id": ... }`
+- on each `POST /project/projectActivity`, include:
+  - `project: { "id": ... }`
+  - `startDate`
+  - inline `activity` with:
+    - `name`
+    - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
+    - `isChargeable: false`
+
+## Reuse From Write Responses
+- from `GET /ledger/posting`:
+  - `account.id`
+  - `account.displayName`
+  - `account.number`
+  - `amount`
+- from `GET /employee`:
+  - `employee.id`
+- from `POST /project/list`:
+  - created `project.id`
+  - returned `project.name`
+  - returned `project.isInternal`
+  - returned `project.projectManager.id`
+- from each `POST /project/projectActivity`:
+  - `value.id`
+  - `value.project.id`
+  - `value.activity.id`
+
+## Verification
+- default verification is zero extra calls
+- trust `POST /project/list` for project ids, names, `isInternal`, and manager linkage
+- trust each `POST /project/projectActivity` for the created activity id and linked project id
+
+## Known Pitfalls
+- `POST /project` without `projectManager` is not a safe shortcut for internal projects; both production and persistent sandbox returned `422` with `Feltet "Prosjektleder" må fylles ut.`
+- using bare `account.name` risks dropping the account number from the scorer-facing label; prefer `account.displayName`
+- re-running the whole script after a validation error can waste the decisive ledger read; fix the exact branch and resume
+- do not rank by absolute values unless the prompt explicitly asks for absolute movement rather than increase
+
+## OpenAPI / Sandbox Status
+- `/ledger/posting`, `/employee`, `/project/list`, and `/project/projectActivity` verified in `./openapi.json`
+- persistent sandbox proof on `2026-03-21` confirmed:
+  - `POST /project` without `projectManager` returned `422` with validation message `Feltet "Prosjektleder" må fylles ut.`
+  - `POST /project/list` successfully created three internal projects in one call when each row included `name`, `startDate`, `isInternal: true`, and `projectManager.id`
+  - `POST /project/projectActivity` then created one inline non-chargeable project-specific activity per created project with no extra read

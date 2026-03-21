@@ -166,6 +166,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/project`
   - `GET` search
   - `POST` create
+- `/project/list`
+  - `POST` batch create
+  - `PUT` batch update
+  - `DELETE` batch delete
 - `/project/{id}`
   - `GET` read
   - `PUT` update
@@ -176,10 +180,13 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `startDate`
 - Standard fast-path note:
   - for the exact create-one-project shape with an existing customer identified by `organizationNumber` and an existing manager identified by `email`, the winning path is usually `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`
+  - for the exact ledger-analysis shape `find the three expense accounts with the biggest January->February increase, then create three internal projects`, the lower-call create branch is one decisive `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`, one `GET /employee?assignableProjectManagers=true&count=1&fields=*`, one `POST /project/list`, then one `POST /project/projectActivity` per created project
   - 2026-03-20 production re-confirmed that the same 3-call path is still minimal for a Portuguese prompt that omitted `startDate`; using the run date in the write payload succeeded directly
   - a same-day Portuguese production run for `Análise Porto` / `Porto Alegre Lda` / `996943305` / `lucas.oliveira@example.org` also stayed on that exact 3-call floor; the Unicode `á` in the project name was not a reason to add any extra resolver or verification read
   - a second 2026-03-20 production re-confirmation for `Havbris AS` / `999148387` / `henrik.degard@example.org` kept the same 3-call floor for a Norwegian prompt that also supplied customer and manager names; the manager prompt name used `Ø` while the email local-part used ASCII `degard`, and that still did not justify any extra disambiguation read after one exact email hit
   - 2026-03-20 persistent sandbox re-proof confirmed there is still no safe `2`-call shortcut for that exact shape: `POST /project` with nested `customer { name, organizationNumber }` can return `201` while leaving `customer=null`, and manager details without `projectManager.id` still fail validation
+  - 2026-03-21 persistent-sandbox proof for the internal-project branch showed that even `isInternal=true` does not waive the manager requirement: `POST /project` without `projectManager` returned `422` with validation message `Feltet "Prosjektleder" må fylles ut.`
+  - that same 2026-03-21 sandbox proof confirmed that `POST /project/list` successfully created three internal projects in one call when each row included `name`, `startDate`, `isInternal: true`, and `projectManager: { "id": ... }`
   - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
   - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
@@ -581,6 +588,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - this is the decisive diagnostic fallback for open customer/supplier subledger rows when a task is clearly about reconciliation but the higher-level invoice endpoint omits expected results
   - it can prove live supplier liability rows on account `2400` even when `voucherId=` lookup on `/supplierInvoice` returns no rows
   - it is not a drop-in replacement for `/supplierInvoice` on payment tasks because it returns posting ids, not supplier-invoice ids
+  - for month-over-month expense-account analysis, prefer one decisive combined read over separate monthly reads: `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+  - on that analysis branch, aggregate signed `amount` by account and month in local code; do not switch to `amountCurrency` or absolute values unless the prompt explicitly asks for transaction-currency or absolute-volume ranking
+  - when the prompt wants you to reuse the account's name in a newly created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named expense rows do not become ambiguous
 
 ## Ledger Voucher
 - `/ledger/voucher`
