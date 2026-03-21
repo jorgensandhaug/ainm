@@ -544,6 +544,24 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
   - when the prompt explicitly gives ledger account numbers, trust those numbers over account-name semantics; persistent sandbox on 2026-03-21 returned requested account `3400` as `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded on that exact row
 
+## Balance Sheet
+- `/balanceSheet`
+  - `GET` search (saldobalanse)
+- Parameters:
+  - `dateFrom` (required): `YYYY-MM-DD` (from and incl.)
+  - `dateTo` (required): `YYYY-MM-DD` (to and **excl.**)
+  - `accountNumberFrom`: integer (from and incl.)
+  - `accountNumberTo`: integer (to and **excl.**)
+  - `count`, `from`, `fields`
+- Returns `ListResponseBalanceSheetAccount` with `values[]` containing `account`, `balanceIn`, `balanceChange`, `balanceOut`
+- Standard year-end note:
+  - for pre-tax result calculation, use `accountNumberFrom=3000&accountNumberTo=8700` to get all revenue and expense accounts excluding tax expense (8700+)
+  - `dateTo` is exclusive, so for full year 2025 use `dateFrom=2025-01-01&dateTo=2026-01-01`
+  - revenue accounts (3xxx) have negative `balanceOut` (credit); expense accounts (4xxx-8xxx) have positive `balanceOut` (debit)
+  - pre-tax profit = `-(sum of all balanceOut values)`; positive means profitable
+  - use `fields=*,account(*)` to expand nested account details (number, name)
+  - 2026-03-21 persistent sandbox confirmed this endpoint returns correct cumulative balances after voucher writes
+
 ## Ledger Accounting Dimension Name
 - `/ledger/accountingDimensionName`
   - `GET` list
@@ -618,6 +636,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
   - **CRITICAL**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version }] }`, not the typical single-object `{ value: { id } }` wrapper; extract from `response.values[0]`
   - the later `PUT /ledger/voucher/{id}` postings MUST include explicit `row` values: `row: 1` for the debit posting, `row: 2` for the supplier liability posting; row 0 is reserved for the system-generated VAT posting and triggers `422` if overwritten
+  - **CRITICAL**: `POST /ledger/voucher` also requires explicit `row` values on postings; without them, all postings default to row 0, which is system-reserved and triggers `422` with `posteringene på rad 0 (guiRow 0) er systemgenererte`; always use `row: 1` for the first posting and `row: 2` for the second
+  - for balanced two-line year-end vouchers (depreciation, prepaid reversal, tax), use `amountGross` / `amountGrossCurrency` with positive value on the debit posting and negative on the credit posting
+  - `/ledger/voucher/list` is `PUT` batch-update only; there is no batch `POST` for creating multiple vouchers in one call
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
   - for receipt-backed manual vouchers, the attachment upload response on `/ledger/voucher/{voucherId}/attachment` is the decisive proof that the final voucher now preserves the source document; do not add `GET /ledger/voucher/{id}` by default once that write already returned `attachment.id`

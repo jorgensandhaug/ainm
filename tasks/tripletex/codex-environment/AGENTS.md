@@ -148,6 +148,7 @@ Authentication:
 | Reconcile bank statement with open invoices | `./task-playbooks/reconcile-bank-statement-open-invoices.md` |
 | Register supplier invoice | `./task-playbooks/register-supplier-invoice.md` |
 | Register travel expense | `./task-playbooks/register-travel-expense.md` |
+| Simplified year-end closing (depreciation, prepaid reversal, tax) | `./task-playbooks/simplified-year-end-closing.md` |
 
 ## Common Endpoints
 - Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
@@ -173,6 +174,7 @@ Authentication:
 - `/ledger/posting` and `/ledger/posting/openPost` — ledger postings search/read plus open customer/supplier postings lookup
 - `/ledger/paymentTypeOut` — outgoing payment-type lookup for supplier-payment flows
 - `/ledger/voucher`, `/ledger/voucher/{id}`, and `/ledger/voucher/{id}/:reverse` — voucher search/create/update/delete/reverse
+- `/balanceSheet` — balance sheet (saldobalanse) search for account balances over a date range
 
 ## Response Conventions
 - List responses are typically wrapped as `{"values": [...], "fullResultSize": N}`.
