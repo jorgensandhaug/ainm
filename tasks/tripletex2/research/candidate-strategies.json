@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "tripletex2.research-candidate-store.v1",
+  "updatedAt": "2026-03-21T20:29:41.082Z",
+  "entries": [
+    {
+      "candidateId": "06.create-employee.v1",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1",
+      "strategyPath": "src/tasks/task-06/strategies/create-employee.ts",
+      "strategyName": "Create employee",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-21T20-29-38-015Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": false,
+        "withinBudget": false,
+        "apiCallCount": 0,
+        "baselineCallBudget": 2,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z/verify-06-06.create-employee.v1-2026-03-21T20-29-41-082Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 1975ms\nreset summary: {\"total\":1747,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":836,\"resource.vouchers\":836,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1747 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 2753ms\nreset summary: {\"total\":1753,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":842,\"resource.vouchers\":842,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1753 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)"
+      ],
+      "createdAt": "2026-03-21T20:26:42.285Z",
+      "updatedAt": "2026-03-21T20:29:41.082Z"
+    },
+    {
+      "candidateId": "11.order-invoice-prepaid.v1",
+      "taskId": "11",
+      "strategyId": "11.order-invoice-prepaid.v1",
+      "strategyPath": "src/tasks/task-11/strategies/order-invoice-prepaid.ts",
+      "strategyName": "Order, invoice, and settle in one write",
+      "status": "draft",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-11/task-11-packet-2026-03-21T20-21-01-189Z.json",
+      "notes": [
+        "Draft challenger aligned to the trusted 5-call exact-match path for Task 11.",
+        "Resolve payment type before invoicing and attempt settlement during PUT /order/{id}/:invoice."
+      ],
+      "createdAt": "2026-03-21T20:20:44Z",
+      "updatedAt": "2026-03-21T20:21:01Z"
+    }
+  ]
+}

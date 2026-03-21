@@ -297,6 +297,7 @@ See:
 Important constraints:
 - sandbox verification is the canonical proof surface for strategies,
 - per-strategy unit tests are useful but not the main correctness mechanism,
+- the research OS itself does not launch or manage external agents,
 - candidate strategies should stay out of live pins until deliberately promoted.
 
 ## How To Update the Classifier Safely

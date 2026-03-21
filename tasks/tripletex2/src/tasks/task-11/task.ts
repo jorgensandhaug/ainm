@@ -69,10 +69,14 @@ export type CreateOrderInvoiceAndRegisterPaymentTaskUnderstandingResult = TaskUn
   typeof CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateOrderInvoiceAndRegisterPaymentTaskModule> {
-  const { strategy } = await import("./strategies/order-invoice-combined-payment");
+  const [{ strategy: splitTailStrategy }, { strategy: prepaidStrategy }] =
+    await Promise.all([
+      import("./strategies/order-invoice-combined-payment"),
+      import("./strategies/order-invoice-prepaid"),
+    ]);
   return {
     task,
-    strategies: [strategy],
+    strategies: [splitTailStrategy, prepaidStrategy],
   };
 }
 export const taskRegistration = {

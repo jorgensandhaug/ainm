@@ -1,0 +1,1 @@
+- Never write tests of strategies. Strategies are to be tested in the sandbox, and then later in production for scoring.
