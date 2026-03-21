@@ -21,6 +21,7 @@ import {
   RUN_ARTIFACT_SCHEMA_VERSION,
   type ActiveStrategySelectionConfig,
   type ClassifierExtractorInput,
+  type ClassifierRetryRejectedTask,
   type InputSource,
   type RunArtifactV1,
   type RunExecutionError,
@@ -32,6 +33,12 @@ import {
   type TripletexCredentialCompanyId,
   type TripletexFetch,
 } from "./contracts";
+import {
+  DEFAULT_NON_ELIGIBLE_TASK_POLICY_PATH,
+  type NonEligibleTaskPolicyConfig,
+  loadNonEligibleTaskPolicy,
+  parseNonEligibleTaskPolicyConfig,
+} from "./non-eligible-task-policy";
 import { writeCanonicalRunArtifact } from "./run-artifact-writer";
 import {
   TripletexHttpError,
@@ -100,6 +107,8 @@ export interface SolvePipelineOptions {
   mode?: RunMode;
   selectionConfigPath?: string;
   selectionConfigOverride?: ActiveStrategySelectionConfig;
+  nonEligibleTaskPolicyPath?: string;
+  nonEligibleTaskPolicyOverride?: NonEligibleTaskPolicyConfig;
   outputRoot?: string;
   promptCorpusPath?: string;
   includePromptText?: boolean;
@@ -132,6 +141,25 @@ interface EffectiveTaskUnderstanding {
   taskSource: TaskSource;
   inputSource: InputSource;
   notes: readonly string[];
+  attempts: readonly TaskUnderstandingAttempt[];
+  policySummary?: TaskUnderstandingPolicySummary;
+}
+
+interface TaskUnderstandingAttempt {
+  attemptNumber: number;
+  result: TaskUnderstandingResult<any, string>;
+  accepted: boolean;
+  rejectedTask?: ClassifierRetryRejectedTask;
+  notes: readonly string[];
+}
+
+interface TaskUnderstandingPolicySummary {
+  policyId: string;
+  policyPath: string;
+  retryCount: number;
+  retried: boolean;
+  excludedTaskIds: readonly string[];
+  finalAcceptedTaskId?: string;
 }
 
 export interface DeterministicSolveSelection {
@@ -257,12 +285,15 @@ export async function runDeterministicSolvePipeline(
   }
 
   const executionSnapshot = callLog.snapshot();
-  const traceSidecarNote =
+  const traceSidecarNotes = [
     executionSnapshot.apiCallCount > 0
       ? `Captured ${executionSnapshot.apiCallCount} Tripletex API calls.`
-      : "No Tripletex API calls were made before the canonical artifact was written.";
+      : "No Tripletex API calls were made before the canonical artifact was written.",
+    ...buildTaskUnderstandingTraceNotes(taskUnderstanding),
+  ];
   const analysisNotes = [
     ...taskUnderstanding.notes,
+    ...buildTaskUnderstandingAnalysisNotes(taskUnderstanding),
     runtimeStatus === "not-run"
       ? "Deterministic runtime did not start because task understanding or strategy selection was unresolved."
       : "Deterministic runtime started only after the task-understanding handoff.",
@@ -335,13 +366,14 @@ export async function runDeterministicSolvePipeline(
         kind: "sanitized-trace",
         payload: {
           trace: executionSnapshot.apiCalls,
-          notes: [traceSidecarNote],
+          notes: traceSidecarNotes,
         },
         summary:
           runtimeStatus === "not-run"
             ? "Sanitized trace for a not-run solve attempt."
             : `Sanitized trace for ${selection?.strategy.strategyId ?? UNRESOLVED_STRATEGY_ID}.`,
       },
+      ...buildTaskUnderstandingReflectionSidecars(taskUnderstanding),
     ],
   });
 
@@ -442,48 +474,358 @@ async function resolveTaskUnderstanding(
       taskSource: options.taskUnderstanding.taskSource ?? "manual-label",
       inputSource: options.taskUnderstanding.inputSource ?? "manual",
       notes: options.taskUnderstanding.notes ?? [],
+      attempts: [
+        {
+          attemptNumber: 1,
+          result: options.taskUnderstanding.result,
+          accepted: true,
+          notes: options.taskUnderstanding.notes ?? [],
+        },
+      ],
     };
   }
 
-  const resolver =
-    options.taskUnderstandingResolver ?? options.classifierExtractor;
+  const policy = await resolveNonEligibleTaskPolicy(options);
+  const attempts: TaskUnderstandingAttempt[] = [];
+  const rejectedTasks: ClassifierRetryRejectedTask[] = [];
+  const allCanonicalTaskIds = taskSpecs.map((taskSpec) => taskSpec.taskId);
+  let invalidRetryResponseCount = 0;
 
-  if (!resolver) {
-    const codexTaskUnderstanding = await runCodexTaskUnderstanding(
+  while (true) {
+    const remainingTaskIds = allCanonicalTaskIds.filter(
+      (taskId) => !rejectedTasks.some((rejectedTask) => rejectedTask.taskId === taskId),
+    );
+
+    if (remainingTaskIds.length === 0) {
+      const result = createExhaustedTaskUniverseResult(rejectedTasks);
+      return {
+        result,
+        taskSource: "llm-classifier",
+        inputSource: "llm-extractor",
+        notes: buildTaskUnderstandingNotes({
+          attempts,
+        }),
+        attempts,
+        policySummary: {
+          policyId: policy.config.policyId,
+          policyPath: policy.configPath,
+          retryCount: Math.max(attempts.length - 1, 0),
+          retried: attempts.length > 1,
+          excludedTaskIds: rejectedTasks.map((task) => task.taskId),
+        },
+      };
+    }
+
+    const attemptNumber = attempts.length + 1;
+    const attempt = await resolveOneTaskUnderstandingAttempt(
       {
         request: {
           prompt: request.prompt,
           files: request.files,
         },
         taskSpecs,
+        ...(rejectedTasks.length > 0
+          ? {
+              retryContext: {
+                attemptNumber,
+                excludedTaskIds: rejectedTasks.map((task) => task.taskId),
+                remainingTaskIds,
+                rejectedTasks,
+                unresolvedIsInvalid: true,
+              },
+            }
+          : {}),
       },
-      options.codexTaskUnderstanding,
+      options,
     );
 
-    return {
-      result: codexTaskUnderstanding.result,
-      taskSource: "llm-classifier",
-      inputSource: "llm-extractor",
-      notes: codexTaskUnderstanding.notes,
-    };
+    const rejectedTask =
+      attempt.result.status === "resolved"
+        ? policy.config.excludedCanonicalTasks[attempt.result.taskId]
+        : undefined;
+
+    if (attempt.result.status === "resolved" && !rejectedTask) {
+      const acceptedAttempt: TaskUnderstandingAttempt = {
+        attemptNumber,
+        result: attempt.result,
+        accepted: true,
+        notes: attempt.notes,
+      };
+      const finalAttempts = [...attempts, acceptedAttempt];
+
+      return {
+        result: attempt.result,
+        taskSource: "llm-classifier",
+        inputSource: "llm-extractor",
+        notes: buildTaskUnderstandingNotes({
+          attempts: finalAttempts,
+        }),
+        attempts: finalAttempts,
+        policySummary: {
+          policyId: policy.config.policyId,
+          policyPath: policy.configPath,
+          retryCount: Math.max(finalAttempts.length - 1, 0),
+          retried: finalAttempts.length > 1,
+          excludedTaskIds: rejectedTasks.map((task) => task.taskId),
+          finalAcceptedTaskId: attempt.result.taskId,
+        },
+      };
+    }
+
+    if (attempt.result.status === "resolved" && rejectedTask) {
+      const rejection = {
+        taskId: attempt.result.taskId,
+        reasonCode: rejectedTask.reasonCode,
+        reason: rejectedTask.reason,
+      } satisfies ClassifierRetryRejectedTask;
+      attempts.push({
+        attemptNumber,
+        result: attempt.result,
+        accepted: false,
+        rejectedTask: rejection,
+        notes: attempt.notes,
+      });
+      if (!rejectedTasks.some((task) => task.taskId === rejection.taskId)) {
+        rejectedTasks.push(rejection);
+      }
+      continue;
+    }
+
+    attempts.push({
+      attemptNumber,
+      result: attempt.result,
+      accepted: false,
+      notes: attempt.notes,
+    });
+
+    if (rejectedTasks.length === 0) {
+      return {
+        result: attempt.result,
+        taskSource: "llm-classifier",
+        inputSource: "llm-extractor",
+        notes: buildTaskUnderstandingNotes({
+          attempts,
+        }),
+        attempts,
+        policySummary: {
+          policyId: policy.config.policyId,
+          policyPath: policy.configPath,
+          retryCount: Math.max(attempts.length - 1, 0),
+          retried: attempts.length > 1,
+          excludedTaskIds: rejectedTasks.map((task) => task.taskId),
+        },
+      };
+    }
+
+    invalidRetryResponseCount += 1;
+  }
+}
+
+async function resolveOneTaskUnderstandingAttempt(
+  input: ClassifierExtractorInput,
+  options: SolvePipelineOptions,
+): Promise<{
+  result: TaskUnderstandingResult<Record<string, unknown>, string>;
+  notes: readonly string[];
+}> {
+  const resolver =
+    options.taskUnderstandingResolver ?? options.classifierExtractor;
+
+  if (!resolver) {
+    return runCodexTaskUnderstanding(input, options.codexTaskUnderstanding);
   }
 
-  const result = await resolver({
-    request: {
-      prompt: request.prompt,
-      files: request.files,
-    },
-    taskSpecs,
-  });
-
   return {
-    result,
-    taskSource: "llm-classifier",
-    inputSource: "llm-extractor",
+    result: await resolver(input),
     notes: [
       "Task understanding used an injected extractor instead of the default Codex codex-environment path.",
     ],
   };
+}
+
+async function resolveNonEligibleTaskPolicy(
+  options: SolvePipelineOptions,
+): Promise<{
+  config: NonEligibleTaskPolicyConfig;
+  configPath: string;
+}> {
+  const loaded = options.nonEligibleTaskPolicyOverride
+    ? {
+        config: parseNonEligibleTaskPolicyConfig(
+          options.nonEligibleTaskPolicyOverride,
+        ),
+        configPath: "inline-override",
+      }
+    : await loadNonEligibleTaskPolicy(
+        options.nonEligibleTaskPolicyPath ??
+          DEFAULT_NON_ELIGIBLE_TASK_POLICY_PATH,
+      );
+
+  const knownCanonicalTaskIds = new Set(taskSpecs.map((taskSpec) => taskSpec.taskId));
+  const unknownTaskIds = Object.keys(loaded.config.excludedCanonicalTasks).filter(
+    (taskId) => !knownCanonicalTaskIds.has(taskId),
+  );
+
+  if (unknownTaskIds.length > 0) {
+    throw new Error(
+      `Non-eligible task policy "${loaded.config.policyId}" contains unknown canonical Tripletex2 task ids: ${unknownTaskIds.join(", ")}.`,
+    );
+  }
+
+  return loaded;
+}
+
+function createExhaustedTaskUniverseResult(
+  rejectedTasks: readonly ClassifierRetryRejectedTask[],
+): TaskUnderstandingResult<Record<string, unknown>, string> {
+  return {
+    status: "unresolved",
+    code: "no-task-match",
+    message:
+      rejectedTasks.length > 0
+        ? `Every remaining canonical Tripletex2 task id was exhausted after rejecting non-eligible selections: ${rejectedTasks.map((task) => `"${task.taskId}"`).join(", ")}.`
+        : "No registered task matched the request.",
+  };
+}
+
+function buildTaskUnderstandingNotes(input: {
+  attempts: readonly TaskUnderstandingAttempt[];
+}): readonly string[] {
+  return dedupeStrings(input.attempts.flatMap((attempt) => attempt.notes));
+}
+
+function buildTaskUnderstandingAnalysisNotes(
+  taskUnderstanding: EffectiveTaskUnderstanding,
+): readonly string[] {
+  if (
+    taskUnderstanding.attempts.length === 0 ||
+    taskUnderstanding.taskSource !== "llm-classifier" ||
+    taskUnderstanding.attempts.length === 1
+  ) {
+    return [];
+  }
+
+  const summaryNote =
+    taskUnderstanding.result.status === "resolved"
+      ? taskUnderstanding.attempts.length > 1
+        ? `Task understanding accepted after ${taskUnderstanding.attempts.length} classifier attempts.`
+        : "Task understanding accepted on the first classifier attempt."
+      : taskUnderstanding.attempts.length > 1
+        ? `Task understanding exhausted ${taskUnderstanding.attempts.length} classifier attempts without finding an eligible final task id.`
+        : "Task understanding remained unresolved on the first classifier attempt.";
+
+  return [
+    summaryNote,
+    ...(taskUnderstanding.policySummary
+      ? [
+          `Non-eligible policy "${taskUnderstanding.policySummary.policyId}" used canonical Tripletex2 task ids from "${taskUnderstanding.policySummary.policyPath}".`,
+        ]
+      : []),
+  ];
+}
+
+function buildTaskUnderstandingTraceNotes(
+  taskUnderstanding: EffectiveTaskUnderstanding,
+): readonly string[] {
+  if (
+    taskUnderstanding.attempts.length === 0 ||
+    taskUnderstanding.taskSource !== "llm-classifier" ||
+    taskUnderstanding.attempts.length === 1
+  ) {
+    return [];
+  }
+
+  return [
+    ...taskUnderstanding.attempts.map((attempt) =>
+      attempt.rejectedTask
+        ? `Classifier attempt ${attempt.attemptNumber} rejected canonical task id "${attempt.rejectedTask.taskId}" as ${attempt.rejectedTask.reasonCode}: ${attempt.rejectedTask.reason}`
+        : attempt.result.status === "resolved"
+          ? `Classifier attempt ${attempt.attemptNumber} accepted canonical task id "${attempt.result.taskId}".`
+          : `Classifier attempt ${attempt.attemptNumber} returned unresolved${attempt.attemptNumber > 1 ? " and runtime required another retry because canonical task ids remained." : "."}`,
+    ),
+    ...(taskUnderstanding.policySummary?.finalAcceptedTaskId
+      ? [
+          `Final accepted canonical task id: "${taskUnderstanding.policySummary.finalAcceptedTaskId}".`,
+        ]
+      : []),
+  ];
+}
+
+function buildTaskUnderstandingReflectionSidecars(
+  taskUnderstanding: EffectiveTaskUnderstanding,
+): Array<{
+  sidecarId: string;
+  kind: "reflection-summary";
+  payload: {
+    summary: string;
+    findings: string[];
+  };
+  summary: string;
+}> {
+  if (
+    taskUnderstanding.attempts.length === 0 ||
+    taskUnderstanding.taskSource !== "llm-classifier"
+  ) {
+    return [];
+  }
+
+  const summary =
+    taskUnderstanding.policySummary?.finalAcceptedTaskId
+      ? taskUnderstanding.policySummary.retried
+        ? `Classifier retry chain accepted canonical task id "${taskUnderstanding.policySummary.finalAcceptedTaskId}" after excluding earlier non-eligible selections.`
+        : `Classifier accepted canonical task id "${taskUnderstanding.policySummary.finalAcceptedTaskId}" on the first attempt.`
+      : "Classifier exhausted the remaining canonical task universe without finding an eligible final task id.";
+
+  return [
+    {
+      sidecarId: "task-understanding-retry-1",
+      kind: "reflection-summary",
+      payload: {
+        summary,
+        findings: [...buildTaskUnderstandingTraceNotes(taskUnderstanding)],
+      },
+      summary,
+    },
+  ];
+}
+
+function describeTaskUnderstandingAttempt(
+  attempt: TaskUnderstandingAttempt,
+): string {
+  if (attempt.rejectedTask) {
+    return (
+      `Task understanding attempt ${attempt.attemptNumber} resolved canonical task id "${attempt.rejectedTask.taskId}", ` +
+      `but runtime rejected it as ${attempt.rejectedTask.reasonCode}: ${attempt.rejectedTask.reason}`
+    );
+  }
+
+  if (attempt.result.status === "resolved") {
+    return (
+      `Task understanding attempt ${attempt.attemptNumber} accepted canonical task id "${attempt.result.taskId}".`
+    );
+  }
+
+  return attempt.attemptNumber > 1
+    ? `Task understanding attempt ${attempt.attemptNumber} returned unresolved after earlier non-eligible rejections, so runtime forced another classification pass over the remaining canonical task ids.`
+    : `Task understanding attempt ${attempt.attemptNumber} returned unresolved.`;
+}
+
+function dedupeStrings(
+  values: readonly (string | undefined)[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value || seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
 }
 
 function buildRunTaskInfo(input: {

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-06-06.create-employee.v1-2026-03-21T20-26-42-285Z",
+  "createdAt": "2026-03-21T20:26:42.285Z",
+  "taskId": "06",
+  "strategyId": "06.create-employee.v1",
+  "candidateId": "06.create-employee.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-21T20-24-11-930Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-26-42-285Z/stage",
+  "artifactPath": "",
+  "sandboxReset": {
+    "command": "bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply",
+    "exitCode": 1,
+    "stdout": "reset summary: {\"total\":1747,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":836,\"resource.vouchers\":836,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\ncredit-note\tinvoices\t2147515684\t1\ncredit-note\tinvoices\t2147515695\t2\ncredit-note\tinvoices\t2147518216\t3\ncredit-note\tinvoices\t2147522260\t4\ncredit-note\tinvoices\t2147522278\t5\ncredit-note\tinvoices\t2147522747\t6\ncredit-note\tinvoices\t2147522759\t7\ncredit-note\tinvoices\t2147525654\t8\ncredit-note\tinvoices\t2147525823\t9\ncredit-note\tinvoices\t2147526064\t10\ncredit-note\tinvoices\t2147526065\t11\ncredit-note\tinvoices\t2147526074\t12\ncredit-note\tinvoices\t2147526076\t13\ncredit-note\tinvoices\t2147526155\t14\ncredit-note\tinvoices\t2147526916\t15\ncredit-note\tinvoices\t2147527118\t16\ncredit-note\tinvoices\t2147527950\t17\ncredit-note\tinvoices\t2147527952\t18\ncredit-note\tinvoices\t2147528033\t19\ncredit-note\tinvoices\t2147529327\t20\ncredit-note\tinvoices\t2147529329\t21\ncredit-note\tinvoices\t2147529421\t22\ncredit-note\tinvoices\t2147529528\t23\ncredit-note\tinvoices\t2147529530\t24\ncredit-note\tinvoices\t2147529747\t25\ncredit-note\tinvoices\t2147529749\t26\ncredit-note\tinvoices\t2147529912\t27\ncredit-note\tinvoices\t2147529935\t28\ncredit-note\tinvoices\t2147529987\t29\ncredit-note\tinvoices\t2147529999\t30\ncredit-note\tinvoices\t2147530391\t31\ncredit-note\tinvoices\t2147530648\t32\ncredit-note\tinvoices\t2147530660\t33\ncredit-note\tinvoices\t2147530662\t34\ncredit-note\tinvoices\t2147530667\t35\ncredit-note\tinvoices\t2147530669\t36\ncredit-note\tinvoices\t2147530780\t37\ncredit-note\tinvoices\t2147531258\t38\ncredit-note\tinvoices\t2147531415\t39\ncredit-note\tinvoices\t2147531552\t40\nreset plan truncated: 1707 additional items omitted\n",
+    "stderr": "reset blocker: sandbox drift is too large for automated verifier reset (1747 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)\n",
+    "durationMs": 1975,
+    "highlights": [
+      "reset summary: {\"total\":1747,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":836,\"resource.vouchers\":836,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}",
+      "reset blocker: sandbox drift is too large for automated verifier reset (1747 planned actions > 200 limit)",
+      "reset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)"
+    ]
+  },
+  "failureStage": "reset",
+  "challengeRun": {
+    "runtimeStatus": "not-run",
+    "apiCallCount": 0,
+    "baselineCallBudget": 2,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "failed",
+    "apiCallCount": 0,
+    "checks": []
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": false,
+    "withinBudget": false,
+    "message": "Sandbox reset failed before challenger verification started.\nCommand: bun /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/src/reset-sandbox.ts apply\nExit code: 1\nDuration: 1975ms\nreset summary: {\"total\":1747,\"action.credit-note\":352,\"resource.invoices\":352,\"action.reverse-voucher\":836,\"resource.vouchers\":836,\"action.delete\":444,\"resource.orders\":182,\"resource.projects\":43,\"resource.products\":67,\"resource.customers\":121,\"resource.departments\":31,\"action.unsupported\":115,\"resource.employees\":115}\nreset blocker: sandbox drift is too large for automated verifier reset (1747 planned actions > 200 limit)\nreset blocker: unsupported reset targets detected for 115 employee records (18441996 Simen Sandhaug f675e571, 18478235 Codex Verification 1773957815637, 18478321 Codex Verification 1773957842947, 18481653 Edward Brown 58933178, 18481783 Edward Brown 58978600)"
+  }
+}

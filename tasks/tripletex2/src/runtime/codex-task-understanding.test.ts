@@ -30,6 +30,39 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
   assert.match(prompt, /"taskName": "Create and send invoice"/);
 });
 
+test("buildCodexTaskUnderstandingPrompt includes retry context with canonical remaining task ids", () => {
+  const prompt = buildCodexTaskUnderstandingPrompt({
+    request: {
+      prompt: "Opprett fakturaen.",
+      files: [],
+    },
+    taskSpecs,
+    retryContext: {
+      attemptNumber: 2,
+      excludedTaskIds: ["08"],
+      remainingTaskIds: ["01", "09"],
+      rejectedTasks: [
+        {
+          taskId: "08",
+          reasonCode: "already-perfect",
+          reason: "Canonical task 08 is already perfect and non-eligible for live selection.",
+        },
+      ],
+      unresolvedIsInvalid: true,
+    },
+  });
+
+  assert.match(prompt, /Retry context:/);
+  assert.match(prompt, /classifier retry attempt 2/);
+  assert.match(prompt, /Excluded task ids for this retry: \["08"\]/);
+  assert.match(prompt, /Remaining task ids for this retry: \["01","09"\]/);
+  assert.match(
+    prompt,
+    /Do not return unresolved while any remaining task ids still exist/,
+  );
+  assert.match(prompt, /Canonical task 08 is already perfect/);
+});
+
 test("adaptCodexTaskUnderstandingResult accepts newly implemented task surfaces", () => {
   const adapted = adaptCodexTaskUnderstandingResult(
     {

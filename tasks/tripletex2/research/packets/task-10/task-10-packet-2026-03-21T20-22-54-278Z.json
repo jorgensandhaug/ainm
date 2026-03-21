@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-10-packet-2026-03-21T20-22-54-278Z",
+  "createdAt": "2026-03-21T20:22:54.278Z",
+  "taskId": "10",
+  "txTaskId": "10",
+  "taskSlug": "issue-full-credit-note",
+  "taskName": "Issue full credit note",
+  "queueEntry": {
+    "taskId": "10",
+    "txTaskId": "10",
+    "taskSlug": "issue-full-credit-note",
+    "taskName": "Issue full credit note",
+    "priority": 7,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "execution-lane",
+    "bestKnownScore": 3,
+    "maxScore": 4,
+    "notes": [
+      "Execution-lane Tier 2 target."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "10.issue-full-credit-note.v1",
+    "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+    "strategyStatus": "active",
+    "strategyName": "Issue exact full credit note",
+    "summary": "Locates the exact original invoice from prompt keys and creates one unsent full credit note in the proven two-call flow.",
+    "hypothesis": "A single decisive invoice read followed by PUT /invoice/{id}/:createCreditNote is the minimum reliable public path for this exact task shape.",
+    "expectedCallProfile": {
+      "targetCalls": 2,
+      "maxCalls": 2
+    },
+    "stepOutline": [
+      "API call 1: GET /invoice with a wide bounded date range and expanded customer plus order-line fields.",
+      "API call 2: PUT /invoice/{id}/:createCreditNote with the requested date and sendToCustomer=false."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "10.issue-full-credit-note.v1",
+      "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "strategyStatus": "active",
+      "strategyName": "Issue exact full credit note",
+      "summary": "Locates the exact original invoice from prompt keys and creates one unsent full credit note in the proven two-call flow.",
+      "hypothesis": "A single decisive invoice read followed by PUT /invoice/{id}/:createCreditNote is the minimum reliable public path for this exact task shape.",
+      "expectedCallProfile": {
+        "targetCalls": 2,
+        "maxCalls": 2
+      },
+      "stepOutline": [
+        "API call 1: GET /invoice with a wide bounded date range and expanded customer plus order-line fields.",
+        "API call 2: PUT /invoice/{id}/:createCreditNote with the requested date and sendToCustomer=false."
+      ]
+    }
+  ],
+  "baselineCallBudget": 2,
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-21T18:44:30.263Z",
+        "bestScore": 3,
+        "totalAttempts": 14,
+        "runId": "prod-2026-03-21-184253285Z-d3275dcf"
+      },
+      {
+        "capturedAt": "2026-03-21T18:44:25.580Z",
+        "bestScore": 3,
+        "totalAttempts": 14,
+        "runId": "prod-2026-03-21-184424564Z-d022ee19"
+      },
+      {
+        "capturedAt": "2026-03-21T18:42:56.194Z",
+        "bestScore": 3,
+        "totalAttempts": 14,
+        "runId": "prod-2026-03-21-183954363Z-e20f4354"
+      },
+      {
+        "capturedAt": "2026-03-21T18:42:53.374Z",
+        "bestScore": 3,
+        "totalAttempts": 14,
+        "runId": "prod-2026-03-21-184253285Z-d3275dcf"
+      },
+      {
+        "capturedAt": "2026-03-21T18:39:56.561Z",
+        "bestScore": 3,
+        "totalAttempts": 14,
+        "runId": "prod-2026-03-21-183842953Z-f86a549d"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-180354595Z-419dbb16",
+      "prod-2026-03-21-171446078Z-7315b8b8",
+      "prod-2026-03-21-135631200Z-647074c0",
+      "prod-2026-03-20-185625383Z-ee73443d",
+      "prod-2026-03-20-163628397Z-e88605ae"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Issue full credit note\n\nTyped task surface and draft runtime stub for `issue-full-credit-note`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/create-customer-invoice-credit-note.md` when this task gets a real strategy implementation.\n",
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Execution-lane Tier 2 target.",
+    "Task packet built from checked-in repo evidence for task 10.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 10.issue-full-credit-note.v1."
+  ]
+}

@@ -267,6 +267,10 @@ export function createSolveRequestHandler(
           now: () => now,
         },
       );
+      log("INFO", "Resolved deterministic task understanding.", {
+        requestId,
+        ...buildTaskUnderstandingLogDetails(selectionResult),
+      });
       if (isNotImplementedStrategySelection(selectionResult.selection)) {
         await appendTaskUnderstandingToPromptCorpus({
           corpusPath: options.promptCorpusPath,
@@ -401,6 +405,22 @@ export function startSolveServer(options: SolveServerOptions = {}) {
   });
 
   return server;
+}
+
+function buildTaskUnderstandingLogDetails(
+  selectionResult: Awaited<ReturnType<typeof resolveDeterministicSolveSelection>>,
+): Record<string, unknown> {
+  return {
+    taskSource: selectionResult.taskUnderstanding.taskSource,
+    taskUnderstandingStatus: selectionResult.taskUnderstanding.result.status,
+    taskId: selectionResult.taskId,
+    attemptCount: selectionResult.taskUnderstanding.attempts.length,
+    retried: selectionResult.taskUnderstanding.policySummary?.retried ?? false,
+    rejectedCanonicalTaskIds:
+      selectionResult.taskUnderstanding.policySummary?.excludedTaskIds ?? [],
+    finalAcceptedCanonicalTaskId:
+      selectionResult.taskUnderstanding.policySummary?.finalAcceptedTaskId,
+  };
 }
 
 async function handleInternalClassifyResultRequest(
