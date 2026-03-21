@@ -84,6 +84,10 @@ from astar.student.predictor.hazard_posterior_v17 import (
     HazardPosteriorV17Predictor,
     hazard_posterior_v17_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v18 import (
+    HazardPosteriorV18Predictor,
+    hazard_posterior_v18_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -622,6 +626,31 @@ def build_online_predictor(
                 f"__sig={rff_sigma:.1f}"
                 f"__blend={int(round(linear_blend * 100.0))}"
             ),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    hazard_posterior_v18 = hazard_posterior_v18_spec_for_model_name(normalized)
+    if hazard_posterior_v18 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        latent_rank, likelihood_temp = hazard_posterior_v18
+        predictor = HazardPosteriorV18Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids)
+                if historical_round_ids is not None
+                else sorted(
+                    round_dir.name
+                    for round_dir in workspace_paths.raw_dir.joinpath("replays").glob("*")
+                    if round_dir.is_dir()
+                )
+            ),
+            policy_name=resolved_policy_name,
+            latent_rank=latent_rank,
+            likelihood_temperature=likelihood_temp,
+            model_name=f"hazard_posterior_v18__policy={resolved_policy_name}__rank={latent_rank}",
         )
         return RoundPredictorAdapter(
             predictor=predictor,
