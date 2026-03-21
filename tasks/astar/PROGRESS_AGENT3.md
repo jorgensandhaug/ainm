@@ -985,6 +985,120 @@
      - `query_residual_v18`
      - targeted holdout score `66.6604` vs verified leader targeted `64.8429`
      - full corrected LOO still pending completion
+114. Start-of-turn protocol refresh for this continuation:
+   - reread `README.md`
+   - reread canonical challenge facts in `docs/game_facts.md`
+   - reread `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - confirmed `instructions/agent3/specific-handoff-information.md` is still empty
+   - attempted `br list` per repo instructions; `br` is not installed / not on `PATH` in this environment
+115. `query_residual_v18` full corrected LOO resumed this turn from cached state:
+   - resumed command:
+     - `uv run astar run-historical-benchmark --model query_residual_v18 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v18_full_corrected`
+   - benchmark process confirmed live and CPU-active after resume
+   - cached completed fold checkpoints currently present:
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=88a5ef803c/checkpoint.json`
+     - `data/artifacts/models/query_residual_v18__policy=coverage__samples=2__rounds=n=7__sha1=81af6b89d1/checkpoint.json`
+   - final benchmark artifact still absent at this logging point:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v18_full_corrected/result.json`
+116. While `query_residual_v18` full corrected LOO was still running, I started the next minimal ablation in the same family:
+   - hypothesis:
+     - the prior-blend sweep has remained monotone across:
+       - verified full results `0.35 -> 0.25 -> 0.15`
+       - targeted result `0.05`
+     - so the next decisive test is whether removing the post-residual prior pullback entirely helps again
+   - new planned model:
+     - `query_residual_v19`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.0`
+117. Implemented `query_residual_v19` reproducibly by model name:
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+118. Minimal validation for `query_residual_v19` wiring:
+   - command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_query_residual_v19_online_historical_benchmark_defaults_to_samples_2 -q`
+   - result:
+     - `1 passed`
+119. Full validation after `query_residual_v19` wiring:
+   - command:
+     - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result:
+     - `25 passed`
+120. Full corrected `query_residual_v18` LOO benchmark complete:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v18_full_corrected/result.json`
+   - result:
+     - mean score `76.6820`
+     - mean weighted KL `0.089763`
+     - official weighted mean score `76.4110`
+     - official weighted mean weighted-KL `0.090944`
+     - round mean score std `6.3492`
+     - round mean weighted-KL std `0.028465`
+     - worst round:
+       - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+       - mean score `66.2954`
+       - mean weighted KL `0.137078`
+     - total runtime `1162.501s`
+121. Interpretation of item 120:
+   - `query_residual_v18` is the new best verified full local model here
+   - versus prior verified leader `query_residual_v17`:
+     - mean score `76.1526 -> 76.6820` (`+0.5294`)
+     - mean weighted KL `0.092429 -> 0.089763` (`-0.002666`)
+     - official weighted mean score `75.8777 -> 76.4110` (`+0.5333`)
+     - official weighted mean weighted-KL `0.093612 -> 0.090944` (`-0.002668`)
+     - round score std improved `7.1450 -> 6.3492`
+   - floor robustness improved again:
+     - old worst round `f1dac9...` at `64.0725`
+     - new worst round `36e581...` at `66.2954`
+122. Paired historical comparison vs prior verified leader:
+   - artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v17__candidate=query_residual_v18.json`
+   - report:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v17__candidate=query_residual_v18.md`
+   - result:
+     - mean score delta `+0.5294`
+     - mean weighted KL delta `-0.002666`
+     - win rate `0.575`
+     - loss rate `0.425`
+     - tie rate `0.000`
+     - score-delta CI95 `[0.2458, 0.8678]`
+123. Exact same representative 2-round/7-train holdout rerun for the zero-anchor probe:
+   - implementation path:
+     - ad hoc local script using `astar.workflows.model_eval.evaluate_model_on_round`
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v19_targeted_holdout_2rounds_7train/result.json`
+   - setup:
+     - held out `36e581...` and `f1dac9...`
+     - train on the other 7 replay-backed/analyzed rounds for each held-out round
+     - model `query_residual_v19`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.0`
+     - `mode=online_interactive`
+     - `policy=coverage`
+     - `budget=50`
+   - result:
+     - mean score `67.5270`
+     - mean weighted KL `0.130977`
+   - per-round:
+     - `36e581...`: score `66.5848`, KL `0.135623`
+     - `f1dac9...`: score `68.4692`, KL `0.126332`
+124. Interpretation of item 123:
+   - the prior-blend sweep remains monotone through `0.0` on the representative hard holdout
+   - versus `query_residual_v18` targeted:
+     - mean score `+0.8665`
+     - mean weighted KL `-0.004287`
+   - both held-out hard rounds improved again
+   - promotion decision:
+     - run full corrected LOO for `query_residual_v19`
+125. Current leaderboard after this continuation:
+   - best fully verified model:
+     - `query_residual_v18`
+   - strongest unverified next branch:
+     - `query_residual_v19`
+     - targeted holdout mean score `67.5270` vs verified leader targeted `66.6604`
 
 ## Open Questions
 
