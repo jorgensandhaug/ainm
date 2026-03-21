@@ -183,6 +183,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
   - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
+  - do not assume a freshly created employee is already an assignable project manager; persistent sandbox follow-up on `2026-03-21` rejected `POST /project` with `projectManager.id: Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen` for a just-created employee, so the assignable-manager gate is real
 - Standard search note:
   - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
   - for update-shaped project tasks that also score the existing manager, `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` can often resolve the project, linked customer, and current manager in one read
@@ -192,6 +193,36 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
   - in that exact create-project shape, do not add `GET /customer/{id}` or `GET /employee/{id}` after the filtered resolver reads; the search responses plus the project write response already prove the scored linkage
+
+## Project Activity
+- `/project/projectActivity`
+  - `POST` create
+- Standard create note:
+  - persistent sandbox follow-up on `2026-03-21` proved the one-call branch for a budgeted project-specific activity: `POST /project/projectActivity` with inline `activity`, `budgetHours`, and `budgetFeeCurrency`
+  - for that exact shape, a separate `POST /activity` first is a wasted call
+  - the currently proven inline `activity` payload is:
+    - `name`
+    - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
+    - `isChargeable: false`
+- Standard verification note:
+  - trust the `POST /project/projectActivity` response for `id`, linked `project.id`, `activity.id`, `budgetHours`, and `budgetFeeCurrency` unless a scored field is unexpectedly missing
+
+## Project Orderline
+- `/project/orderline`
+  - `GET` search
+  - `POST` create
+- `/project/orderline/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard project-cost note:
+  - persistent sandbox follow-up on `2026-03-21` proved that `POST /project/orderline` with a non-chargeable cost-only payload (`project`, `description`, `date`, `count`, `unitCostCurrency`, `isChargeable=false`) increases project costs directly
+  - do not send `unitPriceExcludingVatCurrency` on that non-chargeable cost line; Tripletex returns `422 unitPriceExcludingVatCurrency: Ordrelinjen er ikke fakturerbar.`
+  - if the prompt only scores project cost amount, that one-write cost branch is lower-call than the supplier-invoice voucher path
+  - explicit vendor linkage is not yet proven on the cheap cost-only branch; persistent sandbox accepted `vendor: { "id": ... }` but later `GET /project/orderline/{id}` still showed `vendor=null`
+- Standard verification note:
+  - trust the write response first
+  - add `GET /project/orderline/{id}?fields=*` only when the prompt explicitly scores fields that the write response omitted or when you are deliberately proving a sandbox hypothesis
 
 ## Activity
 - `/activity`

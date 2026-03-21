@@ -27,6 +27,11 @@ Persistent sandbox re-verification on 2026-03-20 additionally showed:
 - `POST /project` with nested manager details but without `projectManager.id` still fails validation, so the manager read cannot be skipped safely
 - the exact create-project shape therefore still has no safe `2`-call branch; the minimal safe path remains `GET /customer` -> `GET /employee?assignableProjectManagers=true` -> `POST /project`
 
+Persistent sandbox follow-up on 2026-03-21 additionally showed:
+- a freshly created employee is not automatically assignable as project manager
+- `POST /project` with that new employee id failed with `projectManager.id: Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen`
+- if a broader project-lifecycle prompt requires a newly created employee to be the manager, do not treat that as an exact match for this simple create-project playbook unless corpus evidence already proves the public access-grant path
+
 Production verification on 2026-03-20 additionally showed:
 - the Portuguese prompt shape `create project + customer org number + manager email + omitted startDate` succeeded with the same 3-call path
 - the original run did not waste any API calls
@@ -72,11 +77,13 @@ Use ISO date for `startDate`.
 
 - Do not blindly search `/employee` by email and use the first hit
 - Do not assume any existing employee can be assigned as project manager
+- Do not assume a just-created employee can be assigned as project manager
 - Prefer `assignableProjectManagers=true` on the lookup itself
 - Because `email` is a containing search, compare returned `employee.email` to the prompt email exactly in your script before reusing the id
 - Do not treat Unicode-versus-ASCII spelling differences between the prompt name and the email local-part as a mismatch that requires more reads; once the filtered result leaves one exact email hit, reuse it
 - If the filtered manager read already yields one exact-email hit, do not reject it just because the returned display name differs from the prompt name or is missing in the response
 - If plain email search finds an employee but the assignable-manager search does not, do not `POST /project` with that employee id unless the prompt explicitly indicates you must first enable or change project-manager access
+- If the employee was created earlier in the same run and still does not appear in the assignable-manager read, do not guess a hidden entitlement write; stop treating the task as an exact create-project match and switch to a broader playbook or corpus-guided branch
 
 ## Verification Shape
 
