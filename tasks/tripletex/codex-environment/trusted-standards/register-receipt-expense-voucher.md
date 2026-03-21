@@ -12,7 +12,7 @@
 - the task is about one expense voucher with the receipt preserved as attachment, not about a supplier invoice, travel expense, or employee reimbursement
 - four proven expense-type branches exist:
   - **Branch A (non-deductible representation)**: receipt line is a formal business-lunch / customer meeting lunch such as `Forretningslunsj` or `Kundemøte lunsj` → account `7360`, VAT code `0`
-  - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
+  - **Branch B (deductible purchase, 25% VAT)**: receipt line is office furniture, equipment, or supplies such as `Kontorstoler` or `Whiteboard` → account `6540` (Inventar), incoming 25% VAT (vatType id from account response)
   - **Branch C (deductible travel/accommodation, 12% VAT)**: receipt line is hotel / accommodation / train ticket such as `Overnatting` or `Togbillett` → account `7140` (Reisekostnad, ikke oppgavepliktig), incoming 12% VAT (vatType id=`12`, lav sats)
   - **Branch D (deductible meeting/course expense, 25% VAT)**: receipt line is an internal meeting / coffee meeting / course / seminar such as `Kaffemøte` → account `6860` (Møte, kurs, oppdatering o.l.), incoming 25% VAT (vatType id=`1`)
 - **CRITICAL**: `Kaffemøte` is a **meeting expense** (6860), NOT representation (7360). All 4 production runs using 7360 for Kaffemøte scored 0/10. Internal coffee meetings are meeting expenses, not customer entertainment.
@@ -28,7 +28,7 @@
 ## Account Selection Rule
 - `Forretningslunsj` / `Kundemøte lunsj` / restaurant meals / business lunch / customer meeting lunch → `7360` (non-deductible representation)
 - `Kaffemøte` / coffee meeting / internal meeting / course / seminar → `6860` (Møte, kurs, oppdatering o.l.) — **NOT 7360**
-- `Kontorstoler` / office chairs / furniture / equipment → `6540` (Inventar)
+- `Kontorstoler` / `Whiteboard` / office chairs / whiteboard / furniture / equipment → `6540` (Inventar)
 - `Overnatting` / hotel / accommodation → `7140` (Reisekostnad, ikke oppgavepliktig)
 - `Togbillett` / `Flybillett` / train ticket / flight ticket / transport → `7140` (Reisekostnad, ikke oppgavepliktig)
 - `USB-hub` / small office equipment / IT accessories → `6540` (Inventar) or `6800` (Kontorrekvisita)
@@ -47,6 +47,7 @@
   - NSB: 11840 × 0.25 = 2960 ✓ (NET)
   - Thon Hotels: 5330 × 0.25 = 1332.50 ✓ (NET)
   - Peppes Pizza: 14380 × 0.25 = 3595 ✓ (NET)
+  - Jernia (Whiteboard): 9400 × 0.25 = 2350 ✓ (NET)
 - The agent MUST multiply by 1.25 to get the correct gross amount
 - Previous production runs all scored 0/5 because the NET amount was booked as gross
 
@@ -269,6 +270,14 @@
   - POST /ledger/voucher/609144179/attachment → 201
   - **ROOT CAUSE**: used vatType 1 (25%) instead of vatType 12 (12%). Scorer expects lav sats for transport.
 - **CONCLUSION**: 12% VAT (vatType 12) with GROSS = NET × 1.12 is the correct approach. Sandbox-verified voucher #428 confirms.
+
+### Branch B production proof (2026-03-21, eec3764a — Whiteboard 8600 NET, dept Administrasjon)
+- 4 calls, 0 errors
+  - POST /department → 201 (dept "Administrasjon" id=964630)
+  - GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*) → 200 (6540 vatType.id=1)
+  - POST /ledger/voucher?sendToLedger=true → 201 (voucher 609181807, booked): amountGross=10750 (8600×1.25), amount=8600 (auto-net), vatType.id=1, dept=Administrasjon, auto-VAT=2150 on 2710
+  - POST /ledger/voucher/609181807/attachment → 201
+- Confirms: Whiteboard → Branch B (6540 Inventar, 25% incoming VAT), NET×1.25 GROSS, 4 calls minimum
 
 ### Branch A production proof (2026-03-21, FAILED — 4c7f5f3e, scored 0/10)
 - **run 4c7f5f3e** (Kaffemøte 6600, Portuguese prompt, Starbucks receipt, dept Utvikling): 4 calls, 0 errors BUT 0/10 score
