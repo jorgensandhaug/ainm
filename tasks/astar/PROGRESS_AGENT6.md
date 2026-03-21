@@ -4237,10 +4237,21 @@
 ### Current scoreboard on dev5:
 1. **ENSEMBLE hv2+sx GEO 50/50: 79.57** (DEFINITIVE BEST, +3.60 vs baseline)
 2. ensemble hv2+qr GEO 50/50: 79.50
-3. ensemble hv2+sx ARITH 50/50: 79.48 (arith slightly worse on dev5 despite better probe3)
+3. ensemble hv2+sx ARITH 50/50: 79.48
 4. hazard_posterior_v2 k7_r3: 77.40
 5. supportx_v01: 76.23
 6. baseline query_residual: 75.97
+
+### Full 8-round validation:
+1. **ENSEMBLE hv2+sx GEO 50/50: 74.70** (+3.91 vs hazard_v2 alone at 70.80)
+2. hazard_v2 k7_r3: 70.80
+3. old baseline qr (stale corpus): 73.95
+
+### Additional findings:
+- Exploration policy (79.51 dev5) is slightly worse than coverage (79.57)
+- 3-model ensembles (hv2+k9+sx, hv2+sx+qr) both ~75.28 probe3 - dilute signal
+- Agent2's best (smh_glmmlatent) reaches 78.40 on full 8 rounds with exploration
+- Agent5's best (greybox_tristack) reaches 77.39 on full 8 rounds
 
 ---
 
