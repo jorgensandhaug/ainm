@@ -248,6 +248,11 @@ def run_live_lgb_benchmark(
     episode_seed: int = 0,
     samples_per_round: int = 2,
     n_jobs: int = 16,
+    barren_calibration: bool = False,
+    barren_threshold: float = 0.03,
+    barren_settlement_scale: float = 0.3,
+    barren_ruin_scale: float = 0.2,
+    barren_forest_boost: float = 1.15,
 ) -> None:
     import lightgbm as lgb
     from astar.core.score import score_prediction
@@ -405,6 +410,23 @@ def run_live_lgb_benchmark(
             probs /= probs.sum(axis=1, keepdims=True)
 
             pred = probs.reshape(h, w, CLASS_COUNT)
+
+            # Apply barren calibration if enabled
+            if barren_calibration:
+                build_rate = float(np.mean(pred[:, :, 1] + pred[:, :, 2] + pred[:, :, 3]))
+                if build_rate < barren_threshold:
+                    pred = pred.copy()
+                    pred[:, :, 1] *= barren_settlement_scale
+                    pred[:, :, 2] *= barren_settlement_scale
+                    pred[:, :, 3] *= barren_ruin_scale
+                    pred[:, :, 4] *= barren_forest_boost
+                    pred[:, :, 0] = np.maximum(
+                        1.0 - pred[:, :, 1] - pred[:, :, 2] - pred[:, :, 3] - pred[:, :, 4] - pred[:, :, 5],
+                        0.01,
+                    )
+                    pred = np.clip(pred, 1e-8, None)
+                    pred /= pred.sum(axis=-1, keepdims=True)
+
             breakdown = score_prediction(gt, pred)
             seed_scores.append(breakdown.score)
             seed_kls.append(breakdown.weighted_kl)
@@ -465,6 +487,11 @@ if __name__ == "__main__":
     parser.add_argument("--probability-floor", type=float, default=0.003)
     parser.add_argument("--budget", type=int, default=50)
     parser.add_argument("--n-jobs", type=int, default=16)
+    parser.add_argument("--barren-calibration", action="store_true")
+    parser.add_argument("--barren-threshold", type=float, default=0.03)
+    parser.add_argument("--barren-settlement-scale", type=float, default=0.3)
+    parser.add_argument("--barren-ruin-scale", type=float, default=0.2)
+    parser.add_argument("--barren-forest-boost", type=float, default=1.15)
     args = parser.parse_args()
 
     run_live_lgb_benchmark(
@@ -475,4 +502,9 @@ if __name__ == "__main__":
         probability_floor=args.probability_floor,
         budget=args.budget,
         n_jobs=args.n_jobs,
+        barren_calibration=args.barren_calibration,
+        barren_threshold=args.barren_threshold,
+        barren_settlement_scale=args.barren_settlement_scale,
+        barren_ruin_scale=args.barren_ruin_scale,
+        barren_forest_boost=args.barren_forest_boost,
     )
