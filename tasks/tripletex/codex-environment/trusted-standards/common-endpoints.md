@@ -101,10 +101,14 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - searching `code=4110` returns unrelated codes that contain "4110" anywhere in their 7-digit code (e.g., `3341103` ADJUNKT)
   - the reliable lookup for a 4-digit STYRK group code is by `nameNO` with the Norwegian occupation name
   - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110
+  - the exact STYRK-only `2511` branch is NOT uniquely resolvable from `GET /employee/employment/occupationCode?code=2511...`; persistent sandbox on 2026-03-21 returned 19 exact-`2511` rows
   - occupation code ids are reference data and are the same across sandbox and production accounts
   - known hardcoded mappings (verified sandbox + production 2026-03-21):
     - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
     - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
+    - exact STYRK-only `2511` contract branch → id `301` (AUTORISERT REGNSKAPSFØRER, code `2511102`)
+  - on employee writes, send `occupationCode` by `id`, not by `code`
+  - persistent sandbox on 2026-03-21 showed that `POST /employee` with `occupationCode: { code: "2511" }` or `occupationCode: { code: "2511102" }` returned `201` but persisted `occupationCode: null`
 
 ## Employee Standard Time
 - `/employee/standardTime`

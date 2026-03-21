@@ -50,13 +50,16 @@ Occupation code ids are reference data, same across all Tripletex accounts:
 |---|---|---|---|
 | Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
 | Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
+| STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
+For the exact STYRK-only `2511` contract shape, also use hardcoded id `301` and skip the occupation-code GET.
 
 ### Dynamic Lookup
 For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
 
-**Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix.
+**Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix, and the exact `2511` branch returned 19 exact-prefix matches in sandbox.
+**Critical pitfall**: Do NOT send `occupationCode: { code: ... }` on `POST /employee`. Sandbox returned `201` for both `{ code: "2511" }` and `{ code: "2511102" }`, but readback showed `occupationCode: null`.
 
 ## Standard Worktime
 
@@ -71,17 +74,22 @@ The `employee.id` comes from the `POST /employee` response `value.id`.
 1. Resolve prerequisites in parallel (steps can run concurrently):
    - `GET /division?count=1&fields=id`
    - `POST /department` with the prompt department name
-   - if job title is NOT in known hardcoded mappings: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
+   - if the prompt has a job title that is NOT in known hardcoded mappings: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
 2. Create the employee with all employment configuration in one write:
    - `POST /employee`
    - include `department.id` from step 1
    - include `division.id` from step 1 only if the read returned results
    - include nested `employmentDetails[]` with `occupationCode: { id: ... }` (hardcoded or resolved)
+   - when the contract gives only STYRK `2511`, send `occupationCode: { id: 301 }`
 3. If prompt provides standard worktime hours per day:
    - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: ... }`
 4. Stop after the successful writes
 
-Total calls: 4 (hardcoded occupation code) or 5 (dynamic occupation code lookup).
+Total calls:
+- 3 when occupation code is hardcoded and no standard-worktime write is needed
+- 4 when occupation code is hardcoded and a standard-worktime write is needed
+- 4 when a dynamic occupation-code lookup is needed and no standard-worktime write is needed
+- 5 when both a dynamic occupation-code lookup and a standard-worktime write are needed
 
 ## Recommended Payload Shape
 
@@ -128,6 +136,8 @@ Standard worktime (per-employee):
 - Do not omit `occupationCode` when the prompt or attachment provides a job title — it is scored
 - Do not use `POST /salary/settings/standardTime` for employee standard time — that is company-wide; use `POST /employee/standardTime` instead
 - Do not search occupation codes by `code=<4-digit>` — use `nameNO=<name>&count=1` instead
+- Do not spend `GET /employee/employment/occupationCode?code=2511...` for the exact STYRK-only `2511` contract branch — use hardcoded id `301`
+- Do not send `occupationCode` by `code` on `POST /employee`; send it by `id`
 - Do not assume the simple `create-employee` standard covers onboarding prompts with salary/worktime configuration
 - Do not spend a default `POST /employee/employment/details` when nested `employmentDetails` already fits the chosen create payload
 - Do not add a discovery `GET /department`; create the department directly when the prompt gives the exact name
