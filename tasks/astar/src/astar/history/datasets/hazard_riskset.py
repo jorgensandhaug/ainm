@@ -6,6 +6,8 @@ from collections import Counter
 
 import numpy as np
 import polars as pl
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from astar.core.events import ReplayEventKind
 from astar.core.terrain import buildable_mask, collapse_internal_grid
@@ -26,6 +28,50 @@ SUPPORTED_HAZARD_EVENTS = (
     ReplayEventKind.REBUILD,
     ReplayEventKind.RECLAIM_FOREST,
     ReplayEventKind.RECLAIM_EMPTY,
+)
+
+RISKSET_ARROW_SCHEMA = pa.schema(
+    [
+        pa.field("round_id", pa.string(), nullable=False),
+        pa.field("round_number", pa.int64(), nullable=False),
+        pa.field("seed_index", pa.int64(), nullable=False),
+        pa.field("replay_run_id", pa.string(), nullable=False),
+        pa.field("year_t", pa.int64(), nullable=False),
+        pa.field("event_type", pa.string(), nullable=False),
+        pa.field("x", pa.int64(), nullable=False),
+        pa.field("y", pa.int64(), nullable=False),
+        pa.field("current_class", pa.int64(), nullable=False),
+        pa.field("next_class", pa.int64(), nullable=False),
+        pa.field("label", pa.bool_(), nullable=False),
+        pa.field("sample_weight", pa.float64(), nullable=False),
+        pa.field("buildable", pa.bool_(), nullable=False),
+        pa.field("coast", pa.bool_(), nullable=False),
+        pa.field("settlement_proximity", pa.float64(), nullable=False),
+        pa.field("maritime_access", pa.float64(), nullable=False),
+        pa.field("frontier_score", pa.float64(), nullable=False),
+        pa.field("forest_density", pa.float64(), nullable=False),
+        pa.field("mountain_density", pa.float64(), nullable=False),
+        pa.field("settlement_neighbors", pa.int64(), nullable=False),
+        pa.field("port_neighbors", pa.int64(), nullable=False),
+        pa.field("ruin_neighbors", pa.int64(), nullable=False),
+        pa.field("forest_neighbors", pa.int64(), nullable=False),
+        pa.field("before_owner_id", pa.int64()),
+        pa.field("after_owner_id", pa.int64()),
+        pa.field("before_has_port", pa.bool_()),
+        pa.field("after_has_port", pa.bool_()),
+        pa.field("population_before", pa.float64()),
+        pa.field("population_after", pa.float64()),
+        pa.field("population_delta", pa.float64()),
+        pa.field("food_before", pa.float64()),
+        pa.field("food_after", pa.float64()),
+        pa.field("food_delta", pa.float64()),
+        pa.field("wealth_before", pa.float64()),
+        pa.field("wealth_after", pa.float64()),
+        pa.field("wealth_delta", pa.float64()),
+        pa.field("defense_before", pa.float64()),
+        pa.field("defense_after", pa.float64()),
+        pa.field("defense_delta", pa.float64()),
+    ],
 )
 
 
@@ -190,6 +236,18 @@ def _row(
     }
 
 
+def _flush_rows(
+    writer: pq.ParquetWriter,
+    rows: list[dict[str, object]],
+) -> int:
+    if not rows:
+        return 0
+    writer.write_table(pa.Table.from_pylist(rows, schema=RISKSET_ARROW_SCHEMA))
+    written = len(rows)
+    rows.clear()
+    return written
+
+
 def build_hazard_riskset_dataset(
     paths: WorkspacePaths,
     *,
@@ -197,12 +255,15 @@ def build_hazard_riskset_dataset(
     round_ids: list[str] | None = None,
     dataset_name: str | None = None,
     negative_ratio: float = 8.0,
+    batch_row_count: int = 100_000,
 ) -> DatasetRef:
     event = ReplayEventKind(event_type)
     if event not in SUPPORTED_HAZARD_EVENTS:
         raise ValueError(f"unsupported hazard event for riskset dataset: {event_type}")
     if negative_ratio <= 0.0:
         raise ValueError("negative_ratio must be positive")
+    if batch_row_count <= 0:
+        raise ValueError("batch_row_count must be positive")
 
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -246,105 +307,107 @@ def build_hazard_riskset_dataset(
     if negative_total > 0:
         negative_keep_probability = min(1.0, (negative_ratio * positive_count) / float(negative_total))
 
-    rows: list[dict[str, object]] = []
+    buffered_rows: list[dict[str, object]] = []
+    written_row_count = 0
     sampled_negative_count = 0
     label_counts: Counter[str] = Counter()
-    for round_id in selected_round_ids:
-        episode = build_round_episode(paths, round_id)
-        for seed in episode.seeds:
-            static_grid = np.asarray(seed.initial_state.grid, dtype=np.int64)
-            buildable = buildable_mask(static_grid)
-            coast = coast_mask(static_grid)
-            feature_dict = seed_feature_dict(seed.initial_state)
-            settlement_proximity = np.asarray(feature_dict["settlement_proximity"], dtype=np.float64)
-            maritime_access = np.asarray(feature_dict["maritime_access"], dtype=np.float64)
-            frontier_score = np.asarray(feature_dict["frontier_score"], dtype=np.float64)
-            forest_density = np.asarray(feature_dict["forest_density"], dtype=np.float64)
-            mountain_density = np.asarray(feature_dict["mountain_density"], dtype=np.float64)
+    with pq.ParquetWriter(index_path, RISKSET_ARROW_SCHEMA, compression="zstd") as writer:
+        for round_id in selected_round_ids:
+            episode = build_round_episode(paths, round_id)
+            for seed in episode.seeds:
+                static_grid = np.asarray(seed.initial_state.grid, dtype=np.int64)
+                buildable = buildable_mask(static_grid)
+                coast = coast_mask(static_grid)
+                feature_dict = seed_feature_dict(seed.initial_state)
+                settlement_proximity = np.asarray(feature_dict["settlement_proximity"], dtype=np.float64)
+                maritime_access = np.asarray(feature_dict["maritime_access"], dtype=np.float64)
+                frontier_score = np.asarray(feature_dict["frontier_score"], dtype=np.float64)
+                forest_density = np.asarray(feature_dict["forest_density"], dtype=np.float64)
+                mountain_density = np.asarray(feature_dict["mountain_density"], dtype=np.float64)
 
-            for run in seed.replay_runs:
-                if len(run.frames) < 2:
-                    continue
-                collapsed_frames = [
-                    np.asarray(collapse_internal_grid(frame.grid), dtype=np.int64)
-                    for frame in run.frames
-                ]
-                settlement_neighbors_by_step = [_neighbor_count(frame == 1) for frame in collapsed_frames]
-                port_neighbors_by_step = [_neighbor_count(frame == 2) for frame in collapsed_frames]
-                ruin_neighbors_by_step = [_neighbor_count(frame == 3) for frame in collapsed_frames]
-                forest_neighbors_by_step = [_neighbor_count(frame == 4) for frame in collapsed_frames]
+                for run in seed.replay_runs:
+                    if len(run.frames) < 2:
+                        continue
+                    collapsed_frames = [
+                        np.asarray(collapse_internal_grid(frame.grid), dtype=np.int64)
+                        for frame in run.frames
+                    ]
+                    settlement_neighbors_by_step = [_neighbor_count(frame == 1) for frame in collapsed_frames]
+                    port_neighbors_by_step = [_neighbor_count(frame == 2) for frame in collapsed_frames]
+                    ruin_neighbors_by_step = [_neighbor_count(frame == 3) for frame in collapsed_frames]
+                    forest_neighbors_by_step = [_neighbor_count(frame == 4) for frame in collapsed_frames]
 
-                for step in range(len(run.frames) - 1):
-                    current_frame = run.frames[step]
-                    next_frame = run.frames[step + 1]
-                    current_classes = collapsed_frames[step]
-                    next_classes = collapsed_frames[step + 1]
-                    current_settlements = _settlement_map(current_frame)
-                    next_settlements = _settlement_map(next_frame)
-                    eligible, labels = _eligibility_and_labels(
-                        current_classes,
-                        next_classes,
-                        buildable,
-                        event_type=event,
-                    )
-                    for y, x in np.argwhere(eligible):
-                        label = bool(labels[y, x])
-                        if label:
-                            label_counts["positive"] += 1
-                            weight = 1.0
-                        else:
-                            score = _negative_hash_score(
-                                round_id,
-                                run.replay_run_id,
-                                year_t=step,
-                                x=int(x),
-                                y=int(y),
-                                event_type=event.value,
-                            )
-                            if score >= negative_keep_probability:
-                                continue
-                            sampled_negative_count += 1
-                            label_counts["negative"] += 1
-                            weight = 1.0 / negative_keep_probability
-                        rows.append(
-                            _row(
-                                round_id=round_id,
-                                round_number=int(episode.metadata.round_number or -1),
-                                seed_index=seed.seed_index,
-                                replay_run_id=run.replay_run_id,
-                                year_t=step,
-                                event_type=event.value,
-                                x=int(x),
-                                y=int(y),
-                                current_class=int(current_classes[y, x]),
-                                next_class=int(next_classes[y, x]),
-                                label=label,
-                                sample_weight=weight,
-                                buildable=bool(buildable[y, x]),
-                                coast=bool(coast[y, x]),
-                                settlement_proximity=float(settlement_proximity[y, x]),
-                                maritime_access=float(maritime_access[y, x]),
-                                frontier_score=float(frontier_score[y, x]),
-                                forest_density=float(forest_density[y, x]),
-                                mountain_density=float(mountain_density[y, x]),
-                                settlement_neighbors=int(settlement_neighbors_by_step[step][y, x]),
-                                port_neighbors=int(port_neighbors_by_step[step][y, x]),
-                                ruin_neighbors=int(ruin_neighbors_by_step[step][y, x]),
-                                forest_neighbors=int(forest_neighbors_by_step[step][y, x]),
-                                before_settlement=current_settlements.get((int(y), int(x))),
-                                after_settlement=next_settlements.get((int(y), int(x))),
-                            ),
+                    for step in range(len(run.frames) - 1):
+                        current_frame = run.frames[step]
+                        next_frame = run.frames[step + 1]
+                        current_classes = collapsed_frames[step]
+                        next_classes = collapsed_frames[step + 1]
+                        current_settlements = _settlement_map(current_frame)
+                        next_settlements = _settlement_map(next_frame)
+                        eligible, labels = _eligibility_and_labels(
+                            current_classes,
+                            next_classes,
+                            buildable,
+                            event_type=event,
                         )
-
-    table = pl.DataFrame(rows, infer_schema_length=None)
-    table.write_parquet(index_path)
+                        for y, x in np.argwhere(eligible):
+                            label = bool(labels[y, x])
+                            if label:
+                                label_counts["positive"] += 1
+                                weight = 1.0
+                            else:
+                                score = _negative_hash_score(
+                                    round_id,
+                                    run.replay_run_id,
+                                    year_t=step,
+                                    x=int(x),
+                                    y=int(y),
+                                    event_type=event.value,
+                                )
+                                if score >= negative_keep_probability:
+                                    continue
+                                sampled_negative_count += 1
+                                label_counts["negative"] += 1
+                                weight = 1.0 / negative_keep_probability
+                            buffered_rows.append(
+                                _row(
+                                    round_id=round_id,
+                                    round_number=int(episode.metadata.round_number or -1),
+                                    seed_index=seed.seed_index,
+                                    replay_run_id=run.replay_run_id,
+                                    year_t=step,
+                                    event_type=event.value,
+                                    x=int(x),
+                                    y=int(y),
+                                    current_class=int(current_classes[y, x]),
+                                    next_class=int(next_classes[y, x]),
+                                    label=label,
+                                    sample_weight=weight,
+                                    buildable=bool(buildable[y, x]),
+                                    coast=bool(coast[y, x]),
+                                    settlement_proximity=float(settlement_proximity[y, x]),
+                                    maritime_access=float(maritime_access[y, x]),
+                                    frontier_score=float(frontier_score[y, x]),
+                                    forest_density=float(forest_density[y, x]),
+                                    mountain_density=float(mountain_density[y, x]),
+                                    settlement_neighbors=int(settlement_neighbors_by_step[step][y, x]),
+                                    port_neighbors=int(port_neighbors_by_step[step][y, x]),
+                                    ruin_neighbors=int(ruin_neighbors_by_step[step][y, x]),
+                                    forest_neighbors=int(forest_neighbors_by_step[step][y, x]),
+                                    before_settlement=current_settlements.get((int(y), int(x))),
+                                    after_settlement=next_settlements.get((int(y), int(x))),
+                                ),
+                            )
+                            if len(buffered_rows) >= batch_row_count:
+                                written_row_count += _flush_rows(writer, buffered_rows)
+        written_row_count += _flush_rows(writer, buffered_rows)
     summary = {
         "dataset_name": resolved_dataset_name,
         "dataset_kind": "hazard_riskset",
         "event_type": event.value,
         "negative_ratio": negative_ratio,
         "negative_keep_probability": negative_keep_probability,
-        "row_count": table.height,
+        "row_count": written_row_count,
         "round_count": len(selected_round_ids),
         "replay_run_count": replay_run_count,
         "eligible_count": eligible_count,
@@ -352,7 +415,11 @@ def build_hazard_riskset_dataset(
         "negative_total": negative_total,
         "sampled_negative_count": sampled_negative_count,
         "sampled_positive_count": label_counts.get("positive", 0),
-        "observed_positive_rate": 0.0 if table.height == 0 else label_counts.get("positive", 0) / float(table.height),
+        "observed_positive_rate": (
+            0.0
+            if written_row_count == 0
+            else label_counts.get("positive", 0) / float(written_row_count)
+        ),
         "population_positive_rate": 0.0 if eligible_count == 0 else positive_count / float(eligible_count),
         "index_path": str(index_path),
     }
@@ -372,6 +439,6 @@ def build_hazard_riskset_dataset(
         dataset_dir=dataset_dir,
         summary_path=summary_path,
         index_path=index_path,
-        row_count=table.height,
+        row_count=written_row_count,
         round_count=len(selected_round_ids),
     )

@@ -254,6 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     hazard_riskset_parser.add_argument("--round-id", action="append", default=None)
     hazard_riskset_parser.add_argument("--dataset-name", default=None)
     hazard_riskset_parser.add_argument("--negative-ratio", type=float, default=8.0)
+    hazard_riskset_parser.add_argument("--batch-rows", type=int, default=100_000)
 
     hazard_glm_parser = subparsers.add_parser("run-hazard-glm-audit")
     hazard_glm_parser.add_argument("--event", required=True, choices=supported_hazard_glm_events())
@@ -562,6 +563,7 @@ def _main() -> int:
             round_ids=args.round_id,
             dataset_name=args.dataset_name,
             negative_ratio=args.negative_ratio,
+            batch_row_count=args.batch_rows,
         )
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0

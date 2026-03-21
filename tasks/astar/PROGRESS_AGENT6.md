@@ -110,6 +110,7 @@
 - `data/artifacts/family1/hazard_glm/f1_birth_glm_staticlocal_audit_v01/report.md`
 - `data/artifacts/family1/hazard_glm/f1_collapse_glm_staticlocal_audit_v01/report.md`
 - `data/artifacts/family1/hazard_glm/f1_collapse_glm_observed_audit_v01/report.md`
+- `data/artifacts/family1/hazard_glm/f1_collapse_glm_stream_equivalence_v01/report.md`
 - `data/artifacts/benchmarks/tmp_f1_event_regime_v01_online_b10/result.json`
 - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=10__episode_seed=0__baseline=latent_regime__candidate=f1_event_regime_v01.json`
 - `src/astar/student/predictor/query_residual.py`
@@ -521,3 +522,35 @@
     - memory-safe dataset builder
     - then a learned collapse posterior / student over query settlement stats
     - and only then another benchmarkable event-hazard model
+- Refactored `build_hazard_riskset_dataset` to stream parquet batches with an explicit schema instead of materializing one giant list-of-dicts in memory:
+  - file: `src/astar/history/datasets/hazard_riskset.py`
+  - CLI now exposes `--batch-rows`
+  - regression test now checks exact streamed-vs-large-batch equality on a replay-backed sample
+- Validation after streaming refactor:
+  - `uv run pytest tests/test_hazard_riskset.py tests/test_hazard_glm.py tests/test_historical_benchmark.py -q`
+  - result: `9 passed`
+  - `uv run pytest tests/test_hazard_riskset.py tests/test_event_ledger.py tests/test_hazard_glm.py tests/test_round_dynamics_lowrank.py tests/test_markov_sufficiency.py tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `21 passed`
+- Full-corpus collapse risk-set rebuild after streaming refactor:
+  - command: `/usr/bin/time -v uv run astar build-hazard-riskset --event collapse --dataset-name f1_collapse_riskset_nr8_v1 --negative-ratio 8`
+  - rows: `8478769`
+  - runtime: `7:05.60`
+  - max RSS: `6988996` kB (`~6.99 GB`)
+  - previous observed collapse-build peak was about `13 GB`
+  - read: streaming cut the peak by about `46%` while preserving dataset counts
+- Semantic equivalence check after rebuild:
+  - command: `uv run astar run-hazard-glm-audit --event collapse --profile full --dataset-name f1_collapse_riskset_nr8_v1 --name f1_collapse_glm_stream_equivalence_v01`
+  - artifact: `data/artifacts/family1/hazard_glm/f1_collapse_glm_stream_equivalence_v01/result.json`
+  - report: `data/artifacts/family1/hazard_glm/f1_collapse_glm_stream_equivalence_v01/report.md`
+  - matched original collapse audit exactly:
+    - round_mean_baseline_log_loss: `0.294123`
+    - round_mean_glm_log_loss: `0.267733`
+    - round_mean_log_loss_gain: `0.026390`
+    - pooled_log_loss_gain: `0.030051`
+- Updated read after builder refactor:
+  - memory safety is materially better, so denser event sweeps are more practical
+  - semantics appear preserved exactly on the current collapse benchmark path
+  - but `~6.99 GB` is still not cheap, so throughput / lower default batch tuning may still matter later
+  - main modeling target remains unchanged:
+    - learned collapse posterior / student over query settlement stats
+    - then a better benchmarkable event-hazard model
