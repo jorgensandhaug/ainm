@@ -18,16 +18,15 @@
 - prompt also scores department onboarding plus employment salary/worktime configuration; use `./trusted-standards/onboard-employee.md` for that richer shape
 
 ## Standard Flow
-1. `POST /employee?fields=*,employments(*)` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
-2. if that write fails with `422` where `validationMessages[].field == "department.id"`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, reuse the returned active department id, and retry once
-3. if the department repair branch finds no active department and department is clearly required, `POST /department` with a minimal name-only payload, then retry the same employee create once with that new department id
-4. if the employee write fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*`, reuse the returned division id inside the nested employment row, and retry once
-5. stop — the `?fields=*,employments(*)` response proves all scored fields including `startDate`; no verification GET is needed
+1. `GET /department?isInactive=false&count=1&fields=id` — pre-read one active department; if none exists, `POST /department` with a minimal name-only payload
+2. `POST /employee?fields=*,employments(*)` with the prompt-required employee fields, explicit `userType`, `department: { id: ... }` from step 1, and nested `employments[]` when the prompt scores a start date
+3. if that write fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=id`, reuse the returned division id inside the nested employment row, and retry `POST /employee?fields=*,employments(*)` once
+4. stop — the `?fields=*,employments(*)` response proves all scored fields including `startDate`; no verification GET is needed
 
 ## Payload Rules
 - send only prompt-required employee fields
-- do not pre-read or prefill `department` by default for an exact create-only task; add it only when the prompt explicitly requires it or a validation repair branch proves it is needed
-- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it
+- always pre-read department and include `department: { id: ... }` on the POST; this avoids a 422 repair branch on 50%+ of production accounts and eliminates avoidable 4xx errors
+- do not pre-read or prefill `division` by default; add a real `division: { "id": ... }` inside each employment row only when a validation repair branch proves the account requires it (0/9 production runs needed division; only persistent sandbox requires it)
 - always include explicit `userType: "NO_ACCESS"` unless the prompt explicitly asks for login access; do not use `"STANDARD"` as the default — `"NO_ACCESS"` is the proven safe choice for create-only tasks
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
@@ -36,8 +35,8 @@
 ## Validation Rules
 - do not branch on the generic top-level `422 message`; it can stay `Validering feilet.` across different failures
 - for employee-create repair branches, key off `validationMessages[].field`
-- the current proven repair fields are `department.id` and `employments.division.id`
-- after a `department.id` failure, retry `POST /employee` with the repaired `department` before reading `/division`; the division requirement is still a second-stage branch, not a safe speculative pre-read
+- the current proven repair fields are `department.id` (handled by pre-read) and `employments.division.id` (repair-only)
+- division requirement is a second-stage branch, not a safe speculative pre-read (0% occurrence in production)
 
 ## Reuse From Write Response
 - `value.id` — employee id from `POST /employee?fields=*,employments(*)`
@@ -47,30 +46,32 @@
 
 ## Verification
 - zero extra calls when using `POST /employee?fields=*,employments(*)` — the response includes the full employment object with `startDate`
-- for the exact prompt shape `name + birth date + email + start date`, the minimum safe success path is **1 call** in fresh accounts: `POST /employee?fields=*,employments(*)`
+- for the exact prompt shape `name + birth date + email + start date`, the minimum safe success path is **2 calls**: `GET /department` + `POST /employee?fields=*,employments(*)`
 - CRITICAL: `POST /employee?fields=*` (without the nested expansion) still returns sparse `employments` (id + url only, no `startDate`); the `employments(*)` part is essential
 - sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=*,employments(*)` returns the full response with all employee identity fields AND full employment objects including `startDate`
 - sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=employments(*)` also returns `startDate` but omits top-level employee fields like `firstName`; always use `fields=*,employments(*)` to get both
-- the 2026-03-21 production Nynorsk run for `Geir Neset` (`1997-06-24`, `geir.neset@example.org`, start `2026-10-15`) used the previous 2-call standard (POST + GET employment) and hit the department-repair branch, resulting in 4 calls + 1 error; with `?fields=*,employments(*)` this would have been 3 calls + 1 error (saving the verification GET)
 
 ## Total Calls
-- 1 call when fresh account accepts the write directly (POST /employee?fields=*,employments(*))
-- 3 calls + 1 error when department-repair branch is needed (POST → 422, GET /department, POST with dept)
-- 4 calls + 1 error when department-repair finds no active dept (POST → 422, GET /department, POST /department, POST /employee with dept)
-- +2 calls + 1 error when division-repair is also needed (additional GET /division + POST retry)
+- 2 calls in the common path (GET /department + POST /employee?fields=*,employments(*)), 0 errors
+- 3 calls when no active department exists (GET /department + POST /department + POST /employee), 0 errors
+- +2 calls + 1 error when division-repair is also needed (POST 422 + GET /division + POST retry)
 
 ## Known Recovery Branches
-- some accounts reject the initial create without `department.id`; in that branch, resolve one active department or create a minimal one only if the read proves none exist
-- employment creation may also require `employments[].division.id`; if validation says so, resolve one existing `/division?count=1&fields=*` and retry once with that `division.id`
+- employment creation may require `employments[].division.id`; if validation says so, resolve one existing `/division?count=1&fields=id` and retry once with that `division.id`
 - always use `?fields=*,employments(*)` on every POST /employee attempt (including retries) to get the full response and avoid needing a verification GET
+
+## Strategy Rationale
+- pre-reading department was adopted after the 2026-03-21 production run for `Charles Walker` brought the department-required rate to 5/9 (56%), past the 50% break-even documented in the prior strategy
+- at 50%+ department-required: pre-read averages 2.0 calls / 0 errors vs no-pre-read 2.0 calls / 0.5 errors — same call count but zero avoidable 4xx errors
+- the AGENTS.md scoring rules penalize 4xx errors, making pre-read strictly better at 50%+
+- division remains at 0% in production (0/9 runs); pre-reading it would waste 1 call every time
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
 - sparse-employment, department, and division gotchas documented from prior verified runs
-- CRITICAL discovery on 2026-03-21: `POST /employee?fields=*,employments(*)` returns the full employee object WITH expanded employment objects including `startDate`; this eliminates the need for a verification GET and reduces the fresh-account minimum from 2 calls to 1 call
+- `POST /employee?fields=*,employments(*)` returns the full employee object WITH expanded employment objects including `startDate`; this eliminates the need for a verification GET
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
-- `POST /employee?fields=employments(*)` returns full employment objects but omits top-level employee fields — always use `fields=*,employments(*)` for both
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
-- out of 7 known production create-employee runs, 4 succeeded without department repair (1 call each) and 3 needed it (3 calls + 1 error each); the no-pre-read strategy averages 1.86 calls vs 2.0 for always-pre-read and remains correct on average; break-even is at 50% dept-required (currently 43%)
-- the 2026-03-21 production run for `Geir Neset` (Nynorsk prompt, 1997-06-24, geir.neset@example.org, start 2026-10-15) hit the department-repair branch: POST /employee → 422 → GET /department (found existing dept 742168) → POST /employee with dept → 201 → GET /employee/employment (unnecessary with new fields expansion); total 4 calls, 1 error; with `?fields=*,employments(*)` this would have been 3 calls + 1 error
-- the 2026-03-21 production run for `Astrid Nilsen` (Norwegian prompt, 1990-07-27, astrid.nilsen@example.org, start 2026-07-11) hit the department-repair branch: POST /employee → 422 → GET /department (found existing dept 743235) → POST /employee with dept → 201; total 3 calls, 1 error — first production run to use `?fields=*,employments(*)`, confirming the no-verification-GET path works end-to-end
+- persistent sandbox re-verification on 2026-03-21 confirmed the pre-read strategy (GET /department + POST /employee with dept + division) succeeds in the sandbox with 0 errors
+- out of 9 known production create-employee runs, 4 succeeded without department (would be 1 call no-pre-read, 2 calls pre-read) and 5 needed it (3 calls + 1 error no-pre-read, 2 calls + 0 errors pre-read); pre-read is now strictly better
+- production runs: Miguel Sánchez (1 call), Thomas Harris (1 call), Jules Bernard (1 call), João Rodrigues (1 call), Ingrid Johansen (3+1err), Geir Neset (3+1err), Astrid Nilsen (3+1err), Charles Walker (3+1err), plus one earlier run — 4 no-dept / 5 dept-required = 56% dept-required rate

@@ -15,8 +15,12 @@ CRITICAL discovery on 2026-03-21:
 - this eliminates the need for a separate verification `GET /employee/employment` call
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion is essential
 - `POST /employee?fields=employments(*)` returns full employment but omits top-level employee fields — always use `fields=*,employments(*)`
-- minimum for fresh accounts: **1 call** (down from 2)
-- minimum for dept-required accounts: **3 calls + 1 error** (down from 4 + 1 error)
+
+Strategy update on 2026-03-21 (after Charles Walker run):
+- department pre-read is now the default; 5/9 production runs (56%) required department, past the 50% break-even
+- pre-reading department: always 2 calls, 0 errors (regardless of account)
+- no pre-read: 1 call 0 errors (no dept needed) or 3 calls 1 error (dept needed) — at 56% dept-required, averages 2.1 calls + 0.56 errors
+- pre-read wins on both calls and errors at current production rates
 
 Sandbox verification showed:
 - `POST /employee` fails with `422` if `userType` is omitted
@@ -32,19 +36,18 @@ Observed validation messages:
 
 ## Minimal Safe Flow
 
-1. `POST /employee?fields=*,employments(*)` with:
-   - requested identity fields
-   - explicit `userType: "NO_ACCESS"`
-   - nested `employments: [{ "startDate": "YYYY-MM-DD" }]` if the prompt includes start date
-2. If `422` where `validationMessages[].field == "department.id"`:
-   - `GET /department?isInactive=false&count=1&fields=*`
+1. `GET /department?isInactive=false&count=1&fields=id`
    - if an active department exists, reuse its `id`
    - if none exists, `POST /department` with a minimal name-only payload
-3. Retry `POST /employee?fields=*,employments(*)` with `department: { "id": ... }`
-4. If `422` where `validationMessages[].field == "employments.division.id"`:
-   - `GET /division?count=1&fields=*`
+2. `POST /employee?fields=*,employments(*)` with:
+   - requested identity fields
+   - explicit `userType: "NO_ACCESS"`
+   - `department: { id: ... }` from step 1
+   - nested `employments: [{ "startDate": "YYYY-MM-DD" }]` if the prompt includes start date
+3. If `422` where `validationMessages[].field == "employments.division.id"`:
+   - `GET /division?count=1&fields=id`
    - retry `POST /employee?fields=*,employments(*)` with `division: { "id": ... }` inside the employment row
-5. Stop — the response proves all scored fields including `startDate`; no verification GET needed
+4. Stop — the response proves all scored fields including `startDate`; no verification GET needed
 
 ## Recommended Payload Shape
 
@@ -57,6 +60,7 @@ Use ISO dates. Normalize any localized prompt date first.
   "dateOfBirth": "1989-06-10",
   "email": "astrid.johansen@example.org",
   "userType": "NO_ACCESS",
+  "department": { "id": 12345 },
   "employments": [
     {
       "startDate": "2026-10-25"
@@ -83,12 +87,14 @@ Run 2026-03-21 (Geir Neset, Nynorsk prompt): 4 calls, 1 error — dept-repair br
 
 Run 2026-03-21 (Astrid Nilsen, Norwegian prompt): 3 calls, 1 error — dept-repair branch; first run to use `?fields=*,employments(*)` in production, saving 1 call vs pre-discovery flow; confirms the no-verification-GET path works end-to-end
 
+Run 2026-03-21 (Charles Walker, English prompt): 3 calls, 1 error — dept-repair branch (f1d7b5dd); used `?fields=*,employments(*)` correctly; with the new pre-read strategy this would have been 2 calls, 0 errors; this run brought dept-required rate to 5/9 (56%), triggering the strategy switch to pre-read
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not default to `GET /department` before the first create attempt; add `department.id` only when the 422 repair branch proves it is needed
-- Do not read `/division` immediately after a `422 department.id`; retry with repaired department first
+- Do not skip the `GET /department` pre-read; at 56% department-required rate, pre-reading saves calls and errors on average
+- Do not pre-read `/division` — 0/9 production runs needed it; only repair if `422` on `employments.division.id`
 - Do not ASCII-normalize or transliterate prompt-provided employee names; preserve names such as `João` exactly
 - Do not branch on the generic `422 message`; inspect `validationMessages[].field`
 - Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"`
