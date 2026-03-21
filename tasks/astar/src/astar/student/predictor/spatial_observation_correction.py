@@ -21,7 +21,32 @@ from pathlib import Path
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
-from scipy.ndimage import gaussian_filter
+
+
+def _gaussian_filter_2d(array: np.ndarray, sigma: float) -> np.ndarray:
+    """Simple 2D Gaussian blur using separable convolution."""
+    if sigma <= 0:
+        return array.copy()
+    # Build 1D kernel
+    radius = max(int(3 * sigma + 0.5), 1)
+    x = np.arange(-radius, radius + 1, dtype=np.float64)
+    kernel = np.exp(-0.5 * (x / sigma) ** 2)
+    kernel /= kernel.sum()
+    # Pad and convolve
+    result = array.copy()
+    if result.ndim == 2:
+        # Row-wise
+        padded = np.pad(result, ((0, 0), (radius, radius)), mode='reflect')
+        for i in range(result.shape[0]):
+            result[i, :] = np.convolve(padded[i, :], kernel, mode='valid')
+        # Column-wise
+        padded = np.pad(result, ((radius, radius), (0, 0)), mode='reflect')
+        for j in range(result.shape[1]):
+            result[:, j] = np.convolve(padded[:, j], kernel, mode='valid')
+    return result
+
+
+gaussian_filter = _gaussian_filter_2d
 
 from astar.core.prediction import PredictionBundle
 from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
