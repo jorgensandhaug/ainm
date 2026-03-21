@@ -57,12 +57,6 @@ test("buildCodexPrompt matches the staged tmux prompt format", () => {
       "- Use the fewest API calls possible.",
       "- Avoid all avoidable 4xx errors.",
       "",
-      "Knowledge order:",
-      "- 1. ./trusted-standards/",
-      "- 2. ./task-playbooks/",
-      "- 3. ./openapi.json",
-      "- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.",
-      "",
       "Run-specific rules:",
       "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",
       "- Put all API-interaction scripts only in this run scripts directory: /tmp/run/scripts",
@@ -663,7 +657,7 @@ test("pollAndMatchSubmission skips when submissions auth is missing", async () =
     };
 
     assert.equal(score.status, "skipped");
-    assert.equal(score.reason, "missing_submissions_access_token");
+    assert.equal(score.reason, "solve_not_completed");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

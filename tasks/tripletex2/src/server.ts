@@ -79,7 +79,7 @@ export function createSolveRequestHandler(
   options: SolveServerOptions = {},
 ): SolveRequestHandler {
   const bearerToken = options.bearerToken ?? DEFAULT_BEARER_TOKEN;
-  const mode = options.mode ?? "sandbox";
+  const mode = options.mode ?? (Bun.env.TRIPLETEX_MODE as SolveServerOptions["mode"]) ?? "sandbox";
   const solveBackend = options.solveBackend ?? resolveSolveBackend(mode);
   const env = options.env ?? Bun.env;
   const storageMode = resolveStorageMode(env.TRIPLETEX_STORAGE_MODE);
@@ -251,8 +251,8 @@ export function createSolveRequestHandler(
         sandboxEnvPath: options.sandboxEnvPath,
       });
       runId =
-        options.createRunId?.({ mode, now }) ??
-        createDefaultRunId(mode, now);
+        options.createRunId?.({ mode: storageMode, now }) ??
+        createDefaultRunId(storageMode, now);
       const normalizedSolveRequest =
         normalizeCompetitionSolveRequest(solveRequest);
       const selectionResult = await resolveDeterministicSolveSelection(
@@ -329,7 +329,7 @@ export function createSolveRequestHandler(
       }
       const runContext = {
         runId,
-        stageDirectory: path.join(dataRoot, mode, "runs", runId),
+        stageDirectory: path.join(dataRoot, storageMode, "runs", runId),
         artifactRoot,
       };
       const result = await runCompetitionSolvePipeline(solveRequest, {
@@ -384,16 +384,20 @@ export function createSolveRequestHandler(
 
 export function startSolveServer(options: SolveServerOptions = {}) {
   const port = options.port ?? DEFAULT_PORT;
-  const handler = createSolveRequestHandler(options);
+  const mode = options.mode ?? (Bun.env.TRIPLETEX_MODE as SolveServerOptions["mode"]) ?? "sandbox";
+  const solveBackend = options.solveBackend ?? resolveSolveBackend(mode);
+  const storageMode = resolveStorageMode((options.env ?? Bun.env).TRIPLETEX_STORAGE_MODE);
+  const handler = createSolveRequestHandler({ ...options, mode });
   const server = Bun.serve({
     port,
     fetch: handler,
   });
 
-  (options.logger ?? defaultLogger)("INFO", "Tripletex2 sandbox solve server listening.", {
+  (options.logger ?? defaultLogger)("INFO", "Tripletex2 solve server listening.", {
     port,
-    mode: options.mode ?? "sandbox",
-    storageMode: resolveStorageMode((options.env ?? Bun.env).TRIPLETEX_STORAGE_MODE),
+    mode,
+    solveBackend,
+    storageMode,
   });
 
   return server;
@@ -671,9 +675,7 @@ function createDefaultRunId(mode: string, now: Date): string {
 function resolveSolveBackend(
   mode: NonNullable<SolveServerOptions["mode"]>,
 ): "deterministic" | "tmux" {
-  return mode === "sandbox" || mode === "competition"
-    ? "tmux"
-    : "deterministic";
+  return mode === "dry-run" ? "tmux" : "deterministic";
 }
 
 function toTmuxSolveRequest(parsed: ParsedSolveRequestPayload): TmuxSolveRequest {
