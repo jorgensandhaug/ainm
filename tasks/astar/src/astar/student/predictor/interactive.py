@@ -48,6 +48,9 @@ SMH_GLMMLATENT_Z3_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z3_h0_covbase_calnon
 SMH_GLMMLATENT_Z2_H0_COVBASE_HBBLEND20_V001 = "smh_glmmlatent_z2_h0_covbase_hbblend20_v001"
 SMH_GLMMLATENT_Z2_H0_COVPOLY_CALNONE_V001 = "smh_glmmlatent_z2_h0_covpoly_calnone_v001"
 SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001 = "smh_glmmlatent_z2_h0_covbase_tmix_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001 = "smh_glmmlatent_z2_h0_covbase_barren_v001"
+SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V002 = "smh_glmmlatent_z2_h0_covbase_barren_v002"
+SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003 = "smh_glmmlatent_z2_h0_covbase_barren_v003"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -405,6 +408,75 @@ class BuiltFrequencyAdaptiveBlendPredictor(AdaptiveEntropyDisagreementBlendPredi
                 else self._round_target_right_weight_from_evidence(evidence)
             ),
         )
+
+
+class BarrenRoundCorrectionPredictor(BaseRoundPredictor):
+    """Detect barren rounds from observations and scale down settlement/ruin predictions."""
+
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    base_predictor: BaseRoundPredictor
+    name: str = "barren_correction_v1"
+    barren_threshold: float = 0.03
+    barren_settlement_scale: float = 0.3
+    barren_ruin_scale: float = 0.2
+    barren_forest_boost: float = 1.15
+    probability_floor: float = 0.005
+
+    def _detect_build_rate(self, observations: tuple) -> float:
+        total_cells = 0
+        built_cells = 0
+        for obs in observations:
+            grid = np.asarray(obs.grid, dtype=np.int64)
+            from astar.core.terrain import collapse_internal_grid as _collapse
+            collapsed = _collapse(grid)
+            total_cells += collapsed.size
+            built_cells += int(np.sum((collapsed == 1) | (collapsed == 2) | (collapsed == 3)))
+        return float(built_cells) / max(total_cells, 1)
+
+    def _apply_barren_correction(self, prediction: np.ndarray, build_rate: float) -> np.ndarray:
+        if build_rate >= self.barren_threshold:
+            return prediction
+        corrected = prediction.copy()
+        corrected[:, :, 1] *= self.barren_settlement_scale
+        corrected[:, :, 2] *= self.barren_settlement_scale
+        corrected[:, :, 3] *= self.barren_ruin_scale
+        if self.barren_forest_boost != 1.0:
+            corrected[:, :, 4] *= self.barren_forest_boost
+        corrected[:, :, 0] = np.maximum(
+            1.0 - corrected[:, :, 1] - corrected[:, :, 2] - corrected[:, :, 3]
+            - corrected[:, :, 4] - corrected[:, :, 5],
+            0.01,
+        )
+        corrected = np.clip(corrected, 1e-8, None)
+        corrected /= corrected.sum(axis=-1, keepdims=True)
+        floored = np.maximum(corrected, self.probability_floor)
+        return floored / floored.sum(axis=-1, keepdims=True)
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        bundle = _bundle_from_context(self.base_predictor, context)
+        build_rate = self._detect_build_rate(context.observations)
+        return PredictionBundle(
+            round_id=bundle.round_id,
+            model_name=self.name,
+            predictions_by_seed={
+                seed_index: self._apply_barren_correction(
+                    np.asarray(pred, dtype=np.float64), build_rate
+                )
+                for seed_index, pred in bundle.predictions_by_seed.items()
+            },
+        )
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        return self.base_predictor.build_prediction_bundle(round_detail, features, evidence)
 
 
 class ExactObservationBlendPredictor(BaseRoundPredictor):
@@ -1749,6 +1821,66 @@ def build_online_predictor(
                     "nbr_ruin_frac",
                 ),
             },
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        return RoundPredictorAdapter(
+            predictor=BarrenRoundCorrectionPredictor(
+                base_predictor=base_adapter.predictor,
+                name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001,
+                barren_threshold=0.03,
+                barren_settlement_scale=0.3,
+                barren_ruin_scale=0.2,
+                barren_forest_boost=1.15,
+            ),
+            name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V001,
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V002:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        return RoundPredictorAdapter(
+            predictor=BarrenRoundCorrectionPredictor(
+                base_predictor=base_adapter.predictor,
+                name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V002,
+                barren_threshold=0.04,
+                barren_settlement_scale=0.25,
+                barren_ruin_scale=0.15,
+                barren_forest_boost=1.2,
+            ),
+            name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V002,
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        base_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        return RoundPredictorAdapter(
+            predictor=BarrenRoundCorrectionPredictor(
+                base_predictor=base_adapter.predictor,
+                name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003,
+                barren_threshold=0.05,
+                barren_settlement_scale=0.4,
+                barren_ruin_scale=0.3,
+                barren_forest_boost=1.1,
+            ),
+            name=SMH_GLMMLATENT_Z2_H0_COVBASE_BARREN_V003,
         )
     if normalized == SMH_GLMMLATENT_Z2_H0_COVBASE_TMIX_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
