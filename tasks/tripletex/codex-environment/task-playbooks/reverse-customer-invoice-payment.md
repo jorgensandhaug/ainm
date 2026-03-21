@@ -143,6 +143,16 @@ Observed production confirmation on 2026-03-21:
 - this is the first production run where the multi-invoice local filter was exercised; previous runs for this org returned 1 invoice
 - the script used correct field names (`amountExcludingVatCurrency`) and the fallback matcher accepted the `type=null` payment posting
 
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=888412972` + `amountExcludingVatCurrency=35800` + line text `Diseño web` (Spanish prompt)
+- this is the same prompt shape that wasted a call on 2026-03-20 due to the matcher rejecting the payment posting when `account` was null
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=888412972&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=2` (two invoices for same customer)
+  - local filter on `amountExcludingVatCurrency === 35800` correctly isolated invoice `2147570315` (amountCurrency=44750)
+  - one `PUT /ledger/voucher/608889112/:reverse?date=2026-03-21` produced reverse voucher `609140250`
+- this confirms the 2026-03-20 matcher bug fix is working: the fallback matcher accepted the `type=null` payment posting without requiring `account.number`
+- this is the third production confirmation of the multi-invoice local filter path
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
