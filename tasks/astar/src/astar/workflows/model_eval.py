@@ -60,6 +60,8 @@ from astar.teacher.dynamics.transition_teacher import (
 from astar.teacher.dynamics.terminal_teacher import (
     GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
     GBX_TERMINAL_REGIME_TEACHER_MODEL,
+    GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
+    GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
     GreyBoxTerminalTeacher,
     gbx_terminal_round_coefficients_path,
     gbx_terminal_scoped_checkpoint_path,
@@ -327,11 +329,58 @@ def _build_prediction_bundle(
         GBX_TERMINAL_REGIME_TEACHER_MODEL,
         "gbx_terminal_regime_teacher_mapprior",
         GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+        "gbx_terminal_regime_residual_teacher",
+        GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+        "gbx_terminal_regime_residual_teacher_mapprior",
+        GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
     }:
+        terminal_variant_specs = {
+            "gbx_terminal_regime_teacher": (
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                False,
+            ),
+            GBX_TERMINAL_REGIME_TEACHER_MODEL: (
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                False,
+            ),
+            "gbx_terminal_regime_teacher_mapprior": (
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+                False,
+            ),
+            GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL: (
+                GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+                False,
+            ),
+            "gbx_terminal_regime_residual_teacher": (
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                True,
+            ),
+            GBX_TERMINAL_RESIDUAL_TEACHER_MODEL: (
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                True,
+            ),
+            "gbx_terminal_regime_residual_teacher_mapprior": (
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
+                True,
+            ),
+            GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL: (
+                GBX_TERMINAL_RESIDUAL_TEACHER_MODEL,
+                GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
+                True,
+            ),
+        }
+        checkpoint_model_name, serving_model_name, use_base_residual = terminal_variant_specs[normalized]
         checkpoint_path = gbx_terminal_scoped_checkpoint_path(
             paths,
             round_ids=training_round_ids,
-            model_name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+            model_name=checkpoint_model_name,
         )
         if checkpoint_path.exists():
             teacher = GreyBoxTerminalTeacher.load_checkpoint(checkpoint_path)
@@ -350,29 +399,50 @@ def _build_prediction_bundle(
                 coefficient_path = gbx_terminal_round_coefficients_path(
                     paths,
                     round_id=episode.metadata.round_id,
-                    model_name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                    model_name=checkpoint_model_name,
                 )
                 if coefficient_path.exists():
                     coefficient_rows.append(load_round_terminal_coefficients(coefficient_path))
                 else:
+                    base_predictions_by_seed = None
+                    if use_base_residual:
+                        support_round_ids = [item for item in training_round_ids if item != episode.metadata.round_id]
+                        if not support_round_ids:
+                            support_round_ids = list(training_round_ids)
+                        row_base_predictor = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+                            paths,
+                            round_ids=support_round_ids,
+                        )
+                        episode_round_detail = read_round_record(paths, episode.metadata.round_id).round
+                        row_base_bundle = row_base_predictor.build_prediction_bundle(episode_round_detail, None)
+                        base_predictions_by_seed = {
+                            int(seed_index): np.asarray(prediction, dtype=np.float64)
+                            for seed_index, prediction in row_base_bundle.predictions_by_seed.items()
+                        }
                     row = GreyBoxTerminalTeacher(
-                        name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                        name=checkpoint_model_name,
+                        use_base_residual=use_base_residual,
                     )._fit_round_coefficients(
                         episode,
                         ridge_alpha=1.0,
+                        base_predictions_by_seed=base_predictions_by_seed,
                     )
                     save_round_terminal_coefficients(coefficient_path, row)
                     coefficient_rows.append(row)
             teacher = GreyBoxTerminalTeacher(
-                name=GBX_TERMINAL_REGIME_TEACHER_MODEL,
+                name=checkpoint_model_name,
+                use_base_residual=use_base_residual,
             ).fit(
                 replay_episodes,
                 coefficient_rows=coefficient_rows,
             )
             teacher.save_checkpoint(checkpoint_path)
         round_context = build_round_context_from_detail(round_detail)
-        if normalized in {"gbx_terminal_regime_teacher_mapprior", GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL}:
-            teacher = teacher.model_copy(update={"name": GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL})
+        teacher = teacher.model_copy(update={"name": serving_model_name})
+        if serving_model_name in {
+            GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL,
+            GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL,
+        }:
             posterior = teacher.map_posterior(round_context.seeds)
         elif teacher.regime_bank.size > 0:
             regime_particles = tuple(np.asarray(item, dtype=np.float64) for item in teacher.regime_bank)
@@ -383,8 +453,23 @@ def _build_prediction_bundle(
             )
         else:
             posterior = RegimePosteriorState(mean=np.zeros(12, dtype=np.float64))
+        base_bundle = None
+        if use_base_residual:
+            base_predictor = GreyBoxMapOnlyBucketPredictor.fit_from_workspace(
+                paths,
+                round_ids=list(training_round_ids),
+            )
+            base_bundle = base_predictor.build_prediction_bundle(round_detail, None)
         predictions_by_seed = {
-            seed.seed_index: teacher.posterior_predictive(seed, posterior)
+            seed.seed_index: teacher.posterior_predictive(
+                seed,
+                posterior,
+                base_prediction=(
+                    None
+                    if base_bundle is None
+                    else np.asarray(base_bundle.predictions_by_seed[seed.seed_index], dtype=np.float64)
+                ),
+            )
             for seed in round_context.seeds
         }
         replay_episodes = [

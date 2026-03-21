@@ -1716,3 +1716,52 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
     - but the current regime prior / linear direct decoder is still not competitive enough
   - next likely move:
     - residualize the direct regime teacher against `gbx_prior_maponly_bucket` instead of predicting absolute terminal logits from scratch
+
+### 2026-03-21T13:16Z
+
+- Implemented that residualized direct-terminal branch:
+  - `src/astar/teacher/dynamics/terminal_teacher.py`
+    - added residual variants
+      - `gbx_terminal_regime_residual_teacher_v1`
+      - `gbx_terminal_regime_residual_teacher_mapprior_v1`
+    - coefficient fitting can now target log-probability residuals vs a provided base prior
+    - serving path now supports adding the decoded residual logits back onto the base prediction
+  - `src/astar/workflows/model_eval.py`
+    - added benchmark wiring for the residual terminal variants
+    - training-time residual rows use leave-one-out `gbx_prior_maponly_bucket` support rounds when possible
+    - two-round test fallback uses full support set so the tiny test fixture still works
+  - `src/astar/cli.py`
+    - exposed residual terminal variants in CLI choices
+  - tests:
+    - `tests/test_terminal_teacher.py`
+    - `tests/test_historical_benchmark.py`
+- Verification after residual-teacher patch:
+  - `uv run pytest tests/test_terminal_teacher.py tests/test_historical_benchmark.py -q`
+  - result: `24 passed in 41.33s`
+- Residual 3-round benchmark:
+  - `tmp_gbx_terminal_regime_residual_teacher_mapprior_probe3_jobs3_v1`
+  - mean score `22.5158`
+  - mean weighted KL `0.762824`
+- Interpretation:
+  - residualization against `gbx_prior_maponly_bucket` did **not** help
+  - direct terminal teacher remains better than residual terminal teacher
+  - likely failure point is not missing base logits alone; it is weak round-law inference / interpolation
+
+### 2026-03-21T13:23Z
+
+- Refreshed machine-health / concurrency check before next branch:
+  - `free -h`
+    - `2.9 TiB` total
+    - `735 GiB` used
+    - `2.2 TiB` available
+  - `nproc` -> `384`
+  - `uptime` load average -> about `89 / 71 / 67`
+- Interpretation:
+  - cluster box is CPU-busy from many agents, but memory headroom is still enormous
+  - safe to keep using medium/high parallelism, but no need to flood all cores from this worktree
+- Observed other active runs on the host:
+  - agent7 is probing `ffam_mode_v1..v6`
+  - agent2 is running `smh_coeffbank_*`
+- Current agent4 reading:
+  - do not spend more time on rollout transition variants unless a new decoder idea appears
+  - next science target should be better map-summary -> round-law inference for the direct terminal family

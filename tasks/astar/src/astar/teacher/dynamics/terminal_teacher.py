@@ -26,6 +26,8 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 GBX_TERMINAL_REGIME_TEACHER_MODEL = "gbx_terminal_regime_teacher_v1"
 GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL = "gbx_terminal_regime_teacher_mapprior_v1"
+GBX_TERMINAL_RESIDUAL_TEACHER_MODEL = "gbx_terminal_regime_residual_teacher_v1"
+GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL = "gbx_terminal_regime_residual_teacher_mapprior_v1"
 
 
 def gbx_terminal_scoped_checkpoint_path(
@@ -221,6 +223,7 @@ class GreyBoxTerminalTeacherCheckpoint(BaseModel):
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
     probability_floor: float = Field(gt=0.0, lt=1.0)
+    use_base_residual: bool = False
 
 
 class GreyBoxTerminalTeacher(BaseModel):
@@ -246,12 +249,14 @@ class GreyBoxTerminalTeacher(BaseModel):
     map_neighbor_count: int = Field(default=3, ge=1)
     map_distance_floor: float = Field(default=1e-3, gt=0.0)
     probability_floor: float = Field(default=1e-4, gt=0.0, lt=1.0)
+    use_base_residual: bool = False
 
     def _fit_round_coefficients(
         self,
         episode: RoundEpisode,
         *,
         ridge_alpha: float,
+        base_predictions_by_seed: dict[int, np.ndarray] | None = None,
     ) -> RoundTerminalCoefficients:
         regime_vector = round_regime_summary_vector(episode)
         feature_names: list[str] | None = None
@@ -261,6 +266,10 @@ class GreyBoxTerminalTeacher(BaseModel):
         for seed in episode.seeds:
             if seed.terminal_truth is None:
                 continue
+            if self.use_base_residual and (base_predictions_by_seed is None or seed.seed_index not in base_predictions_by_seed):
+                raise ValueError(
+                    f"base prediction missing for round {episode.metadata.round_id} seed {seed.seed_index}",
+                )
             names, feature_stack = build_terminal_feature_stack(seed, regime_vector)
             if feature_names is None:
                 feature_names = names
@@ -268,6 +277,10 @@ class GreyBoxTerminalTeacher(BaseModel):
                 xty = np.zeros((len(feature_names) + 1, CLASS_COUNT), dtype=np.float64)
             feature_block = feature_stack.reshape(feature_stack.shape[0], -1).T
             target_block = np.log(np.clip(seed.terminal_truth.probs.reshape(-1, CLASS_COUNT), self.probability_floor, 1.0))
+            if self.use_base_residual:
+                base_prediction = np.asarray(base_predictions_by_seed[seed.seed_index], dtype=np.float64)
+                base_block = np.log(np.clip(base_prediction.reshape(-1, CLASS_COUNT), self.probability_floor, 1.0))
+                target_block = target_block - base_block
             design = np.concatenate([np.ones((feature_block.shape[0], 1), dtype=np.float64), feature_block], axis=1)
             xtx = xtx + (design.T @ design)
             xty = xty + (design.T @ target_block)
@@ -361,6 +374,7 @@ class GreyBoxTerminalTeacher(BaseModel):
                 "map_feature_names": tuple(round_map_summary_names()),
                 "map_intercept": map_intercept,
                 "map_weights": map_weights,
+                "use_base_residual": self.use_base_residual,
             },
         )
 
@@ -384,6 +398,7 @@ class GreyBoxTerminalTeacher(BaseModel):
             map_neighbor_count=self.map_neighbor_count,
             map_distance_floor=self.map_distance_floor,
             probability_floor=self.probability_floor,
+            use_base_residual=self.use_base_residual,
         )
 
     def save_checkpoint(self, path: Path) -> Path:
@@ -413,6 +428,7 @@ class GreyBoxTerminalTeacher(BaseModel):
             map_neighbor_count=checkpoint.map_neighbor_count,
             map_distance_floor=checkpoint.map_distance_floor,
             probability_floor=checkpoint.probability_floor,
+            use_base_residual=checkpoint.use_base_residual,
         )
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
@@ -464,12 +480,17 @@ class GreyBoxTerminalTeacher(BaseModel):
         seed: SeedLike,
         regime: np.ndarray,
         n_rollouts: int = 256,
+        base_prediction: np.ndarray | None = None,
     ) -> np.ndarray:
         del n_rollouts
         coefficient_vector = self._coefficients_from_regime(np.asarray(regime, dtype=np.float64))
         intercept, coefficients = self._split_coefficients(coefficient_vector)
         _, feature_stack = build_terminal_feature_stack(seed, regime)
         logits = intercept[None, None, :] + np.tensordot(feature_stack, coefficients, axes=(0, 0))
+        if self.use_base_residual:
+            if base_prediction is None:
+                raise ValueError("base_prediction is required when use_base_residual=True")
+            logits = logits + np.log(np.clip(np.asarray(base_prediction, dtype=np.float64), self.probability_floor, 1.0))
         probs = softmax_logits(logits)
         feature_dict = seed_feature_dict(seed.initial_state)
         ocean_mask = feature_dict["initial_ocean"] > 0.5
@@ -483,17 +504,18 @@ class GreyBoxTerminalTeacher(BaseModel):
         seed: SeedLike,
         posterior: RegimePosteriorState,
         n_rollouts: int = 256,
+        base_prediction: np.ndarray | None = None,
     ) -> np.ndarray:
         if posterior.particles is not None and posterior.weights is not None:
             components = [
-                self.terminal_tensor(seed, particle, n_rollouts=n_rollouts)
+                self.terminal_tensor(seed, particle, n_rollouts=n_rollouts, base_prediction=base_prediction)
                 for particle in posterior.particles
             ]
             stacked = np.stack(components, axis=0)
             weights = np.asarray(posterior.weights, dtype=np.float64)
             weights = weights / np.sum(weights)
             return np.tensordot(weights, stacked, axes=(0, 0))
-        return self.terminal_tensor(seed, posterior.mean, n_rollouts=n_rollouts)
+        return self.terminal_tensor(seed, posterior.mean, n_rollouts=n_rollouts, base_prediction=base_prediction)
 
     def prior_prediction_bundle(self, round_context: object) -> PredictionBundle:
         raise NotImplementedError
@@ -502,6 +524,8 @@ class GreyBoxTerminalTeacher(BaseModel):
 __all__ = [
     "GBX_TERMINAL_REGIME_TEACHER_MODEL",
     "GBX_TERMINAL_REGIME_TEACHER_MAPPRIOR_MODEL",
+    "GBX_TERMINAL_RESIDUAL_TEACHER_MODEL",
+    "GBX_TERMINAL_RESIDUAL_TEACHER_MAPPRIOR_MODEL",
     "GreyBoxTerminalTeacher",
     "GreyBoxTerminalTeacherCheckpoint",
     "RoundTerminalCoefficients",
