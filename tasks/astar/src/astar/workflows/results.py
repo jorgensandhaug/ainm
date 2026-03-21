@@ -351,7 +351,9 @@ class HistoricalBenchmarkRoundResult(BaseModel):
     policy_name: str | None = None
     samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
+    episode_seeds: list[int] | None = None
     episode_seed: int | None = Field(default=None, ge=0)
+    evaluated_episode_count: int = Field(default=1, ge=1)
     executed_queries: int | None = Field(default=None, ge=0)
     evaluated_seed_count: int = Field(ge=0)
     visualized_seed_count: int = Field(default=0, ge=0)
@@ -371,6 +373,7 @@ class HistoricalBenchmarkResult(BaseModel):
     policy_name: str | None = None
     samples_per_round: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=0)
+    episode_seeds: list[int] | None = None
     episode_seed: int | None = Field(default=None, ge=0)
     round_ids: list[str]
     aggregate: CompetitionAggregate
@@ -394,6 +397,7 @@ class HistoricalBenchmarkSeedDelta(BaseModel):
     round_id: str
     round_number: int | None = None
     seed_index: int = Field(ge=0)
+    episode_seed: int | None = Field(default=None, ge=0)
     baseline_score: float
     candidate_score: float
     score_delta: float
@@ -410,6 +414,7 @@ class HistoricalBenchmarkComparison(BaseModel):
     mode: str
     policy_name: str | None = None
     budget: int | None = Field(default=None, ge=0)
+    episode_seeds: list[int] | None = None
     episode_seed: int | None = Field(default=None, ge=0)
     seed_count: int = Field(ge=0)
     mean_score_delta: float

@@ -588,6 +588,15 @@ def render_synthetic_benchmark(result: SyntheticBenchmarkResult) -> str:
 
 
 def render_historical_benchmark(result: HistoricalBenchmarkResult) -> str:
+    episode_seed_label = (
+        "n/a"
+        if result.episode_seeds is None
+        else (
+            str(result.episode_seeds[0])
+            if len(result.episode_seeds) == 1
+            else ",".join(str(item) for item in result.episode_seeds)
+        )
+    )
     lines = [
         "historical-benchmark",
         f"name: {result.benchmark_name}",
@@ -597,7 +606,7 @@ def render_historical_benchmark(result: HistoricalBenchmarkResult) -> str:
         f"policy: {result.policy_name or 'n/a'}",
         f"samples_per_round: {result.samples_per_round if result.samples_per_round is not None else 'n/a'}",
         f"budget: {result.budget if result.budget is not None else 'n/a'}",
-        f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
+        f"episode_seeds: {episode_seed_label}",
         f"rounds: {len(result.rounds)}",
         f"evaluated_seeds: {result.evaluated_seed_count}",
         f"visualization_policy: {result.visualization_policy}",
@@ -692,6 +701,15 @@ def render_paired_benchmark_comparison(result: PairedBenchmarkComparison) -> str
 
 
 def render_historical_benchmark_comparison(result: HistoricalBenchmarkComparison) -> str:
+    episode_seed_label = (
+        "n/a"
+        if result.episode_seeds is None
+        else (
+            str(result.episode_seeds[0])
+            if len(result.episode_seeds) == 1
+            else ",".join(str(item) for item in result.episode_seeds)
+        )
+    )
     lines = [
         "compare-historical-benchmarks",
         f"output_dir: {result.artifact_path.parent if result.artifact_path is not None else 'n/a'}",
@@ -700,7 +718,7 @@ def render_historical_benchmark_comparison(result: HistoricalBenchmarkComparison
         f"mode: {result.mode}",
         f"policy: {result.policy_name or 'n/a'}",
         f"budget: {result.budget if result.budget is not None else 'n/a'}",
-        f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
+        f"episode_seeds: {episode_seed_label}",
         f"seeds: {result.seed_count}",
         f"mean_score_delta: {result.mean_score_delta:.4f}",
         f"mean_weighted_kl_delta: {result.mean_weighted_kl_delta:.6f}",
@@ -718,7 +736,7 @@ def render_historical_benchmark_comparison(result: HistoricalBenchmarkComparison
             else item.round_id
         )
         lines.append(
-            f"{round_prefix} seed={item.seed_index} "
+            f"{round_prefix} seed={item.seed_index} episode_seed={item.episode_seed} "
             f"delta={item.score_delta:.4f} kl_delta={item.weighted_kl_delta:.6f}",
         )
     return "\n".join(lines)

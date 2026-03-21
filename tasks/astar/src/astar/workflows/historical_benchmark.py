@@ -12,6 +12,7 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -100,10 +101,13 @@ def run_historical_benchmark(
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
+    episode_seed_count: int = 1,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
+    if episode_seed_count < 1:
+        raise ValueError("episode_seed_count must be >= 1")
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
     if mode == "online_interactive":
         missing_replays = [
@@ -137,11 +141,21 @@ def run_historical_benchmark(
     if normalized_model_name == "query_residual":
         model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
+    resolved_episode_seeds = (
+        None
+        if mode == "prior_only"
+        else [episode_seed + offset for offset in range(episode_seed_count)]
+    )
     if mode != "prior_only":
+        episode_token = (
+            str(episode_seed)
+            if episode_seed_count == 1
+            else f"{resolved_episode_seeds[0]}..{resolved_episode_seeds[-1]}"
+        )
         interactive_suffix = (
             f"__policy={resolved_policy_name}"
             f"__budget={budget}"
-            f"__episode_seed={episode_seed}"
+            f"__episode_seed={episode_token}"
         )
 
     run_name = benchmark_name or (
@@ -156,9 +170,9 @@ def run_historical_benchmark(
     summary_jsonl_path = benchmark_dir / "summary.jsonl"
     summary_csv_path = benchmark_dir / "summary.csv"
 
-    contexts_by_key: dict[tuple[str, int], ModelSeedEvaluationContext] = {}
-    seed_results_by_key: dict[tuple[str, int], HistoricalBenchmarkSeedResult] = {}
-    per_round_keys: dict[str, list[tuple[str, int]]] = {}
+    contexts_by_key: dict[tuple[str, int, int | None], ModelSeedEvaluationContext] = {}
+    seed_results_by_key: dict[tuple[str, int, int | None], HistoricalBenchmarkSeedResult] = {}
+    per_round_keys: dict[str, list[tuple[str, int, int | None]]] = {}
     round_evaluation_seconds: dict[str, float] = {}
     round_visualization_seconds: dict[str, float] = {}
     round_mean_scores: list[float] = []
@@ -166,27 +180,45 @@ def run_historical_benchmark(
 
     for held_out_round_id in selected_round_ids:
         training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-        evaluation_started_at = perf_counter()
-        contexts = evaluate_model_on_round(
-            paths,
-            round_id=held_out_round_id,
-            model_name=model_name,
-            training_round_ids=training_round_ids,
-            mode=mode,
-            policy_name=policy_name if mode == "online_interactive" else None,
-            samples_per_round=samples_per_round,
-            budget=budget,
-            episode_seed=episode_seed,
+        evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
+        round_seconds = 0.0
+        predictor_started_at = perf_counter()
+        online_predictor = (
+            None
+            if mode != "online_interactive"
+            else build_online_predictor(
+                model_name,
+                paths=paths,
+                historical_round_ids=training_round_ids,
+                policy_name=policy_name,
+                samples_per_round=samples_per_round,
+            )
         )
-        round_evaluation_seconds[held_out_round_id] = perf_counter() - evaluation_started_at
-        if not contexts:
+        round_seconds += perf_counter() - predictor_started_at
+        keys: list[tuple[str, int, int | None]] = []
+        for current_episode_seed in evaluation_seeds:
+            evaluation_started_at = perf_counter()
+            contexts = evaluate_model_on_round(
+                paths,
+                round_id=held_out_round_id,
+                model_name=model_name,
+                training_round_ids=training_round_ids,
+                mode=mode,
+                policy_name=policy_name if mode == "online_interactive" else None,
+                samples_per_round=samples_per_round,
+                budget=budget,
+                episode_seed=0 if current_episode_seed is None else current_episode_seed,
+                online_predictor=online_predictor,
+            )
+            round_seconds += perf_counter() - evaluation_started_at
+            for context in contexts:
+                key = (context.round_id, context.seed_index, context.episode_seed)
+                keys.append(key)
+                contexts_by_key[key] = context
+                seed_results_by_key[key] = context.to_seed_result()
+        round_evaluation_seconds[held_out_round_id] = round_seconds
+        if not keys:
             continue
-        keys: list[tuple[str, int]] = []
-        for context in contexts:
-            key = (context.round_id, context.seed_index)
-            keys.append(key)
-            contexts_by_key[key] = context
-            seed_results_by_key[key] = context.to_seed_result()
         per_round_keys[held_out_round_id] = keys
         round_mean_scores.append(
             sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),
@@ -203,7 +235,16 @@ def run_historical_benchmark(
         policy=visualization_policy,
     )
     for round_id, seed_index in sorted(visualization_keys):
-        context = contexts_by_key[(round_id, seed_index)]
+        matching_keys = [
+            key
+            for key in contexts_by_key
+            if key[0] == round_id and key[1] == seed_index
+        ]
+        if not matching_keys:
+            continue
+        matching_keys.sort(key=lambda item: (-1 if item[2] is None else int(item[2])))
+        key = matching_keys[0]
+        context = contexts_by_key[key]
         visualization_started_at = perf_counter()
         viz_result = write_model_evaluation_report(
             context,
@@ -222,9 +263,7 @@ def run_historical_benchmark(
         round_visualization_seconds[round_id] = (
             round_visualization_seconds.get(round_id, 0.0) + visualization_seconds
         )
-        seed_results_by_key[(round_id, seed_index)] = seed_results_by_key[
-            (round_id, seed_index)
-        ].model_copy(
+        seed_results_by_key[key] = seed_results_by_key[key].model_copy(
             update={
                 "report_path": viz_result.report_path,
                 "manifest_path": viz_result.manifest_path,
@@ -245,7 +284,15 @@ def run_historical_benchmark(
                 policy_name=round_seed_results[0].policy_name,
                 samples_per_round=round_seed_results[0].samples_per_round,
                 budget=round_seed_results[0].budget,
-                episode_seed=round_seed_results[0].episode_seed,
+                episode_seeds=None if resolved_episode_seeds is None else list(resolved_episode_seeds),
+                episode_seed=(
+                    round_seed_results[0].episode_seed
+                    if resolved_episode_seeds is None or len(resolved_episode_seeds) == 1
+                    else None
+                ),
+                evaluated_episode_count=(
+                    1 if resolved_episode_seeds is None else len(resolved_episode_seeds)
+                ),
                 executed_queries=round_seed_results[0].executed_queries,
                 evaluated_seed_count=len(round_seed_results),
                 visualized_seed_count=sum(
@@ -281,7 +328,12 @@ def run_historical_benchmark(
         policy_name=resolved_policy_name,
         samples_per_round=resolved_samples_per_round,
         budget=None if mode == "prior_only" else budget,
-        episode_seed=None if mode == "prior_only" else episode_seed,
+        episode_seeds=resolved_episode_seeds,
+        episode_seed=(
+            None
+            if mode == "prior_only" or resolved_episode_seeds is None or len(resolved_episode_seeds) != 1
+            else resolved_episode_seeds[0]
+        ),
         round_ids=[item.round_id for item in round_results],
         aggregate=aggregate,
         rounds=round_results,
@@ -331,6 +383,7 @@ def run_historical_benchmark(
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,
                 "samples_per_round": result.samples_per_round,
+                "episode_seeds": result.episode_seeds,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,

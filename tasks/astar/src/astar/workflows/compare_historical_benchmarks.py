@@ -36,15 +36,15 @@ def compare_historical_benchmarks(
         raise ValueError("historical benchmark policies do not match; cannot run paired comparison")
     if baseline.budget != candidate.budget:
         raise ValueError("historical benchmark budgets do not match; cannot run paired comparison")
-    if baseline.episode_seed != candidate.episode_seed:
+    if baseline.episode_seeds != candidate.episode_seeds:
         raise ValueError("historical benchmark episode seeds do not match; cannot run paired comparison")
     baseline_map = {
-        (item.round_id, item.seed_index): item
+        (item.round_id, item.seed_index, item.episode_seed): item
         for round_result in baseline.rounds
         for item in round_result.seed_results
     }
     candidate_map = {
-        (item.round_id, item.seed_index): item
+        (item.round_id, item.seed_index, item.episode_seed): item
         for round_result in candidate.rounds
         for item in round_result.seed_results
     }
@@ -63,6 +63,7 @@ def compare_historical_benchmarks(
                 round_id=baseline_seed.round_id,
                 round_number=baseline_seed.round_number,
                 seed_index=baseline_seed.seed_index,
+                episode_seed=baseline_seed.episode_seed,
                 baseline_score=baseline_seed.score,
                 candidate_score=candidate_seed.score,
                 score_delta=score_delta,
@@ -87,6 +88,7 @@ def compare_historical_benchmarks(
         mode=candidate.mode,
         policy_name=candidate.policy_name,
         budget=candidate.budget,
+        episode_seeds=candidate.episode_seeds,
         episode_seed=candidate.episode_seed,
         seed_count=len(deltas),
         mean_score_delta=float(np.mean(score_delta_array)),
@@ -118,7 +120,7 @@ def compare_historical_benchmark_artifacts(
     )
     comparison_name = (
         f"historical__mode={candidate.mode}"
-        f"{'' if candidate.policy_name is None else f'__policy={candidate.policy_name}__budget={candidate.budget}__episode_seed={candidate.episode_seed}'}"
+        f"{'' if candidate.policy_name is None else f'__policy={candidate.policy_name}__budget={candidate.budget}__episode_seeds={'n-a' if candidate.episode_seeds is None else '-'.join(str(item) for item in candidate.episode_seeds)}'}"
         f"__baseline={baseline.model_name}__candidate={candidate.model_name}"
         f"{run_suffix}"
     )

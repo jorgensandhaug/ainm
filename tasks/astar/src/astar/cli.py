@@ -291,6 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
     historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     historical_benchmark_parser.add_argument("--budget", type=int, default=50)
     historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
+    historical_benchmark_parser.add_argument("--episode-seed-count", type=int, default=1)
     historical_benchmark_parser.add_argument(
         "--with-png",
         choices=["none", "top", "all"],
@@ -627,6 +628,7 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             budget=args.budget,
             episode_seed=args.episode_seed,
+            episode_seed_count=args.episode_seed_count,
             visualization_policy=args.with_png,
             benchmark_name=args.name,
         )

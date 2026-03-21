@@ -91,6 +91,11 @@ def _load_synthetic_dataset_ref(
     index_path = dataset_dir / "index.parquet"
     if not summary_path.exists() or not index_path.exists():
         raise FileNotFoundError(dataset_name)
+    episode_paths = (
+        pl.read_parquet(index_path, columns=["episode_path"]).get_column("episode_path").to_list()
+    )
+    if any(not Path(str(item)).exists() for item in episode_paths):
+        raise FileNotFoundError(f"{dataset_name}: stale episode paths")
     return summary_path, index_path
 
 
