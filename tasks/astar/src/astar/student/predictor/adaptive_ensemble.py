@@ -46,6 +46,10 @@ ADAPTIVE_ENSEMBLE_V13 = "adaptive_ensemble_v13"
 ADAPTIVE_ENSEMBLE_V14 = "adaptive_ensemble_v14"
 ADAPTIVE_ENSEMBLE_V15 = "adaptive_ensemble_v15"
 ADAPTIVE_ENSEMBLE_V16 = "adaptive_ensemble_v16"
+ADAPTIVE_ENSEMBLE_V17 = "adaptive_ensemble_v17"
+ADAPTIVE_ENSEMBLE_V18 = "adaptive_ensemble_v18"
+ADAPTIVE_ENSEMBLE_V19 = "adaptive_ensemble_v19"
+ADAPTIVE_ENSEMBLE_V20 = "adaptive_ensemble_v20"
 
 ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_ALIAS,
@@ -65,6 +69,10 @@ ADAPTIVE_ENSEMBLE_MODEL_NAMES = frozenset({
     ADAPTIVE_ENSEMBLE_V14,
     ADAPTIVE_ENSEMBLE_V15,
     ADAPTIVE_ENSEMBLE_V16,
+    ADAPTIVE_ENSEMBLE_V17,
+    ADAPTIVE_ENSEMBLE_V18,
+    ADAPTIVE_ENSEMBLE_V19,
+    ADAPTIVE_ENSEMBLE_V20,
 })
 
 ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
@@ -85,6 +93,10 @@ ADAPTIVE_ENSEMBLE_MODEL_CHOICE_LIST = [
     ADAPTIVE_ENSEMBLE_V14,
     ADAPTIVE_ENSEMBLE_V15,
     ADAPTIVE_ENSEMBLE_V16,
+    ADAPTIVE_ENSEMBLE_V17,
+    ADAPTIVE_ENSEMBLE_V18,
+    ADAPTIVE_ENSEMBLE_V19,
+    ADAPTIVE_ENSEMBLE_V20,
 ]
 
 
@@ -107,6 +119,8 @@ class AdaptiveEnsembleVariantSpec(BaseModel):
     # Graduated scaling (smooth instead of binary threshold)
     graduated_scaling: bool = False
     graduated_scale_power: float = Field(default=1.0, ge=0.0)  # Higher = sharper transition
+    # Forest boost for barren rounds (forests reclaim ruined land)
+    barren_forest_boost: float = Field(default=1.0, ge=0.0)  # multiply forest probability in barren rounds
 
 
 def is_adaptive_ensemble_model_name(model_name: str) -> bool:
@@ -311,6 +325,55 @@ def resolve_adaptive_ensemble_variant_spec(
             active_settlement_boost=1.0,
             obs_correction_strength=0.0,
         ),
+        # v17-v20: v7 base + forest boost on barren rounds
+        ADAPTIVE_ENSEMBLE_V17: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V17,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.15,
+        ),
+        ADAPTIVE_ENSEMBLE_V18: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V18,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.3,
+        ),
+        ADAPTIVE_ENSEMBLE_V19: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V19,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.25,
+            barren_ruin_scale=0.15,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.2,
+        ),
+        ADAPTIVE_ENSEMBLE_V20: AdaptiveEnsembleVariantSpec(
+            model_name=ADAPTIVE_ENSEMBLE_V20,
+            base_models=("query_residual_v19",),
+            samples_per_round=2,
+            barren_threshold=0.03,
+            barren_settlement_scale=0.3,
+            barren_ruin_scale=0.2,
+            active_threshold=0.15,
+            active_settlement_boost=1.0,
+            obs_correction_strength=0.0,
+            barren_forest_boost=1.5,
+        ),
     }
     resolved_name = normalized if normalized != ADAPTIVE_ENSEMBLE_ALIAS else ADAPTIVE_ENSEMBLE_V1
     spec = specs.get(resolved_name, specs[ADAPTIVE_ENSEMBLE_V1])
@@ -437,6 +500,8 @@ class AdaptiveEnsemblePredictor(BaseModel):
                     corrected[:, :, 1] *= self.spec.barren_settlement_scale
                     corrected[:, :, 2] *= self.spec.barren_settlement_scale
                     corrected[:, :, 3] *= self.spec.barren_ruin_scale
+                    if self.spec.barren_forest_boost != 1.0:
+                        corrected[:, :, 4] *= self.spec.barren_forest_boost
                     corrected[:, :, 0] = np.maximum(
                         1.0 - corrected[:, :, 1] - corrected[:, :, 2] - corrected[:, :, 3] - corrected[:, :, 4] - corrected[:, :, 5],
                         0.01,
