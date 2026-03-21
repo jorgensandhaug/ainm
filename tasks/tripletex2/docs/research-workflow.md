@@ -294,8 +294,9 @@ The durable manual-launch surface is:
 
 - packet = context
 - `research/AGENTS.md` = instructions
+- `src/tasks/task-XX/RESEARCH.md` = task-local memory
 
-The agent should read the packet first, identify the current frontier to beat, and only then touch code.
+The agent should read the packet first, identify the current frontier to beat, inspect the task-local `RESEARCH.md`, and only then touch code.
 
 The request should still be optimization-shaped.
 

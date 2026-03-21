@@ -56,6 +56,10 @@ test("buildTaskPacket exposes optimization objective and context locator for man
     path.join(process.cwd(), "src", "tasks", "task-11", "task.ts"),
   );
   assert.equal(
+    packet.contextLocator.taskSurface.taskResearchMemoryPath,
+    path.join(process.cwd(), "src", "tasks", "task-11", "RESEARCH.md"),
+  );
+  assert.equal(
     packet.contextLocator.proof.inputPath,
     path.join(
       process.cwd(),

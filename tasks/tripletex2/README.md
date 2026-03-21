@@ -305,6 +305,7 @@ For manual coding-agent launches, the durable interface is:
 
 - packet = context surface
 - [`research/AGENTS.md`](./research/AGENTS.md) = instruction surface
+- `src/tasks/task-XX/RESEARCH.md` = task-local memory surface
 
 Do not reuse [`codex-environment/AGENTS.md`](./codex-environment/AGENTS.md) for research strategy work. That file remains classifier-only.
 

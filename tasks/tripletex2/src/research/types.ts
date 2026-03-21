@@ -227,6 +227,7 @@ export interface ResearchContextLocator {
   taskSurface: {
     taskDirectoryPath: string;
     taskReadmePath?: string;
+    taskResearchMemoryPath?: string;
     taskImplementationPath: string;
   };
   strategies: {

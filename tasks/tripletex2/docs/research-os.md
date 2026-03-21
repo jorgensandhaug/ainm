@@ -10,6 +10,7 @@ For manual research-agent launches:
 
 - packet = canonical context surface
 - `research/AGENTS.md` = canonical instruction surface
+- `src/tasks/task-XX/RESEARCH.md` = task-local research memory
 
 The packet must be read first. `codex-environment/AGENTS.md` remains classifier-only.
 
@@ -105,6 +106,7 @@ The durable manual-launch rule is explicit:
 
 - give the coding agent `research/AGENTS.md`
 - give it exactly one packet
+- make it inspect and update the task-local `src/tasks/task-XX/RESEARCH.md`
 - require it to beat the packet's frontier or explain why no plausible improvement exists
 
 `research_os.ts` remains intentionally limited to queue inspection, packet building, sandbox verification entry, and candidate-state management.

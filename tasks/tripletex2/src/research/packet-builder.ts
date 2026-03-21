@@ -227,6 +227,7 @@ export async function buildTaskPacket(
     "README.md",
   );
   const taskDirectoryPath = path.dirname(taskReadmePath);
+  const taskResearchMemoryPath = path.join(taskDirectoryPath, "RESEARCH.md");
   const taskImplementationPath = path.join(taskDirectoryPath, "task.ts");
   const strategiesDirectoryPath = path.join(taskDirectoryPath, "strategies");
   const trustedStandardPath = path.join(
@@ -299,6 +300,7 @@ export async function buildTaskPacket(
     packetPath,
     taskDirectoryPath,
     taskReadmePath: readmeText ? taskReadmePath : undefined,
+    taskResearchMemoryPath,
     taskImplementationPath,
     strategiesDirectoryPath,
     availableStrategies,
@@ -932,6 +934,7 @@ function buildContextLocator(input: {
   packetPath: string;
   taskDirectoryPath: string;
   taskReadmePath?: string;
+  taskResearchMemoryPath: string;
   taskImplementationPath: string;
   strategiesDirectoryPath: string;
   availableStrategies: ResearchPacketStrategySummary[];
@@ -950,6 +953,7 @@ function buildContextLocator(input: {
     taskSurface: {
       taskDirectoryPath: input.taskDirectoryPath,
       ...(input.taskReadmePath ? { taskReadmePath: input.taskReadmePath } : {}),
+      taskResearchMemoryPath: input.taskResearchMemoryPath,
       taskImplementationPath: input.taskImplementationPath,
     },
     strategies: {

@@ -32,11 +32,11 @@ If you are only given one of them, you are missing context.
 
 1. Read the packet first.
 2. Find the optimization objective and current frontier in the packet.
-3. Use the packet route-map to inspect the task README, current strategies, proof input, verification plan, `openapi.json`, candidate store, and any relevant offline evidence.
+3. Use the packet route-map to inspect the task `RESEARCH.md`, task README, current strategies, proof input, verification plan, `openapi.json`, candidate store, and any relevant offline evidence.
 4. Inspect the active strategy and the strongest known alternative before changing code.
 5. Implement exactly one task-local strategy improvement at a time.
 6. Verify through the research OS or sandbox proof path named in the packet.
-7. Record an honest conclusion if the frontier did not move.
+7. Write the conclusion back into the task-local `RESEARCH.md`, even if the answer is "no import" or "frontier unchanged".
 
 ## Hard Constraints
 

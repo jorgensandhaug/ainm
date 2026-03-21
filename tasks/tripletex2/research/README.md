@@ -8,8 +8,9 @@ For manual coding-agent launches, use:
 
 - packet = canonical context surface
 - `research/AGENTS.md` = canonical instruction surface
+- `src/tasks/task-XX/RESEARCH.md` = task-local research memory surface
 
-The agent should read the packet first, then follow `research/AGENTS.md`.
+The agent should read the packet first, then follow `research/AGENTS.md`, and write durable task-state updates back into the task-local `RESEARCH.md`.
 
 ## Workflow
 
