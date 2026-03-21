@@ -23,6 +23,7 @@ from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
 from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
+from astar.workflows.event_regime_posterior_audit import EventRegimePosteriorAuditResult
 from astar.workflows.hazard_glm import HazardGlmAuditResult
 from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.round_dynamics_lowrank import RoundDynamicsLowRankAuditResult
@@ -357,6 +358,29 @@ def render_hazard_glm_audit(result: HazardGlmAuditResult) -> str:
 
 def render_birth_hazard_glm_audit(result: HazardGlmAuditResult) -> str:
     return render_hazard_glm_audit(result)
+
+
+def render_event_regime_posterior_audit(result: EventRegimePosteriorAuditResult) -> str:
+    lines = [
+        f"event-regime-posterior-audit {result.audit_name}",
+        f"dataset: {result.dataset_name}",
+        f"policy: {result.policy_name}",
+        f"budget: {result.budget}",
+        f"samples_per_round: {result.samples_per_round}",
+        f"k_neighbors: {result.k_neighbors}",
+        f"rounds: {result.round_count}",
+        f"episodes: {result.episode_count}",
+        f"aggregation: {result.aggregation_mode}",
+        f"baseline_mae: {result.baseline_mae:.6f}",
+        f"knn_mae: {result.knn_mae:.6f}",
+        f"mae_gain: {result.mae_gain:.6f}",
+        f"baseline_mse: {result.baseline_mse:.6f}",
+        f"knn_mse: {result.knn_mse:.6f}",
+        f"mse_gain: {result.mse_gain:.6f}",
+        f"report: {result.report_path}",
+        f"artifact: {result.artifact_path}",
+    ]
+    return "\n".join(lines)
 
 
 def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:

@@ -117,7 +117,9 @@
 - `src/astar/student/predictor/interactive.py`
 - `src/astar/history/datasets/event_ledger.py`
 - `src/astar/history/datasets/hazard_riskset.py`
+- `src/astar/history/datasets/synthetic_live.py`
 - `src/astar/workflows/hazard_glm.py`
+- `src/astar/workflows/event_regime_posterior_audit.py`
 - `src/astar/workflows/model_eval.py`
 - `src/astar/workflows/historical_benchmark.py`
 - `src/astar/workflows/markov_sufficiency.py`
@@ -554,3 +556,53 @@
   - main modeling target remains unchanged:
     - learned collapse posterior / student over query settlement stats
     - then a better benchmarkable event-hazard model
+- Added budget-aware synthetic-live generation:
+  - `build_synthetic_live_dataset` now accepts explicit `budget`
+  - artifact/index payloads carry that budget
+  - this is important because posterior/student validation should be budget-matched, not only full-plan matched
+- Added event-regime posterior audit harness:
+  - file: `src/astar/workflows/event_regime_posterior_audit.py`
+  - CLI: `run-event-regime-posterior-audit`
+  - render: `src/astar/cli_output.py`
+  - tests:
+    - `tests/test_event_regime_posterior_audit.py`
+    - extra synthetic-live budget/cache regression in `tests/test_history_datasets.py`
+- Posterior-audit target definition now exists:
+  - round-level `birth_logit_rate`
+  - round-level `collapse_logit_rate`
+  - both derived from weighted round prevalence in the existing birth/collapse risk-set datasets
+  - evaluation protocol is leave-one-round-out with equal-round mean primary aggregation
+- First posterior-audit run attempts exposed a new systems bottleneck in synthetic-live generation:
+  - full target command:
+    - `uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_audit_v01 --dataset-name f1_synthetic_live_coverage_b50_s4_v1 --policy coverage --samples-per-round 4 --budget 50 --k-neighbors 7`
+    - aborted
+    - observed RSS reached about `16.4 GB`
+  - cheaper dev attempt before fix:
+    - `uv run astar run-event-regime-posterior-audit --name f1_event_regime_posterior_knn_b20s2_audit_v01 --dataset-name f1_synthetic_live_coverage_b20_s2_v1 --policy coverage --samples-per-round 2 --budget 20 --k-neighbors 5`
+    - aborted
+    - observed RSS reached about `18.3 GB`
+- Root-cause read from inspection:
+  - synthetic-live uses `SyntheticActiveOracle`, which hits `HistoricalReplayOracle._cached_round_episode`
+  - that cache retains replay-backed `RoundEpisode` objects across rounds during dataset construction
+  - this was a real memory-retention bug for synthetic-live / posterior sweeps
+- Fix landed in `src/astar/history/datasets/synthetic_live.py`:
+  - clear `_cached_round_episode` after each round
+  - drop round-local episode objects
+  - force `gc.collect()` after each round
+- Post-fix read:
+  - same `b20,s2` audit shape rerun with fresh names no longer exploded immediately
+  - early RSS dropped to about `2.36 GB` instead of the prior runaway behavior
+  - later RSS still climbed to about `9.35 GB`, so the leak is reduced but synthetic-live is still heavier than it should be
+  - no completed real-corpus posterior audit result yet; the current blocker is now clearly synthetic-live performance/memory, not missing audit logic
+- Validation after posterior-audit + synthetic-live cache work:
+  - `uv run pytest tests/test_history_datasets.py tests/test_event_regime_posterior_audit.py tests/test_teacher_student.py -q`
+  - result: `8 passed`
+  - `uv run pytest tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_hazard_riskset.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `20 passed`
+- Updated next-step read:
+  - keep the new posterior audit path
+  - next best infra task is likely synthetic-live streaming / deeper memory profiling
+  - only after that rerun:
+    - `b20,s2` posterior dev audit to completion
+    - then `b50,s4` or similar fuller posterior audit
+  - if the completed posterior audit is positive, then build the next benchmarkable learned birth/collapse posterior model on top of it

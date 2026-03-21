@@ -16,6 +16,7 @@ from astar.cli_output import (
     render_dataset_diagnostics,
     render_dataset_ref,
     render_episode_diagnostics,
+    render_event_regime_posterior_audit,
     render_factorize_round_summaries,
     render_fetch_analysis,
     render_fetch_round_analyses,
@@ -76,6 +77,7 @@ from astar.workflows.compare_historical_benchmarks import compare_historical_ben
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.birth_hazard_glm import run_birth_hazard_glm_audit
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
+from astar.workflows.event_regime_posterior_audit import run_event_regime_posterior_audit
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
 from astar.workflows.fetch_round_analyses import fetch_round_analyses
@@ -263,6 +265,14 @@ def build_parser() -> argparse.ArgumentParser:
     hazard_glm_parser.add_argument("--name", default=None)
     hazard_glm_parser.add_argument("--ridge-lambda", type=float, default=1.0)
     hazard_glm_parser.add_argument("--max-iter", type=int, default=12)
+
+    event_regime_posterior_parser = subparsers.add_parser("run-event-regime-posterior-audit")
+    event_regime_posterior_parser.add_argument("--dataset-name", default="f1_synthetic_live_coverage_b50_s4_v1")
+    event_regime_posterior_parser.add_argument("--name", default="f1_event_regime_posterior_knn_audit_v01")
+    event_regime_posterior_parser.add_argument("--policy", default="coverage")
+    event_regime_posterior_parser.add_argument("--samples-per-round", type=int, default=4)
+    event_regime_posterior_parser.add_argument("--budget", type=int, default=50)
+    event_regime_posterior_parser.add_argument("--k-neighbors", type=int, default=7)
 
     birth_hazard_glm_parser = subparsers.add_parser("run-birth-hazard-glm-audit")
     birth_hazard_glm_parser.add_argument("--dataset-name", default="f1_birth_riskset_nr8_v1")
@@ -590,6 +600,19 @@ def _main() -> int:
             max_iter=args.max_iter,
         )
         _emit(args.json, result, render_hazard_glm_audit(result))
+        return 0
+
+    if args.command == "run-event-regime-posterior-audit":
+        result = run_event_regime_posterior_audit(
+            paths,
+            dataset_name=args.dataset_name,
+            audit_name=args.name,
+            policy_name=args.policy,
+            samples_per_round=args.samples_per_round,
+            budget=args.budget,
+            k_neighbors=args.k_neighbors,
+        )
+        _emit(args.json, result, render_event_regime_posterior_audit(result))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":

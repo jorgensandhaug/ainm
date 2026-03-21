@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import json
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import LiveQueryObs
 from astar.envs.synthetic import SyntheticActiveOracle
+from astar.envs.historical import _cached_round_episode
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.episodes.build import build_round_episode
 from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
@@ -29,6 +31,7 @@ class SyntheticEpisodeIndexRow(BaseModel):
     round_id: str
     sample_index: int = Field(ge=0)
     policy_name: str
+    budget: int | None = Field(default=None, ge=0)
     query_count: int = Field(ge=0)
     episode_path: Path
 
@@ -40,6 +43,7 @@ class SyntheticEpisodeArtifact(BaseModel):
     round_number: int
     sample_index: int = Field(ge=0)
     policy_name: str
+    budget: int | None = Field(default=None, ge=0)
     regime_vector: np.ndarray
     observations: tuple[LiveQueryObs, ...]
     target_sources: dict[int, str]
@@ -116,6 +120,7 @@ def build_synthetic_live_dataset(
     round_ids: list[str] | None = None,
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
+    budget: int | None = None,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -139,7 +144,8 @@ def build_synthetic_live_dataset(
         if round_episode.replay_run_count == 0:
             continue
         materialize_round_episode(paths, round_id)
-        budget = _plan_budget(policy, round_id, oracle)
+        planned_budget = _plan_budget(policy, round_id, oracle)
+        resolved_budget = planned_budget if budget is None else budget
         learning_episode = load_round_learning_episode(paths, round_id)
 
         for sample_index in range(samples_per_round):
@@ -148,7 +154,7 @@ def build_synthetic_live_dataset(
                 round_id=round_id,
                 predictor=recorder,
                 policy=policy,
-                budget=budget,
+                budget=resolved_budget,
                 episode_seed=sample_index,
             )
             observations = episode_run.belief.observations
@@ -173,6 +179,7 @@ def build_synthetic_live_dataset(
                 round_number=int(episode_run.round_context.round_number or -1),
                 sample_index=sample_index,
                 policy_name=policy.name,
+                budget=resolved_budget,
                 regime_vector=round_regime_summary_vector(round_episode),
                 observations=observations,
                 target_sources=target_sources,
@@ -188,11 +195,19 @@ def build_synthetic_live_dataset(
                     "round_id": round_id,
                     "sample_index": sample_index,
                     "policy_name": policy.name,
+                    "budget": resolved_budget,
                     "query_count": len(observations),
                     "episode_path": str(episode_path),
                 },
             )
             total_query_count += len(observations)
+
+        # Synthetic-live generation walks replay-backed rounds one at a time; dropping
+        # the cached round episode here prevents all replay corpora from accumulating
+        # in memory across the full dataset build.
+        del learning_episode, round_episode
+        _cached_round_episode.cache_clear()
+        gc.collect()
 
     index_table = pl.DataFrame(rows)
     index_table.write_parquet(index_path)
@@ -200,6 +215,7 @@ def build_synthetic_live_dataset(
         "dataset_name": dataset_name,
         "dataset_kind": "synthetic_live",
         "policy_name": policy.name,
+        "budget": budget,
         "episode_count": index_table.height,
         "samples_per_round": samples_per_round,
         "total_query_count": total_query_count,
