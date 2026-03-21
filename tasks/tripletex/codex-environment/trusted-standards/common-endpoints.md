@@ -68,6 +68,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/employee/employment`
   - `GET` search employments
   - `POST` create employment
+- `/employee/employment/details`
+  - `GET` search employment details
+  - `POST` create employment details
 - Standard create prerequisites:
   - explicit `userType`
 - Standard create fast-path note:
@@ -77,6 +80,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422` where `validationMessages[].field == "department.id"`
   - if that department repair read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload and retry the same employee create once
   - if the employee create then fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
+  - for the richer exact onboarding shape `employee identity + department + start date + percentage + annual salary + standard worktime`, prefer `./trusted-standards/onboard-employee.md` instead of this simpler employee-card standard
+  - persistent sandbox re-proof on 2026-03-21 confirmed that this richer onboarding shape can persist the salary/worktime-related employment fields directly through nested `employmentDetails[]` inside the first `POST /employee`
 - Standard verification note:
   - a successful `POST /employee` can still echo `userType: null` plus `employments[]` as link-only objects without `startDate`
   - do not branch on the generic top-level `422 message`; current proven employee-create repair routing depends on `validationMessages[].field`
@@ -88,6 +93,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
 
 ## Salary
+- `/salary/settings/standardTime`
+  - `GET` search standard times
+  - `POST` create standard time
+- `/salary/settings/standardTime/byDate`
+  - `GET` resolve effective standard time for one date
 - `/salary/type`
   - `GET` search salary types
 - `/salary/transaction`
@@ -103,6 +113,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - exact employee id
   - payroll-ready employee data
   - resolved salary-type ids
+- Standard onboarding note:
+  - for the exact employee-onboarding shape that explicitly scores hours per day, `POST /salary/settings/standardTime` is the standard write
+  - persistent sandbox on 2026-03-21 still returned a default current `7.5` standard-time row from `1970-01-01`, but that sandbox default is not safe proof for fresh-account production; do not skip the write unless same-run evidence already proves the exact required value
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
   - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write

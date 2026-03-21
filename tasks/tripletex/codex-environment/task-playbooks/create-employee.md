@@ -6,6 +6,7 @@ Use for tasks like:
 - create one new employee
 - prompt provides identity fields such as name, birth date, email, and start date
 - no salary, leave, login-role assignment, or update/delete flow is requested
+- no explicit department onboarding, annual-salary setup, or standard-worktime setup is requested
 
 ## Verified Findings
 

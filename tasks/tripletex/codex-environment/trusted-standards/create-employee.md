@@ -15,6 +15,7 @@
 - payroll setup/run is part of the task
 - prompt requires repairing an existing employee
 - department/accounting state is unclear and prompt depends on it
+- prompt also scores department onboarding plus employment salary/worktime configuration; use `./trusted-standards/onboard-employee.md` for that richer shape
 
 ## Standard Flow
 1. `POST /employee` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
