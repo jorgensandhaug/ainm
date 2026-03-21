@@ -49,3 +49,9 @@
   - `hazard_posterior_v4_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.7966` / `0.086753`
   - `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_v1`: `77.3567` / `0.088722`
   - Conclusion: false; the additive posterior policy is model-sensitive and can degrade strong configs. Use the conservative blend mainline instead.
+- For v3, the conservative posterior-blend policy should preserve its hard-slice gain when promoted to the full 8-round benchmark.
+  - Evidence:
+    - hard slice: `probe_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_3rounds_seed0to1` => `78.9616` / `0.081747`
+    - broad set: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` => `75.0272` / `0.100043`
+    - broad comparator: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1` => `75.0492` / `0.100129`
+  - Conclusion: false so far; broad gain is effectively zero for v3, so do not promote v3 posterior-blend as the family mainline.

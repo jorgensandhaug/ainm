@@ -90,6 +90,17 @@
   - session `68725`: `proxy5_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
   - session `42725`: `proxy5_hazard_v3_k5_r3_l24_m60_regime_probe_posterior_blend_seed0to1`
   - session `49390`: `proxy5_hazard_v4_k5_r3_l16_m50_regime_probe_posterior_blend_seed0to1`
+- broad-result update after relaunch/push:
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` finished
+  - mean score: `75.0272`
+  - weighted KL: `0.100043`
+  - delta vs `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`:
+    - score: `-0.0219`
+    - weighted KL: `-0.000086`
+  - conclusion:
+    - on the broad 8-round set, posterior-blend is basically a wash for v3
+    - the hard-slice posterior-blend gain does not transfer cleanly to broad promotion for v3
+    - keep broad focus on v4 and on proxy-5 results from the relaunched missing configs
 
 ### Session Continuation
 

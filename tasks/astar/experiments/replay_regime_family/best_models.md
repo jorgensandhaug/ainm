@@ -17,3 +17,11 @@ Current broad-set leader already completed:
 - benchmark: `dev_hazard_v4_k5_r3_l32_m70_regime_probe_online50_v1`
 - score: `76.7061`
 - weighted KL: `0.092236`
+
+Broad-set caution update:
+- `hazard_posterior_v3_k5_r3_l16_m50 + regime_probe_posterior_blend_v1`
+- benchmark: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`
+- score: `75.0272`
+- weighted KL: `0.100043`
+- vs `v3 + regime_probe_v1`: score `-0.0219`, weighted KL `-0.000086`
+- implication: the hard-slice posterior-blend win does not materially transfer on the broad set for v3

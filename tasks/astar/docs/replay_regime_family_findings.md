@@ -113,6 +113,11 @@
   - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`: `75.0492`, weighted KL `0.100129`
   - stored broad baseline `query_residual_v7`: `73.9505`, weighted KL `0.106326`
   - implication: the regime-probe direction is not a hard-slice illusion; v4 currently looks more robust than v3 on the broad set
+- The conservative posterior-blend policy does not currently broaden v3 performance on the full 8-round benchmark:
+  - `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1`: `75.0272`, weighted KL `0.100043`
+  - direct comparator `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1`: `75.0492`, weighted KL `0.100129`
+  - delta: score `-0.0219`, weighted KL `-0.000086`
+  - implication: the strong hard-slice posterior-blend gain for v3 does not transfer materially to the broad set; keep v3 `regime_probe_v1` as the practical broad reference until proxy-5 / v4 promotions finish
 - A better fast validation slice can be derived from the completed broad results:
   - chosen 5-round proxy:
     - `71451d74-be9f-471f-aacd-a41f3b68a9cd`
@@ -170,10 +175,13 @@
 - The old 3-round hard slice should remain the only fast selector.
   - Evidence: it was useful for discovery, but a 5-round proxy derived from completed broad results matches broad ranking and calibration much better.
   - Conclusion: false; use the new 5-round proxy for the next sweep phase.
+- For v3, the posterior-blend policy should carry its hard-slice win through full 8-round broad validation.
+  - Evidence: `dev_hazard_v3_k5_r3_l16_m50_regime_probe_posterior_blend_online50_v1` is `75.0272` / `0.100043` vs `dev_hazard_v3_k5_r3_l16_m50_regime_probe_online50_v1` at `75.0492` / `0.100129`.
+  - Conclusion: false so far; the broad gain is effectively zero for v3.
 
 ## Open Questions
 
-- Do the in-flight full 8-round multi-seed `regime_probe_posterior_blend` promotions (`v3 l16/m50`, `v4 l32/m70`) preserve their hard-slice gains?
-- Is `v3 l16/m50 + regime_probe_posterior_blend_v1` genuinely better than `v4 l32/m70 + regime_probe_posterior_blend_v1` on the broader 8-round set, or only on the current hard slice?
+- Does the in-flight full 8-round multi-seed `regime_probe_posterior_blend` promotion for `v4 l32/m70` preserve its hard-slice gain?
+- Can the relaunched proxy-5 posterior-blend runs identify a variant where the blend genuinely transfers beyond the hard-slice v3 illusion?
 - Which specific query-trace behaviors of `regime_probe_v1` create the gains: same-window stochastic probing, hotspot expansion, or both?
 - The posterior-aware blend gains are concentrated on `fd3c...`; what property of that round makes posterior modulation especially useful?
