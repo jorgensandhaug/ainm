@@ -22,13 +22,13 @@ Do not use for:
 Verified in persistent sandbox on 2026-03-20:
 - `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`
 - `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`
-- `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned the live per-diem `rateType` options needed for a deliverable overnight trip
+- `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned rate objects; each value has `{ id, rateCategory: { id, url }, zone, rate, ... }` — the value's `.id` IS the rateType id, do NOT access `.rateType` on these objects
 - `GET /company/{companyId}?fields=*,address(*)` expanded the company address in one read, while `fields=*` alone left `company.address` as a link-only object
 - one no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that company read yielded concrete `departureFrom="Oslo"` from `company.address.city`
 - the exact 7-call branch `GET /employee` -> conditional `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `2` costs and `1` per-diem row
 - `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered object inside `values[]`
 - that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`
-- one returned sparse `rateType.id` still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
+- mapping `perDiemCompensations[].rateType = { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` with `zone` omitted still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
 - `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
 - `POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically
 - embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`
@@ -138,7 +138,9 @@ For the travel-expense create, the sandbox-proven shape was:
       "location": "Bergen",
       "count": 2,
       "rate": 800,
-      "amount": 1600
+      "amount": 1600,
+      "rateType": { "id": 25886, "rateCategory": { "id": 738 } },
+      "overnightAccommodation": "HOTEL"
     }
   ],
   "costs": [
@@ -148,6 +150,7 @@ For the travel-expense create, the sandbox-proven shape was:
       "comments": "bilhete de avião",
       "amountCurrencyIncVat": 5200,
       "amountNOKInclVAT": 5200,
+      "vatType": { "id": 0 },
       "date": "2026-03-19"
     },
     {
@@ -156,6 +159,7 @@ For the travel-expense create, the sandbox-proven shape was:
       "comments": "táxi",
       "amountCurrencyIncVat": 350,
       "amountNOKInclVAT": 350,
+      "vatType": { "id": 0 },
       "date": "2026-03-20"
     }
   ]
@@ -173,6 +177,7 @@ For the travel-expense create, the sandbox-proven shape was:
 - do not rely on the category default VAT if the expense may need `:deliver`; explicit zero-VAT cost rows were required in sandbox for a non-VAT-registered company
 - do not assume approval is available after delivery; sandbox `PUT /travelExpense/:approve` returned `403`
 - do not assume `GET /travelExpense/{id}?fields=*` expands child rows; it can stay link-only for both costs and per-diems
+- do not access `.rateType` on `/travelExpense/rate` response values; the values ARE the rate objects — use `.id` and `.rateCategory` directly from each value; accessing `.rateType` returns `undefined` and causes `422` on POST with `rateType.rateCategory: Kan ikke være null`
 
 ## Category And Payment-Type Resolution
 
@@ -185,6 +190,8 @@ For the travel-expense create, the sandbox-proven shape was:
 ## Per-Diem Resolution
 
 - for multi-day domestic per-diem tasks, resolve one compatible live `rateType` from `GET /travelExpense/rate?...fields=*`; do not leave `perDiemCompensations[].rateType` empty
+- **critical**: the `/travelExpense/rate` response values ARE the rate objects themselves with `{ id, rateCategory: { id, url }, zone, rate, ... }`; the value's own `.id` is the rateType id — do NOT access `.rateType` on these values (that property does not exist)
+- to build `perDiemCompensations[].rateType`, map: `{ id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }`; omit `zone` when `rateValue.zone` is null
 - the filtered rate search can already be authoritative even when `rateCategory` stays sparse; do not spend `GET /travelExpense/rateCategory/{id}` just to expand booleans
 - preserve the prompt's scored `count`, `rate`, and `amount`, but still include a compatible `rateType` so the row is deliverable
 - if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`
@@ -240,3 +247,9 @@ For the travel-expense create, the sandbox-proven shape was:
   - 7-call forced-action branch: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
   - 0 errors, `state=DELIVERED`, expense `11149202`, 2 costs, 1 per-diem
   - no `rateType.rate` matched prompt rate 800; used first returned `rateType.id=25886` (rate 397); delivery accepted manual `count=5, rate=800, amount=4000`
+- 2026-03-21 `Pablo Sánchez` / `pablo.sanchez@example.org` / `Conferencia Drammen` / 3-day per-diem 800/day + flight 7050 + taxi 550:
+  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - first attempt failed with 422 because script accessed `.rateType` on rate response values (returns `undefined`); wasted 6 calls
+  - second attempt with correct mapping `rateType: { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` succeeded: 7 calls, 0 errors
+  - total: 13 calls, 1 error; optimal: 7 calls, 0 errors
+  - `state=DELIVERED`, expense `11149366`, 2 costs, 1 per-diem
