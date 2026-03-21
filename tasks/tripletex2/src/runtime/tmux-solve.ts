@@ -211,17 +211,20 @@ const tripletex2Root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const DEFAULT_CODEX_ENVIRONMENT_DIR = tripletex2Root;
+const DEFAULT_CODEX_ENVIRONMENT_DIR = path.join(
+  tripletex2Root,
+  "codex-environment",
+);
 
 let tmuxLaunchLock: Promise<void> = Promise.resolve();
 
 export function resolveStorageMode(rawMode: string | undefined): StorageMode {
   switch (rawMode?.trim().toLowerCase()) {
-    case "testing":
-    case "test":
-      return "testing";
-    default:
+    case "production":
+    case "prod":
       return "production";
+    default:
+      return "testing";
   }
 }
 
@@ -231,7 +234,7 @@ export function buildCodexPrompt(
   effectiveCredentials: EffectiveCredentials,
   scriptsDir: string,
 ): string {
-  const openApiPath = "../tripletex/codex-environment/openapi.json";
+  const openApiPath = "./openapi.json";
   const lines = [
     "Scored Tripletex run.",
     "Follow ./AGENTS.md exactly.",
@@ -242,8 +245,8 @@ export function buildCodexPrompt(
     "- Avoid all avoidable 4xx errors.",
     "",
     "Knowledge order:",
-    "- 1. ./docs/trusted-standards/",
-    "- 2. ./docs/task-playbooks/",
+    "- 1. ./trusted-standards/",
+    "- 2. ./task-playbooks/",
     `- 3. ${openApiPath}`,
     `- If this is an exact trusted-standard match, use it directly and do not re-check ${openApiPath}.`,
     "",

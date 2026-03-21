@@ -16,8 +16,8 @@ The core architectural move is to treat each task as a strategy optimization pro
 
 - `docs/architecture.md` — the north star and system model
 - `docs/strategy-contract.md` — what a strategy is and how it must be standardized
-- `docs/trusted-standards/` — copied Tripletex1 low-risk reference flows for strategy implementation
-- `docs/task-playbooks/` — copied Tripletex1 broader task-flow references for strategy work
+- `codex-environment/trusted-standards/` — copied Tripletex1 low-risk reference flows for strategy implementation
+- `codex-environment/task-playbooks/` — copied Tripletex1 broader task-flow references for strategy work
 - `docs/run-log-spec.md` — canonical run evidence format
 - `docs/research-workflow.md` — how strategy search and iteration should work
 
@@ -52,7 +52,7 @@ That is why deterministic per-task strategies are the center of gravity.
 
 - **Live sandbox verified** for `create-and-send-invoice` (3-call strategy, invoice 2147551798)
 - **30/30 tests green**
-- **Codex/AGENTS.md task understanding** wired into the real solve pipeline
+- **Codex/codex-environment/AGENTS.md task understanding** wired into the real solve pipeline
 - **`POST /solve` endpoint** with bearer auth, concurrency limiting, request-id logging, run staging, canonical artifact + trace sidecar writing
 - **Two deterministic strategies** for `create-and-send-invoice` (3-call auto-send vs 4-call explicit-send)
 - **Replay harness**, **strategy comparison tooling**, and **combined live/native reporting** all operational
@@ -63,8 +63,7 @@ That is why deterministic per-task strategies are the center of gravity.
 
 - `train_requests/` — flattened request corpus used for prompt analysis and replay shape understanding
 - `docs/` — the canonical architectural and process doctrine for this repo
-- `docs/trusted-standards/` — copied Tripletex1 trusted reference flows for agent strategy authors
-- `docs/task-playbooks/` — copied Tripletex1 task playbooks kept as reference docs
+- `codex-environment/` — Codex runtime working directory with `AGENTS.md`, `openapi.json`, trusted standards, and playbooks
 - `scripts/` — importers, replay harness, reporting CLI, and smoke tools
 - `src/` — the deterministic runtime, task registry, strategies, and `/solve` server
 - `configs/` — active strategy selection configs
@@ -76,7 +75,11 @@ That is why deterministic per-task strategies are the center of gravity.
 
 ```text
 tripletex2/
-  AGENTS.md                  # Codex task-understanding contract
+  codex-environment/         # Codex tmux cwd and prompt reference material
+    AGENTS.md                # Codex task-understanding contract
+    openapi.json             # Runtime-only Tripletex API spec (gitignored)
+    trusted-standards/       # Low-risk reference flows copied from Tripletex1
+    task-playbooks/          # Broader task-flow references copied from Tripletex1
   docs/                      # Canonical architecture and process doctrine
   src/
     server.ts                # POST /solve endpoint (auth, concurrency, staging)
@@ -308,7 +311,7 @@ Practical rule: treat replay as wiring proof, live sandbox as API-shape proof, a
 
 ## Task-Understanding Loop
 
-The default solve pipeline now uses a Codex/`AGENTS.md` task-understanding handoff before deterministic strategy execution. You can probe that boundary directly with:
+The default solve pipeline now uses a Codex/`codex-environment/AGENTS.md` task-understanding handoff before deterministic strategy execution. You can probe that boundary directly with:
 
 ```bash
 bun scripts/run_codex_task_understanding_sample.ts

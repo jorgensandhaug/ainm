@@ -413,7 +413,7 @@ async function resolveTaskUnderstanding(
     taskSource: "llm-classifier",
     inputSource: "llm-extractor",
     notes: [
-      "Task understanding used an injected extractor instead of the default Codex/AGENTS path.",
+      "Task understanding used an injected extractor instead of the default Codex codex-environment path.",
     ],
   };
 }

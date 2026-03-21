@@ -368,7 +368,7 @@ test(
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
   const dataRoot = path.join(tempRoot, "data");
   const codexHomeDir = path.join(tempRoot, ".codex");
-  const codexEnvironmentDir = "/repo/tasks/tripletex2";
+  const codexEnvironmentDir = "/repo/tasks/tripletex2/codex-environment";
   const tmuxCommands: string[][] = [];
   let leaderboardFetchCount = 0;
   const handler = createSolveRequestHandler({
@@ -535,7 +535,7 @@ test(
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
   const dataRoot = path.join(tempRoot, "data");
   const codexHomeDir = path.join(tempRoot, ".codex");
-  const codexEnvironmentDir = "/repo/tasks/tripletex2";
+  const codexEnvironmentDir = "/repo/tasks/tripletex2/codex-environment";
   const handler = createSolveRequestHandler({
     bearerToken: "secret-token",
     mode: "competition",
@@ -546,6 +546,7 @@ test(
     env: {
       CODEX_HOME: codexHomeDir,
       HOME: tempRoot,
+      TRIPLETEX_STORAGE_MODE: "production",
     },
     now: () => new Date("2026-03-20T23:35:00.000Z"),
     tmuxRunCommand: async (cmd) => {

@@ -231,7 +231,7 @@ test("runCompetitionSolvePipeline can execute the explicit-send strategy when pi
   );
 });
 
-test("runCompetitionSolvePipeline uses Codex/AGENTS task understanding by default", async (t) => {
+test("runCompetitionSolvePipeline uses Codex codex-environment task understanding by default", async (t) => {
   const outputRoot = await mkdtemp(
     path.join(os.tmpdir(), "tripletex2-solve-pipeline-codex-"),
   );
@@ -378,7 +378,7 @@ test("runCompetitionSolvePipeline writes a canonical not-run artifact when task 
   assert.equal(artifact.execution.apiCallCount, 0);
   assert.equal(artifact.analysis?.failureMode, "no-task-match");
   assert.deepEqual(artifact.analysis?.notes, [
-    "Task understanding used an injected extractor instead of the default Codex/AGENTS path.",
+    "Task understanding used an injected extractor instead of the default Codex codex-environment path.",
     "Deterministic runtime did not start because task understanding or strategy selection was unresolved.",
   ]);
 

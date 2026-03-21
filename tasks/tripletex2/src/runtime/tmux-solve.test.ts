@@ -58,10 +58,10 @@ test("buildCodexPrompt matches the staged tmux prompt format", () => {
       "- Avoid all avoidable 4xx errors.",
       "",
       "Knowledge order:",
-      "- 1. ./docs/trusted-standards/",
-      "- 2. ./docs/task-playbooks/",
-      "- 3. ../tripletex/codex-environment/openapi.json",
-      "- If this is an exact trusted-standard match, use it directly and do not re-check ../tripletex/codex-environment/openapi.json.",
+      "- 1. ./trusted-standards/",
+      "- 2. ./task-playbooks/",
+      "- 3. ./openapi.json",
+      "- If this is an exact trusted-standard match, use it directly and do not re-check ./openapi.json.",
       "",
       "Run-specific rules:",
       "- Only interact with the Tripletex API by writing TypeScript and running it with bun.",
@@ -93,7 +93,7 @@ test("buildCodexPrompt matches the staged tmux prompt format", () => {
   );
 });
 
-test("buildLaunchScript runs codex from the tripletex2 root and drops into interactive zsh", () => {
+test("buildLaunchScript runs codex from the codex-environment directory and drops into interactive zsh", () => {
   const preparedRun = createPreparedRun({
     launchScriptPath: "/tmp/run/launch-codex.zsh",
     promptFilePath: "/tmp/run/codex-prompt.txt",
@@ -104,12 +104,12 @@ test("buildLaunchScript runs codex from the tripletex2 root and drops into inter
 
   assert.equal(
     buildLaunchScript(preparedRun, {
-      codexEnvironmentDir: "/repo/tasks/tripletex2",
+      codexEnvironmentDir: "/repo/tasks/tripletex2/codex-environment",
     }),
     `#!/usr/bin/env zsh
 set -u
 
-cd '/repo/tasks/tripletex2'
+cd '/repo/tasks/tripletex2/codex-environment'
 
 PROMPT_FILE='/tmp/run/codex-prompt.txt'
 
@@ -159,7 +159,7 @@ test("prepareRun stages the run directory, attachments, manifest, prompt, and la
       },
       "req-stage-1",
       {
-        codexEnvironmentDir: "/repo/tasks/tripletex2",
+        codexEnvironmentDir: "/repo/tasks/tripletex2/codex-environment",
         codexHomeDir: path.join(tempRoot, ".codex"),
         createRunId: () => "test-fixed-run",
         dataRoot: path.join(tempRoot, "data"),
@@ -432,7 +432,7 @@ test("runTmuxSolvePipeline writes submission snapshots and submission-score.json
   const sandboxEnvPath = path.join(tempRoot, ".sandbox.env");
   const codexHomeDir = path.join(tempRoot, ".codex");
   const dataRoot = path.join(tempRoot, "data");
-  const codexEnvironmentDir = "/repo/tasks/tripletex2";
+  const codexEnvironmentDir = "/repo/tasks/tripletex2/codex-environment";
   let submissionsFetchCount = 0;
   try {
     await writeFile(
@@ -685,7 +685,7 @@ test("runTmuxSolvePipeline kills the tmux window and writes timeout status when 
       },
       "req-timeout-1",
       {
-        codexEnvironmentDir: "/repo/tasks/tripletex2",
+        codexEnvironmentDir: "/repo/tasks/tripletex2/codex-environment",
         createRunId: () => "test-timeout-run",
         dataRoot: path.join(tempRoot, "data"),
         env: {

@@ -2,4 +2,4 @@
 
 Typed task surface and draft runtime stub for `register-travel-expense`.
 
-The intended deterministic solve path should follow `docs/trusted-standards/register-travel-expense.md` when this task gets a real strategy implementation.
+The intended deterministic solve path should follow `codex-environment/trusted-standards/register-travel-expense.md` when this task gets a real strategy implementation.
