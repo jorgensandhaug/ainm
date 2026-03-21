@@ -478,3 +478,53 @@
   - policy: `exploration_v2`
   - mean score: `74.4815`
   - mean weighted KL: `0.101584`
+
+### 2026-03-21T12:16:00Z
+
+- Post-sweep comparative analysis before stopping:
+  - `v10` remains meaningfully complementary to the promoted `v9_locgate` line
+  - full-round deltas `v10 - v9_locgate`:
+    - wins:
+      - `c5cdf100...`: `+2.505296` score, `-0.011812027` KL
+      - `f1dac9a9...`: `+2.634049` score, `-0.015378347` KL
+      - `8e839974...`: `+0.161152` score, `-0.000628098` KL
+    - losses:
+      - `ae78003a...`: `-3.857902` score, `+0.016966713` KL
+      - `76909e29...`: `-1.147920` score, `+0.004586088` KL
+      - `36e581f1...`: `-0.690795` score, `+0.003704263` KL
+      - `71451d74...`: `-0.355043` score, `+0.001473651` KL
+- New targeted follow-up:
+  - expose one final regularized `v10` variant:
+    - `query_residual_v10_pb040_v001`
+    - same top-heavy exact-local-residual structure as `v10`
+    - stronger `prior_blend=0.40` to damp the easy-round overcorrection without discarding the hard-round gains entirely
+  - decision rule:
+    - run smoke tests
+    - run one full 8-round historical benchmark
+    - if it does not beat `v9_locgate`, stop this branch sweep for now instead of adding more near-duplicate knobs
+
+### 2026-03-21T12:49:00Z
+
+- Validation for the temporary `v10_pb040` probe:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py` -> `11 passed`
+  - `uv run --extra dev pytest tests/test_online_episode.py` -> `1 passed`
+- Final full benchmark result for the regularized `v10` probe:
+  - command:
+    - `uv run astar run-historical-benchmark --model query_residual_v10_pb040_v001 --mode online_interactive --policy exploration --samples-per-round 1 --budget 50 --episode-seed 0 --with-png none --name agent2_full_query_residual_v10_pb040_8rounds_exploration_20260321`
+  - result:
+    - mean score: `73.9346`
+    - mean weighted KL: `0.103787`
+    - runtime: `1581.968s`
+    - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v10_pb040_8rounds_exploration_20260321/result.json`
+- Outcome:
+  - the stronger prior fallback over-regularized the exact-local-residual / top-heavy line
+  - versus current winner `query_residual_v9_locgate_v001`, this probe is clearly dominated on both score and weighted KL
+  - removed the temporary model registration after the benchmark so the branch only keeps winning or reusable code paths
+- Practical stopping point for this turn:
+  - current local search over the residual family has covered:
+    - base `v7`
+    - localized gating on `v7`
+    - exact-local-residual variants `v8/v9/v10`
+    - localized gating stacked on the exact-local-residual winner
+    - one final regularized `v10` probe, which failed badly
+  - no new high-signal residual-family variant remains obvious right now without moving to a qualitatively different model or blend family

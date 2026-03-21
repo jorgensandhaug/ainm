@@ -77,3 +77,6 @@
   - stacked local teacher gating on top of `v9` remains a tiny but real refinement:
     - vs `v9`: `+0.004244` score, `-0.000016549` weighted KL
     - only round `8e839974-b13b-407b-a5e7-fc749d877195` changes, by `+0.033953` score and `-0.000132395` weighted KL
+  - one last regularized `v10` probe (`prior_blend=0.40`) failed badly:
+    - full result: `73.9346 / 0.103787`
+    - interpretation: stronger prior fallback erased too much of the hard-round gain and did not rescue the easy-round regressions enough
