@@ -215,7 +215,13 @@ def test_smh_resid_localgate_online_historical_benchmark_runs(sample_paths: Repo
     [
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_resid_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend020_v001",
         "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend030_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend035_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend040_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend045_v001",
+        "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend050_v001",
         "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001",
         "smh_coeffbank_z0_h0_covlike_builtfocus_v001",
         "smh_coeffbank_z0_h0_covlike_builtsharp_v001",

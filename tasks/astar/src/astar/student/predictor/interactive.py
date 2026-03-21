@@ -44,6 +44,24 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001 = (
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend025_v001"
 )
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND020_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend020_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND030_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend030_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND035_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend035_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND040_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend040_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend045_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbexact_calresid_blend050_v001"
+)
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001 = (
     "smh_coeffbank_z0_h0_covlike_hbexact_calresid_adapt025_v001"
 )
@@ -1301,6 +1319,66 @@ def build_online_predictor(
             samples_per_round=samples_per_round,
             blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND025_V001,
             right_weight=0.25,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND020_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND020_V001,
+            right_weight=0.20,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND030_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND030_V001,
+            right_weight=0.30,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND035_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND035_V001,
+            right_weight=0.35,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND040_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND040_V001,
+            right_weight=0.40,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND045_V001,
+            right_weight=0.45,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_hbexact_calresid_blend_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            blend_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_BLEND050_V001,
+            right_weight=0.50,
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBEXACT_CALRESID_ADAPT025_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
