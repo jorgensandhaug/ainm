@@ -84,6 +84,7 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
 - re-running the whole script after a validation error can waste the decisive ledger read; fix the exact branch and resume
 - do not rank by absolute values unless the prompt explicitly asks for absolute movement rather than increase
 - do not use 3 separate `POST /project/projectActivity` calls; the `projectActivities` array on `POST /project/list` creates them inline (sandbox-verified 2026-03-21)
+- `POST /project/list` response returns `projectActivities[].{id, url}` without expanding the nested `activity` object; do not log `pa.activity?.name` expecting it to be populated — the activities are created correctly despite appearing as `undefined` in the response (production-confirmed 2026-03-21)
 
 ## OpenAPI / Sandbox Status
 - `/ledger/posting`, `/employee`, and `/project/list` verified in `./openapi.json`
@@ -93,3 +94,8 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
   - each inline activity was created with the correct `name`, `activityType=PROJECT_SPECIFIC_ACTIVITY`, and `isChargeable=false`
   - the `Activity` objects were verified via `GET /activity` to have the expected names and properties
   - this eliminates the need for any separate `POST /project/projectActivity` calls
+- production run on `2026-03-21` confirmed the full 3-call path:
+  - `GET /ledger/posting` returned 42 postings covering Jan+Feb 2026
+  - top 3 expense accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
+  - `POST /project/list` created all 3 projects with inline activities in one batch call
+  - 0 errors, 3 total API calls — the theoretical minimum for this task shape

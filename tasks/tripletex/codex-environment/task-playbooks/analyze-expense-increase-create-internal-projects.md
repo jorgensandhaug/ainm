@@ -15,16 +15,21 @@ Do not use for:
 
 ## Verified Findings
 
-Production run on 2026-03-21 (second attempt) achieved:
+Production run on 2026-03-21 (latest) achieved:
+- **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
+- used `POST /project/list` with inline `projectActivities` per project for batch create
+- top 3 accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
+
+Earlier production run on 2026-03-21 achieved:
 - 6 calls, 0 errors, correct result
-- used `POST /project/list` for batch project create + 3 separate `POST /project/projectActivity` calls
-- post-run sandbox investigation proved that inline `projectActivities` on `POST /project/list` works, reducing the optimal call count from 6 to 3
+- used `POST /project/list` + 3 separate `POST /project/projectActivity` calls (now known to be unnecessary)
 
 Persistent-sandbox verification on 2026-03-21 showed:
 - `POST /project/list` with inline `projectActivities` array per project successfully creates both the project and its activity in a single batch call
 - each activity was verified to have the correct `name`, `activityType=PROJECT_SPECIFIC_ACTIVITY`, and `isChargeable=false`
 - `POST /project` without `projectManager` returns `422` with `Feltet "Prosjektleder" må fylles ut.`
 - `GET /employee?assignableProjectManagers=true&count=1&fields=*` returns a reusable assignable manager id
+- `POST /project/list` response returns `projectActivities[].{id, url}` only — nested `activity` object is not expanded; this is normal, not a creation failure
 
 ## Minimal Safe Flow
 
