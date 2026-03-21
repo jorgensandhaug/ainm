@@ -1096,3 +1096,8 @@
     - session `24596`
   - `proxy5_hazard_v7_k5_r3_l32_m70_q12_regime_probe_posterior_blend_seed0to1`
     - session `24250`
+- added control arm:
+  - `proxy5_hazard_v7_k5_r3_l32_m70_q8_regime_probe_seed0to1`
+    - session `80608`
+  - rationale:
+    - isolates model improvement from policy-specific posterior-blend gains
