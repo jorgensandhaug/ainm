@@ -49,6 +49,21 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - a valid EHF/XML import creates the `supplierInvoice` object first
 - a partial `PUT /ledger/voucher/{id}` on that imported voucher can then add the correct accounting postings with correct VAT
 
+## Critical Response Shape Rules
+- `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version, ... }] }`, NOT `{ value: { id } }`
+- extract the voucher from `response.values[0].id` and `response.values[0].version`
+- using `response.value.id` will crash and force an expensive recovery path to re-discover the voucher id
+- 2026-03-21 production run for `Bølgekraft AS` / `861306178` / `INV-2026-3019` / `81812` / `6300` / `25%` wasted 4 calls (3 recovery GETs + 1 failed PUT) because of this wrong assumption
+- 2026-03-21 sandbox re-proof confirmed: import returns `{ "fullResultSize": 0, "from": 0, "count": 1, "values": [{ "id": 608906382, "version": 1, ... }] }`
+
+## Posting Row Rules
+- the `PUT /ledger/voucher/{id}` postings MUST include explicit `row` values starting from `1`
+- row `0` is reserved for the system-generated VAT posting; sending postings without explicit `row` will default them to row 0 and trigger `422 "Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex."`
+- debit posting: `row: 1`
+- supplier liability posting: `row: 2`
+- the system-generated VAT posting will appear on row `0` in the response
+- a failed 422 PUT does not bump the voucher version, so if you already have the version from the import response you can retry without re-reading
+
 ## Payload Rules
 - in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`
 - in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`
@@ -70,6 +85,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `postings`
 - do not send `description`, `vendorInvoiceNumber`, or other immutable imported header fields in that `PUT`
 - debit posting:
+  - `row: 1`
   - `account: { "id": <expense-account-id> }`
   - `description: <prompt description>`
   - `vatType: { "id": <incoming-vat-id> }`
@@ -78,6 +94,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `amountGross = gross`
   - `amountGrossCurrency = gross`
 - supplier liability posting:
+  - `row: 2`
   - `account: { "id": <supplier-ledger-account-id> }`
   - `supplier: { "id": <supplier-id> }`
   - `description: <prompt description>`
@@ -128,6 +145,13 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - if the imported-voucher `PUT` returns validation that `description` or `vendorInvoiceNumber` cannot be changed, remove those fields from the `PUT`; they belong in the import, not the update
 - if a one-line debit-only voucher update succeeds, that is not yet correct for taxable supplier invoices; use the balanced two-line update with currency amounts and explicit debit `vatType`
 - if the two-line update omits currency amounts, sandbox proof showed `500`; keep `amountCurrency` and `amountGrossCurrency` on both rows
+- if the importDocument response is accessed as `response.value.id` and crashes, the voucher was still created; recover with `GET /ledger/voucher?dateFrom=...&dateTo=...&fields=*` using a range that spans at least one day beyond the invoice date (dateTo is exclusive), then continue with the PUT using the discovered id and version
+
+## Known Pitfalls
+- do NOT access the importDocument response as `response.value`; it is `response.values[0]` — this mistake alone cost 4 extra calls in the 2026-03-21 production run
+- do NOT omit `row` values on PUT postings; without explicit `row: 1` and `row: 2`, Tripletex defaults to row 0 which conflicts with the system-generated VAT row and returns `422`
+- if you must search for the voucher after a lost import response, `GET /ledger/voucher` requires both `dateFrom` and `dateTo`, and `dateTo` is exclusive (same date for both returns `422`); use `dateTo` = invoice date + 1 day
+- the XML org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 validation; random 9-digit numbers will fail `422`
 
 ## OpenAPI / Sandbox Status
 - `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`
@@ -197,3 +221,15 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
     - expense row on `6500` with `vatType.id=1`, `amount=45040`, `amountGross=56300`
     - supplier row `-56300` linked to the created supplier id
     - system VAT row `11260`
+- 2026-03-21 production run for `Bølgekraft AS` / `861306178` / `INV-2026-3019` / `81812` / `6300` / `25%`:
+  - used 9 calls instead of optimal 5 due to two bugs:
+    1. accessed importDocument response as `response.value.id` instead of `response.values[0].id`, crashing before capturing voucher id
+    2. omitted `row` values on PUT postings, triggering `422` on system-generated row 0
+  - recovery path: 2 failed voucher searches (missing dateFrom/dateTo, then dateTo exclusive), 1 successful broad-range search, 1 failed PUT without rows, 1 successful PUT with rows
+  - final state was correct: expense row 6300 `vatType.id=1` `amount=65449.6` `amountGross=81812`, supplier row `-81812`, system VAT row `16362.4`
+- 2026-03-21 persistent-sandbox re-proof confirmed both bugs and correct fix:
+  - importDocument returns `{ values: [{ id: 608906382, version: 1 }] }` (list wrapper, NOT single-value wrapper)
+  - PUT without row values fails with `422` "Posteringene på rad 0 (guiRow 0) er systemgenererte..."
+  - PUT with `row: 1` and `row: 2` succeeds on first try
+  - failed 422 PUT does not bump voucher version
+  - corrected 5-call path: POST supplier, GET account, GET vatType, POST importDocument (extract `values[0]`), PUT voucher with explicit `row: 1`/`row: 2`

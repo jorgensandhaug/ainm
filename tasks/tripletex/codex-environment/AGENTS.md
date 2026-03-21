@@ -178,6 +178,7 @@ Authentication:
 - List responses are typically wrapped as `{"values": [...], "fullResultSize": N}`.
 - Single-object responses are typically wrapped as `{"value": {...}}`.
 - Some successful writes or deletes may return `204 No Content`.
+- **Exception**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version, ... }] }` even though it creates a single voucher. Extract from `response.values[0]`, not `response.value`. This mismatch caused a 4-call recovery penalty in the 2026-03-21 production supplier-invoice run.
 - Confirm exact response shape in `./openapi.json` before relying on it.
 
 ## API Usage Rules

@@ -299,6 +299,23 @@ Proven outcome:
   - supplier row `-61600` linked to the created supplier id
   - system VAT row `12320`
 
+## Critical Implementation Details
+
+### importDocument response shape
+- `POST /ledger/voucher/importDocument` returns a **list wrapper**: `{ values: [{ id, version, ... }] }`
+- extract the voucher from `response.values[0].id` and `response.values[0].version`
+- do NOT use `response.value.id` — that field does not exist and will crash
+- this mismatch from the typical single-object `{ value: {...} }` wrapper caused a 4-call recovery penalty in the 2026-03-21 production run
+
+### PUT postings require explicit row values
+- always include `row: 1` on the debit posting and `row: 2` on the supplier liability posting
+- row `0` is reserved for the system-generated VAT posting
+- omitting `row` causes `422 "Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex."`
+
+### XML org number validation
+- the org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 check
+- random 9-digit numbers will fail `422`; use the real supplier org number from the prompt
+
 ## Reusable Heuristics
 
 - if the task says register a supplier invoice, optimize for creating a real `supplierInvoice` object, not just a balanced voucher
@@ -307,3 +324,5 @@ Proven outcome:
 - if the balance is wrong, add currency amounts
 - if VAT is wrong, add explicit debit `vatType`
 - if XML import fails, fix the XML structure; do not pivot back to the old voucher-first path
+- always access the importDocument response via `values[0]`, never via `value`
+- always set explicit `row` values on PUT postings (1 for debit, 2 for supplier)

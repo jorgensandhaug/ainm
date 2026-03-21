@@ -616,6 +616,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
   - on 2026-03-20 persistent sandbox re-verification, `GET /ledger/account?number=5000,1920&fields=*` returned both accounts and the next `POST /ledger/voucher` with balanced `50600` / `-50600` salary-cost postings succeeded
   - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
+  - **CRITICAL**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version }] }`, not the typical single-object `{ value: { id } }` wrapper; extract from `response.values[0]`
+  - the later `PUT /ledger/voucher/{id}` postings MUST include explicit `row` values: `row: 1` for the debit posting, `row: 2` for the supplier liability posting; row 0 is reserved for the system-generated VAT posting and triggers `422` if overwritten
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
   - for receipt-backed manual vouchers, the attachment upload response on `/ledger/voucher/{voucherId}/attachment` is the decisive proof that the final voucher now preserves the source document; do not add `GET /ledger/voucher/{id}` by default once that write already returned `attachment.id`
