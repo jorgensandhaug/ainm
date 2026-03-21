@@ -25,25 +25,27 @@ Do not treat `/incomingInvoice*` as the alternative public branch for this repo.
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
 3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice carrying the prompt values
 4. `PUT /ledger/voucher/{id}?sendToLedger=false` with a partial body containing only `version` and `postings`; use `vatType: { id: 1 }` on the debit posting
+5. `PUT /ledger/voucher/{id}?sendToLedger=true` with a partial body containing ONLY `{ version }` — NO postings; use the version returned by step 4
 
-For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it a 5-call path.
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it a 6-call path.
 
 Use this create-first flow when the real task is fresh-account-like and the prompt gives only supplier business fields without saying the supplier already exists.
 
 If the prompt explicitly says the supplier already exists, or you are in a retry/persistent-account context where duplicate suppliers are plausible, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.
 
 ## Minimal-Call Claim
-- for the exact fresh-account-like shape with **25% incoming VAT**, the canonical path is `4` API calls
-- that `4`-call path is:
+- for the exact fresh-account-like shape with **25% incoming VAT**, the canonical path is `5` API calls
+- that `5`-call path is:
   1. `POST /supplier`
   2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
   3. `POST /ledger/voucher/importDocument`
   4. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
+  5. `PUT /ledger/voucher/{id}?sendToLedger=true` with only `{ version }` (books the voucher)
 - `vatType.id=1` is the standard 25% incoming VAT type; it has been stable across every sandbox and production instance tested (2026-03-20 and 2026-03-21 proofs)
 - 2026-03-21 sandbox re-proof confirmed: `PUT` with hard-coded `vatType: { id: 1 }` (no prior `GET /ledger/vatType`) succeeds with correct VAT posting
-- for **non-25% VAT**, add a `GET /ledger/vatType` call, making the path `5` calls
-- for the common existing-supplier shape with 25% VAT, the canonical path is also `4` calls, but with the first step replaced by `GET /supplier?...`
-- the old `5`-call path with `GET /ledger/vatType` is still correct but no longer optimal for 25% VAT
+- for **non-25% VAT**, add a `GET /ledger/vatType` call, making the path `6` calls
+- for the common existing-supplier shape with 25% VAT, the canonical path is also `5` calls, but with the first step replaced by `GET /supplier?...`
+- the old path without the booking step (`sendToLedger=true`) left the voucher unbooked (number=0) and scored 0% in production
 - 2026-03-20 production for `Océan SARL` / `853705209` / `INV-2026-4914` / `56300` / `6500` / `25%` took the older zero-hit branch and wasted one initial supplier lookup before creating the supplier anyway
 
 ## Why This Standard Exists
@@ -66,6 +68,15 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - supplier liability posting: `row: 2`
 - the system-generated VAT posting will appear on row `0` in the response
 - a failed 422 PUT does not bump the voucher version, so if you already have the version from the import response you can retry without re-reading
+
+## Booking Rules (CRITICAL for scoring)
+- vouchers created by `importDocument` start UNBOOKED (`number: 0`, `numberAsString: "<Ikke bokført N>"`)
+- `PUT /ledger/voucher/{id}?sendToLedger=false` sets postings but does NOT book the voucher — it stays unbooked
+- `PUT /ledger/voucher/{id}?sendToLedger=true` with only `{ version }` books the voucher and assigns a real number (e.g. 296)
+- the scorer requires a booked voucher — unbooked vouchers scored 0% in every production run tested
+- the booking PUT (step 5) must NOT include `postings` — sending postings with `sendToLedger=true` fails with "Bilag uten posteringer kan ikke bli sendt til hovedbok" because Tripletex clears existing postings before applying new ones, creating a transient empty state
+- the booking PUT must use the `version` returned by the postings PUT (step 4), NOT the original import version
+- 2026-03-21 sandbox proof: import → PUT sendToLedger=false → PUT sendToLedger=true (no postings) → voucher booked with number=296, supplierInvoice amount=-59800, outstandingAmount=59800
 
 ## Supplier Creation Rules (CRITICAL for correctness)
 - when the prompt or attached PDF provides supplier address (street, postal code, city) or bank account number, include them in the `POST /supplier` payload
@@ -120,7 +131,7 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `termOfPayment = <due date>`
 - let Tripletex auto-generate the VAT posting
 - do not send `amountVat`
-- do not default `sendToLedger=true`; the trusted sandbox proof is with `sendToLedger=false`
+- step 4 MUST use `sendToLedger=false`; step 5 MUST use `sendToLedger=true` with ONLY `{ version }` — this two-step booking is required because combining postings + sendToLedger=true in a single PUT fails
 - if the prompt omits invoice date and due date, use the run date for XML issue/due dates and supplier-posting `termOfPayment`
 
 ## XML Rules
@@ -142,13 +153,15 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 
 ## Verification
 - fast-path verification is zero extra calls
-- trust the two writes together:
+- trust the three writes together:
   - import creates the supplier invoice object family
-  - voucher update response proves the final postings and VAT split
-- a correct write response should show:
+  - postings PUT response proves the final postings and VAT split
+  - booking PUT response confirms the voucher is booked (version increments)
+- a correct postings PUT response should show:
   - one manual debit posting on the requested expense account with requested incoming VAT type
   - one supplier liability posting linked to the supplier id
   - one system-generated VAT posting
+- a correct booking PUT response should return the voucher with a real `number` (> 0) — if number is still 0, the voucher is not booked
 - only add `GET /supplierInvoice?...` or `GET /ledger/voucher/{id}?fields=*` if the live write response contradicts the intended state or omits a scored field unexpectedly
 
 ## Known Recovery Branches
@@ -169,6 +182,9 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls; the 2026-03-21 production run lost 2 checks for this exact omission
 - do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
 - when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4
+- do NOT skip the booking step (step 5 `PUT sendToLedger=true`) — without it the voucher stays unbooked and the scorer returns 0%; every pre-2026-03-21 production run that omitted this step scored 0%
+- do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails because Tripletex clears postings before applying new ones
+- preserve the prompt description's exact casing — if the prompt says "kontortjenester" (lowercase), do NOT capitalize it to "Kontortjenester"; the description is stored exactly as sent and the scorer may do case-sensitive matching
 
 ## VAT Rounding
 - Tripletex computes debit `amount` from `amountGross / (1 + vatPercent/100)` regardless of the `amount` value sent
@@ -282,23 +298,47 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - supplier created with `postalAddress` and `bankAccountPresentation`
   - but the `GET /ledger/vatType` call was unnecessary for 25% VAT — `vatType.id=1` could have been hard-coded
   - voucher `609036118`, supplier `108376507`
-- 2026-03-21 persistent-sandbox proof of the **4-call path** (skipping `GET /ledger/vatType`):
+- 2026-03-21 persistent-sandbox proof of the **5-call path** (skipping `GET /ledger/vatType`, adding booking step):
   - confirmed `PUT /ledger/voucher/{id}` with hard-coded `vatType: { id: 1 }` succeeds without prior vatType lookup
   - also confirmed `account: { number: 6340 }` does NOT work (needs `account.name`), so `GET /ledger/account` cannot be skipped
-  - 4-call path: POST supplier → GET account → POST importDocument → PUT voucher with `vatType: { id: 1 }`
+  - 5-call path: POST supplier → GET account → POST importDocument → PUT voucher sendToLedger=false → PUT voucher sendToLedger=true
   - supplier `108377138`, voucher `609037638`
   - final postings: expense row amount=20000, amountGross=25000, vatType.id=1; supplier row -25000; system VAT row 5000
-  - this is now the new canonical minimum for 25% incoming VAT
+  - this is the canonical minimum for 25% incoming VAT
 - 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
-  - **first production confirmation of the 4-call path** — used exactly 4 calls, 0 errors
+  - used 4 calls (missing the booking step) — 0 errors but voucher left UNBOOKED → scored 0%
   - no PDF attachment (text-only prompt), so no address or bank data to extract
   - hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
   - importDocument response correctly accessed via `values[0]`
   - PUT postings correctly used `row: 1` and `row: 2`
   - final state: expense row 6300, vatType.id=1, amount=47840, amountGross=59800; supplier row -59800; system VAT row 11960
   - voucher `609080159`, supplier `108391283`
-  - confirms the 4-call path works in production, not just sandbox
+  - **root cause of 0% score**: missing `PUT /ledger/voucher/{id}?sendToLedger=true` booking step — voucher stayed at number=0
 - 2026-03-21 persistent-sandbox re-proof of `account: { number: 6300 }` rejection:
   - confirmed `account: { number: 6300 }` in PUT postings returns `422` requiring `account.name`
   - this re-confirms the earlier finding for account 6340 — applies to all accounts, not just a specific one
-  - `GET /ledger/account` remains required; the 4-call path is the true minimum
+  - `GET /ledger/account` remains required; the 5-call path is the true minimum
+- 2026-03-21 persistent-sandbox proof of the **two-step booking** (the breakthrough fix for 0% scoring):
+  - full 5-call flow: POST supplier → GET account → POST importDocument → PUT sendToLedger=false → PUT sendToLedger=true
+  - supplier `108398155` (ledger account `424190921`), expense account 6300 (`424191117`)
+  - import returned voucher `609097742` version 1
+  - PUT sendToLedger=false with postings: OK, returned version 2
+  - PUT sendToLedger=true with only `{ version: 2 }` (NO postings): OK
+  - voucher booked with number=296 (previously number=0 with sendToLedger=false only)
+  - supplierInvoice: amount=-59800, outstandingAmount=59800
+  - postings: expense 6300 amount=47840 amountGross=59800 vatType=1; supplier -59800; system VAT 11960
+  - this proves the booking step is essential — without it the voucher is unbooked and the scorer rejects it
+  - combining postings + sendToLedger=true in a single PUT fails: "Bilag uten posteringer kan ikke bli sendt til hovedbok"
+  - re-sending postings in the second PUT also fails: "Posteringene på rad (guiRow) 2 kan ikke ha samme fortegn"
+  - the ONLY working pattern is: PUT with postings + sendToLedger=false, then PUT with version-only + sendToLedger=true
+- 2026-03-21 production run for `Stormberg AS` / `877462137` / `INV-2026-9382` / `61600` / `6340` / `25%`:
+  - used exactly 5 calls, 0 errors — optimal execution following this trusted standard
+  - text-only prompt (no PDF), so no address or bank data to extract
+  - hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+  - importDocument response correctly accessed via `values[0]`
+  - PUT postings correctly used `row: 1` and `row: 2`
+  - two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+  - final state: expense 6340 amount=49280 amountGross=61600 vatType.id=1; supplier -61600; system VAT 12320
+  - voucher `609103298`, supplier `108401290`
+  - minor issue: used "Kontortjenester" (capital K) instead of prompt's "kontortjenester" (lowercase) — may affect scoring if description is case-checked
+  - this is the 3rd consecutive optimal 5-call production run with 0 errors using this standard (after Bergvik AS and Luna SL)
