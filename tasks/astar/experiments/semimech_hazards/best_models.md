@@ -2,12 +2,12 @@
 
 ## Current Best
 
-- experiment: `agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321`
-- model: `query_residual_v9_locgate_v001`
+- experiment: `agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321`
+- model: `query_residual_v9_v10_blend025_v001`
 - mode: `online_interactive`
 - policy: `exploration_v2`
-- mean score: `74.4815`
-- mean weighted KL: `0.101584`
+- mean score: `74.5110`
+- mean weighted KL: `0.101290`
 - note: best current full local round-held-out result in this checkout
 
 ## Previous Reference Line

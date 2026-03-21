@@ -48,6 +48,11 @@
   - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_locgate_8rounds_exploration_20260321/`
   - mean score: `74.4815`
   - mean weighted KL: `0.101584`
+  - note: best single-model residual line before fixed blending
+- `query_residual_v9_v10_blend025_v001` full 8-round exploration line
+  - artifact: `data/artifacts/benchmarks/agent2_full_query_residual_v9_v10_blend025_8rounds_exploration_20260321/`
+  - mean score: `74.5110`
+  - mean weighted KL: `0.101290`
   - note: current best full local round-held-out result in this checkout
 - Existing repo artifact to beat:
   - `data/artifacts/benchmarks/dev_query_residual_online50_v7/`
@@ -80,3 +85,13 @@
   - one last regularized `v10` probe (`prior_blend=0.40`) failed badly:
     - full result: `73.9346 / 0.103787`
     - interpretation: stronger prior fallback erased too much of the hard-round gain and did not rescue the easy-round regressions enough
+- Fixed-blend follow-up read:
+  - `query_residual_v9_v10_blend025_v001` is the first real post-sweep gain beyond single-model residual tuning:
+    - vs `v9_locgate`: `+0.029414` score, `-0.000294587` weighted KL
+  - the win comes from partially importing `v10`'s strength on the harder complementary rounds:
+    - `c5cdf100...`: `+0.686885` score, `-0.003278396` KL
+    - `f1dac9a9...`: `+0.702416` score, `-0.004166179` KL
+  - one lighter-weight bracketing probe `query_residual_v9_v10_blend020_v001` did not beat the `25%` blend:
+    - full result: `74.5077 / 0.101335`
+    - vs `blend025`: `-0.003219` score, `+0.000045829` weighted KL
+    - interpretation: reducing the `ae78003a...` giveback was not enough to offset the smaller `c5cdf100...` / `f1dac9a9...` recovery

@@ -144,7 +144,6 @@ def test_query_residual_online_historical_benchmark_runs(sample_paths: RepoPaths
         "query_residual_v9",
         "query_residual_v10",
         "query_residual_v9_locgate_v001",
-        "query_residual_v9_v10_blend020_v001",
         "query_residual_v9_v10_blend025_v001",
     ],
 )
