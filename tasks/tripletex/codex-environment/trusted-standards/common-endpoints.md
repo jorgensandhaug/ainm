@@ -401,12 +401,15 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - **GET query param pitfall**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED; omitting them returns `422`
   - **GET query param pitfall**: `customerOrganizationNumber`, `customerOrgNumber`, and `currency` are NOT valid query params — they are silently ignored; the only valid customer filter is `customerId` (internal ID); always filter locally after `currency(*)` / `customer(*)` expansion
   - **GET expansion pitfall**: `fields=*` without `currency(*)` returns `currency` as a sparse link stub without `code`; always use `fields=*,currency(*)` when currency matters
+  - **GET expansion pitfall**: `fields=*` without `customer(*)` returns `customer` as a sparse link without `name` or `organizationNumber`; without `orderLines(*)` returns `orderLines` as ID-only references without `description`; for invoice payment locate, always use `fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))`
+  - **GET query param pitfall**: `invoiceStatus` is NOT a valid query param and is silently ignored; filter locally by positive `amountCurrencyOutstanding` instead
 - `/invoice/{id}`
   - `GET` read
 - `/invoice/{id}/:createCreditNote`
   - `PUT` create full credit note for an existing outgoing invoice
 - `/invoice/{id}/:payment`
   - `PUT` register payment
+  - **critical**: `paymentDate`, `paymentTypeId`, `paidAmount` (and optional `paidAmountCurrency`) are all **query parameters**, NOT a JSON request body; sending them as JSON body causes `422` with all fields reported as null
 - `/invoice/{id}/:send`
   - `PUT` send
 - `/invoice/paymentType`

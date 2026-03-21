@@ -20,7 +20,11 @@ Do not use for:
   - `paymentDate`
   - `paymentTypeId`
   - `paidAmount`
-- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`
+- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`; omitting either returns `422`
+- `PUT /invoice/{id}/:payment` parameters (`paymentDate`, `paymentTypeId`, `paidAmount`) must be **query parameters**, NOT a JSON request body; sending them as JSON body causes `422` with all fields reported as null
+- `customerOrganizationNumber` and `invoiceStatus` are NOT valid query parameters on `GET /invoice` (not in OpenAPI spec) and are silently ignored by the server; the only valid customer filter is `customerId` (numeric)
+- `fields=*` alone on `GET /invoice` returns ID-only references for nested objects; you MUST use `fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` to get `customer.organizationNumber` and `orderLines[].description` for local filtering
+- `fields=*` alone on `GET /invoice/paymentType` returns ID-only references for `debitAccount`; you MUST use `fields=*,debitAccount(*),creditAccount(*)` to get `debitAccount.number` for selection
 - A single decisive invoice read can often replace a separate `GET /customer` if the prompt already gives enough identifying facts
 - The payment write response returns `ResponseWrapperInvoice`, and that response can verify the remaining outstanding amount directly
 - `paymentTypeId` can be cached and reused within the same run for the same company/currency context
@@ -74,11 +78,16 @@ Verified in production on 2026-03-21:
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27869893` with debit account `1920`
 - `PUT /invoice/2147567128/:payment?paymentDate=2026-03-21&paymentTypeId=27869893&paidAmount=19000` reduced the remaining outstanding amount to `0`
 - same-day persistent sandbox re-proof confirmed `GET /invoice?...&fields=*,paymentType(*)` returns `400`, so there is no field-expansion shortcut to embed a reusable `paymentTypeId` inside the invoice locate read; the standalone `3`-call floor remains proven
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147572074` for customer `909268265` by `amountExcludingVatCurrency=31300`, line description `Konsulenttimer`, and positive `amountCurrencyOutstanding=39125`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28180406` (`Betalt til bank`)
+- `PUT /invoice/2147572074/:payment?paymentDate=2026-03-21&paymentTypeId=28180406&paidAmount=39125` reduced the remaining outstanding amount to `0`
+- this run initially wasted 3 extra calls (6 total) due to: (a) omitting required date params on GET /invoice → avoidable 422, (b) using `fields=*` without expansions → null descriptions → logic failure → repeat GET, (c) sending PUT /:payment params as JSON body → avoidable 422
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
 - therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache
 - production `27869893` added on 2026-03-21
+- production `28180406` added on 2026-03-21
 
 ## Minimal Flow
 
@@ -134,10 +143,18 @@ Observed production/account variance:
 - Normalize `debitAccount.number` and `creditAccount.number` before applying string-prefix checks; they may be returned as numbers rather than strings
 - Do not require `paymentType.name`; persistent sandbox re-proof on 2026-03-20 showed a valid incoming bank payment type with `name=null`
 - Prefer an ordinary bank payment type over niche/custom types when several are available
-- Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present
+- Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present; if those boolean flags are `undefined`, fall back to matching `description === "Betalt til bank"` or `debitAccount.number` starting with `19`
 - Do not require a `15xx` credit account; `creditAccount` may be `null` on a valid incoming payment type such as `Betalt til bank`
 - Do not persist a payment-type id cache across runs or accounts; successful ids vary materially between environments
 - Do not attempt to omit `paymentTypeId` from the payment write; sandbox re-check returned `422 paymentTypeId: Kan ikke være null.`
+
+## Common Pitfalls (each caused wasted calls in production)
+
+1. **Missing date params on GET /invoice**: `invoiceDateFrom` and `invoiceDateTo` are both required; omitting them returns `422`
+2. **JSON body on PUT /:payment**: all parameters (`paymentDate`, `paymentTypeId`, `paidAmount`) must be query parameters; a JSON body causes `422` with all fields null
+3. **Insufficient field expansion**: `fields=*` alone returns ID-only references for nested objects; use `fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` on GET /invoice and `fields=*,debitAccount(*),creditAccount(*)` on GET /invoice/paymentType
+4. **Fake server-side filters**: `customerOrganizationNumber` and `invoiceStatus` are NOT valid GET /invoice params and are silently ignored; always filter locally after expanding with `customer(*)`
+5. **Non-resumable scripts**: each script should separate locate/resolve/pay into independent steps or cache results between runs to avoid repeating successful calls on retry
 
 ## If You Still Need to Probe
 

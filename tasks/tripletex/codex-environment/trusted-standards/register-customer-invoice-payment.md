@@ -18,12 +18,22 @@
 - prompt is too ambiguous to identify one invoice safely
 
 ## Standard Flow
-1. `GET /invoice?...&fields=*` to identify the exact unpaid invoice
-2. Reuse a previously resolved same-run incoming `paymentTypeId` if one is already known for the same company and currency
-3. Otherwise `GET /invoice/paymentType?fields=*` once to resolve a valid incoming payment type
-4. `PUT /invoice/{id}/:payment`
-5. verify from payment write response
-6. stop
+1. `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` to identify the exact unpaid invoice
+2. filter locally by `customer.organizationNumber`, `amountExcludingVatCurrency`, positive `amountCurrencyOutstanding`, and order-line description match
+3. Reuse a previously resolved same-run incoming `paymentTypeId` if one is already known for the same company and currency
+4. Otherwise `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` once to resolve a valid incoming payment type
+5. `PUT /invoice/{id}/:payment?paymentDate=<YYYY-MM-DD>&paymentTypeId=<id>&paidAmount=<amountCurrencyOutstanding>` — all parameters are **query parameters**, NOT a JSON body
+6. verify from payment write response
+7. stop
+
+## Critical API Shape Notes
+- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`; omitting either returns `422`
+- `fields=*` alone returns ID-only references for nested objects (`orderLines`, `customer`, `orders`); you MUST use `fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` to get descriptions and org numbers for local filtering
+- `customerOrganizationNumber` and `invoiceStatus` are NOT valid query parameters on `GET /invoice` (not in OpenAPI spec) and are silently ignored; always filter locally after expanding with `customer(*)`
+- the only valid customer-scoping param is `customerId` (requires knowing the numeric ID, which would add a `GET /customer` call)
+- `GET /invoice/paymentType` with `fields=*` alone does not expand debit/credit accounts; use `fields=*,debitAccount(*),creditAccount(*)` to get `debitAccount.number` for selection
+- `PUT /invoice/{id}/:payment` takes `paymentDate`, `paymentTypeId`, `paidAmount` (and optional `paidAmountCurrency`) as **query parameters**; sending them as a JSON request body causes `422` with all fields reported as null
+- for payment type selection: prefer `description === "Betalt til bank"` or `debitAccount.number` starting with `19`; `isBankAccount` and `isInvoiceAccount` may not be consistently available across accounts
 
 ## Canonical Call Count
 - standalone exact-match payment task with no cached same-run payment type: `3` calls
@@ -72,3 +82,7 @@
 - in the 2026-03-20 persistent sandbox re-proof, all `4` matching analogs belonged to the same customer, so `GET /customer?organizationNumber=...` was not a real disambiguation branch anyway; either rely on extra prompt fields or treat the ambiguity as sandbox-only proof noise rather than adding a wasted read
 - 2026-03-21 production run for `896571559` + `15200` + `Datarådgivning` confirmed the same exact `3`-call path, located invoice `2147567128`, and again required paying the invoice object's live outstanding amount (`19000` there), not the prompt lookup amount; payment type was `27869893` with debit account `1920`
 - same-day persistent sandbox re-proof confirmed `GET /invoice?...&fields=*,paymentType(*)` returns `400`, so there is no field-expansion shortcut to embed a reusable `paymentTypeId` inside the invoice locate read
+- 2026-03-21 production run for `909268265` + `31300` + `Konsulenttimer` located invoice `2147572074` with live outstanding `39125`, used payment type `28180406` (`Betalt til bank`), and reduced remaining outstanding to `0`; this run wasted 3 extra calls (6 total) due to: (a) omitting required `invoiceDateFrom`/`invoiceDateTo` → avoidable 422, (b) using `fields=*` without nested expansions → null descriptions → script logic failure → repeated GET, (c) sending `PUT /:payment` params as JSON body instead of query parameters → avoidable 422
+- same-day sandbox re-proof confirmed `customerOrganizationNumber` is silently ignored on `GET /invoice` (returns all invoices even with a nonexistent value); `invoiceStatus` is also silently ignored; only `customerId` (numeric ID) is a valid customer-scoping filter per OpenAPI spec
+- same-day sandbox re-proof confirmed `fields=*` on `GET /invoice` returns `orderLines` as ID-only references without `description`; `customer(*)` expansion is required to get `organizationNumber`; `orderLines(*)` expansion is required to get `description`
+- same-day sandbox re-proof confirmed `fields=*` on `GET /invoice/paymentType` returns `debitAccount` as ID-only reference without `number`; `debitAccount(*)` expansion is required; `isBankAccount` was `undefined` even with expansion on this account
