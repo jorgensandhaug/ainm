@@ -63,6 +63,7 @@ Verified in persistent sandbox on 2026-03-20:
 - same-day sandbox re-verification: `POST /ledger/voucher` with `account: { number: 6540, name: "Inventar" }` (no id) → `422 Internt felt (account)`; with `account: { id: 0, number: 6540, name: "Inventar" }` → same `422`; account id resolution via GET is mandatory
 - the later 2026-03-21 production run for exact prompt `Kostsenter` / `IT` / `HR` / `6590` / `38100` succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `HR` value with voucher `609093249` — second consecutive perfect-efficiency run
 - same-day sandbox re-verification: `POST /ledger/accountingDimensionValue/list` (batch create) → `400 Method Not Allowed`; `POST /ledger/accountingDimensionValue` with array body → `422`; batch value creation is not supported, confirming 5 calls is the proven minimum
+- the later 2026-03-21 production run for exact prompt `Prosjekttype` / `Utvikling` / `Internt` / `7000` / `39700` succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Internt` value with voucher `609185199` — third consecutive perfect-efficiency run for this task shape
 
 ## Minimal Safe Flow
 
