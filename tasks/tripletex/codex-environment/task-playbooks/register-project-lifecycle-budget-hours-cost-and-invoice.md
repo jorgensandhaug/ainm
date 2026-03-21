@@ -69,6 +69,14 @@ Production run for `Cloud-Migration Eichenhof` on 2026-03-21 was incomplete beca
 - total calls: 16 (13 success + 3 errors), task incomplete
 - the correct path would have been 14-15 calls with 0 errors by: (a) conditionally omitting `division` when no division exists, (b) using `"12345678903"` for the bank-account repair
 
+Production run for `Migração Cloud Horizonte` on 2026-03-21 completed with 1 avoidable 422:
+- the agent sent `activity: { name: "PROJECT_SPECIFIC_ACTIVITY", isChargeable: false }` without `activityType` on `POST /project/projectActivity`
+- got `422 activity.activityType: Kan ikke være null.`, wasting 1 call
+- the resume script used both `name: "Prosjektaktivitet"` and `activityType: "PROJECT_SPECIFIC_ACTIVITY"` which succeeded
+- the bank-account repair branch was also triggered (bank had no number), adding 1 conditional call
+- total calls: 16 (15 base with bank repair + 1 wasted 422); ideal was 15
+- sandbox re-proof confirmed both `name` and `activityType` are independently mandatory on the inline `activity` object
+
 ## Minimal Safe Flow
 
 The optimized path uses batch timesheet creation and proactive department/division/bank-account reads:

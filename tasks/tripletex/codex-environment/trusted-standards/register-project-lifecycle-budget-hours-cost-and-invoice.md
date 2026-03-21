@@ -58,7 +58,8 @@
   - include `project.id`
   - include `startDate`
   - include `budgetFeeCurrency`
-  - inline `activity` should be `PROJECT_SPECIFIC_ACTIVITY` and currently proven with `isChargeable=false`
+  - inline `activity` requires both `name` (e.g. `"Prosjektaktivitet"`) and `activityType: "PROJECT_SPECIFIC_ACTIVITY"`; omitting either causes `422`
+  - include `isChargeable: false` on the activity
 - timesheet batch:
   - split totals above `24` into distinct dates before the first write
   - keep every date on or after the project `startDate`
@@ -144,3 +145,7 @@
   - using `bankAccountNumber: "12345678901"` on the bank-account repair step failed `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer`; the correct known-valid value is `"12345678903"` (MOD11-valid)
   - the run also hit a transient `409` on `POST /timesheet/entry/list` during its second script execution despite all entries having unique (employee, date, activity, project) tuples; the same batch succeeded on immediate retry, suggesting a transient server-side conflict rather than a payload shape error
   - same-day persistent-sandbox re-proof confirmed the full 14-call path succeeds when division is conditionally omitted and bank-account repair uses `"12345678903"`
+- the 2026-03-21 production run `Migração Cloud Horizonte` exposed a project-activity payload trap:
+  - agent sent `name: "PROJECT_SPECIFIC_ACTIVITY"` without `activityType` — got `422 activity.activityType: Kan ikke være null.`; resume added both `name` + `activityType` — `201`
+  - sandbox re-proof: `activityType` alone → `422 name`; `name` alone → `422 activityType`; both → `201`
+  - total: 16 calls (15 ideal + 1 wasted 422); full 14-call path re-proven in sandbox with 0 errors
