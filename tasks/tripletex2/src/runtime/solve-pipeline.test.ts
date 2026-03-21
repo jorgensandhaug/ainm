@@ -262,11 +262,7 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
       fetch: createFixtureTripletexFetch(),
       codexTaskUnderstanding: {
         executor: async ({ prompt }) => {
-          assert.match(prompt, /Follow the task-understanding contract below exactly\./);
-          assert.match(
-            prompt,
-            /Contract path: \.\/codex-environment\/TASK_UNDERSTANDING\.md/,
-          );
+          assert.match(prompt, /Follow \.\/AGENTS\.md exactly\./);
           assert.match(prompt, /Registered task surfaces:/);
 
           return JSON.stringify({
@@ -302,7 +298,7 @@ test("runCompetitionSolvePipeline uses Codex codex-environment task understandin
   assert.equal(artifact.task.taskSource, "llm-classifier");
   assert.equal(artifact.input.source, "llm-extractor");
   assert.deepEqual(artifact.analysis?.notes, [
-    "Task understanding ran via codex exec using ./codex-environment/TASK_UNDERSTANDING.md and a JSON-schema-constrained response.",
+    "Task understanding ran via codex exec using ./AGENTS.md and a JSON-schema-constrained response.",
     "This path requires a locally installed, authenticated Codex CLI.",
     "Matched the prompt to the create-and-send-invoice task surface.",
     "Deterministic runtime started only after the task-understanding handoff.",
