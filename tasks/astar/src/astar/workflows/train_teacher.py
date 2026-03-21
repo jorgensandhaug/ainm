@@ -30,7 +30,7 @@ def train_hazard_teacher(
         replay_episode_count=len(replay_episodes),
         replay_run_count=sum(episode.replay_run_count for episode in replay_episodes),
         checkpoint_path=checkpoint_path,
-        embedding_dim=int(teacher.regime_bank.shape[1]),
+        embedding_dim=int(getattr(teacher, "selected_rank", teacher.regime_bank.shape[1])),
     )
     CatalogDB(paths.catalog_path).log_event(
         CatalogEvent(

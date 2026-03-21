@@ -180,7 +180,7 @@ def evaluate_teacher_science(
         round_id=episode.metadata.round_id,
         round_number=episode.metadata.round_number,
         teacher_name=teacher.name,
-        regime_dim=int(regime.shape[0]),
+        regime_dim=int(getattr(teacher, "selected_rank", regime.shape[0])),
         seed_reports=seed_reports,
         mean_terminal_l1=float(np.mean([item.terminal_l1 for item in seed_reports])),
         mean_alive_curve_mae=float(np.mean([item.alive_curve_mae for item in seed_reports])),

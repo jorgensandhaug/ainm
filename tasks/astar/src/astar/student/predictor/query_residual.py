@@ -85,12 +85,29 @@ def _cached_synthetic_dataset_name(
 def _load_synthetic_dataset_ref(
     paths: WorkspacePaths,
     dataset_name: str,
+    *,
+    required_round_ids: Sequence[str] | None = None,
 ) -> tuple[Path, Path]:
+    from astar.history.datasets.synthetic_live import resolve_synthetic_episode_path
+
     dataset_dir = paths.dataset_dir(dataset_name)
     summary_path = dataset_dir / "summary.json"
     index_path = dataset_dir / "index.parquet"
     if not summary_path.exists() or not index_path.exists():
         raise FileNotFoundError(dataset_name)
+    index_table = pl.read_parquet(index_path, columns=["round_id", "episode_path"])
+    if required_round_ids is not None:
+        available_round_ids = set(index_table["round_id"].to_list())
+        if not set(required_round_ids).issubset(available_round_ids):
+            raise FileNotFoundError(
+                f"{dataset_name} missing requested rounds: "
+                f"{sorted(set(required_round_ids) - available_round_ids)!r}",
+            )
+    for path_value in index_table["episode_path"].to_list():
+        try:
+            resolve_synthetic_episode_path(index_path, str(path_value))
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(f"{dataset_name} has unresolved episode paths") from exc
     return summary_path, index_path
 
 
@@ -106,14 +123,22 @@ def _ensure_synthetic_dataset(
     legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
     if samples_per_round == 1:
         try:
-            _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
+            _, index_path = _load_synthetic_dataset_ref(
+                paths,
+                legacy_dataset_name,
+                required_round_ids=round_ids,
+            )
             return index_path
         except FileNotFoundError:
             pass
 
     dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
     try:
-        _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
+        _, index_path = _load_synthetic_dataset_ref(
+            paths,
+            dataset_name,
+            required_round_ids=round_ids,
+        )
         return index_path
     except FileNotFoundError:
         dataset = build_synthetic_live_dataset(
@@ -349,6 +374,12 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     teacher_feature_names: list[str]
     teacher_regime_intercept: list[float]
     teacher_regime_weights: list[list[float]]
+    teacher_coefficient_mean: list[float] = Field(default_factory=list)
+    teacher_coefficient_basis: list[list[float]] = Field(default_factory=list)
+    teacher_candidate_ranks: list[int] = Field(default_factory=list)
+    teacher_rank_scores: list[float] = Field(default_factory=list)
+    teacher_rank_selection: str = "direct_coefficients"
+    teacher_selected_rank: int = Field(default=1, ge=1)
     teacher_blend: float = Field(ge=0.0, le=1.0)
     regime_intercept: list[float]
     regime_weights: list[list[float]]
@@ -944,7 +975,7 @@ def _select_training_cells(
 class QueryResidualPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    name: str = "query_residual_v7"
+    name: str = "query_residual_v8"
     base_predictor: HistoricalBucketPriorPredictor
     teacher: HazardTeacher
     policy_name: str = "coverage"
@@ -992,7 +1023,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         cells_per_seed: int = 256,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
         ridge_lambda: float = 8.0,
-        model_name: str = "query_residual_v7",
+        model_name: str = "query_residual_v8",
         probability_floor: float = 0.01,
         temperature: float = 1.15,
         prior_blend: float = 0.35,
@@ -1081,9 +1112,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 }
                 round_cache[round_id] = cached
 
-            from astar.history.datasets.synthetic_live import load_synthetic_episode
+            from astar.history.datasets.synthetic_live import (
+                load_synthetic_episode,
+                resolve_synthetic_episode_path,
+            )
 
-            artifact = load_synthetic_episode(Path(str(row["episode_path"])))
+            artifact = load_synthetic_episode(
+                resolve_synthetic_episode_path(index_path, str(row["episode_path"])),
+            )
             full_observations = tuple(artifact.observations)
             budget_values = sorted({min(int(value), len(full_observations)) for value in budget_prefixes})
             for budget in budget_values:
@@ -1192,6 +1228,12 @@ class QueryResidualPredictor(BaseRoundPredictor):
                 feature_names=list(checkpoint.teacher_feature_names),
                 regime_intercept=np.asarray(checkpoint.teacher_regime_intercept, dtype=np.float64),
                 regime_weights=np.asarray(checkpoint.teacher_regime_weights, dtype=np.float64),
+                coefficient_mean=np.asarray(checkpoint.teacher_coefficient_mean, dtype=np.float64),
+                coefficient_basis=np.asarray(checkpoint.teacher_coefficient_basis, dtype=np.float64),
+                candidate_ranks=tuple(checkpoint.teacher_candidate_ranks),
+                rank_scores=tuple(checkpoint.teacher_rank_scores),
+                rank_selection=checkpoint.teacher_rank_selection,
+                selected_rank=checkpoint.teacher_selected_rank,
             ),
             policy_name=checkpoint.policy_name,
             round_ids=tuple(checkpoint.round_ids),
@@ -1241,6 +1283,12 @@ class QueryResidualPredictor(BaseRoundPredictor):
             teacher_feature_names=list(self.teacher.feature_names),
             teacher_regime_intercept=np.asarray(self.teacher.regime_intercept, dtype=np.float64).tolist(),
             teacher_regime_weights=np.asarray(self.teacher.regime_weights, dtype=np.float64).tolist(),
+            teacher_coefficient_mean=np.asarray(self.teacher.coefficient_mean, dtype=np.float64).tolist(),
+            teacher_coefficient_basis=np.asarray(self.teacher.coefficient_basis, dtype=np.float64).tolist(),
+            teacher_candidate_ranks=list(self.teacher.candidate_ranks),
+            teacher_rank_scores=list(self.teacher.rank_scores),
+            teacher_rank_selection=self.teacher.rank_selection,
+            teacher_selected_rank=self.teacher.selected_rank,
             teacher_blend=self.teacher_blend,
             regime_intercept=np.asarray(self.regime_intercept, dtype=np.float64).tolist(),
             regime_weights=np.asarray(self.regime_weights, dtype=np.float64).tolist(),

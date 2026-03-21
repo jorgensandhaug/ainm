@@ -8,6 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
 from astar.history.episodes.models import RoundEpisode
+from astar.history.summaries.manifold import (
+    factorize_round_coefficients,
+    fit_regime_coordinate_map,
+)
 from astar.history.summaries.round_coefficients import (
     fit_round_semimechanistic_coefficients,
     round_regime_summary_vector,
@@ -44,6 +48,18 @@ def _sigmoid(values: np.ndarray) -> np.ndarray:
     )
 
 
+def reconstruct_coefficients_from_basis(
+    mean_vector: np.ndarray,
+    basis: np.ndarray,
+    coordinates: np.ndarray,
+) -> np.ndarray:
+    return np.asarray(
+        np.asarray(mean_vector, dtype=np.float64)
+        + (np.asarray(coordinates, dtype=np.float64) @ np.asarray(basis, dtype=np.float64)),
+        dtype=np.float64,
+    )
+
+
 class HazardTeacherCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -55,6 +71,12 @@ class HazardTeacherCheckpoint(BaseModel):
     coefficient_dim: int = Field(ge=1)
     regime_intercept: list[float]
     regime_weights: list[list[float]]
+    coefficient_mean: list[float] = Field(default_factory=list)
+    coefficient_basis: list[list[float]] = Field(default_factory=list)
+    candidate_ranks: list[int] = Field(default_factory=list)
+    rank_scores: list[float] = Field(default_factory=list)
+    rank_selection: str = "direct_coefficients"
+    selected_rank: int = Field(default=1, ge=1)
 
 
 class HazardTeacher(BaseModel):
@@ -68,11 +90,24 @@ class HazardTeacher(BaseModel):
     coefficient_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    coefficient_mean: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    coefficient_basis: np.ndarray = Field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
+    candidate_ranks: tuple[int, ...] = ()
+    rank_scores: tuple[float, ...] = ()
+    rank_selection: str = "direct_coefficients"
+    selected_rank: int = Field(default=1, ge=1)
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
 
-    def fit(self, episodes: list[RoundEpisode]) -> HazardTeacher:
+    def fit(
+        self,
+        episodes: list[RoundEpisode],
+        *,
+        max_rank: int = 5,
+        rank_selection: str = "direct_coefficients",
+        ridge_alpha: float = 1e-2,
+    ) -> HazardTeacher:
         replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
         if not replay_episodes:
             raise ValueError("no replay-backed episodes available for hazard teacher")
@@ -82,11 +117,34 @@ class HazardTeacher(BaseModel):
         ]
         regime_bank = np.stack([row.regime_vector for row in coefficient_rows], axis=0)
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
-        regime_intercept, regime_weights = _fit_linear_map(
-            regime_bank,
-            coefficient_bank,
-            ridge_alpha=1e-2,
-        )
+        if rank_selection == "direct_coefficients":
+            regime_intercept, regime_weights = _fit_linear_map(
+                regime_bank,
+                coefficient_bank,
+                ridge_alpha=ridge_alpha,
+            )
+            coefficient_mean = np.zeros(0, dtype=np.float64)
+            coefficient_basis = np.zeros((0, 0), dtype=np.float64)
+            candidate_ranks: tuple[int, ...] = ()
+            rank_scores: tuple[float, ...] = ()
+            selected_rank = int(regime_bank.shape[1])
+        else:
+            manifold = factorize_round_coefficients(
+                coefficient_rows,
+                max_rank=min(max_rank, len(coefficient_rows)),
+                rank_selection=rank_selection,
+                ridge_alpha=ridge_alpha,
+            )
+            regime_intercept, regime_weights = fit_regime_coordinate_map(
+                manifold,
+                regime_bank,
+                ridge_alpha=ridge_alpha,
+            )
+            coefficient_mean = np.asarray(manifold.mean_vector, dtype=np.float64)
+            coefficient_basis = np.asarray(manifold.basis, dtype=np.float64)
+            candidate_ranks = tuple(int(item) for item in manifold.candidate_ranks)
+            rank_scores = tuple(float(item) for item in manifold.rank_scores)
+            selected_rank = int(manifold.effective_rank)
 
         replay_bank_round_ids: list[str] = []
         replay_bank_seed_indexes: list[int] = []
@@ -108,6 +166,12 @@ class HazardTeacher(BaseModel):
                 "coefficient_bank": coefficient_bank,
                 "regime_intercept": regime_intercept,
                 "regime_weights": regime_weights,
+                "coefficient_mean": coefficient_mean,
+                "coefficient_basis": coefficient_basis,
+                "candidate_ranks": candidate_ranks,
+                "rank_scores": rank_scores,
+                "rank_selection": rank_selection,
+                "selected_rank": selected_rank,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
@@ -121,15 +185,43 @@ class HazardTeacher(BaseModel):
             round_ids=list(self.round_ids),
             round_numbers=list(self.round_numbers),
             regime_dim=int(self.regime_weights.shape[0]),
-            coefficient_dim=int(self.regime_intercept.shape[0]),
+            coefficient_dim=(
+                int(self.coefficient_mean.shape[0])
+                if self.coefficient_mean.size > 0
+                else int(self.regime_intercept.shape[0])
+            ),
             regime_intercept=self.regime_intercept.tolist(),
             regime_weights=self.regime_weights.tolist(),
+            coefficient_mean=self.coefficient_mean.tolist(),
+            coefficient_basis=self.coefficient_basis.tolist(),
+            candidate_ranks=list(self.candidate_ranks),
+            rank_scores=list(self.rank_scores),
+            rank_selection=self.rank_selection,
+            selected_rank=self.selected_rank,
         )
 
     def save_checkpoint(self, path: Path) -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(to_jsonable(self.checkpoint()), indent=2), encoding="utf-8")
         return path
+
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> HazardTeacher:
+        checkpoint = HazardTeacherCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        return cls(
+            name=checkpoint.name,
+            feature_names=list(checkpoint.feature_names),
+            round_ids=tuple(checkpoint.round_ids),
+            round_numbers=tuple(checkpoint.round_numbers),
+            regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
+            coefficient_mean=np.asarray(checkpoint.coefficient_mean, dtype=np.float64),
+            coefficient_basis=np.asarray(checkpoint.coefficient_basis, dtype=np.float64),
+            candidate_ranks=tuple(checkpoint.candidate_ranks),
+            rank_scores=tuple(checkpoint.rank_scores),
+            rank_selection=checkpoint.rank_selection,
+            selected_rank=checkpoint.selected_rank,
+        )
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
         return round_regime_summary_vector(episode)
@@ -148,10 +240,17 @@ class HazardTeacher(BaseModel):
                     "expected regime dim "
                     f"{self.regime_weights.shape[0]}, got {regime_array.shape[0]}",
                 )
-        return np.asarray(
+        latent = np.asarray(
             self.regime_intercept + regime_array @ self.regime_weights,
             dtype=np.float64,
         )
+        if self.coefficient_basis.size > 0 and self.coefficient_mean.size > 0:
+            return reconstruct_coefficients_from_basis(
+                self.coefficient_mean,
+                self.coefficient_basis,
+                latent,
+            )
+        return latent
 
     def _split_coefficients(
         self,

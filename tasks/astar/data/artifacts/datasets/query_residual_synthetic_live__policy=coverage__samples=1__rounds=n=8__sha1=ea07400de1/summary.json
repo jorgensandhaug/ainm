@@ -1,0 +1,10 @@
+{
+  "dataset_name": "query_residual_synthetic_live__policy=coverage__samples=1__rounds=n=8__sha1=ea07400de1",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "coverage",
+  "episode_count": 8,
+  "samples_per_round": 1,
+  "total_query_count": 360,
+  "round_count": 8,
+  "index_path": "/home/jorge/agent4/tasks/astar/data/artifacts/datasets/query_residual_synthetic_live__policy=coverage__samples=1__rounds=n=8__sha1=ea07400de1/index.parquet"
+}

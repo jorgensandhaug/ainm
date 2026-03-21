@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+
+import polars as pl
 
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
     build_synthetic_live_dataset,
     load_synthetic_episode,
+    resolve_synthetic_episode_path,
 )
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
@@ -178,3 +182,27 @@ def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
         assert [item.model_dump(mode="json") for item in artifact_obs.settlements] == [
             item.model_dump(mode="json") for item in runtime_obs.settlements
         ]
+
+
+def test_synthetic_live_dataset_index_paths_are_portable(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_portable_index_test",
+    )
+
+    assert dataset.index_path is not None
+    table = pl.read_parquet(dataset.index_path)
+    stored_path = str(table["episode_path"][0])
+    resolved_path = resolve_synthetic_episode_path(dataset.index_path, stored_path)
+    legacy_absolute = Path("/tmp/legacy-worktree") / resolved_path.name
+
+    assert not Path(stored_path).is_absolute()
+    assert resolved_path.exists()
+    assert resolve_synthetic_episode_path(dataset.index_path, legacy_absolute) == resolved_path
