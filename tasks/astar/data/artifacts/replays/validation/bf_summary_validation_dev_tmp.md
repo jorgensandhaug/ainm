@@ -1,0 +1,53 @@
+# Behavioral Fingerprint Summary Validation
+
+- profile: dev
+- rounds: 1
+- holdout_runs: 2
+- bootstrap_samples: 1
+- rng_seed: 0
+- site_max_rows: 50000
+- live_max_rows: 50000
+- ruin_max_rows: 50000
+- pairwise_max_rows: 100000
+- owner_max_rows: 50000
+- elapsed_seconds: 33.491
+- mean_site_binary_brier: 0.007680441510310899
+- mean_live_binary_brier: 0.040544629388909535
+- mean_live_linear_rmse: 0.06315784039195844
+- mean_pairwise_binary_brier: 0.02309603606098026
+- mean_pairwise_linear_rmse: 0.06164455701263304
+- mean_ruin_binary_brier: 0.1272066528669003
+- mean_owner_linear_rmse: 0.35705516029865086
+- mean_probe_std: 0.0
+- min_probe_support_fraction: 0.9375
+- all_probe_families_in_range: False
+
+## Round 2 76909e29-f664-4b2f-b16b-61b7507277e9
+
+- replay_seeds: 5
+- replay_runs: 955
+- holdout_runs: 2
+- bootstrap_samples: 1
+- probe_std_mean: 0.0
+- probe_std_max: 0.0
+- site_binary_brier: 0.007680, improvement=-0.000025
+- live_binary_brier: 0.040545, improvement=0.005353
+- live_linear_rmse: 0.063158, improvement=0.018059
+- pairwise_binary_brier: 0.023096, improvement=0.000563
+- pairwise_linear_rmse: 0.061645, improvement=0.015951
+- ruin_binary_brier: 0.127207, improvement=0.002975
+- owner_linear_rmse: 0.357055, improvement=0.023451
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=1.0 in_range=True worst=weak_inland
+- support ruin: min=1.0 in_range=True worst=coastal_supported
+- support pairwise: min=0.9375 in_range=False worst=strong_rival_pressure
+- support owner: min=1.0 in_range=True worst=small_frontier_owner
+- top_unstable:
+  - site_binary::birth::open_inland: 0.000000
+  - site_binary::birth::open_coastal: 0.000000
+  - site_binary::birth::frontier_open: 0.000000
+  - site_binary::birth::forest_edge_open: 0.000000
+  - site_binary::site_ruin_created::open_inland: 0.000000
+  - site_binary::site_ruin_created::open_coastal: 0.000000
+  - site_binary::site_ruin_created::frontier_open: 0.000000
+  - site_binary::site_ruin_created::forest_edge_open: 0.000000

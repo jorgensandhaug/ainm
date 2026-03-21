@@ -9,6 +9,7 @@ import httpx
 
 from astar.cli_output import (
     render_backtest_round,
+    render_behavioral_fingerprint_summary_validation,
     render_build_benchmark_manifests,
     render_build_submission,
     render_corpus_summary,
@@ -32,6 +33,7 @@ from astar.cli_output import (
     render_query_plan_summary,
     render_recorded_replay,
     render_recorded_simulation,
+    render_regime_model_evaluation,
     render_replay_eda,
     render_round_list,
     render_round_report,
@@ -70,7 +72,11 @@ from astar.student.predictor.interactive import build_online_predictor
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
+from astar.workflows.evaluate_behavioral_fingerprint_summary import (
+    evaluate_behavioral_fingerprint_summary,
+)
 from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
+from astar.workflows.evaluate_regime_model import evaluate_regime_model
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
 from astar.workflows.fetch_analysis import fetch_analysis
@@ -421,6 +427,32 @@ def build_parser() -> argparse.ArgumentParser:
     dynamic_law_parser.add_argument("--pairwise-max-rows", type=int, default=None)
     dynamic_law_parser.add_argument("--name", default=None)
 
+    behavioral_fingerprint_parser = subparsers.add_parser(
+        "evaluate-behavioral-fingerprint-summary"
+    )
+    behavioral_fingerprint_parser.add_argument("--round-id", action="append", default=None)
+    behavioral_fingerprint_parser.add_argument(
+        "--profile",
+        choices=("smoke", "dev", "science"),
+        default="science",
+    )
+    behavioral_fingerprint_parser.add_argument("--max-holdout-runs", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--bootstrap-samples", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--rng-seed", type=int, default=0)
+    behavioral_fingerprint_parser.add_argument("--site-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--live-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--ruin-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--pairwise-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--owner-max-rows", type=int, default=None)
+    behavioral_fingerprint_parser.add_argument("--name", default=None)
+
+    regime_parser = subparsers.add_parser("evaluate-regime-model")
+    regime_parser.add_argument("--round-id", action="append", default=None)
+    regime_parser.add_argument("--max-rank", type=int, default=4)
+    regime_parser.add_argument("--bootstrap-samples", type=int, default=4)
+    regime_parser.add_argument("--rng-seed", type=int, default=0)
+    regime_parser.add_argument("--name", default=None)
+
     backtest_round_parser = subparsers.add_parser("backtest-round")
     backtest_round_parser.add_argument("--round-id", required=True)
 
@@ -670,6 +702,44 @@ def _main() -> int:
             args.json,
             validation_result,
             render_dynamic_law_summary_validation(validation_result),
+        )
+        return 0
+
+    if args.command == "evaluate-behavioral-fingerprint-summary":
+        validation_result = evaluate_behavioral_fingerprint_summary(
+            paths,
+            round_ids=args.round_id,
+            validation_profile=args.profile,
+            max_holdout_runs=args.max_holdout_runs,
+            bootstrap_samples=args.bootstrap_samples,
+            rng_seed=args.rng_seed,
+            name=args.name,
+            site_max_rows=args.site_max_rows,
+            live_max_rows=args.live_max_rows,
+            ruin_max_rows=args.ruin_max_rows,
+            pairwise_max_rows=args.pairwise_max_rows,
+            owner_max_rows=args.owner_max_rows,
+        )
+        _emit(
+            args.json,
+            validation_result,
+            render_behavioral_fingerprint_summary_validation(validation_result),
+        )
+        return 0
+
+    if args.command == "evaluate-regime-model":
+        evaluation_result = evaluate_regime_model(
+            paths,
+            round_ids=args.round_id,
+            max_rank=args.max_rank,
+            bootstrap_samples=args.bootstrap_samples,
+            rng_seed=args.rng_seed,
+            name=args.name,
+        )
+        _emit(
+            args.json,
+            evaluation_result,
+            render_regime_model_evaluation(evaluation_result),
         )
         return 0
 

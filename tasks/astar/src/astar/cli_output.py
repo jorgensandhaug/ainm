@@ -27,7 +27,9 @@ from astar.workflows.live_online import LiveOnlineRunResult
 from astar.workflows.replay_eda import ReplayEdaResult
 from astar.workflows.results import (
     BuildSubmissionResult,
+    EvaluateBehavioralFingerprintSummaryResult,
     EvaluateDynamicLawSummaryResult,
+    EvaluateRegimeModelResult,
     EvaluateTeacherScienceResult,
     FetchAnalysisResult,
     FetchRoundAnalysesResult,
@@ -549,6 +551,72 @@ def render_dynamic_law_summary_validation(result: EvaluateDynamicLawSummaryResul
             f"report: {result.report_path}",
         ],
     )
+
+
+def render_behavioral_fingerprint_summary_validation(
+    result: EvaluateBehavioralFingerprintSummaryResult,
+) -> str:
+    return "\n".join(
+        [
+            "evaluate-behavioral-fingerprint-summary",
+            f"profile: {result.validation_profile}",
+            f"rounds: {result.report_count}",
+            f"holdout_runs: {result.max_holdout_runs}",
+            f"bootstrap_samples: {result.bootstrap_samples}",
+            f"rng_seed: {result.rng_seed}",
+            f"site_max_rows: {result.site_max_rows}",
+            f"live_max_rows: {result.live_max_rows}",
+            f"ruin_max_rows: {result.ruin_max_rows}",
+            f"pairwise_max_rows: {result.pairwise_max_rows}",
+            f"owner_max_rows: {result.owner_max_rows}",
+            f"elapsed_seconds: {result.elapsed_seconds:.3f}",
+            f"mean_site_binary_brier: {result.mean_site_binary_brier}",
+            f"mean_live_binary_brier: {result.mean_live_binary_brier}",
+            f"mean_live_linear_rmse: {result.mean_live_linear_rmse}",
+            f"mean_pairwise_binary_brier: {result.mean_pairwise_binary_brier}",
+            f"mean_pairwise_linear_rmse: {result.mean_pairwise_linear_rmse}",
+            f"mean_ruin_binary_brier: {result.mean_ruin_binary_brier}",
+            f"mean_owner_linear_rmse: {result.mean_owner_linear_rmse}",
+            f"mean_probe_std: {result.mean_probe_std}",
+            f"min_probe_support_fraction: {result.min_probe_support_fraction}",
+            f"all_probe_families_in_range: {result.all_probe_families_in_range}",
+            f"artifact: {result.artifact_path}",
+            f"report: {result.report_path}",
+        ],
+    )
+
+
+def render_regime_model_evaluation(result: EvaluateRegimeModelResult) -> str:
+    lines = [
+        "evaluate-regime-model",
+        f"summary_backend: {result.summary_backend}",
+        f"rounds: {result.round_count}",
+        f"summary_dim: {result.summary_dim}",
+        f"max_rank: {result.max_rank}",
+        f"bootstrap_samples: {result.bootstrap_samples}",
+        f"rng_seed: {result.rng_seed}",
+        f"elapsed_seconds: {result.elapsed_seconds:.3f}",
+        f"best_rank_by_reconstruction: {result.best_rank_by_reconstruction}",
+        f"best_rank_by_terminal_l1: {result.best_rank_by_terminal_l1}",
+        f"artifact: {result.artifact_path}",
+        f"report: {result.report_path}",
+    ]
+    for report in result.rank_reports:
+        lines.append(
+            " ".join(
+                [
+                    f"rank={report.rank}",
+                    f"cumvar={report.cumulative_explained_variance}",
+                    f"recon_rmse={report.mean_reconstruction_rmse}",
+                    f"recon_improvement={report.mean_reconstruction_rmse_improvement}",
+                    f"coeff_l2={report.mean_coefficient_l2}",
+                    f"coeff_improvement={report.mean_coefficient_l2_improvement}",
+                    f"terminal_l1={report.mean_terminal_l1}",
+                    f"terminal_improvement={report.mean_terminal_l1_improvement}",
+                ]
+            )
+        )
+    return "\n".join(lines)
 
 
 def render_build_submission(result: BuildSubmissionResult) -> str:

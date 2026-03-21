@@ -315,7 +315,7 @@ def build_canonical_ruin_probes(
         (
             "forest_pressured",
             {
-                "forest_density": 0.90,
+                "forest_density": 0.85,
                 "settlement_proximity": 0.20,
                 "frontier_score": 0.15,
                 "nearby_live_count_log1p": _count(1.0),

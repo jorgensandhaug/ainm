@@ -13,10 +13,14 @@ from astar.eval.diagnostics import RoundEpisodeDiagnostics
 from astar.eval.science import ScienceRoundReport
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.replay.inspect import ReplayInspection, ReplayRoundInspection
+from astar.history.summaries.behavioral_fingerprint_validation import (
+    BehavioralFingerprintRoundValidationReport,
+)
 from astar.history.summaries.dynamic_law_validation import DynamicLawRoundValidationReport
 from astar.history.summaries.event_summary import ReplayEventRoundSummary
 from astar.history.summaries.hazards import ReplayHazardRoundSummary
 from astar.history.summaries.measurements import ReplayMeasurementRoundSummary
+from astar.history.summaries.regime_validation import RegimeRankValidationReport
 
 
 class SyncRoundResult(BaseModel):
@@ -297,6 +301,54 @@ class EvaluateDynamicLawSummaryResult(BaseModel):
     artifact_path: Path
     report_path: Path
     round_reports: tuple[DynamicLawRoundValidationReport, ...]
+
+
+class EvaluateBehavioralFingerprintSummaryResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    round_ids: list[str]
+    report_count: int = Field(ge=0)
+    validation_profile: str
+    max_holdout_runs: int = Field(ge=0)
+    bootstrap_samples: int = Field(ge=0)
+    rng_seed: int = Field(ge=0)
+    site_max_rows: int | None = Field(default=None, ge=0)
+    live_max_rows: int | None = Field(default=None, ge=0)
+    ruin_max_rows: int | None = Field(default=None, ge=0)
+    pairwise_max_rows: int | None = Field(default=None, ge=0)
+    owner_max_rows: int | None = Field(default=None, ge=0)
+    elapsed_seconds: float = Field(ge=0.0)
+    mean_site_binary_brier: float | None = None
+    mean_live_binary_brier: float | None = None
+    mean_live_linear_rmse: float | None = None
+    mean_pairwise_binary_brier: float | None = None
+    mean_pairwise_linear_rmse: float | None = None
+    mean_ruin_binary_brier: float | None = None
+    mean_owner_linear_rmse: float | None = None
+    mean_probe_std: float | None = None
+    min_probe_support_fraction: float | None = None
+    all_probe_families_in_range: bool = False
+    artifact_path: Path
+    report_path: Path
+    round_reports: tuple[BehavioralFingerprintRoundValidationReport, ...]
+
+
+class EvaluateRegimeModelResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    summary_backend: str = "behavioral_fingerprint_core"
+    round_ids: list[str]
+    round_count: int = Field(ge=2)
+    summary_dim: int = Field(ge=1)
+    max_rank: int = Field(ge=1)
+    bootstrap_samples: int = Field(ge=0)
+    rng_seed: int = Field(ge=0)
+    elapsed_seconds: float = Field(ge=0.0)
+    best_rank_by_reconstruction: int | None = Field(default=None, ge=1)
+    best_rank_by_terminal_l1: int | None = Field(default=None, ge=1)
+    artifact_path: Path
+    report_path: Path
+    rank_reports: tuple[RegimeRankValidationReport, ...]
 
 
 class TournamentQueryTrace(BaseModel):

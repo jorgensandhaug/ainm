@@ -1663,6 +1663,7 @@ def load_replay_measurement_bundle_projected(
     *,
     site_opportunity_columns: tuple[str, ...] = (),
     settlement_measurement_columns: tuple[str, ...] = (),
+    live_settlement_transition_columns: tuple[str, ...] = (),
     pairwise_candidate_columns: tuple[str, ...] = (),
     ruin_transition_columns: tuple[str, ...] = (),
     owner_year_columns: tuple[str, ...] = (),
@@ -1670,6 +1671,7 @@ def load_replay_measurement_bundle_projected(
     macro_trajectory_columns: tuple[str, ...] = (),
     site_opportunity_max_rows: int | None = None,
     settlement_measurement_max_rows: int | None = None,
+    live_settlement_transition_max_rows: int | None = None,
     pairwise_candidate_max_rows: int | None = None,
     ruin_transition_max_rows: int | None = None,
     owner_year_max_rows: int | None = None,
@@ -1762,6 +1764,20 @@ def load_replay_measurement_bundle_projected(
         max_rows=settlement_measurement_max_rows,
         sample_seed=sampling_seed + 2,
     )
+    live_settlement_transitions = _read_parquet_projection(
+        paths.replay_live_settlement_transition_path(round_id, seed_index),
+        LIVE_SETTLEMENT_TRANSITION_SCHEMA,
+        columns=(
+            live_settlement_transition_columns or tuple(LIVE_SETTLEMENT_TRANSITION_SCHEMA)
+        ),
+        row_count_hint=_payload_scalar(
+            site_payload,
+            "live_settlement_transition_count",
+            default=_payload_scalar(summary_payload, "live_settlement_transition_count", default=0),
+        ),
+        max_rows=live_settlement_transition_max_rows,
+        sample_seed=sampling_seed + 8,
+    )
     pairwise_candidates = _read_parquet_projection(
         paths.replay_pairwise_candidate_path(round_id, seed_index),
         PAIRWISE_CANDIDATE_SCHEMA,
@@ -1820,7 +1836,11 @@ def load_replay_measurement_bundle_projected(
         live_settlement_transition_count=_payload_scalar(
             site_payload,
             "live_settlement_transition_count",
-            default=_payload_scalar(summary_payload, "live_settlement_transition_count", default=0),
+            default=_payload_scalar(
+                summary_payload,
+                "live_settlement_transition_count",
+                default=int(live_settlement_transitions.height),
+            ),
         ),
         ruin_transition_count=_payload_scalar(
             site_payload,
@@ -1848,7 +1868,7 @@ def load_replay_measurement_bundle_projected(
         site_transition_counts_by_step=site_transition_counts_by_step,
         site_opportunities=site_opportunities,
         settlement_measurements=settlement_measurements,
-        live_settlement_transitions=pl.DataFrame(schema=LIVE_SETTLEMENT_TRANSITION_SCHEMA),
+        live_settlement_transitions=live_settlement_transitions,
         ruin_transitions=ruin_transitions,
         pairwise_candidates=pairwise_candidates,
         owner_years=owner_years,

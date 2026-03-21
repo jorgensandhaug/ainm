@@ -1,0 +1,53 @@
+# Behavioral Fingerprint Summary Validation
+
+- profile: smoke
+- rounds: 1
+- holdout_runs: 1
+- bootstrap_samples: 2
+- rng_seed: 0
+- site_max_rows: 8000
+- live_max_rows: 8000
+- ruin_max_rows: 8000
+- pairwise_max_rows: 16000
+- owner_max_rows: 8000
+- elapsed_seconds: 58.270
+- mean_site_binary_brier: 4.0266030061558484e-05
+- mean_live_binary_brier: 0.04475369053643249
+- mean_live_linear_rmse: 0.062392808646476006
+- mean_pairwise_binary_brier: 0.013664014420671985
+- mean_pairwise_linear_rmse: 0.058693201297270285
+- mean_ruin_binary_brier: 0.11720888363068904
+- mean_owner_linear_rmse: 0.3776640388050379
+- mean_probe_std: 0.006797133547459734
+- min_probe_support_fraction: 1.0
+- all_probe_families_in_range: True
+
+## Round 2 76909e29-f664-4b2f-b16b-61b7507277e9
+
+- replay_seeds: 5
+- replay_runs: 955
+- holdout_runs: 1
+- bootstrap_samples: 2
+- probe_std_mean: 0.006797133547459734
+- probe_std_max: 0.07465234917350158
+- site_binary_brier: 0.000040, improvement=-0.000006
+- live_binary_brier: 0.044754, improvement=0.001836
+- live_linear_rmse: 0.062393, improvement=0.013600
+- pairwise_binary_brier: 0.013664, improvement=0.000497
+- pairwise_linear_rmse: 0.058693, improvement=0.014739
+- ruin_binary_brier: 0.117209, improvement=0.004021
+- owner_linear_rmse: 0.377664, improvement=0.019268
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=1.0 in_range=True worst=weak_inland
+- support ruin: min=1.0 in_range=True worst=coastal_supported
+- support pairwise: min=1.0 in_range=True worst=land_rival
+- support owner: min=1.0 in_range=True worst=small_frontier_owner
+- top_unstable:
+  - owner_linear::settlement_delta::small_frontier_owner: 0.074652
+  - owner_linear::settlement_delta::inland_owner: 0.040933
+  - ruin_binary::fade_empty::isolated: 0.040290
+  - owner_linear::food_delta::small_frontier_owner: 0.038980
+  - pairwise_binary::dst_collapse_next::strong_rival_pressure: 0.038065
+  - live_binary::collapse_to_ruin::weak_inland: 0.036822
+  - live_binary::collapse::weak_inland: 0.036822
+  - pairwise_binary::dst_collapse_next::maritime_rival: 0.029089

@@ -1,0 +1,53 @@
+# Behavioral Fingerprint Summary Validation
+
+- profile: smoke
+- rounds: 1
+- holdout_runs: 1
+- bootstrap_samples: 0
+- rng_seed: 0
+- site_max_rows: 8000
+- live_max_rows: 8000
+- ruin_max_rows: 8000
+- pairwise_max_rows: 16000
+- owner_max_rows: 8000
+- elapsed_seconds: 6.190
+- mean_site_binary_brier: 4.0266030061558484e-05
+- mean_live_binary_brier: 0.04475369053643249
+- mean_live_linear_rmse: 0.062392808646476006
+- mean_pairwise_binary_brier: 0.013664014420671985
+- mean_pairwise_linear_rmse: 0.058693201297270285
+- mean_ruin_binary_brier: 0.11720888363068904
+- mean_owner_linear_rmse: 0.3776640388050379
+- mean_probe_std: 0.0
+- min_probe_support_fraction: 1.0
+- all_probe_families_in_range: True
+
+## Round 2 76909e29-f664-4b2f-b16b-61b7507277e9
+
+- replay_seeds: 5
+- replay_runs: 955
+- holdout_runs: 1
+- bootstrap_samples: 0
+- probe_std_mean: 0.0
+- probe_std_max: 0.0
+- site_binary_brier: 0.000040, improvement=-0.000006
+- live_binary_brier: 0.044754, improvement=0.001836
+- live_linear_rmse: 0.062393, improvement=0.013600
+- pairwise_binary_brier: 0.013664, improvement=0.000497
+- pairwise_linear_rmse: 0.058693, improvement=0.014739
+- ruin_binary_brier: 0.117209, improvement=0.004021
+- owner_linear_rmse: 0.377664, improvement=0.019268
+- support site: min=1.0 in_range=True worst=open_inland
+- support live: min=1.0 in_range=True worst=weak_inland
+- support ruin: min=1.0 in_range=True worst=coastal_supported
+- support pairwise: min=1.0 in_range=True worst=land_rival
+- support owner: min=1.0 in_range=True worst=small_frontier_owner
+- top_unstable:
+  - site_binary::birth::open_inland: 0.000000
+  - site_binary::birth::open_coastal: 0.000000
+  - site_binary::birth::frontier_open: 0.000000
+  - site_binary::birth::forest_edge_open: 0.000000
+  - site_binary::site_ruin_created::open_inland: 0.000000
+  - site_binary::site_ruin_created::open_coastal: 0.000000
+  - site_binary::site_ruin_created::frontier_open: 0.000000
+  - site_binary::site_ruin_created::forest_edge_open: 0.000000

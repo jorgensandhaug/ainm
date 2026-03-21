@@ -8,6 +8,15 @@ import numpy as np
 from astar.features.geometry import compute_round_features
 from astar.history.replay.ingest import load_seed_replay_runs
 from astar.history.summaries.behavioral_fingerprint import (
+    LIVE_REQUIRED_COLUMNS,
+    MAX_FIT_LIVE_ROWS,
+    MAX_FIT_PAIRWISE_ROWS,
+    MAX_FIT_RUIN_ROWS,
+    MAX_FIT_SITE_ROWS,
+    OWNER_REQUIRED_COLUMNS,
+    PAIRWISE_REQUIRED_COLUMNS,
+    RUIN_REQUIRED_COLUMNS,
+    SITE_REQUIRED_COLUMNS,
     build_behavioral_fingerprint_probe_library,
     estimate_round_behavioral_fingerprint,
 )
@@ -22,7 +31,7 @@ from astar.history.summaries.factorization import (
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
     build_replay_measurement_bundle,
-    load_replay_measurement_bundle,
+    load_replay_measurement_bundle_projected,
     materialize_round_replay_measurements,
 )
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -63,9 +72,15 @@ def _replay_seed_indexes(
     return replay_seed_indexes
 
 
-def _load_or_build_round_measurement_bundles(
+def load_or_build_round_behavioral_fingerprint_measurement_bundles(
     paths: WorkspacePaths,
     round_id: str,
+    *,
+    site_max_rows: int | None = None,
+    live_max_rows: int | None = None,
+    ruin_max_rows: int | None = None,
+    pairwise_max_rows: int | None = None,
+    owner_max_rows: int | None = None,
 ) -> tuple[int, list[ReplayMeasurementBundle]]:
     round_record = read_round_record(paths, round_id)
     replay_seed_indexes = _replay_seed_indexes(
@@ -73,10 +88,38 @@ def _load_or_build_round_measurement_bundles(
         round_id,
         seed_count=round_record.round.seeds_count,
     )
+    replay_seed_count = max(1, len(replay_seed_indexes))
+    site_cap = site_max_rows if site_max_rows is not None else max(1, MAX_FIT_SITE_ROWS // replay_seed_count)
+    live_cap = live_max_rows if live_max_rows is not None else max(1, MAX_FIT_LIVE_ROWS // replay_seed_count)
+    ruin_cap = ruin_max_rows if ruin_max_rows is not None else max(1, MAX_FIT_RUIN_ROWS // replay_seed_count)
+    pairwise_cap = (
+        pairwise_max_rows
+        if pairwise_max_rows is not None
+        else max(1, MAX_FIT_PAIRWISE_ROWS // replay_seed_count)
+    )
+    owner_cap = owner_max_rows if owner_max_rows is not None else max(1, MAX_FIT_LIVE_ROWS // replay_seed_count)
     bundles = [
         bundle
         for seed_index in replay_seed_indexes
-        if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+        if (
+            bundle := load_replay_measurement_bundle_projected(
+                paths,
+                round_id,
+                seed_index,
+                site_opportunity_columns=SITE_REQUIRED_COLUMNS,
+                live_settlement_transition_columns=LIVE_REQUIRED_COLUMNS,
+                pairwise_candidate_columns=PAIRWISE_REQUIRED_COLUMNS,
+                ruin_transition_columns=RUIN_REQUIRED_COLUMNS,
+                owner_year_columns=OWNER_REQUIRED_COLUMNS,
+                site_opportunity_max_rows=site_cap,
+                live_settlement_transition_max_rows=live_cap,
+                pairwise_candidate_max_rows=pairwise_cap,
+                ruin_transition_max_rows=ruin_cap,
+                owner_year_max_rows=owner_cap,
+                sampling_seed=seed_index * 17,
+            )
+        )
+        is not None
     ]
     if len(bundles) == len(replay_seed_indexes):
         return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
@@ -86,7 +129,25 @@ def _load_or_build_round_measurement_bundles(
         bundles = [
             bundle
             for seed_index in replay_seed_indexes
-            if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+            if (
+                bundle := load_replay_measurement_bundle_projected(
+                    paths,
+                    round_id,
+                    seed_index,
+                    site_opportunity_columns=SITE_REQUIRED_COLUMNS,
+                    live_settlement_transition_columns=LIVE_REQUIRED_COLUMNS,
+                    pairwise_candidate_columns=PAIRWISE_REQUIRED_COLUMNS,
+                    ruin_transition_columns=RUIN_REQUIRED_COLUMNS,
+                    owner_year_columns=OWNER_REQUIRED_COLUMNS,
+                    site_opportunity_max_rows=site_cap,
+                    live_settlement_transition_max_rows=live_cap,
+                    pairwise_candidate_max_rows=pairwise_cap,
+                    ruin_transition_max_rows=ruin_cap,
+                    owner_year_max_rows=owner_cap,
+                    sampling_seed=seed_index * 17,
+                )
+            )
+            is not None
         ]
     if len(bundles) == len(replay_seed_indexes):
         return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
@@ -137,7 +198,10 @@ def _estimate_round_behavioral_fingerprints(
     owner_frames = []
 
     for round_id in selected_round_ids:
-        round_number, bundles = _load_or_build_round_measurement_bundles(paths, round_id)
+        round_number, bundles = load_or_build_round_behavioral_fingerprint_measurement_bundles(
+            paths,
+            round_id,
+        )
         if not bundles:
             continue
         round_numbers_by_id[round_id] = round_number
