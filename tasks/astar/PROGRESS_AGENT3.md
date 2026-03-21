@@ -1099,6 +1099,99 @@
    - strongest unverified next branch:
      - `query_residual_v19`
      - targeted holdout mean score `67.5270` vs verified leader targeted `66.6604`
+126. `query_residual_v19` full corrected LOO launched immediately after the targeted promotion:
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v19 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v19_full_corrected`
+   - run is reusing fold checkpoints already created by the targeted 2-round gate
+   - cached fold checkpoints already present at launch logging point:
+     - `data/artifacts/models/query_residual_v19__policy=coverage__samples=2__rounds=n=7__sha1=c74dbf0a20/checkpoint.json`
+     - `data/artifacts/models/query_residual_v19__policy=coverage__samples=2__rounds=n=7__sha1=a3c8be00a0/checkpoint.json`
+   - final artifact still absent at this logging point:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v19_full_corrected/result.json`
+127. Full corrected `query_residual_v19` LOO benchmark complete:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v19_full_corrected/result.json`
+   - result:
+     - mean score `76.8934`
+     - mean weighted KL `0.088699`
+     - official weighted mean score `76.6227`
+     - official weighted mean weighted-KL `0.089883`
+     - round mean score std `5.9747`
+     - round mean weighted-KL std `0.026655`
+     - worst round:
+       - `36e581f1-73f8-453f-ab98-cbe3052b701b`
+       - mean score `66.5848`
+       - mean weighted KL `0.135623`
+     - total runtime `1362.353s`
+128. Interpretation of item 127:
+   - `query_residual_v19` is the new best verified full local model here
+   - versus prior verified leader `query_residual_v18`:
+     - mean score `76.6820 -> 76.8934` (`+0.2114`)
+     - mean weighted KL `0.089763 -> 0.088699` (`-0.001065`)
+     - official weighted mean score `76.4110 -> 76.6227` (`+0.2117`)
+     - official weighted mean weighted-KL `0.090944 -> 0.089883` (`-0.001061`)
+     - round score std improved `6.3492 -> 5.9747`
+   - floor robustness improved again:
+     - worst-round score `66.2954 -> 66.5848`
+     - worst-round KL `0.137078 -> 0.135623`
+129. Paired historical comparison vs prior verified leader:
+   - artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v18__candidate=query_residual_v19.json`
+   - report:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v18__candidate=query_residual_v19.md`
+   - result:
+     - mean score delta `+0.2114`
+     - mean weighted KL delta `-0.001065`
+     - win rate `0.475`
+     - loss rate `0.525`
+     - tie rate `0.000`
+     - score-delta CI95 `[0.0713, 0.3832]`
+130. Current leaderboard after this continuation:
+   - best fully verified model:
+     - `query_residual_v19`
+   - previous best:
+     - `query_residual_v18`
+   - the prior-blend sweep remained monotone across every tested point in this family:
+     - `0.35 -> 0.25 -> 0.15 -> 0.05 -> 0.0`
+131. Next obvious post-`v19` hypothesis:
+   - with `prior_blend` already at its lower bound, the next remaining heuristic anchor is `teacher_blend`
+   - earlier `query_residual_v15` showed that removing `teacher_blend` was effectively inert under the older higher-prior regime
+   - decisive follow-up:
+     - test whether `teacher_blend=0.0` becomes helpful only after the prior anchor is fully removed
+132. Implemented `query_residual_v20`:
+   - semantics:
+     - same architecture as `query_residual_v19`
+     - fixed `samples_per_round=2`
+     - fixed `prior_blend=0.0`
+     - fixed `teacher_blend=0.0`
+   - wiring updated in:
+     - `src/astar/student/predictor/query_residual.py`
+     - `src/astar/cli.py`
+     - `tests/test_historical_benchmark.py`
+133. Validation after `query_residual_v20` wiring:
+   - minimal command:
+     - `uv run pytest tests/test_historical_benchmark.py::test_query_residual_v20_online_historical_benchmark_defaults_to_samples_2 -q`
+   - result:
+     - `1 passed`
+   - full command:
+     - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result:
+     - `26 passed`
+134. Representative 2-round/7-train holdout result for `query_residual_v20`:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_query_residual_v20_targeted_holdout_2rounds_7train/result.json`
+   - result:
+     - mean score `67.5270`
+     - mean weighted KL `0.130977`
+   - per-round:
+     - `36e581...`: score `66.5848`, KL `0.135623`
+     - `f1dac9...`: score `68.4692`, KL `0.126332`
+135. Interpretation of item 134:
+   - `query_residual_v20` is an exact targeted tie with `query_residual_v19` to every reported metric in this probe
+   - conclusion:
+     - `teacher_blend` remains operationally inert in this family even after driving `prior_blend` to `0.0`
+     - do not promote `query_residual_v20`
+     - keep `query_residual_v19` as best verified model and current serving candidate
 
 ## Open Questions
 
