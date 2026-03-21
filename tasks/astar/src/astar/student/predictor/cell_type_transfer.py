@@ -69,19 +69,17 @@ def _build_cell_bucket_key(
     )
 
 
-def _settlement_proximity_bucket(distance: float) -> int:
-    """Bucket settlement distance into 0-9."""
-    if distance < 0:
-        return 9  # unreachable
-    if distance <= 1:
-        return 0
-    if distance <= 3:
+def _settlement_proximity_bucket(proximity: float) -> int:
+    """Bucket settlement proximity (0-1, higher=closer) into 0-4."""
+    if proximity >= 0.9:
+        return 0  # very close
+    if proximity >= 0.7:
         return 1
-    if distance <= 5:
+    if proximity >= 0.5:
         return 2
-    if distance <= 8:
+    if proximity >= 0.3:
         return 3
-    return 4
+    return 4  # far
 
 
 class CellTypeTransferPredictor(BaseRoundPredictor):
@@ -160,8 +158,8 @@ class CellTypeTransferPredictor(BaseRoundPredictor):
 
                 # Compute local structural features
                 seed_features = features.per_seed[seed_index]
-                settlement_dist = seed_features.settlement_proximity
-                coast = seed_features.coast_mask
+                settlement_dist = seed_features.feature("settlement_proximity")
+                coast = seed_features.feature("coast")
                 forest_mask = (collapsed == 4).astype(np.float64)  # forest class
 
                 # Count forest neighbors for each cell
@@ -294,8 +292,8 @@ class CellTypeTransferPredictor(BaseRoundPredictor):
             h, w = collapsed.shape
 
             seed_features = features.per_seed[seed_index]
-            settlement_dist = seed_features.settlement_proximity
-            coast = seed_features.coast_mask
+            settlement_dist = seed_features.feature("settlement_proximity")
+            coast = seed_features.feature("coast")
 
             # Vectorized forest neighbor count
             forest_mask = (collapsed == 4).astype(np.int64)
@@ -310,14 +308,12 @@ class CellTypeTransferPredictor(BaseRoundPredictor):
                     tx = slice(max(0, dx), min(w, w + dx))
                     forest_neighbors[ty, tx] += forest_mask[sy, sx]
 
-            # Vectorized bucket key computation
-            prox_buckets = np.full((h, w), 4, dtype=np.int64)
-            prox_buckets[settlement_dist <= 1] = 0
-            mask_unreachable = settlement_dist < 0
-            prox_buckets[mask_unreachable] = 9
-            prox_buckets[(settlement_dist > 1) & (settlement_dist <= 3)] = 1
-            prox_buckets[(settlement_dist > 3) & (settlement_dist <= 5)] = 2
-            prox_buckets[(settlement_dist > 5) & (settlement_dist <= 8)] = 3
+            # Vectorized bucket key computation (proximity: 0-1, higher=closer)
+            prox_buckets = np.full((h, w), 4, dtype=np.int64)  # default: far
+            prox_buckets[settlement_dist >= 0.9] = 0  # very close
+            prox_buckets[(settlement_dist >= 0.7) & (settlement_dist < 0.9)] = 1
+            prox_buckets[(settlement_dist >= 0.5) & (settlement_dist < 0.7)] = 2
+            prox_buckets[(settlement_dist >= 0.3) & (settlement_dist < 0.5)] = 3
 
             coast_flags = (coast > 0.5).astype(np.int64)
             fn_capped = np.minimum(forest_neighbors, 8)

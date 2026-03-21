@@ -4066,3 +4066,38 @@
   - practical conclusion for this turn:
     - stop rollout heuristics here
     - do not spend more smoke budget on hand-tuned annual programs until there is a fitted teacher transition layer
+
+## 2026-03-21 15:xx UTC - radical new approach sweep
+
+- Re-read handoff and full progress document.
+- Machine state:
+  - RAM `2.0 TiB` available
+  - load about `28 / 36 / 57`
+  - agent1/agent3 running many large jobs but plenty of headroom
+- Started 3 radically different predictor families:
+
+### Terminal retrieval (catastrophic reject)
+- Code: `src/astar/student/predictor/terminal_retrieval.py`
+- Hypothesis: bypass all decoders, directly retrieve and blend ground-truth analysis tensors from kNN-nearest historical rounds
+- Smoke results:
+  - `f1_terminal_retrieval_v01` (k=7): score `14.2864`, KL `0.654015`
+  - `f1_terminal_retrieval_k1_v01` (k=1): score `4.5350`, KL `1.043448`
+  - `f1_terminal_retrieval_k3_v01` (k=3): score `14.2864`, KL `0.654015`
+  - `f1_terminal_retrieval_blend30_v01` (30% prior): score `38.2245`, KL `0.321496`
+- Verdict: **catastrophic reject**
+- Scientific read: rounds have different spatial layouts, so raw terminal tensor retrieval is nonsensical - cells don't correspond between rounds
+- The 30% blend result shows the prior is doing all the work
+
+### MLP nonlinear decoder (running)
+- Code: `src/astar/student/predictor/mlp_decoder.py`
+- Hypothesis: the linear ridge decoder is the bottleneck; a 2-layer MLP with ReLU can capture nonlinear structure
+- Features: same as linear decoder (spatial basis + prior logits + regime vector)
+- Training: Adam optimizer, entropy-weighted MSE, 200 epochs, h=64
+- Status: smoke benchmarks running
+
+### Cell-type transfer (running)
+- Code: `src/astar/student/predictor/cell_type_transfer.py`
+- Hypothesis: position-invariant approach computing P(year50_class | initial_type, local_structure, round_regime) from analysis ground truths
+- Bucketed by: initial cell class, settlement proximity, coast flag, forest neighbors
+- Uses kNN on transcript summaries to identify nearest rounds, then blends per-bucket distributions
+- Status: smoke benchmarks running
