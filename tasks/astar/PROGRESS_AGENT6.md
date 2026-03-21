@@ -4235,11 +4235,12 @@
 8. baseline query_residual: 72.55
 
 ### Current scoreboard on dev5:
-1. **ENSEMBLE hv2+sx 50/50: 79.57** (DEFINITIVE BEST, +3.60 vs baseline)
-2. ensemble hv2+qr 50/50: 79.50
-3. hazard_posterior_v2 k7_r3: 77.40
-4. supportx_v01: 76.23
-5. baseline query_residual: 75.97
+1. **ENSEMBLE hv2+sx GEO 50/50: 79.57** (DEFINITIVE BEST, +3.60 vs baseline)
+2. ensemble hv2+qr GEO 50/50: 79.50
+3. ensemble hv2+sx ARITH 50/50: 79.48 (arith slightly worse on dev5 despite better probe3)
+4. hazard_posterior_v2 k7_r3: 77.40
+5. supportx_v01: 76.23
+6. baseline query_residual: 75.97
 
 ### Summary of all new approaches tried this session:
 | Approach | Best Score (probe3) | Status |
