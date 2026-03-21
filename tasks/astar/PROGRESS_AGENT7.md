@@ -383,6 +383,33 @@ Framework should accept unique query-residual family variant names directly so b
   - promote only if any operator variant materially closes the large gap to incumbent hard-gate score `63.9805`
   - if none do, conclude current linear-operator family still underfits and move to stronger decoder/mixed-decoder branch
 
+### 2026-03-21T10:05Z approx
+
+- Operator-family capability commit pushed:
+  - `4244c5a` `ffam: add operator-manifold predictors`
+- This commit included:
+  - operator-manifold predictor family plumbing
+  - online predictor / CLI / benchmark integration
+  - checkpoint coverage
+- Added more handoff-aligned operator variants:
+  - `ffam_operator_v6`
+  - `ffam_operator_v7`
+  - both are retrieval-heavy / particle-like posterior variants with stronger prior fallback than `v4/v5`
+- Validation after config expansion:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `42`
+- Early pruning logic used on live probes:
+  - if partial completed rounds already imply impossible catch-up vs incumbent hard-gate total, stop that branch and reallocate cores
+- Applied that pruning to `v1..v3`.
+  - partial completed rounds were enough to show no realistic path past incumbent hard-gate score `63.9805`
+  - killed `v1..v3` runs to free cores
+- Current active wave:
+  - `v4`, `v5`, `v6`, `v7`
+  - all on hard gate `{3,6,7,8}`, `policy=exploration_r3`, `samples_per_round=2`
+- Partial evidence so far:
+  - `v4` and `v5` still match the earlier operator line on completed rounds 6 and 8
+  - round 8 remains the main failure mode to watch
+
 ### 2026-03-21T04:05Z approx
 
 - Re-read current policy code and benchmark artifacts before new edits.
