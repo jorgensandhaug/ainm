@@ -1,0 +1,47 @@
+{
+  "report_key": "replay_events",
+  "title": "Replay Event Audit Round 8e839974-b13b-407b-a5e7-fc749d877195 Seed 1",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_events__run_index=0/report.md",
+  "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+  "seed_index": 1,
+  "metadata": {
+    "replay_run_id": "7eda6fe4951e467090cb592e2a30a75f",
+    "replay_run_index": 0,
+    "frame_count": 51,
+    "cell_event_count": 1194,
+    "settlement_transition_count": 6215,
+    "selected_steps": [
+      47,
+      48,
+      49
+    ],
+    "source_path": "/home/jorge/ainm/tasks/astar/data/raw/replays/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/20260320T104302.277304Z__sim_seed=702241945__capture_id=7eda6fe4951e467090cb592e2a30a75f.json",
+    "rerun_command": "uv run astar visualize-replay-events --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --seed-index 1 --replay-run-index 0 --max-steps 3"
+  },
+  "figures": [
+    {
+      "key": "change_timeline",
+      "title": "Replay change timeline",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_events__run_index=0/change_timeline.png",
+      "description": "Changed-cell and changed-settlement counts by yearly transition step."
+    },
+    {
+      "key": "transition_step_47",
+      "title": "Replay step 47 -> 48",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_events__run_index=0/transition_step_47.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    },
+    {
+      "key": "transition_step_48",
+      "title": "Replay step 48 -> 49",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_events__run_index=0/transition_step_48.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    },
+    {
+      "key": "transition_step_49",
+      "title": "Replay step 49 -> 50",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=1/replay_events__run_index=0/transition_step_49.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    }
+  ]
+}

@@ -39,7 +39,10 @@
 5. `POST /timesheet/entry`
    - if the prompt hour total is `<= 24`, one write is enough
    - if the prompt hour total is `> 24`, split it into one entry per date, each with `projectChargeableHours <= 24`
-6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
+6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` and `GET /ledger/account?isBankAccount=true&fields=*` in parallel
+   - the bank-account read is proactive: if the invoice account (`1920` / `isInvoiceAccount=true`) has no `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` before the invoice write
+   - if the invoice account already has a `bankAccountNumber`, skip the PUT and continue
+   - this proactive check avoids a `422` on `PUT /order/:invoice` plus a retry, saving 1 call and 1 error on fresh accounts
 7. `POST /order` with:
    - `customer`
    - `project`
@@ -115,10 +118,11 @@
   - do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`
   - split the total across distinct dates, with at most `24` hours per date
   - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates
-- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
+- if the proactive `GET /ledger/account` was skipped and `PUT /order/{id}/:invoice` fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
   - `GET /ledger/account?isBankAccount=true&fields=*`
   - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`
   - retry the same `PUT /order/{id}/:invoice?...` once
+  - this reactive branch costs 3 extra calls (failed invoice + GET + PUT + retry) vs the proactive check which costs 1 extra call (GET) or 2 (GET + PUT) with 0 errors
 - if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first
 
 ## OpenAPI / Sandbox Status
@@ -148,4 +152,7 @@
   - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API
   - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing
   - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default
-  - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so an unconditional `/ledger/account` preflight would have been an extra call there; keep the bank-account branch conditional unless you intentionally take the fresh-account hedge
+  - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so the proactive `/ledger/account` check added `1` extra call there (8 total) while skipping the PUT
+  - the 2026-03-21 production French run `Soleil SARL` / `933986861` / `Configuration cloud` / `louis.petit@example.org` / `Design` / `12` hours / `1450` hit the non-chargeable branch and the reactive bank-account recovery after `PUT /order/:invoice` returned `422 Faktura kan ikke opprettes ...`, costing 10 total calls (7 main + failed invoice + GET /ledger/account + PUT /ledger/account + retry invoice) with 1 error; the proactive approach would have been 9 calls with 0 errors
+  - persistent-sandbox re-proof on 2026-03-21 with that same analog employee/project/activity and `12` hours at `1450` on date `2026-07-15` confirmed the 8-call proactive branch (GET /employee + GET /project + GET /activity + POST /timesheet + parallel GET /ledger/vatType + GET /ledger/account + POST /order + PUT /order/:invoice) with 0 errors, returning `amountExcludingVatCurrency=17400`
+  - omitting `vatType` from the order line defaults to VAT code `id=0` ("Ingen avgiftsbehandling", 0%) instead of the correct outgoing VAT type, which silently creates wrong totals on taxable production accounts with 25% VAT; GET /ledger/vatType is required

@@ -77,7 +77,10 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - `orders[0].id=<orderId>`
   - `projectInvoiceDetails[0].amountOrderLinesAndReinvoicingCurrency=8750`
   - `projectInvoiceDetails[0].includeHours=false`
-- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so a default `/ledger/account` preflight would have been an unnecessary extra call in that exact rerun state
+- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so the proactive `/ledger/account` check added 1 extra call but skipped the PUT
+- the 2026-03-21 production French run `Soleil SARL` / `933986861` / `Configuration cloud` / `louis.petit@example.org` / `Design` / `12` hours / `1450` hit the non-chargeable branch and the reactive bank-account recovery cost 10 calls with 1 error; proactive check would have been 9 calls with 0 errors
+- persistent-sandbox re-proof on 2026-03-21 confirmed the proactive 8-call branch (with bank account already set) succeeded with 0 errors
+- omitting `vatType` from the order line defaults to wrong VAT code `id=0` (0%) instead of the correct outgoing type; GET /ledger/vatType is required on taxable accounts
 
 ## Minimal Safe Flow
 
@@ -135,8 +138,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - keep each entry at `projectChargeableHours <= 24`
    - if the prompt total exceeds `24`, plan one entry per distinct date before the first write
    - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
-12. Resolve a valid outgoing VAT type for the invoice date
+12. Resolve VAT type and proactively check bank account in parallel
    - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - if the invoice account (`1920` / `isInvoiceAccount=true`) has no `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` before the order write
+   - if the invoice account already has a `bankAccountNumber`, skip the PUT
+   - this proactive check avoids a `422` on `PUT /order/:invoice` plus a 3-call recovery (failed invoice + GET + PUT + retry), saving 1 call and 1 error on fresh accounts
 13. Create a real project-linked order line derived from the prompt hours and rate
    - `POST /order`
    - include:
@@ -147,7 +154,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
      - one embedded `orderLines[]` row using the prompt hours and prompt rate
 14. Invoice that order without sending it
    - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`
-15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
+15. Only if the proactive check was skipped and that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once
 
 ## Recommended Shapes
 
@@ -220,19 +227,18 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
   3. `GET /activity/>forTimeSheet?...`
   4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`
   5. if `activity.isChargeable=false` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
-  6. if `activity.isChargeable=false`: `GET /ledger/vatType?...`
-  7. if `activity.isChargeable=false`: `POST /order`
-  8. if `activity.isChargeable=false`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
-  9. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
-  10. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
-  11. if needed: conditional `PUT /project/hourlyRates/{id}`
-  12. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
-  13. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
-  14. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
-  15. if `activity.isChargeable=true` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
-  16. if `activity.isChargeable=true`: `GET /ledger/vatType?...`
-  17. if `activity.isChargeable=true`: `POST /order` with one real project-linked line using prompt hours x prompt rate
-  18. if `activity.isChargeable=true`: `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  6. `GET /ledger/vatType?...` and `GET /ledger/account?isBankAccount=true&fields=*` in parallel
+  7. if the invoice account has no `bankAccountNumber`: `PUT /ledger/account/{id}` to fix it
+  8. `POST /order`
+  9. `PUT /order/{id}/:invoice?...sendToCustomer=false`
+  10. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
+  11. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
+  12. if needed: conditional `PUT /project/hourlyRates/{id}`
+  13. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
+  14. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
+  15. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
+  16. if `activity.isChargeable=true` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`
+  17. steps 6-9 apply to both chargeable and non-chargeable branches
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
 - do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
@@ -285,4 +291,5 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not treat writable-looking nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` as a working path; the server accepts or validates the payload but still persists `includeHours=false`
 - Do not rely on `PUT /invoice/{id}` or `PUT /invoice/details/{id}`; both were re-proven as method-not-allowed
 - Do not assume the fallback public invoice consumes the registered project-hour reserve; it creates the customer-facing invoice side effect but leaves `includeHours=false`
-- Do not add an unconditional `/ledger/account` preflight in the standard exact path when you have no separate first-invoice evidence; keep that branch conditional unless you intentionally take the fresh-account hedge
+- Do not skip the proactive `GET /ledger/account` check in this task shape; the 2026-03-21 production run proved that the reactive recovery (failed invoice + GET + PUT + retry) costs 3 extra calls and 1 error vs the proactive check which costs 1 extra call and 0 errors
+- Run `GET /ledger/vatType` and `GET /ledger/account` in parallel to minimize wall time without increasing call count

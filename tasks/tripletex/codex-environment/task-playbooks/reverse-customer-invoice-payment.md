@@ -125,6 +125,15 @@ Observed sandbox proof nuance on 2026-03-20:
 - another prompt-like sandbox analog on 2026-03-20 with direct-line text `Skylagring Reflection ...` and ex-VAT `1000` repeated the same search-lag trap: the broad same-day `GET /invoice?...count=1000...` returned zero matches immediately after standalone payment registration, while direct `GET /invoice/{id}` exposed the correct negative `Betaling: ...` posting with `voucherId=608862777`, `amountCurrency=-1000`, and `account.number=1500`
 - treat that as sandbox-only proof noise, not as a reason to add direct `GET /invoice/{id}` or any extra locate read to the production exact-match fast path once a normal broad locate read already isolates the invoice
 
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=962812384` + `amountExcludingVatCurrency=41100` + line text `Sessão de formação`
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=962812384&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned exactly 1 invoice
+  - one `PUT /ledger/voucher/608883353/:reverse?date=2026-03-21`
+- no follow-up proof read was needed; the side effect itself was the scored target
+- the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
+- note: the script's local filter used wrong field names `amountExVat` / `amountExVatCurrency` instead of the correct `amountExcludingVatCurrency` / `amountExcludingVat`, but since only 1 invoice existed for that org number, the mismatch was harmless; always use the correct field names to avoid silent filter failures when multiple invoices exist
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -185,3 +194,4 @@ Observed sandbox proof nuance on 2026-03-20:
 - Do not verify the reopened balance against the prompt ex-VAT amount when the invoice object itself carries the true gross/pre-reversal balance
 - Do not add separate `GET /ledger/voucher/{id}` or `GET /ledger/posting` reads when the first invoice read already isolates one payment voucher
 - Do not treat one persistent-sandbox miss on the broad `/invoice` search as evidence that production needs an extra `GET /customer` or `GET /invoice/{id}` by default; the winning production path stays the 2-call locate-then-reverse flow
+- When filtering invoices locally by ex-VAT amount, use `amountExcludingVatCurrency` or `amountExcludingVat`, not `amountExVat` or `amountExVatCurrency`; the latter field names do not exist on the Tripletex invoice DTO and will silently return `undefined`, causing the filter to miss the target invoice when multiple invoices exist for the same customer

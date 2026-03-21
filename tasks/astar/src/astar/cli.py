@@ -19,8 +19,8 @@ from astar.cli_output import (
     render_fetch_analysis,
     render_fetch_round_analyses,
     render_harvest_replays,
-    render_historical_benchmark_comparison,
     render_historical_benchmark,
+    render_historical_benchmark_comparison,
     render_ingest_replays,
     render_inspect_replays,
     render_json,
@@ -31,6 +31,7 @@ from astar.cli_output import (
     render_query_plan_summary,
     render_recorded_replay,
     render_recorded_simulation,
+    render_replay_eda,
     render_round_list,
     render_round_report,
     render_round_summary,
@@ -41,8 +42,8 @@ from astar.cli_output import (
     render_synthetic_benchmark,
     render_synthetic_tournament,
     render_teacher_science,
-    render_train_historical_bucket_prior,
     render_train_hazard_teacher,
+    render_train_historical_bucket_prior,
     render_train_summary_student,
     render_validation,
     render_visualization_report,
@@ -65,8 +66,8 @@ from astar.observe.query_plan import read_any_query_plan
 from astar.policy import build_interactive_policy, build_named_policy
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.interactive import build_online_predictor
-from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
+from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
 from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
 from astar.workflows.factorize_round_summaries import factorize_round_summaries
@@ -76,6 +77,7 @@ from astar.workflows.historical_benchmark import run_historical_benchmark
 from astar.workflows.live_online import run_live_online_round
 from astar.workflows.materialize_episode import materialize_round_episode
 from astar.workflows.replay_capture import fetch_replay, harvest_replays
+from astar.workflows.replay_eda import analyze_replay_corpus
 from astar.workflows.results import QueryPlanSummary
 from astar.workflows.round_report import build_round_report
 from astar.workflows.submissions import build_submission, submit_saved_prediction
@@ -84,9 +86,11 @@ from astar.workflows.sync_round import sync_round
 from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
 from astar.workflows.synthetic_tournament import run_synthetic_tournament
 from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
-from astar.workflows.visualize_model_prediction import visualize_model_prediction
 from astar.workflows.train_student import train_summary_bank_student
 from astar.workflows.train_teacher import train_hazard_teacher
+from astar.workflows.visualize_model_prediction import visualize_model_prediction
+from astar.workflows.visualize_replay_events import visualize_replay_events
+from astar.workflows.visualize_replay_mismatches import visualize_replay_mismatches
 from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
 
 
@@ -195,6 +199,18 @@ def build_parser() -> argparse.ArgumentParser:
     terminal_comparison_parser.add_argument("--round-id", required=True)
     terminal_comparison_parser.add_argument("--seed-index", type=int, required=True)
 
+    replay_events_parser = subparsers.add_parser("visualize-replay-events")
+    replay_events_parser.add_argument("--round-id", required=True)
+    replay_events_parser.add_argument("--seed-index", type=int, required=True)
+    replay_events_parser.add_argument("--replay-run-index", type=int, default=0)
+    replay_events_parser.add_argument("--max-steps", type=int, default=4)
+
+    replay_mismatches_parser = subparsers.add_parser("visualize-replay-mismatches")
+    replay_mismatches_parser.add_argument("--round-id", required=True)
+    replay_mismatches_parser.add_argument("--seed-index", type=int, required=True)
+    replay_mismatches_parser.add_argument("--replay-run-index", type=int, default=0)
+    replay_mismatches_parser.add_argument("--max-examples-per-kind", type=int, default=4)
+
     model_prediction_parser = subparsers.add_parser("visualize-model-prediction")
     model_prediction_parser.add_argument("--round-id", required=True)
     model_prediction_parser.add_argument("--seed-index", type=int, required=True)
@@ -221,6 +237,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     factorize_rounds_parser = subparsers.add_parser("factorize-round-summaries")
     factorize_rounds_parser.add_argument("--round-id", action="append", default=None)
+    factorize_rounds_parser.add_argument(
+        "--summary-kind",
+        choices=[
+            "dynamic_law",
+            "behavioral_fingerprint",
+            "event_summary",
+            "legacy_terminal_coeff",
+        ],
+        default="dynamic_law",
+    )
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
@@ -232,7 +258,10 @@ def build_parser() -> argparse.ArgumentParser:
     train_historical_bucket_parser = subparsers.add_parser("train-historical-bucket-prior")
     train_historical_bucket_parser.add_argument("--round-id", action="append", default=None)
     train_historical_bucket_parser.add_argument("--exclude-round-id", action="append", default=None)
-    train_historical_bucket_parser.add_argument("--model-name", default="historical_bucket_prior_v1")
+    train_historical_bucket_parser.add_argument(
+        "--model-name",
+        default="historical_bucket_prior_v1",
+    )
 
     synthetic_live_parser = subparsers.add_parser("build-synthetic-live-dataset")
     synthetic_live_parser.add_argument("--round-id", action="append", default=None)
@@ -358,6 +387,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("dataset-summary")
     subparsers.add_parser("corpus-summary")
+    replay_eda_parser = subparsers.add_parser("replay-eda")
+    replay_eda_parser.add_argument("--round-id", action="append", default=None)
 
     return parser
 
@@ -494,6 +525,7 @@ def _main() -> int:
         factorized = factorize_round_summaries(
             paths,
             round_ids=args.round_id,
+            summary_kind=args.summary_kind,
             max_rank=args.max_rank,
         )
         _emit(args.json, factorized, render_factorize_round_summaries(factorized))
@@ -684,6 +716,11 @@ def _main() -> int:
         _emit(args.json, corpus_summary, render_corpus_summary(corpus_summary))
         return 0
 
+    if args.command == "replay-eda":
+        replay_eda = analyze_replay_corpus(paths, round_ids=args.round_id)
+        _emit(args.json, replay_eda, render_replay_eda(replay_eda))
+        return 0
+
     if args.command == "backtest-round":
         backtest_result = backtest_round_from_saved_analyses(paths, args.round_id)
         _emit(args.json, backtest_result, render_backtest_round(backtest_result))
@@ -816,6 +853,28 @@ def _main() -> int:
             args.round_id,
             args.seed_index,
             client=client,
+        )
+        _emit(args.json, artifacts, render_visualization_report(artifacts))
+        return 0
+
+    if args.command == "visualize-replay-events":
+        artifacts = visualize_replay_events(
+            paths,
+            args.round_id,
+            args.seed_index,
+            replay_run_index=args.replay_run_index,
+            max_steps=args.max_steps,
+        )
+        _emit(args.json, artifacts, render_visualization_report(artifacts))
+        return 0
+
+    if args.command == "visualize-replay-mismatches":
+        artifacts = visualize_replay_mismatches(
+            paths,
+            args.round_id,
+            args.seed_index,
+            replay_run_index=args.replay_run_index,
+            max_examples_per_kind=args.max_examples_per_kind,
         )
         _emit(args.json, artifacts, render_visualization_report(artifacts))
         return 0

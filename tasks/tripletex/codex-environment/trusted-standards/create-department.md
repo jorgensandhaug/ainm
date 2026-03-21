@@ -57,3 +57,5 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 - production re-confirmed on 2026-03-20 with a Spanish three-department prompt for `Lager`, `Økonomi`, and `Drift`: one `POST /department/list` created all requested departments with no prerequisite reads
 - production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `HR`, `Salg`, and `Økonomi`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
 - production re-confirmed on 2026-03-20 with a Norwegian three-department prompt for `Lager`, `Regnskap`, and `Kvalitetskontroll`: one `POST /department/list` remained the exact minimal path and preserved the prompt names in `values[]`
+- production re-confirmed on 2026-03-21 with a Norwegian three-department prompt for `Utvikling`, `Drift`, and `HR`: one `POST /department/list`, 201, perfect score (7/7, normalized 2), zero errors
+- sandbox re-verified on 2026-03-21: batch create still returns `fullResultSize=0` with correct `values[]`

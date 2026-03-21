@@ -45,7 +45,7 @@
 - do not hardcode VAT code `3`
 - do not use unfiltered VAT catalog
 - do not pick the first broad-catalog row whose `percentage` matches; the 2026-03-20 persistent sandbox broad list surfaced `15%` rows `11`, `31`, `551`, and `556`, where the first hit `11` was incoming VAT rather than the product-usable outgoing base code
-- do not search for a book-specific product subtype or extra accounting field just because the prompt says "0% for books"; still pick the matching 0% row from the filtered `OUTGOING` result
+- do not search for a category-specific product subtype or extra accounting field just because the prompt says "0% for books" or "0% for newspapers" or similar; the category qualifier is cosmetic and does not change the VAT resolution logic; still pick the matching 0% row from the filtered `OUTGOING` result
 - if the requested VAT percentage is absent from the filtered `OUTGOING` result, treat the task as blocked in that account; do not substitute a same-percentage code from the broader catalog
 
 ## Reuse From Write Response
@@ -74,3 +74,4 @@
 - persistent-sandbox re-verification later on 2026-03-20 with the same `37050` price and Portuguese naming still returned only `OUTGOING` VAT row `id=6` / `0%`, and the omitted-`vatType` create again auto-filled `vatType.id=6` with `priceIncludingVatCurrency=37050`
 - persistent-sandbox re-verification on 2026-03-20 for the same French `Maintenance` / `3700` shape again returned only `OUTGOING` VAT row `id=6` / `0%`, and an omitted-`vatType` create auto-filled `vatType.id=6` with `priceIncludingVatCurrency=3700`; that sandbox still cannot prove an exact `25%` product create and remains blocked for explicit `25%` resolution
 - persistent-sandbox re-verification on 2026-03-20 for the same Spanish `Mantenimiento` / `650 sin IVA` shape again returned only `OUTGOING` VAT row `id=6` / `0%`, and an omitted-`vatType` create auto-filled `vatType.id=6` with `priceIncludingVatCurrency=650`; that sandbox still cannot prove an exact `25%` product create and remains blocked for explicit `25%` resolution
+- fresh-account production verification on 2026-03-21 for the French prompt `Journal quotidien` / `9219` / `3150 NOK hors TVA` / `0%` VAT for newspapers succeeded with 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` returned `priceIncludingVatCurrency=3150` and `vatType.id=5`; scored 2/2 (perfect), confirming the 2-call path is optimal for explicit 0% VAT tasks

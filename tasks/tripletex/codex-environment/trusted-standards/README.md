@@ -39,6 +39,7 @@ Current trusted standards:
 - `./trusted-standards/create-project.md`
 - `./trusted-standards/create-employee.md`
 - `./trusted-standards/create-customer-invoice.md`
+- `./trusted-standards/register-receipt-expense-voucher.md`
 - `./trusted-standards/register-customer-invoice-payment.md`
 - `./trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md`
 - `./trusted-standards/register-supplier-invoice.md`

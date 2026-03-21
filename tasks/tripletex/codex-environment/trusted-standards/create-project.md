@@ -14,7 +14,9 @@
 
 ## Do Not Use This Standard If
 - fixed-price billing/invoice workflow is part of the task
+- the prompt is really a multi-project ledger-analysis task; use the dedicated internal-project batch standard instead
 - project manager eligibility is unclear
+- the prompt requires a newly created employee to become project manager and no prior corpus evidence proves that access path in the current task family
 - task is update/delete/search-heavy
 
 ## Standard Flow
@@ -40,6 +42,8 @@
 - always include `startDate`
 - if the prompt omits `startDate` for a create-only project task, default it to the run date in ISO `YYYY-MM-DD`
 - prefer assignable project managers, not any arbitrary employee
+- do not assume a newly created employee is automatically assignable as project manager; persistent sandbox follow-up on `2026-03-21` rejected that branch even after the employee create itself had succeeded
+- do not assume `isInternal=true` makes `projectManager` optional; the dedicated 2026-03-21 internal-project proof still returned `422 Feltet "Prosjektleder" må fylles ut.` without a manager
 - keep uniqueness checks local:
   - compare returned `customer.organizationNumber` exactly, and use prompt `customer.name` only as a local tie-breaker when present
   - compare returned `employee.email` exactly because the endpoint filter is containing, and use prompt manager name only as a local tie-breaker when present
@@ -57,6 +61,7 @@
 
 ## Known Recovery Branches
 - if project-manager assignment is validated strictly, resolve with `assignableProjectManagers=true`
+- if a newly created employee still fails the project-manager access validation, do not guess a hidden access-toggle endpoint; this task family is outside the exact trusted standard until corpus evidence proves the public repair path
 
 ## OpenAPI / Sandbox Status
 - `/project` verified in `./openapi.json`

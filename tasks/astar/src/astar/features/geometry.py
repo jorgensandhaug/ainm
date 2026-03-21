@@ -4,13 +4,16 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.terrain import buildable_mask, land_mask, mountain_mask
-from astar.features.coasts import coast_mask, normalized_coast_distance
+from astar.features.coasts import coast_distance_steps, coast_mask, normalized_coast_distance
 from astar.features.influence import (
+    land_distance_to_settlements_steps,
     normalized_land_distance_to_settlements,
     normalized_sea_distance_to_initial_ports,
+    sea_distance_to_initial_ports_steps,
     settlement_basin_gap,
+    settlement_basin_gap_steps,
 )
-from astar.infra.api.dto import RoundDetail
+from astar.infra.api.dto import InitialSettlement, RoundDetail
 
 
 def _local_ratio(mask: np.ndarray) -> np.ndarray:
@@ -46,17 +49,42 @@ class RoundFeatureBundle(BaseModel):
     per_seed: dict[int, SeedFeatureBundle]
 
 
-def compute_seed_features(round_detail: RoundDetail, seed_index: int) -> SeedFeatureBundle:
-    initial_state = round_detail.initial_states[seed_index]
-    grid = np.asarray(initial_state.grid, dtype=np.int64)
+def _distance_feature_family(
+    name: str,
+    raw_steps: np.ndarray,
+    normalized: np.ndarray,
+) -> dict[str, np.ndarray]:
+    reachable = raw_steps >= 0
+    steps = np.where(reachable, raw_steps, 0).astype(np.float64)
+    unreachable = (~reachable).astype(np.float64)
+    features: dict[str, np.ndarray] = {
+        name: normalized.astype(np.float64),
+        f"{name}_steps": steps,
+        f"{name}_steps_log1p": np.log1p(steps),
+        f"{name}_unreachable": unreachable,
+    }
+    for scale in (2.0, 4.0, 8.0):
+        suffix = int(scale)
+        features[f"{name}_decay_{suffix}"] = np.exp(-steps / scale) * (1.0 - unreachable)
+    return features
 
+
+def compute_static_feature_dict(
+    grid: np.ndarray,
+    settlements: list[InitialSettlement],
+) -> dict[str, np.ndarray]:
     buildable = buildable_mask(grid).astype(np.float64)
     land = land_mask(grid).astype(np.float64)
     coast = coast_mask(grid).astype(np.float64)
+
+    coast_distance_raw = coast_distance_steps(grid)
     coast_distance = normalized_coast_distance(grid)
-    land_distance = normalized_land_distance_to_settlements(grid, initial_state.settlements)
-    sea_distance = normalized_sea_distance_to_initial_ports(grid, initial_state.settlements)
-    basin_gap = settlement_basin_gap(grid, initial_state.settlements)
+    land_distance_raw = land_distance_to_settlements_steps(grid, settlements)
+    land_distance = normalized_land_distance_to_settlements(grid, settlements)
+    sea_distance_raw = sea_distance_to_initial_ports_steps(grid, settlements)
+    sea_distance = normalized_sea_distance_to_initial_ports(grid, settlements)
+    basin_gap_raw = settlement_basin_gap_steps(grid, settlements)
+    basin_gap = settlement_basin_gap(grid, settlements)
 
     forest_density = _local_ratio(grid == 4)
     mountain_density = _local_ratio(mountain_mask(grid))
@@ -69,17 +97,42 @@ def compute_seed_features(round_detail: RoundDetail, seed_index: int) -> SeedFea
         "buildable": buildable,
         "land": land,
         "coast": coast,
-        "coast_distance": coast_distance,
-        "land_distance_to_settlement": land_distance,
-        "sea_distance_to_port": sea_distance,
         "forest_density": forest_density,
         "mountain_density": mountain_density,
-        "settlement_basin_gap": basin_gap,
         "frontier_score": frontier_score,
         "settlement_proximity": settlement_proximity,
         "coastal_exposure": coastal_exposure,
         "maritime_access": maritime_access,
     }
+    features.update(_distance_feature_family("coast_distance", coast_distance_raw, coast_distance))
+    features.update(
+        _distance_feature_family(
+            "land_distance_to_settlement",
+            land_distance_raw,
+            land_distance,
+        )
+    )
+    features.update(
+        _distance_feature_family(
+            "sea_distance_to_port",
+            sea_distance_raw,
+            sea_distance,
+        )
+    )
+    features.update(
+        _distance_feature_family(
+            "settlement_basin_gap",
+            basin_gap_raw,
+            basin_gap,
+        )
+    )
+    return features
+
+
+def compute_seed_features(round_detail: RoundDetail, seed_index: int) -> SeedFeatureBundle:
+    initial_state = round_detail.initial_states[seed_index]
+    grid = np.asarray(initial_state.grid, dtype=np.int64)
+    features = compute_static_feature_dict(grid, initial_state.settlements)
     return SeedFeatureBundle(
         round_id=round_detail.id,
         seed_index=seed_index,

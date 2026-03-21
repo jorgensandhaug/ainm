@@ -38,6 +38,11 @@ Fresh-account production verification on 2026-03-20 showed:
 - therefore even exact 0% product tasks can map to different valid VAT ids across accounts (`5` in that fresh account, `6` in the persistent sandbox)
 - do not search for a book-specific VAT endpoint or hardcode the sandbox's `0%` code; the safe path is still to pick the matching `0%` row from the filtered `OUTGOING` result in the current account
 
+Fresh-account production verification on 2026-03-21 showed:
+- an exact "0% VAT for newspapers" product-create task (`Journal quotidien` / `9219` / `3150 NOK`) succeeded with the same 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` with explicit `vatType`
+- scored 2/2 (perfect correctness + efficiency), confirming that the 2-call path is optimal and no 1-call shortcut exists for explicit 0% VAT in fresh accounts
+- the category qualifier ("for newspapers", "for books", etc.) is cosmetic and does not affect VAT resolution
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
@@ -181,5 +186,5 @@ Use `number` for the product number. Include `vatType` only on the non-shortcut 
 - Do not filter out valid base VAT codes by checking `!parentType`
 - Do not send both excluding-VAT and including-VAT price fields unless the prompt clearly requires it
 - Do not burn a `POST /product` on a broader-catalog `15%` or `25%` code after the filtered `OUTGOING` read already proved that percentage is unavailable for product creation in the current account
-- Do not assume that "0% for books" needs anything more than the current account's filtered outgoing `0%` VAT row
+- Do not assume that "0% for [category]" (books, newspapers, etc.) needs anything more than the current account's filtered outgoing `0%` VAT row; the category qualifier is cosmetic
 - Do not generalize the one-call omitted-`vatType` shortcut from the exact fresh-account standard-`25%` shape to `0%`, reduced-rate, or other exact-VAT prompts

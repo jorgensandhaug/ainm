@@ -39,8 +39,9 @@ If the prompt explicitly says the supplier already exists, or the run context is
 - conclusion: do not treat generic voucher booking as equivalent to supplier-invoice registration
 
 ### Wrong path: `POST /incomingInvoice`
-- public accounts can return `403 You do not have permission to access this feature`
-- it is not the trusted default path
+- never use `/incomingInvoice*` in scored runs for this repo
+- these endpoints are beta-only here and should be treated as unavailable, not as a fallback branch
+- the 2026-03-21 reflection re-check again returned `403 You do not have permission to access this feature`
 
 ### Wrong path: PDF import then mutate
 - PDF import can create an empty voucher shell
@@ -54,6 +55,12 @@ If the prompt explicitly says the supplier already exists, or the run context is
 ### Wrong path: imported voucher `PUT` with immutable header fields
 - sending `description` or `vendorInvoiceNumber` in the later voucher update returned `422`
 - conclusion: those values must be correct in the XML import itself; do not try to rewrite them later
+
+### Later-payment caveat on this object family
+- do not assume a supplier invoice created through this public import path is automatically payable later through `POST /supplierInvoice/{id}/:addPayment`
+- persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on imported supplier invoice `2147547151`
+- that same invoice later read back with booked voucher number `100`, so `voucher.number > 0` alone is still not enough proof that `:addPayment` will work on this imported object family
+- conclusion: keep supplier-invoice registration and later supplier-payment playbooks logically separate; the create proof here does not settle the payment path
 
 ### Wrong path: balanced voucher update without debit `vatType`
 - sandbox accepted the write
@@ -99,6 +106,19 @@ Do not add:
 - `POST /ledger/voucher` as the main registration write
 - `GET /supplierInvoice` or `GET /ledger/voucher/{id}` by default
 - `sendToLedger=true` by default
+
+## Supplier Data Extraction (CRITICAL)
+
+When the prompt includes an attached PDF invoice, extract ALL supplier data from it:
+- `name` and `organizationNumber` (always present)
+- `postalAddress` with `addressLine1`, `postalCode`, `city` (if address appears on PDF)
+- `bankAccountPresentation: [{ bban: "<bank-account-number>" }]` (if bank account appears on PDF)
+
+Include all extracted fields in the same `POST /supplier` call — this costs zero extra API calls.
+
+The deprecated `bankAccounts` string array field silently does nothing. Always use `bankAccountPresentation` with `bban` instead.
+
+2026-03-21 production run for `Fjelltopp AS` scored 7/10 (not 10/10) because `postalAddress` and `bankAccountPresentation` from the PDF were omitted from the supplier create.
 
 ## Supplier Resolution Rules
 
@@ -292,6 +312,23 @@ Proven outcome:
   - supplier row `-61600` linked to the created supplier id
   - system VAT row `12320`
 
+## Critical Implementation Details
+
+### importDocument response shape
+- `POST /ledger/voucher/importDocument` returns a **list wrapper**: `{ values: [{ id, version, ... }] }`
+- extract the voucher from `response.values[0].id` and `response.values[0].version`
+- do NOT use `response.value.id` — that field does not exist and will crash
+- this mismatch from the typical single-object `{ value: {...} }` wrapper caused a 4-call recovery penalty in the 2026-03-21 production run
+
+### PUT postings require explicit row values
+- always include `row: 1` on the debit posting and `row: 2` on the supplier liability posting
+- row `0` is reserved for the system-generated VAT posting
+- omitting `row` causes `422 "Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex."`
+
+### XML org number validation
+- the org number in `EndpointID` and `CompanyID` must pass PEPPOL mod11 check
+- random 9-digit numbers will fail `422`; use the real supplier org number from the prompt
+
 ## Reusable Heuristics
 
 - if the task says register a supplier invoice, optimize for creating a real `supplierInvoice` object, not just a balanced voucher
@@ -300,3 +337,5 @@ Proven outcome:
 - if the balance is wrong, add currency amounts
 - if VAT is wrong, add explicit debit `vatType`
 - if XML import fails, fix the XML structure; do not pivot back to the old voucher-first path
+- always access the importDocument response via `values[0]`, never via `value`
+- always set explicit `row` values on PUT postings (1 for debit, 2 for supplier)

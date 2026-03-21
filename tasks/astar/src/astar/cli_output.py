@@ -24,6 +24,7 @@ from astar.student.predictor.heuristic import RoundRegimePosterior
 from astar.workflows.corpus_summary import CorpusSummaryResult
 from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
 from astar.workflows.live_online import LiveOnlineRunResult
+from astar.workflows.replay_eda import ReplayEdaResult
 from astar.workflows.results import (
     BuildSubmissionResult,
     EvaluateTeacherScienceResult,
@@ -267,6 +268,94 @@ def render_inspect_replays(result: InspectReplaysResult) -> str:
 
 
 def render_summarize_replays(result: SummarizeReplaysResult) -> str:
+    cell_event_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.cell_event_paths,
+            strict=True,
+        )
+    }
+    settlement_event_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.settlement_event_paths,
+            strict=True,
+        )
+    }
+    site_transition_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.site_transition_paths,
+            strict=True,
+        )
+    }
+    site_opportunity_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.site_opportunity_paths,
+            strict=True,
+        )
+    }
+    settlement_measurement_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.settlement_measurement_paths,
+            strict=True,
+        )
+    }
+    live_settlement_transition_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.live_settlement_transition_paths,
+            strict=True,
+        )
+    }
+    ruin_transition_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.ruin_transition_paths,
+            strict=True,
+        )
+    }
+    pairwise_candidate_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.pairwise_candidate_paths,
+            strict=True,
+        )
+    }
+    owner_year_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.owner_year_paths,
+            strict=True,
+        )
+    }
+    year_shock_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.year_shock_paths,
+            strict=True,
+        )
+    }
+    macro_trajectory_paths_by_seed = {
+        seed_summary.seed_index: path
+        for seed_summary, path in zip(
+            result.hazard_summary.seed_summaries,
+            result.macro_trajectory_paths,
+            strict=True,
+        )
+    }
     lines = [
         f"summarize-replays #{result.round_number} {result.round_id}",
         f"replay_seed_count: {result.replay_seed_count}",
@@ -274,12 +363,38 @@ def render_summarize_replays(result: SummarizeReplaysResult) -> str:
         f"round_summary: {result.round_summary_path}",
         f"report: {result.report_path}",
         f"coefficient_mean: {result.hazard_summary.coefficient_mean.tolist()}",
+        (
+            "measurement_counts: "
+            f"frames={result.measurement_summary.frame_transition_count} "
+            f"sites={result.measurement_summary.site_transition_count} "
+            f"opportunities={result.measurement_summary.site_opportunity_count} "
+            f"settlements={result.measurement_summary.settlement_measurement_count} "
+            f"live={result.measurement_summary.live_settlement_transition_count} "
+            f"ruins={result.measurement_summary.ruin_transition_count} "
+            f"pairs={result.measurement_summary.pairwise_candidate_count} "
+            f"owners={result.measurement_summary.owner_year_count} "
+            f"years={result.measurement_summary.year_shock_count}"
+            f" macro={result.measurement_summary.macro_trajectory_count}"
+        ),
     ]
     for seed_summary, summary_path in zip(
         result.hazard_summary.seed_summaries,
         result.summary_paths,
         strict=True,
-    ):
+        ):
+        cell_event_path = cell_event_paths_by_seed[seed_summary.seed_index]
+        settlement_event_path = settlement_event_paths_by_seed[seed_summary.seed_index]
+        site_transition_path = site_transition_paths_by_seed[seed_summary.seed_index]
+        site_opportunity_path = site_opportunity_paths_by_seed[seed_summary.seed_index]
+        settlement_measurement_path = settlement_measurement_paths_by_seed[seed_summary.seed_index]
+        live_settlement_transition_path = live_settlement_transition_paths_by_seed[
+            seed_summary.seed_index
+        ]
+        ruin_transition_path = ruin_transition_paths_by_seed[seed_summary.seed_index]
+        pairwise_candidate_path = pairwise_candidate_paths_by_seed[seed_summary.seed_index]
+        owner_year_path = owner_year_paths_by_seed[seed_summary.seed_index]
+        year_shock_path = year_shock_paths_by_seed[seed_summary.seed_index]
+        macro_trajectory_path = macro_trajectory_paths_by_seed[seed_summary.seed_index]
         lines.append(
             " ".join(
                 [
@@ -290,6 +405,17 @@ def render_summarize_replays(result: SummarizeReplaysResult) -> str:
                     f"ruin={seed_summary.ruin_hit_rate_mean:.4f}",
                     f"owner_flips={seed_summary.owner_flip_mean:.4f}",
                     f"summary={summary_path}",
+                    f"cell_events={cell_event_path}",
+                    f"settlement_events={settlement_event_path}",
+                    f"site_transitions={site_transition_path}",
+                    f"site_opportunities={site_opportunity_path}",
+                    f"settlement_measurements={settlement_measurement_path}",
+                    f"live_settlement_transitions={live_settlement_transition_path}",
+                    f"ruin_transitions={ruin_transition_path}",
+                    f"pairwise_candidates={pairwise_candidate_path}",
+                    f"owner_years={owner_year_path}",
+                    f"year_shocks={year_shock_path}",
+                    f"macro_trajectories={macro_trajectory_path}",
                 ],
             ),
         )
@@ -297,14 +423,32 @@ def render_summarize_replays(result: SummarizeReplaysResult) -> str:
 
 
 def render_factorize_round_summaries(result: FactorizeRoundSummariesResult) -> str:
+    loo = result.leave_one_out_report
+    loo_mae = "n/a" if loo.mean_mae is None else f"{loo.mean_mae:.6f}"
+    loo_baseline_mae = (
+        "n/a"
+        if loo.mean_baseline_mae is None
+        else f"{loo.mean_baseline_mae:.6f}"
+    )
+    loo_improvement = (
+        "n/a"
+        if loo.mean_mae_improvement is None
+        else f"{loo.mean_mae_improvement:.6f}"
+    )
     return "\n".join(
         [
             "factorize-round-summaries",
+            f"summary_kind: {result.summary_kind}",
             f"rounds: {result.round_count}",
             f"effective_rank: {result.effective_rank}",
-            f"explained_variance_ratio: {result.manifold.explained_variance_ratio.tolist()}",
+            f"explained_variance_ratio: {result.factorization.explained_variance_ratio.tolist()}",
+            f"loo_rounds: {loo.eligible_round_count}",
+            f"loo_mean_mae: {loo_mae}",
+            f"loo_mean_baseline_mae: {loo_baseline_mae}",
+            f"loo_mean_mae_improvement: {loo_improvement}",
             f"summary: {result.summary_path}",
             f"basis: {result.basis_path}",
+            f"loo_report: {result.leave_one_out_path}",
         ],
     )
 
@@ -519,6 +663,23 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
                     f"features={item.feature_path}",
                     f"evidence={item.evidence_path}",
                     f"replay_summary={item.replay_summary_path}",
+                    f"replay_cell_events={item.replay_cell_events_path}",
+                    f"replay_settlement_events={item.replay_settlement_events_path}",
+                    f"replay_site_transitions={item.replay_site_transition_path}",
+                    f"replay_site_opportunities={item.replay_site_opportunities_path}",
+                    (
+                        "replay_settlement_measurements="
+                        f"{item.replay_settlement_measurements_path}"
+                    ),
+                    (
+                        "replay_live_settlement_transitions="
+                        f"{item.replay_live_settlement_transitions_path}"
+                    ),
+                    f"replay_ruin_transitions={item.replay_ruin_transitions_path}",
+                    f"replay_pairwise_candidates={item.replay_pairwise_candidates_path}",
+                    f"replay_owner_years={item.replay_owner_years_path}",
+                    f"replay_year_shocks={item.replay_year_shocks_path}",
+                    f"replay_macro_trajectories={item.replay_macro_trajectories_path}",
                     f"replay_runs={item.replay_run_count}",
                     f"prediction={str(item.has_prediction).lower()}",
                     f"analysis={str(item.has_analysis).lower()}",
@@ -529,6 +690,22 @@ def render_materialize_episode(result: MaterializeEpisodeResult) -> str:
         lines.append(f"replay_report: {result.replay_report_path}")
         lines.append(
             f"replay_coefficients_mean: {result.replay_round_summary.coefficient_mean.tolist()}",
+        )
+    if result.replay_measurement_summary is not None:
+        lines.append(
+            (
+                "replay_measurements: "
+                f"frames={result.replay_measurement_summary.frame_transition_count} "
+                f"sites={result.replay_measurement_summary.site_transition_count} "
+                f"opportunities={result.replay_measurement_summary.site_opportunity_count} "
+                f"settlements={result.replay_measurement_summary.settlement_measurement_count} "
+                f"live={result.replay_measurement_summary.live_settlement_transition_count} "
+                f"ruins={result.replay_measurement_summary.ruin_transition_count} "
+                f"pairs={result.replay_measurement_summary.pairwise_candidate_count} "
+                f"owners={result.replay_measurement_summary.owner_year_count} "
+                f"years={result.replay_measurement_summary.year_shock_count}"
+                f" macro={result.replay_measurement_summary.macro_trajectory_count}"
+            ),
         )
     if result.backtest_result is not None:
         lines.append(f"backtest_mean_score: {result.backtest_result.mean_score:.4f}")
@@ -595,7 +772,10 @@ def render_historical_benchmark(result: HistoricalBenchmarkResult) -> str:
         f"model: {result.model_name}",
         f"mode: {result.mode}",
         f"policy: {result.policy_name or 'n/a'}",
-        f"samples_per_round: {result.samples_per_round if result.samples_per_round is not None else 'n/a'}",
+        (
+            "samples_per_round: "
+            f"{result.samples_per_round if result.samples_per_round is not None else 'n/a'}"
+        ),
         f"budget: {result.budget if result.budget is not None else 'n/a'}",
         f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
         f"rounds: {len(result.rounds)}",
@@ -734,7 +914,10 @@ def render_live_online_run(result: LiveOnlineRunResult) -> str:
         f"oracle: {result.oracle_name}",
         f"predictor: {result.predictor_name}",
         f"policy: {result.policy_name}",
-        f"samples_per_round: {result.samples_per_round if result.samples_per_round is not None else 'n/a'}",
+        (
+            "samples_per_round: "
+            f"{result.samples_per_round if result.samples_per_round is not None else 'n/a'}"
+        ),
         f"loaded_queries: {result.loaded_queries}",
         f"new_queries: {result.executed_queries}/{result.budget}",
         f"prediction_dir: {result.prediction_dir}",
@@ -757,5 +940,36 @@ def render_corpus_summary(result: CorpusSummaryResult) -> str:
             f"status={item.status} seeds={item.seed_count} "
             f"analyzed={item.analyzed_seed_count} queries={item.query_count} "
             f"replays={item.replay_run_count}",
+        )
+    return "\n".join(lines)
+
+
+def render_replay_eda(result: ReplayEdaResult) -> str:
+    lines = [
+        "replay-eda",
+        f"rounds: {result.round_count}",
+        f"seeds: {result.seed_count}",
+        f"replay_runs: {result.replay_run_count}",
+        f"skipped_short_replays: {result.skipped_short_replay_count}",
+        f"changed_cell_year_rate: {result.changed_cell_year_rate:.6f}",
+        f"mountain_breaks: {result.mountain_break_count}",
+        f"mountain_births: {result.mountain_birth_count}",
+        f"ocean_changes_out: {result.ocean_change_out_count}",
+        f"ocean_changes_in: {result.ocean_change_in_count}",
+        f"inland_port_gains: {result.inland_port_gain_count}",
+        f"summary: {result.summary_path}",
+        f"report: {result.report_path}",
+    ]
+    if result.round_summaries:
+        top_round = result.round_summaries[0]
+        lines.append(
+            " ".join(
+                [
+                    "most_dynamic_round:",
+                    f"#{top_round.round_number}",
+                    top_round.round_id,
+                    f"rate={top_round.changed_cell_year_rate:.6f}",
+                ],
+            ),
         )
     return "\n".join(lines)

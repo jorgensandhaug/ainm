@@ -38,6 +38,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - for `POST /department/list`, trust `values[]` and the returned department fields; top-level wrapper metadata such as `fullResultSize` can stay `0` on successful writes
   - for exact multi-department create prompts, including multilingual prompts that only supply department names, the canonical path is one `POST /department/list`; do not add a discovery `GET /department` and do not split the task into repeated `POST /department` calls
+  - `GET /department?name=...` is a containing search, not an exact-match resolver; persistent sandbox on 2026-03-21 returned `Drift sandbox 20260320-223143` for query `name=Drift`, so local filtering must still require exact `department.name`
   - 2026-03-20 production re-confirmed that the same one-call branch remained minimal for Norwegian prompts creating `HR`, `Salg`, and `Økonomi` and for `Lager`, `Regnskap`, and `Kvalitetskontroll`; the write response alone still proved correctness
   - same-day persistent-sandbox re-proof with `Lager Reflection cbae44a2`, `Regnskap Reflection cbae44a2`, and `Kvalitetskontroll Reflection cbae44a2` again returned the created departments in `values[]` while top-level `fullResultSize` stayed `0`
 
@@ -67,6 +68,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/employee/employment`
   - `GET` search employments
   - `POST` create employment
+- `/employee/employment/details`
+  - `GET` search employment details
+  - `POST` create employment details
 - Standard create prerequisites:
   - explicit `userType`
 - Standard create fast-path note:
@@ -76,6 +80,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - do not default to `GET /department` before the first write; only branch into `GET /department?isInactive=false&count=1&fields=*` if the create fails with `422` where `validationMessages[].field == "department.id"`
   - if that department repair read returns no active department and department is clearly required, `POST /department` with a minimal name-only payload and retry the same employee create once
   - if the employee create then fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*` and retry once with `division: { "id": ... }` inside the employment row
+  - for the richer exact onboarding shape `employee identity + department + start date + percentage + annual salary + standard worktime`, prefer `./trusted-standards/onboard-employee.md` instead of this simpler employee-card standard
+  - persistent sandbox re-proof on 2026-03-21 confirmed that this richer onboarding shape can persist the salary/worktime-related employment fields directly through nested `employmentDetails[]` inside the first `POST /employee`
 - Standard verification note:
   - a successful `POST /employee` can still echo `userType: null` plus `employments[]` as link-only objects without `startDate`
   - do not branch on the generic top-level `422 message`; current proven employee-create repair routing depends on `validationMessages[].field`
@@ -86,7 +92,42 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
   - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
 
+## Occupation Code
+- `/employee/employment/occupationCode`
+  - `GET` search profession/occupation codes
+  - query parameters: `id`, `nameNO` (containing), `code` (containing), `from`, `count`, `fields`
+- Standard lookup note:
+  - the `code` filter is a substring-containing match, NOT exact or prefix
+  - searching `code=4110` returns unrelated codes that contain "4110" anywhere in their 7-digit code (e.g., `3341103` ADJUNKT)
+  - the reliable lookup for a 4-digit STYRK group code is by `nameNO` with the Norwegian occupation name
+  - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110
+  - occupation code ids are reference data and are the same across sandbox and production accounts
+  - known hardcoded mappings (verified sandbox + production 2026-03-21):
+    - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
+    - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
+
+## Employee Standard Time
+- `/employee/standardTime`
+  - `GET` search employee-specific standard times (requires `employeeId` query param)
+  - `POST` create employee-specific standard time
+- `/employee/standardTime/{id}`
+  - `GET` read
+  - `PUT` update
+- `/employee/standardTime/byDate`
+  - `GET` resolve effective standard time for one employee by date
+- Standard note:
+  - this is the per-employee standard time endpoint — use this when the task says to configure standard worktime for a specific employee
+  - the payload shape is `{ employee: { id: <employeeId> }, fromDate: "YYYY-MM-DD", hoursPerDay: <number> }`
+  - do NOT confuse with `/salary/settings/standardTime` which is the company-wide standard time setting
+  - sandbox verification on 2026-03-21 confirmed `POST /employee/standardTime` persists correctly with the employee link
+  - production run on 2026-03-21 used `/salary/settings/standardTime` (company-wide) instead of `/employee/standardTime` (per-employee), which caused check 10 to fail
+
 ## Salary
+- `/salary/settings/standardTime`
+  - `GET` search standard times
+  - `POST` create standard time
+- `/salary/settings/standardTime/byDate`
+  - `GET` resolve effective standard time for one date
 - `/salary/type`
   - `GET` search salary types
 - `/salary/transaction`
@@ -102,6 +143,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - exact employee id
   - payroll-ready employee data
   - resolved salary-type ids
+- Standard onboarding note:
+  - for the exact employee-onboarding shape that explicitly scores hours per day, `POST /employee/standardTime` is the correct per-employee write — NOT `/salary/settings/standardTime` which is company-wide
+  - the production run on 2026-03-21 used `/salary/settings/standardTime` (company-wide) and failed check 10; the correct endpoint is `/employee/standardTime` with `{ employee: { id: ... }, fromDate: ..., hoursPerDay: ... }`
+  - persistent sandbox on 2026-03-21 confirmed `POST /employee/standardTime` persists correctly linked to the specific employee
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
   - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
@@ -152,6 +197,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/project`
   - `GET` search
   - `POST` create
+- `/project/list`
+  - `POST` batch create
+  - `PUT` batch update
+  - `DELETE` batch delete
 - `/project/{id}`
   - `GET` read
   - `PUT` update
@@ -162,13 +211,17 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `startDate`
 - Standard fast-path note:
   - for the exact create-one-project shape with an existing customer identified by `organizationNumber` and an existing manager identified by `email`, the winning path is usually `GET /customer?organizationNumber=...&count=10&fields=*`, `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`, then `POST /project`
+  - for the exact ledger-analysis shape `find the three expense accounts with the biggest January->February increase, then create three internal projects`, the lower-call create branch is one decisive `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`, one `GET /employee?assignableProjectManagers=true&count=1&fields=*`, one `POST /project/list`, then one `POST /project/projectActivity` per created project
   - 2026-03-20 production re-confirmed that the same 3-call path is still minimal for a Portuguese prompt that omitted `startDate`; using the run date in the write payload succeeded directly
   - a same-day Portuguese production run for `Análise Porto` / `Porto Alegre Lda` / `996943305` / `lucas.oliveira@example.org` also stayed on that exact 3-call floor; the Unicode `á` in the project name was not a reason to add any extra resolver or verification read
   - a second 2026-03-20 production re-confirmation for `Havbris AS` / `999148387` / `henrik.degard@example.org` kept the same 3-call floor for a Norwegian prompt that also supplied customer and manager names; the manager prompt name used `Ø` while the email local-part used ASCII `degard`, and that still did not justify any extra disambiguation read after one exact email hit
   - 2026-03-20 persistent sandbox re-proof confirmed there is still no safe `2`-call shortcut for that exact shape: `POST /project` with nested `customer { name, organizationNumber }` can return `201` while leaving `customer=null`, and manager details without `projectManager.id` still fail validation
+  - 2026-03-21 persistent-sandbox proof for the internal-project branch showed that even `isInternal=true` does not waive the manager requirement: `POST /project` without `projectManager` returned `422` with validation message `Feltet "Prosjektleder" må fylles ut.`
+  - that same 2026-03-21 sandbox proof confirmed that `POST /project/list` successfully created three internal projects in one call when each row included `name`, `startDate`, `isInternal: true`, and `projectManager: { "id": ... }`
   - keep exact uniqueness checks local by comparing returned `customer.organizationNumber` and `employee.email`, and use prompt names only as local tie-breakers when they are provided
   - if the filtered reads already leave one exact-`organizationNumber` hit and one exact-`email` hit, reuse those ids directly; do not require the prompt names to match the returned display names
   - if the prompt omits `startDate`, default it to the run date in ISO format instead of omitting the field
+  - do not assume a freshly created employee is already an assignable project manager; persistent sandbox follow-up on `2026-03-21` rejected `POST /project` with `projectManager.id: Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen` for a just-created employee, so the assignable-manager gate is real
 - Standard search note:
   - for project-linked task shapes where the prompt gives project name plus customer identifiers, `GET /project?name=...&count=50&fields=*,customer(*)` can often resolve both the project and the linked customer in one read
   - for update-shaped project tasks that also score the existing manager, `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` can often resolve the project, linked customer, and current manager in one read
@@ -178,6 +231,36 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - Standard verification note:
   - the successful `POST /project` response can already prove `name`, `startDate`, `customer.id`, and `projectManager.id`; do not add `GET /project/{id}` unless one of those scored fields is unexpectedly missing
   - in that exact create-project shape, do not add `GET /customer/{id}` or `GET /employee/{id}` after the filtered resolver reads; the search responses plus the project write response already prove the scored linkage
+
+## Project Activity
+- `/project/projectActivity`
+  - `POST` create
+- Standard create note:
+  - persistent sandbox follow-up on `2026-03-21` proved the one-call branch for a budgeted project-specific activity: `POST /project/projectActivity` with inline `activity`, `budgetHours`, and `budgetFeeCurrency`
+  - for that exact shape, a separate `POST /activity` first is a wasted call
+  - the currently proven inline `activity` payload is:
+    - `name`
+    - `activityType: "PROJECT_SPECIFIC_ACTIVITY"`
+    - `isChargeable: false`
+- Standard verification note:
+  - trust the `POST /project/projectActivity` response for `id`, linked `project.id`, `activity.id`, `budgetHours`, and `budgetFeeCurrency` unless a scored field is unexpectedly missing
+
+## Project Orderline
+- `/project/orderline`
+  - `GET` search
+  - `POST` create
+- `/project/orderline/{id}`
+  - `GET` read
+  - `PUT` update
+  - `DELETE` delete
+- Standard project-cost note:
+  - persistent sandbox follow-up on `2026-03-21` proved that `POST /project/orderline` with a non-chargeable cost-only payload (`project`, `description`, `date`, `count`, `unitCostCurrency`, `isChargeable=false`) increases project costs directly
+  - do not send `unitPriceExcludingVatCurrency` on that non-chargeable cost line; Tripletex returns `422 unitPriceExcludingVatCurrency: Ordrelinjen er ikke fakturerbar.`
+  - if the prompt only scores project cost amount, that one-write cost branch is lower-call than the supplier-invoice voucher path
+  - explicit vendor linkage is not yet proven on the cheap cost-only branch; persistent sandbox accepted `vendor: { "id": ... }` but later `GET /project/orderline/{id}` still showed `vendor=null`
+- Standard verification note:
+  - trust the write response first
+  - add `GET /project/orderline/{id}?fields=*` only when the prompt explicitly scores fields that the write response omitted or when you are deliberately proving a sandbox hypothesis
 
 ## Activity
 - `/activity`
@@ -227,9 +310,14 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET` read
   - `PUT` update
   - `DELETE` delete
+- `/timesheet/entry/list`
+  - `POST` batch create (array of timesheet entries for multiple employees/dates)
+  - `PUT` batch update
 - `/timesheet/week/:approve`
   - `PUT` approve week
 - Standard time-registration note:
+  - `POST /timesheet/entry/list` accepts an array of entries and creates them all in one call; persistent sandbox on 2026-03-21 confirmed 9 entries across 2 employees in 1 call, returning `{ values: [...] }` with all created entries; use this for lifecycle tasks with many timesheet entries instead of individual `POST /timesheet/entry` calls
+  - timesheet entry dates must be on or after the project `startDate`; entries before the project start fail with `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
   - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
   - a timesheet write on a chargeable project activity can also succeed with `chargeable=true` and `hourlyRate=0` when the exact employee+activity rate is missing, so the write alone does not prove the prompt rate was applied
   - `projectChargeableHours` has a hard per-entry ceiling of `24`; `POST /timesheet/entry` above that returns `422 projectChargeableHours: Kan ikke være over 24`
@@ -411,8 +499,35 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - even so, do not treat mirrored `invoiceEmail` as proof that every hidden scorer field is settled; the later 2026-03-20 `Bergvik AS` rerun still stayed at public `6/7`, so avoid spending extra calls on invented address fields or a follow-up `GET`
   - `POST /supplier` can auto-return sparse `postalAddress` and `physicalAddress` links even when the payload sent no address fields; verify the prompt-scored fields from `value` and do not add a follow-up read just for those links
   - persistent sandbox re-check on 2026-03-20 showed those sparse address links still appear even when `postalAddress: null` and `physicalAddress: null` are sent explicitly
+  - HOWEVER, when the prompt or attached PDF provides explicit supplier address or bank account data, always include them in the same `POST /supplier`: use `postalAddress: { addressLine1, postalCode, city }` and `bankAccountPresentation: [{ bban: "<11-digit-number>" }]`; these are scored fields and cost 0 extra API calls
+  - do NOT use the deprecated `bankAccounts` string array field; it silently does nothing; always use `bankAccountPresentation` with `bban` subfield
+  - 2026-03-21 production run for `Fjelltopp AS` lost 2 scored checks (7/10 instead of perfect) because the PDF address and bank account were not included in the supplier create
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
   - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
+
+## Supplier Invoice
+- `/supplierInvoice`
+  - `GET` search/read supplier invoices
+- `/supplierInvoice/{invoiceId}/:addPayment`
+  - `POST` register supplier-invoice payment
+- Standard resolver note:
+  - never use `/incomingInvoice*` in scored runs for this repo; those endpoints are beta-only and the 2026-03-21 reflection run re-confirmed `403 You do not have permission to access this feature.` on `/incomingInvoice/search`
+  - do not assume an unfiltered `GET /supplierInvoice?...` is a decisive all-invoices read in every account
+  - persistent sandbox on 2026-03-21 returned real payable supplier invoices for `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&supplierId=108269769&count=1000&fields=*,supplier(*),payments(*),voucher(*)`, while the corresponding `voucherId=608853423` lookup returned `values=[]`
+  - for named-supplier payment tasks, first resolve the supplier id and then use `supplierId=` on `/supplierInvoice`; do not jump from an empty unfiltered `/supplierInvoice` result to `/incomingInvoice*`
+- Standard payment note:
+  - `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)` is the public outgoing payment-type resolver; prefer a live `19xx` bank-account candidate with `showIncomingInvoice=true`
+  - `POST /supplierInvoice/{id}/:addPayment` remains unproven on imported supplier-invoice objects created through the public voucher-import branch
+  - persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on invoice `2147547151` even after the linked voucher later showed booked number `100`; do not assume `voucher.number > 0` alone proves that `:addPayment` is usable on that object family
+  - if that exact validation branch appears, do not burn extra scored-run calls on `/incomingInvoice*`, `voucherId=` retries, or speculative `:approve` retries; treat the task as a non-exact branch that still needs a separate proven public payment path
+- Standard manual-voucher fallback note:
+  - production 2026-03-21 task 23 had 0 `/supplierInvoice` objects for all suppliers even though open postings existed on account 2400; when the account has no `/supplierInvoice` objects, use manual voucher payment instead of `:addPayment`
+  - the proven manual voucher supplier payment is `POST /ledger/voucher` with debit 2400 (supplier liability, positive `amountGross`) and credit 1920 (bank, negative `amountGross`), both with explicit `row: 1` and `row: 2`
+  - include `supplier: { id: <supplierId> }` on the 2400 posting so the supplier dimension is linked
+  - resolve account ids first via `GET /ledger/account?number=2400,1920&fields=*`
+  - sandbox 2026-03-21 proof: `POST /ledger/voucher` with debit 2400 id=424190921 and credit 1920 id=424190862 returned 201 with voucher id=608909971
+  - `PUT /supplierInvoice/voucher/{id}/postings?sendToLedger=true` fails with `422 Can not put postings on a voucher that already have postings` on existing supplier invoices
+  - `:approve` fails on imported voucher types with `422 Denne bilagstypen kan ikke attesteres.`
 
 ## Travel Expense
 - `/travelExpense`
@@ -466,6 +581,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/ledger/account`
   - `GET` search
   - `POST` create
+- `/ledger/account/list`
+  - `POST` batch create (accepts an array of `{ number, name }` objects, creates multiple accounts in one call)
 - `/ledger/account/{id}`
   - `GET` read
   - `PUT` update
@@ -475,6 +592,29 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - this is also the safe one-read resolver for manual-voucher ledger accounts such as `5000`, `7000`, `6590`, `6860`, `6300`, `7300`, `6340`, and `1920`; do not rely on `account.number` alone inside `POST /ledger/voucher`
   - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer; compare numerically when filtering the response locally
   - when the prompt explicitly gives ledger account numbers, trust those numbers over account-name semantics; persistent sandbox on 2026-03-21 returned requested account `3400` as `isInactive=true` with an unrelated display name, and the later id-based voucher write still succeeded on that exact row
+- Standard create note:
+  - `POST /ledger/account` with just `{ number, name }` succeeds; Tripletex auto-infers the account `type` from the number range (e.g. 6xxx → OPERATING_EXPENSES)
+  - `POST /ledger/account/list` batch create also works with `[{ number, name }, ...]`; use this to save a call when 2+ accounts need creation
+  - common missing accounts in fresh Tripletex charts: `6030` (Avskrivning maskiner), `1209` (Akk. avskr. maskiner), and other `xx09` accumulated depreciation accounts
+  - 2026-03-21 persistent sandbox confirmed both single and batch account creation with just `number` and `name`
+
+## Balance Sheet
+- `/balanceSheet`
+  - `GET` search (saldobalanse)
+- Parameters:
+  - `dateFrom` (required): `YYYY-MM-DD` (from and incl.)
+  - `dateTo` (required): `YYYY-MM-DD` (to and **excl.**)
+  - `accountNumberFrom`: integer (from and incl.)
+  - `accountNumberTo`: integer (to and **excl.**)
+  - `count`, `from`, `fields`
+- Returns `ListResponseBalanceSheetAccount` with `values[]` containing `account`, `balanceIn`, `balanceChange`, `balanceOut`
+- Standard year-end note:
+  - for pre-tax result calculation, use `accountNumberFrom=3000&accountNumberTo=8700` to get all revenue and expense accounts excluding tax expense (8700+)
+  - `dateTo` is exclusive, so for full year 2025 use `dateFrom=2025-01-01&dateTo=2026-01-01`
+  - revenue accounts (3xxx) have negative `balanceOut` (credit); expense accounts (4xxx-8xxx) have positive `balanceOut` (debit)
+  - pre-tax profit = `-(sum of all balanceOut values)`; positive means profitable
+  - use `fields=*,account(*)` to expand nested account details (number, name)
+  - 2026-03-21 persistent sandbox confirmed this endpoint returns correct cumulative balances after voucher writes
 
 ## Ledger Accounting Dimension Name
 - `/ledger/accountingDimensionName`
@@ -514,6 +654,21 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 ## Ledger Posting
 - `/ledger/posting`
   - `GET` search/read postings
+- `/ledger/posting/openPost`
+  - `GET` search open customer/supplier postings
+- Standard resolver note:
+  - this is the decisive diagnostic fallback for open customer/supplier subledger rows when a task is clearly about reconciliation but the higher-level invoice endpoint omits expected results
+  - it can prove live supplier liability rows on account `2400` even when `voucherId=` lookup on `/supplierInvoice` returns no rows
+  - it is not a drop-in replacement for `/supplierInvoice` on payment tasks because it returns posting ids, not supplier-invoice ids
+  - for month-over-month expense-account analysis, prefer one decisive combined read over separate monthly reads: `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+  - on that analysis branch, aggregate signed `amount` by account and month in local code; do not switch to `amountCurrency` or absolute values unless the prompt explicitly asks for transaction-currency or absolute-volume ranking
+  - when the prompt wants you to reuse the account's name in a newly created object, prefer `account.displayName` over bare `account.name` so the account number stays attached and similarly named expense rows do not become ambiguous
+- Standard parameter note for `/ledger/posting/openPost`:
+  - requires `date` parameter (NOT `dateFrom`/`dateTo`); `date` is a cutoff meaning postings dated before this date
+  - format is `YYYY-MM-DD`; use `date=2031-01-01` for a future-proof cutoff
+  - `supplierId` and `customerId` are optional filters
+  - `GET /ledger/posting` (not openPost) requires `dateFrom` and `dateTo` (not `date`)
+  - production 2026-03-21 task 23 wasted 2 calls with `422` because `dateFrom`/`dateTo` were sent instead of `date` on the `openPost` variant
 
 ## Ledger Voucher
 - `/ledger/voucher`
@@ -531,14 +686,22 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for manual vouchers, resolve ledger-account ids first and send `account: { "id": ... }`
   - number-only account refs still failed with `422 postings.account.name: Kan ikke være null.` in persistent sandbox on ordinary ledger accounts such as `7000`, `6590`, `6860`, `6300`, `7300`, and `6340`, so there is no trusted lower-call shortcut that skips the account-id lookup
   - number-only account refs on voucher postings are not the trusted fast path
+  - if the task scores receipt preservation on the voucher, create the manual voucher first and then use `POST /ledger/voucher/{voucherId}/attachment`; 2026-03-21 persistent sandbox showed `POST /ledger/voucher/importDocument` creates an attachment-backed voucher shell whose `description` and `postings` were not editable through the later `PUT /ledger/voucher/{id}` branch
+  - on voucher postings, `department: { "name": ... }` is not a safe shortcut; 2026-03-21 persistent sandbox returned `201` for a `Drift` name-only posting but persisted `department=null`, so use exact `department.id`
   - for manual postings on customer ledger account `1500`, include the matching `customer: { "id": ... }`; the 2026-03-21 persistent sandbox exact reminder-fee proof succeeded with that shape on voucher `608897119`
   - for payroll fallback prompts that explicitly allow manual vouchers on the `5000` series, the proven low-call resolver is `GET /ledger/account?number=5000,1920&fields=*` and the proven payload is a balanced two-line voucher with the gross salary amount on account `5000` and the negative balancing line on `1920`
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
   - on 2026-03-20 persistent sandbox re-verification, `GET /ledger/account?number=5000,1920&fields=*` returned both accounts and the next `POST /ledger/voucher` with balanced `50600` / `-50600` salary-cost postings succeeded
   - `/ledger/voucher/importDocument` is the trusted supplier-invoice bootstrap when the task scores a real supplier invoice; a valid EHF/UBL XML import can create the supplier-invoice object family before the later voucher-posting update
+  - **CRITICAL**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version }] }`, not the typical single-object `{ value: { id } }` wrapper; extract from `response.values[0]`
+  - the later `PUT /ledger/voucher/{id}` postings MUST include explicit `row` values: `row: 1` for the debit posting, `row: 2` for the supplier liability posting; row 0 is reserved for the system-generated VAT posting and triggers `422` if overwritten
+  - **CRITICAL**: `POST /ledger/voucher` also requires explicit `row` values on postings; without them, all postings default to row 0, which is system-reserved and triggers `422` with `posteringene på rad 0 (guiRow 0) er systemgenererte`; always use `row: 1` for the first posting and `row: 2` for the second
+  - for balanced two-line year-end vouchers (depreciation, prepaid reversal, tax), use `amountGross` / `amountGrossCurrency` with positive value on the debit posting and negative on the credit posting
+  - `/ledger/voucher/list` is `PUT` batch-update only; there is no batch `POST` for creating multiple vouchers in one call
 - Standard verification note:
   - write responses may be sufficient by ids/amounts even when linked display fields stay sparse; only read back when the task needs expanded linked fields
+  - for receipt-backed manual vouchers, the attachment upload response on `/ledger/voucher/{voucherId}/attachment` is the decisive proof that the final voucher now preserves the source document; do not add `GET /ledger/voucher/{id}` by default once that write already returned `attachment.id`
   - for the exact supplier-invoice shape that scores a real supplier invoice, the fresh-account default is supplier write, expense-account read, incoming-VAT read, EHF/XML import, then partial voucher update
   - if that same supplier-invoice shape explicitly points to an already-existing supplier, or the run context is retry/persistent, use supplier lookup instead of the supplier write as the first step
   - the 2026-03-20 persistent-sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` / `6500` / `25%` confirmed the create-first branch at `5` calls and again showed no default verification read is needed after the final voucher write

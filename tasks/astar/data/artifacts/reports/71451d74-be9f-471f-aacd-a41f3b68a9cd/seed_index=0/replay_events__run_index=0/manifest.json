@@ -1,0 +1,33 @@
+{
+  "report_key": "replay_events",
+  "title": "Replay Event Audit Round 71451d74-be9f-471f-aacd-a41f3b68a9cd Seed 0",
+  "report_path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/replay_events__run_index=0/report.md",
+  "round_id": "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+  "seed_index": 0,
+  "metadata": {
+    "replay_run_id": "2a3e5803778e4e28bc6047ba0b250a3c",
+    "replay_run_index": 0,
+    "frame_count": 51,
+    "cell_event_count": 941,
+    "settlement_transition_count": 5100,
+    "selected_steps": [
+      48
+    ],
+    "source_path": "/home/jorge/ainm/tasks/astar/data/raw/replays/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/20260320T090423.960062Z__sim_seed=1997692158__capture_id=2a3e5803778e4e28bc6047ba0b250a3c.json",
+    "rerun_command": "uv run astar visualize-replay-events --round-id 71451d74-be9f-471f-aacd-a41f3b68a9cd --seed-index 0 --replay-run-index 0 --max-steps 1"
+  },
+  "figures": [
+    {
+      "key": "change_timeline",
+      "title": "Replay change timeline",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/replay_events__run_index=0/change_timeline.png",
+      "description": "Changed-cell and changed-settlement counts by yearly transition step."
+    },
+    {
+      "key": "transition_step_48",
+      "title": "Replay step 48 -> 49",
+      "path": "/home/jorge/ainm/tasks/astar/data/artifacts/reports/71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0/replay_events__run_index=0/transition_step_48.png",
+      "description": "Previous state, next state, and changed-cell overlay for one yearly transition."
+    }
+  ]
+}
