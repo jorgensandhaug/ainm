@@ -8,7 +8,10 @@ from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.student.predictor.interactive import build_online_predictor
-from astar.student.predictor.summary_rate_decoder import SummaryRateDecoderPredictor
+from astar.student.predictor.summary_rate_decoder import (
+    SummaryRateDecoderPredictor,
+    _active_delta_gate_tensor,
+)
 from tests.conftest import ROUND_ID
 from tests.test_event_regime_posterior_audit import ROUND_ID_2, _duplicate_round_fixture
 from tests.test_historical_bucket_baseline import _write_sample_analysis
@@ -166,6 +169,59 @@ def test_build_online_predictor_supports_summary_rate_decoder_models(sample_path
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01"
     )
 
+    collapse_dyn_portcoast_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_portcoast_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01"
+    )
+
+    collapse_dyn_classwise_adapter = build_online_predictor(
+        "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01",
+        paths=sample_paths,
+        historical_round_ids=[ROUND_ID, ROUND_ID_2],
+    )
+
+    assert (
+        collapse_dyn_classwise_adapter.name
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01"
+    )
+
+
+def test_summary_rate_decoder_classwise_gate_tensor() -> None:
+    spatial_names = ["buildable", "coast"]
+    spatial_basis = np.asarray(
+        [
+            [[1.0, 1.0], [1.0, 0.0]],
+            [[0.0, 0.0], [1.0, 1.0]],
+        ],
+        dtype=np.float64,
+    )
+
+    portcoast = _active_delta_gate_tensor(
+        spatial_names,
+        spatial_basis,
+        active_class_indices=(1, 2, 3),
+        gate_variant="port_coast",
+    )
+    classwise = _active_delta_gate_tensor(
+        spatial_names,
+        spatial_basis,
+        active_class_indices=(1, 2, 3),
+        gate_variant="classwise",
+    )
+
+    assert np.allclose(portcoast[:, :, 0], 1.0)
+    assert np.allclose(portcoast[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 1])
+    assert np.allclose(portcoast[:, :, 2], 1.0)
+    assert np.allclose(classwise[:, :, 0], spatial_basis[:, :, 0])
+    assert np.allclose(classwise[:, :, 1], spatial_basis[:, :, 0] * spatial_basis[:, :, 1])
+    assert np.allclose(classwise[:, :, 2], spatial_basis[:, :, 0])
+
 
 def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     parser = build_parser()
@@ -312,6 +368,34 @@ def test_cli_parser_accepts_summary_rate_decoder_models() -> None:
     assert (
         parsed_collapse_dyn_buildable.model
         == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_buildable_v01"
+    )
+
+    parsed_collapse_dyn_portcoast = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_portcoast.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01"
+    )
+
+    parsed_collapse_dyn_classwise = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01",
+            "--mode",
+            "online_interactive",
+        ],
+    )
+    assert (
+        parsed_collapse_dyn_classwise.model
+        == "f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01"
     )
 
     parsed_stress = parser.parse_args(

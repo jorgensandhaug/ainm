@@ -3246,3 +3246,49 @@
     - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
   - still far below current external best `supportx_v01`
   - but now there is real evidence that restricting decoder corrections is better than changing latent targets again
+
+## 2026-03-21 12:xx UTC - class-aware dyn gates
+
+- Re-read:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br list` still unavailable in this env:
+  - `/bin/bash: br: command not found`
+- Machine-health check before new work:
+  - load about `70 / 81 / 68`
+  - RAM `2.1 TiB used`, `858 GiB available`
+  - other agents are already running many `20-40+ GiB` workers
+  - so I am keeping parallelism moderate: only 2 smoke jobs at once for this branch
+
+- Hypothesis:
+  - the first decoder-side gain came from restricting residual-logit corrections to active classes `(1,2,3)`
+  - the failed `buildable` gate suggests a single scalar gate across all active classes is too blunt
+  - next likely win is class-aware gating:
+    - keep settlement/ruin corrections freer
+    - restrict port corrections to coastal land only
+
+- Code landed:
+  - `src/astar/student/predictor/summary_rate_decoder.py`
+    - replaced scalar active-class gate usage with class-aware gate tensor support
+    - new gate variants:
+      - `port_coast`
+      - `classwise`
+  - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - new immutable models:
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01`
+      - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01`
+  - `tests/test_summary_rate_decoder_predictor.py`
+    - added gate-tensor unit coverage
+    - added predictor/CLI coverage for both new model names
+
+- Validation:
+  - `uv run pytest tests/test_summary_rate_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py -q`
+  - result:
+    - `17 passed in 41.01s`
+
+- Next immediate action:
+  - commit/push runnable code
+  - launch 2 current-smoke benchmarks in parallel:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01`
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01`

@@ -215,6 +215,22 @@ SUMMARY_RATE_DECODER_MODEL_SPECS = (
         active_class_indices=(1, 2, 3),
         active_delta_gate="buildable",
     ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portcoast_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        active_delta_gate="port_coast",
+    ),
+    SummaryRateDecoderModelSpec(
+        request_names=("f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01",),
+        model_name="f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_classwise_v01",
+        target_family="collapse_portsplit",
+        include_teacher_logits=True,
+        active_class_indices=(1, 2, 3),
+        active_delta_gate="classwise",
+    ),
 )
 
 _SUMMARY_RATE_DECODER_MODEL_SPECS_BY_NAME = {

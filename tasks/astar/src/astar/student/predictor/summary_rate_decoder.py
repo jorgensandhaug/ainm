@@ -133,6 +133,44 @@ def _active_delta_gate_mask(
     raise ValueError(f"unsupported active delta gate: {gate_variant}")
 
 
+def _active_delta_gate_tensor(
+    spatial_names: Sequence[str],
+    spatial_basis: np.ndarray,
+    *,
+    active_class_indices: Sequence[int],
+    gate_variant: str,
+) -> np.ndarray:
+    class_count = len(active_class_indices)
+    if class_count == 0:
+        return np.ones(spatial_basis.shape[:2] + (0,), dtype=np.float64)
+    if gate_variant in {"none", "buildable"}:
+        gate_mask = _active_delta_gate_mask(
+            spatial_names,
+            spatial_basis,
+            gate_variant=gate_variant,
+        )
+        return np.repeat(gate_mask[:, :, None], class_count, axis=2)
+
+    feature_index = {name: index for index, name in enumerate(spatial_names)}
+    buildable = np.asarray(spatial_basis[:, :, feature_index["buildable"]], dtype=np.float64)
+    coast = np.asarray(spatial_basis[:, :, feature_index["coast"]], dtype=np.float64)
+    port_coast = buildable * coast
+    gate_tensor = np.ones(spatial_basis.shape[:2] + (class_count,), dtype=np.float64)
+    for column_index, class_index in enumerate(active_class_indices):
+        if gate_variant == "port_coast":
+            if class_index == 2:
+                gate_tensor[:, :, column_index] = port_coast
+            continue
+        if gate_variant == "classwise":
+            if class_index == 2:
+                gate_tensor[:, :, column_index] = port_coast
+            elif class_index in {1, 3}:
+                gate_tensor[:, :, column_index] = buildable
+            continue
+        raise ValueError(f"unsupported active delta gate: {gate_variant}")
+    return gate_tensor
+
+
 class SummaryRateDecoderPredictor(BaseRoundPredictor):
     name: str = "f1_summary_rate_decoder_v01"
     base_predictor: HistoricalBucketPriorPredictor
@@ -182,7 +220,7 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
         normalized_active_class_indices = tuple(dict.fromkeys(active_class_indices or ()))
         if any(class_index < 0 or class_index >= CLASS_COUNT for class_index in normalized_active_class_indices):
             raise ValueError(f"active class index must be in [0, {CLASS_COUNT - 1}]")
-        if active_delta_gate not in {"none", "buildable"}:
+        if active_delta_gate not in {"none", "buildable", "port_coast", "classwise"}:
             raise ValueError(f"unsupported active delta gate: {active_delta_gate}")
 
         target_frame = _target_frame(
@@ -266,12 +304,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
                 target_matrix = target_delta.reshape(-1, CLASS_COUNT)
                 if normalized_active_class_indices:
                     target_matrix = target_matrix[:, list(normalized_active_class_indices)]
-                    gate_mask = _active_delta_gate_mask(
+                    gate_tensor = _active_delta_gate_tensor(
                         spatial_names,
                         spatial_basis,
+                        active_class_indices=normalized_active_class_indices,
                         gate_variant=active_delta_gate,
-                    ).reshape(-1, 1)
-                    target_matrix = target_matrix * gate_mask
+                    ).reshape(-1, len(normalized_active_class_indices))
+                    target_matrix = target_matrix * gate_tensor
                 target_rows.append(target_matrix)
                 weight_rows.append(cell_weights.astype(np.float64))
 
@@ -405,12 +444,13 @@ class SummaryRateDecoderPredictor(BaseRoundPredictor):
             )
             delta_logits = self._expand_delta_logits(raw_delta_logits)
             if self.active_class_indices:
-                gate_mask = _active_delta_gate_mask(
+                gate_tensor = _active_delta_gate_tensor(
                     spatial_names,
                     spatial_basis,
+                    active_class_indices=self.active_class_indices,
                     gate_variant=self.active_delta_gate,
                 )
-                delta_logits[:, :, list(self.active_class_indices)] *= gate_mask[:, :, None]
+                delta_logits[:, :, list(self.active_class_indices)] *= gate_tensor
             prior_logits = np.log(np.maximum(base_bundle.predictions_by_seed[seed_index], 1.0e-6))
             predictions_by_seed[seed_index] = apply_probability_floor(
                 softmax_logits(prior_logits + delta_logits),
