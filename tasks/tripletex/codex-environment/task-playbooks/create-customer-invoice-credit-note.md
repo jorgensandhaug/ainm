@@ -163,7 +163,17 @@ Verified on 2026-03-22:
   - no extra `openapi.json` confirmation was needed once the trusted standard already matched
   - 2 API calls, 0 errors
 - persistent-sandbox re-verification on 2026-03-22 with a disposable fixture matching `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450` again proved the same two-call core after setup
-- 12 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
+- a thirteenth production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=866100829`
+  - `amountExcludingVatCurrency=9900`
+  - `description="Webdesign"` (Norwegian prompt)
+- that thirteenth production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - 2 API calls, 0 errors
+- persistent-sandbox re-verification on 2026-03-22 with a disposable fixture matching `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900` again proved the same two-call core after setup
+- 13 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Flow
 

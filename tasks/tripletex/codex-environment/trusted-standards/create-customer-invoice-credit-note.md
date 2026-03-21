@@ -43,6 +43,7 @@
 - for the exact prompt shape `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`, that two-call path was the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`, that two-call path was the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`, that two-call path was the successful production path on 2026-03-22 (Spanish prompt); sandbox-verified on 2026-03-22
+- for the exact prompt shape `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); sandbox-verified on 2026-03-22
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
