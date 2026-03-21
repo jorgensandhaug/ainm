@@ -2908,6 +2908,26 @@
      - about `1.2 TiB` used
      - about `1.7 TiB` available
    - unified exec slots are crowded, so next launches should move to detached `tmux` sessions instead of more long-lived unified exec sessions
+322. Count-adaptive corrected-gate wave launched from pushed commit `4020cb32`:
+   - `tmux` sessions:
+     - `agent3_v67_gate`
+     - `agent3_v68_gate`
+     - `agent3_v69_gate`
+     - `agent3_v70_gate`
+   - commands:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v67 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v67_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v68 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v68_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v69 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v69_targeted_holdout_2rounds_corrected --jobs 1`
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model teacher_student_blend_v70 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_teacher_student_blend_v70_targeted_holdout_2rounds_corrected --jobs 1`
+323. Post-launch check for item 322:
+   - live PIDs:
+     - `v67`: `956129`, `956135`
+     - `v68`: `956134`, `956141`
+     - `v69`: `956140`, `956148`
+     - `v70`: `956146`, `956153`
+   - machine snapshot remained healthy:
+     - about `1.2 TiB` used
+     - about `1.7 TiB` available
 
 
 ## Open Questions
