@@ -104,7 +104,7 @@
 - for the exact update-needed project-first branch, the default is now the proactive hedge:
   - proactive hedge branch (DEFAULT for update-needed): `6` calls when the invoice account is already configured, `7` calls when the company bank account is missing
   - optimistic branch (NOT RECOMMENDED for update-needed): `5` calls when configured, `8` calls when missing, plus a `422` error that is double-penalized by scoring (extra call + 4xx)
-  - production evidence from 2026-03-20 and 2026-03-21 shows 2/3 update-needed runs had missing bank accounts; the optimistic failure costs +3 calls and +1 error versus proactive's +1 call cost when configured
+  - production evidence from 2026-03-20 and 2026-03-21 shows 2/4 update-needed runs had missing bank accounts (`Sjøbris AS` + `Elvdal AS` missing, `Tindra AS` + `Estrela Lda` configured); at 50/50 the expected call count is tied (6.5 both paths) but proactive hedge has zero error risk
   - therefore on the update-needed branch, always insert `GET /ledger/account?isBankAccount=true&fields=*` between `POST /order` and `PUT /order/{id}/:invoice`, and fix the bank account if empty before attempting the invoice write
 - for the exact skip-`PUT /project` branch, stay optimistic: do not add `/ledger/account`; production runs on that branch (`Fossekraft AS`, etc.) have never hit the bank-account issue, and adding it would waste a call on already-mature accounts
 - if the filtered outgoing VAT result has no row that matches the prompt's intended taxable behavior and only unsupported rows remain, treat the task as blocked instead of guessing a VAT code
@@ -173,3 +173,14 @@
   - the update-needed proactive hedge path completed in `6` measured calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank configured) -> `PUT /order/:invoice`
   - the sandbox exposed only outgoing VAT `0%` (id=6), and the invoice returned `amountExcludingVatCurrency=141735`
   - therefore the proactive hedge default is verified for both missing-bank (7 calls, production) and configured-bank (6 calls, sandbox) states
+- exact production confirmation on 2026-03-21 for `Estrela Lda` / `922471126` / `Migração para nuvem` / `leonor.sousa@example.org` / `313650` / `50%` proved the update-needed proactive-hedge branch on a configured-bank account:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` found the project with `fixedprice=0` and `isFixedPrice=false`, but correct customer and manager already linked
+  - the successful production path was `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank configured) -> `PUT /order/:invoice` for `6` total calls with `0` errors
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=156825` and `amountCurrencyOutstanding=196031.25`
+  - milestone arithmetic `313650 * 0.50 = 156825` is exact (no decimals) and was accepted directly
+  - this is the 4th update-needed production run: 2/4 had missing bank accounts (`Sjøbris AS` + `Elvdal AS`), 2/4 had configured accounts (`Tindra AS` + this run); proactive hedge remains the default because at 50/50 it ties on expected calls and wins on errors
+- persistent-sandbox verification on 2026-03-21 with current-task arithmetic `313650 * 0.50 = 156825` re-confirmed both branches on a fresh fixture:
+  - the update-needed proactive hedge path completed in `6` measured calls: `GET /project` -> `PUT /project` -> `GET /ledger/vatType` -> `POST /order` -> `GET /ledger/account` (bank configured) -> `PUT /order/:invoice`
+  - the skip-`PUT /project` branch completed in `4` measured calls: `GET /project` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`
+  - both proof invoices returned `amountExcludingVatCurrency=156825`; the sandbox exposed only outgoing VAT `0%` (id=6)
+  - therefore the conditional `4/6`-call standard (skip-PUT vs update-needed proactive hedge) remains the minimum proven path for this task family on configured-bank accounts
