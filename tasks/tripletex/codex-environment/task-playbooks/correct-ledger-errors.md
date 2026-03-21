@@ -26,8 +26,9 @@ GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM-01&fields=id,date,descrip
 From this response:
 - Identify wrong-account and incorrect-amount vouchers by matching the prompt account number plus prompt amount on that account.
 - Identify the duplicate by grouping vouchers on the prompt account into normalized posting signatures and picking the repeated signature; choose the later voucher ID as the duplicate copy.
-- For missing VAT, first check whether the original voucher has no `2710` posting at all or has a too-low existing VAT pattern.
-- Record the opposite-signed counterpart posting and any `supplier.id` from the original voucher.
+- For missing VAT, first check whether the original voucher has no `2710` posting at all or has a too-low existing VAT pattern (net booked as gross).
+- Record the opposite-signed counterpart posting **ID** (from `account.id` in the nested expansion) and any `supplier.id` from the original voucher. Counterpart account IDs do NOT need a second `GET /ledger/account` — they come from the voucher response.
+- **Record the `vatType.id` from each original expense posting** and copy it to the correction lines. Do not assume vatType 1 — accounts like 7100 are locked to vatType 0 and will 422 if forced to vatType 1.
 
 ### Call 3: Post one combined corrective voucher
 ```
@@ -60,6 +61,8 @@ POST /ledger/voucher?sendToLedger=true
 5. **Do not resolve duplicates by a raw amount filter only**: first group candidate vouchers by full posting signature on the prompt account; the repeated signature is the safe duplicate resolver.
 6. **Exact missing-VAT branch**: if the original voucher has no `2710` line at all, do not post `6500 + vatType 1` as the correction. Sandbox proof on 2026-03-21 showed that branch creates only `2710 +917.5` and `6500 amount=3670` for a `4587.5` correction, which is wrong for the prompt shape `18350 excluding VAT, missing 2710`.
 7. **Account 2400 requires supplier**: Postings on account 2400 (Leverandørgjeld) require `supplier: { id: ... }`. If the original error voucher used 2400 as contra, the correction voucher on 2400 also needs the supplier reference from the original posting.
+8. **vatType-locked accounts cause 422**: Some accounts are locked to a specific vatType (e.g., 7100 Bilgodtgjørelse oppgavepliktig is locked to vatType 0). Always copy the `vatType.id` from the original posting instead of hardcoding vatType 1. Production run 2026-03-21 wasted a call on this exact 422.
+9. **Do NOT make a second `GET /ledger/account` for counterpart IDs**: The voucher response's nested `account(id,number)` expansion already provides all counterpart account IDs. Only the initial `GET /ledger/account` is needed — for correction-target accounts not present in any voucher posting (e.g., the correct account in a reclassification).
 
 ## Sandbox Proof
 - 2026-03-21 persistent sandbox confirmed the exact 3-call correction flow after setup:
@@ -69,3 +72,10 @@ POST /ledger/voucher?sendToLedger=true
 - The combined correction voucher succeeded as voucher `608960780` with all 8 corrective lines.
 - The exact no-`2710` missing-VAT branch succeeded with direct `2710 +4587.5` and counterpart `-4587.5`.
 - The alternative `6500 +4587.5` plus `vatType: { id: 1 }` branch was explicitly tested on voucher `608960784` and proved wrong for this prompt shape because it created only `2710 +917.5` and `6500 amount=3670`.
+
+## Production Run Learnings (2026-03-21)
+- Run used 6 calls instead of ideal 3: 1 redundant debug GET vouchers, 1 unnecessary GET accounts for counterparts, 1 avoidable 422 on vatType
+- Account 7100 is locked to vatType 0 — vatType 1 triggers `422 Kontoen 7100 er låst til mva-kode 0`
+- Counterpart account IDs (1920, 2400) were already available from the voucher response; the second `GET /ledger/account` was wasteful
+- The missing VAT voucher (6500/24750) already had a 2710 posting (4950) → "other branch" applied; the script initially tried "exact branch" detection and crashed
+- Fix: always read the original posting's `vatType.id` and check for existing 2710 postings before choosing the correction branch

@@ -48,8 +48,10 @@ From this response:
 - identify wrong-account and incorrect-amount vouchers by matching the stated account number plus the prompt amount on that account
 - identify the duplicate by grouping vouchers on the stated account into a normalized posting-signature map and selecting the repeated signature; the prompt amount confirms the group, but do not assume two direct `amountGross` matches will always be the only safe resolver
 - also use description keywords: "duplikat" (duplicate), "feil" (error), "uten MVA" (without VAT)
-- extract the counterpart (contra) account and any supplier ID from the original postings
+- extract the counterpart (contra) account **ID** and any supplier ID from the original postings — the nested expansion provides `account.id` for all counterpart accounts, so no second account lookup is needed for counterparts
 - the counterpart posting is the opposite-signed posting that is NOT the prompt account and NOT account 2710
+- **extract the `vatType.id` from each original expense posting** — use this exact vatType on correction lines instead of assuming vatType 1; some 7xxx accounts (e.g., 7100) are locked to vatType 0 and will 422 if forced to vatType 1
+- for the missing VAT case, check whether the original voucher has a `2710` posting to distinguish "exact branch" (no 2710 at all) from "other branch" (2710 exists but VAT is too low)
 
 ### Step 3: Combined Corrective Voucher
 One `POST /ledger/voucher?sendToLedger=true` with all correction lines in a single voucher.
@@ -58,18 +60,21 @@ Use the last day of the error period (or today) as the voucher date.
 
 #### Wrong Account (reclassification)
 ```
-{ row: N, account: { id: <wrongAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: 1 }, description: "Korreksjon: ompostering fra <wrong>" },
-{ row: N+1, account: { id: <correctAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, vatType: { id: 1 }, description: "Korreksjon: ompostering til <correct>" },
+{ row: N, account: { id: <wrongAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: ompostering fra <wrong>" },
+{ row: N+1, account: { id: <correctAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: ompostering til <correct>" },
 ```
-- use `vatType: { id: 1 }` (25% MVA) on BOTH lines if the original posting had VAT
-- Tripletex auto-generates matching VAT lines on 2710 that cancel each other out
+- **copy the `vatType` from the original posting** — do NOT hardcode `vatType: { id: 1 }`
+- some accounts (e.g., 7100 Bilgodtgjørelse oppgavepliktig) are locked to vatType 0; using vatType 1 on them triggers a 422
+- if the original posting had vatType 0, use vatType 0 on both reclassification lines
+- if the original posting had vatType 1, Tripletex auto-generates matching VAT lines on 2710 that cancel each other out
 - net effect: expense moves from wrong account to correct account
 
 #### Duplicate Reversal
 ```
-{ row: N, account: { id: <expenseAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: 1 }, description: "Korreksjon: reversering duplikat" },
+{ row: N, account: { id: <expenseAcctId> }, amountGross: -<gross>, amountGrossCurrency: -<gross>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: reversering duplikat" },
 { row: N+1, account: { id: <counterpartAcctId> }, amountGross: <gross>, amountGrossCurrency: <gross>, description: "Korreksjon: reversering duplikat" },
 ```
+- **copy the `vatType` from the original expense posting** for the reversal line
 - alternative: use `PUT /ledger/voucher/{id}/:reverse?date=YYYY-MM-DD` which auto-reverses all lines — but this uses a separate API call; the combined voucher approach saves calls
 - if the counterpart posting had vatType=0 (no VAT on bank), omit vatType on the counterpart line
 
@@ -102,12 +107,13 @@ The correction adds the difference (3550):
 
 #### Incorrect Amount
 ```
-{ row: N, account: { id: <expenseAcctId> }, amountGross: -<difference>, amountGrossCurrency: -<difference>, vatType: { id: 1 }, description: "Korreksjon: feil beløp" },
+{ row: N, account: { id: <expenseAcctId> }, amountGross: -<difference>, amountGrossCurrency: -<difference>, vatType: { id: <origVatTypeId> }, description: "Korreksjon: feil beløp" },
 { row: N+1, account: { id: <counterpartAcctId> }, amountGross: <difference>, amountGrossCurrency: <difference>, description: "Korreksjon: feil beløp" },
 ```
 - difference = posted_gross - correct_gross (e.g., 10750 - 5500 = 5250)
-- use `vatType: { id: 1 }` on the expense line so Tripletex auto-adjusts both net and VAT
-- Tripletex auto-computes: net reduction and VAT reduction proportionally
+- **copy the `vatType` from the original posting** — do NOT hardcode vatType 1; accounts like 7100 are locked to vatType 0
+- if original had vatType 1, Tripletex auto-adjusts both net and VAT proportionally
+- if original had vatType 0, the gross IS the net and no VAT adjustment is needed
 
 ## Reuse From Write Response
 - from `POST /ledger/voucher`:
@@ -131,6 +137,7 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
 ## Known Recovery Branches
 - if `GET /ledger/account` does not return a needed account number, the account does not exist; create it with `POST /ledger/account { number: <num>, name: "<name>" }` before the voucher write
 - if `POST /ledger/voucher` fails with `422 postings.supplier.id` on a 2400 posting, extract the supplier ID from the original voucher's 2400 posting using the nested expansion `supplier(id)`
+- if `POST /ledger/voucher` fails with `422 postings.vatType.id` saying an account is locked to mva-kode 0, re-submit with `vatType: { id: 0 }` on that account's lines — but this wastes a call; always copy vatType from the original posting to avoid this
 - if `PUT /ledger/voucher/{id}/:reverse` fails (e.g., voucher type not reversible), fall back to a manual corrective POST that reverses all lines
 
 ## OpenAPI / Sandbox Status
@@ -145,3 +152,9 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - vatType=1 on both sides of reclassification auto-generates matching VAT lines that cancel out
   - exact no-`2710` missing-VAT proof on `6500 18350 excl. VAT` succeeded with direct `2710 +4587.5` and counterpart `-4587.5`
   - the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` was proven wrong for that exact shape: Tripletex created only `2710 +917.5` and `6500 amount=3670`, which understates VAT and overstates expense
+- production run 2026-03-21 (correct-ledger-errors):
+  - account 7100 (Bilgodtgjørelse oppgavepliktig) is locked to vatType 0; using vatType 1 → 422 (`Kontoen 7100 er låst til mva-kode 0`)
+  - accounts 7000 and 7300 accept both vatType 0 and 1 (default vatType 1, but vatType 0 also works)
+  - counterpart account IDs (1920, 2400) were available from the voucher response's nested `account(id,number)` expansion — a second `GET /ledger/account` for counterparts was unnecessary
+  - missing VAT case: the 6500/24750 voucher already had a 2710 posting (4950) → "other branch" applied, not "exact branch"
+  - run used 6 calls instead of ideal 3 due to: 1 redundant debug GET, 1 unnecessary account lookup, 1 avoidable 422
