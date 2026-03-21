@@ -2711,6 +2711,25 @@
 | 4 | stacked w20 (QR+CellKNN) | explr3 | 4 | 76.06 | 63.93 | 63.9-85.3 |
 | 5 | hybrid_lowrank_queryres (OLD BEST) | explr3 | 4 | 75.19 | 57.40 | 57.4-86.2 |
 
+### 2026-03-21T20:45:00Z
+
+- **Experiments that DIDN'T improve over 77.35:**
+  - Adaptive-weight stacked: 76.95 (adaptive weighting too aggressive on extreme rounds)
+  - Multi-regime 7D conditioning: 76.98 (curse of dimensionality with 7 rounds)
+  - Enriched cell features (19 dims): 77.33 (extra features add noise for kNN)
+
+- **Key finding: the 1D expansion rate is the optimal regime conditioning variable**
+  - More dimensions (7D) hurts due to curse of dimensionality
+  - Adaptive weighting hurts because the weight adjustment is unreliable with few training rounds
+  - Richer cell features (19 vs 13) make no difference
+
+- **Current absolute best model: `greybox_stacked_expansion_w35` at 77.35**
+  - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
+  - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
+  - Uses 1D expansion rate for regime conditioning
+  - 13 cell features for kNN matching
+  - exploration_r3 policy, 4 samples per round
+
 ### 2026-03-21T19:00:00Z
 
 - **Three-way tristack** (QR + expansion + cellknn) implemented and benchmarked
