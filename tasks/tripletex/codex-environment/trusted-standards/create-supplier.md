@@ -94,3 +94,4 @@
 - 2026-03-21: Norwegian prompt `Fossekraft AS` / `977371635` with `faktura@fossekraft.no` scored 0/6 — proxy token invalid/expired before first API call; agent logic was correct (1 POST with mirrored email), blocked by credentials not agent error
 - 2026-03-21: Spanish prompt `Dorada SL` / `958363060` with `faktura@doradasl.no` — 1 POST with mirrored email, 0 errors; score attribution ambiguous at capture time but agent path identical to 6 consecutive perfect-score runs
 - 2026-03-21: Portuguese prompt `Floresta Lda` / `981154614` with `faktura@florestalda.no` — 1 POST with mirrored email, 0 errors; 8th run using this exact standard path (nb/en/es/fr/pt all confirmed)
+- 2026-03-21: English prompt `Oakwood Ltd` / `887507295` with `faktura@oakwoodltd.no` — 1 POST with mirrored email, 1 call 0 errors; 9th run using this exact standard path; score pending

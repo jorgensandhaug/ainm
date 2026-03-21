@@ -34,6 +34,7 @@ Verified extensively in sandbox (2026-03-20) and production across nb/en/es/fr/p
 - production 2026-03-21: English prompt `Silveroak Ltd` scored 6/6 (perfect, normalized_score=2) with one POST and mirrored email — 6th consecutive perfect score
 - production 2026-03-21: Spanish prompt `Dorada SL` / `958363060` — 1 POST with mirrored email, 0 errors; score attribution ambiguous but same path as 6 consecutive perfect runs
 - production 2026-03-21: Portuguese prompt `Floresta Lda` / `981154614` — 1 POST with mirrored email, 0 errors; confirms pt language coverage
+- production 2026-03-21: English prompt `Oakwood Ltd` / `887507295` — 1 POST with mirrored email, 0 errors; 9th run on this standard path
 
 ## Minimal Flow
 
