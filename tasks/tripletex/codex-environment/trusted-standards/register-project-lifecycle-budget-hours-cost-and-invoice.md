@@ -179,3 +179,9 @@
   - total: 16 calls (15 ideal with bank fix + 1 wasted 422), 1 error
   - sandbox re-proof confirmed: `isChargeable` on projectActivity root → 422; inside `activity` object → 201; omitted entirely → 201 (defaults to undefined/false)
   - the trusted standard line "include `isChargeable: false` on the activity" was ambiguous — clarified to explicitly state "inside the `activity` object (NOT on the projectActivity root)"
+- the 2026-03-21 production run `ERP-implementering Snøhetta` exposed three pitfalls:
+  - `employmentType: "ORDINARY"` on the employment object does not exist in the schema — `POST /employee` failed `422 employmentType: Feltet eksisterer ikke i objektet.`; the only valid employment fields are `startDate` and optionally `division`
+  - voucher postings without explicit `row: 1` / `row: 2` fields fail `422 postings.row: Posteringene på rad 0 (guiRow 0) er systemgenererte`; Tripletex assigns row 0 to system-generated postings and rejects user postings that collide with it
+  - the hardcoded `voucherType: { id: 9744845 }` from sandbox was wrong in production (actual ID was `11289239`); voucherType IDs are environment-specific and must always be resolved via `GET /ledger/voucherType?name=Leverandørfaktura`
+  - total: 26 calls (19 ideal with bank fix + 1 employmentType 422 + 2 voucher-no-row 422s + 4 repeated GETs lost to Promise.all rejection), 3 errors
+  - sandbox re-proof confirmed: `employmentType` → 422; without `row` → 422; with `row: 1/2` → 201; voucherType lookup returns correct environment-specific ID
