@@ -36,6 +36,9 @@ SMH_GLMMLATENT_Z2_H1_COVBASE_CALNONE_V001 = "smh_glmmlatent_z2_h1_covbase_calnon
 SMH_GLMMLATENT_Z4_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z4_h0_covbase_calnone_v001"
 SMH_GLMMLATENT_Z6_H0_COVBASE_CALNONE_V001 = "smh_glmmlatent_z6_h0_covbase_calnone_v001"
 SMH_GLMMLATENT_Z2_H0_COVPRIOR_CALNONE_V001 = "smh_glmmlatent_z2_h0_covprior_calnone_v001"
+SMH_GLMMLATENT_Z2_H0_COVNBR_CALNONE_V001 = "smh_glmmlatent_z2_h0_covnbr_calnone_v001"
+SMH_GLMMLATENT_Z4_H0_COVNBR_CALNONE_V001 = "smh_glmmlatent_z4_h0_covnbr_calnone_v001"
+SMH_GLMMLATENT_Z2_H0_COVNBR3_CALNONE_V001 = "smh_glmmlatent_z2_h0_covnbr3_calnone_v001"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1649,6 +1652,60 @@ def build_online_predictor(
                 "latent_dim": 2,
                 "feature_prior": True,
                 "feature_prior_ridge_lambda": 8.0,
+            },
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVNBR_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVNBR_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVNBR_CALNONE_V001,
+            fit_kwargs={
+                "latent_dim": 2,
+                "nbr_feature_names": (
+                    "nbr_empty_frac",
+                    "nbr_settlement_frac",
+                    "nbr_port_frac",
+                    "nbr_ruin_frac",
+                    "nbr_occupied_frac",
+                    "nbr_forest_frac",
+                ),
+            },
+        )
+    if normalized == SMH_GLMMLATENT_Z4_H0_COVNBR_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z4_H0_COVNBR_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z4_H0_COVNBR_CALNONE_V001,
+            fit_kwargs={
+                "latent_dim": 4,
+                "nbr_feature_names": (
+                    "nbr_empty_frac",
+                    "nbr_settlement_frac",
+                    "nbr_port_frac",
+                    "nbr_ruin_frac",
+                    "nbr_occupied_frac",
+                    "nbr_forest_frac",
+                ),
+            },
+        )
+    if normalized == SMH_GLMMLATENT_Z2_H0_COVNBR3_CALNONE_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVNBR3_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVNBR3_CALNONE_V001,
+            fit_kwargs={
+                "latent_dim": 2,
+                "nbr_feature_names": (
+                    "nbr_settlement_frac",
+                    "nbr_occupied_frac",
+                    "nbr_ruin_frac",
+                ),
             },
         )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001:

@@ -18,15 +18,70 @@ from astar.infra.serialization.json_utils import to_jsonable
 
 _MEMORY_FEATURE_NAMES = ("occupied_recent", "ruin_recent", "port_recent")
 
+_NBR_FEATURE_NAMES = (
+    "nbr_empty_frac",
+    "nbr_settlement_frac",
+    "nbr_port_frac",
+    "nbr_ruin_frac",
+    "nbr_occupied_frac",
+    "nbr_forest_frac",
+)
+
 
 def _memory_feature_names(*, include_memory_features: bool) -> list[str]:
     return list(_MEMORY_FEATURE_NAMES) if include_memory_features else []
+
+
+def _nbr_feature_names(*, include_neighborhood_features: bool) -> list[str]:
+    return list(_NBR_FEATURE_NAMES) if include_neighborhood_features else []
+
+
+def _compute_nbr_composition(collapsed_grid: np.ndarray) -> np.ndarray:
+    """Compute fraction of 1-ring neighbors in each class. Vectorized.
+
+    Returns: shape (height, width, CLASS_COUNT) with fractions.
+    """
+    height, width = collapsed_grid.shape
+    onehot = np.eye(CLASS_COUNT, dtype=np.float32)[collapsed_grid]
+    padded = np.pad(onehot, ((1, 1), (1, 1), (0, 0)), mode="constant")
+    pad_ones = np.pad(
+        np.ones((height, width), dtype=np.float32), ((1, 1), (1, 1)), mode="constant"
+    )
+    result = np.zeros((height, width, CLASS_COUNT), dtype=np.float32)
+    nbr_count = np.zeros((height, width), dtype=np.float32)
+    for dy in range(-1, 2):
+        for dx in range(-1, 2):
+            if dy == 0 and dx == 0:
+                continue
+            result += padded[1 + dy : height + 1 + dy, 1 + dx : width + 1 + dx]
+            nbr_count += pad_ones[1 + dy : height + 1 + dy, 1 + dx : width + 1 + dx]
+    result /= np.maximum(nbr_count[..., None], 1.0)
+    return result
+
+
+def _nbr_features_from_composition(composition: np.ndarray) -> np.ndarray:
+    """Extract named neighborhood features from composition array.
+
+    Returns: shape (..., len(_NBR_FEATURE_NAMES))
+    """
+    return np.stack(
+        [
+            composition[..., 0],  # nbr_empty_frac
+            composition[..., 1],  # nbr_settlement_frac
+            composition[..., 2],  # nbr_port_frac
+            composition[..., 3],  # nbr_ruin_frac
+            composition[..., 1] + composition[..., 2],  # nbr_occupied_frac
+            composition[..., 4],  # nbr_forest_frac
+        ],
+        axis=-1,
+    ).astype(np.float32, copy=False)
 
 
 def _empty_seed_transition_frame(
     feature_names: list[str],
     *,
     include_memory_features: bool,
+    include_neighborhood_features: bool = False,
 ) -> pl.DataFrame:
     payload: dict[str, np.ndarray] = {
         "step": np.asarray([], dtype=np.int32),
@@ -40,6 +95,8 @@ def _empty_seed_transition_frame(
     for feature_name in feature_names:
         payload[feature_name] = np.asarray([], dtype=np.float32)
     for feature_name in _memory_feature_names(include_memory_features=include_memory_features):
+        payload[feature_name] = np.asarray([], dtype=np.float32)
+    for feature_name in _nbr_feature_names(include_neighborhood_features=include_neighborhood_features):
         payload[feature_name] = np.asarray([], dtype=np.float32)
     return pl.DataFrame(payload)
 
@@ -86,6 +143,7 @@ def _build_seed_transition_frame(
     *,
     include_memory_features: bool,
     memory_decay: float,
+    include_neighborhood_features: bool = False,
 ) -> tuple[pl.DataFrame, int]:
     del round_id, round_number
     feature_names = seed_feature_names()
@@ -93,6 +151,7 @@ def _build_seed_transition_frame(
         return _empty_seed_transition_frame(
             feature_names,
             include_memory_features=include_memory_features,
+            include_neighborhood_features=include_neighborhood_features,
         ), 0
 
     first_run = seed.replay_runs[0]
@@ -108,6 +167,14 @@ def _build_seed_transition_frame(
             dtype=np.float32,
         )
         if include_memory_features
+        else None
+    )
+    nbr_sums = (
+        np.zeros(
+            (step_count, height, width, CLASS_COUNT, len(_NBR_FEATURE_NAMES)),
+            dtype=np.float32,
+        )
+        if include_neighborhood_features
         else None
     )
     y_index, x_index = np.indices((height, width), dtype=np.int32)
@@ -128,6 +195,15 @@ def _build_seed_transition_frame(
                         memory_sums[step, :, :, :, memory_index],
                         (y_index, x_index, current_grid),
                         memory_tensor[step, :, :, memory_index],
+                    )
+            if nbr_sums is not None:
+                nbr_composition = _compute_nbr_composition(current_grid)
+                nbr_feats = _nbr_features_from_composition(nbr_composition)
+                for nbr_index in range(len(_NBR_FEATURE_NAMES)):
+                    np.add.at(
+                        nbr_sums[step, :, :, :, nbr_index],
+                        (y_index, x_index, current_grid),
+                        nbr_feats[:, :, nbr_index],
                     )
 
     feature_dict = seed_feature_dict(seed.initial_state)
@@ -165,11 +241,19 @@ def _build_seed_transition_frame(
             )
             for memory_index, feature_name in enumerate(_MEMORY_FEATURE_NAMES):
                 payload[feature_name] = memory_mean[:, memory_index].astype(np.float32, copy=False)
+        if nbr_sums is not None:
+            nbr_mean = (
+                nbr_sums[step_idx, y_idx, x_idx, current_class]
+                / np.maximum(count_total[step_idx, y_idx, x_idx, None], 1)
+            )
+            for nbr_index, feature_name in enumerate(_NBR_FEATURE_NAMES):
+                payload[feature_name] = nbr_mean[:, nbr_index].astype(np.float32, copy=False)
         frames.append(pl.DataFrame(payload))
     if not frames:
         return _empty_seed_transition_frame(
             feature_names,
             include_memory_features=include_memory_features,
+            include_neighborhood_features=include_neighborhood_features,
         ), step_count
     return pl.concat(frames, how="vertical"), step_count
 
@@ -181,6 +265,7 @@ def build_cell_transition_dataset(
     dataset_name: str = "smh_cell_transition_v1",
     include_memory_features: bool = False,
     memory_decay: float = 0.85,
+    include_neighborhood_features: bool = False,
 ) -> DatasetRef:
     dataset_dir = paths.dataset_dir(dataset_name)
     summary_path = dataset_dir / "summary.json"
@@ -190,6 +275,7 @@ def build_cell_transition_dataset(
         if (
             bool(payload.get("include_memory_features", False)) == include_memory_features
             and abs(float(payload.get("memory_decay", memory_decay)) - memory_decay) < 1e-12
+            and bool(payload.get("include_neighborhood_features", False)) == include_neighborhood_features
         ):
             return DatasetRef(
                 dataset_name=str(payload["dataset_name"]),
@@ -227,6 +313,7 @@ def build_cell_transition_dataset(
                 seed,
                 include_memory_features=include_memory_features,
                 memory_decay=memory_decay,
+                include_neighborhood_features=include_neighborhood_features,
             )
             max_steps = max(max_steps, int(step_count))
             part_path = parts_dir / f"round_id={round_id}__seed_index={seed.seed_index}.parquet"
@@ -257,7 +344,9 @@ def build_cell_transition_dataset(
         "max_steps": max_steps,
         "feature_names": seed_feature_names(),
         "memory_feature_names": _memory_feature_names(include_memory_features=include_memory_features),
+        "neighborhood_feature_names": _nbr_feature_names(include_neighborhood_features=include_neighborhood_features),
         "include_memory_features": include_memory_features,
+        "include_neighborhood_features": include_neighborhood_features,
         "memory_decay": memory_decay,
         "index_path": str(index_path),
     }
