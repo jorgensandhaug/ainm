@@ -70,6 +70,15 @@ class CatalogDB:
                 ],
             )
 
+    def try_log_event(self, event: CatalogEvent) -> bool:
+        try:
+            self.log_event(event)
+        except duckdb.IOException as exc:
+            if "Could not set lock" not in str(exc):
+                raise
+            return False
+        return True
+
     def summarize_dataset(self) -> CatalogDatasetSummary:
         if not self._path.exists():
             return CatalogDatasetSummary(

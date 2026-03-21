@@ -258,6 +258,334 @@
     - mean weighted KL: `0.104737`
     - runtime: `973.411s`
     - artifact: `data/artifacts/benchmarks/agent2_dev_query_residual_3rounds_exploration_20260320/result.json`
+
+## 2026-03-21 Standalone Semimech Pivot
+
+### 2026-03-21T09:27:36Z intent correction
+
+- User clarified that `query_residual` is only a baseline/reference and the main assignment is a genuinely new `smh_*` family exploration from the handoff.
+- Working rule from this point:
+  - keep `query_residual_*` only as score reference / fallback,
+  - spend new development on standalone semimechanistic family members,
+  - use hybrids only when they materially test semimechanistic complementarity rather than replacing the family with the old baseline.
+
+### Machine / runtime state checked before scaling up
+
+- Host has `384` logical CPUs and about `2.9 TiB` RAM with only about `14 GiB` used at check time.
+- Machine was lightly loaded by other Codex/tmux processes.
+- Conclusion:
+  - heavy parallel experimentation is feasible,
+  - but concurrent benchmark/materialization jobs can still collide on shared DuckDB catalog writes and checkpoint paths if not managed.
+
+### Infra / runtime fixes landed for standalone semimech work
+
+- Added `HazardTeacher.load_checkpoint(...)`.
+- Added `HazardTeacher.terminal_tensor_from_coefficients(...)`.
+- Added fold-keyed checkpoint/caching path for `smh_knn*` and `smh_coeffbank*` models.
+- Added shared synthetic-live dataset naming for `smh_knn*` so variant sweeps reuse the same transcript dataset instead of rebuilding it.
+- Added precomputed `teacher_terminal_bank` for `SemimechKnnPredictor` so interactive inference no longer decodes teacher terminals repeatedly.
+- Added probability-floor normalization to `smh_knn*` and `smh_coeffbank*` outputs to prevent pathological `inf` / `nan` KL.
+- Added best-effort catalog logging:
+  - `src/astar/infra/catalog/db.py` now exposes `try_log_event(...)`
+  - historical/synthetic benchmark workflows use it so completed artifact writes are not lost to final DuckDB lock conflicts during parallel runs.
+
+## New Family Exploration Log
+
+### 2026-03-21 `smh_knn*` summary-bank scaffold
+
+- Implemented first standalone summary-conditioned semimechanistic family:
+  - `smh_knn5_z12_h0_covsum_calbase_v001`
+  - `smh_knn5_z12_h0_covaug_calbase_v001`
+  - `smh_knn5_z12_h0_covaug_calbank_v001`
+  - `smh_knn5_z3_h0_covaug_calbase_v001`
+  - `smh_knn5_z3_h0_covaug_calblend35_v001`
+- Structural idea:
+  - fit replay-backed per-round semimechanistic coefficients,
+  - summarize legal query transcript into a low-dimensional vector,
+  - use kNN over synthetic-live summaries to infer regime/latent neighbors,
+  - decode neighbor-weighted teacher or replay terminal tensors.
+- Fast 2-round coverage screen on `ae78003a...` + `c5cdf100...`, `budget=20`, `samples_per_round=1`:
+  - `smh_knn5_z3_h0_covaug_calbase_v001`:
+    - mean score `4.6773`
+    - mean weighted KL `1.028932`
+    - runtime `321.649s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z3_covaug_calbase_ae780_c5_spr1_b20_coverage_20260321/result.json`
+  - `smh_knn5_z3_h0_covaug_calblend35_v001`:
+    - mean score `4.6763`
+    - mean weighted KL `1.030489`
+    - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z3_covaug_calblend35_ae780_c5_spr1_b20_coverage_20260321/result.json`
+  - `smh_knn5_z12_h0_covaug_calbase_v001`:
+    - mean score `4.6773`
+    - mean weighted KL `1.028932`
+    - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z12_covaug_calbase_ae780_c5_spr1_b20_coverage_20260321/result.json`
+  - `smh_knn5_z12_h0_covaug_calbank_v001`:
+    - mean score `3.5254`
+    - mean weighted KL `1.150352`
+    - artifact: `data/artifacts/benchmarks/agent2_dev2b_smh_knn5_z12_covaug_calbank_ae780_c5_spr1_b20_coverage_20260321/result.json`
+- Read:
+  - this first summary-bank student formulation is decisively bad,
+  - not worth polishing further before changing the underlying posterior structure.
+
+### 2026-03-21 `smh_coeffbank*` discrete round-law posterior family
+
+- Implemented `SemimechCoefficientBankPredictor` as a new standalone family member.
+- Structural idea:
+  - fit semimechanistic coefficient vectors for each replay-backed historical round,
+  - treat each historical round law as a discrete candidate law,
+  - decode each candidate onto the new round map,
+  - update posterior directly from observed viewport cell-class likelihoods,
+  - output posterior-weighted year-50 tensors.
+- First registered variants:
+  - `smh_coeffbank_z0_h0_covlike_calbase_v001`
+  - `smh_coeffbank_z0_h0_covlike_builtfocus_v001`
+  - `smh_coeffbank_z0_h0_covlike_builtsharp_v001`
+
+### Important validation caveat discovered immediately
+
+- A 2-round leave-one-round-out screen is invalid for posterior-over-round-law models.
+- Reason:
+  - each fold leaves only `1` training round,
+  - posterior competition disappears,
+  - class weights / temperature cannot change the selected law in any meaningful way.
+- Therefore:
+  - 2-round coeff-bank scores are only smoke checks,
+  - real model selection for this family needs at least `4` rounds in the dev slice.
+
+### 2026-03-21 coeff-bank smoke checks on 2-round slice
+
+- Slice:
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+- Config:
+  - `policy=coverage`
+  - `budget=20`
+  - `samples_per_round=1`
+  - `episode_seed=0`
+- Results:
+  - `smh_coeffbank_z0_h0_covlike_calbase_v001`:
+    - mean score `26.3349`
+    - mean weighted KL `0.463163`
+    - runtime `97.463s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev3_smh_coeffbank_calbase_ae780_c5_spr1_b20_coverage_20260321/result.json`
+  - `smh_coeffbank_z0_h0_covlike_builtfocus_v001`:
+    - mean score `26.3349`
+    - mean weighted KL `0.463163`
+    - runtime `85.345s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev3_smh_coeffbank_builtfocus_ae780_c5_spr1_b20_coverage_20260321/result.json`
+  - `smh_coeffbank_z0_h0_covlike_builtsharp_v001`:
+    - mean score `26.3349`
+    - mean weighted KL `0.463163`
+    - runtime `40.613s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev3b_smh_coeffbank_builtsharp_ae780_c5_spr1_b20_coverage_20260321/result.json`
+- Interpretation:
+  - smoke test passed,
+  - near-identity across variants is explained by the one-candidate-per-fold issue above.
+
+### 2026-03-21 coeff-bank real dev benchmark on 4-round slice
+
+- Slice:
+  - `8e839974-b13b-407b-a5e7-fc749d877195`
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+- Config:
+  - `policy=coverage`
+  - `budget=20`
+  - `samples_per_round=1`
+  - `episode_seed=0`
+- Results:
+  - `smh_coeffbank_z0_h0_covlike_calbase_v001`:
+    - mean score `57.1899`
+    - mean weighted KL `0.190069`
+    - runtime `307.882s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev4_smh_coeffbank_calbase_path4_b20_coverage_20260321/result.json`
+  - `smh_coeffbank_z0_h0_covlike_builtfocus_v001`:
+    - mean score `54.9239`
+    - mean weighted KL `0.202463`
+    - runtime `300.297s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev4_smh_coeffbank_builtfocus_path4_b20_coverage_20260321/result.json`
+  - `smh_coeffbank_z0_h0_covlike_builtsharp_v001`:
+    - mean score `54.9239`
+    - mean weighted KL `0.202463`
+    - runtime `312.164s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev4_smh_coeffbank_builtsharp_path4_b20_coverage_20260321/result.json`
+- Per-round mean for `calbase`:
+  - `8e839974...`: `59.0675 / 0.175678`
+  - `ae78003a...`: `45.9096 / 0.262312`
+  - `c5cdf100...`: `67.1043 / 0.132991`
+  - `f1dac9a9...`: `56.6781 / 0.189294`
+
+### 2026-03-21 reference comparison on same 4-round slice
+
+- `historical_bucket_prior`
+  - mean score `58.5892`
+  - mean weighted KL `0.231346`
+  - runtime `62.695s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev4_histbucket_path4_b20_coverage_20260321/result.json`
+- Per-round mean:
+  - `8e839974...`: `88.6466 / 0.040175`
+  - `ae78003a...`: `22.3023 / 0.546202`
+  - `c5cdf100...`: `73.7242 / 0.101845`
+  - `f1dac9a9...`: `49.6836 / 0.237163`
+
+### Standalone family read after coeff-bank dev run
+
+- `smh_coeffbank_z0_h0_covlike_calbase_v001` is the first new standalone semimechanistic line in this session that looks alive.
+- It is still below `historical_bucket_prior` on mean score on the 4-round dev slice:
+  - `57.1899` vs `58.5892`
+- But it is materially better on weighted KL:
+  - `0.190069` vs `0.231346`
+- Complementarity is strong and structured:
+  - coeff-bank much better on `ae78003a...` and better on `f1dac9a9...`
+  - historical bucket much better on `8e839974...` and `c5cdf100...`
+- Immediate implication:
+  - next family branch should test semimechanistic/bucket hybrids and adaptive posterior calibration,
+  - not more class-weight sharpening on the pure coeff-bank alone.
+
+## Verification Added During This Pivot
+
+- `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_knn or smh_resid or smh_coeffbank'`
+  - `9 passed, 14 deselected`
+- Earlier after the checkpoint/floor fixes:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py`
+    - `19 passed`
+
+## Immediate Next Branch
+
+1. Add fold-cached `historical_bucket_prior` loading for repeated dev/full sweeps.
+2. Add semimechanistic hybrid models using:
+   - left: `historical_bucket_prior`
+   - right: `smh_coeffbank_z0_h0_covlike_calbase_v001`
+3. Start with:
+   - fixed blends,
+   - disagreement-adaptive blends,
+   - then any transcript-derived round-target gating only if needed.
+4. Promote only if the hybrid beats both pure coeff-bank and pure historical-bucket on the fixed 4-round dev slice, then re-run on a broader benchmark.
+
+## 2026-03-21 Semimech + Historical Hybrid Sweep
+
+### Code additions for this branch
+
+- Added fold-keyed checkpoint caching for `historical_bucket_prior` in `build_online_predictor(...)`.
+- Added generic blend fallback so blended predictors can combine components that do or do not implement `build_prediction_bundle_from_context(...)`.
+- Added round-local candidate tensor memoization to `SemimechCoefficientBankPredictor`.
+- Added new standalone hybrid model names:
+  - `smh_coeffbank_z0_h0_covlike_hbblend25_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend40_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend60_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbadapt25_v001`
+
+### Verification after hybrid wiring
+
+- `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'historical_bucket_prior or smh_coeffbank or smh_knn'`
+  - `11 passed, 15 deselected`
+- `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_coeffbank or historical_bucket_prior'`
+  - `8 passed, 20 deselected`
+- `uv run --extra dev pytest tests/test_historical_benchmark.py tests/test_online_episode.py`
+  - `29 passed`
+
+### Fixed 4-round dev slice retained
+
+- Rounds:
+  - `8e839974-b13b-407b-a5e7-fc749d877195`
+  - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+- Mode/config:
+  - `online_interactive`
+  - `policy=coverage`
+  - `budget=20`
+  - `episode_seed=0`
+
+### Hybrid results on the 4-round dev slice
+
+- `smh_coeffbank_z0_h0_covlike_hbblend25_v001`
+  - mean score `62.9456`
+  - mean weighted KL `0.182315`
+  - runtime `79.349s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev5_smh_coeffbank_hbblend25_path4_b20_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbadapt25_v001`
+  - mean score `61.8146`
+  - mean weighted KL `0.185580`
+  - runtime `66.256s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev5_smh_coeffbank_hbadapt25_path4_b20_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend40_v001`
+  - mean score `64.3401`
+  - mean weighted KL `0.167346`
+  - runtime `75.788s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev5_smh_coeffbank_hbblend40_path4_b20_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend50_v001`
+  - mean score `64.7681`
+  - mean weighted KL `0.161315`
+  - runtime `81.640s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev5_smh_coeffbank_hbblend50_path4_b20_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend60_v001`
+  - mean score `64.7502`
+  - mean weighted KL `0.158263`
+  - runtime `79.344s`
+  - artifact: `data/artifacts/benchmarks/agent2_dev5_smh_coeffbank_hbblend60_path4_b20_coverage_20260321/result.json`
+
+### Hybrid sweep interpretation
+
+- The semimechanistic + historical hybrid branch is decisively real.
+- Every fixed blend handily beat both parent models on the dev slice:
+  - `historical_bucket_prior`: `58.5892 / 0.231346`
+  - `smh_coeffbank_calbase`: `57.1899 / 0.190069`
+- Fixed blend beat adaptive on this axis.
+- The blend curve improved monotonically from `25%` to `50%` coeff-bank weight on score:
+  - `62.9456 -> 64.3401 -> 64.7681`
+- `60%` coeff-bank weight gave slightly lower score than `50%` but slightly better weighted KL:
+  - `64.7502 / 0.158263`
+- Current dev best on score:
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_v001`
+- Current dev best on weighted KL:
+  - `smh_coeffbank_z0_h0_covlike_hbblend60_v001`
+
+### Per-round read for the leading fixed blends
+
+- `hbblend40`:
+  - `8e839974...`: `83.1702 / 0.061440`
+  - `ae78003a...`: `35.7463 / 0.353305`
+  - `c5cdf100...`: `79.7010 / 0.075844`
+  - `f1dac9a9...`: `58.7428 / 0.178796`
+- `hbblend50`:
+  - `8e839974...`: `80.6632 / 0.071647`
+  - `ae78003a...`: `38.2252 / 0.328623`
+  - `c5cdf100...`: `80.0741 / 0.074272`
+  - `f1dac9a9...`: `60.1099 / 0.170717`
+- `hbblend60`:
+  - `8e839974...`: `77.6881 / 0.084181`
+  - `ae78003a...`: `40.4075 / 0.308439`
+  - `c5cdf100...`: `79.8999 / 0.074976`
+  - `f1dac9a9...`: `61.0053 / 0.165454`
+
+### Strong structural lesson from the hybrid sweep
+
+- The bucket prior was not just a crude baseline.
+- It is carrying real high-confidence structure on some rounds, while coeff-bank posterior inference is recovering complementary regime signal on others.
+- The best current standalone family member is therefore not pure coeff-bank but a disciplined semimechanistic/bucket hybrid.
+- This is consistent with the handoff:
+  - strong semimechanistic teacher/posterior family,
+  - plus hybridization only where it improves held-out score materially.
+
+### Policy / budget checks on the current dev best
+
+- `smh_coeffbank_z0_h0_covlike_hbblend50_v001` with `policy=exploration_v2`, same 4-round slice, `budget=20`:
+  - exact same result as coverage:
+    - `64.7681 / 0.161315`
+  - artifact: `data/artifacts/benchmarks/agent2_dev6_smh_coeffbank_hbblend50_path4_b20_exploration_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend50_v001` with `budget=50`, `policy=coverage`:
+  - exact same result as `budget=20` on this slice:
+    - `64.7681 / 0.161315`
+  - artifact: `data/artifacts/benchmarks/agent2_dev7_smh_coeffbank_hbblend50_path4_b50_coverage_20260321/result.json`
+- `smh_coeffbank_z0_h0_covlike_hbblend60_v001` with `budget=50`, `policy=coverage`:
+  - exact same result as `budget=20` on this slice:
+    - `64.7502 / 0.158263`
+  - artifact: `data/artifacts/benchmarks/agent2_dev7_smh_coeffbank_hbblend60_path4_b50_coverage_20260321/result.json`
+- Read:
+  - on this dev slice, extra budget and `exploration_v2` are not adding value for the current hybrid family,
+  - so the next meaningful promotion step is a broader 8-round serious benchmark, not more local policy tuning on the same slice.
   - interpretation:
     - `exploration_v2` improves over repaired `coverage` baseline on the same 3-round probe
     - delta vs `query_residual + coverage`:
@@ -870,3 +1198,54 @@
   - current best full local result is now:
     - `query_residual_v9_v10_builtfreqgatexwide_v001 + exploration_v2`
     - `74.6943 / 0.100390`
+
+### 2026-03-21T19:20:00Z
+
+- User clarified the intended assignment more sharply:
+  - `query_residual` should be treated only as an initial baseline/reference
+  - the real task is standalone new-family development from the semimechanistic hazard/state-space handoff
+- Immediate pivot decisions:
+  - freeze the pushed `query_residual` result as baseline only
+  - stop extending residual variants
+  - remove the uncommitted off-mission temp residual variant `query_residual_v9_v10_builtfreqgatexwide_nofloor_cap050_v001`
+  - begin a real standalone `smh_*` family implementation
+- Re-read / inspected the in-tree semimechanistic scaffold:
+  - `src/astar/teacher/dynamics/hazard_teacher.py`
+  - `src/astar/student/posterior/deepset_student.py`
+  - `src/astar/history/summaries/round_coefficients.py`
+  - `src/astar/history/summaries/manifold.py`
+  - `src/astar/history/datasets/synthetic_live.py`
+  - `src/astar/workflows/train_student.py`
+- Main structural conclusion:
+  - the strongest legitimate starting seam is not `query_residual`
+  - it is the replay-derived `HazardTeacher` + synthetic-live student path, but it was not yet a first-class online predictor family
+
+### 2026-03-21T19:35:00Z
+
+- Implemented the first real standalone semimechanistic family scaffold:
+  - new predictor module: `src/astar/student/predictor/smh.py`
+  - new family variants exposed:
+    - `smh_knn5_z12_h0_covsum_calbase_v001`
+    - `smh_knn5_z12_h0_covaug_calbase_v001`
+    - `smh_knn5_z3_h0_covaug_calbase_v001`
+    - `smh_knn5_z3_h0_covaug_calblend35_v001`
+- Family structure:
+  - training data = replay-backed synthetic-live transcripts only
+  - online-safe summary vector from legal evidence only
+  - standardized kNN posterior over either:
+    - raw round regime vectors (`z12`)
+    - low-rank manifold coordinates (`z3`)
+  - terminal decoder = `HazardTeacher`
+  - strongest new variant candidate in this first scaffold adds a replay-terminal blend on top of the manifold decoder
+- New engineering work included:
+  - added `HazardTeacher.load_checkpoint(...)`
+  - added public coefficient-decoder entrypoint `terminal_tensor_from_coefficients(...)`
+  - added per-fold checkpointing / caching for the standalone `smh_*` family
+  - registered the new family in:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+    - `tests/test_historical_benchmark.py`
+- In-progress validation state at this point:
+  - residual temp variant registry lines removed from the code surface
+  - next step is test/benchmark verification of the new standalone family only

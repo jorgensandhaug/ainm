@@ -97,7 +97,7 @@ def run_synthetic_benchmark(
         encoding="utf-8",
     )
     report_path.write_text(render_synthetic_benchmark_report(result), encoding="utf-8")
-    CatalogDB(paths.catalog_path).log_event(
+    CatalogDB(paths.catalog_path).try_log_event(
         CatalogEvent(
             event_kind="synthetic_benchmark",
             spec_name=run_name,

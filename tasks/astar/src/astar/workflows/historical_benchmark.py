@@ -118,6 +118,19 @@ def run_historical_benchmark(
         "query_residual_v9_v10_builtfreqgatexwide_v001",
         "query_residual_v9_v10_blend025_v001",
         "smh_resid_z12_h0_covbase_locgate_v001",
+        "smh_coeffbank_z0_h0_covlike_calbase_v001",
+        "smh_coeffbank_z0_h0_covlike_builtfocus_v001",
+        "smh_coeffbank_z0_h0_covlike_builtsharp_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend25_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend40_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend50_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend60_v001",
+        "smh_coeffbank_z0_h0_covlike_hbadapt25_v001",
+        "smh_knn5_z12_h0_covsum_calbase_v001",
+        "smh_knn5_z12_h0_covaug_calbase_v001",
+        "smh_knn5_z12_h0_covaug_calbank_v001",
+        "smh_knn5_z3_h0_covaug_calbase_v001",
+        "smh_knn5_z3_h0_covaug_calblend35_v001",
     }
     if mode == "online_interactive":
         missing_replays = [
@@ -337,7 +350,7 @@ def run_historical_benchmark(
         encoding="utf-8",
     )
     report_path.write_text(render_historical_benchmark_report(result) + "\n", encoding="utf-8")
-    CatalogDB(paths.catalog_path).log_event(
+    CatalogDB(paths.catalog_path).try_log_event(
         CatalogEvent(
             event_kind="historical_benchmark",
             spec_name=run_name,

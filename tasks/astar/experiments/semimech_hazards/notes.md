@@ -67,10 +67,60 @@
 ## Working View
 
 - Current hazard teacher is not yet a real transition teacher.
-- Near-term leverage likely sits in:
-  - residual/teacher gating
-  - policy choice
-  - stronger validation for online-interactive selection
+- `query_residual_*` is now treated as a baseline/reference line, not the main family.
+- Current standalone semimechanistic read:
+  - first `smh_knn*` summary-bank student scaffold failed decisively
+  - first `smh_coeffbank*` discrete round-law posterior line is plausibly alive
+  - strongest immediate leverage is semimechanistic posterior structure + calibration/hybridization, not more summary-kNN tuning
+
+## New Standalone Semimech Findings
+
+- `smh_knn*` negative result:
+  - the first summary-conditioned neighbor-retrieval student formulation is badly misspecified
+  - 2-round screen scores were catastrophic (`3.5` to `4.7`, KL around `1.03` to `1.15`)
+  - lesson: transcript-summary similarity is not a good posterior surrogate here
+- `smh_coeffbank*` positive result:
+  - treating each replay-backed historical round law as a discrete semimechanistic candidate and updating via patch likelihood is the first new family branch with real signal
+  - 4-round dev score for `smh_coeffbank_z0_h0_covlike_calbase_v001`:
+    - `57.1899 / 0.190069`
+  - this is below `historical_bucket_prior` on mean score (`58.5892`) but much better on weighted KL (`0.231346` for historical bucket)
+- `smh_coeffbank* + historical_bucket` hybrid result:
+  - fixed blends are a major win and establish the first truly competitive new `smh_*` branch
+  - 4-round dev sweep:
+    - `hbblend25`: `62.9456 / 0.182315`
+    - `hbblend40`: `64.3401 / 0.167346`
+    - `hbblend50`: `64.7681 / 0.161315`
+    - `hbblend60`: `64.7502 / 0.158263`
+    - `hbadapt25`: `61.8146 / 0.185580`
+  - score winner: `hbblend50`
+  - KL winner: `hbblend60`
+  - practical read:
+    - fixed blending dominates the first adaptive blend on this family
+    - the curve rises strongly through `50%` coeff-bank weight and then flattens
+- Important validation lesson:
+  - 2-round leave-one-round-out is invalid for coeff-bank model selection because each fold has only one candidate law
+  - therefore dev selection for posterior-over-round-laws families needs at least `4` rounds
+- Complementarity pattern on the 4-round dev slice:
+  - coeff-bank is much better on prosperous `ae78003a...`
+  - coeff-bank is also better on hard `f1dac9a9...`
+  - historical bucket dominates `8e839974...` and `c5cdf100...`
+  - implication: next branch should test semimechanistic + historical hybrids, starting with fixed and disagreement-adaptive blends
+- Updated implication after the hybrid sweep:
+  - the hybrid is now the mainline standalone `smh_*` branch
+  - next question is broader round-held-out promotion, not whether complementarity exists
+
+## Runtime / infra findings for this branch
+
+- Best-effort DuckDB event logging was necessary because parallel completed benchmarks could fail only at final catalog write due to lock contention.
+- Shared synthetic-live dataset scope + fold-keyed checkpointing are now essential for semimech iteration speed.
+- Next runtime target:
+  - cache round-scoped `historical_bucket_prior` fits just like coeff-bank fits so multiple hybrid sweeps can reuse the same fold models.
+- That target is now complete:
+  - repeated hybrid sweeps on the fixed 4-round slice are now around `66s` to `82s`
+  - versus much slower initial coeff-bank-only runs before fold-cached bucket loading and candidate memoization
+
+## Legacy query_residual line retained only as benchmark target
+
 - Current strongest observed effect:
   - `exploration_v2` mainly wins by rescuing the hardest round `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
   - versus the old full coverage artifact, that round improved by `+9.3641` score and `-0.061395` weighted KL
