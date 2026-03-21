@@ -365,7 +365,7 @@
     - weighted KL delta: `-0.000134219`
   - therefore the localized teacher gating variant is a valid but very small refinement, not a major behavioral shift
 
-## Current Best Known Local Line
+## Historical Checkpoint After Localgate Sweep
 
 - Current best full local historical-online result in this checkout:
   - experiment: `agent2_full_smh_resid_locgate_8rounds_exploration_20260321`
@@ -374,7 +374,7 @@
   - mean score: `74.4053`
   - mean weighted KL: `0.101981`
 
-## Immediate Next Actions
+## Next Actions Planned At That Stage
 
 1. Commit and push the promoted `smh_resid_z12_h0_covbase_locgate_v001 + exploration_v2` line plus supporting code/test/doc updates.
 2. Leave the large generated replay/episode cache churn unstaged unless specifically needed in a future follow-up.
