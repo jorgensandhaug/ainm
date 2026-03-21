@@ -1542,3 +1542,25 @@ Framework should accept unique query-residual family variant names directly so b
   - new family scaffolding is benchmark-ready
   - no honest hard-gate benchmark result yet for `ffam_mode_*`
   - next step is parallel probe on hard rounds `{3,6,7,8}` under `exploration_r3`
+
+### 2026-03-21T11:20Z approx
+
+- Expanded the minimal fifth-family sweep to cover the handoff’s first recommended rank range `q=2..5`.
+- Added config variants:
+  - `ffam_mode_v4` = local-linear posterior, `q=2`
+  - `ffam_mode_v5` = local-linear posterior, `q=4`
+  - `ffam_mode_v6` = hybrid posterior, `q=5`
+- Added benchmark-harness coverage for `ffam_mode_v4..v6` in [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `53`
+- Parallel live probe state after push-ready validation:
+  - active hard-gate probes in isolated `/tmp` roots:
+    - `ffam_mode_v1`
+    - `ffam_mode_v2`
+    - `ffam_mode_v3`
+  - all on `{3,6,7,8}`, `policy=exploration_r3`, `samples_per_round=2`
+- Interpretation:
+  - this keeps the search inside the new fifth-family branch rather than falling back to `query_residual`
+  - if the first three variants show signal, immediately extend the hard gate to `v4..v6`
+  - if they fail badly, move to supervised/metric mode extraction or mixed decoders, not back to hazard-only tuning
