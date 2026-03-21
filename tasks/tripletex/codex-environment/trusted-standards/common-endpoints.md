@@ -459,6 +459,22 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - in supplier-invoice tasks, if `GET /supplier?organizationNumber=...&fields=*` returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier; otherwise the run state is ambiguous
   - if a retry context already contains several supplier hits for the same prompt `organizationNumber`, do not guess by newest id or name tie-break unless the prompt gave an exact Tripletex id; ambiguous duplicates mean the supplier target is no longer safely identifiable from business fields alone
 
+## Supplier Invoice
+- `/supplierInvoice`
+  - `GET` search/read supplier invoices
+- `/supplierInvoice/{invoiceId}/:addPayment`
+  - `POST` register supplier-invoice payment
+- Standard resolver note:
+  - never use `/incomingInvoice*` in scored runs for this repo; those endpoints are beta-only and the 2026-03-21 reflection run re-confirmed `403 You do not have permission to access this feature.` on `/incomingInvoice/search`
+  - do not assume an unfiltered `GET /supplierInvoice?...` is a decisive all-invoices read in every account
+  - persistent sandbox on 2026-03-21 returned real payable supplier invoices for `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&supplierId=108269769&count=1000&fields=*,supplier(*),payments(*),voucher(*)`, while the corresponding `voucherId=608853423` lookup returned `values=[]`
+  - for named-supplier payment tasks, first resolve the supplier id and then use `supplierId=` on `/supplierInvoice`; do not jump from an empty unfiltered `/supplierInvoice` result to `/incomingInvoice*`
+- Standard payment note:
+  - `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)` is the public outgoing payment-type resolver; prefer a live `19xx` bank-account candidate with `showIncomingInvoice=true`
+  - `POST /supplierInvoice/{id}/:addPayment` remains unproven on imported supplier-invoice objects created through the public voucher-import branch
+  - persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on invoice `2147547151` even after the linked voucher later showed booked number `100`; do not assume `voucher.number > 0` alone proves that `:addPayment` is usable on that object family
+  - if that exact validation branch appears, do not burn extra scored-run calls on `/incomingInvoice*`, `voucherId=` retries, or speculative `:approve` retries; treat the task as a non-exact branch that still needs a separate proven public payment path
+
 ## Travel Expense
 - `/travelExpense`
   - `GET` search
@@ -559,6 +575,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 ## Ledger Posting
 - `/ledger/posting`
   - `GET` search/read postings
+- `/ledger/posting/openPost`
+  - `GET` search open customer/supplier postings
+- Standard resolver note:
+  - this is the decisive diagnostic fallback for open customer/supplier subledger rows when a task is clearly about reconciliation but the higher-level invoice endpoint omits expected results
+  - it can prove live supplier liability rows on account `2400` even when `voucherId=` lookup on `/supplierInvoice` returns no rows
+  - it is not a drop-in replacement for `/supplierInvoice` on payment tasks because it returns posting ids, not supplier-invoice ids
 
 ## Ledger Voucher
 - `/ledger/voucher`

@@ -39,8 +39,9 @@ If the prompt explicitly says the supplier already exists, or the run context is
 - conclusion: do not treat generic voucher booking as equivalent to supplier-invoice registration
 
 ### Wrong path: `POST /incomingInvoice`
-- public accounts can return `403 You do not have permission to access this feature`
-- it is not the trusted default path
+- never use `/incomingInvoice*` in scored runs for this repo
+- these endpoints are beta-only here and should be treated as unavailable, not as a fallback branch
+- the 2026-03-21 reflection re-check again returned `403 You do not have permission to access this feature`
 
 ### Wrong path: PDF import then mutate
 - PDF import can create an empty voucher shell
@@ -54,6 +55,12 @@ If the prompt explicitly says the supplier already exists, or the run context is
 ### Wrong path: imported voucher `PUT` with immutable header fields
 - sending `description` or `vendorInvoiceNumber` in the later voucher update returned `422`
 - conclusion: those values must be correct in the XML import itself; do not try to rewrite them later
+
+### Later-payment caveat on this object family
+- do not assume a supplier invoice created through this public import path is automatically payable later through `POST /supplierInvoice/{id}/:addPayment`
+- persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on imported supplier invoice `2147547151`
+- that same invoice later read back with booked voucher number `100`, so `voucher.number > 0` alone is still not enough proof that `:addPayment` will work on this imported object family
+- conclusion: keep supplier-invoice registration and later supplier-payment playbooks logically separate; the create proof here does not settle the payment path
 
 ### Wrong path: balanced voucher update without debit `vatType`
 - sandbox accepted the write

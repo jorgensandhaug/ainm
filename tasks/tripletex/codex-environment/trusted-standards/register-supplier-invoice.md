@@ -16,6 +16,10 @@
 - task is reversal, approval, payment, or correction of an already-registered supplier invoice
 - task comes with a real source document that must itself be preserved or uploaded exactly as given
 
+Do not treat `/incomingInvoice*` as the alternative public branch for this repo.
+- those endpoints are beta-only here and should be treated as unavailable in scored runs
+- the 2026-03-21 reflection re-check again returned `403 You do not have permission to access this feature.` on `/incomingInvoice/search`
+
 ## Standard Flow
 1. `POST /supplier`
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
@@ -127,6 +131,10 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 
 ## OpenAPI / Sandbox Status
 - `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`
+- later-payment caveat on this exact imported object family:
+  - persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on imported supplier invoice `2147547151` through `POST /supplierInvoice/{id}/:addPayment`
+  - that same invoice later read back with booked voucher number `100`, so later supplier payment is still not a proven public continuation of this create-only standard
+  - do not let this create standard imply that `/supplierInvoice/{id}/:addPayment` is automatically safe on invoices produced by this branch
 - 2026-03-20 sandbox proof:
   - exact original task values for `Elvdal AS` / `889157917` / `INV-2026-8662` / `39750` / `6500` / `25%`
   - imported voucher `608856087`
