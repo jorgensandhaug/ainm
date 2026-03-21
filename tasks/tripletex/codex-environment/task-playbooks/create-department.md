@@ -35,8 +35,8 @@ Production and sandbox re-verification on 2026-03-20 showed:
 Production and sandbox re-verification on 2026-03-21 showed:
 - an exact Portuguese prompt asking for `IT`, `Kvalitetskontroll`, and `Regnskap` was still the same exact-match flow
 - one production `POST /department/list` created all three requested departments with zero reads and zero errors
-- one persistent-sandbox `POST /department/list` with `IT Reflection 20260321-134807`, `Kvalitetskontroll Reflection 20260321-134807`, and `Regnskap Reflection 20260321-134807` again returned the created names in `values[]`
-- the sandbox batch-create response still showed top-level `fullResultSize=0`, so verification must continue to trust `values[]`
+- an exact German prompt asking for `Logistikk`, `Salg`, and `Drift` was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), zero errors
+- the sandbox batch-create response still shows top-level `fullResultSize=0`, so verification must continue to trust `values[]`
 
 ## Minimal Safe Flow
 
