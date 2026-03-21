@@ -251,3 +251,10 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - fix-up used correct `orders: [{ customer, orderDate, deliveryDate, orderLines: [...] }]` structure
   - fee invoice `#4` (`id=2147645318`, amount `40`), payment type `37539606`, outstanding reduced to `31875`
   - the `6`-call path would have been achieved if the agent had used the correct invoice payload structure from the start; the trusted standard and playbook now document this pitfall explicitly
+- production run `prod-2026-03-21-223053963Z-9109b98e` matched the trusted `6`-call path exactly for an English prompt with fee `40`, 0 errors:
+  - overdue invoice `#3` (`id=2147645684`), customer `108442732`, outstanding `26312.5`, due `2026-02-04`
+  - voucher `#1` (`id=609188183`)
+  - fee invoice `#4` (`id=2147645759`, amount `40`)
+  - payment type `37556805`
+  - remaining outstanding `21312.5`
+- the `6`-call path is now confirmed across 9 production runs with fee amounts `35`, `40`, `50`, `60`, `70` and prompts in `nb`, `en`, `es`, `pt`, `de`, `fr`; no lower-call path exists

@@ -189,3 +189,10 @@
   - payment reduced outstanding from `36875` to `31875`
   - **fix**: the Payload Rules section now explicitly documents the `orders[].orderLines[]` structure requirement to prevent this trap
 - persistent sandbox re-proof on `2026-03-21` confirmed: `POST /invoice` with `orders: [], orderLines: [...]` fails `422 orders: Listen kan ikke være tom.`; same payload with `orders: [{ orderLines: [...] }]` succeeds `201` with `amountCurrency=40`
+- production proof on `2026-03-21` (`prod-2026-03-21-223053963Z-9109b98e`) confirmed the `6`-call path for English prompt with fee `40`, 0 errors, 0 wasted calls:
+  - overdue invoice `#3` (`id=2147645684`), customer `108442732`, outstanding `26312.5`, due `2026-02-04`
+  - voucher `#1` (`id=609188183`), accounts 1500 (id=475406588) / 3400 (id=475406784)
+  - fee invoice `#4` (`id=2147645759`, amount `40`)
+  - payment type `37556805`
+  - payment reduced outstanding from `26312.5` to `21312.5`
+  - 9th production confirmation of the `6`-call path; first clean `en`+`40` combination; now verified across `nb`, `en`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `40`, `50`, `60`, `70`
