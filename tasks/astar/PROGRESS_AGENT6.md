@@ -4258,6 +4258,21 @@
   - V3 k5_r3: 72.44 vs V2 k5_r3: 73.05
   - V3's extra complexity overfits with few training rounds
 
+### Per-round analysis (full 8-round ensemble):
+| Round | Score | Note |
+|-------|-------|------|
+| 8e839974 | 88.14 | Best |
+| 76909e29 | 84.27 | Good |
+| c5cdf100 | 78.28 | OK |
+| 71451d74 | 78.39 | OK |
+| ae78003a | 76.22 | Below avg |
+| fd3c92ff | 71.04 | Bad |
+| 36e581f1 | 62.56 | Very bad |
+| f1dac9a9 | 58.76 | Worst |
+- Score range: 58.76 to 88.14
+- The worst rounds (58.76, 62.56) likely have unusual regime properties
+- These rounds were never in any dev/probe tier, so model was never validated on them
+
 ---
 
 ## DETAILED EXPLANATION OF BEST MODEL: `f1_ensemble_hv2_sx_50_v01`
