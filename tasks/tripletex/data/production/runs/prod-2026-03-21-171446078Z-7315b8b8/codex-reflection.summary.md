@@ -1,0 +1,1 @@
+Score reflection written. Task 10 achieved perfect correctness (5/5 checks, 1.0) but scored 3/4 due to 2 extra product-resolution calls. The key fix: eliminate the useless `ids` fallback for prompt-provided product refs.

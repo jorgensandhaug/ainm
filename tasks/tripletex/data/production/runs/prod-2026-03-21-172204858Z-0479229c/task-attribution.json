@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-172204858Z-0479229c",
+  "request_id": "4e66940b",
+  "prompt_raw": "Utfør forenklet årsoppgjør for 2025: 1) Beregn og bokfør årlige avskrivninger for tre eiendeler: Kontormaskiner (222900 kr, 10 år lineært, konto 1200), Inventar (254250 kr, 8 år, konto 1240), IT-utstyr (207900 kr, 6 år, konto 1210). Bruk konto 6010 for avskrivningskostnad og 1209 for akkumulerte avskrivninger. 2) Reverser forskuddsbetalte kostnader (totalt 78250 kr på konto 1700). 3) Beregn og bokfør skattekostnad (22 % av skattbart resultat) på konto 8700/2920. Bokfør hver avskrivning som et eget bilag.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T17:23:29Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T17:22:05.498Z",
+  "after_captured_at": "2026-03-21T17:24:00.195Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "30",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T17:24:00.195Z"
+}

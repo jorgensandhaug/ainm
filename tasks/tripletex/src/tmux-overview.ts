@@ -9,6 +9,7 @@ type TmuxWindow = {
   name: string;
   paneCommand: string;
   paneDead: boolean;
+  panePid: number;
 };
 
 type RunSummary = {
@@ -45,6 +46,11 @@ function runCommand(args: string[]) {
     stderr: new TextDecoder().decode(proc.stderr).trim(),
     stdout: new TextDecoder().decode(proc.stdout),
   };
+}
+
+function paneHasChildren(panePid: number) {
+  const result = runCommand(["pgrep", "-P", String(panePid)]);
+  return result.code === 0 && result.stdout.trim().length > 0;
 }
 
 async function readJson(path: string) {
@@ -170,7 +176,7 @@ async function loadWindows() {
     "-t",
     sessionName,
     "-F",
-    "#{window_index}\t#{window_name}\t#{window_active}\t#{pane_current_command}\t#{pane_dead}",
+    "#{window_index}\t#{window_name}\t#{window_active}\t#{pane_current_command}\t#{pane_dead}\t#{pane_pid}",
   ]);
   if (result.code !== 0) {
     throw new Error(result.stderr || "tmux list-windows failed");
@@ -180,13 +186,14 @@ async function loadWindows() {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [index, name, active, paneCommand, paneDead] = line.split("\t");
+      const [index, name, active, paneCommand, paneDead, panePid] = line.split("\t");
       return {
         active: active === "1",
         index: Number(index),
         name: name ?? "",
         paneCommand: paneCommand ?? "",
         paneDead: paneDead === "1",
+        panePid: Number(panePid),
       } satisfies TmuxWindow;
     })
     .sort((a, b) => a.index - b.index);
@@ -203,7 +210,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
       bestScore: "-",
       correctness: "-",
       fileCount: null,
-      idlePane: window.paneCommand === "zsh" && !window.paneDead,
+      idlePane: !window.paneDead && !paneHasChildren(window.panePid),
       paneDead: window.paneDead,
       phase: meta.phase,
       reflectionStatus: "-",
@@ -249,7 +256,7 @@ async function summarizeWindow(window: TmuxWindow): Promise<RunSummary | undefin
           ? scoreStatus.status
           : "-",
     fileCount: Array.isArray(manifest?.attachments) ? manifest.attachments.length : null,
-    idlePane: window.paneCommand === "zsh" && !window.paneDead,
+    idlePane: !window.paneDead && !paneHasChildren(window.panePid),
     paneDead: window.paneDead,
     phase: meta.phase,
     reflectionStatus: typeof reflectionStatus?.status === "string" ? reflectionStatus.status : "-",

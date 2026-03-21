@@ -1,0 +1,1 @@
+Score-aware reflection written to the canonical path. The run achieved perfect correctness (4/4 checks, `correctness=1`) and improved the task 15 best score from 3.0 to 3.333 out of max 4. The 0.667-point gap is entirely from the proactive bank-account hedge (1 extra call), which remains the correct default per expected-value analysis.
