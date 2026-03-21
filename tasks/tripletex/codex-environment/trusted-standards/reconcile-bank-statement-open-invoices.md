@@ -6,22 +6,24 @@
 
 Task asks to reconcile a bank statement (CSV) against open invoices. Incoming payments matched to customer invoices, outgoing payments matched to supplier invoices. May include partial payments.
 
-## CRITICAL: Bank reconciliation required (Check 1 fix)
+## MANDATORY CHECKLIST — your script MUST include ALL 6 steps
 
-**Run 57c8f4db was the FIRST run to create a bank reconciliation (score pending).** All 9 prior completed runs scored 0.6/6 (Check 1 failed) because none created a bank reconciliation.
-- `POST /bank/reconciliation` with `isClosed: true` creates AND closes a reconciliation in 1 call
-- Closing balance must be computed as `sum(Inn) - sum(|Ut|)` from CSV lines — NOT the CSV ending saldo (which includes an opening balance not present in Tripletex)
-- Production run 57c8f4db proved: CSV saldo=139130.06, actual 1920 balance=39130.06, bank reconciliation created successfully with 39130.06
+Without Step 6, the script scores 0.6/6. Nine consecutive runs omitting Step 6 ALL scored 0.6/6. Run 57c8f4db included Step 6 and successfully created a bank reconciliation (first success in 10 runs).
 
-After all invoice payments and voucher postings, execute Step 6 (below) to create+close a bank reconciliation.
+1. **Step 1**: Fire 6 reads in parallel (including `accountingPeriod`)
+2. **Step 2**: Select payment type (debitAccount.number === 1920)
+3. **Step 3**: Match and pay customer invoices (`PUT /invoice/{id}/:payment`)
+4. **Step 4**: Handle supplier payments (combined voucher if no supplier invoices)
+5. **Step 5**: Book ALL non-invoice lines (Bankgebyr/Skattetrekk/Renteinntekter)
+6. **Step 6**: `POST /bank/reconciliation` with `isClosed: true` — **THIS IS THE STEP THAT FIXES CHECK 1**
 
 ## CSV parsing
 
 Parse locally. Classify lines:
 - **Incoming customer**: description contains customer name + invoice reference, `Inn` column populated
 - **Outgoing supplier**: description contains supplier name, `Ut` column populated (negative)
-- **Non-invoice**: bank fees, tax, interest — **MUST be booked** (see Step 5 below)
-- **Extract CSV ending saldo**: the last row's Saldo column = closing balance for bank reconciliation
+- **Non-invoice**: bank fees, tax, interest — **MUST be booked** (see Step 5)
+- **Compute closing balance for Step 6**: `sum(all Inn values) - sum(all |Ut| values)` from ALL CSV lines. DO NOT use the CSV ending saldo (it includes an opening balance not in Tripletex).
 
 ## Optimal call flow (mixed incoming/outgoing, no supplier invoices — common case)
 

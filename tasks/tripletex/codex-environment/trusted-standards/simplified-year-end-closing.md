@@ -265,6 +265,18 @@ Sandbox-verified (2026-03-21): all three disposition variants (8800/2080, 8800/2
 - Loss scenario confirmed: no tax voucher posted (tax = 0), disposition with DR 2050 / CR 8800
 - 8-call minimum achieved for loss scenario with missing accounts (1209+8700)
 
+## Production Verification (2026-03-21, run 7 — Portuguese prompt, 8800/2050 disposition, PROFIT scenario) ★ FIRST PROFIT 6/6
+- Task: 2025 year-end closing with 3 assets (Kontormaskiner 189700/8yr acct 1200, Kjøretøy 428000/8yr acct 1230, IT-utstyr 440750/9yr acct 1210), 21300 prepaid reversal (1700→6300), 22% tax (8700/2920)
+- Prompt language: Portuguese ("Realize o encerramento anual simplificado de 2025")
+- Depreciation: 23712.50 + 53500.00 + 48972.22 = 126184.72
+- Balance sheet sum: -936970, preTaxProfit: 936970, tax: 206133, postTaxResult: 730837
+- Disposition: DR 8800 / CR 2050 (profit), amount 730837
+- Used 9 calls: 1 GET (accounts) + 1 POST (batch create 1209+8700) + 3 POST (dep) + 1 POST (prepaid) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition)
+- 0 errors, all calls succeeded on first attempt
+- **FIRST PROFIT scenario with 8800/2050** — run 6 confirmed loss scenario, this confirms profit
+- 9-call minimum for profit scenario with missing accounts (1209+8700)
+- Both profit and loss scenarios now production-confirmed with 8800/2050
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `POST /ledger/voucher` with `row: 1` / `row: 2` succeeded for balanced two-line depreciation entries

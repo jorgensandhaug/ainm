@@ -13,7 +13,6 @@ Use for tasks like:
 
 Do not use for:
 - generic bank-booking tasks that do not mention invoices
-- tasks that explicitly require the Tripletex bank-reconciliation UI/API objects themselves
 
 ## Critical Timing Rule
 

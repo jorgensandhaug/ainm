@@ -226,6 +226,13 @@ Sandbox-verified (2026-03-21): 8800/2050 returns 201. Account 8800 exists in def
 - 8 calls, 0 errors, **6/6 checks ALL PASSED** (8/8 raw)
 - Confirms: 8800/2050 is the correct disposition pair, loss scenario works
 
+## Production Verification (2026-03-21, run 7 — Portuguese prompt, 8800/2050, PROFIT) ★ FIRST PROFIT 6/6
+- Task: 2025 year-end closing, 3 assets (Kontormaskiner 189700/8yr, Kjøretøy 428000/8yr, IT-utstyr 440750/9yr), 21300 prepaid, 22% tax
+- Depreciation: 23712.50 + 53500.00 + 48972.22 = 126184.72
+- preTaxProfit: 936970, tax: 206133, postTaxResult: 730837, disposition: DR 8800 / CR 2050
+- 9 calls, 0 errors
+- **FIRST PROFIT scenario with 8800/2050** — confirms both profit and loss now production-proven
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `POST /ledger/voucher` with `row: 1` / `row: 2` succeeded for balanced two-line depreciation entries
