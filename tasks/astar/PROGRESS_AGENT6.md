@@ -4250,6 +4250,8 @@
 ### Additional findings:
 - Exploration policy (79.51 dev5) is slightly worse than coverage (79.57)
 - 3-model ensembles (hv2+k9+sx, hv2+sx+qr) both ~75.28 probe3 - dilute signal
+- Adaptive per-cell blending: all variants score 74.52 on probe3 (worse than fixed-weight)
+  - The `build_prediction_bundle_from_context` path needs more work to properly propagate observations
 - Agent2's best (smh_glmmlatent) reaches 78.40 on full 8 rounds with exploration
 - Agent5's best (greybox_tristack) reaches 77.39 on full 8 rounds
 
