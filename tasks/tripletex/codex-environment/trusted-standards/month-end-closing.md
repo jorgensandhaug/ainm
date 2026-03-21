@@ -51,8 +51,9 @@ GET /ledger/account?number=<all-needed>&fields=id,number,name&count=100
 ```
 Include ALL accounts needed. Example: `number=1700,6300,6020,1029,5000,2900`
 
-Check which accounts were returned. Typically missing in fresh Tripletex: **1029**, **1109**, and sometimes **6020**, **6300**.
-Accounts **1700**, **1249**, **5000**, **2900**, **6010** typically exist.
+Check which accounts were returned. Typically missing in fresh Tripletex: **1029**, **1109**.
+Accounts typically existing in default chart: **1700**, **1710**, **1720**, **1740**, **1249**, **5000**, **2900**, **6000**, **6010**, **6020**, **6300**, **6390**, **8150**.
+The only accumulated depreciation accounts confirmed missing are **1029** and **1109**. Account **1209** exists in sandbox but is unconfirmed in fresh production.
 
 ### Call 2 (conditional): Create missing accounts (0–1 POST)
 - If 1 missing: `POST /ledger/account` with `{ number, name }`
@@ -63,10 +64,6 @@ Accounts **1700**, **1249**, **5000**, **2900**, **6010** typically exist.
 Standard names for commonly missing accounts:
 - 1029: "Akk. avskr. immaterielle eiendeler"
 - 1109: "Akk. avskr. bygninger"
-- 1209: "Akk. avskr. maskiner og anlegg"
-- 1249: "Akk. avskr. transportmidler"
-- 6020: "Avskr. immaterielle eiendeler"
-- 6300: "Leie lokale"
 
 ### Call 3 (or 2): Combined voucher (1 POST)
 ```json
@@ -114,6 +111,13 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - All 6 accounts existed in fresh Tripletex: 1700, 6300, 6010, 1249, 5000, 2900
 - Achieves theoretical minimum call count
 
+### Run 3 (2026-03-21, 1710→6390 + 6020→1029 variant, blocked by credentials)
+- Task: March 2026, prepaid 2450 (1710→6390), depreciation 111100/5yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Script was correct: 1 GET + 1 POST (create 1029) + 1 POST (voucher) = 3 calls planned
+- All 3 calls returned 403 "Invalid or expired proxy token" — blocked credentials, no state created
+- Depreciation: Math.round((111100/60)*100)/100 = 1851.67
+- Account mapping: 1710→6390 is first production use of this variant
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -122,5 +126,7 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - Account 2900 may have display name "Forskudd fra kunder" in some environments; posting still works correctly for salary accrual
   - Account 1249 exists in default chart as "Andre transportmidler"; works correctly for accumulated depreciation postings
   - 6010→1249 mapping confirmed working: sandbox voucher with 6 postings created successfully
-  - Accounts typically existing in both sandbox and fresh production: 1700, 1249, 5000, 2900, 6010, 6300
-  - Account 1109 (Akk. avskr. bygninger) is missing in sandbox; 1029 also typically missing in fresh production
+  - 1710→6390 mapping confirmed working: sandbox voucher with 6 postings (prepaid 2450, dep 1851.67, salary 45000) created successfully
+  - Account 1109 (Akk. avskr. bygninger) is only month-end account missing in sandbox
+  - Comprehensive account survey: all prepaid source accounts (1700, 1710, 1720, 1740), all periodization targets (6300, 6390, 8150), all depreciation expense accounts (6000, 6010, 6020, 6030), and accumulated depreciation accounts 1249, 1209 exist in sandbox
+  - Only 1029 confirmed missing in fresh production (Run 1); only 1109 confirmed missing in sandbox

@@ -166,7 +166,10 @@
 - do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}` for this receipt-backed voucher shape; persistent sandbox on 2026-03-21 returned `422` that `description` and `postings` are not editable for that imported voucher type
 - do not use `account: { "number": 7360 }` or `account: { "number": 6540 }` or `account: { "number": 1920 }` in `POST /ledger/voucher`; number-only account refs fail with `422 postings.account.name: Kan ikke være null.`
 - for Branch B/C: do not omit `vatType` on the expense posting; Tripletex defaults to vatType `0` (no VAT) when not specified, even if the account has a non-zero default
-- for Branch B/C: do not hardcode `vatType.id` without checking the account response; use the id from `GET /ledger/account?...&fields=id,number,name,vatType(*)` (Branch B: vatType.id=`1` for 25%; Branch C: vatType.id=`12` for 12%)
+- for Branch B: use `vatType.id` from the account response (typically `1` for incoming 25%)
+- for Branch C: use `vatType: { id: 1 }` (incoming 25%) — do NOT use the account's default vatType.id=`12` (incoming 12%). The receipt states 25% MVA and using 12% produces wrong amounts.
+- **CRITICAL**: always use `?sendToLedger=true` on `POST /ledger/voucher`. Without it, the voucher stays in draft state and the scorer cannot see it. This was a root cause for 0/5 scores on all task 22 attempts.
+- **CRITICAL**: always detect NET vs GROSS receipt prices. If `total × 0.25 == stated MVA`, prices are NET and `GROSS = line × 1.25`. All task 22 receipts are NET-priced. Booking the NET amount as GROSS was a root cause for 0/5 scores.
 
 ## OpenAPI / Sandbox Status
 - `/department`, `/ledger/account`, `/ledger/voucher`, `/ledger/voucher/{voucherId}/attachment`, and `/ledger/voucher/importDocument` verified in `./openapi.json`
