@@ -36,6 +36,7 @@
 - reuse the located `customer.id` for both the manual voucher and the fee invoice
 - on `GET /invoice/paymentType`, prefer an incoming bank-style payment type whose debit account is `19xx`, `isBankAccount=true`, or `isInvoiceAccount=true`
 - do not reject a usable payment type just because `name=null` or `creditAccount=null`
+- do not try to save a call by omitting `paymentTypeId` on `PUT /invoice/{id}/:payment`; persistent sandbox on `2026-03-21` returned `422 paymentTypeId: Kan ikke være null.` on fixture invoice `206`
 - on `GET /ledger/account?number=1500,3400&fields=*`, choose by exact numeric `account.number`, not by account name
 - do not reject prompt-required account `3400` only because the returned row is marked `isInactive=true`; the id-based voucher write is the decisive test
 - on `POST /ledger/voucher`, send:
@@ -127,4 +128,12 @@
   - full end-to-end 6-call run: locate → paymentType → accounts → voucher → invoice → payment all succeeded
   - `POST /invoice` with the omitted vatType showed `amountCurrency=35`, `amountExcludingVatCurrency=35`, `amountIncludingVatCurrency=35` — all identical, confirming 0% VAT was applied
   - voucher posting with `account: { number: 1500 }` (instead of `account: { id: ... }`) failed `422 postings.account.name: Kan ikke være null` — the account GET is still required
+- persistent sandbox re-proof on `2026-03-21` with a one-call disposable setup invoice `206` (`id=2147594276`, customer `108334046`, amount `9000`, due `2026-03-05`) re-confirmed two things:
+  - the tempting `5`-call branch `... -> PUT /invoice/{id}/:payment?paymentDate=...&paidAmount=...` without `paymentTypeId` failed `422 paymentTypeId: Kan ikke være null.`
+  - the full `6`-call branch with fee `50` then succeeded on that same fixture: payment type `32813748`, voucher `608963784`, fee invoice `207` (`amountCurrency=50`), and payment reduced outstanding from `9000` to `4000`
+- production proof on `2026-03-21` (`prod-2026-03-21-134955068Z-b244cce3`) confirmed the `6`-call branch for a Spanish prompt with fee `50` and no bank-account repair:
+  - overdue invoice `#2` (`id=2147593896`), customer `108352269`, outstanding `24812.5`
+  - voucher `#1` (`id=608962870`), fee invoice `#4` (`id=2147594063`, amount `50`)
+  - payment type `36469300`
+  - payment reduced outstanding to `19812.5`
 - the `6`-call path is now the default for this task shape; the previous `7`-call path included a now-unnecessary `GET /ledger/vatType` call

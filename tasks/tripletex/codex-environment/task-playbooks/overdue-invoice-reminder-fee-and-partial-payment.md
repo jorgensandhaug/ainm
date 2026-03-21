@@ -46,6 +46,7 @@ Do not use for:
   - prefer a `19xx` debit account
   - accept `name=null`
   - accept `creditAccount=null`
+- Trying to cut the flow to `5` calls by omitting `paymentTypeId` on `PUT /invoice/{id}/:payment` is invalid; persistent sandbox on `2026-03-21` returned `422 paymentTypeId: Kan ikke være null.` on fixture invoice `206`
 - Production and sandbox payment-type ids differed (`27178699` vs `32813748` vs `36380804`), so never hardcode or cargo-cult a prior id across environments
 
 ## Minimal Safe Flow
@@ -194,5 +195,14 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - `POST /invoice` without `orderLines[].vatType` created invoice with correct `amountCurrency=35`
   - API defaulted to vatType id=0 ("Ingen avgiftsbehandling", 0%) — correct for no-VAT reminder fees
   - full 6-call sandbox proof: all writes succeeded, all amounts correct
-- the production run also wasted 1 API call due to a response-parsing bug (`value` vs `values`), making the actual production call count 8 instead of 7
-- the `6`-call path is now the standard; next runs should achieve the same correctness with 1 fewer call
+- later same-day sandbox re-proof used one disposable setup invoice `206` (`id=2147594276`, amount `9000`) for a stricter branch audit:
+  - `PUT /invoice/2147594276/:payment?paymentDate=2026-03-21&paidAmount=1` without `paymentTypeId` failed `422 paymentTypeId: Kan ikke være null.`
+  - the normal `6`-call branch then succeeded with fee `50`, payment type `32813748`, voucher `608963784`, fee invoice `207`, and remaining outstanding `4000`
+- production run `prod-2026-03-21-134955068Z-b244cce3` matched the trusted `6`-call path exactly for a Spanish prompt with fee `50`:
+  - overdue invoice `#2` (`id=2147593896`) outstanding `24812.5`
+  - voucher `#1` (`id=608962870`)
+  - fee invoice `#4` (`id=2147594063`, amount `50`)
+  - payment type `36469300`
+  - remaining outstanding `19812.5`
+- the older production run `prod-2026-03-21-124240715Z-4117f590` still matters as a parser warning because it wasted 1 API call due to a response-shape bug (`value` vs `values`), but that failure mode is now avoidable
+- the `6`-call path is the current standard and the latest production run already matched it with no wasted calls
