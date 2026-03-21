@@ -57,6 +57,17 @@
 | `16` | Register supplier invoice | Register an incoming supplier invoice with the requested account and input VAT. |
 | `17` | Register customer invoice payment | Locate an unpaid customer invoice and register full payment against it. |
 | `18` | Reverse customer invoice payment | Reverse a customer invoice payment so the invoice becomes unpaid again. |
+| `19` | Unknown task type | Unknown task type for `tx_task_id 19`. |
+| `20` | Unknown task type | Unknown task type for `tx_task_id 20`. |
+| `21` | Unknown task type | Unknown task type for `tx_task_id 21`. |
+| `22` | Unknown task type | Unknown task type for `tx_task_id 22`. |
+| `23` | Unknown task type | Unknown task type for `tx_task_id 23`. |
+| `25` | Unknown task type | Unknown task type for `tx_task_id 25`. |
+| `26` | Unknown task type | Unknown task type for `tx_task_id 26`. |
+| `27` | Unknown task type | Unknown task type for `tx_task_id 27`. |
+| `28` | Unknown task type | Unknown task type for `tx_task_id 28`. |
+| `29` | Unknown task type | Unknown task type for `tx_task_id 29`. |
+| `30` | Unknown task type | Unknown task type for `tx_task_id 30`. |
 
 ## Common Endpoints
 - `/customer`, `/customer/{id}`: customer create/search/read/update/delete.

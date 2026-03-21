@@ -217,6 +217,105 @@ export const CANONICAL_TASK_REGISTRY = [
       "Reverse a customer invoice payment so the invoice becomes unpaid again.",
     legacyTripletex1TaskIds: ["18"],
   },
+  {
+    taskId: "19",
+    txTaskId: "19",
+    taskSlug: "unknown-task-19",
+    taskName: "Unknown task 19",
+    summary:
+      "Tier 3 placeholder for tx_task_id 19 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["19"],
+  },
+  {
+    taskId: "20",
+    txTaskId: "20",
+    taskSlug: "unknown-task-20",
+    taskName: "Unknown task 20",
+    summary:
+      "Tier 3 placeholder for tx_task_id 20 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["20"],
+  },
+  {
+    taskId: "21",
+    txTaskId: "21",
+    taskSlug: "unknown-task-21",
+    taskName: "Unknown task 21",
+    summary:
+      "Tier 3 placeholder for tx_task_id 21 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["21"],
+  },
+  {
+    taskId: "22",
+    txTaskId: "22",
+    taskSlug: "unknown-task-22",
+    taskName: "Unknown task 22",
+    summary:
+      "Tier 3 placeholder for tx_task_id 22 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["22"],
+  },
+  {
+    taskId: "23",
+    txTaskId: "23",
+    taskSlug: "unknown-task-23",
+    taskName: "Unknown task 23",
+    summary:
+      "Tier 3 placeholder for tx_task_id 23 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["23"],
+  },
+  {
+    taskId: "25",
+    txTaskId: "25",
+    taskSlug: "unknown-task-25",
+    taskName: "Unknown task 25",
+    summary:
+      "Tier 3 placeholder for tx_task_id 25 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["25"],
+  },
+  {
+    taskId: "26",
+    txTaskId: "26",
+    taskSlug: "unknown-task-26",
+    taskName: "Unknown task 26",
+    summary:
+      "Tier 3 placeholder for tx_task_id 26 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["26"],
+  },
+  {
+    taskId: "27",
+    txTaskId: "27",
+    taskSlug: "unknown-task-27",
+    taskName: "Unknown task 27",
+    summary:
+      "Tier 3 placeholder for tx_task_id 27 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["27"],
+  },
+  {
+    taskId: "28",
+    txTaskId: "28",
+    taskSlug: "unknown-task-28",
+    taskName: "Unknown task 28",
+    summary:
+      "Tier 3 placeholder for tx_task_id 28 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["28"],
+  },
+  {
+    taskId: "29",
+    txTaskId: "29",
+    taskSlug: "unknown-task-29",
+    taskName: "Unknown task 29",
+    summary:
+      "Tier 3 placeholder for tx_task_id 29 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["29"],
+  },
+  {
+    taskId: "30",
+    txTaskId: "30",
+    taskSlug: "unknown-task-30",
+    taskName: "Unknown task 30",
+    summary:
+      "Tier 3 placeholder for tx_task_id 30 with no checked-in prompt examples yet.",
+    legacyTripletex1TaskIds: ["30"],
+  },
 ] as const satisfies readonly CanonicalTaskRegistryEntry[];
 
 const canonicalTaskRegistryById = new Map<string, CanonicalTaskRegistryEntry>(

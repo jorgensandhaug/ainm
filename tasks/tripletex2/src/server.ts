@@ -4,6 +4,9 @@ import path from "node:path";
 import {
   type CompetitionSolveRequest,
   type SolvePipelineOptions,
+  isNotImplementedStrategySelection,
+  normalizeCompetitionSolveRequest,
+  resolveDeterministicSolveSelection,
   runCompetitionSolvePipeline,
 } from "./runtime/solve-pipeline";
 import {
@@ -64,7 +67,7 @@ interface SolveRequestHandler {
 }
 
 const DEFAULT_PORT = Number(Bun.env.PORT ?? 3000);
-const DEFAULT_BEARER_TOKEN = Bun.env.API_KEY ?? "HALLAGUTTA123";
+const DEFAULT_BEARER_TOKEN = Bun.env.API_KEY ?? "";
 const DEFAULT_MAX_CONCURRENCY = Number(
   Bun.env.TRIPLETEX2_MAX_CONCURRENT_SOLVES ?? 3,
 );
@@ -109,25 +112,21 @@ export function createSolveRequestHandler(
       );
     }
 
-    const authError = authorizeRequest(request, bearerToken);
-    if (authError) {
-      log("WARN", "Rejected unauthorized /solve request.", {
-        requestId,
-      });
-      return jsonResponse(
-        401,
-        { error: authError },
-        {
-          "x-request-id": requestId,
-          "www-authenticate": 'Bearer realm="tripletex2-sandbox"',
-        },
-      );
-    }
-
     if (!isJsonRequest(request)) {
       return jsonResponse(
         415,
         { error: "Expected application/json request body." },
+        {
+          "x-request-id": requestId,
+        },
+      );
+    }
+
+    const authorizationError = authorizeRequest(request, bearerToken);
+    if (authorizationError) {
+      return jsonResponse(
+        401,
+        { error: authorizationError },
         {
           "x-request-id": requestId,
         },
@@ -243,6 +242,68 @@ export function createSolveRequestHandler(
       runId =
         options.createRunId?.({ mode, now }) ??
         createDefaultRunId(mode, now);
+      const normalizedSolveRequest =
+        normalizeCompetitionSolveRequest(solveRequest);
+      const selectionResult = await resolveDeterministicSolveSelection(
+        normalizedSolveRequest,
+        {
+          ...options,
+          mode,
+          now: () => now,
+        },
+      );
+      if (isNotImplementedStrategySelection(selectionResult.selection)) {
+        const result = await runTmuxSolvePipeline(
+          toTmuxSolveRequest(parsedRequest),
+          requestId,
+          {
+            codexEnvironmentDir: options.codexEnvironmentDir,
+            codexHomeDir: options.codexHomeDir,
+            createRunId: () => runId!,
+            dataRoot,
+            env,
+            leaderboardFetch: options.tmuxLeaderboardFetch,
+            logger: log,
+            now: () => now,
+            runCommand: options.tmuxRunCommand,
+            sandboxEnvPath: options.sandboxEnvPath,
+            sleep: options.tmuxSleep,
+            solveTimeoutMs: options.solveTimeoutMs,
+            storageMode,
+            tmuxSessionExists: options.tmuxSessionExists,
+            tmuxSessionName: options.tmuxSessionName,
+          },
+        );
+
+        log("INFO", "Completed /solve request via tmux fallback.", {
+          requestId,
+          runId,
+          taskId: selectionResult.selection.taskId,
+          strategyId: selectionResult.selection.strategy.strategyId,
+          runtimeStatus: result.runtimeStatus,
+          stageDirectory: result.preparedRun.runDir,
+          storageMode,
+        });
+
+        void continuePostRunProcessing(result, {
+          dataRoot,
+          env,
+          leaderboardFetch: options.tmuxLeaderboardFetch,
+          logger: log,
+          now: options.now,
+          sleep: options.tmuxSleep,
+        });
+
+        return jsonResponse(
+          200,
+          { status: "completed" },
+          {
+            "x-request-id": requestId,
+            "x-tripletex2-run-id": result.preparedRun.runId,
+            "x-tripletex2-runtime-status": result.runtimeStatus,
+          },
+        );
+      }
       const runContext = {
         runId,
         stageDirectory: path.join(dataRoot, mode, "runs", runId),
@@ -254,6 +315,7 @@ export function createSolveRequestHandler(
         now: () => now,
         requestId,
         runContext,
+        taskUnderstanding: selectionResult.taskUnderstanding,
       });
 
       log("INFO", "Completed /solve request.", {

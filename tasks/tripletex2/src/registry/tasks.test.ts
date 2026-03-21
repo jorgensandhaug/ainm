@@ -14,7 +14,7 @@ import {
 } from "./tasks";
 
 test("task registrations seed every canonical task id exactly once", () => {
-  assert.equal(CANONICAL_TASK_REGISTRY.length, 18);
+  assert.equal(CANONICAL_TASK_REGISTRY.length, 29);
   assert.deepEqual(
     taskRegistrations.map((registration) => registration.task.taskId),
     CANONICAL_TASK_REGISTRY.map((task) => task.taskId),
@@ -44,6 +44,17 @@ test("task registrations seed every canonical task id exactly once", () => {
       "16",
       "17",
       "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
     ],
   );
 });
@@ -91,6 +102,15 @@ test("implemented task remains the real registered task module", async () => {
       "08.order-then-invoice-send.v1",
       "08.order-then-invoice-then-send.v1",
     ],
+  );
+});
+
+test("tier 3 task stubs load the pinned not-implemented strategy", async () => {
+  const taskModule = await loadTaskModule("19");
+  assert.equal(taskModule.task.taskName, "Unknown task 19");
+  assert.deepEqual(
+    taskModule.strategies.map((strategy) => strategy.strategyId),
+    ["19.not-implemented.v1"],
   );
 });
 

@@ -27,6 +27,17 @@ const EXPECTED_CANONICAL_MAPPING = [
   ["16", "register-supplier-invoice"],
   ["17", "register-customer-invoice-payment"],
   ["18", "reverse-customer-invoice-payment"],
+  ["19", "unknown-task-19"],
+  ["20", "unknown-task-20"],
+  ["21", "unknown-task-21"],
+  ["22", "unknown-task-22"],
+  ["23", "unknown-task-23"],
+  ["25", "unknown-task-25"],
+  ["26", "unknown-task-26"],
+  ["27", "unknown-task-27"],
+  ["28", "unknown-task-28"],
+  ["29", "unknown-task-29"],
+  ["30", "unknown-task-30"],
 ] as const;
 
 test("canonical registry matches the fixed tx_task_id numbering", () => {

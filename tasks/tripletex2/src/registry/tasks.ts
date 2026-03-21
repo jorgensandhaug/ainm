@@ -30,8 +30,19 @@ import { taskRegistration as registerProjectHoursAndCreateProjectInvoiceTask } f
 import { taskRegistration as registerSupplierInvoiceTask } from "../tasks/task-16/task";
 import { taskRegistration as registerCustomerInvoicePaymentTask } from "../tasks/task-17/task";
 import { taskRegistration as reverseCustomerInvoicePaymentTask } from "../tasks/task-18/task";
+import { taskRegistration as unknownTask19 } from "../tasks/task-19/task";
+import { taskRegistration as unknownTask20 } from "../tasks/task-20/task";
+import { taskRegistration as unknownTask21 } from "../tasks/task-21/task";
+import { taskRegistration as unknownTask22 } from "../tasks/task-22/task";
+import { taskRegistration as unknownTask23 } from "../tasks/task-23/task";
+import { taskRegistration as unknownTask25 } from "../tasks/task-25/task";
+import { taskRegistration as unknownTask26 } from "../tasks/task-26/task";
+import { taskRegistration as unknownTask27 } from "../tasks/task-27/task";
+import { taskRegistration as unknownTask28 } from "../tasks/task-28/task";
+import { taskRegistration as unknownTask29 } from "../tasks/task-29/task";
+import { taskRegistration as unknownTask30 } from "../tasks/task-30/task";
 
-const implementedTaskRegistrations = [
+const registeredTaskRegistrations = [
   createCustomerTask,
   createSupplierTask,
   createDepartmentTask,
@@ -50,16 +61,27 @@ const implementedTaskRegistrations = [
   registerSupplierInvoiceTask,
   registerCustomerInvoicePaymentTask,
   reverseCustomerInvoicePaymentTask,
+  unknownTask19,
+  unknownTask20,
+  unknownTask21,
+  unknownTask22,
+  unknownTask23,
+  unknownTask25,
+  unknownTask26,
+  unknownTask27,
+  unknownTask28,
+  unknownTask29,
+  unknownTask30,
 ] as const;
-const implementedTaskRegistrationsById = new Map(
-  implementedTaskRegistrations.map((registration) => [
+const registeredTaskRegistrationsById = new Map(
+  registeredTaskRegistrations.map((registration) => [
     registration.task.taskId,
     registration,
   ]),
 );
 
 export const taskRegistrations = CANONICAL_TASK_REGISTRY.map((canonicalTask) => {
-  const registration = implementedTaskRegistrationsById.get(canonicalTask.taskId);
+  const registration = registeredTaskRegistrationsById.get(canonicalTask.taskId);
   if (!registration) {
     throw new Error("Missing task registration for canonical task \"" + canonicalTask.taskId + "\".");
   }

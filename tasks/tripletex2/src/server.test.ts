@@ -366,6 +366,146 @@ test("POST /solve in sandbox mode falls back to .sandbox.env credentials for pla
 });
 
 test(
+  "POST /solve in deterministic mode falls through to tmux when the selected strategy is not implemented",
+  { concurrency: false },
+  async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "tripletex2-server-"));
+  const dataRoot = path.join(tempRoot, "data");
+  const codexHomeDir = path.join(tempRoot, ".codex");
+  const codexEnvironmentDir = "/repo/tasks/tripletex2/codex-environment";
+  const tmuxCommands: string[][] = [];
+  const handler = createSolveRequestHandler({
+    bearerToken: "secret-token",
+    mode: "sandbox",
+    solveBackend: "deterministic",
+    codexEnvironmentDir,
+    codexHomeDir,
+    createRunId: () => "sandbox-http-tier3-fallback",
+    dataRoot,
+    env: {
+      CODEX_HOME: codexHomeDir,
+      HOME: tempRoot,
+      TRIPLETEX_LEADERBOARD_DELAY_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_INTERVAL_MS: "0",
+      TRIPLETEX_LEADERBOARD_POLL_WINDOW_MS: "1000",
+      TRIPLETEX_STORAGE_MODE: "testing",
+    },
+    now: () => new Date("2026-03-21T12:00:00.000Z"),
+    selectionConfigOverride: await createSelectionConfigOverride(),
+    taskUnderstanding: {
+      result: {
+        status: "resolved",
+        taskId: "20",
+        input: {},
+      } satisfies TaskUnderstandingResolved<Record<string, unknown>, string>,
+      taskSource: "manual-label",
+      inputSource: "fixture",
+    },
+    tmuxRunCommand: async (cmd) => {
+      tmuxCommands.push([...cmd]);
+      if (cmd[1] === "new-window") {
+        const launchScriptPath = cmd[cmd.length - 1]!;
+        const runDir = path.dirname(launchScriptPath);
+        const stagedPrompt = await readFile(
+          path.join(runDir, "codex-prompt.txt"),
+          "utf8",
+        );
+        const sessionsDir = path.join(
+          codexHomeDir,
+          "sessions",
+          "2026",
+          "03",
+          "21",
+        );
+        await mkdir(sessionsDir, { recursive: true });
+        await writeFile(
+          path.join(sessionsDir, "session.jsonl"),
+          [
+            JSON.stringify({
+              type: "session_meta",
+              payload: {
+                id: "session-tier3-1",
+                timestamp: "2026-03-21T12:00:00.000Z",
+                cwd: codexEnvironmentDir,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-21T12:00:00.100Z",
+              payload: {
+                type: "user_message",
+                message: stagedPrompt,
+              },
+            }),
+            JSON.stringify({
+              type: "event_msg",
+              timestamp: "2026-03-21T12:00:01.000Z",
+              payload: {
+                type: "task_complete",
+              },
+            }),
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      return "";
+    },
+    tmuxLeaderboardFetch: async () =>
+      new Response("[]\n", {
+        headers: {
+          "content-type": "application/json",
+        },
+        status: 200,
+      }),
+    tmuxSessionExists: async () => false,
+    logger() {
+      // Silence test logs.
+    },
+  });
+  t.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const response = await handler(
+    createSolveRequest({
+      authorization: "Bearer secret-token",
+      requestId: "req-http-tier3-fallback",
+      tripletexCredentials: {
+        base_url: "https://api.example.invalid/v2",
+        session_token: "session-token",
+      },
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    response.headers.get("x-tripletex2-run-id"),
+    "sandbox-http-tier3-fallback",
+  );
+  assert.equal(response.headers.get("x-tripletex2-runtime-status"), "completed");
+
+  const runDir = path.join(
+    dataRoot,
+    "testing",
+    "runs",
+    "sandbox-http-tier3-fallback",
+  );
+  await stat(path.join(runDir, "manifest.json"));
+  assert.equal(tmuxCommands.some((cmd) => cmd[1] === "new-window"), true);
+  assert.equal(
+    await exists(path.join(
+      tempRoot,
+      "runs",
+      "2026-03-21",
+      "run-sandbox-http-tier3-fallback.json",
+    )),
+    false,
+  );
+  },
+);
+
+test(
   "POST /solve in sandbox mode uses the tmux backend and waits for task_complete",
   { concurrency: false },
   async (t) => {
@@ -701,6 +841,15 @@ async function createSelectionConfigOverride(): Promise<{
       ),
     ),
   };
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function createFixtureTripletexFetch(): TripletexFetch {
