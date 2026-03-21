@@ -18,5 +18,17 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             replicate_budget=5,
             probe_first=True,
         )
+    if normalized == "exploration_r3":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3",
+            replicate_budget=3,
+            probe_first=True,
+        )
+    if normalized == "exploration_r1":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r1",
+            replicate_budget=1,
+            probe_first=True,
+        )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)
