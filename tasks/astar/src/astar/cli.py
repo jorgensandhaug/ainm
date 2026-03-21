@@ -114,6 +114,9 @@ from astar.student.predictor.observation_likelihood_mixture import (
 from astar.student.predictor.coefficient_inverse import (
     COEFF_INVERSE_MODEL_CHOICE_LIST,
 )
+from astar.student.predictor.spatial_observation_correction import (
+    SPATIAL_CORRECTION_MODEL_CHOICE_LIST,
+)
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -169,6 +172,7 @@ ONLINE_MODEL_CHOICES = [
     *SETTLEMENT_STATE_FIELD_BLEND_MODEL_CHOICE_LIST,
     *OBS_LIKELIHOOD_MIXTURE_MODEL_CHOICE_LIST,
     *COEFF_INVERSE_MODEL_CHOICE_LIST,
+    *SPATIAL_CORRECTION_MODEL_CHOICE_LIST,
     *sorted(QUERY_RESIDUAL_MODEL_NAMES, key=_model_choice_sort_key),
 ]
 PRIOR_AND_ONLINE_MODEL_CHOICES = [

@@ -128,6 +128,10 @@ from astar.student.predictor.coefficient_inverse import (
     is_coeff_inverse_model_name,
     resolve_coeff_inverse_samples_per_round,
 )
+from astar.student.predictor.spatial_observation_correction import (
+    is_spatial_correction_model_name,
+    resolve_spatial_correction_samples_per_round,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -968,7 +972,14 @@ def evaluate_model_on_round(
                                                                                         samples_per_round=samples_per_round,
                                                                                     )
                                                                                     if is_coeff_inverse_model_name(model_name)
-                                                                                    else None
+                                                                                    else (
+                                                                                        resolve_spatial_correction_samples_per_round(
+                                                                                            model_name,
+                                                                                            samples_per_round=samples_per_round,
+                                                                                        )
+                                                                                        if is_spatial_correction_model_name(model_name)
+                                                                                        else None
+                                                                                    )
                                                                                 )
                                                                             )
                                                                         )
@@ -1125,7 +1136,14 @@ def evaluate_model_on_round(
                                                                                         samples_per_round=samples_per_round,
                                                                                     )
                                                                                     if is_coeff_inverse_model_name(model_name)
-                                                                                    else None
+                                                                                    else (
+                                                                                        resolve_spatial_correction_samples_per_round(
+                                                                                            model_name,
+                                                                                            samples_per_round=samples_per_round,
+                                                                                        )
+                                                                                        if is_spatial_correction_model_name(model_name)
+                                                                                        else None
+                                                                                    )
                                                                                 )
                                                                             )
                                                                         )
