@@ -355,6 +355,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - for project-hour invoice tasks, do not assume a project-linked order with no real order lines can charge the project hour reserve; public verification left `includeHours=false` on the preliminary invoice and `PUT /order/{id}/:invoice` then failed with `422 Fakturaen inneholder ingen ordrelinjer.`
   - for fresh-account runs where `PUT /order/{id}/:invoice` is likely the first outgoing invoice of the run, a proactive `GET /ledger/account?isBankAccount=true&fields=*` is only a situational hedge against the missing-company-bank-account `422`, not the canonical exact path for this task shape; if you take that hedge and the chosen invoice account lacks `bankAccountNumber`, repair it first and then invoice once
   - if earlier steps in the same run already proved a valid company invoice bank account, skip that extra `/ledger/account` read
+  - do not send `project` inside `orderLines[]`; on 2026-03-21 the `Cloud-Migration Brückentor` production run failed `POST /order` with `422` because line-level `project` is not part of that object shape
   - for the exact project-first fixed-price partial-billing shape, branch on what that initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` already proves
   - if the same row already proves project + customer + manager and `fixedprice=<prompt-fixed-price>`, skip `PUT /project` and go straight to `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` for `4` total calls
   - that skip-`PUT /project` branch is now fully settled: there is still no safe `3`-call shortcut, because removing the initial `GET /project` removes the proof that the project state already matches, and removing `GET /ledger/vatType` risks the wrong VAT result on taxable accounts
@@ -414,6 +415,12 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - persistent sandbox on 2026-03-20 accepted that lower-call write shape but created a no-VAT invoice (`amountCurrency == amountExcludingVatCurrency`)
   - hardcoding `vatType.id=3` is not the safe shortcut either; accounts that only expose VAT code `6` on `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` reject hardcoded `3` with `422 ... Ugyldig mva-kode.`
   - the minimum safe path for direct taxable-service lines is still one filtered outgoing VAT read plus the invoice write
+- Standard project-lifecycle note:
+  - for the exact lifecycle shape `create customer + create two employees + create project + set budget + register hours + add one supplier cost + create one unsent customer invoice`, the lower-call downstream branch is direct `POST /invoice?sendToCustomer=false`, not `POST /order` plus `PUT /order/{id}/:invoice`
+  - persistent sandbox on 2026-03-21 re-proved that exact downstream write after setup with one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`, returning `projectInvoiceDetails.length == 1` and the expected `amountExcludingVatCurrency`
+  - that lifecycle invoice payload must include root `invoiceDate` and explicit root `invoiceDueDate`; omitting `invoiceDueDate` failed `422 invoiceDueDate: Kan ikke være null.`
+  - keep `project` on the embedded `orders[]` row itself, not inside the nested `orderLines[]`
+  - for this exact lifecycle family, a proactive `GET /ledger/account?isBankAccount=true&fields=*` remains the 0-error hedge on fresh accounts before the invoice write; if the chosen invoice account lacks `bankAccountNumber`, repair it first and continue with the same direct invoice payload
 - Standard create-and-send note:
   - `POST /invoice` defaults `sendToCustomer=true`
   - for the common create-and-send task shape, prefer that single write over `POST /invoice?sendToCustomer=false` plus a later `PUT /invoice/{id}/:send`

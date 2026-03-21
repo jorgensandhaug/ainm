@@ -31,6 +31,9 @@ Persistent-sandbox follow-up on 2026-03-21 showed:
 - a freshly created employee was not automatically assignable as project manager in persistent sandbox; `POST /project` failed with `projectManager.id: Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen`
 - `GET /employee?assignableProjectManagers=true` therefore remains a real gate, not just a convenience filter
 - the ordinary invoice branch still worked with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /order` -> `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`
+- persistent sandbox re-proof on 2026-03-21 then reduced that invoice branch one step further for this exact lifecycle family: after the same upstream setup, direct `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row with `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]` succeeded in 1 call and returned `projectInvoiceDetails.length == 1`
+- that same re-proof showed `invoiceDueDate` is mandatory on the direct lifecycle-invoice branch; omitting it failed with `422 invoiceDueDate: Kan ikke være null.`
+- the 2026-03-21 production run for `Cloud-Migration Brückentor` exposed a separate shape trap: `project` is valid on the surrounding `order`/`orders[]` object, but not on the nested `orderLines[]`; sending line-level `project` failed `422 field \"project\" does not exist in object`
 - timesheet entries must have dates on or after the project `startDate`; entries before the project start fail with `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
 - employee creation requires `department.id` in accounts with department functionality enabled; the 2026-03-21 production run for `System Upgrade Greenfield` hit `422 department.id: Feltet må fylles ut.` on the first `POST /employee` and timed out after failing to recover
 - `POST /employee` may also require `employments[].division.id`; persistent sandbox on 2026-03-21 required both `department.id` and `division.id`
@@ -68,8 +71,7 @@ The optimized path uses batch timesheet creation and proactive department/divisi
 6. `POST /timesheet/entry/list` with ALL entries for both employees + `POST /supplier` (parallel, 2 calls)
 7. `POST /project/orderline` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
 8. (conditional) `PUT /ledger/account/{id}` if bank account needs fixing (0 or 1 calls)
-9. `POST /order`
-10. `PUT /order/{id}/:invoice?invoiceDate=<invoice-date>&sendToCustomer=false`
+9. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`
 
 For the exact `System Upgrade Greenfield` arithmetic (`36h + 150h = 186h total`):
 - 2 prerequisite reads (department + division, parallel with customer)
@@ -84,11 +86,10 @@ For the exact `System Upgrade Greenfield` arithmetic (`36h + 150h = 186h total`)
 - 1 outgoing-VAT read (parallel with cost + bank)
 - 1 bank-account read (parallel with cost + VAT)
 - 0-1 bank-account fix
-- 1 order write
-- 1 invoice write
-- **total baseline: `15` calls, 0 errors** (or `16` with bank fix)
+- 1 direct invoice write
+- **total baseline: `14` calls, 0 errors** (or `15` with bank fix)
 
-Previous non-batched path was `18-21` calls. The batch `POST /timesheet/entry/list` saves 8 calls.
+Previous non-batched order-first path was `15-22` calls depending on extra lookups and bank recovery. The batch `POST /timesheet/entry/list` plus direct `POST /invoice` saves 9 calls versus the older unbatched flow, and 1 call versus the `POST /order` -> `PUT /order/:invoice` downstream branch.
 
 ## Critical Rules
 
@@ -99,6 +100,9 @@ Previous non-batched path was `18-21` calls. The batch `POST /timesheet/entry/li
 - **Department + Division**: for this multi-employee task shape, always read department and division proactively before the first `POST /employee`; if no department exists, create one with `POST /department`
 - **Timesheet dates**: all timesheet entry dates must be >= project `startDate`; use consecutive dates starting from the project start date, max 24 hours per entry per employee per date
 - **Batch timesheet**: use `POST /timesheet/entry/list` with an array of all entries for all employees; this is 1 API call regardless of entry count
+- **Lifecycle invoice**: on this exact family, prefer direct `POST /invoice?sendToCustomer=false` with embedded `orders[]`; do not default to `POST /order` -> `PUT /order/{id}/:invoice`
+- **Invoice due date**: the direct lifecycle-invoice branch requires explicit root `invoiceDueDate`; omitting it fails `422 invoiceDueDate: Kan ikke være null.`
+- **Manager lookup discipline**: if the prompt-created employees are only named for hours/roles, do not burn exact-email project-manager reads trying to make the new future project manager assignable; use one generic `GET /employee?assignableProjectManagers=true&count=1&fields=*`
 
 ## Conditional Branches
 
@@ -145,6 +149,34 @@ Direct budgeted project activity:
 }
 ```
 
+Direct lifecycle invoice:
+
+```json
+{
+  "invoiceDate": "2026-03-21",
+  "invoiceDueDate": "2026-04-04",
+  "customer": { "id": 12345 },
+  "orders": [
+    {
+      "customer": { "id": 12345 },
+      "project": { "id": 54321 },
+      "orderDate": "2026-03-21",
+      "deliveryDate": "2026-03-25",
+      "orderLines": [
+        {
+          "description": "Cloud-Migration Brückentor",
+          "count": 1,
+          "unitPriceExcludingVatCurrency": 262850,
+          "vatType": { "id": 6 }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Keep `project` on the embedded `orders[]` object, not on `orderLines[]`.
+
 Batch timesheet entries (POST /timesheet/entry/list):
 
 ```json
@@ -185,5 +217,8 @@ Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
 - Do not assume `vendor` will stay linked on the cheap cost-only project-orderline branch
 - Do not assume a newly created employee is automatically eligible as project manager
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try `POST /project` blindly
-- Do not recreate the order, project, or customer after the invoice bank-account `422`; repair the existing bank account and retry the same order invoice once
-- Do not spend verification reads by default after `POST /project/projectActivity`, `POST /project/orderline`, `POST /timesheet/entry/list`, `POST /order`, or `PUT /order/{id}/:invoice` when the write response already proves the scored side effects
+- Do not add exact-email reads for the prompt-named future project manager when the prompt only scores the created employees and hours; the lower-call proven branch is one generic assignable-manager read
+- Do not put `project` inside the nested `orderLines[]` object on the invoice/order payload; keep it only on the surrounding `order` / `orders[]` object
+- Do not omit root `invoiceDueDate` on the direct lifecycle-invoice branch
+- Do not recreate the invoice prerequisites after a bank-account validation failure; repair the existing bank account and retry the same direct invoice payload once
+- Do not spend verification reads by default after `POST /project/projectActivity`, `POST /project/orderline`, `POST /timesheet/entry/list`, or direct `POST /invoice` when the write response already proves the scored side effects
