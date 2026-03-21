@@ -49,6 +49,8 @@
 - `v101` / `v102`: test the stronger smoothing version of the same dual-expert routing idea with a `k=7` secondary expert and a slower distance ramp
 - `v103` / `v104`: far-unobserved cells may need a geometry-aware backup expert rather than just smoother temporal residuals, so route them to a semantic secondary encoder
 - `v105` / `v106`: test the same dual-expert routing idea with a simpler spatial secondary encoder instead of the semantic one
+- `v107` / `v108`: binary coverage routing saturated under full-budget coverage, so route by per-cell observation count instead and send lightly seen cells to a smoother temporal backup expert
+- `v109` / `v110`: test the same count-driven router with a semantic secondary encoder in case the remaining gap is encoder diversity plus count sensitivity
 
 ## Evaluation Rule
 

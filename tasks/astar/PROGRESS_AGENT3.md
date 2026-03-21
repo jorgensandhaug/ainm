@@ -3438,6 +3438,55 @@
    - machine remained healthy:
      - about `1.2 TiB` used
      - about `1.7 TiB` available
+390. Dual-student routing results landed:
+   - finished corrected-gate artifacts:
+     - `teacher_student_blend_v99`
+     - `teacher_student_blend_v100`
+     - `teacher_student_blend_v101`
+     - `teacher_student_blend_v102`
+     - `teacher_student_blend_v103`
+     - `teacher_student_blend_v104`
+     - `teacher_student_blend_v105`
+     - `teacher_student_blend_v106`
+   - aggregate results:
+     - `v99`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v100`: mean score `65.4188`, mean weighted KL `0.142051`
+     - `v101`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v102`: mean score `65.4188`, mean weighted KL `0.142051`
+     - `v103`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v104`: mean score `65.4188`, mean weighted KL `0.142051`
+     - `v105`: mean score `65.4649`, mean weighted KL `0.141802`
+     - `v106`: mean score `65.4188`, mean weighted KL `0.142051`
+391. Read from item 390:
+   - binary observed/unobserved routing is completely saturated on this corrected gate
+   - coverage-distance routing adds no headroom once the coverage policy has effectively touched almost the entire map
+   - encoder diversity also stays inert under that binary router, so the next router must depend on observation count intensity rather than coverage reach
+392. Resource cleanup after item 390:
+   - killed stale finished gate processes for `v101-v106`
+   - killed dominated old full LOO runs for `v51`, `v52`, and `v60`
+   - kept `v59` full LOO alive as the only remaining anchor full run
+393. New hypothesis after item 391:
+   - the right cellwise router is observation-count driven: unobserved and lightly seen cells go to a backup expert, while heavily revisited cells stay on the sharp primary expert
+394. Implemented observation-count-routed dual-student variants:
+   - new variants:
+     - `teacher_student_blend_v107`
+     - `teacher_student_blend_v108`
+     - `teacher_student_blend_v109`
+     - `teacher_student_blend_v110`
+   - mapping:
+     - `v107` = `v59` backbone + temporal `k=5` secondary expert + observation-count route scale `3.0`
+     - `v108` = `v60` backbone + temporal `k=5` secondary expert + observation-count route scale `3.0`
+     - `v109` = `v59` backbone + semantic `k=5` secondary expert + observation-count route scale `3.0`
+     - `v110` = `v60` backbone + semantic `k=5` secondary expert + observation-count route scale `3.0`
+   - architecture extension:
+     - added secondary route modes
+     - `coverage_distance` stays available
+     - `observation_count` now routes by per-cell observed sample count instead of binary coverage
+395. Validation for item 394:
+   - focused command:
+     - `uv run pytest tests/test_teacher_student.py::test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_observed tests/test_teacher_student.py::test_summary_bank_secondary_student_count_route_prefers_smoother_low_count_cells tests/test_historical_benchmark.py::test_teacher_student_blend_v108_online_historical_benchmark_defaults_to_samples_4 tests/test_historical_benchmark.py::test_teacher_student_blend_v110_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `4 passed`
 
 
 ## Open Questions

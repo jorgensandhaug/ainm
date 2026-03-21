@@ -767,7 +767,10 @@ def test_summary_bank_local_blur_evidence_respects_class_scale() -> None:
 
 def test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_observed() -> None:
     from astar.observe.evidence import SeedEvidenceBundle
-    from astar.student.predictor.summary_bank import _secondary_student_weight_map
+    from astar.student.predictor.summary_bank import (
+        SECONDARY_ROUTE_COVERAGE_DISTANCE,
+        _secondary_student_weight_map,
+    )
 
     count_tensor = np.zeros((5, 5, 6), dtype=np.int64)
     count_tensor[2, 2, 2] = 4
@@ -795,12 +798,55 @@ def test_summary_bank_secondary_student_weight_map_prefers_smoother_far_from_obs
         observed_class_count_tensor=count_tensor,
     )
 
-    weight_map = _secondary_student_weight_map(seed_evidence, distance_scale=2.0)
+    weight_map = _secondary_student_weight_map(
+        seed_evidence,
+        route_mode=SECONDARY_ROUTE_COVERAGE_DISTANCE,
+        distance_scale=2.0,
+        count_scale=0.0,
+    )
 
     assert weight_map.shape == (5, 5, 1)
     assert weight_map[2, 2, 0] == 0.0
     assert 0.0 < weight_map[2, 3, 0] < 1.0
     assert weight_map[0, 0, 0] == 1.0
+
+
+def test_summary_bank_secondary_student_count_route_prefers_smoother_low_count_cells() -> None:
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.summary_bank import (
+        SECONDARY_ROUTE_OBSERVATION_COUNT,
+        _secondary_student_weight_map,
+    )
+
+    count_tensor = np.zeros((2, 2, 6), dtype=np.int64)
+    count_tensor[0, 0, 2] = 3
+    count_tensor[0, 1, 2] = 1
+    observed_class_counts = np.sum(count_tensor, axis=(0, 1))
+    observed_class_frequencies = observed_class_counts.astype(np.float64) / float(
+        np.sum(observed_class_counts),
+    )
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=4,
+        repeated_window_groups=0,
+        coverage_counts=np.asarray([[1, 1], [0, 0]], dtype=np.int64),
+        observed_class_counts=observed_class_counts,
+        observed_class_frequencies=observed_class_frequencies,
+        observed_class_count_tensor=count_tensor,
+    )
+
+    weight_map = _secondary_student_weight_map(
+        seed_evidence,
+        route_mode=SECONDARY_ROUTE_OBSERVATION_COUNT,
+        distance_scale=0.0,
+        count_scale=3.0,
+    )
+
+    assert weight_map.shape == (2, 2, 1)
+    assert weight_map[0, 0, 0] == 0.0
+    assert 0.0 < weight_map[0, 1, 0] < 1.0
+    assert weight_map[1, 0, 0] == 1.0
 
 
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(

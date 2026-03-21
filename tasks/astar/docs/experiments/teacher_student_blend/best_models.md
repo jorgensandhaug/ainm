@@ -53,7 +53,8 @@ Current read:
 - `v59` is the new corrected-gate leader and `v60` is essentially tied behind it
 - `v95/v97` say the old smoother-neighbor hypothesis is nearly neutral even after exact local evidence; it still does not beat `v59`
 - `v97` got within `0.0094` score of `v59`, so unobserved-cell smoothing still looks directionally useful but scalar `k` changes alone are too weak
-- next branch is a true two-expert mixture: keep the sharp `k=1` expert on observed / near-observed cells and route farther unobserved cells to a smoother secondary student
+- `v99-v106` all tied `v59/v60` exactly, so binary observed/unobserved and coverage-distance routing are fully saturated under 50-query coverage on this gate
+- the next branch is count-driven dual-expert routing: use per-cell observation count, not binary coverage, so lightly seen cells can still route to the backup expert even when the map is broadly covered
 - the exact-local-evidence win kept moving in the same direction: lower shrinkage beat `v51/v52` again
 - pushing the same beta schedule further down (`v63/v64`) was still decent but clearly worse than `v59/v60`
 - making the posterior almost count-dominated (`v65/v66`) collapsed badly
@@ -94,9 +95,9 @@ Active queue now includes:
 
 Pending corrected-gate results:
 
-- `teacher_student_blend_v99`
-- `teacher_student_blend_v100`
-- `teacher_student_blend_v101`
-- `teacher_student_blend_v102`
+- `teacher_student_blend_v107`
+- `teacher_student_blend_v108`
+- `teacher_student_blend_v109`
+- `teacher_student_blend_v110`
 
 Use [PROGRESS_AGENT3.md](/home/jorge/agent3/tasks/astar/PROGRESS_AGENT3.md) for the timestamped ledger and artifact paths.

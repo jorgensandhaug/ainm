@@ -148,10 +148,16 @@ SUMMARY_BANK_STUDENT_V103 = "teacher_student_blend_v103"
 SUMMARY_BANK_STUDENT_V104 = "teacher_student_blend_v104"
 SUMMARY_BANK_STUDENT_V105 = "teacher_student_blend_v105"
 SUMMARY_BANK_STUDENT_V106 = "teacher_student_blend_v106"
+SUMMARY_BANK_STUDENT_V107 = "teacher_student_blend_v107"
+SUMMARY_BANK_STUDENT_V108 = "teacher_student_blend_v108"
+SUMMARY_BANK_STUDENT_V109 = "teacher_student_blend_v109"
+SUMMARY_BANK_STUDENT_V110 = "teacher_student_blend_v110"
 BLEND_MODE_GLOBAL = "global"
 BLEND_MODE_SPATIAL_DYNAMIC = "spatial_dynamic"
 TEACHER_WEIGHT_MODE_ROUND_TOTAL = "round_total_queries"
 TEACHER_WEIGHT_MODE_SEED_ADAPTIVE = "seed_adaptive"
+SECONDARY_ROUTE_COVERAGE_DISTANCE = "coverage_distance"
+SECONDARY_ROUTE_OBSERVATION_COUNT = "observation_count"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
     {
         SUMMARY_BANK_STUDENT_ALIAS,
@@ -261,6 +267,10 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V104,
         SUMMARY_BANK_STUDENT_V105,
         SUMMARY_BANK_STUDENT_V106,
+        SUMMARY_BANK_STUDENT_V107,
+        SUMMARY_BANK_STUDENT_V108,
+        SUMMARY_BANK_STUDENT_V109,
+        SUMMARY_BANK_STUDENT_V110,
     },
 )
 
@@ -293,7 +303,9 @@ class SummaryBankVariantSpec(BaseModel):
     local_blur_class_scale: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
     residual_confidence_power: float = Field(default=0.0, ge=0.0)
     secondary_k_neighbors: int | None = Field(default=None, ge=1)
+    secondary_route_mode: str = SECONDARY_ROUTE_COVERAGE_DISTANCE
     secondary_distance_scale: float = Field(default=0.0, ge=0.0)
+    secondary_count_scale: float = Field(default=0.0, ge=0.0)
     secondary_summary_encoder: str | None = None
 
 
@@ -424,6 +436,10 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V104: 4,
         SUMMARY_BANK_STUDENT_V105: 4,
         SUMMARY_BANK_STUDENT_V106: 4,
+        SUMMARY_BANK_STUDENT_V107: 4,
+        SUMMARY_BANK_STUDENT_V108: 4,
+        SUMMARY_BANK_STUDENT_V109: 4,
+        SUMMARY_BANK_STUDENT_V110: 4,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -640,6 +656,92 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v105 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V106 and effective_samples_per_round != 4:
         raise ValueError("teacher_student_blend_v106 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V107 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v107 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V108 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v108 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V109 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v109 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V110 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v110 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V110:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_route_mode=SECONDARY_ROUTE_OBSERVATION_COUNT,
+            secondary_count_scale=3.0,
+            secondary_summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V109:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_route_mode=SECONDARY_ROUTE_OBSERVATION_COUNT,
+            secondary_count_scale=3.0,
+            secondary_summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V108:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.75,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_SPATIAL_DYNAMIC,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_route_mode=SECONDARY_ROUTE_OBSERVATION_COUNT,
+            secondary_count_scale=3.0,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V107:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=1,
+            teacher_weight_max=0.72,
+            query_count_scale=10.0,
+            summary_encoder=SUMMARY_ENCODER_TEMPORAL_V4,
+            normalize_summary=True,
+            inference_head=SUMMARY_HEAD_COEFFICIENT_RESIDUAL_KNN,
+            ridge_alpha=2.0,
+            blend_mode=BLEND_MODE_GLOBAL,
+            use_exact_local_evidence=True,
+            local_evidence_beta_min=2.0,
+            local_evidence_beta_scale=8.0,
+            secondary_k_neighbors=5,
+            secondary_route_mode=SECONDARY_ROUTE_OBSERVATION_COUNT,
+            secondary_count_scale=3.0,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V106:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -2524,8 +2626,23 @@ def _load_or_build_synthetic_dataset(
 def _secondary_student_weight_map(
     seed_evidence: SeedEvidenceBundle,
     *,
+    route_mode: str,
     distance_scale: float,
+    count_scale: float,
 ) -> np.ndarray:
+    if route_mode == SECONDARY_ROUTE_OBSERVATION_COUNT:
+        total_count = np.sum(
+            np.asarray(seed_evidence.observed_class_count_tensor, dtype=np.float64),
+            axis=-1,
+            dtype=np.float64,
+        )
+        if count_scale <= 0.0:
+            secondary_weight = (total_count <= 0.0).astype(np.float64)
+        else:
+            secondary_weight = np.clip(1.0 - (total_count / count_scale), 0.0, 1.0)
+        return np.asarray(secondary_weight[:, :, None], dtype=np.float64)
+    if route_mode != SECONDARY_ROUTE_COVERAGE_DISTANCE:
+        raise ValueError(f"unsupported secondary routing mode: {route_mode}")
     coverage = np.asarray(seed_evidence.coverage_counts, dtype=np.float64)
     observed = coverage > 0.0
     unobserved = (1.0 - observed.astype(np.float64))[:, :, None]
@@ -2565,7 +2682,9 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
     local_blur_strength: float = Field(default=0.0, ge=0.0)
     local_blur_use_geometry_gate: bool = False
     local_blur_class_scale: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+    secondary_route_mode: str = SECONDARY_ROUTE_COVERAGE_DISTANCE
     secondary_distance_scale: float = Field(default=0.0, ge=0.0)
+    secondary_count_scale: float = Field(default=0.0, ge=0.0)
 
     def _local_blur_spatial_gate(
         self,
@@ -2697,7 +2816,9 @@ class SummaryBankRoundPredictor(BaseRoundPredictor):
         secondary_prediction = self.secondary_student.predict_seed(context, seed_index)
         secondary_weight = _secondary_student_weight_map(
             context.evidence_bundle.per_seed[seed_index],
+            route_mode=self.secondary_route_mode,
             distance_scale=self.secondary_distance_scale,
+            count_scale=self.secondary_count_scale,
         )
         return np.asarray(
             ((1.0 - secondary_weight) * primary_prediction)
@@ -2923,7 +3044,9 @@ def load_or_fit_named_summary_bank_predictor(
         local_blur_strength=spec.local_blur_strength,
         local_blur_use_geometry_gate=spec.local_blur_use_geometry_gate,
         local_blur_class_scale=spec.local_blur_class_scale,
+        secondary_route_mode=spec.secondary_route_mode,
         secondary_distance_scale=spec.secondary_distance_scale,
+        secondary_count_scale=spec.secondary_count_scale,
     )
 
 
