@@ -182,14 +182,13 @@
 - create an unsent project invoice to the customer based on registered hours
 
 ### Create From Scratch Flow
-1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` (parallel, 3 calls)
+1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?number=1920&fields=id,number,name,isBankAccount,bankAccountNumber` (parallel, 5 calls — vatType and account have no deps, moving them here saves sequential steps)
 2. `POST /employee` + `POST /project` (parallel, 2 calls — all deps from step 1)
-3. `POST /project/projectActivity` + `POST /project/participant` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?number=1920&fields=id,number,name,isBankAccount,bankAccountNumber` (parallel, 4 calls)
-4. `POST /timesheet/entry/list` (1 call — needs activity ID from step 3)
-5. (conditional) `PUT /ledger/account/{id}` if bank account 1920 lacks `bankAccountNumber` (0-1 calls)
-6. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and embedded `orders[]` (1 call)
+3. `POST /project/projectActivity` + `POST /project/participant` (parallel, 2 calls) — if bank fix needed, add `PUT /ledger/account` here too (3 calls)
+4. `POST /timesheet/entry/list` + `POST /invoice?sendToCustomer=false` (parallel, 2 calls — invoice does NOT depend on timesheet; both need project+activity from step 3; sandbox-verified 2026-03-21)
 
-Call count: **11 calls** (12 with bank fix), 0 errors.
+Call count: **11 calls** (12 with bank fix), 0 errors, **4 sequential steps** (vs 6 in the old layout).
+Without participant: **10 calls** (11 with bank fix), 0 errors.
 
 ### Create From Scratch Key Differences From Existing-Entity Flow
 - uses direct `POST /invoice?sendToCustomer=false` instead of `POST /order` + `PUT /order/:invoice` (saves 1 call)
@@ -214,5 +213,11 @@ Call count: **11 calls** (12 with bank fix), 0 errors.
 
 ### Create From Scratch Production Confirmations
 - the 2026-03-21 production German run `Nordlicht GmbH` / `936514200` / `Datenmigration` / `laura.muller@example.org` / `Rådgivning` / `20` hours / `1550` completed in `11` calls with `0` errors; direct `POST /invoice` returned `amountExcludingVatCurrency=31000` with `projectInvoiceDetails.length=1`; bank account 1920 already had `bankAccountNumber` so no fix needed
+- the 2026-03-21 production French run `Océan SARL` / `953748460` / `Mise à niveau système` / `camille.dubois@example.org` / `Design` / `16` hours / `1300` completed in `12` calls with `0` errors (11 base + 1 bank fix); invoice returned `amountExcludingVatCurrency=20800` with `projectInvoiceDetails.length=1`; however, this run omitted `isFixedPrice: true` and `fixedprice: 20800` from `POST /project` — these SHOULD have been included per the standard; the run also unnecessarily split 16 hours into 7.5+7.5+1.0 across 3 entries instead of using a single 16h entry (<=24h fits in one entry)
 - persistent-sandbox re-proof on 2026-03-21 confirmed the 11-call create-from-scratch flow with direct `POST /invoice`, returning `amountExcludingVatCurrency=15500` (10h × 1550) and `projectInvoiceDetails.length=1`
 - persistent-sandbox re-proof on 2026-03-21 confirmed the 10-call path (without `POST /project/participant`) also works: timesheet entries succeed without participant membership, and the invoice is created correctly with `projectInvoiceDetails.length=1`
+- persistent-sandbox re-proof on 2026-03-22 confirmed:
+  - `isFixedPrice: true` + `fixedprice: 20800` correctly persists on the project response
+  - single 16h entry succeeds in `POST /timesheet/entry/list` (no splitting needed for <=24h)
+  - `POST /timesheet/entry/list` and `POST /invoice?sendToCustomer=false` can run in **parallel** (invoice does not depend on timesheet entries existing); this reduces the 11-call path from 6 sequential steps to 4
+  - the optimized 10-call path without participant: 5 (step 1) + 2 (step 2) + 1 (step 3) + 2 parallel (step 4) = 10 calls, 4 sequential steps, 0 errors

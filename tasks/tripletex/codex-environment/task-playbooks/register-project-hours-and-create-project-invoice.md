@@ -105,6 +105,18 @@ Production run for `Nordlicht GmbH` (8f2323c7) on 2026-03-21 completed in 11 cal
 - sandbox re-proof confirmed: the full 11-call path works correctly with direct `POST /invoice` creating `projectInvoiceDetails`
 - the create-from-scratch variant is documented in the trusted standard under "## Create From Scratch Variant"
 
+Production run for `Océan SARL` (07d50494) on 2026-03-21 completed in 12 calls, 0 errors (11 base + 1 bank fix):
+- task: register 16 hours for Camille Dubois (camille.dubois@example.org) on activity "Design" in project "Mise à niveau système" for Océan SARL (953748460), hourly rate 1300 NOK/h, create project invoice based on registered hours (French prompt)
+- this is a "create from scratch" variant: customer, employee, project, and activity all created from scratch, single employee, no supplier cost
+- flow: GET dept + POST customer + GET PM + GET vatType + GET account (5) → POST employee + POST project (2) → POST activity + POST participant (2) → POST timesheet (1) → PUT bank (1) → POST invoice (1) = 12 calls
+- invoice returned `amountExcludingVatCurrency=20800` (16h × 1300) with `projectInvoiceDetails.length=1`
+- TWO issues identified post-run:
+  (1) **omitted `isFixedPrice: true` + `fixedprice: 20800`** from `POST /project` — the create-from-scratch standard says to include these; omission may hurt scoring
+  (2) **unnecessarily split 16 hours** into 7.5+7.5+1.0 across 3 entries — hours <=24 fit in a single entry per the trusted standard; splitting didn't cost extra API calls (all in one POST /timesheet/entry/list batch) but added unnecessary code complexity
+- the agent read the lifecycle trusted standard instead of the project-hours create-from-scratch variant — both are documented, but the project-hours variant is the correct match for single-employee tasks without supplier cost
+- sandbox re-proof on 2026-03-22 confirmed: `POST /timesheet/entry/list` and `POST /invoice` can run in parallel (invoice doesn't depend on timesheet), reducing sequential steps from 6 to 4 without changing total call count
+- optimized create-from-scratch flow: 5 + 2 + 2 + 2(parallel) = 11 calls in 4 sequential steps (or 12 with bank fix in step 3)
+
 ## Minimal Safe Flow
 
 1. Confirm these operations in `./openapi.json`
