@@ -162,6 +162,15 @@ Observed production confirmation on 2026-03-21:
 - the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
 - this is the eighth overall production confirmation of the 2-call path
 
+Observed production confirmation on 2026-03-21:
+- exact prompt shape `customer.organizationNumber=823566441` + `amountExcludingVatCurrency=29500` + line text `Wartung` (German prompt)
+- the run finished in the canonical 2-call path:
+  - one decisive `GET /invoice?customerOrgNumber=823566441&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=1` (single invoice for this customer)
+  - invoice `2147572108` with `amountCurrency=36875` and `amountExcludingVatCurrency=29500`
+  - one `PUT /ledger/voucher/608890368/:reverse?date=2026-03-21` produced reverse voucher `609174125`
+- the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
+- this is the ninth overall production confirmation of the 2-call path and the first German-prompt confirmation
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
