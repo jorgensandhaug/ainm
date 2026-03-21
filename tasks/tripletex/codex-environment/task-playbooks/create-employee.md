@@ -81,6 +81,8 @@ Run 2026-03-21 (Ingrid Johansen, Norwegian prompt): 4 calls, 1 error — dept-re
 
 Run 2026-03-21 (Geir Neset, Nynorsk prompt): 4 calls, 1 error — dept-repair branch (pre-discovery); with `?fields=*,employments(*)` would have been 3 calls + 1 error
 
+Run 2026-03-21 (Astrid Nilsen, Norwegian prompt): 3 calls, 1 error — dept-repair branch; first run to use `?fields=*,employments(*)` in production, saving 1 call vs pre-discovery flow; confirms the no-verification-GET path works end-to-end
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
