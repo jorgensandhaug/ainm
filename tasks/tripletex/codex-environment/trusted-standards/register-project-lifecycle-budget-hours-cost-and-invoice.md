@@ -22,14 +22,13 @@
 3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs
 4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager
 
-## Standard Flow (16 calls, 0 errors)
+## Standard Flow (16 calls, 5 sequential steps, 0 errors)
 
-1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` (3 parallel)
-2. `POST /employee/list` (both employees in one batch) + `POST /project` with `isFixedPrice: true` + `fixedprice` (2 parallel)
+1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (6 parallel — frontload ALL reads)
+2. `POST /employee/list` (both employees in one batch) + `POST /project` with `isFixedPrice: true` + `fixedprice` + (if 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`) (2-3 parallel)
 3. `POST /project/projectActivity` with `budgetHours` + `POST /project/participant` (PM, `adminAccess: true`) + `POST /project/participant` (other, `adminAccess: false`) (3 parallel)
-4. `POST /timesheet/entry/list` + `POST /supplier` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `POST /project/orderline` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (6 parallel)
-5. `POST /ledger/voucher` + (if 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`) (1-2 parallel)
-6. `POST /invoice?sendToCustomer=false` (1 call)
+4. `POST /timesheet/entry/list` + `POST /supplier` + `POST /project/orderline` (3 parallel)
+5. `POST /ledger/voucher` + `POST /invoice?sendToCustomer=false` (2 parallel — voucher and invoice are independent)
 
 ## Payload Shapes
 

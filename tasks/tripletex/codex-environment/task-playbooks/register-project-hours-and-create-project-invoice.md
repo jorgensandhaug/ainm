@@ -105,6 +105,17 @@ Production run for `Nordlicht GmbH` (8f2323c7) on 2026-03-21 completed in 11 cal
 - sandbox re-proof confirmed: the full 11-call path works correctly with direct `POST /invoice` creating `projectInvoiceDetails`
 - the create-from-scratch variant is documented in the trusted standard under "## Create From Scratch Variant"
 
+Production run for `Sonnental GmbH` (1fe7fd31) on 2026-03-21 completed in 12 calls, 0 errors (11 base + 1 bank fix):
+- task: register 33 hours for Paul Müller (paul.muller@example.org) on activity "Testing" in project "Datenmigration" for Sonnental GmbH (839389701), hourly rate 900 NOK/h, create project invoice based on registered hours (German prompt)
+- this is a "create from scratch" variant: customer, employee, project, and activity all created from scratch, single employee, no supplier cost
+- flow: GET dept + POST customer + GET PM (3) → POST employee + POST project (2) → POST activity + POST participant (2) → POST timesheet + GET vatType + GET account (3) → PUT bank (1) → POST invoice (1) = 12 calls, 6 sequential steps
+- invoice returned `amountExcludingVatCurrency=29700` (33h × 900) with `projectInvoiceDetails.length=1`
+- TWO suboptimalities identified post-run:
+  (1) **6 sequential steps instead of 4**: vatType and account reads (no dependencies) were placed in step 4 instead of step 1; invoice was sequential after timesheet instead of parallel; the optimal 4-step layout moves vatType+account to step 1 and runs timesheet+invoice in parallel at step 4
+  (2) **used `adminAccess: true`** on POST /project/participant instead of the standard's `adminAccess: false` — this task shape does NOT designate the employee as project manager, so `false` is correct; using `true` did not cause errors but is semantically wrong
+- the agent correctly matched this to the create-from-scratch variant and used direct `POST /invoice`, `POST /timesheet/entry/list` batch, `isFixedPrice: true` + `fixedprice: 29700`, `budgetHours: 33`, and UTC-safe date splitting
+- sandbox re-proof on 2026-03-22 confirmed: the 4-step layout (11 calls without bank fix, 12 with) works with 0 errors; timesheet + invoice run in parallel; 10-call path without participant also works
+
 Production run for `Océan SARL` (07d50494) on 2026-03-21 completed in 12 calls, 0 errors (11 base + 1 bank fix):
 - task: register 16 hours for Camille Dubois (camille.dubois@example.org) on activity "Design" in project "Mise à niveau système" for Océan SARL (953748460), hourly rate 1300 NOK/h, create project invoice based on registered hours (French prompt)
 - this is a "create from scratch" variant: customer, employee, project, and activity all created from scratch, single employee, no supplier cost
