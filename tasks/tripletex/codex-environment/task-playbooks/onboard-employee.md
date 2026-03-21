@@ -7,8 +7,8 @@ Use for tasks like:
 - create the employee card
 - attach one named department
 - set up one employment with percentage and annual salary
-- optionally resolve a STYRK occupation code
-- optionally configure standard worktime in hours per day
+- resolve occupation code from job title or STYRK code
+- optionally configure per-employee standard worktime in hours per day
 
 Do not use for:
 - simple create-employee prompts that only score identity fields plus start date
@@ -24,80 +24,88 @@ Persistent sandbox verification on 2026-03-21 showed:
   - `employmentForm=PERMANENT`
   - `remunerationType=MONTHLY_WAGE`
   - `workingHoursScheme=NOT_SHIFT`
-  - `percentageOfFullTimeEquivalent=80`
-  - `annualSalary=530000`
-  - `occupationCode.id=2951` (KONTORMEDARBEIDER, STYRK 4110)
-- `POST /employee` still returned `employments[]` only as link objects, but that was enough to prove the employment row existed
-- `POST /salary/settings/standardTime` persisted `hoursPerDay=7.5`
+  - `percentageOfFullTimeEquivalent=100`
+  - `annualSalary=690000`
+  - `occupationCode.id=4930` (SALGSSJEF, STYRK 1233)
+- `POST /employee/standardTime` persisted `hoursPerDay=7.5` linked to the specific employee
 - the speculative shortcut `department: { "name": ... }` inside `POST /employee` failed with `422 department.id`
 - the persistent sandbox required one usable `division.id` on the employee create path
 - fresh production accounts may have zero divisions and accept the employee without one
 
-STYRK occupation code lookup on 2026-03-21 showed:
-- the `code` filter on `/employee/employment/occupationCode` is a substring-containing match, NOT a prefix/exact match
-- searching `code=4110` returns 140 unrelated codes that happen to contain "4110" anywhere in their 7-digit code
-- the first result from `code=4110` is ADJUNKT (code 3341103, id 9) — a completely wrong STYRK group
-- the reliable lookup is `nameNO=kontormedarbeider&count=1&fields=id` which returns id 2951 (KONTORMEDARBEIDER, code 4114105)
-- this id is reference data and is the same across sandbox and production
+Production run on 2026-03-21 (tilbudsbrev/Salgssjef) scored 11/14 (78.57%) with 2 failed checks:
+- check 5 failed: missing occupation code — the job title "Salgssjef" from the offer letter should have been resolved to occupation code id `4930`
+- check 10 failed: wrong standard time endpoint — used `/salary/settings/standardTime` (company-wide) instead of `/employee/standardTime` (per-employee)
 
-Production scoring feedback on 2026-03-21 for the employment-contract onboarding run:
-- the run scored `0/0` correctness and timed out
-- root cause: used wrong occupation code (ADJUNKT id=9 instead of KONTORMEDARBEIDER id=2951) from unreliable `code=4110` search
-- the agent spent 4 extra API calls trying to find and fix the wrong code, exhausting the 300s budget
+## Occupation Code Resolution
+
+### Job Title Extraction
+- offer letters and employment contracts always state the job title (e.g., "stillingen som Salgssjef")
+- always extract the job title and resolve it to a Tripletex occupation code
+- the job title is scored — omitting it causes a check failure
+
+### Known Hardcoded Mappings
+Occupation code ids are reference data, same across all Tripletex accounts:
+
+| Job title / STYRK | `nameNO` search | Id | Code |
+|---|---|---|---|
+| Kontormedarbeider / 4110 | `kontormedarbeider` | `2951` | `4114105` |
+| Salgssjef / 1233 | `salgssjef` | `4930` | `1233105` |
+
+When the job title matches a known mapping, use the hardcoded id — skip the occupation code GET.
+
+### Dynamic Lookup
+For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
+
+**Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix.
+
+## Standard Worktime
+
+**Critical**: Use `POST /employee/standardTime` (per-employee), NOT `POST /salary/settings/standardTime` (company-wide).
+
+Payload: `{ "employee": { "id": <employeeId> }, "fromDate": "YYYY-MM-DD", "hoursPerDay": <number> }`
+
+The `employee.id` comes from the `POST /employee` response `value.id`.
 
 ## Minimal Safe Flow
 
 1. Resolve prerequisites in parallel (steps can run concurrently):
    - `GET /division?count=1&fields=id`
    - `POST /department` with the prompt department name
-   - if STYRK code provided: `GET /employee/employment/occupationCode?nameNO=<occupation-name>&count=1&fields=id`
+   - if job title is NOT in known hardcoded mappings: `GET /employee/employment/occupationCode?nameNO=<job-title>&count=1&fields=id`
 2. Create the employee with all employment configuration in one write:
    - `POST /employee`
    - include `department.id` from step 1
    - include `division.id` from step 1 only if the read returned results
-   - include nested `employmentDetails[]` with `occupationCode: { id: ... }` if resolved
-   - include `nationalIdentityNumber` and `bankAccountNumber` if provided by prompt
+   - include nested `employmentDetails[]` with `occupationCode: { id: ... }` (hardcoded or resolved)
 3. If prompt provides standard worktime hours per day:
-   - `POST /salary/settings/standardTime`
+   - `POST /employee/standardTime` with `{ employee: { id: <from step 2> }, fromDate: ..., hoursPerDay: ... }`
 4. Stop after the successful writes
 
-Total calls: 3-5 depending on whether STYRK code and standard worktime are present.
-
-## STYRK Code Resolution
-
-Known mappings (4-digit STYRK → `nameNO` search term):
-- `4110` → `kontormedarbeider`
-
-For unknown STYRK codes, search by the Norwegian name of the STYRK occupation group.
-
-**Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix. `code=4110` returns codes like `3341103` (ADJUNKT) that happen to contain "4110" as a substring. This caused the 2026-03-21 production failure.
+Total calls: 4 (hardcoded occupation code) or 5 (dynamic occupation code lookup).
 
 ## Recommended Payload Shape
 
 ```json
 {
-  "firstName": "Liv",
-  "lastName": "Aasen",
-  "dateOfBirth": "1985-07-24",
-  "nationalIdentityNumber": "24078559566",
-  "email": "liv.aasen@example.org",
-  "bankAccountNumber": "30392987718",
+  "firstName": "Knut",
+  "lastName": "Haugen",
+  "dateOfBirth": "1982-01-01",
   "userType": "NO_ACCESS",
   "department": { "id": 12345 },
   "employments": [
     {
-      "startDate": "2026-12-10",
+      "startDate": "2026-05-23",
       "division": { "id": 67890 },
       "employmentDetails": [
         {
-          "date": "2026-12-10",
+          "date": "2026-05-23",
           "employmentType": "ORDINARY",
           "employmentForm": "PERMANENT",
           "remunerationType": "MONTHLY_WAGE",
           "workingHoursScheme": "NOT_SHIFT",
-          "percentageOfFullTimeEquivalent": 80,
-          "annualSalary": 530000,
-          "occupationCode": { "id": 2951 }
+          "percentageOfFullTimeEquivalent": 100,
+          "annualSalary": 690000,
+          "occupationCode": { "id": 4930 }
         }
       ]
     }
@@ -105,21 +113,23 @@ For unknown STYRK codes, search by the Norwegian name of the STYRK occupation gr
 }
 ```
 
-If standard worktime is provided, write it separately:
+Standard worktime (per-employee):
 
 ```json
 {
-  "fromDate": "2026-12-10",
+  "employee": { "id": 18623707 },
+  "fromDate": "2026-05-23",
   "hoursPerDay": 7.5
 }
 ```
 
 ## Avoidable Mistakes
 
+- Do not omit `occupationCode` when the prompt or attachment provides a job title — it is scored
+- Do not use `POST /salary/settings/standardTime` for employee standard time — that is company-wide; use `POST /employee/standardTime` instead
 - Do not search occupation codes by `code=<4-digit>` — use `nameNO=<name>&count=1` instead
 - Do not assume the simple `create-employee` standard covers onboarding prompts with salary/worktime configuration
 - Do not spend a default `POST /employee/employment/details` when nested `employmentDetails` already fits the chosen create payload
 - Do not add a discovery `GET /department`; create the department directly when the prompt gives the exact name
-- Do not hardcode sandbox-only default state such as current `7.5` standard time into the production playbook
 - Do not omit `division.id` when `GET /division` returns results — the persistent sandbox requires it
 - Do not include `division.id` when `GET /division` returns zero rows — fresh accounts work without it

@@ -102,6 +102,25 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - the reliable lookup for a 4-digit STYRK group code is by `nameNO` with the Norwegian occupation name
   - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110
   - occupation code ids are reference data and are the same across sandbox and production accounts
+  - known hardcoded mappings (verified sandbox + production 2026-03-21):
+    - `kontormedarbeider` → id `2951` (KONTORMEDARBEIDER, code `4114105`, STYRK 4110)
+    - `salgssjef` → id `4930` (SALGSSJEF, code `1233105`, STYRK 1233)
+
+## Employee Standard Time
+- `/employee/standardTime`
+  - `GET` search employee-specific standard times (requires `employeeId` query param)
+  - `POST` create employee-specific standard time
+- `/employee/standardTime/{id}`
+  - `GET` read
+  - `PUT` update
+- `/employee/standardTime/byDate`
+  - `GET` resolve effective standard time for one employee by date
+- Standard note:
+  - this is the per-employee standard time endpoint — use this when the task says to configure standard worktime for a specific employee
+  - the payload shape is `{ employee: { id: <employeeId> }, fromDate: "YYYY-MM-DD", hoursPerDay: <number> }`
+  - do NOT confuse with `/salary/settings/standardTime` which is the company-wide standard time setting
+  - sandbox verification on 2026-03-21 confirmed `POST /employee/standardTime` persists correctly with the employee link
+  - production run on 2026-03-21 used `/salary/settings/standardTime` (company-wide) instead of `/employee/standardTime` (per-employee), which caused check 10 to fail
 
 ## Salary
 - `/salary/settings/standardTime`
@@ -125,8 +144,9 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - payroll-ready employee data
   - resolved salary-type ids
 - Standard onboarding note:
-  - for the exact employee-onboarding shape that explicitly scores hours per day, `POST /salary/settings/standardTime` is the standard write
-  - persistent sandbox on 2026-03-21 still returned a default current `7.5` standard-time row from `1970-01-01`, but that sandbox default is not safe proof for fresh-account production; do not skip the write unless same-run evidence already proves the exact required value
+  - for the exact employee-onboarding shape that explicitly scores hours per day, `POST /employee/standardTime` is the correct per-employee write — NOT `/salary/settings/standardTime` which is company-wide
+  - the production run on 2026-03-21 used `/salary/settings/standardTime` (company-wide) and failed check 10; the correct endpoint is `/employee/standardTime` with `{ employee: { id: ... }, fromDate: ..., hoursPerDay: ... }`
+  - persistent sandbox on 2026-03-21 confirmed `POST /employee/standardTime` persists correctly linked to the specific employee
 - Standard fast-path note:
   - for the exact one-employee payroll task shape, prefer `./trusted-standards/run-employee-payroll.md`
   - the winning successful path for a payroll-ready employee is usually employee read, conditional employment read only if needed, salary-type read, then salary-transaction write
