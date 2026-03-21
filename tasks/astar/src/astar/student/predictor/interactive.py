@@ -21,9 +21,11 @@ from astar.student.predictor.smh import (
     SemimechCoefficientBankPredictor,
     SemimechKnnPredictor,
 )
+from astar.student.predictor.smh_student import SemhResidualStudentPredictor
 
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
+SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTFOCUS_V001 = "smh_coeffbank_z0_h0_covlike_builtfocus_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTSHARP_V001 = "smh_coeffbank_z0_h0_covlike_builtsharp_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND25_V001 = "smh_coeffbank_z0_h0_covlike_hbblend25_v001"
@@ -33,6 +35,12 @@ SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_V001 = "smh_coeffbank_z0_h0_covlike_hbblen
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBADAPT25_V001 = "smh_coeffbank_z0_h0_covlike_hbadapt25_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001 = "smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001 = "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001"
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_RESID_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_resid_v001"
+)
+SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001 = (
+    "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_resid_v001"
+)
 SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001 = "smh_knn5_z12_h0_covsum_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBASE_V001 = "smh_knn5_z12_h0_covaug_calbase_v001"
 SMH_KNN5_Z12_H0_COVAUG_CALBANK_V001 = "smh_knn5_z12_h0_covaug_calbank_v001"
@@ -550,6 +558,30 @@ def _query_residual_v10_fit_kwargs() -> dict[str, object]:
     }
 
 
+def _smh_calbase_resid_fit_kwargs() -> dict[str, object]:
+    return {
+        "cells_per_seed": 384,
+        "include_exact_local_residual": True,
+        "prior_blend": 0.20,
+        "signal_scale": 0.10,
+        "teacher_blend": 0.08,
+        "teacher_locality_blend": True,
+        "min_delta_scale": 0.0,
+    }
+
+
+def _smh_hbblend_exactobs_resid_fit_kwargs() -> dict[str, object]:
+    return {
+        "cells_per_seed": 384,
+        "include_exact_local_residual": True,
+        "prior_blend": 0.40,
+        "signal_scale": 0.10,
+        "teacher_blend": 0.06,
+        "teacher_locality_blend": True,
+        "min_delta_scale": 0.0,
+    }
+
+
 def _load_query_residual_v9_v10_blend_components(
     workspace_paths: WorkspacePaths,
     *,
@@ -909,6 +941,82 @@ def _build_exact_observation_adapter(
     )
 
 
+def _load_or_fit_smh_residual_student_predictor(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    checkpoint_stem: str,
+    model_name: str,
+    base_model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> SemhResidualStudentPredictor:
+    resolved_policy_name = (policy_name or "coverage").strip().lower()
+    resolved_samples_per_round = 1 if samples_per_round is None else samples_per_round
+    fit_kwargs = {} if fit_kwargs is None else dict(fit_kwargs)
+    checkpoint_dir = workspace_paths.model_dir(
+        _query_residual_checkpoint_dir_name(
+            checkpoint_stem,
+            policy_name=resolved_policy_name,
+            samples_per_round=resolved_samples_per_round,
+            historical_round_ids=historical_round_ids,
+        ),
+    )
+    checkpoint_path = checkpoint_dir / "checkpoint.json"
+    base_predictor = build_online_predictor(
+        base_model_name,
+        paths=workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=resolved_policy_name,
+        samples_per_round=resolved_samples_per_round,
+    ).predictor
+    if checkpoint_path.exists():
+        return SemhResidualStudentPredictor.load_checkpoint(
+            checkpoint_path,
+            base_predictor=base_predictor,
+        )
+    predictor = SemhResidualStudentPredictor.fit_from_workspace(
+        workspace_paths,
+        round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        base_predictor=base_predictor,
+        base_model_name=base_model_name,
+        policy_name=resolved_policy_name,
+        samples_per_round=resolved_samples_per_round,
+        model_name=model_name,
+        **fit_kwargs,
+    )
+    predictor.save_checkpoint(checkpoint_path)
+    return predictor
+
+
+def _build_smh_residual_student_adapter(
+    workspace_paths: WorkspacePaths,
+    *,
+    historical_round_ids: Sequence[str] | None,
+    policy_name: str | None,
+    samples_per_round: int | None,
+    checkpoint_stem: str,
+    model_name: str,
+    base_model_name: str,
+    fit_kwargs: dict[str, object] | None = None,
+) -> RoundPredictorAdapter:
+    predictor = _load_or_fit_smh_residual_student_predictor(
+        workspace_paths,
+        historical_round_ids=historical_round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+        checkpoint_stem=checkpoint_stem,
+        model_name=model_name,
+        base_model_name=base_model_name,
+        fit_kwargs=fit_kwargs,
+    )
+    return RoundPredictorAdapter(
+        predictor=predictor,
+        name=predictor.name,
+    )
+
+
 def build_online_predictor(
     model_name: str,
     *,
@@ -1085,6 +1193,18 @@ def build_online_predictor(
             checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
             model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
         )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001,
+            fit_kwargs=_smh_calbase_resid_fit_kwargs(),
+        )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_BUILTFOCUS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return _build_smh_coeffbank_adapter(
@@ -1159,6 +1279,18 @@ def build_online_predictor(
             base_adapter.predictor,
             name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001,
         )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_RESID_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_RESID_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_RESID_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND50_EXACTOBS_V001,
+            fit_kwargs=_smh_hbblend_exactobs_resid_fit_kwargs(),
+        )
     if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         base_adapter = _build_smh_coeffbank_hb_blend_adapter(
@@ -1170,6 +1302,18 @@ def build_online_predictor(
         return _build_exact_observation_adapter(
             base_adapter.predictor,
             name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001,
+        )
+    if normalized == SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_smh_residual_student_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            policy_name=policy_name,
+            samples_per_round=samples_per_round,
+            checkpoint_stem=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001,
+            model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_RESID_V001,
+            base_model_name=SMH_COEFFBANK_Z0_H0_COVLIKE_HBBLEND60_EXACTOBS_V001,
+            fit_kwargs=_smh_hbblend_exactobs_resid_fit_kwargs(),
         )
     if normalized == SMH_KNN5_Z12_H0_COVSUM_CALBASE_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")

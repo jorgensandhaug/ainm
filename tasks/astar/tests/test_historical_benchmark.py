@@ -214,6 +214,7 @@ def test_smh_resid_localgate_online_historical_benchmark_runs(sample_paths: Repo
     "model_name",
     [
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
+        "smh_coeffbank_z0_h0_covlike_calbase_resid_v001",
         "smh_coeffbank_z0_h0_covlike_builtfocus_v001",
         "smh_coeffbank_z0_h0_covlike_builtsharp_v001",
         "smh_coeffbank_z0_h0_covlike_hbblend25_v001",
@@ -222,7 +223,9 @@ def test_smh_resid_localgate_online_historical_benchmark_runs(sample_paths: Repo
         "smh_coeffbank_z0_h0_covlike_hbblend60_v001",
         "smh_coeffbank_z0_h0_covlike_hbadapt25_v001",
         "smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_resid_v001",
         "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_v001",
+        "smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_resid_v001",
         "smh_knn5_z12_h0_covsum_calbase_v001",
         "smh_knn5_z12_h0_covaug_calbase_v001",
         "smh_knn5_z12_h0_covaug_calbank_v001",

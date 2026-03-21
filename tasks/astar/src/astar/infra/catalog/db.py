@@ -31,7 +31,7 @@ class CatalogDB:
     def _connect(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         last_error: duckdb.IOException | None = None
-        for delay_seconds in (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6):
+        for delay_seconds in (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8):
             if delay_seconds > 0.0:
                 time.sleep(delay_seconds)
             try:

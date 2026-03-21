@@ -259,6 +259,83 @@
     - runtime: `973.411s`
     - artifact: `data/artifacts/benchmarks/agent2_dev_query_residual_3rounds_exploration_20260320/result.json`
 
+## 2026-03-21T10:41Z Restart / corrective direction
+
+- Re-read:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent2.md`
+- Re-checked machine state before launching new heavy work:
+  - RAM available: about `2.1 TiB`
+  - load average still high because other agents are active
+  - practical policy for this branch: keep heavy semh runs to `1-2` concurrent jobs, not more
+- Confirmed current uncommitted code state includes a new unfinished file:
+  - `src/astar/student/predictor/smh_student.py`
+- Current direction for this session:
+  - stop spending main effort on `query_residual`
+  - finish a semh-native transcript-conditioned residual student on top of semh priors
+  - register at least one new `smh_*` residual-student model cleanly in CLI / historical benchmark / tests
+  - benchmark on the fixed semh dev rounds first, then promote only if it clears the existing semh exactobs line
+- Immediate technical issues found in the draft `smh_student.py`:
+  - wrong transcript delta-scale logic
+  - recomputing geometry inside prediction loop
+  - not registered in `interactive.py`
+  - no CLI / benchmark / test exposure yet
+
+### 2026-03-21T10:48Z semh residual-student integration
+
+- Landed a real semh transcript-conditioned student module:
+  - `src/astar/student/predictor/smh_student.py`
+- Current structure:
+  - residuals are fit against an evidence-conditioned semh prior, not the old historical-bucket prior
+  - regime head is fit from transcript-derived summaries
+  - residual head predicts log-prob deltas around the semh prior
+  - exact observed cells still get explicit blending
+  - teacher blend is locality-gated
+- Registered first benchmarkable variants:
+  - `smh_coeffbank_z0_h0_covlike_calbase_resid_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_resid_v001`
+  - `smh_coeffbank_z0_h0_covlike_hbblend60_exactobs_resid_v001`
+- Exposed those names in:
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Validation after integration:
+  - `python3 -m py_compile src/astar/student/predictor/interactive.py src/astar/student/predictor/smh_student.py src/astar/cli.py src/astar/workflows/historical_benchmark.py tests/test_historical_benchmark.py`
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -k 'smh_coeffbank or smh_resid'`
+  - result: `14 passed`
+- Active Tier-2 dev screens launched on hard path4 holdout:
+  - `agent2_dev10_smh_calbase_resid_path4_b50_coverage_20260321`
+  - `agent2_dev10_smh_hbblend50_exactobs_resid_path4_b50_coverage_20260321`
+
+### 2026-03-21T11:12Z first semh residual-student benchmark signal
+
+- Added one infra hardening change after a parallel-run failure:
+  - widened DuckDB catalog lock retry window in `src/astar/infra/catalog/db.py`
+  - reason: parallel semh materialization was failing too early on shared catalog lock contention
+- Important runtime finding:
+  - the existing scoped synthetic-live dataset dir for coverage/1-sample/all-rounds was partial
+  - it had episode JSONs but no `index.parquet` or `summary.json`
+  - first residual-student benchmark therefore spent most of its runtime finishing that cache
+- Completed Tier-2 hard path4 benchmark:
+  - command:
+    - `uv run astar run-historical-benchmark --model smh_coeffbank_z0_h0_covlike_calbase_resid_v001 --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent2_dev10_smh_calbase_resid_path4_b50_coverage_20260321 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --round-id c5cdf100-a876-4fb7-b5d8-757162c97989 --round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`
+  - result:
+    - mean score: `74.3819`
+    - mean weighted KL: `0.098890`
+    - runtime: `1380.731s`
+    - artifact: `data/artifacts/benchmarks/agent2_dev10_smh_calbase_resid_path4_b50_coverage_20260321/result.json`
+  - interpretation:
+    - first real semh residual-student result is dramatically above the previous semh exactobs dev lines (`~66.5`)
+    - this is the first strong evidence that the semh-native transcript student is the right branch
+- Parallel hybrid residual run failed for infra reasons, not score reasons:
+  - model: `smh_coeffbank_z0_h0_covlike_hbblend50_exactobs_resid_v001`
+  - failure: DuckDB catalog lock while the calbase residual run was still materializing the scoped synthetic-live cache
+  - action taken:
+    - let the calbase run finish the shared dataset build
+    - re-run hybrid residual variants serially now that cache exists
+
 ## 2026-03-21 Standalone Semimech Pivot
 
 ### 2026-03-21T09:27:36Z intent correction
