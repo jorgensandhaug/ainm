@@ -4061,6 +4061,25 @@
      - `uv run python -m py_compile src/astar/student/predictor/round_transcript_prototype_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_round_transcript_prototype_residual_historical_benchmark_model tests/test_teacher_student.py::test_round_transcript_prototype_residual_kmeans_returns_centers tests/test_historical_benchmark.py::test_round_transcript_prototype_residual_v2_online_historical_benchmark_defaults_to_samples_8 -q`
    - validation result:
      - `3 passed`
+451. Git checkpoint created + pushed for item 450:
+   - commit:
+     - `bf60ce35`
+   - message:
+     - `agent3: add round transcript prototype residual family`
+452. Launch state for `round_transcript_prototype_residual`:
+   - machine headroom before launch:
+     - available memory about `1.6 TiB`
+   - corrected targeted-holdout gate sessions started:
+     - `agent3_troundproto_v1_gate`
+     - `agent3_troundproto_v2_gate`
+     - `agent3_troundproto_v3_gate`
+     - `agent3_troundproto_v4_gate`
+   - command family:
+     - `uv run python scripts/run_targeted_holdout_benchmark.py --model round_transcript_prototype_residual_vX --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_round_transcript_prototype_residual_vX_targeted_holdout_2rounds_corrected --jobs 1`
+   - launch policy:
+     - only `4` variants live
+     - `jobs=1` each
+     - no additional wave stacked after this launch
 
 
 ## Open Questions
