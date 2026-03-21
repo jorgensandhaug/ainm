@@ -2838,7 +2838,23 @@ All of these have been systematically swept and are near-optimal:
 - score: **87.5095** (v201 ties at 87.53)
 - per-round: R1:87.0 R2:92.0 R3:89.4 R4:93.7 R5:84.9 R6:88.0 R7:72.5 R8:92.6
 - total improvement from v44: **+9.75 points** (77.76 → 87.51, +12.5%)
-- **200+ variants tested across all axes. Architecture exhausted.**
+- **200+ variants tested across all axes.**
+
+### 2026-03-22T01:00Z approx
+
+- Implemented spatial smoothing (Gaussian blur on predictions):
+  - sigma=0.3 gives +0.13 (87.51→87.64)
+  - sigma≥0.5 catastrophically bad (predictions smear across terrain boundaries)
+  - Very light smoothing helps by reducing per-cell prediction noise
+- **v214 (sigma=0.3 + beta=12/48) = 87.65** ← NEW CHAMPION
+- Per-round: R1:87.1 R2:92.0 R3:89.5 R4:93.7 R5:84.9 R6:88.4 R7:72.0 R8:93.7
+
+## Current Champion
+
+- model: `ffam_mode_v214` with `samples_per_round=6`
+- score: **87.6540**
+- total improvement from v44: **+9.89 points** (77.76 → 87.65, +12.7%)
+- 214 variants tested
 
 ## Complete Experiment Summary
 

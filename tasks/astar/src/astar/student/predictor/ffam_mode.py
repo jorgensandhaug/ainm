@@ -1892,11 +1892,18 @@ class FFAMModePredictor(BaseRoundPredictor):
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
             if self.spatial_smooth_sigma > 0:
-                from scipy.ndimage import gaussian_filter
-                smoothed = np.stack([
-                    gaussian_filter(prediction[..., c], sigma=self.spatial_smooth_sigma)
-                    for c in range(prediction.shape[-1])
-                ], axis=-1)
+                kernel_radius = max(1, int(3 * self.spatial_smooth_sigma))
+                ax = np.arange(-kernel_radius, kernel_radius + 1, dtype=np.float64)
+                kernel_1d = np.exp(-0.5 * (ax / self.spatial_smooth_sigma) ** 2)
+                kernel_1d /= np.sum(kernel_1d)
+                smoothed = prediction.copy()
+                for c in range(prediction.shape[-1]):
+                    channel = smoothed[..., c]
+                    for row in range(channel.shape[0]):
+                        channel[row] = np.convolve(channel[row], kernel_1d, mode='same')
+                    for col in range(channel.shape[1]):
+                        channel[:, col] = np.convolve(channel[:, col], kernel_1d, mode='same')
+                    smoothed[..., c] = channel
                 smoothed = np.clip(smoothed, self.probability_floor, 1.0)
                 smoothed = smoothed / np.sum(smoothed, axis=-1, keepdims=True)
                 prediction = smoothed
