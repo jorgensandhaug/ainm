@@ -86,9 +86,11 @@ This is the canonical flow only when the travel dates are explicit or otherwise 
    - embed `perDiemCompensations[]`
    - embed `costs[]`
    - include `travelDetails.departureFrom`
+   - include `travelDetails.destination` (REQUIRED at deliver — always set at POST time)
    - include explicit `costs[].vatType`
    - include `perDiemCompensations[].rateType` (from hardcoded catalog)
    - include `perDiemCompensations[].overnightAccommodation` when the trip spans overnight
+   - include `perDiemCompensations[].location` (REQUIRED at POST — set to destination city)
    - omit `department` unless the prompt explicitly scores a different department or validation demands it
 5. Deliver the expense
    - `PUT /travelExpense/:deliver?id=<travelExpenseId>`
@@ -167,6 +169,10 @@ For the travel-expense create, the sandbox-proven shape was:
 
 ## Validation Traps
 
+- **REQUIRED: `travelDetails.destination`** — set to the trip destination city; `POST` accepts without it but `PUT :deliver` fails with 422; always include at POST time
+- **REQUIRED: `perDiemCompensations[].location`** — set to the per-diem location (typically same as destination); `POST` fails with 422 if omitted
+- **`costs[].description` does NOT exist** — use `comments` for cost text; `description` causes 422 mapping error
+- **`perDiemCompensations[].isDayTrip` does NOT exist** — `isDayTrip` belongs on `travelDetails` only
 - do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
 - do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
 - do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
@@ -288,3 +294,9 @@ For the travel-expense create, the sandbox-proven shape was:
   - used correct hardcoded rateType 25888/740 (overnight)
   - **per-diem count mistake**: used `count=2` (days) instead of `count=1` (overnights=days-1); a 2-day trip has 1 overnight
   - 2nd production confirmation of 6-call hardcoded-rateType path; first confirmation of 2-day trip shape
+- 2026-03-22 `Torbjørn Brekke` / `torbjrn.brekke@example.org` / `Kundebesøk Trondheim` / 4-day per-diem 800/day + flight 6150 + taxi 750 (run e103a5b5):
+  - duration-only prompt (Nynorsk), employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - 11 calls, 4 errors — caused by 3 unknown field bugs (description, isDayTrip, location) + missing destination at deliver
+  - correctly used per-diem count=3 (overnights) and rateType 25888/740
+  - `state=DELIVERED`, expense `11150554`, 2 costs, 1 per-diem
+  - **discovered new required fields**: `perDiemCompensations[].location` (required at POST), `travelDetails.destination` (required at deliver)

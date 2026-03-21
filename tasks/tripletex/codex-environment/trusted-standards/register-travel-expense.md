@@ -48,6 +48,8 @@
 - prefer exact category-description matches for prompt costs such as `Fly` and `Taxi`
 - resolve one active travel payment type from `showOnTravelExpenses=true`; in sandbox the ordinary reimbursement type was `Privat utlegg`
 - do not send `department` on a normal existing-employee travel expense unless the prompt explicitly scores a different department or live validation requires it
+- **REQUIRED: `travelDetails.destination`** — set to the trip destination city (e.g., `"Trondheim"` for a trip to Trondheim); `POST /travelExpense` accepts without it but `PUT /travelExpense/:deliver` fails with 422 `travelDetails.destination: Feltet må fylles ut`; always include at POST time to avoid a wasted create
+- **REQUIRED: `perDiemCompensations[].location`** — set to the per-diem location (typically same as destination); `POST /travelExpense` fails with 422 `perDiemCompensations.location: Kan ikke være null` if omitted; this is a POST-time requirement, not just deliver-time
 - include `travelDetails.departureFrom`; leaving it empty can still let `POST /travelExpense` succeed but later block `PUT /travelExpense/:deliver`
 - if the prompt omits `departureFrom`, first infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
 - if those employee address fields are absent but the same employee object exposes `companyId`, do one conditional `GET /company/{companyId}?fields=*,address(*)` and infer `departureFrom` from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
@@ -74,6 +76,9 @@
 - for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`
 - embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload
 - embed `costs[]` directly on the same `POST /travelExpense` payload
+- **NON-EXISTENT FIELDS — do not use:**
+  - `costs[].description` does NOT exist — use `costs[].comments` for cost text; sending `description` causes 422 `Feltet eksisterer ikke i objektet`
+  - `perDiemCompensations[].isDayTrip` does NOT exist — `isDayTrip` belongs on `travelDetails` only; sending it on perDiemCompensations causes 422 `Feltet eksisterer ikke i objektet`
 - for each embedded cost in NOK, send both `amountCurrencyIncVat` and `amountNOKInclVAT`
 - do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ "id": 0 }` avoided later non-VAT-company delivery failure
 - preserve prompt text exactly in `title`, `travelDetails.purpose`, `travelDetails.detailedJourneyDescription`, and `costs[].comments`
@@ -100,6 +105,9 @@
   - the live write response contradicts the intended child counts
 
 ## Known Recovery Branches
+- if `POST /travelExpense` fails on `perDiemCompensations.location: Kan ikke være null`, add `location` (destination city string) to every perDiemCompensation row
+- if `PUT /travelExpense/:deliver` fails on `travelDetails.destination: Feltet må fylles ut`, the create was incomplete; recreate with `travelDetails.destination` set to the trip destination city
+- if `POST /travelExpense` fails on any field with `Feltet eksisterer ikke i objektet`, the field name is wrong — check for `description` (use `comments`), `isDayTrip` on perDiemCompensations (use on travelDetails), or other non-existent fields
 - if `POST /travelExpense` fails on `costs.amountCurrencyIncVat`, add `amountCurrencyIncVat` on every embedded cost row
 - if `POST /travelExpense` fails with `Kun kostnader kan registreres uten kompensasjon etter satser.`, set `travelDetails.isCompensationFromRates=true`
 - if `PUT /travelExpense/:deliver` fails on `travelDetails.departureFrom`, the create-only path was incomplete; do not keep treating the `OPEN` expense as final
@@ -178,3 +186,13 @@
   - **per-diem count mistake**: used `count=2` (days) instead of `count=1` (overnights=days-1); a 2-day trip has 1 overnight, so correct is `count=1, rate=800, amount=800`
   - sandbox re-verified: both `count=1` and `count=2` deliver successfully but Norwegian per-diem convention counts overnights
   - 2nd production confirmation of the 6-call path with hardcoded rateType; first confirmation of 2-day trip shape
+- 2026-03-22 `Torbjørn Brekke` / `torbjrn.brekke@example.org` / `Kundebesøk Trondheim` / 4-day per-diem (800/day) + flight 6150 + taxi 750 (run e103a5b5):
+  - duration-only prompt (Nynorsk), employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - **NEW API REQUIREMENTS DISCOVERED**: `perDiemCompensations[].location` now required at POST (422 without), `travelDetails.destination` now required at deliver (422 without)
+  - also hit two agent-side bugs: `costs[].description` (doesn't exist, use `comments`) and `perDiemCompensations[].isDayTrip` (doesn't exist, belongs on travelDetails)
+  - 11-call run with 4 errors: 3 parallel GETs + company GET + 3 failed POSTs + 1 POST that delivered but failed deliver + 1 POST + 1 deliver = 11 calls, 4 errors
+  - optimal would have been 6 calls 0 errors with correct payload from the start
+  - correctly used per-diem count=3 (overnights=days-1) and rateType 25888/740 (overnight)
+  - `state=DELIVERED`, expense `11150554`, 2 costs, 1 per-diem
+  - also created orphan OPEN expense `11150550` (POST succeeded but deliver failed on missing destination)
+  - sandbox re-verified on 2026-03-22: `location` required at POST, `destination` required at deliver; both verified with IDs 11150570 (delivered with both) and 11150574 (POST without destination succeeded, deliver failed)

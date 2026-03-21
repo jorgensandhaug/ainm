@@ -10,7 +10,7 @@
 - prompt directly gives name and price
 - prompt directly gives the product number when one is required
 - product is a standard outgoing-sales product
-- localized excluding-VAT wording such as Portuguese `sem IVA`, Spanish `sin IVA`, German `ohne MwSt.`, or Norwegian `eksklusiv MVA` / `eks. MVA` still clearly maps to the excluding-VAT price field
+- localized excluding-VAT wording such as Portuguese `sem IVA`, Spanish `sin IVA`, German `ohne MwSt.`, Norwegian (Bokmål/Nynorsk) `eksklusiv MVA` / `eks. MVA`, or French `hors TVA` still clearly maps to the excluding-VAT price field
 - task does not require advanced product setup
 
 ## Do Not Use This Standard If
@@ -81,4 +81,5 @@
 - fresh-account production verification on 2026-03-21 for the English prompt `Training Session` / `7908` / `26250 NOK excluding VAT` / standard `25%` succeeded with one `POST /product`, returning `priceIncludingVatCurrency=32812.5` and `vatType.id=3`; 8th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape; second English-language confirmation
 - fresh-account production verification on 2026-03-21 for the English prompt `Web Design` / `3766` / `23950 NOK excluding VAT` / standard `25%` succeeded with one `POST /product`, returning `priceIncludingVatCurrency=29937.5` and `vatType.id=3`; 9th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape; third English-language confirmation
 - fresh-account production verification on 2026-03-21 for the English prompt `Training Session` / `2451` / `20350 NOK excluding VAT` / standard `25%` succeeded with one `POST /product`, returning `priceIncludingVatCurrency=25437.5` and `vatType.id=3`; 10th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape; fourth English-language confirmation; second confirmation of product name `Training Session` (previously verified with number `7908` / price `26250`)
+- fresh-account production verification on 2026-03-21 for the Nynorsk prompt `Avis` / `2061` / `4150 kr eksklusiv MVA` / `0%` VAT for newspapers succeeded with the 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` returned `priceIncludingVatCurrency=4150` and `vatType.id=5`; 2 calls 0 errors, scored 2/2 (perfect); 3rd production confirmation of the 2-call path for explicit 0% VAT; first Nynorsk (`nn`) language confirmation; extends proven 0% language set from {fr, pt} to {fr, pt, nn}
 - persistent-sandbox verification on 2026-03-21 confirmed the sandbox still has only `OUTGOING` VAT row `id=6` / `0%`; sandbox remains blocked for 15% and 25% VAT product verification

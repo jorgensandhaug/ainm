@@ -83,6 +83,14 @@ Fresh-account production verification on 2026-03-21 also showed:
 - "næringsmidler" (food) category qualifier is cosmetic and does not change the VAT resolution logic
 - first production confirmation of the 2-call path for explicit 15% reduced-rate VAT; extends the proven non-default VAT set from {0%} to {0%, 15%}
 
+Fresh-account production verification on 2026-03-21 also showed:
+- an exact 0% VAT product-create task in Nynorsk (`Avis` / `2061` / `4150 kr eksklusiv MVA` / `0%` for newspapers) succeeded with the 2-call path
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-22&fields=*` resolved `id=5` for `0%`
+- `POST /product` returned `priceIncludingVatCurrency=4150` and `vatType.id=5`
+- 2 calls, 0 errors, scored 2/2 (perfect)
+- 3rd production confirmation of the 2-call path for explicit 0% VAT; first Nynorsk (`nn`) language confirmation
+- Nynorsk `nyttast` (shall be used) is task-level instruction, not a price-field variation; `eksklusiv MVA` still maps to `priceExcludingVatCurrency`
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
