@@ -101,6 +101,16 @@ def test_query_residual_feature_variant_slicing_supports_v1_and_v2() -> None:
         probability_floor=0.01,
         selected_feature_names=_full_feature_names("v7_supportbase"),
     )
+    design_v8 = _compose_design_tensor(
+        static_stack,
+        prior,
+        teacher_prior,
+        derived,
+        regime_vector,
+        seed_index=0,
+        probability_floor=0.01,
+        selected_feature_names=_full_feature_names("v8_supportxbase"),
+    )
 
     assert design_v1.shape == (height, width, len(_full_feature_names("v1")))
     assert design_v2.shape == (height, width, len(_full_feature_names("v2_state")))
@@ -109,6 +119,7 @@ def test_query_residual_feature_variant_slicing_supports_v1_and_v2() -> None:
     assert design_v5.shape == (height, width, len(_full_feature_names("v5_localblur")))
     assert design_v6.shape == (height, width, len(_full_feature_names("v6_support")))
     assert design_v7.shape == (height, width, len(_full_feature_names("v7_supportbase")))
+    assert design_v8.shape == (height, width, len(_full_feature_names("v8_supportxbase")))
     assert design_v2.shape[-1] > design_v1.shape[-1]
     assert design_v3.shape[-1] > design_v2.shape[-1]
     assert design_v4.shape[-1] > design_v2.shape[-1]
@@ -116,6 +127,7 @@ def test_query_residual_feature_variant_slicing_supports_v1_and_v2() -> None:
     assert design_v6.shape[-1] > design_v2.shape[-1]
     assert design_v7.shape[-1] > design_v1.shape[-1]
     assert design_v7.shape[-1] < design_v6.shape[-1]
+    assert design_v8.shape[-1] > design_v7.shape[-1]
     assert design_v4.shape[-1] > design_v5.shape[-1]
 
 
@@ -143,6 +155,7 @@ def test_query_residual_regime_input_vector_supports_v1_and_v2() -> None:
     vector_v5 = _regime_input_vector(derived, feature_variant="v5_localblur")
     vector_v6 = _regime_input_vector(derived, feature_variant="v6_support")
     vector_v7 = _regime_input_vector(derived, feature_variant="v7_supportbase")
+    vector_v8 = _regime_input_vector(derived, feature_variant="v8_supportxbase")
 
     assert vector_v2.shape[0] > vector_v1.shape[0]
     assert vector_v3.shape[0] > vector_v2.shape[0]
@@ -150,3 +163,4 @@ def test_query_residual_regime_input_vector_supports_v1_and_v2() -> None:
     assert vector_v5.shape[0] == vector_v2.shape[0]
     assert vector_v6.shape[0] == vector_v2.shape[0]
     assert vector_v7.shape[0] == vector_v1.shape[0]
+    assert vector_v8.shape[0] == vector_v1.shape[0]

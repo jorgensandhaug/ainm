@@ -331,6 +331,12 @@
   - model-wise: `supportbase_v01` is back to non-promotion status
   - validation-wise: exact smoke + current dev5 is a better decision stack than the old synthetic fit-audit
   - engineering-wise: the next useful branch is benchmark-speed work for current-corpus query-residual reevaluation, or a new model branch screened by the exact smoke gate first
+- New branch started after dev5 tie:
+  - hypothesis: the support family is not dead, but the linear residual model needs explicit support×residual interaction channels; separate support scalars alone cannot express “trust this residual estimate only when region support is high”
+  - planned candidate: baseline-summary query_residual variant with support-weighted residual summary channels added as extra local-evidence constant maps
+  - gate order:
+    - exact current smoke first
+    - current dev5 only if smoke is meaningfully positive
 - Updated next-step read:
   - keep the new online-audit as the benchmark-faithful smoke gate for `query_residual`
   - stop trusting old smoke artifacts when replay corpus may have changed underneath them
@@ -1704,3 +1710,86 @@
   - `uv run pytest tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
   - result:
     - `25 passed`
+- Implementing `f1_student_query_residual_supportx_v01`:
+  - code:
+    - `src/astar/student/predictor/query_residual.py`
+    - `src/astar/student/predictor/query_residual_specs.py`
+    - `tests/test_query_residual_feature_variants.py`
+  - change:
+    - keep `supportbase_v01` summary block unchanged
+    - add explicit support-weighted residual summary channels as extra constant local-evidence maps
+    - intent:
+      - let the linear residual layer express “trust this residual estimate more when that region had actual support”
+  - gate order:
+    - narrow pytest
+    - exact current smoke
+    - current dev5 only if smoke is meaningfully positive
+- Landed `f1_student_query_residual_supportx_v01`:
+  - change:
+    - new immutable `query_residual` variant `v8_supportxbase`
+    - keeps the `supportbase_v01` summary block
+    - adds explicit support-weighted residual summary channels as extra constant local-evidence maps:
+      - seed observed-fraction × seed residual mean
+      - seed buildable support × seed buildable residual mean
+      - seed near support × seed near residual mean
+      - seed far support × seed far residual mean
+      - global observed-fraction × global residual mean
+      - global buildable/coastal/near/far support × corresponding global residual means
+  - intended effect:
+    - let the linear residual model express “trust this residual estimate more when transcript support for that region is high”
+- Validation after landing `supportx_v01`:
+  - narrow gate:
+    - `uv run pytest tests/test_query_residual_feature_variants.py tests/test_query_residual_online_audit.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+    - result:
+      - `13 passed`
+  - broader query_residual suite:
+    - `uv run pytest tests/test_query_residual_online_audit.py tests/test_query_residual_fit_audit.py tests/test_query_residual_cache.py tests/test_query_residual_feature_variants.py tests/test_synthetic_transcript_audit.py tests/test_event_regime_posterior_audit.py tests/test_history_datasets.py tests/test_teacher_student.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+    - result:
+      - `26 passed`
+- Exact current smoke benchmark for `f1_student_query_residual_supportx_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_supportx_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name tmp_f1_student_query_residual_supportx_v01_probe3 --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad`
+  - artifacts:
+    - `data/artifacts/benchmarks/tmp_f1_student_query_residual_supportx_v01_probe3/result.json`
+    - `data/artifacts/family1/query_residual_compare/f1_query_residual_compare_supportx_probe3_current_v01.json`
+    - `data/artifacts/family1/query_residual_compare/f1_query_residual_compare_supportx_probe3_current_v01.md`
+  - result:
+    - mean score `72.9174`
+    - weighted KL `0.105696`
+    - wall `1:55.44`
+    - max RSS `10.10 GB`
+  - paired compare vs fresh current baseline smoke `tmp_query_residual_probe_3rounds_v7_current`:
+    - score delta `+0.3710`
+    - KL delta `-0.001711`
+    - win rate `0.733`
+    - CI95 `[0.1855, 0.5702]`
+  - read:
+    - unlike `supportbase_v01`, the support-interaction branch is not just a tiny smoke nudge; this is a real positive smoke result
+- Fresh current dev5 benchmark for `f1_student_query_residual_supportx_v01`:
+  - command:
+    - `/usr/bin/time -v uv run astar run-historical-benchmark --model f1_student_query_residual_supportx_v01 --mode online_interactive --policy coverage --budget 50 --with-png none --name dev5_f1_student_query_residual_supportx_v01_current_v01 --round-id 71451d74-be9f-471f-aacd-a41f3b68a9cd --round-id 8e839974-b13b-407b-a5e7-fc749d877195 --round-id fd3c92ff-3178-4dc9-8d9b-acf389b3982b --round-id ae78003a-4efe-425a-881a-d16a39bca0ad --round-id c5cdf100-a876-4fb7-b5d8-757162c97989`
+  - artifacts:
+    - `data/artifacts/benchmarks/dev5_f1_student_query_residual_supportx_v01_current_v01/result.json`
+    - `data/artifacts/family1/query_residual_compare/f1_query_residual_compare_supportx_dev5_current_v01.json`
+    - `data/artifacts/family1/query_residual_compare/f1_query_residual_compare_supportx_dev5_current_v01.md`
+  - result:
+    - mean score `76.2312`
+    - weighted KL `0.092527`
+    - wall `3:19.77`
+    - max RSS `13.37 GB`
+  - paired compare vs fresh current dev5 baseline `dev5_query_residual_current_v01`:
+    - score delta `+0.2582`
+    - KL delta `-0.001314`
+    - win rate `0.800`
+    - CI95 `[0.1118, 0.4224]`
+  - read:
+    - this survives the broader current decision layer
+    - `supportx_v01` is the first current-corpus `query_residual` branch here that is clearly positive on both exact smoke and current dev5
+- Current status after `supportx_v01`:
+  - promote to best current `query_residual` branch in this family so far
+  - but keep one caveat explicit:
+    - full current 8-round rerun is still not routine-loop friendly
+    - last fresh 8-round baseline attempt was too slow and had to be killed before artifact write
+  - next best path:
+    - either run a fuller current tier once more when loop budget allows
+    - or exploit the now-validated support-interaction idea in a stronger follow-up branch

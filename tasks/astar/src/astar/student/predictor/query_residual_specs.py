@@ -85,6 +85,11 @@ QUERY_RESIDUAL_MODEL_SPECS = (
         model_name="f1_student_query_residual_supportbase_v01",
         feature_variant="v7_supportbase",
     ),
+    QueryResidualModelSpec(
+        request_names=("f1_student_query_residual_supportx_v01",),
+        model_name="f1_student_query_residual_supportx_v01",
+        feature_variant="v8_supportxbase",
+    ),
 )
 
 _QUERY_RESIDUAL_MODEL_SPECS_BY_NAME = {

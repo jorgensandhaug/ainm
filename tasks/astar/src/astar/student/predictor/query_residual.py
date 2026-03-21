@@ -667,6 +667,7 @@ def _derive_transcript_features_from_stats(
     local_evidence_base: dict[int, np.ndarray] = {}
     local_evidence: dict[int, np.ndarray] = {}
     support_context_by_seed: dict[int, np.ndarray] = {}
+    support_interaction_seed_blocks: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = {}
     seed_summaries: dict[int, np.ndarray] = {}
 
     total_queries = sum(stats.query_count for stats in per_seed_stats.values())
@@ -869,7 +870,17 @@ def _derive_transcript_features_from_stats(
             ],
             dtype=np.float64,
         )
+        support_interaction_seed_blocks[seed_index] = (
+            seed_resid_mean * seed_observed_cell_frac,
+            seed_buildable_resid * support_context_by_seed[seed_index][0],
+            seed_near_resid * support_context_by_seed[seed_index][2],
+            seed_far_resid * support_context_by_seed[seed_index][3],
+        )
 
+    global_observed_cell_frac = (
+        total_observed_cells
+        / float(round_detail.seeds_count * round_detail.map_height * round_detail.map_width)
+    )
     global_support_context = np.asarray(
         [
             total_buildable_cells / max(available_buildable_cells, 1.0),
@@ -878,6 +889,16 @@ def _derive_transcript_features_from_stats(
             total_far_cells / max(available_far_cells, 1.0),
         ],
         dtype=np.float64,
+    )
+    global_interaction_context = np.concatenate(
+        [
+            (pooled_residual / max(total_observed_cells, 1.0)) * global_observed_cell_frac,
+            (pooled_buildable_residual / max(total_buildable_cells, 1.0)) * global_support_context[0],
+            (pooled_coastal_residual / max(total_coastal_cells, 1.0)) * global_support_context[1],
+            (pooled_near_residual / max(total_near_cells, 1.0)) * global_support_context[2],
+            (pooled_far_residual / max(total_far_cells, 1.0)) * global_support_context[3],
+        ],
+        axis=0,
     )
     for seed_index, base_evidence in local_evidence_base.items():
         height, width = base_evidence.shape[:2]
@@ -892,10 +913,22 @@ def _derive_transcript_features_from_stats(
             support_context,
             (height, width, len(support_context)),
         )
+        support_interaction_context = np.concatenate(
+            [
+                *support_interaction_seed_blocks[seed_index],
+                global_interaction_context,
+            ],
+            axis=0,
+        )
+        support_interaction_maps = np.broadcast_to(
+            support_interaction_context,
+            (height, width, len(support_interaction_context)),
+        )
         local_evidence[seed_index] = np.concatenate(
             [
                 base_evidence,
                 support_maps,
+                support_interaction_maps,
             ],
             axis=-1,
         )
@@ -903,7 +936,7 @@ def _derive_transcript_features_from_stats(
     global_summary = np.asarray(
         [
             float(total_queries) / MAX_QUERY_BUDGET,
-            total_observed_cells / float(round_detail.seeds_count * round_detail.map_height * round_detail.map_width),
+            global_observed_cell_frac,
             *(pooled_residual / max(total_observed_cells, 1.0)).tolist(),
             *(pooled_coastal_residual / max(total_coastal_cells, 1.0)).tolist(),
             *(pooled_inland_residual / max(total_inland_cells, 1.0)).tolist(),
@@ -1045,6 +1078,17 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
         "support_global_near_observed_frac",
         "support_global_far_observed_frac",
     ]
+    support_interaction_names = [
+        *[f"supportx_seed_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_seed_buildable_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_seed_near_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_seed_far_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_global_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_global_buildable_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_global_coastal_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_global_near_resid_{class_name}" for class_name in CLASS_NAMES],
+        *[f"supportx_global_far_resid_{class_name}" for class_name in CLASS_NAMES],
+    ]
     if normalized in {"v1", "v2_state", "v3_state_tails"}:
         return names
     blurred_state_names = [
@@ -1063,6 +1107,10 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
     if normalized in {"v6_support", "v7_supportbase"}:
         names.extend(support_names)
         return names
+    if normalized == "v8_supportxbase":
+        names.extend(support_names)
+        names.extend(support_interaction_names)
+        return names
     names.extend(
         [
             "local_population",
@@ -1073,6 +1121,7 @@ def _local_evidence_names(feature_variant: str | None = None) -> list[str]:
         ],
     )
     names.extend(support_names)
+    names.extend(support_interaction_names)
     return names
 
 
@@ -1112,6 +1161,8 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
     if normalized == "v6_support":
         return (state_global_len, state_seed_len)
     if normalized == "v7_supportbase":
+        return (base_global_len, base_seed_len)
+    if normalized == "v8_supportxbase":
         return (base_global_len, base_seed_len)
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
