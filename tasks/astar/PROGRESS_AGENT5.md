@@ -114,3 +114,47 @@
   - build scoped synthetic dataset intentionally
   - rerun targeted hard-round probes
   - test whether richer scoped dataset alone improves `query_residual`
+
+### 2026-03-21T00:00:00Z
+
+- Portability fix committed + pushed to `origin/agent5`.
+- Added second validation/pipeline improvement:
+  - `build_synthetic_live_dataset()` now skips `materialize_round_episode()` when required per-seed feature/evidence/replay-summary artifacts already exist.
+  - reason: dataset rebuilds were wasting ~36.5s/round on rematerialization even when cached artifacts were already present.
+- Verified rematerialization hotspot on `c5cdf...`:
+  - `build_round_episode`: ~8.99s
+  - `materialize_round_episode`: ~36.50s
+  - `load_round_learning_episode`: ~0.04s
+  - `run_online_episode`: ~0.02s
+- Added test proving repeat synthetic dataset builds reuse existing materialized round artifacts instead of rewriting them.
+- Re-verified tests after this change:
+  - `uv run --extra dev pytest tests/test_history_datasets.py -q` -> `5 passed`
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q` -> `5 passed`
+- Explicitly built full scoped 8-round synthetic transcript dataset:
+  - `query_residual_synthetic_live__policy=coverage__samples=1__rounds=n=8__sha1=ea07400de1`
+  - `row_count=8`
+  - `round_count=8`
+  - `total_query_count=360`
+  - wall time `318.768s`
+- Full-corpus held-out round probes with default `query_residual` + `coverage` + 7 training rounds:
+  - `f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb`: `54.5655`
+    - old benchmark report: `46.4143`
+    - delta: `+8.1512`
+  - `c5cdf100-a876-4fb7-b5d8-757162c97989`: `67.0175`
+    - old benchmark report: `71.1327`
+    - delta: `-4.1152`
+  - `36e581f1-73f8-453f-ab98-cbe3052b701b`: `64.4914`
+    - old benchmark report: `63.9633`
+    - delta: `+0.5281`
+- Interpretation:
+  - richer full-corpus transcript training clearly helps the hardest known round (`f1dac...`).
+  - it hurts `c5cdf...`, so the effect is not uniformly positive.
+  - across the 3 probed rounds, net round-score delta is still positive (`+4.5641` total; about `+0.57` if spread over the 8-round mean), but this is not enough evidence to freeze defaults yet.
+- First actual model ablation after infra fixes:
+  - `query_residual` with `ridge_lambda=16` on held-out `c5cdf...`
+  - result: `67.1045` vs `67.0175` default
+  - conclusion: only trivial recovery; `c5cdf...` regression is not mainly a weak-ridge problem.
+- Current best next hypotheses:
+  - richer transcript diversity (`samples_per_round > 1`) may help more than stronger ridge.
+  - policy-conditioned transcript generation (`exploration` / repeat-aware) still needs probing.
+  - may need smarter training-round selection or mixture logic rather than “always all 7 rounds”.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+import time
 
 import polars as pl
 
@@ -209,3 +210,34 @@ def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
         assert [item.model_dump(mode="json") for item in artifact_obs.settlements] == [
             item.model_dump(mode="json") for item in runtime_obs.settlements
         ]
+
+
+def test_synthetic_live_dataset_reuses_existing_materialized_round_artifacts(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_reuse_test",
+    )
+    replay_summary_path = sample_paths.replay_summary_path(ROUND_ID, 0)
+    episode_summary_path = sample_paths.episode_dir(ROUND_ID) / "summary.json"
+    replay_mtime_ns = replay_summary_path.stat().st_mtime_ns
+    episode_mtime_ns = episode_summary_path.stat().st_mtime_ns
+
+    time.sleep(0.02)
+
+    build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_reuse_test",
+    )
+
+    assert replay_summary_path.stat().st_mtime_ns == replay_mtime_ns
+    assert episode_summary_path.stat().st_mtime_ns == episode_mtime_ns

@@ -46,6 +46,23 @@ class SyntheticEpisodeArtifact(BaseModel):
     target_paths: dict[int, Path]
 
 
+def _has_materialized_round_artifacts(
+    paths: WorkspacePaths,
+    round_id: str,
+    *,
+    seeds_count: int,
+    requires_replay_summaries: bool,
+) -> bool:
+    for seed_index in range(seeds_count):
+        if not paths.feature_tensor_path(round_id, seed_index).exists():
+            return False
+        if not paths.evidence_tensor_path(round_id, seed_index).exists():
+            return False
+        if requires_replay_summaries and not paths.replay_summary_path(round_id, seed_index).exists():
+            return False
+    return True
+
+
 def _resolve_workspace_path(
     path: Path,
     *,
@@ -154,6 +171,7 @@ def build_synthetic_live_dataset(
     round_ids: list[str] | None = None,
     samples_per_round: int = 1,
     dataset_name: str = "synthetic_live_v1",
+    force_rematerialize: bool = False,
 ) -> SyntheticEpisodeDatasetRef:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -176,7 +194,13 @@ def build_synthetic_live_dataset(
         round_episode = build_round_episode(paths, round_id)
         if round_episode.replay_run_count == 0:
             continue
-        materialize_round_episode(paths, round_id)
+        if force_rematerialize or not _has_materialized_round_artifacts(
+            paths,
+            round_id,
+            seeds_count=round_episode.metadata.seeds_count,
+            requires_replay_summaries=round_episode.replay_run_count > 0,
+        ):
+            materialize_round_episode(paths, round_id)
         budget = _plan_budget(policy, round_id, oracle)
         learning_episode = load_round_learning_episode(paths, round_id)
 
