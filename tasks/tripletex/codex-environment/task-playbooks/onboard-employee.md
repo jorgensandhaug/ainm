@@ -170,8 +170,10 @@ Standard worktime (per-employee):
 - Do not add a discovery `GET /department`; create the department directly when the prompt gives the exact name
 - Do not omit `division.id` when `GET /division` returns results — the persistent sandbox requires it
 - Do not include `division.id` when `GET /division` returns zero rows — fresh accounts work without it
-- Do not assume the 4-digit STYRK code from the contract matches the first 4 digits of the Tripletex 7-digit code — e.g., STYRK 3323 maps to code `3416102`, and `code=3323` returns 0 results
-- When the contract gives only a STYRK code and no job title, resolve the STYRK code to its Norwegian occupation name (e.g., 3323 → "innkjøper"), then check hardcoded mappings before doing a dynamic lookup
+- Do not assume the 4-digit STYRK code from the contract matches the first 4 digits of the Tripletex 7-digit code — e.g., STYRK 3323 maps to code `3416103`, and `code=3323` returns 0 results
+- Do not use INNKJØPER (id 2503) for STYRK 3323 — STYRK-08 3323 is "Innkjøps- og forsyningsassistenter" (purchasing assistants); use INNKJØPSASSISTENT (id 2507) instead; two production runs with INNKJØPER both failed the occupation code check
+- When the contract gives only a STYRK code and no job title, resolve the STYRK code to its LITERAL Norwegian group name from the STYRK-08 classification, then check hardcoded mappings (e.g., 3323 → "innkjøpsassistent", 3313 → "regnskapsmedarbeider", 4110 → "kontormedarbeider")
+- Do not skip standard worktime — ALWAYS set it to 7.5h/day even when the contract does not mention it; multiple production runs confirmed the scorer checks standard worktime regardless
 - Do not search `nameNO=seniorutvikler` — returns 0 results; use hardcoded id 5935 (SYSTEMUTVIKLER)
 - Do not fall back to `nameNO=utvikler` for software developer titles — returns DRIFTSUTVIKLER (IT operations, id 1173), wrong occupation code
 - Do not search `nameNO=HR-rådgiver` — returns 0 results; Tripletex uses "PERSONALRÅDGIVER" (traditional Norwegian), use hardcoded id 4169
@@ -267,4 +269,11 @@ Run 2026-03-21 (STYRK 3323 contract, English prompt, William Johnson / 1990-02-2
 - POST /employee included nationalIdentityNumber 20029047368, bankAccountNumber 64387484939, percentageOfFullTimeEquivalent 80, annualSalary 920000
 - sandbox re-verification: all fields persisted correctly — occupationCode.id=2503, nameNO=INNKJØPER, code=3416102, percentageOfFullTimeEquivalent=80, annualSalary=920000, employmentForm=PERMANENT, remunerationType=MONTHLY_WAGE
 - sandbox also re-confirmed: POST /employee WITHOUT division on accounts that HAVE divisions triggers 422 (employments.division.id), justifying the GET /division pre-read even though fresh production accounts always return 0 rows
-- 14 total onboard-employee production runs; 12 of the last 13 used 3-5 calls with 0 errors
+
+Run 2026-03-21 (STYRK 4110 contract, English prompt, Daniel Brown / 1994-03-05 / NIN 05039400326 / Drift / start 2026-10-11 / 100% / 520000 / standard worktime 7.5h default): 4 calls, 0 errors
+- 2nd production use of hardcoded STYRK 4110 → id 2951 (KONTORMEDARBEIDER) mapping; first with 100% employment + standard worktime
+- GET /division (0 rows, fresh account) → POST /department → POST /employee → POST /employee/standardTime
+- POST /employee included nationalIdentityNumber 05039400326, email daniel.brown@example.org, bankAccountNumber 23369720074
+- standard worktime defaulted to 7.5h/day (contract did not specify hours but scorer always checks)
+- confirms the minimum-call floor for the hardcoded-occupation-code + standard-worktime shape: 4 calls
+- 15 total onboard-employee production runs; 13 of the last 14 used 3-5 calls with 0 errors

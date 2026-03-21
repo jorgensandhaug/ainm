@@ -25,7 +25,7 @@
 1. Resolve prerequisites in parallel:
    - `GET /division?count=1&fields=id`
    - `POST /department` with the prompt department name
-   - if the prompt provides a job title and the occupation code id is NOT in the known hardcoded mappings below: `GET /employee/employment/occupationCode?nameNO=<occupation-name>&count=1&fields=id`
+   - if the prompt provides a job title and the occupation code id is NOT in the known hardcoded mappings below: `GET /employee/employment/occupationCode?nameNO=<occupation-name>&count=10&fields=id,nameNO` — pick the exact `nameNO` match (case-insensitive), not the first result
 2. `POST /employee` with:
    - prompt identity fields (including `nationalIdentityNumber` and `bankAccountNumber` when provided)
    - explicit `userType: "NO_ACCESS"`
@@ -69,6 +69,7 @@ These occupation code ids are reference data and are the same across all Triplet
 | Seniorutvikler | `systemutvikler` | `5935` | `2130109` |
 | Regnskapsmedarbeider / STYRK 3313 | `regnskapsmedarbeider` | `4677` | `4121115` |
 | IT-konsulent | `IT-konsulent` | `2610` | `2130123` |
+| STYRK 3512 only (no job title) | `brukerstøtte` | `752` | `3120130` |
 | STYRK 2511 only (no job title) | n/a | `301` | `2511102` |
 
 When the job title matches a known mapping above, use the hardcoded id directly — do NOT spend a `GET /employee/employment/occupationCode` call.
