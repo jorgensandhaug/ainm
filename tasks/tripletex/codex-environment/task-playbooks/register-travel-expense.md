@@ -173,6 +173,8 @@ For the travel-expense create, the sandbox-proven shape was:
 - **REQUIRED: `perDiemCompensations[].location`** — set to the per-diem location (typically same as destination); `POST` fails with 422 if omitted
 - **`costs[].description` does NOT exist** — use `comments` for cost text; `description` causes 422 mapping error
 - **`perDiemCompensations[].isDayTrip` does NOT exist** — `isDayTrip` belongs on `travelDetails` only
+- **`costs[].currency` — do NOT include** — NOK is the default; including `currency: { code: "NOK" }` without `factor` causes 422 `costs.currency.factor: Må være minimum 1`; omit `currency` entirely
+- **`costs[].category` — unnecessary** — the `costCategory` object ref is what matters; `category` string is silently ignored
 - do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
 - do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
 - do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
@@ -300,3 +302,10 @@ For the travel-expense create, the sandbox-proven shape was:
   - correctly used per-diem count=3 (overnights) and rateType 25888/740
   - `state=DELIVERED`, expense `11150554`, 2 costs, 1 per-diem
   - **discovered new required fields**: `perDiemCompensations[].location` (required at POST), `travelDetails.destination` (required at deliver)
+- 2026-03-22 `Astrid Larsen` / `astrid.larsen@example.org` / `Konferanse Ålesund` / 4-day per-diem 800/day + flight 6750 + taxi 500 (run 3aed3b42):
+  - duration-only prompt (Norwegian), employee `address=null`, company-address fallback → `departureFrom=Oslo`
+  - 3 avoidable 422 errors: (1) `isDayTrip` on perDiemCompensations, (2) `currency.factor` on costs, (3) missing `location` on perDiemCompensations
+  - each retry re-ran all 4 GETs, inflating total calls; optimal was 6 calls 0 errors
+  - correctly used per-diem count=3 (overnights=days-1) and rateType 25888/740
+  - `state=DELIVERED`, expense `11150576`, 2 costs, 1 per-diem
+  - **new trap discovered**: `costs[].currency: { code: "NOK" }` without `factor` causes 422; omit currency entirely (NOK is default)

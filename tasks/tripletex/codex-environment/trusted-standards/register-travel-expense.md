@@ -199,3 +199,11 @@
   - `state=DELIVERED`, expense `11150554`, 2 costs, 1 per-diem
   - also created orphan OPEN expense `11150550` (POST succeeded but deliver failed on missing destination)
   - sandbox re-verified on 2026-03-22: `location` required at POST, `destination` required at deliver; both verified with IDs 11150570 (delivered with both) and 11150574 (POST without destination succeeded, deliver failed)
+- 2026-03-22 `Astrid Larsen` / `astrid.larsen@example.org` / `Konferanse Ålesund` / 4-day per-diem (800/day) + flight 6750 + taxi 500 (run 3aed3b42):
+  - duration-only prompt (Norwegian), employee had `address=null`, company-address fallback produced `departureFrom=Oslo`
+  - hit 3 avoidable 422 errors before successful POST: (1) `isDayTrip` on perDiemCompensations (non-existent field), (2) `currency.factor` on costs (NOK default doesn't need currency), (3) `location` required on perDiemCompensations
+  - each retry re-ran the 4 GET calls, so total was ~17 calls counting retries, 3 errors; optimal was 6 calls 0 errors
+  - correctly used per-diem count=3 (overnights=days-1) and rateType 25888/740 (overnight)
+  - `state=DELIVERED`, expense `11150576`, 2 costs, 1 per-diem
+  - sandbox re-verified on 2026-03-22: clean 6-call path with `location`, no `isDayTrip` on perDiem, no `currency` on costs → expense `11150595` delivered 0 errors; also confirmed `costs[].category` string is unnecessary (silently ignored)
+  - key learning: the winning payload example in the playbook already showed correct fields but agent wrote from partial memory instead of following the example exactly
