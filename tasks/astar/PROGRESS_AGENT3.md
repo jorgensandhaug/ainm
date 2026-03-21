@@ -4847,10 +4847,27 @@ Without entropy weights, the model tries equally hard to predict ocean cells (tr
    - cellwise LGB v5 heatmap: 84.94 (+8.05)
    - **CatBoost big: 85.29 (+8.40)**
 
+518. **CROSS-AGENT INTELLIGENCE SYNTHESIS** (detailed subagent analysis of all 6 other agents):
+
+| Agent | Best Score | Key Innovation |
+|-------|----------|----------------|
+| **Agent3 (us)** | **85.29** | CatBoost cellwise + viewport evidence + entropy weights |
+| Agent1 | 83.79 | Particle posterior + original coefficients + obs blend + regime probe policy |
+| Agent4 | 79.39 (live) | Serving calibration: zero prior, temp=1.0 on query_residual_v11 |
+| Agent6 | 79.57 (5-round) | Geometric ensemble of hazard posterior + query_residual |
+| Agent5 | 77.39 | Expansion-conditioned cell kNN + QR stacking (logit-space) |
+| Agent7 | 74.72 | Lower beta + exploration_r3 policy |
+
+Key techniques to incorporate from other agents:
+1. **Observation-frequency blending** (Agent1): +0.58pts by blending observed class freqs into predictions at temp=20
+2. **Exploration_r3 policy** (Agent5/7): Coverage + 3 repeats gives better evidence quality
+3. **Geometric mean ensemble** (Agent6): Combining models in log-probability space
+4. **Expansion rate conditioning** (Agent5): 1D settlement expansion rate is the best regime variable
+5. **Entropy-conditioned class weighting** (Agent1): Weight particle likelihoods by class scoring contribution
+
 ## Open Questions
 
-- Can CatBoost be pushed further with more iterations/depth?
-- Can we try AutoGluon (separate venv needed due to sklearn conflicts)?
-- Can we ensemble CatBoost + LGB for even better?
-- Need to wire CatBoost into live pipeline
-- Can we improve the query policy to get better evidence?
+- Can observation-frequency blending improve our CatBoost predictions?
+- Should we switch from coverage to exploration_r3 policy?
+- Can we ensemble our cellwise LGB/CatBoost with a hazard posterior model?
+- Need to wire CatBoost into live pipeline for next round
