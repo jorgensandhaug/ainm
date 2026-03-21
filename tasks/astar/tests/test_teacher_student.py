@@ -150,3 +150,59 @@ def test_summary_bank_student_spatial_checkpoint_roundtrip(sample_paths: RepoPat
     assert reloaded.summary_encoder == SUMMARY_ENCODER_SPATIAL_V2
     assert reloaded.normalize_summary is True
     assert posterior.mean.ndim == 1
+
+
+def test_summary_bank_student_semantic_checkpoint_roundtrip(sample_paths: RepoPaths) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_semantic_test").fit([round_episode])
+    teacher_checkpoint_path = teacher.save_checkpoint(
+        sample_paths.model_dir("hazard_teacher_semantic_test") / "checkpoint.json",
+    )
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_summary_semantic_test",
+    )
+    from astar.student.posterior.deepset_student import (
+        SUMMARY_ENCODER_SEMANTIC_V3,
+        SummaryBankStudent,
+    )
+
+    student = SummaryBankStudent.fit_from_dataset(
+        dataset,
+        teacher,
+        k_neighbors=1,
+        summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+        normalize_summary=True,
+    )
+    checkpoint_path = student.save_checkpoint(
+        sample_paths.model_dir("summary_bank_student_semantic_test"),
+        teacher_checkpoint_path,
+    )
+    reloaded = SummaryBankStudent.load_checkpoint(checkpoint_path)
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    round_context = build_round_context_from_detail(round_record.round)
+    transcript_observations = (
+        round_episode.live_transcript.observations
+        if round_episode.live_transcript is not None
+        else ()
+    )
+    context = LiveInferenceContext(
+        online_episode=round_context_to_online_episode(
+            round_context,
+            transcript_observations,
+        ),
+        geometry_bundle=compute_round_features(round_record.round),
+        evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
+    )
+
+    posterior = reloaded.infer_regime(context)
+
+    assert reloaded.summary_encoder == SUMMARY_ENCODER_SEMANTIC_V3
+    assert reloaded.normalize_summary is True
+    assert posterior.mean.ndim == 1

@@ -1560,6 +1560,60 @@
    - added coverage:
      - `teacher_student_blend_v4` default-sample historical benchmark smoke
      - spatial-encoder checkpoint roundtrip smoke
+171. Next hypothesis after the spatial encoder:
+   - pooled spatial maps may still be too generic / too high-dimensional for only `8` historical rounds
+   - stronger compact alternative:
+     - summarize evidence on the same semantic masks the hazard teacher/regime uses:
+       - buildable
+       - coast
+       - inland
+       - frontier
+       - maritime-access
+   - add settlement-structure features:
+     - mean settlement count
+     - alive fraction
+     - port fraction
+     - owner-count / concentration summaries
+172. Implemented semantic evidence path:
+   - `SeedEvidenceBundle` now also stores:
+     - `mean_settlement_count`
+     - `alive_fraction`
+     - `port_fraction`
+     - `owner_count`
+     - `largest_owner_share`
+     - `owner_hhi`
+   - added summary encoder:
+     - `summary_semantic_v3`
+   - encoder content:
+     - base global evidence summary
+     - repeated-window / global coverage features
+     - settlement-structure features
+     - mask-conditioned observed frequency summaries on:
+       - buildable
+       - coast
+       - inland
+       - frontier
+       - maritime
+173. New semantic model variants added on top of item 172:
+   - `teacher_student_blend_v5`
+     - `samples_per_round=4`
+     - `k_neighbors=5`
+     - `teacher_weight_max=0.55`
+     - `summary_encoder=summary_semantic_v3`
+     - `normalize_summary=true`
+   - `teacher_student_blend_v6`
+     - `samples_per_round=8`
+     - `k_neighbors=7`
+     - `teacher_weight_max=0.60`
+     - `summary_encoder=summary_semantic_v3`
+     - `normalize_summary=true`
+   - validation:
+     - `uv run pytest tests/test_teacher_student.py tests/test_historical_benchmark.py -q`
+     - result:
+       - `28 passed`
+     - added coverage:
+       - semantic-encoder checkpoint roundtrip smoke
+       - `teacher_student_blend_v6` default-sample historical benchmark smoke
 
 
 ## Open Questions

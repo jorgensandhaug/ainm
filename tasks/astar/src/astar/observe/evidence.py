@@ -32,6 +32,12 @@ class SeedEvidenceBundle(BaseModel):
     mean_food: float | None = None
     mean_wealth: float | None = None
     mean_defense: float | None = None
+    mean_settlement_count: float = Field(default=0.0, ge=0.0)
+    alive_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
+    port_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
+    owner_count: float = Field(default=0.0, ge=0.0)
+    largest_owner_share: float = Field(default=0.0, ge=0.0, le=1.0)
+    owner_hhi: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class RoundEvidenceBundle(BaseModel):
@@ -122,6 +128,53 @@ def _settlement_means_from_observations(
     )
 
 
+def _settlement_structure(
+    settlements_by_query: list[list[object]],
+) -> tuple[float, float, float, float, float, float]:
+    if not settlements_by_query:
+        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    owner_counts: dict[int, int] = {}
+    total_settlement_count = 0
+    alive_count = 0
+    port_count = 0
+    query_counts: list[float] = []
+    for settlements in settlements_by_query:
+        query_counts.append(float(len(settlements)))
+        total_settlement_count += len(settlements)
+        for settlement in settlements:
+            if getattr(settlement, "alive", False):
+                alive_count += 1
+            if getattr(settlement, "has_port", False):
+                port_count += 1
+            owner_id = getattr(settlement, "owner_id", None)
+            if owner_id is not None:
+                owner_counts[int(owner_id)] = owner_counts.get(int(owner_id), 0) + 1
+    denominator = float(total_settlement_count)
+    alive_fraction = float(alive_count) / denominator if denominator > 0.0 else 0.0
+    port_fraction = float(port_count) / denominator if denominator > 0.0 else 0.0
+    if owner_counts:
+        owner_total = float(sum(owner_counts.values()))
+        owner_shares = np.asarray(
+            [count / owner_total for count in owner_counts.values()],
+            dtype=np.float64,
+        )
+        owner_count = float(len(owner_counts)) / 10.0
+        largest_owner_share = float(np.max(owner_shares))
+        owner_hhi = float(np.sum(owner_shares * owner_shares))
+    else:
+        owner_count = 0.0
+        largest_owner_share = 0.0
+        owner_hhi = 0.0
+    return (
+        float(fmean(query_counts)) if query_counts else 0.0,
+        alive_fraction,
+        port_fraction,
+        owner_count,
+        largest_owner_share,
+        owner_hhi,
+    )
+
+
 def _build_seed_evidence_bundle(
     *,
     round_id: str,
@@ -162,6 +215,14 @@ def _build_seed_evidence_bundle(
     mean_population, mean_food, mean_wealth, mean_defense = _settlement_means_from_observations(
         observations,
     )
+    (
+        mean_settlement_count,
+        alive_fraction,
+        port_fraction,
+        owner_count,
+        largest_owner_share,
+        owner_hhi,
+    ) = _settlement_structure([list(observation.settlements) for observation in observations])
     return SeedEvidenceBundle(
         round_id=round_id,
         seed_index=seed_index,
@@ -175,6 +236,12 @@ def _build_seed_evidence_bundle(
         mean_food=mean_food,
         mean_wealth=mean_wealth,
         mean_defense=mean_defense,
+        mean_settlement_count=mean_settlement_count,
+        alive_fraction=alive_fraction,
+        port_fraction=port_fraction,
+        owner_count=owner_count,
+        largest_owner_share=largest_owner_share,
+        owner_hhi=owner_hhi,
     )
 
 
@@ -215,6 +282,14 @@ def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceB
         if class_total > 0:
             frequencies = class_counts.astype(np.float64) / float(class_total)
         mean_population, mean_food, mean_wealth, mean_defense = _settlement_means(records)
+        (
+            mean_settlement_count,
+            alive_fraction,
+            port_fraction,
+            owner_count,
+            largest_owner_share,
+            owner_hhi,
+        ) = _settlement_structure([list(record.record.response.settlements) for record in records])
         per_seed[seed_index] = SeedEvidenceBundle(
             round_id=round_id,
             seed_index=seed_index,
@@ -228,6 +303,12 @@ def build_round_evidence(paths: WorkspacePaths, round_id: str) -> RoundEvidenceB
             mean_food=mean_food,
             mean_wealth=mean_wealth,
             mean_defense=mean_defense,
+            mean_settlement_count=mean_settlement_count,
+            alive_fraction=alive_fraction,
+            port_fraction=port_fraction,
+            owner_count=owner_count,
+            largest_owner_share=largest_owner_share,
+            owner_hhi=owner_hhi,
         )
 
     return RoundEvidenceBundle(round_id=round_id, per_seed=per_seed)

@@ -19,6 +19,7 @@ from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.observe.evidence import RoundEvidenceBundle, build_round_evidence_from_observations
 from astar.student.posterior.deepset_student import (
+    SUMMARY_ENCODER_SEMANTIC_V3,
     SUMMARY_ENCODER_SPATIAL_V2,
     SUMMARY_ENCODER_V1,
     SummaryBankStudent,
@@ -33,6 +34,8 @@ SUMMARY_BANK_STUDENT_V1 = "teacher_student_blend_v1"
 SUMMARY_BANK_STUDENT_V2 = "teacher_student_blend_v2"
 SUMMARY_BANK_STUDENT_V3 = "teacher_student_blend_v3"
 SUMMARY_BANK_STUDENT_V4 = "teacher_student_blend_v4"
+SUMMARY_BANK_STUDENT_V5 = "teacher_student_blend_v5"
+SUMMARY_BANK_STUDENT_V6 = "teacher_student_blend_v6"
 SUMMARY_BANK_MODEL_NAMES = frozenset(
     {
         SUMMARY_BANK_STUDENT_ALIAS,
@@ -40,6 +43,8 @@ SUMMARY_BANK_MODEL_NAMES = frozenset(
         SUMMARY_BANK_STUDENT_V2,
         SUMMARY_BANK_STUDENT_V3,
         SUMMARY_BANK_STUDENT_V4,
+        SUMMARY_BANK_STUDENT_V5,
+        SUMMARY_BANK_STUDENT_V6,
     },
 )
 
@@ -81,6 +86,8 @@ def resolve_summary_bank_variant_spec(
         SUMMARY_BANK_STUDENT_V2: 8,
         SUMMARY_BANK_STUDENT_V3: 4,
         SUMMARY_BANK_STUDENT_V4: 8,
+        SUMMARY_BANK_STUDENT_V5: 4,
+        SUMMARY_BANK_STUDENT_V6: 8,
     }.get(resolved_model_name, 4)
     effective_samples_per_round = (
         default_samples_per_round if samples_per_round is None else samples_per_round
@@ -93,6 +100,30 @@ def resolve_summary_bank_variant_spec(
         raise ValueError("teacher_student_blend_v3 fixes samples_per_round=4")
     if resolved_model_name == SUMMARY_BANK_STUDENT_V4 and effective_samples_per_round != 8:
         raise ValueError("teacher_student_blend_v4 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V5 and effective_samples_per_round != 4:
+        raise ValueError("teacher_student_blend_v5 fixes samples_per_round=4")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V6 and effective_samples_per_round != 8:
+        raise ValueError("teacher_student_blend_v6 fixes samples_per_round=8")
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V6:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=7,
+            teacher_weight_max=0.6,
+            query_count_scale=15.0,
+            summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+            normalize_summary=True,
+        )
+    if resolved_model_name == SUMMARY_BANK_STUDENT_V5:
+        return SummaryBankVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            k_neighbors=5,
+            teacher_weight_max=0.55,
+            query_count_scale=15.0,
+            summary_encoder=SUMMARY_ENCODER_SEMANTIC_V3,
+            normalize_summary=True,
+        )
     if resolved_model_name == SUMMARY_BANK_STUDENT_V4:
         return SummaryBankVariantSpec(
             model_name=resolved_model_name,
@@ -370,6 +401,8 @@ __all__ = [
     "SUMMARY_BANK_STUDENT_V2",
     "SUMMARY_BANK_STUDENT_V3",
     "SUMMARY_BANK_STUDENT_V4",
+    "SUMMARY_BANK_STUDENT_V5",
+    "SUMMARY_BANK_STUDENT_V6",
     "SummaryBankRoundPredictor",
     "is_summary_bank_model_name",
     "load_or_fit_named_summary_bank_predictor",

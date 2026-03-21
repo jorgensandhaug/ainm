@@ -7,8 +7,7 @@ import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
-from astar.core.trajectory import LiveQueryObs
+from astar.features.geometry import RoundFeatureBundle, compute_round_features
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import load_synthetic_episode
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -21,7 +20,10 @@ from astar.teacher.regime.base import RegimePosteriorState
 
 SUMMARY_ENCODER_V1 = "summary_v1"
 SUMMARY_ENCODER_SPATIAL_V2 = "summary_spatial_v2"
-SUMMARY_ENCODERS = frozenset({SUMMARY_ENCODER_V1, SUMMARY_ENCODER_SPATIAL_V2})
+SUMMARY_ENCODER_SEMANTIC_V3 = "summary_semantic_v3"
+SUMMARY_ENCODERS = frozenset(
+    {SUMMARY_ENCODER_V1, SUMMARY_ENCODER_SPATIAL_V2, SUMMARY_ENCODER_SEMANTIC_V3},
+)
 
 
 def _optional_float(value: float | None) -> float:
@@ -138,15 +140,80 @@ def _summary_vector_spatial_v2(evidence: RoundEvidenceBundle) -> np.ndarray:
     return np.asarray(components, dtype=np.float64)
 
 
+def _masked_frequency_summary(
+    count_tensor: np.ndarray,
+    mask: np.ndarray,
+) -> list[float]:
+    if not np.any(mask):
+        return [0.0] * 6
+    observed_mask = np.sum(count_tensor, axis=-1, dtype=np.float64) > 0.0
+    masked_counts = np.sum(count_tensor[mask], axis=0, dtype=np.float64)
+    total = float(np.sum(masked_counts, dtype=np.float64))
+    coverage_fraction = float(np.mean(observed_mask[mask]))
+    if total <= 0.0:
+        return [coverage_fraction, 0.0, 0.0, 0.0, 0.0, 0.0]
+    built = float((masked_counts[1] + masked_counts[2] + masked_counts[3]) / total)
+    return [
+        coverage_fraction,
+        built,
+        float(masked_counts[1] / total),
+        float(masked_counts[2] / total),
+        float(masked_counts[3] / total),
+        float(masked_counts[4] / total),
+    ]
+
+
+def _summary_vector_semantic_v3(
+    evidence: RoundEvidenceBundle,
+    *,
+    geometry_bundle: RoundFeatureBundle | None,
+) -> np.ndarray:
+    if geometry_bundle is None:
+        raise ValueError("summary_semantic_v3 requires geometry features")
+    components: list[float] = []
+    for seed_index in sorted(evidence.per_seed):
+        seed = evidence.per_seed[seed_index]
+        seed_features = geometry_bundle.per_seed[seed_index]
+        count_tensor = np.asarray(seed.observed_class_count_tensor, dtype=np.float64)
+        buildable = seed_features.feature("buildable") > 0.5
+        coast = seed_features.feature("coast") > 0.5
+        inland = buildable & ~coast
+        frontier = seed_features.feature("frontier_score") >= 0.5
+        maritime = seed_features.feature("maritime_access") >= 0.5
+        components.extend(_seed_summary_components(seed))
+        components.extend(
+            [
+                float(seed.repeated_window_groups),
+                float(seed.repeated_window_groups) / max(float(seed.query_count), 1.0),
+                float(np.mean(np.sum(count_tensor, axis=-1, dtype=np.float64) > 0.0)),
+                float(seed.mean_settlement_count),
+                float(seed.alive_fraction),
+                float(seed.port_fraction),
+                float(seed.owner_count),
+                float(seed.largest_owner_share),
+                float(seed.owner_hhi),
+            ],
+        )
+        for mask in (buildable, coast, inland, frontier, maritime):
+            components.extend(_masked_frequency_summary(count_tensor, mask))
+    return np.asarray(components, dtype=np.float64)
+
+
 def _summary_vector_from_evidence(
     evidence: RoundEvidenceBundle,
     *,
     summary_encoder: str = SUMMARY_ENCODER_V1,
+    geometry_bundle: RoundFeatureBundle | None = None,
 ) -> np.ndarray:
     if summary_encoder == SUMMARY_ENCODER_V1:
         return _summary_vector_v1(evidence)
     if summary_encoder == SUMMARY_ENCODER_SPATIAL_V2:
         return _summary_vector_spatial_v2(evidence)
+    if summary_encoder == SUMMARY_ENCODER_SEMANTIC_V3:
+        return _summary_vector_semantic_v3(
+            evidence,
+            geometry_bundle=geometry_bundle,
+        )
     msg = f"unsupported summary encoder: {summary_encoder}"
     raise ValueError(msg)
 
@@ -161,6 +228,7 @@ def _summary_vector_from_artifact(
     if paths is None:
         raise ValueError("summary-bank artifact loading requires workspace paths")
     round_detail = read_round_record(paths, artifact.round_id).round
+    geometry_bundle = compute_round_features(round_detail)
     evidence = build_round_evidence_from_observations(
         round_detail,
         artifact.observations,
@@ -169,6 +237,7 @@ def _summary_vector_from_artifact(
         _summary_vector_from_evidence(
             evidence,
             summary_encoder=summary_encoder,
+            geometry_bundle=geometry_bundle,
         ),
         artifact.regime_vector,
     )
@@ -324,6 +393,7 @@ class SummaryBankStudent(BaseModel):
         query_vector = _summary_vector_from_evidence(
             context.evidence_bundle,
             summary_encoder=self.summary_encoder,
+            geometry_bundle=context.geometry_bundle,
         )
         if self.normalize_summary:
             query_vector = (query_vector - self.feature_mean) / self.feature_scale
