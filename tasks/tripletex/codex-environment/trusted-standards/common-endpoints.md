@@ -92,6 +92,17 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET /employee?fields=*` can still return `employments[]` as sparse stubs with null `startDate`, null `division`, and empty-looking `employmentDetails[]`
   - for payroll-readiness checks, do one conditional `GET /employee/employment?employeeId=...&fields=*` only when the employee search response is too sparse to judge the payroll period or business linkage
 
+## Occupation Code
+- `/employee/employment/occupationCode`
+  - `GET` search profession/occupation codes
+  - query parameters: `id`, `nameNO` (containing), `code` (containing), `from`, `count`, `fields`
+- Standard lookup note:
+  - the `code` filter is a substring-containing match, NOT exact or prefix
+  - searching `code=4110` returns unrelated codes that contain "4110" anywhere in their 7-digit code (e.g., `3341103` ADJUNKT)
+  - the reliable lookup for a 4-digit STYRK group code is by `nameNO` with the Norwegian occupation name
+  - `nameNO=kontormedarbeider&count=1&fields=id` reliably returns KONTORMEDARBEIDER (id `2951`, code `4114105`) for STYRK 4110
+  - occupation code ids are reference data and are the same across sandbox and production accounts
+
 ## Salary
 - `/salary/settings/standardTime`
   - `GET` search standard times
@@ -279,9 +290,14 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET` read
   - `PUT` update
   - `DELETE` delete
+- `/timesheet/entry/list`
+  - `POST` batch create (array of timesheet entries for multiple employees/dates)
+  - `PUT` batch update
 - `/timesheet/week/:approve`
   - `PUT` approve week
 - Standard time-registration note:
+  - `POST /timesheet/entry/list` accepts an array of entries and creates them all in one call; persistent sandbox on 2026-03-21 confirmed 9 entries across 2 employees in 1 call, returning `{ values: [...] }` with all created entries; use this for lifecycle tasks with many timesheet entries instead of individual `POST /timesheet/entry` calls
+  - timesheet entry dates must be on or after the project `startDate`; entries before the project start fail with `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
   - a timesheet write on a non-chargeable project activity can still succeed while returning `chargeable=false` and `hourlyRate=0`
   - a timesheet write on a chargeable project activity can also succeed with `chargeable=true` and `hourlyRate=0` when the exact employee+activity rate is missing, so the write alone does not prove the prompt rate was applied
   - `projectChargeableHours` has a hard per-entry ceiling of `24`; `POST /timesheet/entry` above that returns `422 projectChargeableHours: Kan ikke være over 24`

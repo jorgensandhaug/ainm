@@ -156,7 +156,7 @@ Authentication:
 - `/customer` and `/customer/{id}` — customer create/search/read/update/delete
 - `/company` and `/company/{id}` — company update/read
 - `/department`, `/department/{id}`, and `/department/list` — department create/search/update/delete/batch-create
-- `/employee`, `/employee/{id}`, `/employee/employment`, and `/employee/employment/details` — employee create/search/update plus employment and employment-details create/search
+- `/employee`, `/employee/{id}`, `/employee/employment`, `/employee/employment/details`, and `/employee/employment/occupationCode` — employee create/search/update plus employment, employment-details, and occupation-code lookup
 - `/division` and `/division/{id}` — division search/create/read/update/delete
 - `/salary/settings/standardTime` and `/salary/settings/standardTime/byDate` — company standard-worktime create/search/effective-date lookup
 - `/salary/type`, `/salary/transaction`, `/salary/transaction/{id}`, `/salary/payslip`, and `/salary/payslip/{id}` — salary-type lookup, payroll transaction create/read/delete, and payslip search/read
