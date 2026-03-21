@@ -41,6 +41,7 @@ QUERY_RESIDUAL_V7 = "query_residual_v7"
 QUERY_RESIDUAL_V8 = "query_residual_v8"
 QUERY_RESIDUAL_V9 = "query_residual_v9"
 QUERY_RESIDUAL_V10 = "query_residual_v10"
+QUERY_RESIDUAL_V11 = "query_residual_v11"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
@@ -48,11 +49,21 @@ QUERY_RESIDUAL_MODEL_NAMES = frozenset(
         QUERY_RESIDUAL_V8,
         QUERY_RESIDUAL_V9,
         QUERY_RESIDUAL_V10,
+        QUERY_RESIDUAL_V11,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
 CELL_SELECTION_STRATIFIED_ENTROPY = "stratified_entropy"
 CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY = "top_heavy_stratified_entropy"
+
+
+class QueryResidualNamedVariantSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    model_name: str
+    samples_per_round: int = Field(default=1, ge=1)
+    cell_selection_strategy: str = CELL_SELECTION_TOP_ENTROPY
+    include_exact_local_residual: bool = False
 
 
 def is_query_residual_model_name(model_name: str) -> bool:
@@ -67,6 +78,62 @@ def resolve_query_residual_model_name(model_name: str) -> str:
         return normalized
     msg = f"unsupported query_residual model: {model_name}"
     raise ValueError(msg)
+
+
+def resolve_query_residual_variant_spec(
+    model_name: str,
+    *,
+    samples_per_round: int | None = None,
+) -> QueryResidualNamedVariantSpec:
+    resolved_model_name = resolve_query_residual_model_name(model_name)
+    default_samples_per_round = 2 if resolved_model_name == QUERY_RESIDUAL_V11 else 1
+    effective_samples_per_round = (
+        default_samples_per_round if samples_per_round is None else samples_per_round
+    )
+    if resolved_model_name == QUERY_RESIDUAL_V11 and effective_samples_per_round != 2:
+        raise ValueError("query_residual_v11 fixes samples_per_round=2")
+    if resolved_model_name == QUERY_RESIDUAL_V8:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V9:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V10:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    if resolved_model_name == QUERY_RESIDUAL_V11:
+        return QueryResidualNamedVariantSpec(
+            model_name=resolved_model_name,
+            samples_per_round=effective_samples_per_round,
+            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
+            include_exact_local_residual=True,
+        )
+    return QueryResidualNamedVariantSpec(
+        model_name=resolved_model_name,
+        samples_per_round=effective_samples_per_round,
+    )
+
+
+def resolve_query_residual_samples_per_round(
+    model_name: str,
+    *,
+    samples_per_round: int | None = None,
+) -> int:
+    return resolve_query_residual_variant_spec(
+        model_name,
+        samples_per_round=samples_per_round,
+    ).samples_per_round
 
 
 def _round_ids_with_analyses_and_replays(
@@ -1559,44 +1626,20 @@ def fit_named_query_residual_predictor(
     model_name: str,
     round_ids: Sequence[str] | None = None,
     policy_name: str = "coverage",
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
 ) -> QueryResidualPredictor:
-    resolved_model_name = resolve_query_residual_model_name(model_name)
-    if resolved_model_name == QUERY_RESIDUAL_V8:
-        return QueryResidualPredictor.fit_from_workspace(
-            paths,
-            round_ids=round_ids,
-            policy_name=policy_name,
-            model_name=resolved_model_name,
-            samples_per_round=samples_per_round,
-            cell_selection_strategy=CELL_SELECTION_STRATIFIED_ENTROPY,
-            include_exact_local_residual=True,
-        )
-    if resolved_model_name == QUERY_RESIDUAL_V9:
-        return QueryResidualPredictor.fit_from_workspace(
-            paths,
-            round_ids=round_ids,
-            policy_name=policy_name,
-            model_name=resolved_model_name,
-            samples_per_round=samples_per_round,
-            include_exact_local_residual=True,
-        )
-    if resolved_model_name == QUERY_RESIDUAL_V10:
-        return QueryResidualPredictor.fit_from_workspace(
-            paths,
-            round_ids=round_ids,
-            policy_name=policy_name,
-            model_name=resolved_model_name,
-            samples_per_round=samples_per_round,
-            cell_selection_strategy=CELL_SELECTION_TOP_HEAVY_STRATIFIED_ENTROPY,
-            include_exact_local_residual=True,
-        )
+    spec = resolve_query_residual_variant_spec(
+        model_name,
+        samples_per_round=samples_per_round,
+    )
     return QueryResidualPredictor.fit_from_workspace(
         paths,
         round_ids=round_ids,
         policy_name=policy_name,
-        model_name=resolved_model_name,
-        samples_per_round=samples_per_round,
+        model_name=spec.model_name,
+        samples_per_round=spec.samples_per_round,
+        cell_selection_strategy=spec.cell_selection_strategy,
+        include_exact_local_residual=spec.include_exact_local_residual,
     )
 
 
@@ -1606,17 +1649,20 @@ def _named_query_residual_checkpoint_path(
     model_name: str,
     round_ids: Sequence[str] | None = None,
     policy_name: str = "coverage",
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
 ) -> Path:
-    resolved_model_name = resolve_query_residual_model_name(model_name)
+    spec = resolve_query_residual_variant_spec(
+        model_name,
+        samples_per_round=samples_per_round,
+    )
     resolved_policy_name = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
     return (
         paths.model_dir(
             (
-                f"{resolved_model_name}"
+                f"{spec.model_name}"
                 f"__policy={resolved_policy_name}"
-                f"__samples={samples_per_round}"
+                f"__samples={spec.samples_per_round}"
                 f"__rounds={scope_token}"
             ),
         )
@@ -1630,7 +1676,7 @@ def load_or_fit_named_query_residual_predictor(
     model_name: str,
     round_ids: Sequence[str] | None = None,
     policy_name: str = "coverage",
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
 ) -> QueryResidualPredictor:
     checkpoint_path = _named_query_residual_checkpoint_path(
         paths,
@@ -1659,4 +1705,6 @@ __all__ = [
     "is_query_residual_model_name",
     "load_or_fit_named_query_residual_predictor",
     "resolve_query_residual_model_name",
+    "resolve_query_residual_samples_per_round",
+    "resolve_query_residual_variant_spec",
 ]

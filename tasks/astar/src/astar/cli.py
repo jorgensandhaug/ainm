@@ -210,6 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v8",
             "query_residual_v9",
             "query_residual_v10",
+            "query_residual_v11",
         ],
         required=True,
     )
@@ -256,11 +257,12 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v8",
             "query_residual_v9",
             "query_residual_v10",
+            "query_residual_v11",
         ],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
-    synthetic_tournament_parser.add_argument("--samples-per-round", type=int, default=1)
+    synthetic_tournament_parser.add_argument("--samples-per-round", type=int, default=None)
     synthetic_tournament_parser.add_argument("--budget", type=int, default=50)
     synthetic_tournament_parser.add_argument("--episode-seed", type=int, default=0)
 
@@ -278,11 +280,12 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v8",
             "query_residual_v9",
             "query_residual_v10",
+            "query_residual_v11",
         ],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
-    synthetic_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
+    synthetic_benchmark_parser.add_argument("--samples-per-round", type=int, default=None)
     synthetic_benchmark_parser.add_argument("--budget", type=int, default=50)
     synthetic_benchmark_parser.add_argument(
         "--episode-seed",
@@ -304,6 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v8",
             "query_residual_v9",
             "query_residual_v10",
+            "query_residual_v11",
         ],
         required=True,
     )
@@ -314,7 +318,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     historical_benchmark_parser.add_argument("--round-id", action="append", default=None)
     historical_benchmark_parser.add_argument("--policy", default="coverage")
-    historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
+    historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=None)
     historical_benchmark_parser.add_argument("--budget", type=int, default=50)
     historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
     historical_benchmark_parser.add_argument(
@@ -342,11 +346,12 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual_v8",
             "query_residual_v9",
             "query_residual_v10",
+            "query_residual_v11",
         ],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")
-    live_online_parser.add_argument("--samples-per-round", type=int, default=1)
+    live_online_parser.add_argument("--samples-per-round", type=int, default=None)
     live_online_parser.add_argument(
         "--budget",
         type=int,

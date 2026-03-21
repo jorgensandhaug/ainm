@@ -12,7 +12,10 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
-from astar.student.predictor.query_residual import is_query_residual_model_name
+from astar.student.predictor.query_residual import (
+    is_query_residual_model_name,
+    resolve_query_residual_samples_per_round,
+)
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -98,7 +101,7 @@ def run_historical_benchmark(
     round_ids: list[str] | None = None,
     mode: str = "prior_only",
     policy_name: str = "coverage",
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
     budget: int = 50,
     episode_seed: int = 0,
     visualization_policy: str = "top",
@@ -133,9 +136,17 @@ def run_historical_benchmark(
     resolved_policy_name = (
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
+    resolved_samples_per_round = (
+        resolve_query_residual_samples_per_round(
+            normalized_model_name,
+            samples_per_round=samples_per_round,
+        )
+        if is_query_residual_model_name(normalized_model_name)
+        else None
+    )
     model_suffix = ""
     if is_query_residual_model_name(normalized_model_name):
-        model_suffix = f"__samples={samples_per_round}"
+        model_suffix = f"__samples={resolved_samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
         interactive_suffix = (
@@ -280,7 +291,7 @@ def run_historical_benchmark(
         mode=mode,
         policy_name=resolved_policy_name,
         samples_per_round=(
-            samples_per_round if is_query_residual_model_name(normalized_model_name) else None
+            resolved_samples_per_round
         ),
         budget=None if mode == "prior_only" else budget,
         episode_seed=None if mode == "prior_only" else episode_seed,

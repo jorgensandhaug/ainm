@@ -70,7 +70,7 @@ def build_online_predictor(
     paths: WorkspacePaths | None = None,
     historical_round_ids: Sequence[str] | None = None,
     policy_name: str | None = None,
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
 ) -> RoundPredictorAdapter:
     normalized = model_name.strip().lower()
     if normalized == "geometry_prior":

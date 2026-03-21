@@ -312,6 +312,110 @@
    - run was intentionally stopped after caching that groundwork to avoid leaving another orphan long-running process at turn end
    - rerunning the same samples-2 holdout probe should now skip dataset build and reuse the completed first fold
 
+### 2026-03-21
+
+40. Re-read repo canon + handoff at turn start:
+   - `README.md`
+   - `docs/game_facts.md`
+   - `instructions/agent3/generic-iteration-protocol-agent3.md`
+   - `PROGRESS_AGENT3.md`
+   - `br list` retried and still unavailable in this shell (`br: command not found`)
+41. Rechecked current workspace/runtime state:
+   - no active long-running `query_residual` benchmark/eval processes were present
+   - branch still `agent3`
+   - latest pushed commit at turn start: `649ff39`
+42. Important discovery from existing artifacts:
+   - the previously “partial” samples-2 targeted holdout had actually finished and written:
+     - `data/artifacts/benchmarks/agent3_query_residual_v8_samples2_targeted_holdout_2rounds_7train/result.json`
+   - result:
+     - `query_residual_v8`, `samples_per_round=2`
+     - mean score `60.9581`
+     - mean weighted KL `0.165517`
+   - per-round:
+     - `36e581...`: score `63.8284`, KL `0.149753`
+     - `f1dac9...`: score `58.0878`, KL `0.181280`
+   - comparison vs `query_residual_v8` samples-1 targeted holdout:
+     - score `+0.2265`
+     - weighted KL `-0.001204`
+     - improves both hard held-out rounds slightly
+43. Updated hypothesis after item 42:
+   - extra synthetic transcript diversity is plausibly helping generalization, not just trading one hard round against the other
+   - next code step should make this regime reproducible by model name instead of hiding it behind `--samples-per-round`
+44. Immediate next action from current state:
+   - formalize a new named `query_residual` variant for the samples-2 regime
+   - then run full corrected leave-one-round-out benchmark for that named variant
+45. Implemented named samples-2 variant:
+   - new model name: `query_residual_v11`
+   - semantics:
+     - same architecture as `query_residual_v8`
+     - same stratified-entropy cell selection
+     - same exact-local-residual features
+     - fixed `samples_per_round=2`
+   - rationale:
+     - makes the improving samples-2 regime benchmarkable by model name alone
+     - removes dependence on hidden CLI flags for reproducibility of this branch
+46. Variant-resolution plumbing upgraded:
+   - added explicit query-residual named-variant spec resolution in:
+     - `src/astar/student/predictor/query_residual.py`
+   - interactive query-residual commands now allow `--samples-per-round` to default to `None`, letting fixed-by-name variants supply their own effective regime:
+     - `src/astar/student/predictor/interactive.py`
+     - `src/astar/workflows/model_eval.py`
+     - `src/astar/workflows/historical_benchmark.py`
+     - `src/astar/cli.py`
+   - benchmark metadata and run naming now record the effective sample count, not just the raw CLI arg
+47. Validation after `query_residual_v11` + effective-sample resolution:
+   - `uv run pytest tests/test_history_datasets.py tests/test_historical_benchmark.py tests/test_online_episode.py tests/test_synthetic_benchmark.py tests/test_synthetic_tournament.py tests/test_compare_synthetic_benchmarks.py -q`
+   - result: `17 passed`
+   - added regression coverage in:
+     - `tests/test_historical_benchmark.py`
+   - key new assertion:
+     - `query_residual_v11` resolves to `samples_per_round=2` with no explicit CLI flag
+48. Full corrected leave-one-round-out benchmark complete for `query_residual_v11`:
+   - artifact:
+     - `data/artifacts/benchmarks/agent3_dev_query_residual_v11_full_corrected/result.json`
+   - command:
+     - `uv run astar run-historical-benchmark --model query_residual_v11 --mode online_interactive --policy coverage --budget 50 --with-png none --name agent3_dev_query_residual_v11_full_corrected`
+   - result:
+     - mean score `74.6870`
+     - mean weighted KL `0.099885`
+     - rounds `8`
+     - evaluated seeds `40`
+     - total runtime `1795.405s`
+     - round mean score range `58.0878..85.5003`
+49. Current best verified local model updated:
+   - `query_residual_v11` is new best full corrected run in this workspace
+   - comparison vs previous best `query_residual_v8`:
+     - score `+0.3644`
+     - weighted KL `-0.001671`
+   - official-round-weighted mean score also improved:
+     - `v8`: `73.9945`
+     - `v11`: `74.3921`
+     - delta: `+0.3976`
+50. Per-round delta vs `query_residual_v8` full corrected:
+   - improves `7/8` held-out rounds
+   - biggest gain:
+     - `c5cdf100-a876-4fb7-b5d8-757162c97989`: `+1.7512` score, `-0.008071` KL
+   - hard rounds still improved, but modestly:
+     - `36e581...`: `+0.3930`
+     - `f1dac9...`: `+0.0600`
+   - only loss:
+     - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`: `-0.0832`
+51. Paired full-run comparison vs `v8`:
+   - command:
+     - `uv run astar compare-historical-benchmarks --baseline data/artifacts/benchmarks/agent3_dev_query_residual_v8_full_corrected/result.json --candidate data/artifacts/benchmarks/agent3_dev_query_residual_v11_full_corrected/result.json --bootstrap-samples 200`
+   - result:
+     - mean score delta `+0.3644`
+     - mean weighted KL delta `-0.001671`
+     - seed win rate `0.800`
+     - seed loss rate `0.200`
+     - bootstrap `95%` CI for score delta: `[0.2078, 0.5388]`
+   - comparison artifact:
+     - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=query_residual_v8__candidate=query_residual_v11.json`
+52. Next hypothesis from the new best state:
+   - extra transcript diversity clearly helped `v8`
+   - next most plausible remaining nearby branch is to test whether the near-tied `v10` also benefits from `samples_per_round=2`
+   - that is a cheaper targeted follow-up than another full new family rewrite
+
 ## Open Questions
 
 - Which benchmark/run currently best on local held-out rounds: `query_residual` vs `historical_bucket_prior`?

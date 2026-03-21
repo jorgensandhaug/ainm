@@ -23,6 +23,7 @@ from astar.student.predictor.interactive import RoundPredictorAdapter, build_onl
 from astar.student.predictor.query_residual import (
     is_query_residual_model_name,
     load_or_fit_named_query_residual_predictor,
+    resolve_query_residual_samples_per_round,
 )
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
@@ -173,7 +174,7 @@ def _build_prediction_bundle(
     model_name: str,
     *,
     training_round_ids: Sequence[str],
-    samples_per_round: int,
+    samples_per_round: int | None,
 ) -> tuple[PredictionBundle, dict[int, dict[str, np.ndarray]], int, int]:
     round_detail = read_round_record(paths, round_id).round
     normalized = model_name.strip().lower()
@@ -255,7 +256,7 @@ def _build_online_prediction_bundle(
     *,
     training_round_ids: Sequence[str],
     policy_name: str,
-    samples_per_round: int,
+    samples_per_round: int | None,
     budget: int,
     episode_seed: int,
 ) -> tuple[
@@ -348,7 +349,7 @@ def evaluate_model_on_round(
     training_round_ids: Sequence[str],
     mode: str = "prior_only",
     policy_name: str | None = None,
-    samples_per_round: int = 1,
+    samples_per_round: int | None = None,
     budget: int = 50,
     episode_seed: int = 0,
 ) -> list[ModelSeedEvaluationContext]:
@@ -367,7 +368,12 @@ def evaluate_model_on_round(
         )
         resolved_policy_name = None
         resolved_samples_per_round = (
-            samples_per_round if is_query_residual_model_name(model_name) else None
+            resolve_query_residual_samples_per_round(
+                model_name,
+                samples_per_round=samples_per_round,
+            )
+            if is_query_residual_model_name(model_name)
+            else None
         )
         resolved_budget = None
         resolved_episode_seed = None
@@ -392,7 +398,14 @@ def evaluate_model_on_round(
             episode_seed=episode_seed,
         )
         resolved_policy_name = build_interactive_policy(policy_name).name
-        resolved_samples_per_round = samples_per_round
+        resolved_samples_per_round = (
+            resolve_query_residual_samples_per_round(
+                model_name,
+                samples_per_round=samples_per_round,
+            )
+            if is_query_residual_model_name(model_name)
+            else None
+        )
         resolved_budget = budget
         resolved_episode_seed = episode_seed
     else:
