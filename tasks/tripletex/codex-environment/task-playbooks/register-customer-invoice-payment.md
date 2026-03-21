@@ -11,6 +11,7 @@ Do not use for:
 - creating the invoice itself
 - sending the invoice
 - reversing or deleting invoice/accounting entries
+- explicit foreign-currency settlement tasks that give a new exchange rate and require realized FX-loss booking
 
 ## Key Findings
 
@@ -112,6 +113,7 @@ Observed production/account variance:
 - Use the outstanding amount returned by the located invoice:
   - `amountCurrencyOutstanding` first
   - otherwise `amountOutstanding`
+- This ordinary rule does not cover explicit foreign-currency settlement prompts where Tripletex expects `paidAmount` in the payment-type currency and `paidAmountCurrency` in the invoice currency; use the dedicated foreign-currency payment standard for that shape
 - exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`
 - exact-match production proof on 2026-03-20: prompt locator `32200` ex VAT for `System Development` still required `paidAmount=40250`
 - exact-match production proof on 2026-03-20: Portuguese prompt locator `23900` ex VAT for `Manutenção` still required `paidAmount=29875`

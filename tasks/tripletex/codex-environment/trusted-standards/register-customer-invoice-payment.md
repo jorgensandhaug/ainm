@@ -14,6 +14,7 @@
 ## Do Not Use This Standard If
 - task includes creating the order/invoice first
 - task is supplier invoice payment
+- prompt explicitly asks to settle a foreign-currency invoice at a new exchange rate and book the realized FX loss
 - prompt is too ambiguous to identify one invoice safely
 
 ## Standard Flow
@@ -51,6 +52,7 @@
 ## Known Recovery Branches
 - if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects
 - if the same run already resolved one valid incoming `paymentTypeId`, reuse it instead of reading `/invoice/paymentType` again
+- if the decisive invoice read shows a true foreign-currency invoice and the prompt explicitly asks for realized FX-loss booking on settlement, switch to `./trusted-standards/register-foreign-currency-customer-invoice-payment.md` instead of reusing the ordinary `paidAmount=<live outstanding>` rule
 
 ## OpenAPI / Sandbox Status
 - `/invoice/{id}/:payment` verified in `./openapi.json`
