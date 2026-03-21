@@ -1,0 +1,17 @@
+{
+  "run_id": "prod-2026-03-21-180635197Z-67c52406",
+  "request_id": "dac68a4c",
+  "prompt_raw": "Enviamos una factura por 18687 EUR a Solmar SL (org. nº 877276260) cuando el tipo de cambio era 10.33 NOK/EUR. El cliente ha pagado ahora, pero el tipo es 10.87 NOK/EUR. Registre el pago y contabilice la diferencia de tipo de cambio (agio) en la cuenta correcta.",
+  "completion_reason": "timeout",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T18:06:39.445Z",
+  "after_captured_at": "2026-03-21T18:12:15.680Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "27",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T18:12:15.684Z"
+}
