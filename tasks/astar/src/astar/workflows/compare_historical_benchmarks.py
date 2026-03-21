@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -32,8 +33,6 @@ def compare_historical_benchmarks(
 ) -> HistoricalBenchmarkComparison:
     if baseline.mode != candidate.mode:
         raise ValueError("historical benchmark modes do not match; cannot run paired comparison")
-    if baseline.policy_name != candidate.policy_name:
-        raise ValueError("historical benchmark policies do not match; cannot run paired comparison")
     if baseline.budget != candidate.budget:
         raise ValueError("historical benchmark budgets do not match; cannot run paired comparison")
     if baseline.episode_seed != candidate.episode_seed:
@@ -85,7 +84,9 @@ def compare_historical_benchmarks(
         baseline_model_name=baseline.model_name,
         candidate_model_name=candidate.model_name,
         mode=candidate.mode,
-        policy_name=candidate.policy_name,
+        policy_name=candidate.policy_name if baseline.policy_name == candidate.policy_name else None,
+        baseline_policy_name=baseline.policy_name,
+        candidate_policy_name=candidate.policy_name,
         budget=candidate.budget,
         episode_seed=candidate.episode_seed,
         seed_count=len(deltas),
@@ -111,14 +112,31 @@ def compare_historical_benchmark_artifacts(
     baseline = load_historical_benchmark_result(baseline_path)
     candidate = load_historical_benchmark_result(candidate_path)
     same_model_names = baseline.model_name == candidate.model_name
+    same_policies = baseline.policy_name == candidate.policy_name
     run_suffix = (
-        f"__baseline_run={baseline.benchmark_name}__candidate_run={candidate.benchmark_name}"
+        "__run_pair="
+        + hashlib.sha1(
+            f"{baseline.benchmark_name}::{candidate.benchmark_name}".encode("utf-8"),
+        ).hexdigest()[:12]
         if same_model_names
         else ""
     )
+    policy_suffix = (
+        ""
+        if candidate.policy_name is None and baseline.policy_name is None
+        else (
+            f"__policy={candidate.policy_name}__budget={candidate.budget}__episode_seed={candidate.episode_seed}"
+            if same_policies
+            else (
+                f"__baseline_policy={baseline.policy_name or 'none'}"
+                f"__candidate_policy={candidate.policy_name or 'none'}"
+                f"__budget={candidate.budget}__episode_seed={candidate.episode_seed}"
+            )
+        )
+    )
     comparison_name = (
         f"historical__mode={candidate.mode}"
-        f"{'' if candidate.policy_name is None else f'__policy={candidate.policy_name}__budget={candidate.budget}__episode_seed={candidate.episode_seed}'}"
+        f"{policy_suffix}"
         f"__baseline={baseline.model_name}__candidate={candidate.model_name}"
         f"{run_suffix}"
     )

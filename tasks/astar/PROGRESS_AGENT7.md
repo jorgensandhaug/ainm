@@ -303,3 +303,95 @@ Framework should accept unique query-residual family variant names directly so b
 - `v11` novelty-only mixture is actively worse on matched probe.
 - No honest evidence yet that these ensemble variants beat `v7`; do not spend full 8-round dev budget on current `v10`/`v11`.
 - Keep `query_residual` alias on `v7`.
+
+### 2026-03-21T02:35Z approx
+
+- Re-read family handoff with emphasis on component `6`:
+  - query policy optimization had been underexplored relative to posterior/decoder tweaks
+- Inspected current policy surface:
+  - [`src/astar/policy/registry.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/registry.py)
+  - [`src/astar/policy/coverage.py`](/home/jorge/agent7/tasks/astar/src/astar/policy/coverage.py)
+- Important finding:
+  - there are effectively only two policy choices today
+    - `coverage`
+    - `exploration_v2` = same tiled coverage plus `5` motif-ranked diagnostic repeats front-loaded
+  - no saved benchmark artifacts existed for `exploration_v2`
+- Hypothesis:
+  - fifth-family posterior may benefit more from early motif-discriminative repeats than from pure uniform coverage because regime identification, not only map coverage, is the bottleneck
+- Honest matched 3-round probe executed:
+  - baseline coverage:
+    - [`data/artifacts/benchmarks/agent7_probe_query_residual_v7_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_r3r6r8/result.json)
+    - mean score `62.7280`
+  - exploration:
+    - [`data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3r6r8/result.json`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_probe_query_residual_v7_exploration_r3r6r8/result.json)
+    - mean score `64.7871`
+- Round-level read:
+  - round `6`: big gain (`58.13 -> 64.87`)
+  - round `8`: effectively flat (`71.73 -> 71.69`)
+  - round `3`: small regression (`58.33 -> 57.80`)
+- Interpretation:
+  - first positive new system-level signal after ensemble dead-end
+  - policy change appears materially more promising than current ensemble line
+- Next:
+  - run full 8-round dev benchmark for `query_residual_v7 + exploration_v2`
+  - promote only if honest full-dev score beats current champ `73.9505`
+
+### 2026-03-21T02:55Z approx
+
+- Improved validation tooling for system-level policy search:
+  - [`src/astar/workflows/compare_historical_benchmarks.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/compare_historical_benchmarks.py)
+  - [`src/astar/workflows/results.py`](/home/jorge/agent7/tasks/astar/src/astar/workflows/results.py)
+  - [`src/astar/eval/reports.py`](/home/jorge/agent7/tasks/astar/src/astar/eval/reports.py)
+  - compare tool no longer rejects policy-mismatch benchmark pairs
+  - comparison artifacts now record `baseline_policy_name` and `candidate_policy_name`
+  - same-model comparison artifact names shortened via run-pair hash to avoid path-length failures
+- Added regression test coverage:
+  - [`tests/test_historical_benchmark.py`](/home/jorge/agent7/tasks/astar/tests/test_historical_benchmark.py)
+  - new test ensures policy-mismatch historical comparisons work
+- Validation:
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+  - passed: `9`
+- New paired comparison artifact for policy search:
+  - [`historical__mode=online_interactive__baseline_policy=coverage__candidate_policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual__run_pair=9628479ac8d1.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=coverage__candidate_policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual__run_pair=9628479ac8d1.json)
+  - mean score delta `+2.0591`
+  - mean weighted KL delta `-0.011396`
+  - win rate `0.667`
+  - score delta CI95 `[0.3306, 3.6300]`
+- Strongest effect on probe:
+  - large gains on round `6`
+  - near-flat on round `8`
+  - modest giveback on round `3`
+- Current status:
+  - full 8-round dev benchmark for `query_residual_v7 + exploration_v2` is running
+
+### 2026-03-21T03:25Z approx
+
+- Full 8-round dev benchmark completed for [`query_residual_v7 + exploration_v2`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_query_residual_v7_exploration/result.json)
+  - mean score `74.4011`
+  - mean weighted KL `0.101998`
+  - previous full-dev champ [`dev_query_residual_online50_v7`](/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/dev_query_residual_online50_v7/result.json) was `73.9505`
+  - net gain `+0.4506`
+- Full-dev paired comparison artifact:
+  - [`historical__mode=online_interactive__baseline_policy=coverage__candidate_policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual__run_pair=cefb8adcbcbd.json`](/home/jorge/agent7/tasks/astar/data/artifacts/comparisons/historical__mode=online_interactive__baseline_policy=coverage__candidate_policy=exploration_v2__budget=50__episode_seed=0__baseline=query_residual__candidate=query_residual__run_pair=cefb8adcbcbd.json)
+  - mean score delta `+0.4506`
+  - mean weighted KL delta `-0.004328`
+  - win rate `0.375`
+  - loss rate `0.625`
+  - score delta CI95 `[-0.5659, 1.6590]`
+- Round-level read:
+  - huge rescue on round `3` (`46.41 -> 55.78`)
+  - small gains on rounds `4` and `5`
+  - regressions on `6`, `7`, `8`
+  - despite more losing seeds than winning seeds, aggregate competition score improved because the round-`3` tail was severe under pure coverage
+- Interpretation:
+  - policy search produced the first full-dev improvement over `v7`
+  - for this family, regime-identifying repeated motif probes matter more than uniform late coverage on hardest/OOD rounds
+
+## New Champion
+
+- best observed local full-dev system now:
+  - model: `query_residual_v7`
+  - policy: `exploration_v2`
+  - score: `74.4011`
+- immediate action required by handoff:
+  - commit + push this new best before further experimentation

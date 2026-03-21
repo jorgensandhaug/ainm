@@ -170,7 +170,6 @@ def render_historical_benchmark_comparison_report(result: HistoricalBenchmarkCom
         f"baseline: {result.baseline_model_name}",
         f"candidate: {result.candidate_model_name}",
         f"mode: {result.mode}",
-        f"policy: {result.policy_name or 'n/a'}",
         f"budget: {result.budget if result.budget is not None else 'n/a'}",
         f"episode_seed: {result.episode_seed if result.episode_seed is not None else 'n/a'}",
         f"seeds: {result.seed_count}",
@@ -181,6 +180,11 @@ def render_historical_benchmark_comparison_report(result: HistoricalBenchmarkCom
         f"tie_rate: {result.tie_rate:.3f}",
         f"score_delta_ci95: [{result.score_delta_ci_low:.4f}, {result.score_delta_ci_high:.4f}]",
     ]
+    if result.baseline_policy_name != result.candidate_policy_name:
+        lines.insert(4, f"candidate_policy: {result.candidate_policy_name or 'n/a'}")
+        lines.insert(4, f"baseline_policy: {result.baseline_policy_name or 'n/a'}")
+    else:
+        lines.insert(4, f"policy: {result.policy_name or result.candidate_policy_name or 'n/a'}")
     for item in result.seeds:
         lines.append(
             f"round={item.round_id} seed={item.seed_index} "

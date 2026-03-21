@@ -174,6 +174,52 @@ def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPath
     assert comparison.report_path is not None and comparison.report_path.exists()
 
 
+def test_compare_historical_benchmarks_allows_policy_mismatch(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=2, round_id=TRAIN_ROUND_ID)
+
+    baseline = run_historical_benchmark(
+        sample_paths,
+        model_name="historical_bucket_prior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_historical_policy_baseline",
+    )
+    candidate = run_historical_benchmark(
+        sample_paths,
+        model_name="historical_bucket_prior",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="exploration",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_historical_policy_candidate",
+    )
+    comparison = compare_historical_benchmark_artifacts(
+        sample_paths,
+        baseline_path=Path(baseline.artifact_path),
+        candidate_path=Path(candidate.artifact_path),
+        n_bootstrap=20,
+    )
+
+    assert comparison.seed_count == 2
+    assert comparison.baseline_policy_name == "coverage"
+    assert comparison.candidate_policy_name == "exploration_v2"
+    assert comparison.policy_name is None
+    assert comparison.artifact_path is not None and comparison.artifact_path.exists()
+    assert comparison.report_path is not None and comparison.report_path.exists()
+
+
 def test_query_residual_v10_checkpoint_roundtrip(sample_paths: RepoPaths, tmp_path: Path) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)

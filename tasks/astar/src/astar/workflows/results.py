@@ -409,6 +409,8 @@ class HistoricalBenchmarkComparison(BaseModel):
     candidate_model_name: str
     mode: str
     policy_name: str | None = None
+    baseline_policy_name: str | None = None
+    candidate_policy_name: str | None = None
     budget: int | None = Field(default=None, ge=0)
     episode_seed: int | None = Field(default=None, ge=0)
     seed_count: int = Field(ge=0)
