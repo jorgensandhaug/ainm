@@ -369,6 +369,17 @@ Proven outcome:
 - voucher `609107692`, supplier `108403892`
 - 2nd production confirmation of the full 5-call path with booking, 1st with PDF (address + bank)
 
+2026-03-21 production run for `Waldstein GmbH` / `927720523` / `INV-2026-6337` / `55950` / `7000` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- German-language prompt (no PDF), text-only, no address/bank data to extract
+- description "Bürodienstleistungen" preserved with exact casing from German prompt
+- first production use of account 7000 in this standard
+- hard-coded `vatType: { id: 1 }`, no `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- net=44760, VAT=11190 (exact, no rounding)
+- voucher `609122334`, supplier `108410856`
+- 5th consecutive optimal 5-call production run with 0 errors
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:

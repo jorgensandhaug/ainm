@@ -13,6 +13,8 @@ Do not use for:
 - create-only order tasks with no invoice/payment step
 - invoice-send tasks where customer delivery/send method is the main concern
 - update/delete/reverse flows on existing orders or invoices
+- description-only invoice tasks where the prompt gives only a service description (e.g. "Systemutvikling") without product numbers — use `./task-playbooks/create-and-send-customer-invoice.md` or `./task-playbooks/create-customer-invoice.md` instead; `POST /invoice` handles description-only lines natively without products
+- tasks that require sending the invoice — use `./task-playbooks/create-and-send-customer-invoice.md`
 
 Exact-match tasks should now prefer the trusted standard:
 - `./trusted-standards/create-order-invoice-and-register-payment.md`

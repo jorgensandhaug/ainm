@@ -355,3 +355,17 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - voucher `609107692`, supplier `108403892`
 - description "Kontorrekvisita" preserved with exact casing from PDF
 - this is the 2nd production confirmation of the full 5-call path with booking (after Stormberg AS), and the 1st with a PDF attachment that included address and bank account
+
+2026-03-21 production run for `Waldstein GmbH` / `927720523` / `INV-2026-6337` / `55950` / `7000` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- German-language prompt (no PDF), text-only, no address/bank data to extract
+- description "Bürodienstleistungen" preserved with exact casing from German prompt
+- expense account 7000 (Drivstoff, selskapets transportmidler) — first production use of account 7000 in this standard
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- net=44760, VAT=11190 (55950/1.25=44760 exact, no rounding)
+- voucher `609122334`, supplier `108410856`
+- this is the 5th consecutive optimal 5-call production run with 0 errors using this standard
+- sandbox re-proof confirmed: single PUT with postings+sendToLedger=true still fails; account:{number,name} without id still fails; 5 calls remains the true minimum

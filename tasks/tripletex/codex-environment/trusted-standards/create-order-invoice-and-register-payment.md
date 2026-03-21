@@ -16,7 +16,8 @@
 - the task also requires creating the customer or products first
 - the task is project-fixed-price, on-account, subscription, reversal, or partial-payment specific
 - the prompt is too ambiguous to identify the existing customer or products decisively
-- the task explicitly requires sending the invoice
+- the task explicitly requires sending the invoice — use `./trusted-standards/create-and-send-customer-invoice.md` instead
+- the prompt gives only a service description (e.g. "Systemutvikling") without referencing existing products by number — use `./trusted-standards/create-and-send-customer-invoice.md` or `./trusted-standards/create-customer-invoice.md` instead; `POST /invoice` handles description-only order lines natively without needing a product
 
 ## Standard Flow
 1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
