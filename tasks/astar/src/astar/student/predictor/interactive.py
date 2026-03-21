@@ -12,7 +12,10 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
-from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual import (
+    is_query_residual_model_name,
+    load_or_fit_named_query_residual_predictor,
+)
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -102,30 +105,16 @@ def build_online_predictor(
             predictor=latent_predictor,
             name=latent_predictor.name,
         )
-    if normalized == "query_residual":
+    if is_query_residual_model_name(normalized):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
-        if historical_round_ids is not None:
-            predictor = QueryResidualPredictor.fit_from_workspace(
-                workspace_paths,
-                round_ids=list(historical_round_ids),
-                policy_name=resolved_policy_name,
-                samples_per_round=samples_per_round,
-            )
-        else:
-            checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v7__policy={resolved_policy_name}__samples={samples_per_round}",
-            )
-            checkpoint_path = checkpoint_dir / "checkpoint.json"
-            if checkpoint_path.exists():
-                predictor = QueryResidualPredictor.load_checkpoint(checkpoint_path)
-            else:
-                predictor = QueryResidualPredictor.fit_from_workspace(
-                    workspace_paths,
-                    policy_name=resolved_policy_name,
-                    samples_per_round=samples_per_round,
-                )
-                predictor.save_checkpoint(checkpoint_path)
+        predictor = load_or_fit_named_query_residual_predictor(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
         return RoundPredictorAdapter(
             predictor=predictor,
             name=predictor.name,

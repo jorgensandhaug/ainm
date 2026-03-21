@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
@@ -178,3 +179,24 @@ def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
         assert [item.model_dump(mode="json") for item in artifact_obs.settlements] == [
             item.model_dump(mode="json") for item in runtime_obs.settlements
         ]
+
+
+def test_synthetic_live_dataset_loads_episode_after_worktree_relocation(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_relocation_test",
+    )
+    artifact_path = dataset.dataset_dir / "episodes" / f"{ROUND_ID}__sample_index=0.json"
+    relocated_path = Path("/tmp/other-worktree") / artifact_path.relative_to(sample_paths.root)
+
+    artifact = load_synthetic_episode(relocated_path, paths=sample_paths)
+
+    assert artifact.round_id == ROUND_ID
+    assert len(artifact.observations) > 0

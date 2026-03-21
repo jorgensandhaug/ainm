@@ -1,0 +1,68 @@
+{
+  "all_round_ids": [
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "71451d74-be9f-471f-aacd-a41f3b68a9cd",
+    "76909e29-f664-4b2f-b16b-61b7507277e9",
+    "8e839974-b13b-407b-a5e7-fc749d877195",
+    "ae78003a-4efe-425a-881a-d16a39bca0ad",
+    "c5cdf100-a876-4fb7-b5d8-757162c97989",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "fd3c92ff-3178-4dc9-8d9b-acf389b3982b"
+  ],
+  "budget": 50,
+  "episode_seed": 0,
+  "held_out_round_ids": [
+    "36e581f1-73f8-453f-ab98-cbe3052b701b",
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb"
+  ],
+  "mean_score": 59.67724124518658,
+  "mean_weighted_kl": 0.1734115182547209,
+  "mode": "online_interactive",
+  "model_name": "query_residual_v9",
+  "policy_name": "coverage",
+  "rounds": [
+    {
+      "evaluated_seed_count": 5,
+      "mean_score": 64.62960298198078,
+      "mean_weighted_kl": 0.14559362843627413,
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "seed_scores": [
+        62.99496541323607,
+        64.47677612347275,
+        65.15000948158756,
+        63.24107378726773,
+        67.2851901043398
+      ],
+      "seed_weighted_kls": [
+        0.1540384589551588,
+        0.14628836237492152,
+        0.14282591229417316,
+        0.15273873141088593,
+        0.13207667714623128
+      ],
+      "training_round_count": 7
+    },
+    {
+      "evaluated_seed_count": 5,
+      "mean_score": 54.72487950839238,
+      "mean_weighted_kl": 0.20122940807316764,
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "seed_scores": [
+        57.21484317192528,
+        52.883415187938034,
+        55.59772913000208,
+        56.53813837873225,
+        51.39027167336423
+      ],
+      "seed_weighted_kls": [
+        0.18611894175097543,
+        0.21236013626483652,
+        0.19567594285040874,
+        0.19008492000114677,
+        0.22190709949847068
+      ],
+      "training_round_count": 7
+    }
+  ],
+  "samples_per_round": 1
+}

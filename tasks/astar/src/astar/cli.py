@@ -206,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
             "historical_bucket_prior",
             "latent_regime",
             "query_residual",
+            "query_residual_v7",
+            "query_residual_v8",
+            "query_residual_v9",
         ],
         required=True,
     )
@@ -243,7 +246,15 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "query_residual",
+            "query_residual_v7",
+            "query_residual_v8",
+            "query_residual_v9",
+        ],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -256,7 +267,15 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "query_residual",
+            "query_residual_v7",
+            "query_residual_v8",
+            "query_residual_v9",
+        ],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -278,6 +297,9 @@ def build_parser() -> argparse.ArgumentParser:
             "historical_bucket_prior",
             "latent_regime",
             "query_residual",
+            "query_residual_v7",
+            "query_residual_v8",
+            "query_residual_v9",
         ],
         required=True,
     )
@@ -307,7 +329,15 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual"],
+        choices=[
+            "geometry_prior",
+            "historical_bucket_prior",
+            "latent_regime",
+            "query_residual",
+            "query_residual_v7",
+            "query_residual_v8",
+            "query_residual_v9",
+        ],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

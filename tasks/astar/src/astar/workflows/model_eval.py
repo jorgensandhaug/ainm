@@ -20,7 +20,10 @@ from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
-from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual import (
+    is_query_residual_model_name,
+    load_or_fit_named_query_residual_predictor,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -219,9 +222,10 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
-        predictor = QueryResidualPredictor.fit_from_workspace(
+    if is_query_residual_model_name(normalized):
+        predictor = load_or_fit_named_query_residual_predictor(
             paths,
+            model_name=normalized,
             round_ids=list(training_round_ids),
             samples_per_round=samples_per_round,
         )
@@ -362,7 +366,9 @@ def evaluate_model_on_round(
             )
         )
         resolved_policy_name = None
-        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
+        resolved_samples_per_round = (
+            samples_per_round if is_query_residual_model_name(model_name) else None
+        )
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0

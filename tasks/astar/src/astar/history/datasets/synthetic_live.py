@@ -71,8 +71,41 @@ def _target_info(
     raise ValueError(msg)
 
 
-def load_synthetic_episode(path: Path) -> SyntheticEpisodeArtifact:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+def resolve_synthetic_episode_path(
+    path: Path,
+    *,
+    paths: WorkspacePaths | None = None,
+) -> Path:
+    candidate = Path(path)
+    if candidate.exists():
+        return candidate
+    if paths is not None:
+        if not candidate.is_absolute():
+            workspace_relative = (paths.root / candidate).resolve()
+            if workspace_relative.exists():
+                return workspace_relative
+        parts = candidate.parts
+        if "data" in parts:
+            data_index = parts.index("data")
+            remapped = paths.root.joinpath(*parts[data_index:])
+            if remapped.exists():
+                return remapped
+        if len(parts) >= 3 and parts[-2] == "episodes":
+            dataset_name = parts[-3]
+            remapped = paths.dataset_dir(dataset_name) / "episodes" / parts[-1]
+            if remapped.exists():
+                return remapped
+    msg = f"synthetic episode artifact not found: {candidate}"
+    raise FileNotFoundError(msg)
+
+
+def load_synthetic_episode(
+    path: Path,
+    *,
+    paths: WorkspacePaths | None = None,
+) -> SyntheticEpisodeArtifact:
+    resolved_path = resolve_synthetic_episode_path(path, paths=paths)
+    payload = json.loads(resolved_path.read_text(encoding="utf-8"))
     payload["regime_vector"] = np.asarray(payload["regime_vector"], dtype=np.float64)
     normalized_observations: list[dict[str, object]] = []
     for observation in payload.get("observations", []):
@@ -163,7 +196,7 @@ def build_synthetic_live_dataset(
                     "sample_index": sample_index,
                     "policy_name": policy.name,
                     "query_count": len(observations),
-                    "episode_path": str(episode_path),
+                    "episode_path": str(episode_path.relative_to(paths.root)),
                 },
             )
             total_query_count += len(observations)
