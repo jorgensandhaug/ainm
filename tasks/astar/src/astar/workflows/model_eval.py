@@ -108,6 +108,12 @@ from astar.student.predictor.round_settlement_graph_factor_residual import (
     resolve_round_settlement_graph_factor_residual_samples_per_round,
     resolve_round_settlement_graph_factor_residual_variant_spec,
 )
+from astar.student.predictor.settlement_state_field_blend import (
+    is_settlement_state_field_blend_model_name,
+    load_or_fit_named_settlement_state_field_blend_predictor,
+    resolve_settlement_state_field_blend_samples_per_round,
+    resolve_settlement_state_field_blend_variant_spec,
+)
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -657,6 +663,30 @@ def _build_prediction_bundle(
             spec.samples_per_round,
         )
 
+    if is_settlement_state_field_blend_model_name(normalized):
+        predictor = load_or_fit_named_settlement_state_field_blend_predictor(
+            paths,
+            model_name=normalized,
+            round_ids=list(training_round_ids),
+            policy_name="coverage",
+            samples_per_round=samples_per_round,
+        )
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
+        spec = resolve_settlement_state_field_blend_variant_spec(
+            normalized,
+            samples_per_round=samples_per_round,
+        )
+        return (
+            bundle,
+            {},
+            0,
+            spec.samples_per_round,
+        )
+
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
         features = compute_round_features(round_detail)
@@ -876,7 +906,14 @@ def evaluate_model_on_round(
                                                                         samples_per_round=samples_per_round,
                                                                     )
                                                                     if is_round_settlement_graph_factor_residual_model_name(model_name)
-                                                                    else None
+                                                                    else (
+                                                                        resolve_settlement_state_field_blend_samples_per_round(
+                                                                            model_name,
+                                                                            samples_per_round=samples_per_round,
+                                                                        )
+                                                                        if is_settlement_state_field_blend_model_name(model_name)
+                                                                        else None
+                                                                    )
                                                                 )
                                                             )
                                                         )
@@ -1005,7 +1042,14 @@ def evaluate_model_on_round(
                                                                         samples_per_round=samples_per_round,
                                                                     )
                                                                     if is_round_settlement_graph_factor_residual_model_name(model_name)
-                                                                    else None
+                                                                    else (
+                                                                        resolve_settlement_state_field_blend_samples_per_round(
+                                                                            model_name,
+                                                                            samples_per_round=samples_per_round,
+                                                                        )
+                                                                        if is_settlement_state_field_blend_model_name(model_name)
+                                                                        else None
+                                                                    )
                                                                 )
                                                             )
                                                         )

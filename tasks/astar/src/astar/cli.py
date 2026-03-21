@@ -102,6 +102,9 @@ from astar.student.predictor.round_heatmap_kernel_residual import (
 from astar.student.predictor.round_settlement_graph_factor_residual import (
     ROUND_SETTLEMENT_GRAPH_FACTOR_RESIDUAL_MODEL_CHOICE_LIST,
 )
+from astar.student.predictor.settlement_state_field_blend import (
+    SETTLEMENT_STATE_FIELD_BLEND_MODEL_CHOICE_LIST,
+)
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -153,6 +156,7 @@ ONLINE_MODEL_CHOICES = [
     *ROUND_HEATMAP_PROTOTYPE_RESIDUAL_MODEL_CHOICE_LIST,
     *ROUND_HEATMAP_KERNEL_RESIDUAL_MODEL_CHOICE_LIST,
     *ROUND_SETTLEMENT_GRAPH_FACTOR_RESIDUAL_MODEL_CHOICE_LIST,
+    *SETTLEMENT_STATE_FIELD_BLEND_MODEL_CHOICE_LIST,
     *sorted(QUERY_RESIDUAL_MODEL_NAMES, key=_model_choice_sort_key),
 ]
 PRIOR_AND_ONLINE_MODEL_CHOICES = [

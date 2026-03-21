@@ -1433,6 +1433,24 @@ def test_settlement_graph_summary_uses_geometry_and_owner_stats() -> None:
     assert float(summary[11]) > 0.0
 
 
+def test_settlement_state_field_blend_variant_alias_resolves() -> None:
+    from astar.student.predictor.settlement_state_field_blend import (
+        SETTLEMENT_STATE_FIELD_BLEND_V1,
+        is_settlement_state_field_blend_model_name,
+        resolve_settlement_state_field_blend_model_name,
+        resolve_settlement_state_field_blend_variant_spec,
+    )
+
+    assert is_settlement_state_field_blend_model_name("settlement_state_field_blend")
+    assert (
+        resolve_settlement_state_field_blend_model_name("settlement_state_field_blend")
+        == SETTLEMENT_STATE_FIELD_BLEND_V1
+    )
+    spec = resolve_settlement_state_field_blend_variant_spec("settlement_state_field_blend_v4")
+    assert spec.samples_per_round == 4
+    assert spec.state_strength > 1.0
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:

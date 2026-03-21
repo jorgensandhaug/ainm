@@ -197,3 +197,17 @@ def test_cli_accepts_round_settlement_graph_factor_residual_historical_benchmark
     )
 
     assert args.model == "round_settlement_graph_factor_residual_v2"
+
+
+def test_cli_accepts_settlement_state_field_blend_historical_benchmark_model() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "run-historical-benchmark",
+            "--model",
+            "settlement_state_field_blend_v2",
+        ],
+    )
+
+    assert args.model == "settlement_state_field_blend_v2"

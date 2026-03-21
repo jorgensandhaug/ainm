@@ -4325,6 +4325,35 @@
      - only `4` variants live in this new wave
      - `jobs=1` each
      - no extra stacking on top of this launch in the same step
+473. New hypothesis branch started while transcript + heatmap + settlement-graph waves run:
+   - family:
+     - `settlement_state_field_blend`
+   - hypothesis:
+     - the whole-round settlement graph may still overcompress away where the live settlement state sits in board space
+     - a direct local field refinement driven by observed settlement state, port state, ruin state, and global settlement-state features may recover per-cell structure without needing another heavy learned round encoder
+     - if the missing signal is mostly spatial/local rather than another hidden global regime, settlement-state fields should beat the prior evidence-field branch because they use richer observed state, not only class-count evidence
+   - objective:
+     - test settlement-state local field corrections on top of strong base `v59/v60`
+474. Implemented + validated `settlement_state_field_blend`:
+   - new file:
+     - `src/astar/student/predictor/settlement_state_field_blend.py`
+   - reproducible models:
+     - `settlement_state_field_blend`
+     - `settlement_state_field_blend_v1`
+     - `settlement_state_field_blend_v2`
+     - `settlement_state_field_blend_v3`
+     - `settlement_state_field_blend_v4`
+   - variant mapping:
+     - `v1/v2`: base `v59/v60`, fixed `samples_per_round=4`, `state_sigma=2.25`, `state_strength=1.0`, `state_port_strength=1.2`, `state_ruin_strength=1.1`, `global_state_strength=0.25`, global port/ruin `1.0`
+     - `v3/v4`: base `v59/v60`, fixed `samples_per_round=4`, `state_sigma=3.0`, `state_strength=1.35`, `state_port_strength=1.35`, `state_ruin_strength=1.25`, `global_state_strength=0.45`, global port/ruin `1.15`
+   - model form:
+     - base `v59/v60` online predictor -> local settlement-state field refinement + global settlement-state feature refinement -> renormalized joint posterior
+   - framework wiring:
+     - `interactive.py`, `historical_benchmark.py`, `targeted_holdout_benchmark.py`, `model_eval.py`, and `cli.py`
+   - validation command:
+     - `uv run python -m py_compile src/astar/student/predictor/settlement_state_field_blend.py src/astar/student/predictor/interactive.py src/astar/workflows/historical_benchmark.py src/astar/workflows/targeted_holdout_benchmark.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_cli.py tests/test_historical_benchmark.py tests/test_teacher_student.py && uv run pytest tests/test_cli.py::test_cli_accepts_settlement_state_field_blend_historical_benchmark_model tests/test_teacher_student.py::test_settlement_state_field_blend_variant_alias_resolves tests/test_historical_benchmark.py::test_settlement_state_field_blend_v2_online_historical_benchmark_defaults_to_samples_4 -q`
+   - validation result:
+     - `3 passed`
 
 
 ## Open Questions
