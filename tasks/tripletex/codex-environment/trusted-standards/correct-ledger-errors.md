@@ -47,8 +47,12 @@ GET /ledger/voucher?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&fields=id,date,descr
 **CRITICAL: `dateTo` is exclusive** ("To and excluding"). Sandbox-verified 2026-03-21: the error message explicitly says `'To and excluding'`. To include all of February, use `dateTo=2026-03-01`, NOT `dateTo=2026-02-28`. For Jan+Feb, use `dateFrom=2026-01-01&dateTo=2026-03-01`.
 From this response:
 - identify wrong-account and incorrect-amount vouchers by matching the stated account number plus the prompt amount on that account
-- identify the duplicate by grouping vouchers on the stated account into a normalized posting-signature map and selecting the repeated signature; the prompt amount confirms the group, but do not assume two direct `amountGross` matches will always be the only safe resolver
-- also use description keywords: "duplikat" (duplicate), "feil" (error), "uten MVA" (without VAT)
+- **identify the duplicate** using this priority order:
+  1. **PRIMARY: description keyword** — scan all vouchers on the prompt account for description containing "duplikat" (or "duplicate") with the prompt amount; this is the most reliable detector because the test environment often has only the duplicate voucher (not the original), making signature grouping fail
+  2. **SECONDARY: signature grouping** — group vouchers on the prompt account into normalized posting signatures and select the repeated signature; the prompt amount confirms the group
+  3. **TERTIARY: single-entry fallback** — if only one voucher matches the prompt account + amount and no signature duplicate exists, that single entry IS the duplicate to reverse
+  - **CRITICAL**: do NOT rely solely on signature grouping — production run 0607a659 proved that a "Kontorrekvisita duplikat" voucher on 7100/2000 was the ONLY 7100/2000 entry, so signature grouping found zero duplicates and the script crashed twice, wasting 4 API calls
+- also use description keywords: "feil" (error), "uten MVA" (without VAT)
 - extract the counterpart (contra) account **ID** and any supplier ID from the original postings — the nested expansion provides `account.id` for all counterpart accounts, so no second account lookup is needed for counterparts
 - the counterpart posting is the opposite-signed posting that is NOT the prompt account and NOT account 2710
 - **extract the `vatType.id` from each original expense posting** — use this exact vatType on correction lines instead of assuming vatType 1; some 7xxx accounts (e.g., 7100) are locked to vatType 0 and will 422 if forced to vatType 1
