@@ -79,6 +79,11 @@ GLMM_DT_OBSBLEND_V001 = "glmm_dt_obsblend_v001"  # Best ensemble + obs blending
 GLMM_DT_OBSBLEND_V002 = "glmm_dt_obsblend_v002"
 GLMM_DT_ENSEMBLE_V010 = "glmm_dt_ensemble_v010"  # 55% DT
 GLMM_DT_ENSEMBLE_V011 = "glmm_dt_ensemble_v011"  # 60% DT
+GLMM_DT_OBSBLEND_V003 = "glmm_dt_obsblend_v003"  # t=15
+GLMM_DT_OBSBLEND_V004 = "glmm_dt_obsblend_v004"  # t=25
+GLMM_DT_OBSBLEND_V005 = "glmm_dt_obsblend_v005"  # t=10
+GLMM_DT_OBSBLEND_V006 = "glmm_dt_obsblend_v006"  # 45% DT + t=20
+GLMM_DT_OBSBLEND_V007 = "glmm_dt_obsblend_v007"  # 40% DT + t=20
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1974,7 +1979,7 @@ def build_online_predictor(
             ),
             name=normalized,
         )
-    if normalized in (GLMM_DT_OBSBLEND_V001, GLMM_DT_OBSBLEND_V002):
+    if normalized in (GLMM_DT_OBSBLEND_V001, GLMM_DT_OBSBLEND_V002, GLMM_DT_OBSBLEND_V003, GLMM_DT_OBSBLEND_V004, GLMM_DT_OBSBLEND_V005, GLMM_DT_OBSBLEND_V006, GLMM_DT_OBSBLEND_V007):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -1990,15 +1995,25 @@ def build_online_predictor(
             model_name=DIRECT_TERMINAL_Z2_V002,
             fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
         )
+        dt_weight_map = {
+            GLMM_DT_OBSBLEND_V006: 0.45,
+            GLMM_DT_OBSBLEND_V007: 0.40,
+        }
+        dt_weight = dt_weight_map.get(normalized, 0.50)
         blend_predictor = FixedPredictionBlendPredictor(
             left_predictor=glmm_adapter.predictor,
             right_predictor=dt_adapter.predictor,
-            right_weight=0.50,
+            right_weight=dt_weight,
             name=f"{normalized}_base",
         )
         temp_map = {
-            GLMM_DT_OBSBLEND_V001: 30.0,  # gentle obs blending (Agent 3 best)
-            GLMM_DT_OBSBLEND_V002: 20.0,  # moderate obs blending (Agent 1 best)
+            GLMM_DT_OBSBLEND_V001: 30.0,
+            GLMM_DT_OBSBLEND_V002: 20.0,
+            GLMM_DT_OBSBLEND_V003: 15.0,
+            GLMM_DT_OBSBLEND_V004: 25.0,
+            GLMM_DT_OBSBLEND_V005: 10.0,
+            GLMM_DT_OBSBLEND_V006: 20.0,
+            GLMM_DT_OBSBLEND_V007: 20.0,
         }
         obs_predictor = ExactObservationBlendPredictor(
             base_predictor=blend_predictor,
