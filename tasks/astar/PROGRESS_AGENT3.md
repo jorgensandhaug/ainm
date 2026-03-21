@@ -3602,6 +3602,55 @@
      - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v4 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v4_targeted_holdout_2rounds_corrected --jobs 1`
      - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v5 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v5_targeted_holdout_2rounds_corrected --jobs 1`
      - `uv run python scripts/run_targeted_holdout_benchmark.py --model evidence_field_blend_v6 --held-out-round-id 36e581f1-73f8-453f-ab98-cbe3052b701b --held-out-round-id f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb --mode online_interactive --policy coverage --budget 50 --episode-seed 0 --with-png none --name agent3_evidence_field_blend_v6_targeted_holdout_2rounds_corrected --jobs 1`
+408. First evidence-field corrected-gate results landed quickly and failed:
+   - artifacts:
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v1_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v2_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v3_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v4_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v5_targeted_holdout_2rounds_corrected/result.json`
+     - `data/artifacts/benchmarks/agent3_evidence_field_blend_v6_targeted_holdout_2rounds_corrected/result.json`
+   - aggregate results:
+     - `v1`: mean score `63.7792`, mean weighted KL `0.150194`
+     - `v2`: mean score `63.7479`, mean weighted KL `0.150357`
+     - `v3`: mean score `63.9939`, mean weighted KL `0.149053`
+     - `v4`: mean score `63.9620`, mean weighted KL `0.149216`
+     - `v5`: mean score `63.7051`, mean weighted KL `0.150590`
+     - `v6`: mean score `63.6746`, mean weighted KL `0.150751`
+409. Read from item 408:
+   - direct blurred class-count fields are not enough
+   - best count-field variant `v3` is still far below the current gate anchor `v59` (`65.4649`)
+   - the next local-field branch should use richer live evidence than endpoint class counts alone
+410. New hypothesis after item 409:
+   - use raw live settlement states directly:
+     - settlement positions
+     - population
+     - food
+     - wealth
+     - defense
+     - port status
+     - alive state
+   - convert those observations into local thriving / port / collapse fields around the observed settlement coordinates, then refine the base summary-bank logits with those fields
+411. Implemented settlement-state local-field variants inside the evidence-field family:
+   - new variants:
+     - `evidence_field_blend_v7`
+     - `evidence_field_blend_v8`
+     - `evidence_field_blend_v9`
+     - `evidence_field_blend_v10`
+   - structure:
+     - `v7/v8`: state-field only on top of `v59/v60`
+     - `v9/v10`: state-field plus a lighter version of the old count field on top of `v59/v60`
+   - implementation details:
+     - added normalized settlement-state scoring for thriving / collapse
+     - added local Gaussian state fields centered at observed settlement coordinates
+     - added support gate from observed local count total so strong local evidence does not overwrite already well-observed cells too aggressively
+412. Focused validation for item 411:
+   - command:
+     - `uv run pytest tests/test_teacher_student.py::test_evidence_field_settlement_state_refinement_uses_live_settlement_stats tests/test_historical_benchmark.py::test_evidence_field_blend_v8_online_historical_benchmark_defaults_to_samples_4 -q`
+   - result:
+     - `2 passed`
+   - extra check:
+     - `uv run python -m py_compile src/astar/student/predictor/evidence_field.py tests/test_teacher_student.py tests/test_historical_benchmark.py`
 
 
 ## Open Questions

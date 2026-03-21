@@ -908,6 +908,82 @@ def test_evidence_field_local_refinement_spreads_built_signal_to_neighbors() -> 
     assert np.allclose(refined[1, 1], prediction[1, 1])
 
 
+def test_evidence_field_settlement_state_refinement_uses_live_settlement_stats() -> None:
+    from astar.core.grid import Viewport
+    from astar.core.trajectory import LiveQueryObs
+    from astar.core.world_state import LiveSettlementObs
+    from astar.features.geometry import SeedFeatureBundle
+    from astar.observe.evidence import SeedEvidenceBundle
+    from astar.student.predictor.evidence_field import _apply_settlement_state_refinement
+
+    prediction = np.full((3, 3, 6), 1.0 / 6.0, dtype=np.float64)
+    seed_evidence = SeedEvidenceBundle(
+        round_id="round",
+        seed_index=0,
+        query_count=1,
+        repeated_window_groups=0,
+        coverage_counts=np.zeros((3, 3), dtype=np.int64),
+        observed_class_counts=np.zeros(6, dtype=np.int64),
+        observed_class_frequencies=np.zeros(6, dtype=np.float64),
+        observed_class_count_tensor=np.zeros((3, 3, 6), dtype=np.int64),
+    )
+    seed_features = SeedFeatureBundle(
+        round_id="round",
+        seed_index=0,
+        height=3,
+        width=3,
+        features={
+            "buildable": np.ones((3, 3), dtype=np.float64),
+            "settlement_proximity": np.ones((3, 3), dtype=np.float64),
+            "coastal_exposure": np.ones((3, 3), dtype=np.float64),
+            "maritime_access": np.ones((3, 3), dtype=np.float64),
+            "frontier_score": np.ones((3, 3), dtype=np.float64),
+            "forest_density": np.zeros((3, 3), dtype=np.float64),
+            "mountain_density": np.zeros((3, 3), dtype=np.float64),
+        },
+    )
+    observations = (
+        LiveQueryObs(
+            round_id="round",
+            seed_index=0,
+            viewport=Viewport(x=0, y=0, w=3, h=3),
+            grid=np.zeros((3, 3), dtype=np.int64),
+            settlements=(
+                LiveSettlementObs(
+                    x=1,
+                    y=1,
+                    population=4.5,
+                    food=1.1,
+                    wealth=1.5,
+                    defense=1.0,
+                    has_port=True,
+                    alive=True,
+                    owner_id=1,
+                ),
+            ),
+            query_index=0,
+        ),
+    )
+
+    refined = _apply_settlement_state_refinement(
+        prediction,
+        observations=observations,
+        seed_index=0,
+        seed_evidence=seed_evidence,
+        seed_features=seed_features,
+        initial_scored_grid=np.zeros((3, 3), dtype=np.int64),
+        state_sigma=1.5,
+        state_strength=1.2,
+        state_port_strength=1.3,
+        state_ruin_strength=1.2,
+        probability_floor=0.01,
+    )
+
+    assert np.allclose(refined.sum(axis=-1), 1.0)
+    assert refined[1, 2, 1] > prediction[1, 2, 1]
+    assert refined[1, 2, 2] > prediction[1, 2, 2]
+
+
 def test_summary_bank_variant_with_secondary_student_saves_secondary_checkpoint(
     sample_paths: RepoPaths,
 ) -> None:
