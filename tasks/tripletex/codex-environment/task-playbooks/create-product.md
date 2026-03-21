@@ -55,6 +55,15 @@ Fresh-account production verification on 2026-03-21 also showed:
 - German `ohne MwSt.` wording correctly maps to `priceExcludingVatCurrency` without needing any special handling
 - 7th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape across languages: de/en/es/pt/fr
 
+Fresh-account production verification on 2026-03-21 also showed:
+- an exact 15% reduced-rate VAT product-create task (`Eplejuice` / `9026` / `49700 kr eksklusiv MVA` / `15%` for næringsmidler/food) succeeded with the 2-call path
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` resolved `id=31` for `15%` (`Utgående avgift, middels sats`)
+- `POST /product` returned `priceIncludingVatCurrency=57155` and `vatType.id=31`
+- 2 calls, 0 errors, minimal-call execution for non-default VAT
+- Norwegian `eksklusiv MVA` wording correctly maps to `priceExcludingVatCurrency` without needing any special handling
+- "næringsmidler" (food) category qualifier is cosmetic and does not change the VAT resolution logic
+- first production confirmation of the 2-call path for explicit 15% reduced-rate VAT; extends the proven non-default VAT set from {0%} to {0%, 15%}
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
@@ -190,6 +199,7 @@ Use `number` for the product number. Include `vatType` only on the non-shortcut 
 - Do not treat Spanish `sin IVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 - Do not treat French `hors TVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 - Do not treat German `ohne MwSt.` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
+- Do not treat Norwegian `eksklusiv MVA` or `eks. MVA` phrasing as a reason to abandon the exact trusted-standard shortcut or to search for a different price field
 
 ## Avoidable Mistakes
 
@@ -199,5 +209,5 @@ Use `number` for the product number. Include `vatType` only on the non-shortcut 
 - Do not filter out valid base VAT codes by checking `!parentType`
 - Do not send both excluding-VAT and including-VAT price fields unless the prompt clearly requires it
 - Do not burn a `POST /product` on a broader-catalog `15%` or `25%` code after the filtered `OUTGOING` read already proved that percentage is unavailable for product creation in the current account
-- Do not assume that "0% for [category]" (books, newspapers, etc.) needs anything more than the current account's filtered outgoing `0%` VAT row; the category qualifier is cosmetic
+- Do not assume that "0% for [category]" (books, newspapers, etc.) or "15% for næringsmidler (food)" needs anything more than the current account's filtered outgoing matching-percentage VAT row; the category qualifier is cosmetic
 - Do not generalize the one-call omitted-`vatType` shortcut from the exact fresh-account standard-`25%` shape to `0%`, reduced-rate, or other exact-VAT prompts

@@ -10,7 +10,7 @@
 - prompt directly gives name and price
 - prompt directly gives the product number when one is required
 - product is a standard outgoing-sales product
-- localized excluding-VAT wording such as Portuguese `sem IVA`, Spanish `sin IVA`, or German `ohne MwSt.` still clearly maps to the excluding-VAT price field
+- localized excluding-VAT wording such as Portuguese `sem IVA`, Spanish `sin IVA`, German `ohne MwSt.`, or Norwegian `eksklusiv MVA` / `eks. MVA` still clearly maps to the excluding-VAT price field
 - task does not require advanced product setup
 
 ## Do Not Use This Standard If
@@ -45,7 +45,7 @@
 - do not hardcode VAT code `3`
 - do not use unfiltered VAT catalog
 - do not pick the first broad-catalog row whose `percentage` matches; the 2026-03-20 persistent sandbox broad list surfaced `15%` rows `11`, `31`, `551`, and `556`, where the first hit `11` was incoming VAT rather than the product-usable outgoing base code
-- do not search for a category-specific product subtype or extra accounting field just because the prompt says "0% for books" or "0% for newspapers" or similar; the category qualifier is cosmetic and does not change the VAT resolution logic; still pick the matching 0% row from the filtered `OUTGOING` result
+- do not search for a category-specific product subtype or extra accounting field just because the prompt says "0% for books" or "0% for newspapers" or "15% for næringsmidler (food)" or similar; the category qualifier is cosmetic and does not change the VAT resolution logic; still pick the matching percentage row from the filtered `OUTGOING` result
 - if the requested VAT percentage is absent from the filtered `OUTGOING` result, treat the task as blocked in that account; do not substitute a same-percentage code from the broader catalog
 
 ## Reuse From Write Response
@@ -77,3 +77,5 @@
 - fresh-account production verification on 2026-03-21 for the French prompt `Journal quotidien` / `9219` / `3150 NOK hors TVA` / `0%` VAT for newspapers succeeded with 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` returned `priceIncludingVatCurrency=3150` and `vatType.id=5`; scored 2/2 (perfect), confirming the 2-call path is optimal for explicit 0% VAT tasks
 - fresh-account production verification on 2026-03-21 for the Portuguese prompt `Livro de receitas` / `7946` / `18250 NOK sem IVA` / `0%` VAT for books succeeded with the same 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` returned `priceIncludingVatCurrency=18250` and `vatType.id=5`; 2 calls 0 errors, confirming the 2-call path is consistently optimal for explicit 0% VAT tasks across languages (French/Portuguese) and category qualifiers (newspapers/books)
 - fresh-account production verification on 2026-03-21 for the German prompt `Datenberatung` / `7855` / `41550 NOK ohne MwSt.` / standard `25%` succeeded with one `POST /product`, returning `priceIncludingVatCurrency=51937.5` and `vatType.id=3`; 7th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape across languages: de/en/es/pt/fr
+- fresh-account production verification on 2026-03-21 for the Norwegian prompt `Eplejuice` / `9026` / `49700 kr eksklusiv MVA` / `15%` VAT for næringsmidler (food) succeeded with the 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=31` for `15%` (`Utgående avgift, middels sats`), then `POST /product` returned `priceIncludingVatCurrency=57155` and `vatType.id=31`; 2 calls 0 errors; first production confirmation of the 2-call path for explicit 15% reduced-rate VAT; confirms that category qualifiers like "næringsmidler" are cosmetic and the `OUTGOING` filter correctly surfaces `id=31` for 15% in fresh accounts
+- persistent-sandbox verification on 2026-03-21 confirmed the sandbox still has only `OUTGOING` VAT row `id=6` / `0%`; sandbox remains blocked for 15% and 25% VAT product verification
