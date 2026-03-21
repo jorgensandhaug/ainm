@@ -140,7 +140,7 @@ class HazardPosteriorV2PortPredictor(BaseRoundPredictor):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     name: str = "f1_hazard_posterior_v2_v01"
-    teacher: HazardTeacherV2
+    teacher: object  # HazardTeacherV2 or HazardTeacherV3
 
     # kNN + ridge bank
     summary_vectors: np.ndarray = Field(
