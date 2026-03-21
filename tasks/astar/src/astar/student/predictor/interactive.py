@@ -12,6 +12,7 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
 from astar.student.predictor.greybox_expansion_conditioned import GreyboxExpansionConditionedPredictor
+from astar.student.predictor.greybox_tristack import GreyboxTriStackPredictor
 from astar.student.predictor.greybox_stacked_expansion import GreyboxStackedExpansionPredictor
 from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
 from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
@@ -318,6 +319,38 @@ def build_online_predictor(
         predictor = GreyboxCellKnnPredictor.fit_from_workspace(
             workspace_paths,
             round_ids=None if historical_round_ids is None else list(historical_round_ids),
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if normalized.startswith("greybox_tristack"):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        # Parse: greybox_tristack_e25_c10 -> expansion_weight=0.25, cellknn_weight=0.10
+        exp_w = 0.25
+        cknn_w = 0.10
+        if "_e" in normalized:
+            try:
+                e_part = normalized.split("_e")[1].split("_")[0]
+                if e_part.isdigit():
+                    exp_w = int(e_part) / 100.0
+            except (ValueError, IndexError):
+                pass
+        if "_c" in normalized:
+            try:
+                c_part = normalized.split("_c")[1].split("_")[0]
+                if c_part.isdigit():
+                    cknn_w = int(c_part) / 100.0
+            except (ValueError, IndexError):
+                pass
+        predictor = GreyboxTriStackPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+            expansion_weight=exp_w,
+            cellknn_weight=cknn_w,
+            model_name=normalized,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

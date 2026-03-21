@@ -197,7 +197,7 @@ def run_historical_benchmark(
         "greybox_roundmatch",
         "greybox_obsval_ensemble",
     }
-    is_transcript_model = normalized_model_name in transcript_models or normalized_model_name.startswith("greybox_stacked") or normalized_model_name.startswith("greybox_stacked_expansion")
+    is_transcript_model = normalized_model_name in transcript_models or normalized_model_name.startswith("greybox_stacked") or normalized_model_name.startswith("greybox_tristack")
     resolved_samples_per_round = samples_per_round if is_transcript_model else None
     if is_transcript_model and len(selected_round_ids) < 2:
         raise ValueError(f"{normalized_model_name} requires at least two replay-backed analyzed rounds for holdout eval")

@@ -486,6 +486,31 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
+    if normalized.startswith("greybox_tristack"):
+        from astar.student.predictor.greybox_tristack import GreyboxTriStackPredictor
+        exp_w = 0.25
+        cknn_w = 0.10
+        if "_e" in normalized:
+            try:
+                e_part = normalized.split("_e")[1].split("_")[0]
+                if e_part.isdigit(): exp_w = int(e_part) / 100.0
+            except: pass
+        if "_c" in normalized:
+            try:
+                c_part = normalized.split("_c")[1].split("_")[0]
+                if c_part.isdigit(): cknn_w = int(c_part) / 100.0
+            except: pass
+        predictor = GreyboxTriStackPredictor.fit_from_workspace(
+            paths, round_ids=list(training_round_ids),
+            policy_name=policy_name or "coverage",
+            samples_per_round=samples_per_round or 4,
+            expansion_weight=exp_w, cellknn_weight=cknn_w,
+            model_name=normalized,
+        )
+        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        return (bundle, {}, predictor.query_residual.base_predictor.analyzed_seed_count,
+                predictor.query_residual.base_predictor.cell_count)
+
     if normalized == "greybox_expansion_conditioned":
         predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
             paths,
