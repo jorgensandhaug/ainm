@@ -3,53 +3,44 @@ from __future__ import annotations
 from typing import Literal
 
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
-from astar.history.episodes.build import build_round_episode
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
-from astar.student.posterior.deepset_student import SummaryBankStudent
 from astar.student.posterior.state_space_student import StateSpaceStudent
+from astar.student.posterior.summary_bank import SummaryBankStudent
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.dynamics.state_space_teacher import StateSpaceTeacher
 from astar.workflows.results import TrainStateSpaceStudentResult, TrainSummaryStudentResult
-from astar.workflows.train_teacher import train_hazard_teacher
+from astar.workflows.train_teacher import train_hazard_teacher, train_state_space_teacher
 
 
 def train_summary_bank_student(
     paths: WorkspacePaths,
     *,
+    round_ids: list[str] | None = None,
     dataset_name: str = "synthetic_live_v1",
     policy_name: str = "coverage",
     samples_per_round: int = 1,
     k_neighbors: int = 5,
     model_name: str = "summary_bank_student_v1",
+    teacher_model_name: str | None = None,
     summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
         "behavioral_fingerprint_core"
     ),
     behavioral_fingerprint_summary_profile: str = "core_v1",
 ) -> TrainSummaryStudentResult:
+    resolved_teacher_model_name = teacher_model_name or f"{model_name}__teacher"
     teacher_result = train_hazard_teacher(
         paths,
+        round_ids=round_ids,
+        model_name=resolved_teacher_model_name,
         summary_backend=summary_backend,
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
     )
-    from astar.history.episodes.build import build_round_episode
-    from astar.teacher.dynamics.hazard_teacher import HazardTeacher
-
-    replay_round_ids = sorted(
-        round_dir.name
-        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
-        if round_dir.is_dir()
-    )
-    replay_episodes = [build_round_episode(paths, round_id) for round_id in replay_round_ids]
-    teacher = HazardTeacher(
-        name=teacher_result.model_name,
-        summary_backend=summary_backend,
-        behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
-    ).fit(
-        [episode for episode in replay_episodes if episode.replay_run_count > 0],
-    )
+    teacher = HazardTeacher.load_checkpoint(teacher_result.checkpoint_path)
     dataset = build_synthetic_live_dataset(
         paths,
+        round_ids=round_ids,
         policy_name=policy_name,
         samples_per_round=samples_per_round,
         dataset_name=dataset_name,
@@ -116,11 +107,10 @@ def train_state_space_student(
         for round_dir in paths.raw_dir.joinpath("replays").glob("*")
         if round_dir.is_dir()
     )
-    episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
-    replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-
-    teacher = StateSpaceTeacher(
-        name=teacher_model_name,
+    teacher_result = train_state_space_teacher(
+        paths,
+        round_ids=round_ids,
+        model_name=teacher_model_name,
         summary_backend=summary_backend,
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
         regime_max_rank=regime_max_rank,
@@ -131,10 +121,8 @@ def train_state_space_student(
         max_ruin_rows=max_ruin_rows,
         max_initial_rows=max_initial_rows,
         rollout_noise_scale=rollout_noise_scale,
-    ).fit(replay_episodes)
-    teacher_checkpoint_path = teacher.save_checkpoint(
-        paths.model_dir(teacher_model_name) / "checkpoint.json",
     )
+    teacher = StateSpaceTeacher.load_checkpoint(teacher_result.checkpoint_path)
 
     dataset = build_synthetic_live_dataset(
         paths,
@@ -152,7 +140,7 @@ def train_state_space_student(
     )
     checkpoint_path = student.save_checkpoint(
         paths.model_dir(model_name),
-        teacher_checkpoint_path,
+        teacher_result.checkpoint_path,
     )
     result = TrainStateSpaceStudentResult(
         model_name=model_name,
@@ -160,7 +148,7 @@ def train_state_space_student(
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
         dataset=dataset,
         checkpoint_path=checkpoint_path,
-        teacher_checkpoint_path=teacher_checkpoint_path,
+        teacher_checkpoint_path=teacher_result.checkpoint_path,
         sample_count=int(student.prototype_regime_vectors.shape[0]),
         summary_dim=int(student.summary_mean.shape[0]),
         regime_dim=int(student.regime_prior_mean.shape[0]),

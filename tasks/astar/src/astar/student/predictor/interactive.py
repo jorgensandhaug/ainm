@@ -13,6 +13,7 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.offline_stack import (
+    build_state_space_student_assimilated_predictor,
     build_state_space_student_predictor,
     build_summary_bank_student_predictor,
 )
@@ -88,9 +89,14 @@ def build_online_predictor(
                 round_ids=list(historical_round_ids),
             )
         else:
-            checkpoint_path = workspace_paths.model_dir("historical_bucket_prior_v1") / "checkpoint.json"
+            checkpoint_path = (
+                workspace_paths.model_dir("historical_bucket_prior_v1")
+                / "checkpoint.json"
+            )
             if checkpoint_path.exists():
-                historical_predictor = HistoricalBucketPriorPredictor.load_checkpoint(checkpoint_path)
+                historical_predictor = HistoricalBucketPriorPredictor.load_checkpoint(
+                    checkpoint_path
+                )
             else:
                 historical_predictor = HistoricalBucketPriorPredictor.fit_from_workspace(
                     workspace_paths,
@@ -145,6 +151,14 @@ def build_online_predictor(
     if normalized == "state_space_student":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return build_state_space_student_predictor(
+            workspace_paths,
+            round_ids=historical_round_ids,
+            policy_name=(policy_name or "coverage").strip().lower(),
+            samples_per_round=samples_per_round,
+        )
+    if normalized == "state_space_student_assimilated":
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return build_state_space_student_assimilated_predictor(
             workspace_paths,
             round_ids=historical_round_ids,
             policy_name=(policy_name or "coverage").strip().lower(),

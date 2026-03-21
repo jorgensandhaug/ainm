@@ -150,6 +150,9 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
     assert posterior.mean.ndim == 1
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)
+    initial_grid = np.asarray(round_context.seeds[0].initial_state.grid, dtype=np.int64)
+    dynamic_mask = (initial_grid != 10) & (initial_grid != 5)
+    assert np.all(prediction[dynamic_mask] >= 0.0095)
     assert not hasattr(context.online_episode.round_context.seeds[0], "replay_runs")
     assert not hasattr(context.online_episode.round_context.seeds[0], "terminal_truth")
 

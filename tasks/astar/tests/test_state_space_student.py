@@ -18,11 +18,36 @@ from astar.student.posterior.transcript_set import (
     build_round_initial_feature_vector,
     build_transcript_summary_vector,
 )
+from astar.student.predictor.assimilation import ObservedCellAssimilator
 from astar.teacher.dynamics.state_space_teacher import StateSpaceTeacher
 from astar.workflows.train_student import train_state_space_student
 from astar.workflows.train_teacher import train_state_space_teacher
 from tests.conftest import ROUND_ID
 from tests.replay_test_utils import _write_replays_for_all_seeds
+
+
+def test_observed_cell_assimilator_matches_dirichlet_posterior_mean() -> None:
+    assimilator = ObservedCellAssimilator(prior_pseudocount=2.0)
+    prediction = np.asarray(
+        [
+            [[0.70, 0.20, 0.10, 0.00, 0.00, 0.00]],
+            [[0.25, 0.25, 0.25, 0.25, 0.00, 0.00]],
+        ],
+        dtype=np.float64,
+    )
+    exact_counts = np.asarray(
+        [
+            [[0.0, 1.0, 1.0, 0.0, 0.0, 0.0]],
+            [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float64,
+    )
+
+    assimilated = assimilator.apply(prediction, exact_counts)
+
+    expected_observed = ((2.0 * prediction[0, 0]) + exact_counts[0, 0]) / 4.0
+    np.testing.assert_allclose(assimilated[0, 0], expected_observed)
+    np.testing.assert_allclose(assimilated[1, 0], prediction[1, 0])
 
 
 def _fit_teacher(sample_paths: RepoPaths) -> tuple[RoundEpisode, StateSpaceTeacher]:
@@ -178,6 +203,9 @@ def test_state_space_student_fit_predict_and_checkpoint_roundtrip(
     assert restored.prototype_round_ids == student.prototype_round_ids
     assert prediction.shape[-1] == 6
     assert np.allclose(prediction.sum(axis=-1), 1.0)
+    initial_grid = np.asarray(round_context.seeds[0].initial_state.grid, dtype=np.int64)
+    dynamic_mask = (initial_grid != 10) & (initial_grid != 5)
+    assert np.all(prediction[dynamic_mask] >= 0.0095)
     np.testing.assert_allclose(np.sum(posterior.weights), 1.0)
     np.testing.assert_allclose(restored_teacher_regime, teacher.encode_round(episode))
     np.testing.assert_allclose(restored_posterior.mean, posterior.mean)

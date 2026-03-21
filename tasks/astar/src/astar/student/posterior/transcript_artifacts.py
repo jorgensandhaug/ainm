@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from astar.infra.api.dto import RoundDetail, StoredRoundRecord
+from astar.infra.api.dto import RoundDetail, StoredAnalysisRecord, StoredRoundRecord
 from astar.infra.artifacts.store import load_named_arrays
 from astar.student.posterior.transcript_set import build_transcript_summary_vector
 from astar.student.predictor.base import LiveInferenceContext
@@ -83,11 +83,21 @@ def terminal_targets_from_artifact(path: Path) -> dict[int, np.ndarray]:
         resolved_target_path = Path(target_path)
         if not resolved_target_path.is_absolute():
             resolved_target_path = (path.parent / resolved_target_path).resolve()
-        payload = load_named_arrays(resolved_target_path)
         target_source = artifact.target_sources[int(seed_index)]
         if target_source == "analysis_ground_truth":
-            targets[int(seed_index)] = np.asarray(payload["ground_truth"], dtype=np.float64)
+            if resolved_target_path.suffix == ".json":
+                stored = StoredAnalysisRecord.model_validate_json(
+                    resolved_target_path.read_text(encoding="utf-8")
+                )
+                targets[int(seed_index)] = np.asarray(
+                    stored.analysis.ground_truth,
+                    dtype=np.float64,
+                )
+            else:
+                payload = load_named_arrays(resolved_target_path)
+                targets[int(seed_index)] = np.asarray(payload["ground_truth"], dtype=np.float64)
         elif target_source == "replay_mean_terminal_probs":
+            payload = load_named_arrays(resolved_target_path)
             targets[int(seed_index)] = np.asarray(payload["mean_terminal_probs"], dtype=np.float64)
         else:
             msg = f"unsupported synthetic target source: {target_source}"

@@ -90,6 +90,20 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
+def _prune_contexts_by_visualization_policy(
+    contexts_by_key: dict[tuple[str, int], ModelSeedEvaluationContext],
+    seed_results_by_key: dict[tuple[str, int], HistoricalBenchmarkSeedResult],
+    *,
+    policy: str,
+) -> None:
+    if policy in {"none", "all"}:
+        return
+    retained_keys = _select_visualization_keys(list(seed_results_by_key.values()), policy=policy)
+    for key in list(contexts_by_key):
+        if key not in retained_keys:
+            contexts_by_key.pop(key, None)
+
+
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
@@ -121,14 +135,21 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
+    sampled_online_models = {
+        "query_residual",
+        "summary_bank_student",
+        "state_space_student",
+        "state_space_student_assimilated",
+    }
     resolved_samples_per_round = (
         samples_per_round
-        if normalized_model_name in {"query_residual", "summary_bank_student", "state_space_student"}
+        if normalized_model_name in sampled_online_models
         else None
     )
-    if normalized_model_name in {"query_residual", "summary_bank_student", "state_space_student"} and len(selected_round_ids) < 2:
+    if normalized_model_name in sampled_online_models and len(selected_round_ids) < 2:
         raise ValueError(
-            f"{normalized_model_name} requires at least two replay-backed analyzed rounds for holdout eval"
+            f"{normalized_model_name} requires at least two replay-backed "
+            "analyzed rounds for holdout eval"
         )
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
@@ -140,7 +161,7 @@ def run_historical_benchmark(
         None if mode == "prior_only" else build_interactive_policy(policy_name).name
     )
     model_suffix = ""
-    if normalized_model_name in {"query_residual", "summary_bank_student", "state_space_student"}:
+    if normalized_model_name in sampled_online_models:
         model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
@@ -162,6 +183,7 @@ def run_historical_benchmark(
     summary_jsonl_path = benchmark_dir / "summary.jsonl"
     summary_csv_path = benchmark_dir / "summary.csv"
 
+    retain_contexts = visualization_policy != "none"
     contexts_by_key: dict[tuple[str, int], ModelSeedEvaluationContext] = {}
     seed_results_by_key: dict[tuple[str, int], HistoricalBenchmarkSeedResult] = {}
     per_round_keys: dict[str, list[tuple[str, int]]] = {}
@@ -191,8 +213,14 @@ def run_historical_benchmark(
         for context in contexts:
             key = (context.round_id, context.seed_index)
             keys.append(key)
-            contexts_by_key[key] = context
             seed_results_by_key[key] = context.to_seed_result()
+            if retain_contexts:
+                contexts_by_key[key] = context
+                _prune_contexts_by_visualization_policy(
+                    contexts_by_key,
+                    seed_results_by_key,
+                    policy=visualization_policy,
+                )
         per_round_keys[held_out_round_id] = keys
         round_mean_scores.append(
             sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),

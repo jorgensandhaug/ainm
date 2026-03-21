@@ -5,6 +5,7 @@ import json
 import os
 from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,11 +17,17 @@ from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 from astar.history.episodes.build import build_round_episode
+from astar.history.episodes.models import RoundEpisode
 from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.serialization.json_utils import to_jsonable
 from astar.student.posterior.state_space_student import StateSpaceStudent
 from astar.student.posterior.summary_bank import (
     SummaryBankStudent,
     SummaryBankStudentCheckpoint,
+)
+from astar.student.predictor.assimilation import (
+    AssimilatedStateSpaceStudent,
+    ObservedCellAssimilator,
 )
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.dynamics.state_space_teacher import StateSpaceTeacher
@@ -54,7 +61,16 @@ def _round_scope_token(round_ids: Sequence[str] | None) -> str:
 def _teacher_signature(
     teacher: HazardTeacher | StateSpaceTeacher,
 ) -> str:
-    digest = hashlib.sha1(str(teacher.name).encode("utf-8")).hexdigest()[:10]
+    checkpoint = teacher.checkpoint()
+    regime_encoder_checkpoint = getattr(checkpoint, "regime_encoder_checkpoint", None)
+    payload = (
+        to_jsonable(regime_encoder_checkpoint)
+        if regime_encoder_checkpoint is not None
+        else to_jsonable(checkpoint)
+    )
+    digest = hashlib.sha1(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:12]
     return f"{teacher.__class__.__name__.lower()}__{digest}"
 
 
@@ -155,10 +171,18 @@ def _state_space_fit_workers() -> int:
     return max(1, min(8, cpu_count))
 
 
+def _replay_backed_episodes(
+    paths: WorkspacePaths,
+    round_ids: Sequence[str],
+) -> list[RoundEpisode]:
+    episodes = [build_round_episode(paths, round_id) for round_id in round_ids]
+    return [episode for episode in episodes if episode.replay_run_count > 0]
+
+
 class PosteriorStudentPredictorAdapter(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    student: SummaryBankStudent | StateSpaceStudent
+    student: SummaryBankStudent | StateSpaceStudent | AssimilatedStateSpaceStudent
     name: str
     samples_per_round: int = Field(default=1, ge=1)
 
@@ -192,7 +216,7 @@ class PosteriorStudentPredictorAdapter(BaseModel):
         )
         build_from_context = getattr(self.student, "build_prediction_bundle_from_context", None)
         if callable(build_from_context):
-            return build_from_context(inference_context)
+            return cast(PredictionBundle, build_from_context(inference_context))
         predictions_by_seed = {
             seed.seed_index: self.student.predict_seed(inference_context, seed.seed_index)
             for seed in belief.round_context.seeds
@@ -225,12 +249,16 @@ def _load_or_fit_summary_bank_student(
     if student_checkpoint_path.exists():
         student = _load_summary_bank_student_checkpoint(student_checkpoint_path)
     else:
+        replay_episodes: list[RoundEpisode] | None = None
         if teacher_checkpoint_path.exists():
             teacher = HazardTeacher.load_checkpoint(teacher_checkpoint_path)
+            if not teacher.supports_offline_regime_encoding:
+                replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
+                teacher = teacher.fit(replay_episodes).without_replay_bank()
+                teacher.save_checkpoint(teacher_checkpoint_path)
         else:
-            episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
-            replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-            teacher = HazardTeacher(name=teacher_name).fit(replay_episodes)
+            replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
+            teacher = HazardTeacher(name=teacher_name).fit(replay_episodes).without_replay_bank()
             teacher.save_checkpoint(teacher_checkpoint_path)
         dataset = _ensure_synthetic_dataset(
             paths,
@@ -297,8 +325,7 @@ def _load_or_fit_state_space_student(
         if teacher_checkpoint_path.exists():
             teacher = StateSpaceTeacher.load_checkpoint(teacher_checkpoint_path)
         else:
-            episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
-            replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
+            replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
             teacher = StateSpaceTeacher(
                 name=teacher_name,
                 fit_workers=_state_space_fit_workers(),
@@ -347,8 +374,48 @@ def build_state_space_student_predictor(
     )
 
 
+def build_state_space_student_assimilated_predictor(
+    paths: WorkspacePaths,
+    *,
+    round_ids: Sequence[str] | None = None,
+    policy_name: str = "coverage",
+    samples_per_round: int = 1,
+    prototype_count: int = 6,
+    decoder_rollouts: int = 32,
+) -> PosteriorStudentPredictorAdapter:
+    student = _load_or_fit_state_space_student(
+        paths,
+        round_ids=round_ids,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+        prototype_count=prototype_count,
+        decoder_rollouts=decoder_rollouts,
+    )
+    selected_round_ids = _replay_round_ids(paths, round_ids)
+    dataset = _ensure_synthetic_dataset(
+        paths,
+        stack_name="state_space_synthetic_live_v1",
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+        round_ids=selected_round_ids,
+        regime_encoder=student.teacher,
+    )
+    assimilator = ObservedCellAssimilator.fit_from_dataset(dataset, student)
+    corrected = AssimilatedStateSpaceStudent(
+        name="state_space_student_assimilated",
+        student=student,
+        assimilator=assimilator,
+    )
+    return PosteriorStudentPredictorAdapter(
+        student=corrected,
+        name=corrected.name,
+        samples_per_round=samples_per_round,
+    )
+
+
 __all__ = [
     "PosteriorStudentPredictorAdapter",
+    "build_state_space_student_assimilated_predictor",
     "build_state_space_student_predictor",
     "build_summary_bank_student_predictor",
 ]

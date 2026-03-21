@@ -879,18 +879,36 @@ class StateSpaceStudent(BaseModel):
         seed_index: int,
         posterior: RegimePosteriorState,
     ) -> np.ndarray:
+        return self.decode_seed_from_posterior(
+            context,
+            seed_index=seed_index,
+            posterior=posterior,
+            apply_floor=True,
+        )
+
+    def decode_seed_from_posterior(
+        self,
+        context: LiveInferenceContext,
+        *,
+        seed_index: int,
+        posterior: RegimePosteriorState,
+        apply_floor: bool = True,
+    ) -> np.ndarray:
         prediction = self.teacher.posterior_predictive(
             context.round_context.seeds[seed_index],
             posterior,
             n_rollouts=self.decoder_rollouts,
         )
+        raw_prediction = np.asarray(prediction, dtype=np.float64)
+        if not apply_floor:
+            return raw_prediction
         initial_grid = np.asarray(
             context.round_context.seeds[seed_index].initial_state.grid,
             dtype=np.int64,
         )
         return np.asarray(
             apply_probability_floor(
-                np.asarray(prediction, dtype=np.float64),
+                raw_prediction,
                 self.probability_floor,
                 initial_grid=initial_grid,
             ),

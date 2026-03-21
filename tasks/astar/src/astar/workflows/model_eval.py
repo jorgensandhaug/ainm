@@ -25,8 +25,8 @@ from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
 )
-from astar.workflows.results import HistoricalBenchmarkCellIssue, HistoricalBenchmarkSeedResult
 from astar.workflows.online_episode import OnlineEpisodeRun, run_online_episode
+from astar.workflows.results import HistoricalBenchmarkCellIssue, HistoricalBenchmarkSeedResult
 
 
 class ModelSeedEvaluationContext(BaseModel):
@@ -197,7 +197,10 @@ def _build_prediction_bundle(
 
     if normalized == "geometry_prior":
         predictor = GeometryPriorPredictor()
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail))
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+        )
         return bundle, {}, 0, 0
 
     if normalized == "historical_bucket_prior":
@@ -225,7 +228,11 @@ def _build_prediction_bundle(
             round_ids=list(training_round_ids),
             samples_per_round=samples_per_round,
         )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
+        bundle = predictor.build_prediction_bundle(
+            round_detail,
+            compute_round_features(round_detail),
+            None,
+        )
         return (
             bundle,
             {},
@@ -240,7 +247,11 @@ def _build_prediction_bundle(
         bundle = predictor.build_prediction_bundle(round_detail, features, evidence)
         return bundle, {}, 0, 0
 
-    if normalized in {"summary_bank_student", "state_space_student"}:
+    if normalized in {
+        "summary_bank_student",
+        "state_space_student",
+        "state_space_student_assimilated",
+    }:
         predictor = build_online_predictor(
             model_name,
             paths=paths,
@@ -299,9 +310,10 @@ def _build_online_prediction_bundle(
     ):
         round_detail = read_round_record(paths, round_id).round
         diagnostics_by_seed = {
-            seed_index: predictor.predictor.build_seed_diagnostics(round_detail, seed_index).model_dump(
-                mode="python",
-            )
+            seed_index: predictor.predictor.build_seed_diagnostics(
+                round_detail,
+                seed_index,
+            ).model_dump(mode="python")
             for seed_index in range(round_detail.seeds_count)
         }
         training_analyzed_seed_count = predictor.predictor.analyzed_seed_count
@@ -362,19 +374,30 @@ def evaluate_model_on_round(
 ) -> list[ModelSeedEvaluationContext]:
     round_record = read_round_record(paths, round_id)
     analyses, truth_bundle = _analysis_ground_truth_bundle(paths, round_id)
+    sampled_online_models = {
+        "query_residual",
+        "summary_bank_student",
+        "state_space_student",
+        "state_space_student_assimilated",
+    }
 
     if mode == "prior_only":
-        prediction_bundle, diagnostics_by_seed, training_analyzed_seed_count, training_cell_count = (
-            _build_prediction_bundle(
-                paths,
-                round_id,
-                model_name,
-                training_round_ids=training_round_ids,
-                samples_per_round=samples_per_round,
-            )
+        (
+            prediction_bundle,
+            diagnostics_by_seed,
+            training_analyzed_seed_count,
+            training_cell_count,
+        ) = _build_prediction_bundle(
+            paths,
+            round_id,
+            model_name,
+            training_round_ids=training_round_ids,
+            samples_per_round=samples_per_round,
         )
         resolved_policy_name = None
-        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
+        resolved_samples_per_round = (
+            samples_per_round if model_name.strip().lower() in sampled_online_models else None
+        )
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0

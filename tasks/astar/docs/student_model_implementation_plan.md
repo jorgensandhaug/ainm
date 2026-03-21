@@ -6,6 +6,7 @@ Use it together with:
 
 - [regime_model_implementation_plan.md](/home/jorge/ainm/tasks/astar/docs/regime_model_implementation_plan.md)
 - [dynamics_teacher_implementation_plan.md](/home/jorge/ainm/tasks/astar/docs/dynamics_teacher_implementation_plan.md)
+- [handoff7_integration_plan.md](/home/jorge/ainm/tasks/astar/docs/handoff7_integration_plan.md)
 - [handoff6_student.md](/home/jorge/ainm/tasks/astar/handoff6_student.md)
 
 ## Core Role
@@ -31,6 +32,12 @@ Important notation cleanup:
 - `F`: teacher decoder / terminal predictor
 
 Do not let student code depend directly on replay trajectories, replay-only fields, or post-round truth.
+
+Important boundary:
+
+- observed-cell assimilation lives after `F(M, z)` in the predictor stack
+- it is not part of the posterior student `q(z_r | M_r, D_r)`
+- keep posterior naming and post-decoder correction naming separate
 
 ## Current Repo Truth
 

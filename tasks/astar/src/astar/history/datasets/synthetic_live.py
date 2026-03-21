@@ -68,7 +68,11 @@ def _target_info(
 ) -> tuple[str, Path]:
     seed = episode.per_seed[seed_index]
     if seed.ground_truth is not None:
-        return ("analysis_ground_truth", paths.analysis_tensor_path(round_id, seed_index))
+        analysis_tensor_path = paths.analysis_tensor_path(round_id, seed_index)
+        if analysis_tensor_path.exists():
+            return ("analysis_ground_truth", analysis_tensor_path)
+        raw_analysis_path = paths.raw_analysis_dir(round_id) / f"seed_index={seed_index}.json"
+        return ("analysis_ground_truth", raw_analysis_path)
     if seed.replay_mean_terminal_probs is not None:
         return ("replay_mean_terminal_probs", paths.replay_summary_path(round_id, seed_index))
     msg = f"seed {seed_index} in round {round_id} has no terminal target"

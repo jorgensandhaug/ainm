@@ -251,6 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "summary_bank_student",
             "state_space_student",
+            "state_space_student_assimilated",
         ],
         required=True,
     )
@@ -315,6 +316,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "summary_bank_student",
             "state_space_student",
+            "state_space_student_assimilated",
         ],
         default="latent_regime",
     )
@@ -335,6 +337,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "summary_bank_student",
             "state_space_student",
+            "state_space_student_assimilated",
         ],
         default="latent_regime",
     )
@@ -359,6 +362,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "summary_bank_student",
             "state_space_student",
+            "state_space_student_assimilated",
         ],
         required=True,
     )
@@ -395,6 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "summary_bank_student",
             "state_space_student",
+            "state_space_student_assimilated",
         ],
         default="latent_regime",
     )
@@ -453,11 +458,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     train_student_parser = subparsers.add_parser("train-summary-student")
+    train_student_parser.add_argument("--round-id", action="append", default=None)
     train_student_parser.add_argument("--dataset-name", default="synthetic_live_v1")
     train_student_parser.add_argument("--policy", default="coverage")
     train_student_parser.add_argument("--samples-per-round", type=int, default=1)
     train_student_parser.add_argument("--k-neighbors", type=int, default=5)
     train_student_parser.add_argument("--model-name", default="summary_bank_student_v1")
+    train_student_parser.add_argument("--teacher-model-name", default=None)
     train_student_parser.add_argument(
         "--summary-backend",
         choices=["dynamic_law", "behavioral_fingerprint_core"],
@@ -811,11 +818,13 @@ def _main() -> int:
     if args.command == "train-summary-student":
         student_result = train_summary_bank_student(
             paths,
+            round_ids=args.round_id,
             dataset_name=args.dataset_name,
             policy_name=args.policy,
             samples_per_round=args.samples_per_round,
             k_neighbors=args.k_neighbors,
             model_name=args.model_name,
+            teacher_model_name=args.teacher_model_name,
             summary_backend=args.summary_backend,
             behavioral_fingerprint_summary_profile=args.behavioral_fingerprint_summary_profile,
         )

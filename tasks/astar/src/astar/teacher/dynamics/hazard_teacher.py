@@ -20,7 +20,10 @@ from astar.history.summaries.round_coefficients import (
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
-from astar.teacher.regime.replay_summary import ReplaySummaryRegimeEncoder
+from astar.teacher.regime.replay_summary import (
+    ReplaySummaryRegimeEncoder,
+    ReplaySummaryRegimeEncoderCheckpoint,
+)
 
 
 def _fit_linear_map(
@@ -97,8 +100,12 @@ class HazardTeacherCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     name: str
-    summary_backend: str = "behavioral_fingerprint_core"
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    )
     behavioral_fingerprint_summary_profile: str = "core_v1"
+    regime_max_rank: int = Field(default=3, ge=1)
+    summary_bootstrap_samples: int = Field(default=4, ge=0)
     feature_names: list[str]
     round_ids: list[str]
     round_numbers: list[int]
@@ -107,6 +114,7 @@ class HazardTeacherCheckpoint(BaseModel):
     regime_summary_names: list[str]
     regime_intercept: list[float]
     regime_weights: list[list[float]]
+    regime_encoder_checkpoint: ReplaySummaryRegimeEncoderCheckpoint | None = None
 
 
 class HazardTeacher(BaseModel):
@@ -169,6 +177,25 @@ class HazardTeacher(BaseModel):
     replay_bank_round_ids: tuple[str, ...] = ()
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
+
+    @property
+    def supports_offline_regime_encoding(self) -> bool:
+        return self.regime_encoder is not None or self.regime_bank.size > 0
+
+    def without_replay_bank(self) -> HazardTeacher:
+        if (
+            not self.replay_bank_round_ids
+            and not self.replay_bank_seed_indexes
+            and not self.replay_runs_bank
+        ):
+            return self
+        return self.model_copy(
+            update={
+                "replay_bank_round_ids": (),
+                "replay_bank_seed_indexes": (),
+                "replay_runs_bank": (),
+            }
+        )
 
     def fit(self, episodes: list[RoundEpisode]) -> HazardTeacher:
         replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
@@ -270,10 +297,15 @@ class HazardTeacher(BaseModel):
         )
 
     def checkpoint(self) -> HazardTeacherCheckpoint:
+        regime_encoder = self.regime_encoder
+        if regime_encoder is None and self.regime_bank.size > 0:
+            regime_encoder = self._compat_regime_encoder()
         return HazardTeacherCheckpoint(
             name=self.name,
             summary_backend=self.summary_backend,
             behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+            summary_bootstrap_samples=self.summary_bootstrap_samples,
             feature_names=self.feature_names,
             round_ids=list(self.round_ids),
             round_numbers=list(self.round_numbers),
@@ -282,6 +314,9 @@ class HazardTeacher(BaseModel):
             regime_summary_names=list(self.regime_summary_names),
             regime_intercept=self.regime_intercept.tolist(),
             regime_weights=self.regime_weights.tolist(),
+            regime_encoder_checkpoint=(
+                None if regime_encoder is None else regime_encoder.checkpoint()
+            ),
         )
 
     def save_checkpoint(self, path: Path) -> Path:
@@ -296,18 +331,143 @@ class HazardTeacher(BaseModel):
         )
         regime_dim = int(checkpoint.regime_dim)
         coefficient_dim = int(checkpoint.coefficient_dim)
+        regime_encoder = (
+            None
+            if checkpoint.regime_encoder_checkpoint is None
+            else ReplaySummaryRegimeEncoder.from_checkpoint(checkpoint.regime_encoder_checkpoint)
+        )
+        regime_bank = (
+            np.asarray(regime_encoder.regime_bank, dtype=np.float64)
+            if regime_encoder is not None
+            else np.zeros((0, regime_dim), dtype=np.float64)
+        )
         return cls(
             name=checkpoint.name,
             summary_backend=checkpoint.summary_backend,
             behavioral_fingerprint_summary_profile=checkpoint.behavioral_fingerprint_summary_profile,
+            regime_max_rank=checkpoint.regime_max_rank,
+            summary_bootstrap_samples=checkpoint.summary_bootstrap_samples,
+            regime_encoder=regime_encoder,
             feature_names=list(checkpoint.feature_names),
-            regime_summary_names=tuple(checkpoint.regime_summary_names),
-            round_ids=tuple(checkpoint.round_ids),
-            round_numbers=tuple(checkpoint.round_numbers),
-            regime_bank=np.zeros((0, regime_dim), dtype=np.float64),
+            regime_summary_names=(
+                tuple(regime_encoder.regime_summary_names)
+                if regime_encoder is not None
+                else tuple(checkpoint.regime_summary_names)
+            ),
+            round_ids=(
+                tuple(regime_encoder.round_ids)
+                if regime_encoder is not None
+                else tuple(checkpoint.round_ids)
+            ),
+            round_numbers=(
+                tuple(int(value) for value in regime_encoder.round_numbers)
+                if regime_encoder is not None
+                else tuple(checkpoint.round_numbers)
+            ),
+            regime_bank=regime_bank,
             coefficient_bank=np.zeros((0, coefficient_dim), dtype=np.float64),
             regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
             regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
+            source_summary_names=(
+                tuple(regime_encoder.source_summary_names) if regime_encoder is not None else ()
+            ),
+            source_summary_mean=(
+                np.asarray(regime_encoder.source_summary_mean, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros(0, dtype=np.float64)
+            ),
+            source_summary_scale=(
+                np.asarray(regime_encoder.source_summary_scale, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros(0, dtype=np.float64)
+            ),
+            source_summary_basis=(
+                np.asarray(regime_encoder.source_summary_basis, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            source_probe_library_kind=(
+                regime_encoder.source_probe_library_kind if regime_encoder is not None else None
+            ),
+            source_probe_library_version=(
+                regime_encoder.source_probe_library_version if regime_encoder is not None else None
+            ),
+            site_probe_names=(
+                tuple(regime_encoder.site_probe_names) if regime_encoder is not None else ()
+            ),
+            site_probe_matrix=(
+                np.asarray(regime_encoder.site_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            settlement_probe_names=(
+                tuple(regime_encoder.settlement_probe_names)
+                if regime_encoder is not None
+                else ()
+            ),
+            settlement_probe_matrix=(
+                np.asarray(regime_encoder.settlement_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            pairwise_probe_names=(
+                tuple(regime_encoder.pairwise_probe_names) if regime_encoder is not None else ()
+            ),
+            pairwise_probe_matrix=(
+                np.asarray(regime_encoder.pairwise_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            ruin_probe_names=(
+                tuple(regime_encoder.ruin_probe_names) if regime_encoder is not None else ()
+            ),
+            ruin_probe_matrix=(
+                np.asarray(regime_encoder.ruin_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            owner_probe_names=(
+                tuple(regime_encoder.owner_probe_names) if regime_encoder is not None else ()
+            ),
+            owner_probe_matrix=(
+                np.asarray(regime_encoder.owner_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            macro_probe_names=(
+                tuple(regime_encoder.macro_probe_names) if regime_encoder is not None else ()
+            ),
+            macro_probe_matrix=(
+                np.asarray(regime_encoder.macro_probe_matrix, dtype=np.float64)
+                if regime_encoder is not None
+                else np.zeros((0, 0), dtype=np.float64)
+            ),
+            site_probe_feature_names=(
+                tuple(regime_encoder.site_probe_feature_names) if regime_encoder is not None else ()
+            ),
+            settlement_probe_feature_names=(
+                tuple(regime_encoder.settlement_probe_feature_names)
+                if regime_encoder is not None
+                else ()
+            ),
+            pairwise_probe_feature_names=(
+                tuple(regime_encoder.pairwise_probe_feature_names)
+                if regime_encoder is not None
+                else ()
+            ),
+            ruin_probe_feature_names=(
+                tuple(regime_encoder.ruin_probe_feature_names) if regime_encoder is not None else ()
+            ),
+            owner_probe_feature_names=(
+                tuple(regime_encoder.owner_probe_feature_names)
+                if regime_encoder is not None
+                else ()
+            ),
+            macro_probe_feature_names=(
+                tuple(regime_encoder.macro_probe_feature_names)
+                if regime_encoder is not None
+                else ()
+            ),
         )
 
     def _compat_regime_encoder(self) -> ReplaySummaryRegimeEncoder:
