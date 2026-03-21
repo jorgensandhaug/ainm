@@ -18,12 +18,11 @@
 - prompt also scores department onboarding plus employment salary/worktime configuration; use `./trusted-standards/onboard-employee.md` for that richer shape
 
 ## Standard Flow
-1. `POST /employee` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
+1. `POST /employee?fields=*,employments(*)` with the prompt-required employee fields, explicit `userType`, and nested `employments[]` when the prompt scores a start date
 2. if that write fails with `422` where `validationMessages[].field == "department.id"`, do one decisive `GET /department?isInactive=false&count=1&fields=*`, reuse the returned active department id, and retry once
 3. if the department repair branch finds no active department and department is clearly required, `POST /department` with a minimal name-only payload, then retry the same employee create once with that new department id
 4. if the employee write fails with `422` where `validationMessages[].field == "employments.division.id"`, do one decisive `GET /division?count=1&fields=*`, reuse the returned division id inside the nested employment row, and retry once
-5. if scored fields are fully proven by the successful write response, stop
-6. if employment start date is scored but the create response is sparse, do one decisive `GET /employee/employment?employeeId=...&fields=*`
+5. stop — the `?fields=*,employments(*)` response proves all scored fields including `startDate`; no verification GET is needed
 
 ## Payload Rules
 - send only prompt-required employee fields
@@ -41,35 +40,36 @@
 - after a `department.id` failure, retry `POST /employee` with the repaired `department` before reading `/division`; the division requirement is still a second-stage branch, not a safe speculative pre-read
 
 ## Reuse From Write Response
-- `value.id`
-- returned employee identity fields
-- returned employment link ids if present
+- `value.id` — employee id from `POST /employee?fields=*,employments(*)`
+- `value.firstName`, `value.lastName`, `value.dateOfBirth`, `value.email` — all employee identity fields
+- `value.employments[0].startDate` — the employment start date, proving all scored state in one response
+- no verification GET is needed when using `?fields=*,employments(*)`
 
 ## Verification
-- zero extra calls if write response already proves scored state
-- one employment read only when start-date/employment coverage is actually scored and missing from response
-- for the exact prompt shape `name + birth date + email + start date`, the current minimum safe success path is usually `2` calls in fresh accounts: `POST /employee`, then `GET /employee/employment?employeeId=...&fields=*`
-- the 2026-03-20 production English run for `Thomas Harris` (`1991-06-04`, `thomas.harris@example.org`, start `2026-10-06`) re-confirmed that same `2`-call branch and again showed that the successful create response still did not prove `startDate`
-- the later 2026-03-20 production Portuguese run for `João Rodrigues` (`1980-09-05`, `joao.rodrigues@example.org`, start `2026-08-08`) re-confirmed the same `2`-call branch after ISO-normalizing `5. September 1980` and `8. August 2026`, with the Unicode first name preserved exactly
-- the 2026-03-21 production Norwegian run for `Ingrid Johansen` (`1995-11-09`, `ingrid.johansen@example.org`, start `2026-01-13`) hit the department-repair branch: `POST /employee` → `422 department.id` → `GET /department` (found existing dept) → `POST /employee` with dept → `201` → `GET /employee/employment` → confirmed `startDate`; total `4` calls, `1` error; this is the first production confirmation of the department-repair branch and shows it is the minimum for dept-required accounts
-- a one-call stop after `POST /employee` is not yet a trusted standard for start-date-scored tasks because the successful create response often omits the actual `startDate`
+- zero extra calls when using `POST /employee?fields=*,employments(*)` — the response includes the full employment object with `startDate`
+- for the exact prompt shape `name + birth date + email + start date`, the minimum safe success path is **1 call** in fresh accounts: `POST /employee?fields=*,employments(*)`
+- CRITICAL: `POST /employee?fields=*` (without the nested expansion) still returns sparse `employments` (id + url only, no `startDate`); the `employments(*)` part is essential
+- sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=*,employments(*)` returns the full response with all employee identity fields AND full employment objects including `startDate`
+- sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=employments(*)` also returns `startDate` but omits top-level employee fields like `firstName`; always use `fields=*,employments(*)` to get both
+- the 2026-03-21 production Nynorsk run for `Geir Neset` (`1997-06-24`, `geir.neset@example.org`, start `2026-10-15`) used the previous 2-call standard (POST + GET employment) and hit the department-repair branch, resulting in 4 calls + 1 error; with `?fields=*,employments(*)` this would have been 3 calls + 1 error (saving the verification GET)
+
+## Total Calls
+- 1 call when fresh account accepts the write directly (POST /employee?fields=*,employments(*))
+- 3 calls + 1 error when department-repair branch is needed (POST → 422, GET /department, POST with dept)
+- 4 calls + 1 error when department-repair finds no active dept (POST → 422, GET /department, POST /department, POST /employee with dept)
+- +2 calls + 1 error when division-repair is also needed (additional GET /division + POST retry)
 
 ## Known Recovery Branches
 - some accounts reject the initial create without `department.id`; in that branch, resolve one active department or create a minimal one only if the read proves none exist
 - employment creation may also require `employments[].division.id`; if validation says so, resolve one existing `/division?count=1&fields=*` and retry once with that `division.id`
-- write response may echo sparse employment data only
+- always use `?fields=*,employments(*)` on every POST /employee attempt (including retries) to get the full response and avoid needing a verification GET
 
 ## OpenAPI / Sandbox Status
 - `/employee` verified in `./openapi.json`
 - sparse-employment, department, and division gotchas documented from prior verified runs
-- persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches, while scored production feedback the same day showed that automatic pre-reading of `department` can overpay calls on accounts that do not require it
-- scored production re-verification on 2026-03-20 for `Miguel Sánchez` confirmed the fresh-account winning branch: direct `POST /employee` succeeded without department or division repair, and one follow-up `GET /employee/employment?employeeId=...&fields=*` was still needed because the successful write response did not prove the requested `startDate`
-- scored production re-verification on 2026-03-20 for `Jules Bernard` confirmed that a French prompt with mixed-language dates `8. December 1982` and `27. December 2026` still stays on the same normalized employee-create shape after ISO conversion
-- scored production re-verification on 2026-03-20 for `Thomas Harris` confirmed the same fresh-account floor from an English prompt: direct `POST /employee` succeeded, the create response echoed only sparse `employments[]`, and one decisive `GET /employee/employment?employeeId=...&fields=*` finished the task in `2` calls
-- scored production re-verification on 2026-03-20 for `João Rodrigues` confirmed that a Portuguese prompt with mixed-language date strings `5. September 1980` and `8. August 2026` still stays on the same fresh-account `2`-call branch after ISO normalization, and that the write/read path preserves Unicode employee names exactly
-- persistent sandbox re-verification on 2026-03-20 for `Lucy Wilson Sandbox` confirmed the exact validation payload fields `department.id` and `employments.division.id`, and re-confirmed that the successful `201` response still returned `employments` as link-only objects without `startDate`
-- a same-session persistent-sandbox reflection run on 2026-03-20 for `Thomas Harris Reflection 1774058512120` re-confirmed the contrast: `POST /employee` -> `422 department.id` -> `GET /department` -> `POST /employee` -> `422 employments.division.id` -> `GET /division` -> `POST /employee` -> `GET /employee/employment`, with the final create response still lacking `startDate`
-- a later same-session persistent-sandbox reflection run on 2026-03-20 for `João Rodrigues Reflection 1774047088805` repeated that exact repair order with existing department `837842` and division `108244566`, confirming again that `/division` should stay a second-stage reactive read rather than a speculative read after the first `422`
-- the 2026-03-21 production run for `Ingrid Johansen` is the first scored production confirmation of the department-repair branch; out of 5 known production create-employee runs, 4 succeeded without department repair (`2` calls) and 1 needed it (`4` calls, `1` error); the no-pre-read strategy remains correct on average
-- persistent sandbox re-verification on 2026-03-21 confirmed that `POST /employee?fields=*` still returns sparse `employments` (id + url only); `fields=*` on POST does not expand nested employment objects, so the employment verification read remains necessary for start-date-scored tasks
-- the same sandbox session confirmed that `GET /employee/{id}?fields=employments(*)` is an equivalent alternative to `GET /employee/employment?employeeId=...&fields=*` for verifying `startDate`; both return the same employment data in one call
+- CRITICAL discovery on 2026-03-21: `POST /employee?fields=*,employments(*)` returns the full employee object WITH expanded employment objects including `startDate`; this eliminates the need for a verification GET and reduces the fresh-account minimum from 2 calls to 1 call
+- `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
+- `POST /employee?fields=employments(*)` returns full employment objects but omits top-level employee fields — always use `fields=*,employments(*)` for both
+- persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
+- out of 6 known production create-employee runs, 4 succeeded without department repair (previously 2 calls, now 1) and 2 needed it (previously 4 calls, now 3); the no-pre-read strategy remains correct on average
+- the 2026-03-21 production run for `Geir Neset` (Nynorsk prompt, 1997-06-24, geir.neset@example.org, start 2026-10-15) hit the department-repair branch: POST /employee → 422 → GET /department (found existing dept 742168) → POST /employee with dept → 201 → GET /employee/employment (unnecessary with new fields expansion); total 4 calls, 1 error; with `?fields=*,employments(*)` this would have been 3 calls + 1 error
