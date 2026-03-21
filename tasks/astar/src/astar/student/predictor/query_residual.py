@@ -40,12 +40,14 @@ QUERY_RESIDUAL_ALIAS = "query_residual"
 QUERY_RESIDUAL_V11 = "query_residual_v11"
 QUERY_RESIDUAL_V11_COVTRAIN = "query_residual_v11_covtrain"
 QUERY_RESIDUAL_V11_COVTRAIN_P0_B624 = "query_residual_v11_covtrain_p0_b624"
+QUERY_RESIDUAL_V11_COVTRAIN_P0_B624_T100 = "query_residual_v11_covtrain_p0_b624_t100"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
     {
         QUERY_RESIDUAL_ALIAS,
         QUERY_RESIDUAL_V11,
         QUERY_RESIDUAL_V11_COVTRAIN,
         QUERY_RESIDUAL_V11_COVTRAIN_P0_B624,
+        QUERY_RESIDUAL_V11_COVTRAIN_P0_B624_T100,
     },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
@@ -69,6 +71,7 @@ def resolve_query_residual_training_spec(
         QUERY_RESIDUAL_V11,
         QUERY_RESIDUAL_V11_COVTRAIN,
         QUERY_RESIDUAL_V11_COVTRAIN_P0_B624,
+        QUERY_RESIDUAL_V11_COVTRAIN_P0_B624_T100,
     }:
         if samples_per_round not in {None, 1, 2}:
             raise ValueError("query_residual_v11 fixes samples_per_round=2")
@@ -84,6 +87,13 @@ def resolve_query_residual_serving_overrides(model_name: str) -> dict[str, float
             "prior_blend": 0.0,
             "beta_min": 6.0,
             "beta_scale": 24.0,
+        }
+    if normalized == QUERY_RESIDUAL_V11_COVTRAIN_P0_B624_T100:
+        return {
+            "prior_blend": 0.0,
+            "beta_min": 6.0,
+            "beta_scale": 24.0,
+            "temperature": 1.0,
         }
     return {}
 

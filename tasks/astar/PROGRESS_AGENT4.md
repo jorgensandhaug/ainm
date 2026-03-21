@@ -1152,3 +1152,128 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - current champion:
   - model `query_residual_v11_covtrain_p0_b624`
   - policy `coverage`
+
+### 2026-03-21T08:30Z
+
+- Validation process tightened again for post-calibration work:
+  - search split: episode seeds `0,1`
+  - validation split: episode seeds `2,3`
+  - fresh holdout split: episode seeds `4,5`
+- Rationale:
+  - calibration search already touched `0..3`
+  - new tweaks should now be selected without peeking at an untouched additional split
+- Next target:
+  - global temperature under the current champion
+  - keep `prior_blend=0.0`, `beta=(6,24)`, policy `coverage`
+
+### 2026-03-21T08:40Z
+
+- Coverage-policy temperature sweep on search split `0,1`:
+  - `temp=1.15`:
+    - `76.799370`
+    - `0.089116`
+  - `temp=1.10`:
+    - `77.876950`
+    - `0.084321`
+  - `temp=1.05`:
+    - `78.715486`
+    - `0.080699`
+  - `temp=1.00`:
+    - `79.239010`
+    - `0.078549`
+  - lower than `1.00`:
+    - `temp=0.95`: `78.781886`, `0.080675`
+    - `temp=0.90`: `77.925277`, `0.084660`
+    - `temp=0.85`: `76.745990`, `0.090229`
+- Interpretation:
+  - temperature had been far too soft
+  - optimum is sharply centered around `1.00`
+  - this is not a small calibration gain; it is another major score jump
+
+### 2026-03-21T08:50Z
+
+- Stronger validation for the `temp=1.00` point under `coverage`:
+  - validation split `2,3`:
+    - mean score `79.654901`
+    - mean weighted KL `0.076741`
+  - untouched holdout split `4,5`:
+    - mean score `79.266294`
+    - mean weighted KL `0.078576`
+- Baseline calibrated-coverage alias on holdout `4,5`:
+  - `76.842151`
+  - `0.089007`
+- Conclusion:
+  - `temperature=1.00` survives both validation and untouched holdout
+  - this is a real improvement, not split-specific overfitting
+
+### 2026-03-21T09:00Z
+
+- Implemented new explicit alias:
+  - `query_residual_v11_covtrain_p0_b624_t100`
+- Meaning:
+  - same coverage-trained `v11` fold checkpoints
+  - serving overrides:
+    - `prior_blend=0.0`
+    - `beta_min=6.0`
+    - `beta_scale=24.0`
+    - `temperature=1.0`
+- Files edited:
+  - `src/astar/student/predictor/query_residual.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Verification:
+  - `uv run python -m py_compile src/astar/student/predictor/query_residual.py src/astar/student/predictor/interactive.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run pytest tests/test_historical_benchmark.py tests/test_history_datasets.py tests/test_exploration_policy.py`
+    - `18 passed`
+
+### 2026-03-21T09:10Z
+
+- Materialized official benchmark artifacts for the new alias under policy `coverage`:
+  - `dev_query_residual_v11_covtrain_p0_b624_t100_coverage_seed01`
+    - `79.2390`
+    - `0.078549`
+  - `dev_query_residual_v11_covtrain_p0_b624_t100_coverage_seed23`
+    - `79.6549`
+    - `0.076741`
+  - `dev_query_residual_v11_covtrain_p0_b624_t100_coverage_seed45`
+    - `79.2663`
+    - `0.078576`
+- Paired official comparisons vs prior calibrated coverage champion `query_residual_v11_covtrain_p0_b624`:
+  - searched seeds `0,1`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seeds=0-1__baseline=query_residual_v11_covtrain_p0_b624__candidate=query_residual_v11_covtrain_p0_b624_t100.md`
+    - score delta `+2.4396`
+    - weighted-KL delta `-0.010567`
+    - CI95 `[1.6870, 3.2842]`
+  - validation seeds `2,3`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seeds=2-3__baseline=query_residual_v11_covtrain_p0_b624__candidate=query_residual_v11_covtrain_p0_b624_t100.md`
+    - score delta `+2.6557`
+    - weighted-KL delta `-0.011371`
+    - CI95 `[1.9023, 3.5051]`
+  - untouched holdout seeds `4,5`:
+    - artifact:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seeds=4-5__baseline=query_residual_v11_covtrain_p0_b624__candidate=query_residual_v11_covtrain_p0_b624_t100.md`
+    - score delta `+2.4241`
+    - weighted-KL delta `-0.010430`
+    - CI95 `[1.6797, 3.2661]`
+
+## Current Best Known Scores
+
+- prior calibrated coverage champion:
+  - combined across splits `0..5`
+  - `240` evaluated seeds
+  - mean score `76.880250`
+  - mean weighted KL `0.088745`
+- new temperature-fixed champion:
+  - model `query_residual_v11_covtrain_p0_b624_t100`
+  - policy `coverage`
+  - combined across splits `0..5`
+  - `240` evaluated seeds
+  - mean score `79.386735`
+  - mean weighted KL `0.077956`
+- combined delta vs prior calibrated coverage champion:
+  - score `+2.506485`
+  - weighted KL `-0.010789`

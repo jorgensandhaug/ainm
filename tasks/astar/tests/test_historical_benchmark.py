@@ -268,6 +268,48 @@ def test_query_residual_v11_covtrain_p0_b624_online_historical_benchmark_runs(sa
     assert predictor.predictor.beta_scale == 24.0
 
 
+def test_query_residual_v11_covtrain_p0_b624_t100_online_historical_benchmark_runs(
+    sample_paths: RepoPaths,
+) -> None:
+    _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
+    _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)
+    _write_sample_analysis(sample_paths, round_id=TRAIN_ROUND_ID, seed_index=0)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=ROUND_ID)
+    _write_replays_for_all_seeds(sample_paths, run_count=3, round_id=TRAIN_ROUND_ID)
+
+    result = run_historical_benchmark(
+        sample_paths,
+        model_name="query_residual_v11_covtrain_p0_b624_t100",
+        round_ids=[ROUND_ID, TRAIN_ROUND_ID],
+        mode="online_interactive",
+        policy_name="coverage",
+        budget=4,
+        episode_seed=1,
+        visualization_policy="none",
+        benchmark_name="test_query_residual_v11_covtrain_p0_b624_t100_online",
+    )
+
+    predictor = build_online_predictor(
+        "query_residual_v11_covtrain_p0_b624_t100",
+        paths=sample_paths,
+        historical_round_ids=[TRAIN_ROUND_ID],
+        policy_name="coverage",
+    )
+
+    assert result.mode == "online_interactive"
+    assert result.policy_name == "coverage"
+    assert result.samples_per_round == 2
+    assert result.budget == 4
+    assert result.episode_seed == 1
+    assert result.evaluated_seed_count == 2
+    assert result.rounds[0].seed_results[0].model_name == "query_residual_v11_covtrain_p0_b624_t100"
+    assert predictor.name == "query_residual_v11_covtrain_p0_b624_t100"
+    assert predictor.predictor.prior_blend == 0.0
+    assert predictor.predictor.beta_min == 6.0
+    assert predictor.predictor.beta_scale == 24.0
+    assert predictor.predictor.temperature == 1.0
+
+
 def test_compare_historical_benchmarks_pairs_seed_results(sample_paths: RepoPaths) -> None:
     _copy_round(sample_paths, ROUND_ID, TRAIN_ROUND_ID)
     _write_sample_analysis(sample_paths, round_id=ROUND_ID, seed_index=0)

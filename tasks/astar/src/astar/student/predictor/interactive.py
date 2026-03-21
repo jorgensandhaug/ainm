@@ -21,6 +21,12 @@ from astar.student.predictor.query_residual import (
 )
 from astar.student.predictor.round import BaseRoundPredictor
 
+_COVTRAIN_QUERY_RESIDUAL_MODELS = {
+    "query_residual_v11_covtrain",
+    "query_residual_v11_covtrain_p0_b624",
+    "query_residual_v11_covtrain_p0_b624_t100",
+}
+
 
 class RoundPredictorAdapter(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
@@ -113,7 +119,7 @@ def build_online_predictor(
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         training_policy_name = (
             "coverage"
-            if normalized in {"query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"}
+            if normalized in _COVTRAIN_QUERY_RESIDUAL_MODELS
             else resolved_policy_name
         )
         checkpoint_model_name, resolved_samples_per_round, cell_selection_strategy, include_exact_local_residual = (
@@ -161,7 +167,7 @@ def build_online_predictor(
                 )
                 predictor.save_checkpoint(checkpoint_path)
         serving_overrides = resolve_query_residual_serving_overrides(normalized)
-        if normalized in {"query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"} or serving_overrides:
+        if normalized in _COVTRAIN_QUERY_RESIDUAL_MODELS or serving_overrides:
             predictor = predictor.model_copy(update={"name": normalized, **serving_overrides})
         return RoundPredictorAdapter(
             predictor=predictor,
