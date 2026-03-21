@@ -134,13 +134,14 @@ The booking step (`PUT sendToLedger=true` with only `{ version }`) is REQUIRED �
 When the prompt includes an attached PDF invoice, extract ALL supplier data from it:
 - `name` and `organizationNumber` (always present)
 - `postalAddress` with `addressLine1`, `postalCode`, `city` (if address appears on PDF)
+- `physicalAddress` with `addressLine1`, `postalCode`, `city` — set to the SAME address as `postalAddress` (the business/visit address, "besøksadresse")
 - `bankAccountPresentation: [{ bban: "<bank-account-number>" }]` (if bank account appears on PDF)
 
 Include all extracted fields in the same `POST /supplier` call — this costs zero extra API calls.
 
-The deprecated `bankAccounts` string array field silently does nothing. Always use `bankAccountPresentation` with `bban` instead.
+CRITICAL: Always set BOTH `postalAddress` AND `physicalAddress` to the same address from the PDF. Omitting `physicalAddress` leaves the business address empty and causes Check 5 to fail. This was the root cause of Check 5 failure across all 9 production runs for task 20. 2026-03-21 sandbox proof confirmed: both fields are accepted in a single `POST /supplier` with zero extra calls.
 
-2026-03-21 production run for `Fjelltopp AS` scored 7/10 (not 10/10) because `postalAddress` and `bankAccountPresentation` from the PDF were omitted from the supplier create.
+The deprecated `bankAccounts` string array field silently does nothing. Always use `bankAccountPresentation` with `bban` instead.
 
 ## Supplier Resolution Rules
 
@@ -436,6 +437,16 @@ Proven outcome:
 - voucher `609159040`, supplier `108428564`
 - 8th consecutive optimal 5-call production run with 0 errors
 - accounts confirmed across 8 runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
+
+2026-03-21 production run for `Lumière SARL` / `904564184` / `INV-2026-5683` / `75500` / `7140` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- French-language text-only prompt (no PDF), description "services de bureau"
+- first production use of expense account 7140 (Reisekostnad, ikke oppgavepliktig)
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 75500/1.25=60400 net, 15100 VAT (no rounding)
+- voucher `609189717`, supplier `108444029`
+- accounts confirmed across production runs: 6300, 6340, 6500, 6540, 7000, 7140
 
 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
 - used 6 calls, 1 error — suboptimal due to XML buyer block missing PostalAddress
