@@ -2971,3 +2971,87 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
 - Final verification on the finished code state:
   - `uv run pytest tests/test_historical_benchmark.py -q`
   - result: `50 passed in 33.16s`
+
+### 2026-03-21T14:58Z — RADICAL NEW APPROACH: Cell-Level Gradient Boosted Trees
+
+- Re-read all handoff docs and analyzed the fundamental limitations of existing approaches
+- Key scientific insight: ALL existing model families are fundamentally linear (ridge regression / KNN / blending)
+  - This limits their ability to capture nonlinear feature interactions
+  - Per-cell prediction quality is bottlenecked by the linear assumption
+- Installed `lightgbm` and `scikit-learn` for nonlinear modeling
+- Built new model module: `src/astar/student/predictor/gbx_cellwise.py`
+  - `CellwiseLGBPredictor`: LightGBM per-cell predictor with 70+ features
+  - Feature categories:
+    - Terrain one-hot (6)
+    - Land/sea/mountain/buildable/coast/forest masks (6)
+    - Settlement/port maps (2)
+    - Neighborhood features at radii 1,2,3,5 for 7 base masks (28)
+    - Distance to settlement (2 variants), port, coast (4)
+    - Map-level summary features (6)
+    - Position features: y, x, center dist, edge dist (4)
+    - Local terrain heterogeneity at radii 1,2 (2)
+    - Settlement density at radii 4,7 (2)
+    - Total: ~54 core features (expandable with round summary)
+  - Training: per-class LGBMRegressor with entropy-weighted loss
+  - Prediction: per-class regression → normalize → floor → final distribution
+
+#### Initial ground-truth-only baseline
+- Ran 8-round LOO on ground truth data only (40 seeds = 64K cells)
+- Result: `score=66.50, kl=0.150`
+- Comparison: historical bucket prior = `66.32 / 0.142`
+- Interpretation: about equal to existing prior-only baselines — expected because:
+  - Only 7 training rounds per fold
+  - No replay augmentation
+  - No online evidence
+
+#### Replay-augmented approach — KEY INNOVATION
+- Discovered: 2366 replay files = 3.8M training cells (59x more than ground truth alone)
+- Each replay gives one complete year-50 map as a training example
+- Training on individual replay outcomes lets the model implicitly learn probability distributions
+- Built three parallel experiments:
+  1. **Replay-augmented per-class regression** (agent4_cellwise_replay_lgb_v1)
+  2. **Replay-augmented multiclass softmax** (agent4_cellwise_multiclass_lgb_v1)
+  3. **Replay LightGBM + online Dirichlet evidence update** (agent4_cellwise_online_lgb_b6_v1)
+- All three running in parallel on this machine
+
+#### First batch results (prior-only and naive online)
+- GT-only LightGBM: `score=66.50, kl=0.150` — about equal to bucket prior
+- Replay-augmented LightGBM (per-class): `score=66.74, kl=0.150` — marginal prior gain
+- Multiclass LightGBM: `score=58.32, kl=0.203` — WORSE (miscalibrated for probability targets)
+- LGB+QR hybrid (naive beta shrinkage): `score=67.76, kl=0.142` — minimal online improvement
+- Online Dirichlet update: `score=59.72, kl=0.187` — naive Bayesian update fails
+- Interpretation: replay data doesn't help much for prior-only; naive online updates fail
+
+#### Evidence-augmented LightGBM — BREAKTHROUGH
+- KEY IDEA: Train a SINGLE unified model that takes both map features AND observed evidence features
+  - Evidence features: observed class of nearby cells, neighborhood summaries from observations, settlement stats
+  - Train on replay pairs (one as evidence, another as label) to simulate online scenario
+- Evidence v1 (1-replay evidence): `score=71.96, kl=0.114` — +5.2 points over prior!
+- Evidence v2 (3-replay averaged evidence + settlement features): `score=76.81, kl=0.090`
+  - **+10 points over prior-only!**
+  - Only 2.6 points below the champion `query_residual_v11` at 79.39
+  - Several rounds now BEAT the champion per-round scores
+  - Best rounds: 8e8399 at 84.0 (champion ~78), 76909e at 83.1
+- Simple prior ensemble (0.4 replay + 0.3 GT + 0.3 bucket): `score=68.13` — no help
+
+#### Experiment results table
+
+| Model | Mode | Score | KL | Notes |
+|-------|------|-------|-----|-------|
+| Historical bucket prior | prior-only | 66.32 | 0.142 | existing baseline |
+| GT-only LightGBM | prior-only | 66.50 | 0.150 | ~equal to baseline |
+| Replay LightGBM | prior-only | 66.74 | 0.150 | marginal |
+| Multiclass LightGBM | prior-only | 58.32 | 0.203 | miscalibrated |
+| LGB+QR hybrid | online | 67.76 | 0.142 | naive blending |
+| Dirichlet update | online | 59.72 | 0.187 | too aggressive |
+| Evidence v1 LGB | online(sim) | 71.96 | 0.114 | spatial propagation works |
+| **Evidence v2 LGB** | **online(sim)** | **76.81** | **0.090** | **breakthrough** |
+| Ensemble priors | prior-only | 68.13 | 0.138 | no help |
+| query_residual_v11 champion | online | 79.39 | 0.078 | current best |
+
+#### Next experiments to run
+1. Evidence v2 with MORE replays for evidence (5, 10 instead of 3)
+2. Evidence v2 with actual online benchmark infrastructure (not simulated coverage)
+3. Ensemble of evidence v2 + query_residual champion
+4. Temperature/calibration sweep on evidence v2
+5. Wire evidence v2 into the formal historical benchmark system
