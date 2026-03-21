@@ -102,3 +102,9 @@ POST /ledger/voucher?sendToLedger=true
   - first production run to correctly use Case B direct-2710 posting and pass all 4 correction types
   - duplicate detected via description keyword cascade (no signature grouping needed)
   - confirms: the 3-call path is stable and production-proven across 4 different error configurations
+- Fifth run (7fed6a02): achieved ideal 3 calls, 0 errors on all 4 correction types
+  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, had 2710=1070 → Case B), wrong amount 7100 (8550→6750, vatType 0)
+  - Case B correctly applied: 2710 +267.5 (vat_shortfall), 7300 +1070 (expense_net_shortfall, vatType=0), 2400 -1337.5 with supplier
+  - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
+  - second consecutive run to achieve 3 calls, 0 errors, all 4 corrections correct with Case B
+  - sandbox confirmed `account: { number: ... }` does NOT work in POST — `account: { id: ... }` is required, proving 3 calls is the minimum

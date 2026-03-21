@@ -212,4 +212,14 @@ Total: 6 calls. Use this path only if the combined approach was proven wrong by 
   - counterpart accounts (1920 bank, 2400 supplier with ID) all from voucher response nested expansion
   - `dateTo=2026-03-01` correctly used (exclusive)
   - this is the first run to correctly use Case B direct-2710 posting in production and achieve 3 calls with 0 errors on all 4 correction types
+- production run 2026-03-21 (correct-ledger-errors, fifth run — 7fed6a02):
+  - achieved ideal 3-call path: GET accounts → GET vouchers → POST corrective voucher, 0 errors
+  - errors: 6340→6390 (2450, vatType 1), dup 6300 (2900, vatType 0), missing VAT 7300 (5350 excl, had 2710=1070 → Case B), wrong amount 7100 (8550→6750, vatType 0)
+  - Case B correctly applied: existing 2710=1070, vatShortfall=267.5, expenseNetShortfall=1070, totalShortfall=1337.5; posted 2710 +267.5, 7300 +1070 (vatType=0), 2400 -1337.5 with supplier
+  - vatType correctly copied: 1 for 6340/6390 reclassification, 0 for 6300 dup and 7100 wrong-amount
+  - duplicate found via description keyword "kontorrekvisita duplikat" (primary cascade)
+  - counterpart accounts: 1920 (bank) for reclassification/dup/wrong-amount, 2400 (supplier ID 108392217) for missing VAT
+  - `dateTo=2026-03-01` correctly used (exclusive)
+  - second consecutive run to achieve 3 calls, 0 errors, all 4 correction types correct with Case B
 - sandbox verified 2026-03-21: `dateTo` is confirmed **exclusive** — Tripletex error message says `'To and excluding'`; `dateFrom=2026-02-28&dateTo=2026-02-28` → 422; `dateFrom=2026-02-28&dateTo=2026-03-01` returns Feb 28 vouchers
+- sandbox verified 2026-03-21: `account: { number: ... }` in POST /ledger/voucher body does NOT work — Tripletex requires `account: { id: ... }`; `account: { number: 6300, name: "Leie lokale" }` → 422 (`Feltet må fylles ut`); this confirms **3 calls is the proven minimum** — the GET /ledger/account step cannot be eliminated
