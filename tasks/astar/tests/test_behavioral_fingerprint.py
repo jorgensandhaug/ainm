@@ -14,6 +14,10 @@ from astar.history.summaries.behavioral_fingerprint import (
     fit_round_behavioral_fingerprint,
     summarize_probe_support,
 )
+from astar.history.summaries.behavioral_fingerprint_core import (
+    behavioral_fingerprint_core_column_scale,
+    select_behavioral_fingerprint_core,
+)
 from astar.history.summaries.measurements import build_replay_measurement_bundle
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.infra.artifacts.store import read_round_record
@@ -293,3 +297,59 @@ def test_summarize_probe_support_is_finite(
             assert np.all(np.isfinite(distances))
         else:
             assert np.all(np.isinf(distances))
+
+
+def test_select_behavioral_fingerprint_core_filters_macro_and_shock_dims() -> None:
+    selection = select_behavioral_fingerprint_core(
+        [
+            "site_binary::birth::open_inland",
+            "year_shock::negative_food_rate",
+            "macro::live_delta_mean",
+            "pairwise_linear::dst_food_delta::near_rival",
+        ],
+        np.asarray([0.1, 0.2, 0.3, 0.4], dtype=np.float64),
+        np.asarray([0.01, 0.02, 0.03, 0.04], dtype=np.float64),
+    )
+
+    assert selection.summary_names == (
+        "site_binary::birth::open_inland",
+        "pairwise_linear::dst_food_delta::near_rival",
+    )
+    assert selection.source_indices == (0, 3)
+    assert np.allclose(selection.summary_vector, np.asarray([0.1, 0.4], dtype=np.float64))
+    assert selection.summary_std is not None
+    assert np.allclose(selection.summary_std, np.asarray([0.01, 0.04], dtype=np.float64))
+
+
+def test_behavioral_fingerprint_core_column_scale_uses_variance_and_noise() -> None:
+    scale = behavioral_fingerprint_core_column_scale(
+        np.asarray(
+            [
+                [0.0, 10.0],
+                [1.0, 10.0],
+                [2.0, 10.0],
+            ],
+            dtype=np.float64,
+        ),
+        np.asarray(
+            [
+                [0.1, 0.5],
+                [0.1, 0.5],
+                [0.1, 0.5],
+            ],
+            dtype=np.float64,
+        ),
+    )
+
+    assert scale.shape == (2,)
+    assert np.all(scale > 0.0)
+    assert np.allclose(
+        scale,
+        np.asarray(
+            [
+                np.sqrt(np.var(np.asarray([0.0, 1.0, 2.0], dtype=np.float64)) + 0.01),
+                0.5,
+            ],
+            dtype=np.float64,
+        ),
+    )

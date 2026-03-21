@@ -465,6 +465,7 @@ def render_train_hazard_teacher(result: TrainHazardTeacherResult) -> str:
     return "\n".join(
         [
             f"train-hazard-teacher {result.model_name}",
+            f"summary_backend: {result.summary_backend}",
             f"replay_episodes: {result.replay_episode_count}",
             f"replay_runs: {result.replay_run_count}",
             f"embedding_dim: {result.embedding_dim}",
@@ -492,6 +493,7 @@ def render_train_summary_student(result: TrainSummaryStudentResult) -> str:
     return "\n".join(
         [
             f"train-summary-student {result.model_name}",
+            f"summary_backend: {result.summary_backend}",
             f"dataset: {result.dataset.dataset_name}",
             f"samples: {result.sample_count}",
             f"summary_dim: {result.summary_dim}",

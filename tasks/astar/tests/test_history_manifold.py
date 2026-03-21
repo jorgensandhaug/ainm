@@ -7,6 +7,7 @@ import numpy as np
 from astar.features.geometry import compute_round_features
 from astar.history.episodes.build import build_round_episode
 from astar.history.summaries.behavioral_fingerprint_manifold import (
+    factorize_round_behavioral_fingerprint_core_subspace,
     factorize_round_behavioral_fingerprint_subspace,
 )
 from astar.history.summaries.dynamic_law import (
@@ -18,6 +19,8 @@ from astar.history.summaries.event_manifold import factorize_round_event_summary
 from astar.history.summaries.factorization import (
     evaluate_factorization_leave_one_out,
     factorize_summary_matrix,
+    project_summary_vector,
+    reconstruct_summary_vector,
 )
 from astar.history.summaries.manifold import factorize_round_regime_manifold
 from astar.history.summaries.measurements import build_replay_measurement_bundle
@@ -159,6 +162,33 @@ def test_factorize_round_behavioral_fingerprint_subspace_writes_summary_and_basi
         assert "summary_std_matrix" in payload
 
 
+def test_factorize_round_behavioral_fingerprint_core_subspace_writes_summary_and_basis(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    factorization, summary_path, basis_path = factorize_round_behavioral_fingerprint_core_subspace(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        max_rank=2,
+        summary_name="round_behavioral_fingerprint_core_subspace_test",
+        bootstrap_samples=2,
+    )
+
+    assert factorization.summary_kind == "behavioral_fingerprint_core"
+    assert len(factorization.round_ids) == 1
+    assert factorization.effective_rank == 1
+    assert factorization.scale_vector.shape == factorization.mean_vector.shape
+    assert not any(name.startswith("year_shock::") for name in factorization.summary_names)
+    assert not any(name.startswith("macro::") for name in factorization.summary_names)
+    assert any(name.startswith("pairwise_binary::") for name in factorization.summary_names)
+    assert summary_path.exists()
+    assert basis_path.exists()
+    with np.load(basis_path) as payload:
+        assert "summary_std_matrix" in payload
+        assert "scale_vector" in payload
+
+
 def test_factorize_round_dynamic_law_subspace_uses_saved_measurements(
     sample_paths: RepoPaths,
 ) -> None:
@@ -246,7 +276,36 @@ def test_leave_one_out_factorization_recovers_exact_one_dimensional_structure() 
     assert report.mean_mae_improvement is not None and report.mean_mae_improvement > 0.0
 
 
-def test_factorize_round_summaries_defaults_to_dynamic_law(
+def test_weighted_factorization_project_and_reconstruct_round_trip() -> None:
+    factorization = factorize_summary_matrix(
+        summary_kind="synthetic_weighted",
+        summary_names=["x", "y"],
+        round_ids=["r0", "r1", "r2"],
+        round_numbers=[0, 1, 2],
+        sample_counts=[1, 1, 1],
+        summary_matrix=np.asarray(
+            [
+                [0.0, 10.0],
+                [1.0, 10.0],
+                [2.0, 10.0],
+            ],
+            dtype=np.float64,
+        ),
+        max_rank=1,
+        column_scale=np.asarray([1.0, 5.0], dtype=np.float64),
+    )
+
+    projected = project_summary_vector(
+        factorization,
+        np.asarray([2.0, 10.0], dtype=np.float64),
+    )
+    reconstructed = reconstruct_summary_vector(factorization, projected)
+
+    assert factorization.scale_vector.shape == (2,)
+    assert np.allclose(reconstructed, np.asarray([2.0, 10.0], dtype=np.float64))
+
+
+def test_factorize_round_summaries_defaults_to_behavioral_fingerprint_core(
     sample_paths: RepoPaths,
 ) -> None:
     _write_replays_for_all_seeds(sample_paths, run_count=2)
@@ -257,8 +316,8 @@ def test_factorize_round_summaries_defaults_to_dynamic_law(
         max_rank=2,
     )
 
-    assert result.summary_kind == "dynamic_law"
-    assert result.factorization.summary_kind == "dynamic_law"
+    assert result.summary_kind == "behavioral_fingerprint_core"
+    assert result.factorization.summary_kind == "behavioral_fingerprint_core"
     assert result.summary_path.exists()
     assert result.basis_path.exists()
     assert result.leave_one_out_path.exists()
@@ -279,6 +338,25 @@ def test_factorize_round_summaries_behavioral_fingerprint_path_available(
 
     assert result.summary_kind == "behavioral_fingerprint"
     assert result.factorization.summary_kind == "behavioral_fingerprint"
+    assert result.summary_path.exists()
+    assert result.basis_path.exists()
+    assert result.leave_one_out_path.exists()
+
+
+def test_factorize_round_summaries_behavioral_fingerprint_core_path_available(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    result = factorize_round_summaries(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        summary_kind="behavioral_fingerprint_core",
+        max_rank=2,
+    )
+
+    assert result.summary_kind == "behavioral_fingerprint_core"
+    assert result.factorization.summary_kind == "behavioral_fingerprint_core"
     assert result.summary_path.exists()
     assert result.basis_path.exists()
     assert result.leave_one_out_path.exists()

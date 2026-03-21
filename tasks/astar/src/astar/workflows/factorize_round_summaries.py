@@ -4,9 +4,11 @@ import json
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.history.summaries.behavioral_fingerprint_manifold import (
+    factorize_round_behavioral_fingerprint_core_subspace,
     factorize_round_behavioral_fingerprint_subspace,
 )
 from astar.history.summaries.dynamic_law_manifold import factorize_round_dynamic_law_subspace
@@ -52,9 +54,10 @@ def factorize_round_summaries(
     summary_kind: Literal[
         "dynamic_law",
         "behavioral_fingerprint",
+        "behavioral_fingerprint_core",
         "event_summary",
         "legacy_terminal_coeff",
-    ] = "dynamic_law",
+    ] = "behavioral_fingerprint_core",
     max_rank: int = 3,
     bootstrap_samples: int = 4,
     summary_name: str | None = None,
@@ -70,6 +73,15 @@ def factorize_round_summaries(
     elif summary_kind == "behavioral_fingerprint":
         resolved_summary_name = summary_name or "round_behavioral_fingerprint_subspace_v1"
         factorization, summary_path, basis_path = factorize_round_behavioral_fingerprint_subspace(
+            paths,
+            round_ids=round_ids,
+            max_rank=max_rank,
+            bootstrap_samples=bootstrap_samples,
+            summary_name=resolved_summary_name,
+        )
+    elif summary_kind == "behavioral_fingerprint_core":
+        resolved_summary_name = summary_name or "round_behavioral_fingerprint_core_subspace_v1"
+        factorization, summary_path, basis_path = factorize_round_behavioral_fingerprint_core_subspace(
             paths,
             round_ids=round_ids,
             max_rank=max_rank,
@@ -100,6 +112,7 @@ def factorize_round_summaries(
             sample_counts=manifold.sample_counts,
             summary_matrix=manifold.coefficient_matrix,
             mean_vector=manifold.mean_vector,
+            scale_vector=np.ones_like(manifold.mean_vector, dtype=float),
             singular_values=manifold.singular_values,
             explained_variance_ratio=manifold.explained_variance_ratio,
             basis=manifold.basis,

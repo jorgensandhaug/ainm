@@ -18,7 +18,6 @@ from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.features.geometry import RoundFeatureBundle, compute_round_features
 from astar.history.episodes.build import build_round_episode
 from astar.history.episodes.models import RoundEpisode
-from astar.history.summaries.round_coefficients import round_regime_summary_vector
 from astar.infra.api.dto import RoundDetail
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
@@ -78,13 +77,24 @@ def _cached_synthetic_dataset_name(
     round_ids: Sequence[str] | None = None,
     *,
     regime_dim: int,
+    regime_signature: str = "none",
 ) -> str:
     normalized_policy = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
     return (
         f"query_residual_synthetic_live_v2__policy={normalized_policy}"
-        f"__samples={samples_per_round}__rounds={scope_token}__regime_dim={regime_dim}"
+        f"__samples={samples_per_round}__rounds={scope_token}"
+        f"__regime_dim={regime_dim}__regime={regime_signature}"
     )
+
+
+def _regime_encoder_signature(regime_encoder: RegimeEncoder | None, regime_dim: int) -> str:
+    if regime_encoder is None:
+        return f"none__dim={regime_dim}"
+    summary_backend = str(getattr(regime_encoder, "summary_backend", regime_encoder.__class__.__name__))
+    regime_names = tuple(getattr(regime_encoder, "regime_summary_names", ()))
+    digest = hashlib.sha1(",".join(regime_names).encode("utf-8")).hexdigest()[:10]
+    return f"{summary_backend}__dim={regime_dim}__names={digest}"
 
 
 def _load_synthetic_dataset_ref(
@@ -110,11 +120,13 @@ def _ensure_synthetic_dataset(
 ) -> Path:
     from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 
+    regime_signature = _regime_encoder_signature(regime_encoder, regime_dim)
     dataset_name = _cached_synthetic_dataset_name(
         policy_name,
         samples_per_round,
         round_ids,
         regime_dim=regime_dim,
+        regime_signature=regime_signature,
     )
     try:
         _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
@@ -343,30 +355,6 @@ def _fit_linear_map(
     solution = np.linalg.pinv(lhs) @ rhs
     return np.asarray(solution[0], dtype=np.float64), np.asarray(solution[1:], dtype=np.float64)
 
-
-def _legacy_projected_teacher(
-    teacher: HazardTeacher,
-    episodes: Sequence[RoundEpisode],
-) -> HazardTeacher:
-    legacy_inputs = np.stack(
-        [round_regime_summary_vector(episode) for episode in episodes],
-        axis=0,
-    )
-    legacy_intercept, legacy_weights = _fit_linear_map(
-        legacy_inputs,
-        np.asarray(teacher.coefficient_bank, dtype=np.float64),
-        ridge_alpha=1e-2,
-    )
-    return teacher.model_copy(
-        update={
-            "regime_summary_names": tuple(_legacy_query_residual_regime_names()),
-            "regime_bank": legacy_inputs,
-            "regime_intercept": legacy_intercept,
-            "regime_weights": legacy_weights,
-        },
-    )
-
-
 class QueryResidualPredictorCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -385,6 +373,7 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     min_delta_scale: float = Field(ge=0.0, le=1.0)
     residual_class_scale: list[float]
     teacher_name: str
+    teacher_summary_backend: str = "behavioral_fingerprint_core"
     teacher_feature_names: list[str]
     teacher_regime_summary_names: list[str] = Field(default_factory=list)
     teacher_regime_intercept: list[float]
@@ -746,23 +735,6 @@ def _resolved_regime_summary_names(
     return [f"regime_{index:03d}" for index in range(resolved_dim)]
 
 
-def _legacy_query_residual_regime_names() -> list[str]:
-    return [
-        "build_hit_buildable",
-        "build_hit_coast",
-        "build_hit_inland",
-        "port_hit_buildable",
-        "ruin_hit_buildable",
-        "owner_flip_buildable",
-        "terminal_settlement_mass",
-        "terminal_port_mass",
-        "terminal_ruin_mass",
-        "terminal_built_mass",
-        "terminal_port_mass_dup",
-        "terminal_ruin_mass_dup",
-    ]
-
-
 def _regime_input_names() -> list[str]:
     names = [f"regime_in__{name}" for name in _global_summary_names()]
     names.extend([f"regime_in__seed_mean__{name}" for name in _seed_summary_names()])
@@ -1075,8 +1047,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
             round_ids=list(selected_round_ids),
         )
         round_episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
-        teacher = _legacy_projected_teacher(
-            HazardTeacher(name=f"{model_name}__hazard_teacher").fit(round_episodes),
+        teacher = HazardTeacher(
+            name=f"{model_name}__hazard_teacher",
+            summary_backend="behavioral_fingerprint_core",
+        ).fit(
             round_episodes,
         )
         regime_summary_names = _resolved_regime_summary_names(
@@ -1088,6 +1062,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             policy_name=policy_name,
             samples_per_round=samples_per_round,
             regime_dim=int(teacher.regime_bank.shape[1]),
+            regime_encoder=teacher,
             round_ids=dataset_round_ids,
         )
         index_table = pl.read_parquet(index_path).filter(
@@ -1259,6 +1234,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             base_predictor=HistoricalBucketPriorPredictor.load_checkpoint(base_path),
             teacher=HazardTeacher(
                 name=checkpoint.teacher_name,
+                summary_backend=checkpoint.teacher_summary_backend,
                 feature_names=list(checkpoint.teacher_feature_names),
                 regime_summary_names=tuple(checkpoint.teacher_regime_summary_names),
                 regime_intercept=np.asarray(checkpoint.teacher_regime_intercept, dtype=np.float64),
@@ -1309,6 +1285,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
             min_delta_scale=self.min_delta_scale,
             residual_class_scale=np.asarray(self.residual_class_scale, dtype=np.float64).tolist(),
             teacher_name=self.teacher.name,
+            teacher_summary_backend=self.teacher.summary_backend,
             teacher_feature_names=list(self.teacher.feature_names),
             teacher_regime_summary_names=list(self.teacher.regime_summary_names),
             teacher_regime_intercept=np.asarray(self.teacher.regime_intercept, dtype=np.float64).tolist(),

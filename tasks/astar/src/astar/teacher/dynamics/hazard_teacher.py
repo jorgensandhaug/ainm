@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,11 +10,20 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.trajectory import ReplayRun
 from astar.features.geometry import SeedFeatureBundle, compute_static_feature_dict
 from astar.history.episodes.models import RoundEpisode
+from astar.history.summaries.behavioral_fingerprint import (
+    build_behavioral_fingerprint_probe_library,
+    estimate_round_behavioral_fingerprint,
+)
+from astar.history.summaries.behavioral_fingerprint_core import (
+    behavioral_fingerprint_core_column_scale,
+    select_behavioral_fingerprint_core,
+)
 from astar.history.summaries.dynamic_law import (
     DynamicLawProbeLibrary,
     build_dynamic_law_probe_library,
     fit_round_dynamic_law_summary,
 )
+from astar.history.summaries.factorization import factorize_summary_matrix
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
     build_replay_measurement_bundle,
@@ -113,10 +123,15 @@ def _stored_probe_library(teacher: HazardTeacher) -> DynamicLawProbeLibrary:
     )
 
 
+def _regime_coordinate_names(prefix: str, dim: int) -> tuple[str, ...]:
+    return tuple(f"{prefix}_{index:03d}" for index in range(max(1, dim)))
+
+
 class HazardTeacherCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     name: str
+    summary_backend: str = "behavioral_fingerprint_core"
     feature_names: list[str]
     round_ids: list[str]
     round_numbers: list[int]
@@ -131,6 +146,11 @@ class HazardTeacher(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     name: str = "hazard_teacher_v1"
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    )
+    regime_max_rank: int = Field(default=3, ge=1)
+    summary_bootstrap_samples: int = Field(default=4, ge=0)
     feature_names: list[str] = Field(default_factory=list)
     regime_summary_names: tuple[str, ...] = ()
     round_ids: tuple[str, ...] = ()
@@ -139,6 +159,14 @@ class HazardTeacher(BaseModel):
     coefficient_bank: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
     regime_intercept: np.ndarray = Field(default_factory=lambda: np.zeros(1, dtype=np.float64))
     regime_weights: np.ndarray = Field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
+    source_summary_names: tuple[str, ...] = ()
+    source_summary_mean: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    source_summary_scale: np.ndarray = Field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    source_summary_basis: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    source_probe_library_kind: str | None = None
+    source_probe_library_version: str | None = None
     site_probe_names: tuple[str, ...] = ()
     site_probe_matrix: np.ndarray = Field(
         default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
@@ -186,84 +214,73 @@ class HazardTeacher(BaseModel):
         measurement_bundles_by_episode = [
             _episode_measurement_bundles(episode) for episode in replay_episodes
         ]
-        site_frames = [
-            bundle.site_opportunities
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        settlement_frames = [
-            bundle.settlement_measurements
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        pairwise_frames = [
-            bundle.pairwise_candidates
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        ruin_frames = [
-            bundle.ruin_transitions
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        owner_frames = [
-            bundle.owner_years
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        macro_frames = [
-            bundle.macro_trajectories
-            for bundles in measurement_bundles_by_episode
-            for bundle in bundles
-        ]
-        probe_library = build_dynamic_law_probe_library(
-            site_frames,
-            settlement_frames,
-            pairwise_frames,
-            ruin_frames,
-            owner_frames,
-            macro_frames,
-        )
-        regime_summary_names: list[str] | None = None
-        regime_bank_rows: list[np.ndarray] = []
-        for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
-            law = fit_round_dynamic_law_summary(
-                round_id=episode.metadata.round_id,
-                round_number=int(episode.metadata.round_number or -1),
-                bundles=bundles,
+        update: dict[str, object]
+        if self.summary_backend == "dynamic_law":
+            site_frames = [
+                bundle.site_opportunities
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            settlement_frames = [
+                bundle.settlement_measurements
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            pairwise_frames = [
+                bundle.pairwise_candidates
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            ruin_frames = [
+                bundle.ruin_transitions
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            owner_frames = [
+                bundle.owner_years
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            macro_frames = [
+                bundle.macro_trajectories
+                for bundles in measurement_bundles_by_episode
+                for bundle in bundles
+            ]
+            probe_library = build_dynamic_law_probe_library(
+                site_frames,
+                settlement_frames,
+                pairwise_frames,
+                ruin_frames,
+                owner_frames,
+                macro_frames,
             )
-            names, vector = law.probe_summary(probe_library)
-            if regime_summary_names is None:
-                regime_summary_names = names
-            regime_bank_rows.append(vector)
-        regime_bank = np.stack(regime_bank_rows, axis=0)
-        regime_intercept, regime_weights = _fit_linear_map(
-            regime_bank,
-            coefficient_bank,
-            ridge_alpha=1e-2,
-        )
-
-        replay_bank_round_ids: list[str] = []
-        replay_bank_seed_indexes: list[int] = []
-        replay_runs_bank: list[tuple[ReplayRun, ...]] = []
-        for episode in replay_episodes:
-            for seed in episode.seeds:
-                if not seed.replay_runs:
-                    continue
-                replay_bank_round_ids.append(episode.metadata.round_id)
-                replay_bank_seed_indexes.append(seed.seed_index)
-                replay_runs_bank.append(seed.replay_runs)
-
-        return self.model_copy(
-            update={
-                "feature_names": coefficient_rows[0].feature_names,
+            regime_summary_names: list[str] | None = None
+            regime_bank_rows: list[np.ndarray] = []
+            for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
+                law = fit_round_dynamic_law_summary(
+                    round_id=episode.metadata.round_id,
+                    round_number=int(episode.metadata.round_number or -1),
+                    bundles=bundles,
+                )
+                names, vector = law.probe_summary(probe_library)
+                if regime_summary_names is None:
+                    regime_summary_names = names
+                regime_bank_rows.append(vector)
+            regime_bank = np.stack(regime_bank_rows, axis=0)
+            regime_intercept, regime_weights = _fit_linear_map(
+                regime_bank,
+                coefficient_bank,
+                ridge_alpha=1e-2,
+            )
+            update = {
                 "regime_summary_names": tuple(regime_summary_names or ()),
-                "round_ids": tuple(row.round_id for row in coefficient_rows),
-                "round_numbers": tuple(row.round_number for row in coefficient_rows),
                 "regime_bank": regime_bank,
-                "coefficient_bank": coefficient_bank,
                 "regime_intercept": regime_intercept,
                 "regime_weights": regime_weights,
+                "source_summary_names": tuple(regime_summary_names or ()),
+                "source_summary_mean": np.mean(regime_bank, axis=0),
+                "source_summary_scale": np.ones(regime_bank.shape[1], dtype=np.float64),
+                "source_summary_basis": np.eye(regime_bank.shape[1], dtype=np.float64),
                 "site_probe_names": tuple(probe_library.site_probe_names),
                 "site_probe_matrix": probe_library.site_probe_matrix,
                 "settlement_probe_names": tuple(probe_library.settlement_probe_names),
@@ -282,15 +299,122 @@ class HazardTeacher(BaseModel):
                 "ruin_probe_feature_names": tuple(probe_library.ruin_feature_names),
                 "owner_probe_feature_names": tuple(probe_library.owner_feature_names),
                 "macro_probe_feature_names": tuple(probe_library.macro_feature_names),
+            }
+        else:
+            probe_library = build_behavioral_fingerprint_probe_library([], [], [], [], [])
+            source_summary_names: list[str] | None = None
+            source_summary_rows: list[np.ndarray] = []
+            source_std_rows: list[np.ndarray] = []
+            for episode, bundles in zip(replay_episodes, measurement_bundles_by_episode, strict=True):
+                estimate = estimate_round_behavioral_fingerprint(
+                    round_id=episode.metadata.round_id,
+                    round_number=int(episode.metadata.round_number or -1),
+                    bundles=bundles,
+                    probe_library=probe_library,
+                    bootstrap_samples=self.summary_bootstrap_samples,
+                    rng_seed=0,
+                )
+                selection = select_behavioral_fingerprint_core(
+                    estimate.summary_names,
+                    estimate.summary_vector,
+                    estimate.summary_std,
+                )
+                if source_summary_names is None:
+                    source_summary_names = list(selection.summary_names)
+                regime_source_names = list(selection.summary_names)
+                if regime_source_names != list(source_summary_names):
+                    raise ValueError("behavioral fingerprint core names drifted across rounds")
+                source_summary_rows.append(selection.summary_vector)
+                source_std_rows.append(
+                    selection.summary_std
+                    if selection.summary_std is not None
+                    else np.zeros_like(selection.summary_vector, dtype=np.float64)
+                )
+            source_summary_matrix = np.stack(source_summary_rows, axis=0)
+            source_std_matrix = np.stack(source_std_rows, axis=0)
+            source_scale = behavioral_fingerprint_core_column_scale(
+                source_summary_matrix,
+                source_std_matrix,
+            )
+            factorization = factorize_summary_matrix(
+                summary_kind="behavioral_fingerprint_core",
+                summary_names=list(source_summary_names or ()),
+                round_ids=[episode.metadata.round_id for episode in replay_episodes],
+                round_numbers=[int(episode.metadata.round_number or -1) for episode in replay_episodes],
+                sample_counts=[max(1, episode.replay_run_count) for episode in replay_episodes],
+                summary_matrix=source_summary_matrix,
+                max_rank=self.regime_max_rank,
+                column_scale=source_scale,
+            )
+            regime_bank = factorization.coordinates
+            regime_summary_names = _regime_coordinate_names(
+                "behavioral_fingerprint_core_coord",
+                int(regime_bank.shape[1]),
+            )
+            regime_intercept, regime_weights = _fit_linear_map(
+                regime_bank,
+                coefficient_bank,
+                ridge_alpha=1e-2,
+            )
+            update = {
+                "regime_summary_names": regime_summary_names,
+                "regime_bank": regime_bank,
+                "regime_intercept": regime_intercept,
+                "regime_weights": regime_weights,
+                "source_summary_names": tuple(source_summary_names or ()),
+                "source_summary_mean": factorization.mean_vector,
+                "source_summary_scale": factorization.scale_vector,
+                "source_summary_basis": factorization.basis,
+                "source_probe_library_kind": probe_library.library_kind,
+                "source_probe_library_version": probe_library.library_version,
+                "site_probe_names": tuple(),
+                "site_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "settlement_probe_names": tuple(),
+                "settlement_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "pairwise_probe_names": tuple(),
+                "pairwise_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "ruin_probe_names": tuple(),
+                "ruin_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "owner_probe_names": tuple(),
+                "owner_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "macro_probe_names": tuple(),
+                "macro_probe_matrix": np.zeros((0, 0), dtype=np.float64),
+                "site_probe_feature_names": tuple(),
+                "settlement_probe_feature_names": tuple(),
+                "pairwise_probe_feature_names": tuple(),
+                "ruin_probe_feature_names": tuple(),
+                "owner_probe_feature_names": tuple(),
+                "macro_probe_feature_names": tuple(),
+            }
+
+        replay_bank_round_ids: list[str] = []
+        replay_bank_seed_indexes: list[int] = []
+        replay_runs_bank: list[tuple[ReplayRun, ...]] = []
+        for episode in replay_episodes:
+            for seed in episode.seeds:
+                if not seed.replay_runs:
+                    continue
+                replay_bank_round_ids.append(episode.metadata.round_id)
+                replay_bank_seed_indexes.append(seed.seed_index)
+                replay_runs_bank.append(seed.replay_runs)
+
+        return self.model_copy(
+            update={
+                "feature_names": coefficient_rows[0].feature_names,
+                "round_ids": tuple(row.round_id for row in coefficient_rows),
+                "round_numbers": tuple(row.round_number for row in coefficient_rows),
+                "coefficient_bank": coefficient_bank,
                 "replay_bank_round_ids": tuple(replay_bank_round_ids),
                 "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
                 "replay_runs_bank": tuple(replay_runs_bank),
+                **update,
             },
         )
 
     def checkpoint(self) -> HazardTeacherCheckpoint:
         return HazardTeacherCheckpoint(
             name=self.name,
+            summary_backend=self.summary_backend,
             feature_names=self.feature_names,
             round_ids=list(self.round_ids),
             round_numbers=list(self.round_numbers),
@@ -307,24 +431,58 @@ class HazardTeacher(BaseModel):
         return path
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray:
-        if (
-            self.site_probe_matrix.size == 0
-            or self.settlement_probe_matrix.size == 0
-            or self.pairwise_probe_matrix.size == 0
-        ):
-            raise ValueError("hazard teacher has no dynamic-law probe library")
         bundles = _episode_measurement_bundles(episode)
         if not bundles:
             raise ValueError(
                 f"round {episode.metadata.round_id} has no replay measurements to encode"
             )
-        law = fit_round_dynamic_law_summary(
+        if self.summary_backend == "dynamic_law":
+            if (
+                self.site_probe_matrix.size == 0
+                or self.settlement_probe_matrix.size == 0
+                or self.pairwise_probe_matrix.size == 0
+            ):
+                raise ValueError("hazard teacher has no dynamic-law probe library")
+            law = fit_round_dynamic_law_summary(
+                round_id=episode.metadata.round_id,
+                round_number=int(episode.metadata.round_number or -1),
+                bundles=bundles,
+            )
+            _, vector = law.probe_summary(_stored_probe_library(self))
+            return vector
+        if self.source_summary_basis.size == 0:
+            raise ValueError("hazard teacher has no behavioral-fingerprint-core basis")
+        probe_library = build_behavioral_fingerprint_probe_library([], [], [], [], [])
+        if (
+            self.source_probe_library_kind is not None
+            and probe_library.library_kind != self.source_probe_library_kind
+        ):
+            raise ValueError("behavioral fingerprint probe library kind mismatch")
+        if (
+            self.source_probe_library_version is not None
+            and probe_library.library_version != self.source_probe_library_version
+        ):
+            raise ValueError("behavioral fingerprint probe library version mismatch")
+        estimate = estimate_round_behavioral_fingerprint(
             round_id=episode.metadata.round_id,
             round_number=int(episode.metadata.round_number or -1),
             bundles=bundles,
+            probe_library=probe_library,
+            bootstrap_samples=0,
+            rng_seed=0,
         )
-        _, vector = law.probe_summary(_stored_probe_library(self))
-        return vector
+        selection = select_behavioral_fingerprint_core(
+            estimate.summary_names,
+            estimate.summary_vector,
+        )
+        if tuple(selection.summary_names) != tuple(self.source_summary_names):
+            raise ValueError("behavioral fingerprint core names mismatch")
+        centered = np.asarray(selection.summary_vector, dtype=np.float64) - np.asarray(
+            self.source_summary_mean,
+            dtype=np.float64,
+        )
+        scaled = centered / np.asarray(self.source_summary_scale, dtype=np.float64)
+        return np.asarray(scaled @ self.source_summary_basis.T, dtype=np.float64)
 
     def _coefficients_from_regime(self, regime: np.ndarray) -> np.ndarray:
         regime_array = np.asarray(regime, dtype=np.float64)

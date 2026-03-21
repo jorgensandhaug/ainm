@@ -87,9 +87,14 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
 
     assert artifact.regime_vector.shape == encoded_round.shape
     assert np.allclose(artifact.regime_vector, encoded_round)
+    assert teacher.summary_backend == "behavioral_fingerprint_core"
+    assert all(
+        name.startswith("behavioral_fingerprint_core_coord_")
+        for name in teacher.regime_summary_names
+    )
     assert any(
         name.startswith("site_binary::site_ruin_created::")
-        for name in teacher.regime_summary_names
+        for name in teacher.source_summary_names
     )
     assert posterior.mean.ndim == 1
     assert prediction.shape[-1] == 6

@@ -249,10 +249,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[
             "dynamic_law",
             "behavioral_fingerprint",
+            "behavioral_fingerprint_core",
             "event_summary",
             "legacy_terminal_coeff",
         ],
-        default="dynamic_law",
+        default="behavioral_fingerprint_core",
     )
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
     factorize_rounds_parser.add_argument("--bootstrap-samples", type=int, default=4)
@@ -376,6 +377,11 @@ def build_parser() -> argparse.ArgumentParser:
     train_teacher_parser = subparsers.add_parser("train-hazard-teacher")
     train_teacher_parser.add_argument("--round-id", action="append", default=None)
     train_teacher_parser.add_argument("--model-name", default="hazard_teacher_v1")
+    train_teacher_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
 
     train_student_parser = subparsers.add_parser("train-summary-student")
     train_student_parser.add_argument("--dataset-name", default="synthetic_live_v1")
@@ -383,11 +389,21 @@ def build_parser() -> argparse.ArgumentParser:
     train_student_parser.add_argument("--samples-per-round", type=int, default=1)
     train_student_parser.add_argument("--k-neighbors", type=int, default=5)
     train_student_parser.add_argument("--model-name", default="summary_bank_student_v1")
+    train_student_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
 
     science_parser = subparsers.add_parser("evaluate-teacher-science")
     science_parser.add_argument("--eval-round-id", action="append", default=None)
     science_parser.add_argument("--train-round-id", action="append", default=None)
     science_parser.add_argument("--model-name", default="hazard_teacher_v1")
+    science_parser.add_argument(
+        "--summary-backend",
+        choices=["dynamic_law", "behavioral_fingerprint_core"],
+        default="behavioral_fingerprint_core",
+    )
     science_parser.add_argument("--n-rollouts", type=int, default=None)
 
     dynamic_law_parser = subparsers.add_parser("evaluate-dynamic-law-summary")
@@ -599,6 +615,7 @@ def _main() -> int:
             paths,
             round_ids=args.round_id,
             model_name=args.model_name,
+            summary_backend=args.summary_backend,
         )
         _emit(
             args.json,
@@ -615,6 +632,7 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             k_neighbors=args.k_neighbors,
             model_name=args.model_name,
+            summary_backend=args.summary_backend,
         )
         _emit(
             args.json,
@@ -629,6 +647,7 @@ def _main() -> int:
             eval_round_ids=args.eval_round_id,
             train_round_ids=args.train_round_id,
             model_name=args.model_name,
+            summary_backend=args.summary_backend,
             n_rollouts=args.n_rollouts,
         )
         _emit(args.json, science_result, render_teacher_science(science_result))

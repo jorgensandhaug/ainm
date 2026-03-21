@@ -11,6 +11,10 @@ from astar.history.summaries.behavioral_fingerprint import (
     build_behavioral_fingerprint_probe_library,
     estimate_round_behavioral_fingerprint,
 )
+from astar.history.summaries.behavioral_fingerprint_core import (
+    behavioral_fingerprint_core_column_scale,
+    select_behavioral_fingerprint_core,
+)
 from astar.history.summaries.factorization import (
     RoundSummaryFactorization,
     factorize_summary_matrix,
@@ -107,15 +111,21 @@ def _load_or_build_round_measurement_bundles(
     ]
 
 
-def factorize_round_behavioral_fingerprint_subspace(
+def _estimate_round_behavioral_fingerprints(
     paths: WorkspacePaths,
     *,
-    round_ids: list[str] | None = None,
-    max_rank: int = 3,
-    summary_name: str = "round_behavioral_fingerprint_subspace_v1",
-    bootstrap_samples: int = 4,
-    rng_seed: int = 0,
-) -> tuple[RoundSummaryFactorization, Path, Path]:
+    round_ids: list[str] | None,
+    bootstrap_samples: int,
+    rng_seed: int,
+) -> tuple[
+    list[str],
+    list[str],
+    list[int],
+    list[int],
+    list[list[float]],
+    list[list[float]],
+    object,
+]:
     selected_round_ids = round_ids or _discover_round_ids(paths)
 
     round_numbers_by_id: dict[str, int] = {}
@@ -150,12 +160,12 @@ def factorize_round_behavioral_fingerprint_subspace(
         owner_frames,
     )
 
-    summary_names: list[str] | None = None
     row_vectors: list[list[float]] = []
     row_std_vectors: list[list[float]] = []
     row_round_ids: list[str] = []
     row_round_numbers: list[int] = []
     row_sample_counts: list[int] = []
+    summary_names: list[str] | None = None
 
     for round_id in selected_round_ids:
         bundles = bundles_by_round_id.get(round_id)
@@ -171,14 +181,50 @@ def factorize_round_behavioral_fingerprint_subspace(
         )
         if summary_names is None:
             summary_names = list(estimate.summary_names)
+        elif list(estimate.summary_names) != summary_names:
+            raise ValueError("behavioral fingerprint summary names drifted across rounds")
         row_vectors.append(estimate.summary_vector.tolist())
         row_std_vectors.append(estimate.summary_std.tolist())
         row_round_ids.append(estimate.round_id)
         row_round_numbers.append(estimate.round_number)
         row_sample_counts.append(estimate.sample_count)
 
-    if summary_names is None:
-        raise ValueError("behavioral fingerprint factorization produced no summary names")
+    if not row_round_ids or summary_names is None:
+        raise ValueError("behavioral fingerprint factorization produced no round estimates")
+    return (
+        summary_names,
+        list(row_round_ids),
+        list(row_round_numbers),
+        list(row_sample_counts),
+        row_vectors,
+        row_std_vectors,
+        probe_library,
+    )
+
+
+def factorize_round_behavioral_fingerprint_subspace(
+    paths: WorkspacePaths,
+    *,
+    round_ids: list[str] | None = None,
+    max_rank: int = 3,
+    summary_name: str = "round_behavioral_fingerprint_subspace_v1",
+    bootstrap_samples: int = 4,
+    rng_seed: int = 0,
+) -> tuple[RoundSummaryFactorization, Path, Path]:
+    (
+        summary_names,
+        row_round_ids,
+        row_round_numbers,
+        row_sample_counts,
+        row_vectors,
+        row_std_vectors,
+        probe_library,
+    ) = _estimate_round_behavioral_fingerprints(
+        paths,
+        round_ids=round_ids,
+        bootstrap_samples=bootstrap_samples,
+        rng_seed=rng_seed,
+    )
 
     factorization = factorize_summary_matrix(
         summary_kind="behavioral_fingerprint",
@@ -239,4 +285,111 @@ def factorize_round_behavioral_fingerprint_subspace(
     return factorization, summary_path, basis_path
 
 
-__all__ = ["factorize_round_behavioral_fingerprint_subspace"]
+def factorize_round_behavioral_fingerprint_core_subspace(
+    paths: WorkspacePaths,
+    *,
+    round_ids: list[str] | None = None,
+    max_rank: int = 3,
+    summary_name: str = "round_behavioral_fingerprint_core_subspace_v1",
+    bootstrap_samples: int = 4,
+    rng_seed: int = 0,
+) -> tuple[RoundSummaryFactorization, Path, Path]:
+    (
+        full_summary_names,
+        row_round_ids,
+        row_round_numbers,
+        row_sample_counts,
+        row_vectors,
+        row_std_vectors,
+        probe_library,
+    ) = _estimate_round_behavioral_fingerprints(
+        paths,
+        round_ids=round_ids,
+        bootstrap_samples=bootstrap_samples,
+        rng_seed=rng_seed,
+    )
+
+    full_matrix = np.asarray(row_vectors, dtype=np.float64)
+    full_std_matrix = np.asarray(row_std_vectors, dtype=np.float64)
+    first_selection = select_behavioral_fingerprint_core(
+        full_summary_names,
+        full_matrix[0],
+        full_std_matrix[0],
+    )
+    source_indices = np.asarray(first_selection.source_indices, dtype=np.int64)
+    summary_names = list(first_selection.summary_names)
+    summary_matrix = full_matrix[:, source_indices]
+    summary_std_matrix = full_std_matrix[:, source_indices]
+    scale_vector = behavioral_fingerprint_core_column_scale(
+        summary_matrix,
+        summary_std_matrix,
+    )
+    factorization = factorize_summary_matrix(
+        summary_kind="behavioral_fingerprint_core",
+        summary_names=summary_names,
+        round_ids=row_round_ids,
+        round_numbers=row_round_numbers,
+        sample_counts=row_sample_counts,
+        summary_matrix=summary_matrix,
+        max_rank=max_rank,
+        column_scale=scale_vector,
+    )
+
+    artifact_dir = paths.artifacts_dir / "replays" / "manifold"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = artifact_dir / f"{summary_name}.json"
+    basis_path = artifact_dir / f"{summary_name}.npz"
+    summary_payload = {
+        "factorization": factorization,
+        "bootstrap_samples": bootstrap_samples,
+        "summary_std_matrix": summary_std_matrix,
+        "probe_library_kind": probe_library.library_kind,
+        "probe_library_version": probe_library.library_version,
+        "source_summary_indices": source_indices,
+        "source_summary_names": summary_names,
+        "scale_vector": scale_vector,
+        "site_probe_names": probe_library.site_probe_names,
+        "site_probe_matrix": probe_library.site_probe_matrix,
+        "live_probe_names": probe_library.live_probe_names,
+        "live_probe_matrix": probe_library.live_probe_matrix,
+        "ruin_probe_names": probe_library.ruin_probe_names,
+        "ruin_probe_matrix": probe_library.ruin_probe_matrix,
+        "pairwise_probe_names": probe_library.pairwise_probe_names,
+        "pairwise_probe_matrix": probe_library.pairwise_probe_matrix,
+        "owner_probe_names": probe_library.owner_probe_names,
+        "owner_probe_matrix": probe_library.owner_probe_matrix,
+    }
+    summary_path.write_text(json.dumps(to_jsonable(summary_payload), indent=2), encoding="utf-8")
+    np.savez_compressed(
+        basis_path,
+        summary_matrix=factorization.summary_matrix,
+        summary_std_matrix=summary_std_matrix,
+        mean_vector=factorization.mean_vector,
+        scale_vector=factorization.scale_vector,
+        singular_values=factorization.singular_values,
+        explained_variance_ratio=factorization.explained_variance_ratio,
+        basis=factorization.basis,
+        coordinates=factorization.coordinates,
+        source_summary_indices=source_indices,
+        site_probe_matrix=probe_library.site_probe_matrix,
+        live_probe_matrix=probe_library.live_probe_matrix,
+        ruin_probe_matrix=probe_library.ruin_probe_matrix,
+        pairwise_probe_matrix=probe_library.pairwise_probe_matrix,
+        owner_probe_matrix=probe_library.owner_probe_matrix,
+    )
+    CatalogDB(paths.catalog_path).log_event(
+        CatalogEvent(
+            event_kind="round_manifold_built",
+            status="ok",
+            artifact_path=summary_path,
+            payload_json=to_jsonable(summary_payload),
+            spec_name=summary_name,
+        ),
+    )
+    return factorization, summary_path, basis_path
+
+
+__all__ = [
+    "factorize_round_behavioral_fingerprint_core_subspace",
+    "factorize_round_behavioral_fingerprint_subspace",
+]

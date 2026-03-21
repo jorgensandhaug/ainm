@@ -17,8 +17,9 @@ def train_summary_bank_student(
     samples_per_round: int = 1,
     k_neighbors: int = 5,
     model_name: str = "summary_bank_student_v1",
+    summary_backend: str = "behavioral_fingerprint_core",
 ) -> TrainSummaryStudentResult:
-    teacher_result = train_hazard_teacher(paths)
+    teacher_result = train_hazard_teacher(paths, summary_backend=summary_backend)
     from astar.history.episodes.build import build_round_episode
     from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 
@@ -28,7 +29,10 @@ def train_summary_bank_student(
         if round_dir.is_dir()
     )
     replay_episodes = [build_round_episode(paths, round_id) for round_id in replay_round_ids]
-    teacher = HazardTeacher(name=teacher_result.model_name).fit(
+    teacher = HazardTeacher(
+        name=teacher_result.model_name,
+        summary_backend=summary_backend,
+    ).fit(
         [episode for episode in replay_episodes if episode.replay_run_count > 0],
     )
     dataset = build_synthetic_live_dataset(
@@ -49,6 +53,7 @@ def train_summary_bank_student(
     )
     result = TrainSummaryStudentResult(
         model_name=model_name,
+        summary_backend=summary_backend,
         dataset=dataset,
         checkpoint_path=checkpoint_path,
         teacher_checkpoint_path=teacher_result.checkpoint_path,

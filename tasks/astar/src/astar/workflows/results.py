@@ -219,6 +219,7 @@ class TrainHazardTeacherResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     model_name: str
+    summary_backend: str = "behavioral_fingerprint_core"
     replay_episode_count: int = Field(ge=0)
     replay_run_count: int = Field(ge=0)
     checkpoint_path: Path
@@ -242,6 +243,7 @@ class TrainSummaryStudentResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     model_name: str
+    summary_backend: str = "behavioral_fingerprint_core"
     dataset: SyntheticEpisodeDatasetRef
     checkpoint_path: Path
     teacher_checkpoint_path: Path
@@ -254,6 +256,7 @@ class EvaluateTeacherScienceResult(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     model_name: str
+    summary_backend: str = "behavioral_fingerprint_core"
     train_round_ids: list[str]
     eval_round_ids: list[str]
     report_count: int = Field(ge=0)

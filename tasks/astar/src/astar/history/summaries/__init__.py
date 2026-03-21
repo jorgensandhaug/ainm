@@ -10,7 +10,15 @@ from astar.history.summaries.behavioral_fingerprint import (
     estimate_round_behavioral_fingerprint,
     fit_round_behavioral_fingerprint,
 )
+from astar.history.summaries.behavioral_fingerprint_core import (
+    BehavioralFingerprintCoreSelection,
+    CORE_BLOCK_PREFIXES,
+    behavioral_fingerprint_core_column_scale,
+    is_behavioral_fingerprint_core_name,
+    select_behavioral_fingerprint_core,
+)
 from astar.history.summaries.behavioral_fingerprint_manifold import (
+    factorize_round_behavioral_fingerprint_core_subspace,
     factorize_round_behavioral_fingerprint_subspace,
 )
 from astar.history.summaries.dynamic_law import (
@@ -50,8 +58,10 @@ from astar.history.summaries.measurements import (
 
 __all__ = [
     "BehavioralBinaryHead",
+    "BehavioralFingerprintCoreSelection",
     "BehavioralFingerprintProbeLibrary",
     "BehavioralLinearHead",
+    "CORE_BLOCK_PREFIXES",
     "EVENT_SUMMARY_NAMES",
     "RoundBehavioralFingerprintEstimate",
     "RoundBehavioralFingerprintFit",
@@ -69,6 +79,7 @@ __all__ = [
     "ReplayMeasurementRoundSummary",
     "ReplayMeasurementSeedSummary",
     "RoundDynamicLawFit",
+    "behavioral_fingerprint_core_column_scale",
     "build_dynamic_law_probe_library",
     "build_behavioral_fingerprint_probe_library",
     "build_replay_measurement_bundle",
@@ -76,10 +87,13 @@ __all__ = [
     "build_round_hazard_summary",
     "build_round_measurement_summary",
     "estimate_round_behavioral_fingerprint",
+    "factorize_round_behavioral_fingerprint_core_subspace",
     "factorize_round_behavioral_fingerprint_subspace",
     "extract_replay_event_tables",
     "extract_replay_event_tensors",
+    "is_behavioral_fingerprint_core_name",
     "fit_round_behavioral_fingerprint",
     "fit_round_dynamic_law_summary",
+    "select_behavioral_fingerprint_core",
     "summarize_replay_event_bundle",
 ]

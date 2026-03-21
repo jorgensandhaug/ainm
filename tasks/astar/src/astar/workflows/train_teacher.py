@@ -13,6 +13,7 @@ def train_hazard_teacher(
     *,
     round_ids: list[str] | None = None,
     model_name: str = "hazard_teacher_v1",
+    summary_backend: str = "behavioral_fingerprint_core",
 ) -> TrainHazardTeacherResult:
     selected_round_ids = round_ids or sorted(
         round_dir.name
@@ -21,12 +22,13 @@ def train_hazard_teacher(
     )
     episodes = [build_round_episode(paths, round_id) for round_id in selected_round_ids]
     replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-    teacher = HazardTeacher(name=model_name).fit(replay_episodes)
+    teacher = HazardTeacher(name=model_name, summary_backend=summary_backend).fit(replay_episodes)
     checkpoint_path = teacher.save_checkpoint(
         paths.model_dir(model_name) / "checkpoint.json",
     )
     result = TrainHazardTeacherResult(
         model_name=model_name,
+        summary_backend=summary_backend,
         replay_episode_count=len(replay_episodes),
         replay_run_count=sum(episode.replay_run_count for episode in replay_episodes),
         checkpoint_path=checkpoint_path,

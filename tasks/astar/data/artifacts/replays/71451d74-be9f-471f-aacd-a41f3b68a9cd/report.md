@@ -1,19 +1,19 @@
 # Replay Summary 1 71451d74-be9f-471f-aacd-a41f3b68a9cd
 
 replay_seed_count: 5
-replay_run_count: 846
-coefficient_mean: [0.9659195259582095, 0.9315027460113685, 0.9721635190341875, 0.13010720085422478, 0.9404330420144653, 3.5150742906019516, 0.13856562992060728, 0.011998505274891023, 0.010697263624384664, 126.5197760046123, 7.788164258626063, 7.818468470576536]
-event_summary_mean: [23.723095627600152, 7.604312421063101, 0.5924214592345814, 7.974837839988067, 3.714854386488323, 1.2985296736446057, 2.619141343874828, 7.604312421063101, 3.714854386488323, 7.336448613528252, 7.3331144812954765, 0.5114199625412296, 0.0, 0.5653825700694479, 116.89874435715117, 0.9999979935311971, 0.03470174176880525, 0.04778737932925158, -0.0010406754614013913, 0.01256129714548776, 0.06396651389731434, 0.11580260879499678, 0.004330977399826392, 0.021598312964296214, 7.3331144812954765, 0.6417233586925895]
-measurement_counts: frames=42300 sites=67680000 opportunities=52381665 settlements=5734380 live=5255535 ruins=322903 pairs=11293031 owners=1151467 years=42300 macro=42300
+replay_run_count: 961
+coefficient_mean: [0.9679648537778587, 0.9333806802836688, 0.9742630422852194, 0.13112772498202946, 0.9434981442203123, 4.003152245339085, 0.13884296777157426, 0.011984477699381267, 0.010645175227220836, 126.66884091360006, 7.79657698178151, 7.821568516636144]
+event_summary_mean: [23.743018997707726, 7.616527226939388, 0.5924606244744053, 7.977999886968867, 3.716008924373129, 1.301202996003219, 2.6201423593214512, 7.616527226939388, 3.716008924373129, 7.341222231076328, 7.33805789624194, 0.5111376041016737, 0.0, 0.566861852218575, 117.03741085178001, 0.9999978881433407, 0.034660313990519456, 0.04781080175519663, -0.0010414053746444357, 0.012543037257374304, 0.06394333974861764, 0.11580496942010425, 0.004337086436808699, 0.021587141103844278, 7.33805789624194, 0.6399419907269259]
+measurement_counts: frames=48050 sites=76880000 opportunities=59495379 settlements=6521342 live=5976771 ruins=367021 pairs=12842479 owners=1309778 years=48050 macro=48050
 
 seed 0
-- replay_run_count: 170
-- built_hit_rate_mean: 0.9382
-- coastal_built_hit_rate_mean: 0.9155
-- inland_built_hit_rate_mean: 0.9423
-- port_hit_rate_mean: 0.1185
-- ruin_hit_rate_mean: 0.8945
-- owner_flip_mean: 2.4276
+- replay_run_count: 193
+- built_hit_rate_mean: 0.9433
+- coastal_built_hit_rate_mean: 0.9249
+- inland_built_hit_rate_mean: 0.9466
+- port_hit_rate_mean: 0.1215
+- ruin_hit_rate_mean: 0.9025
+- owner_flip_mean: 2.7527
 - summary_path: /home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0.npz
 - cell_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0__cell.parquet
 - settlement_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0__settlement.parquet
@@ -26,41 +26,41 @@ seed 0
 - owner_year_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0__owner_year.parquet
 - year_shock_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0__year_shock.parquet
 - macro_trajectory_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=0__macro.parquet
-- event_summary_vector: [18.91470588235294, 6.522705882352941, 0.4864705882352941, 6.136117647058824, 2.856705882352941, 0.9721176470588235, 2.0118823529411767, 6.522705882352941, 2.856705882352941, 5.573294117647059, 5.570941176470588, 0.4151764705882353, 0.0, 0.3927058823529412, 99.81058823529412, 0.9999979497483316, 0.03623524502824166, 0.04636418424501882, -0.0010697201293741574, 0.013688614461239612, 0.0635551490348801, 0.11317470815377795, 0.003624258597440805, 0.021411796669464116, 5.570941176470588, 0.5651764705882353]
-- cell_event_count: 160775
-- settlement_transition_count: 975490
-- build_events: 55443
-- ruin_events: 52157
-- matched_ruin_events: 47353
-- site_ruin_events: 4804
-- rebuild_events: 24282
-- ruin_to_forest_events: 8263
-- births: 55443
-- settlement_rebuilds: 24282
-- collapses: 47373
-- collapse_to_ruin_events: 47353
-- port_gains: 3529
+- event_summary_vector: [18.916165803108807, 6.525699481865285, 0.48362694300518133, 6.134093264248705, 2.855854922279793, 0.9766839378238342, 2.0111917098445597, 6.525699481865285, 2.855854922279793, 5.573367875647668, 5.5710880829015546, 0.41264248704663214, 0.0, 0.3922279792746114, 99.7860103626943, 0.9999972905921231, 0.03626107599866243, 0.04639824163134076, -0.001071618318105631, 0.013712824709379004, 0.06354955563078828, 0.11329214341941017, 0.0036421991862404433, 0.021420176584577615, 5.5710880829015546, 0.5630051813471503]
+- cell_event_count: 182541
+- settlement_transition_count: 1107253
+- build_events: 62973
+- ruin_events: 59194
+- matched_ruin_events: 53761
+- site_ruin_events: 5433
+- rebuild_events: 27559
+- ruin_to_forest_events: 9425
+- births: 62973
+- settlement_rebuilds: 27559
+- collapses: 53783
+- collapse_to_ruin_events: 53761
+- port_gains: 3982
 - port_losses: 0
-- owner_flips: 3338
-- frame_transition_count: 8500
-- site_transition_count: 13600000
-- site_opportunity_count: 10791735
-- settlement_measurement_count: 975490
-- live_settlement_transition_count: 895765
-- ruin_transition_count: 49646
-- pairwise_candidate_count: 1922302
-- owner_year_count: 184163
-- year_shock_count: 8500
-- macro_trajectory_count: 8500
+- owner_flips: 3785
+- frame_transition_count: 9650
+- site_transition_count: 15440000
+- site_opportunity_count: 12252029
+- settlement_measurement_count: 1107253
+- live_settlement_transition_count: 1016721
+- ruin_transition_count: 56392
+- pairwise_candidate_count: 2181430
+- owner_year_count: 209193
+- year_shock_count: 9650
+- macro_trajectory_count: 9650
 
 seed 1
-- replay_run_count: 170
+- replay_run_count: 193
 - built_hit_rate_mean: 0.9925
 - coastal_built_hit_rate_mean: 0.9399
 - inland_built_hit_rate_mean: 1.0000
 - port_hit_rate_mean: 0.1401
 - ruin_hit_rate_mean: 0.9790
-- owner_flip_mean: 4.3431
+- owner_flip_mean: 4.9326
 - summary_path: /home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1.npz
 - cell_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1__cell.parquet
 - settlement_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1__settlement.parquet
@@ -73,41 +73,41 @@ seed 1
 - owner_year_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1__owner_year.parquet
 - year_shock_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1__year_shock.parquet
 - macro_trajectory_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=1__macro.parquet
-- event_summary_vector: [27.21294117647059, 8.412941176470587, 0.6487058823529411, 9.303764705882353, 4.317647058823529, 1.5341176470588236, 3.080705882352941, 8.412941176470587, 4.317647058823529, 8.619294117647058, 8.614941176470587, 0.563764705882353, 0.0, 0.6821176470588235, 128.7238823529412, 0.9999992160723973, 0.03316230713409629, 0.04862569528603835, -0.0011140671240063098, 0.011748246590516508, 0.06397503550688477, 0.11730408425139423, 0.00526520855382332, 0.02181421719428892, 8.614941176470587, 0.6888235294117647]
-- cell_event_count: 231310
-- settlement_transition_count: 1275628
-- build_events: 71510
-- ruin_events: 79082
-- matched_ruin_events: 73227
-- site_ruin_events: 5855
-- rebuild_events: 36700
-- ruin_to_forest_events: 13040
-- births: 71510
-- settlement_rebuilds: 36700
-- collapses: 73264
-- collapse_to_ruin_events: 73227
-- port_gains: 4792
+- event_summary_vector: [27.195544041450777, 8.410466321243524, 0.6464248704663212, 9.295544041450777, 4.312331606217617, 1.5339896373056994, 3.0803108808290154, 8.410466321243524, 4.312331606217617, 8.610777202072539, 8.606839378238343, 0.5629015544041451, 0.0, 0.6823834196891192, 128.71088082901554, 0.9999993093588778, 0.03315804457269007, 0.04864843514126923, -0.0011141047017819575, 0.011740413715590458, 0.06397861940758144, 0.11722132648879562, 0.005267464319385281, 0.02181287231464477, 8.606839378238343, 0.6887046632124353]
+- cell_event_count: 262437
+- settlement_transition_count: 1447930
+- build_events: 81161
+- ruin_events: 89702
+- matched_ruin_events: 83056
+- site_ruin_events: 6646
+- rebuild_events: 41614
+- ruin_to_forest_events: 14803
+- births: 81161
+- settlement_rebuilds: 41614
+- collapses: 83094
+- collapse_to_ruin_events: 83056
+- port_gains: 5432
 - port_losses: 0
-- owner_flips: 5798
-- frame_transition_count: 8500
-- site_transition_count: 13600000
-- site_opportunity_count: 10180082
-- settlement_measurement_count: 1275628
-- live_settlement_transition_count: 1167418
-- ruin_transition_count: 75926
-- pairwise_candidate_count: 2492682
-- owner_year_count: 257445
-- year_shock_count: 8500
-- macro_trajectory_count: 8500
+- owner_flips: 6585
+- frame_transition_count: 9650
+- site_transition_count: 15440000
+- site_opportunity_count: 11557595
+- settlement_measurement_count: 1447930
+- live_settlement_transition_count: 1325155
+- ruin_transition_count: 86142
+- pairwise_candidate_count: 2829329
+- owner_year_count: 292863
+- year_shock_count: 9650
+- macro_trajectory_count: 9650
 
 seed 2
-- replay_run_count: 169
+- replay_run_count: 192
 - built_hit_rate_mean: 0.9723
 - coastal_built_hit_rate_mean: 0.9153
 - inland_built_hit_rate_mean: 0.9848
-- port_hit_rate_mean: 0.1380
-- ruin_hit_rate_mean: 0.9591
-- owner_flip_mean: 2.9336
+- port_hit_rate_mean: 0.1387
+- ruin_hit_rate_mean: 0.9606
+- owner_flip_mean: 3.3263
 - summary_path: /home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2.npz
 - cell_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2__cell.parquet
 - settlement_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2__settlement.parquet
@@ -120,41 +120,41 @@ seed 2
 - owner_year_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2__owner_year.parquet
 - year_shock_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2__year_shock.parquet
 - macro_trajectory_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=2__macro.parquet
-- event_summary_vector: [21.664970414201182, 7.162248520710059, 0.6266272189349112, 7.143905325443787, 3.311360946745562, 1.1659171597633136, 2.334319526627219, 7.162248520710059, 3.311360946745562, 6.532307692307692, 6.529704142011834, 0.5472189349112426, 0.0, 0.47562130177514794, 108.93692307692308, 0.9999971810339967, 0.036632452309564155, 0.047415221831138915, -0.0009380361100247686, 0.013259030765219658, 0.06482907378438274, 0.1156158497371051, 0.0034226839177856, 0.02164082583757007, 6.529704142011834, 0.6142011834319526]
-- cell_event_count: 183069
-- settlement_transition_count: 1064220
-- build_events: 60521
-- ruin_events: 60366
-- matched_ruin_events: 55176
-- site_ruin_events: 5190
-- rebuild_events: 27981
-- ruin_to_forest_events: 9852
-- births: 60521
-- settlement_rebuilds: 27981
-- collapses: 55198
-- collapse_to_ruin_events: 55176
-- port_gains: 4624
+- event_summary_vector: [21.608229166666668, 7.143125, 0.6291666666666667, 7.119270833333333, 3.2990625, 1.16375, 2.3345833333333332, 7.143125, 3.2990625, 6.510416666666667, 6.5078125, 0.5484375, 0.0, 0.4746875, 108.73010416666666, 0.9999966847843204, 0.0365279662161709, 0.047495359801037154, -0.0009421342711769254, 0.013218075459876433, 0.06474363128261479, 0.11559622844321729, 0.003441599213652254, 0.02161174175834177, 6.5078125, 0.6114583333333333]
+- cell_event_count: 207439
+- settlement_transition_count: 1206558
+- build_events: 68574
+- ruin_events: 68345
+- matched_ruin_events: 62475
+- site_ruin_events: 5870
+- rebuild_events: 31671
+- ruin_to_forest_events: 11172
+- births: 68574
+- settlement_rebuilds: 31671
+- collapses: 62500
+- collapse_to_ruin_events: 62475
+- port_gains: 5265
 - port_losses: 0
-- owner_flips: 4019
-- frame_transition_count: 8450
-- site_transition_count: 13520000
-- site_opportunity_count: 10600782
-- settlement_measurement_count: 1064220
-- live_settlement_transition_count: 975718
-- ruin_transition_count: 57558
-- pairwise_candidate_count: 2131966
-- owner_year_count: 217183
-- year_shock_count: 8450
-- macro_trajectory_count: 8450
+- owner_flips: 4557
+- frame_transition_count: 9600
+- site_transition_count: 15360000
+- site_opportunity_count: 12045687
+- settlement_measurement_count: 1206558
+- live_settlement_transition_count: 1106313
+- ruin_transition_count: 65255
+- pairwise_candidate_count: 2417980
+- owner_year_count: 246839
+- year_shock_count: 9600
+- macro_trajectory_count: 9600
 
 seed 3
-- replay_run_count: 169
+- replay_run_count: 192
 - built_hit_rate_mean: 0.9978
 - coastal_built_hit_rate_mean: 0.9851
 - inland_built_hit_rate_mean: 1.0000
-- port_hit_rate_mean: 0.1219
-- ruin_hit_rate_mean: 0.9876
-- owner_flip_mean: 5.3869
+- port_hit_rate_mean: 0.1226
+- ruin_hit_rate_mean: 0.9883
+- owner_flip_mean: 6.1876
 - summary_path: /home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3.npz
 - cell_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3__cell.parquet
 - settlement_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3__settlement.parquet
@@ -167,41 +167,41 @@ seed 3
 - owner_year_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3__owner_year.parquet
 - year_shock_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3__year_shock.parquet
 - macro_trajectory_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=3__macro.parquet
-- event_summary_vector: [30.65940828402367, 9.064023668639054, 0.4889940828402367, 10.792544378698224, 5.042248520710059, 1.7766863905325443, 3.5617751479289943, 9.064023668639054, 5.042248520710059, 10.02568047337278, 10.022366863905326, 0.4221301775147929, 0.0, 0.8733727810650888, 141.96887573964497, 0.9999985750459192, 0.030234361337035554, 0.05020306692263256, -0.0011270057075503548, 0.010140223850675078, 0.06320938632371904, 0.12010289345378064, 0.005808620760078657, 0.021565212534770874, 10.022366863905326, 0.7701775147928994]
-- cell_event_count: 259072
-- settlement_transition_count: 1403554
-- build_events: 76591
-- ruin_events: 91197
-- matched_ruin_events: 84689
-- site_ruin_events: 6508
-- rebuild_events: 42607
-- ruin_to_forest_events: 15013
-- births: 76591
-- settlement_rebuilds: 42607
-- collapses: 84717
-- collapse_to_ruin_events: 84689
-- port_gains: 3567
+- event_summary_vector: [30.805208333333333, 9.141041666666666, 0.49083333333333334, 10.8315625, 5.056041666666666, 1.7860416666666667, 3.5664583333333333, 9.141041666666666, 5.056041666666666, 10.0740625, 10.071041666666666, 0.4240625, 0.0, 0.8830208333333334, 142.88875, 0.9999987536898569, 0.03012730529388351, 0.05018502493923748, -0.0011236887034949924, 0.010078349009356042, 0.06318907091316539, 0.12009031124110067, 0.005800898716515009, 0.021539587121118236, 10.071041666666666, 0.7605208333333333]
+- cell_event_count: 295730
+- settlement_transition_count: 1604737
+- build_events: 87754
+- ruin_events: 103983
+- matched_ruin_events: 96682
+- site_ruin_events: 7301
+- rebuild_events: 48538
+- ruin_to_forest_events: 17146
+- births: 87754
+- settlement_rebuilds: 48538
+- collapses: 96711
+- collapse_to_ruin_events: 96682
+- port_gains: 4071
 - port_losses: 0
-- owner_flips: 7380
-- frame_transition_count: 8450
-- site_transition_count: 13520000
-- site_opportunity_count: 10292144
-- settlement_measurement_count: 1403554
-- live_settlement_transition_count: 1284356
-- ruin_transition_count: 87717
-- pairwise_candidate_count: 2719342
-- owner_year_count: 306020
-- year_shock_count: 8450
-- macro_trajectory_count: 8450
+- owner_flips: 8477
+- frame_transition_count: 9600
+- site_transition_count: 15360000
+- site_opportunity_count: 11683555
+- settlement_measurement_count: 1604737
+- live_settlement_transition_count: 1468445
+- ruin_transition_count: 99922
+- pairwise_candidate_count: 3109421
+- owner_year_count: 348265
+- year_shock_count: 9600
+- macro_trajectory_count: 9600
 
 seed 4
-- replay_run_count: 168
-- built_hit_rate_mean: 0.9288
+- replay_run_count: 191
+- built_hit_rate_mean: 0.9340
 - coastal_built_hit_rate_mean: 0.9017
-- inland_built_hit_rate_mean: 0.9336
-- port_hit_rate_mean: 0.1321
-- ruin_hit_rate_mean: 0.8819
-- owner_flip_mean: 2.4842
+- inland_built_hit_rate_mean: 0.9398
+- port_hit_rate_mean: 0.1328
+- ruin_hit_rate_mean: 0.8870
+- owner_flip_mean: 2.8166
 - summary_path: /home/jorge/ainm/tasks/astar/data/derived/replay_summaries/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4.npz
 - cell_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4__cell.parquet
 - settlement_event_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4__settlement.parquet
@@ -214,29 +214,29 @@ seed 4
 - owner_year_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4__owner_year.parquet
 - year_shock_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4__year_shock.parquet
 - macro_trajectory_path: /home/jorge/ainm/tasks/astar/data/derived/replay_events/round_id=71451d74-be9f-471f-aacd-a41f3b68a9cd/seed_index=4__macro.parquet
-- event_summary_vector: [20.163452380952382, 6.859642857142857, 0.7113095238095238, 6.497857142857143, 3.0463095238095237, 1.0438095238095237, 2.1070238095238096, 6.859642857142857, 3.0463095238095237, 5.931666666666667, 5.927619047619047, 0.6088095238095238, 0.0, 0.4030952380952381, 105.05345238095238, 0.9999970457553413, 0.037244343035088584, 0.04632872836142929, -0.000954548236051366, 0.013970370059787953, 0.064263924836705, 0.11281550837892598, 0.0035341151700035807, 0.02155951258538708, 5.927619047619047, 0.5702380952380952]
-- cell_event_count: 169373
-- settlement_transition_count: 1015488
-- build_events: 57621
-- ruin_events: 54582
-- matched_ruin_events: 49792
-- site_ruin_events: 4790
-- rebuild_events: 25589
-- ruin_to_forest_events: 8768
-- births: 57621
-- settlement_rebuilds: 25589
-- collapses: 49826
-- collapse_to_ruin_events: 49792
-- port_gains: 5114
+- event_summary_vector: [20.189947643979057, 6.862303664921466, 0.7122513089005236, 6.509528795811518, 3.0567539267015706, 1.0455497382198953, 2.108167539267016, 6.862303664921466, 3.0567539267015706, 5.937486910994765, 5.933507853403142, 0.6076439790575916, 0.0, 0.4019895287958115, 105.07130890052356, 0.9999974022915252, 0.037227177871190335, 0.04632694726309852, -0.0009554808786626724, 0.013965523392669573, 0.06425582150893831, 0.11282483750799753, 0.003533270748250508, 0.02155132774053899, 5.933507853403142, 0.576020942408377]
+- cell_event_count: 192814
+- settlement_transition_count: 1154864
+- build_events: 65535
+- ruin_events: 62166
+- matched_ruin_events: 56665
+- site_ruin_events: 5501
+- rebuild_events: 29192
+- ruin_to_forest_events: 9985
+- births: 65535
+- settlement_rebuilds: 29192
+- collapses: 56703
+- collapse_to_ruin_events: 56665
+- port_gains: 5803
 - port_losses: 0
-- owner_flips: 3386
-- frame_transition_count: 8400
-- site_transition_count: 13440000
-- site_opportunity_count: 10516922
-- settlement_measurement_count: 1015488
-- live_settlement_transition_count: 932278
-- ruin_transition_count: 52056
-- pairwise_candidate_count: 2026739
-- owner_year_count: 186656
-- year_shock_count: 8400
-- macro_trajectory_count: 8400
+- owner_flips: 3839
+- frame_transition_count: 9550
+- site_transition_count: 15280000
+- site_opportunity_count: 11956513
+- settlement_measurement_count: 1154864
+- live_settlement_transition_count: 1060137
+- ruin_transition_count: 59310
+- pairwise_candidate_count: 2304319
+- owner_year_count: 212618
+- year_shock_count: 9550
+- macro_trajectory_count: 9550

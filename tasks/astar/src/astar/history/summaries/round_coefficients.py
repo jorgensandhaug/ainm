@@ -163,6 +163,14 @@ def seed_regime_summary_vector(seed: SeedEpisode) -> np.ndarray | None:
     ruin_hit_rate = np.mean(_collect_first_steps(seed, (3,)) >= 0, axis=0)
     owner_flip_mean = np.mean(_owner_flip_counts(seed).astype(np.float64), axis=0)
 
+    survival_curves: list[list[float]] = []
+    port_curves: list[list[float]] = []
+    ruin_curves: list[list[float]] = []
+    for run in seed.replay_runs:
+        survival_curves.append([sum(1.0 for s in f.settlements if s.alive) for f in run.frames])
+        port_curves.append([sum(1.0 for s in f.settlements if s.has_port) for f in run.frames])
+        ruin_curves.append([float(np.count_nonzero(f.grid == 3)) for f in run.frames])
+
     return np.asarray(
         [
             _mean_over_mask(build_hit_rate, buildable),
@@ -174,9 +182,9 @@ def seed_regime_summary_vector(seed: SeedEpisode) -> np.ndarray | None:
             float(np.mean(empirical[:, :, 1])),
             float(np.mean(empirical[:, :, 2])),
             float(np.mean(empirical[:, :, 3])),
-            float(np.mean(empirical[:, :, 1] + empirical[:, :, 2])),
-            float(np.mean(empirical[:, :, 2])),
-            float(np.mean(empirical[:, :, 3])),
+            float(np.mean(survival_curves)),
+            float(np.mean(port_curves)),
+            float(np.mean(ruin_curves)),
         ],
         dtype=np.float64,
     )

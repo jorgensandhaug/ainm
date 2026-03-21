@@ -21,6 +21,7 @@ def evaluate_hazard_teacher_science(
     eval_round_ids: list[str] | None = None,
     train_round_ids: list[str] | None = None,
     model_name: str = "hazard_teacher_v1",
+    summary_backend: str = "behavioral_fingerprint_core",
     n_rollouts: int | None = None,
 ) -> EvaluateTeacherScienceResult:
     replay_round_ids = sorted(
@@ -36,7 +37,7 @@ def evaluate_hazard_teacher_science(
         selected_train_round_ids = selected_eval_round_ids
 
     train_episodes = [build_round_episode(paths, round_id) for round_id in selected_train_round_ids]
-    teacher = HazardTeacher(name=model_name).fit(
+    teacher = HazardTeacher(name=model_name, summary_backend=summary_backend).fit(
         [episode for episode in train_episodes if episode.replay_run_count > 0],
     )
 
@@ -54,6 +55,7 @@ def evaluate_hazard_teacher_science(
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     result = EvaluateTeacherScienceResult(
         model_name=model_name,
+        summary_backend=summary_backend,
         train_round_ids=selected_train_round_ids,
         eval_round_ids=selected_eval_round_ids,
         report_count=len(reports),

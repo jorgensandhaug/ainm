@@ -14,6 +14,7 @@ class RoundSummaryFactorization(BaseModel):
     sample_counts: tuple[int, ...]
     summary_matrix: np.ndarray
     mean_vector: np.ndarray
+    scale_vector: np.ndarray = Field(default_factory=lambda: np.ones(0, dtype=np.float64))
     singular_values: np.ndarray
     explained_variance_ratio: np.ndarray
     basis: np.ndarray
@@ -59,6 +60,7 @@ def factorize_summary_matrix(
     sample_counts: list[int] | tuple[int, ...],
     summary_matrix: np.ndarray,
     max_rank: int = 3,
+    column_scale: np.ndarray | None = None,
 ) -> RoundSummaryFactorization:
     matrix = np.asarray(summary_matrix, dtype=np.float64)
     if matrix.ndim != 2:
@@ -70,10 +72,24 @@ def factorize_summary_matrix(
 
     mean_vector = np.mean(matrix, axis=0)
     centered = matrix - mean_vector[None, :]
-    _, singular_values, vt_matrix = np.linalg.svd(centered, full_matrices=False)
+    if column_scale is None:
+        scale_vector = np.ones(matrix.shape[1], dtype=np.float64)
+    else:
+        scale_vector = np.asarray(column_scale, dtype=np.float64)
+        if scale_vector.ndim != 1 or scale_vector.shape[0] != matrix.shape[1]:
+            raise ValueError(
+                "expected column_scale shape "
+                f"({matrix.shape[1]},), got {scale_vector.shape!r}",
+            )
+        if not np.all(np.isfinite(scale_vector)):
+            raise ValueError("column_scale must be finite")
+        if np.any(scale_vector <= 0.0):
+            raise ValueError("column_scale must be strictly positive")
+    normalized = centered / scale_vector[None, :]
+    _, singular_values, vt_matrix = np.linalg.svd(normalized, full_matrices=False)
     effective_rank = max(1, min(max_rank, vt_matrix.shape[0]))
     basis = vt_matrix[:effective_rank]
-    coordinates = centered @ basis.T
+    coordinates = normalized @ basis.T
     variance = singular_values**2
     variance_sum = float(np.sum(variance))
     if variance_sum > 0.0:
@@ -89,6 +105,7 @@ def factorize_summary_matrix(
         sample_counts=tuple(int(value) for value in sample_counts),
         summary_matrix=matrix,
         mean_vector=np.asarray(mean_vector, dtype=np.float64),
+        scale_vector=np.asarray(scale_vector, dtype=np.float64),
         singular_values=np.asarray(singular_values, dtype=np.float64),
         explained_variance_ratio=np.asarray(explained_variance_ratio, dtype=np.float64),
         basis=np.asarray(basis, dtype=np.float64),
@@ -102,7 +119,13 @@ def project_summary_vector(
     summary_vector: np.ndarray,
 ) -> np.ndarray:
     centered = np.asarray(summary_vector, dtype=np.float64) - factorization.mean_vector
-    return np.asarray(centered @ factorization.basis.T, dtype=np.float64)
+    scale_vector = (
+        factorization.scale_vector
+        if factorization.scale_vector.shape == factorization.mean_vector.shape
+        else np.ones_like(factorization.mean_vector, dtype=np.float64)
+    )
+    normalized = centered / scale_vector
+    return np.asarray(normalized @ factorization.basis.T, dtype=np.float64)
 
 
 def reconstruct_summary_vector(
@@ -110,8 +133,13 @@ def reconstruct_summary_vector(
     coordinates: np.ndarray,
 ) -> np.ndarray:
     coordinates_array = np.asarray(coordinates, dtype=np.float64)
+    scale_vector = (
+        factorization.scale_vector
+        if factorization.scale_vector.shape == factorization.mean_vector.shape
+        else np.ones_like(factorization.mean_vector, dtype=np.float64)
+    )
     return np.asarray(
-        factorization.mean_vector + coordinates_array @ factorization.basis,
+        factorization.mean_vector + (coordinates_array @ factorization.basis) * scale_vector,
         dtype=np.float64,
     )
 
@@ -151,6 +179,11 @@ def evaluate_factorization_leave_one_out(
             sample_counts=np.asarray(factorization.sample_counts)[keep_mask].tolist(),
             summary_matrix=matrix[keep_mask],
             max_rank=requested_rank,
+            column_scale=(
+                factorization.scale_vector
+                if factorization.scale_vector.shape == factorization.mean_vector.shape
+                else None
+            ),
         )
         heldout_vector = matrix[heldout_index]
         coordinates = project_summary_vector(train_factorization, heldout_vector)
