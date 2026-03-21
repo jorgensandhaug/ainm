@@ -2807,6 +2807,21 @@ All of these have been systematically swept and are near-optimal:
 - Added configurable `operator_target` and `entropy_weight_power` to the architecture
 - Both axes confirmed at baseline values. Total variants now 180+.
 
+### 2026-03-21T23:00Z approx
+
+- Cell selection sweep discovered cells_per_seed was suboptimal!
+  - 256→86.01, 384→86.74, 512→87.12, **768→87.36**, 900→87.18, 1024→86.89, 1200→86.18, 1600→84.98
+  - Earlier test with 1024 cells (v49) failed because of OLD calibration - with new calibration, more cells help!
+  - Sweet spot at 768 cells per seed
+- **v186 s6 = 87.36** NEW CHAMPION (+0.24 over v169)
+- Per-round: R1:87.1 R2:91.7 R3:88.8 R4:93.5 R5:84.8 R6:87.8 R7:72.4 R8:92.8
+
+## Current Champion
+
+- model: `ffam_mode_v186` with `samples_per_round=6`
+- score: **87.3649**
+- total improvement from v44: **+9.60 points** (77.76 → 87.36, +12.3%)
+
 ## Complete Experiment Summary
 
 **170+ variants tested across these axes:**
