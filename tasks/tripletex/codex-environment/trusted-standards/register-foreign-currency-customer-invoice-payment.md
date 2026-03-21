@@ -126,11 +126,22 @@ Body (for agio — settlement rate > original rate):
 
 **CRITICAL: `row` must start from 1, NOT 0.** Row 0 is reserved as "system-generated" by Tripletex. Using `row: 0` → 422 (`Posteringene på rad 0 (guiRow 0) er systemgenererte`). This was the root cause of the earlier 0% run that tried manual vouchers.
 
-Agio amount calculation:
-- `agioAmount = promptEurAmount * (settlementRate - originalRate)`
-- Example: 18687 EUR × (10.87 − 10.33) = 18687 × 0.54 = **10090.98** NOK
+FX difference amount calculation:
+- `fxAmount = promptEurAmount * |settlementRate - originalRate|` (always positive)
 - Use the prompt's stated EUR amount (typically ex-VAT, matching how a real EUR export invoice would have 0% VAT)
-- For disagio (settlement rate < original rate): swap accounts (debit 8160, credit 1920)
+
+For **agio** (settlement rate > original rate, FX gain):
+- Account lookup: `GET /ledger/account?number=1920,8060&fields=id,number`
+- Row 1: bank (1920), `amountGross: +fxAmount` (debit — bank received more)
+- Row 2: agio (8060), `amountGross: -fxAmount` (credit — income)
+- Example: 18687 EUR × (10.87 − 10.33) = 18687 × 0.54 = **10090.98** NOK
+- Production-confirmed: run 86050544 (12301 × 1.00 = 12301, voucher 609126234)
+
+For **disagio** (settlement rate < original rate, FX loss):
+- Account lookup: `GET /ledger/account?number=1920,8160&fields=id,number`
+- Row 1: disagio (8160), `amountGross: +fxAmount` (debit — expense)
+- Row 2: bank (1920), `amountGross: -fxAmount` (credit — bank received less)
+- Example: 12689 EUR × (11.28 − 10.71) = 12689 × 0.57 = **7232.73** NOK
 
 Sandbox proof (2026-03-21): NOK invoice `2147609133` (`amount=amountCurrency=2565`): sending `paidAmount=25675.65` + `paidAmountCurrency=2565` still closed the invoice; zero FX posting was created — confirming manual voucher is necessary for agio on NOK invoices.
 
@@ -174,6 +185,14 @@ The script pattern:
 
 ## Production Failure History
 
+### prod-2026-03-21-194545009Z-e0bd9a2b (50% score — Océan SARL / 863081793 / 12689 EUR, rate 11.28→10.71 disagio):
+- Correctly used `fields=*,currency(*)` and detected invoice was NOK
+- Script had NOK fallback: registered simple payment (amountOutstanding=0) ✓
+- Did NOT create manual disagio voucher — script implemented "simple payment only" NOK fallback despite trusted standard already having the 5-call NOK fallback flow at this point
+- Checks 1-2 passed (payment registered), checks 3-4 failed (no disagio booked on 8160)
+- 3 API calls, 0 errors — should have been 5 calls with manual disagio voucher
+- Correct disagio: 12689 × (11.28 − 10.71) = 12689 × 0.57 = 7232.73 NOK on account 8160
+- Root cause: agent read the trusted standard but did not implement the manual voucher logic in the NOK fallback path
 ### prod-2026-03-21-193537525Z-840df81a (50% score — task 27, Solmar SL / 877276260 / 18687 EUR):
 - Correctly used `fields=*,currency(*)` and detected invoice was NOK
 - Script had NOK fallback: registered simple payment (amountOutstanding=0) ✓
@@ -209,3 +228,6 @@ The script pattern:
 - 2026-03-21 sandbox proof: `GET /ledger/account?number=1920,8060&fields=id,number` returns exactly 2 accounts with correct IDs — comma-separated `number` query param works for precise multi-account lookup
 - 2026-03-21 sandbox auto-generated EUR payment voucher structure (voucher 339, invoice 333): `1920 +135899.19` (bank), `1500 -135899.19 / amountCurrency=-12689` (customer), `8160 +7429.41` (disagio), `1500 -7429.41 / amountCurrency=0` (disagio counter); the auto FX posting uses 1500/8160, but manual voucher uses 1920/8060 to avoid touching customer balance
 - 2026-03-21 sandbox proof: `POST /ledger/voucher` with `account: { number: 1920 }` (no ID) → 422 "account.name: Kan ikke være null"; with `account: { number: 1920, name: "Bankinnskudd" }` → 422 "Internt felt (account): Feltet må fylles ut" — confirms `account: { id }` is the only working format, `GET /ledger/account` cannot be skipped in the NOK fallback path
+- 2026-03-21 sandbox proof: manual disagio voucher `609122714` with `row: 1` on 8160 (debit +7232.73) and `row: 2` on 1920 (credit -7232.73) succeeded — confirming the disagio direction (debit expense, credit bank) works
+- 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 (no customer) → 422 "Kunde mangler" — account 1500 (Kundefordringer) requires `customer: { id }` on the posting; the manual voucher approach uses 1920 (bank) instead to avoid this dependency
+- 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 and `customer: { id }` → 201 (voucher `609127910`) — 1500 with customer DOES work, but 1920 is simpler and production-confirmed

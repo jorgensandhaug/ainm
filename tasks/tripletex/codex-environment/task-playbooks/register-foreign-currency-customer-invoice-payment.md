@@ -79,7 +79,7 @@ Script pattern:
    a. Register simple payment (paidAmount = amountOutstanding)
    b. Look up account IDs: `GET /ledger/account?number=1920,8060&fields=id,number`
    c. Create manual agio voucher: `POST /ledger/voucher?sendToLedger=true` with `row: 1`+
-   d. Agio = promptEurAmount × (settlementRate − originalRate) — 5 calls total
+   d. FX amount = promptEurAmount × |settlementRate − originalRate| (always positive) — 5 calls total
 4. ALWAYS register a payment AND book agio. Never exit without paying.
 
 ## Company-Currency Fallback (NOK invoice with manual agio)
@@ -91,9 +91,10 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
   - Credit 8060 (agio) for the agio amount (negative amountGross)
   - Use `row: 1` and `row: 2` — NEVER row 0 (system-reserved, causes 422)
   - Use `vatType: { id: 0 }` on both postings
-  - Agio = promptEurAmount × (settlementRate − originalRate)
+  - FX amount = promptEurAmount × |settlementRate − originalRate| (always positive)
 - Do NOT apply FX logic on the `:payment` call — Tripletex ignores FX params on NOK invoices
-- For disagio (settlement rate < original rate): debit 8160, credit 1920
+- For disagio (settlement rate < original rate): debit 8160 (+fxAmount), credit 1920 (−fxAmount)
+- For agio (settlement rate > original rate): debit 1920 (+fxAmount), credit 8060 (−fxAmount)
 - The account IDs must be resolved via `GET /ledger/account?number=1920,8060` — `account: { number: ... }` does NOT work in voucher body
 
 ## Canonical Call Count
@@ -133,3 +134,6 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 
 ## Production Confirmations
 - prod-2026-03-21-200502800Z-86050544: NOK fallback, 5 calls, 0 errors — Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83, agio 12301 NOK on 8060 (first full-score NOK-fallback run)
+
+## Production Failures
+- prod-2026-03-21-194545009Z-e0bd9a2b: 50%, 3 calls, 0 errors — Océan SARL / 863081793 / 12689 EUR, rate 11.28→10.71 disagio. Script implemented NOK fallback with simple payment only (no manual voucher). Checks 1-2 passed, checks 3-4 failed (no disagio on 8160). Correct approach: 5 calls with manual disagio voucher (debit 8160, credit 1920, amount 7232.73)
