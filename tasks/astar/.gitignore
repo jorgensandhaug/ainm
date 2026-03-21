@@ -26,3 +26,4 @@ data/artifacts/datasets/f1_summary_bank_synth__*/
 data/artifacts/datasets/query_residual_synthetic_live__*/
 data/artifacts/datasets/f1_synthetic_live_coverage_*__cfg_*/
 data/artifacts/models/query_residual_shared/
+data/artifacts/family1/logs/

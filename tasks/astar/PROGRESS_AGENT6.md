@@ -3349,3 +3349,77 @@
   - rationale:
     - preserve the almost-neutral `port_coast` directional signal
     - soften it enough to avoid the round-5 hard-mask penalty
+
+- Soft-maritime smoke result:
+  - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01`
+    - artifact:
+      - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01_probe3_current/result.json`
+    - score `70.0894`
+    - weighted KL `0.126192`
+    - wall `6:29.12`
+    - max RSS `17.63 GiB`
+    - vs dyn control:
+      - delta `+0.1716`
+      - KL delta `-0.001076`
+      - win rate `0.667`
+      - CI95 `[-0.0774, 0.4112]`
+      - comparison artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01.json`
+    - smoke per-round read vs dyn control:
+      - round 4: `+0.5536`
+      - round 5: `-0.4193`
+      - round 6: `+0.3804`
+    - read:
+      - first real decoder-side gain larger than noise-floor family deltas
+      - but still clearly far below `supportx_v01` because round 6 remains catastrophic on the external baseline comparison
+
+- Dev5 validation launched when machine headroom opened up:
+  - machine state before launch:
+    - load about `22.7 / 32.8 / 50.0`
+    - RAM about `1.9 TiB available`
+  - so I used 2 parallel dev runs with `8` thread caps:
+    - `dev5_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01_current_v01`
+    - `dev5_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01_current_v01`
+
+- Dev5 results:
+  - dyn control rerun:
+    - artifact:
+      - `data/artifacts/benchmarks/dev5_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01_current_v01/result.json`
+    - score `73.4827`
+    - weighted KL `0.106990`
+    - wall `16:40.46`
+    - max RSS `31.56 GiB`
+  - `portmaritime`:
+    - artifact:
+      - `data/artifacts/benchmarks/dev5_f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01_current_v01/result.json`
+    - score `73.3940`
+    - weighted KL `0.107407`
+    - wall `17:51.46`
+    - max RSS `31.61 GiB`
+    - paired vs dyn control:
+      - delta `-0.0887`
+      - KL delta `+0.000417`
+      - win rate `0.400`
+      - CI95 `[-0.2104, 0.0280]`
+      - comparison artifact:
+        - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01__candidate=f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_portmaritime_v01.json`
+    - per-round dev5 read vs dyn control:
+      - round 1: `+0.1686`
+      - round 4: `+0.1041`
+      - round 5: `-0.2118`
+      - round 6: `-0.0779`
+      - round 8: `-0.4264`
+
+- Current conclusion after dev5:
+  - `portmaritime` was a smoke false positive
+  - simple scalar spatial gates on the dynamic head now look exhausted:
+    - `buildable`: reject
+    - `port_coast`: reject
+    - `classwise`: reject
+    - `port_maritime`: smoke win, dev reject
+  - the family still needs a richer decoder change than scalar hard/soft gates
+  - best current family model remains:
+    - `f1_summary_rate_decoder_collapse_portsplit_teacher_dyn_v01`
+  - strongest next branch:
+    - class-specific decoder parameterization / interactions / penalties
+    - not more one-feature multiplicative gate variants
