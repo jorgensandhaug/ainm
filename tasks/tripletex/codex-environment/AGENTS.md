@@ -184,6 +184,7 @@ Authentication:
 - Single-object responses are typically wrapped as `{"value": {...}}`.
 - Some successful writes or deletes may return `204 No Content`.
 - **Exception**: `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version, ... }] }` even though it creates a single voucher. Extract from `response.values[0]`, not `response.value`. This mismatch caused a 4-call recovery penalty in the 2026-03-21 production supplier-invoice run.
+- **Critical**: always handle both `values` (list) and `value` (single object) response shapes in your generic response parser from the very first script write. Using `response.value` on a list endpoint (e.g., `GET /invoice`) returns `undefined` and crashes the script, wasting a retry API call. The correct generic parser: `if (json.values !== undefined) return json.values; if (json.value !== undefined) return json.value; return json;`
 - Confirm exact response shape in `./openapi.json` before relying on it.
 
 ## API Usage Rules
