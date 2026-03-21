@@ -699,8 +699,11 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `PUT` reverse
 - Standard correction note:
   - prefer reverse over ad hoc mutation when task allows
-  - for ledger-error correction tasks with multiple error types (wrong account, duplicate, missing VAT, incorrect amount), the proven 6-call path is: `GET /ledger/voucher?fields=*,postings(*,account(*),vatType(*))` → `GET /ledger/account?number=<missing>` → `PUT /:reverse` for duplicate → 3x `POST /ledger/voucher` for remaining corrections
-  - persistent sandbox 2026-03-21 confirmed this path with zero 4xx errors
+  - for exact ledger-error correction tasks with multiple error types (wrong account, duplicate, missing VAT, incorrect amount), the canonical low-call path is now `3` calls: `GET /ledger/account?number=<all-needed>&fields=id,number` → `GET /ledger/voucher?dateFrom=...&dateTo=...&fields=id,date,description,postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000` → one combined `POST /ledger/voucher?sendToLedger=true`
+  - keep the older `6`-call branch (`GET /ledger/account` + `GET /ledger/voucher` + `PUT /:reverse` + `3x POST /ledger/voucher`) only as a fallback when the scorer explicitly rejects the combined corrective voucher
+  - for duplicate detection in that task family, do not rely on a raw amount filter alone; group vouchers on the prompt account into normalized posting signatures and pick the repeated signature, usually the later voucher ID
+  - for the exact missing-VAT branch where the original voucher has no `2710` posting and the prompt amount is excluding VAT, post the correction directly to `2710` and the original counterpart for `net * 0.25`; do not use the expense-account-plus-`vatType` shortcut on that shape
+  - persistent sandbox 2026-03-21 re-proof: combined correction voucher `608960780` succeeded, while the tempting alternative `6500 +4587.5` with `vatType: { id: 1 }` created only `2710 +917.5` and `6500 amount=3670`, so that shortcut is wrong for the true no-`2710` case
   - for the voucher discovery read, use `GET /ledger/voucher` (not `/ledger/posting`) because it provides voucher descriptions for identifying duplicates and voucher IDs for the reverse operation
   - `PUT /ledger/voucher/{id}/:reverse?date=YYYY-MM-DD` requires the `date` query parameter (reversal date); use the run date
 - Standard create note:

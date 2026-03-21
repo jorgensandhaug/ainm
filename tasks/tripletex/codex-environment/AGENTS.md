@@ -115,6 +115,7 @@ Authentication:
 | Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
 | Register supplier invoice | `./trusted-standards/register-supplier-invoice.md` |
 | Register travel expense | `./trusted-standards/register-travel-expense.md` |
+| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
@@ -466,6 +467,8 @@ Authentication:
 - Same-day persistent-sandbox reflection for the exact `6340` amount shape first hit the expected create blocker `422 Maximum of 3 accounting dimensions allowed`, then re-proved the voucher branch by reusing existing value `15253`: number-only `POST /ledger/voucher` failed again with `422 postings.account.name: Kan ikke være null.`, and the next id-based write after `GET /ledger/account?number=6340,1920&fields=*` succeeded with voucher `608868815`.
 - `GET /ledger/account?number=...&fields=*` returns `account.number` as an integer, not a string. If you filter locally, compare numerically or you can falsely conclude the target account is missing and waste recovery reads or reruns.
 - For manual vouchers that only score one target ledger-account posting and do not specify the balancing account, a simple two-line voucher against existing bank account `1920` succeeded in persistent sandbox on 2026-03-20.
+- For the exact ledger-error correction shape `wrong account + duplicate + missing VAT + incorrect amount`, the canonical path is now `3` correction calls: `GET /ledger/account` -> `GET /ledger/voucher` with nested posting expansion -> one combined `POST /ledger/voucher`. The older duplicate-reverse-plus-three-posts branch is only fallback.
+- In that same ledger-error family, resolve the duplicate from a repeated full posting signature on the prompt account, not from a raw amount filter alone, and if the prompt says the `2710` line is missing while the original voucher has no `2710` posting, correct it with direct `2710 + net*0.25` plus the original counterpart. Do not use `6500 + vatType 1` on that exact shape; persistent sandbox on 2026-03-21 proved that shortcut created only `2710 +917.5` and `6500 amount=3670` for a `4587.5` correction.
 - For exact receipt-backed business-lunch expense prompts like attached `Forretningslunsj` + department name + correct account/VAT treatment, the corrected branch is a manual voucher on `7360` / `1920` plus a separate `POST /ledger/voucher/{voucherId}/attachment`; the earlier 2026-03-21 production run that used `7350` and no attachment scored `0/10`.
 - In that same receipt-backed voucher shape, do not use `POST /ledger/voucher/importDocument` followed by `PUT /ledger/voucher/{id}`; 2026-03-21 persistent sandbox returned `422` that `description` and `postings` were not editable for that imported voucher type.
 - Also in that receipt-backed voucher shape, do not rely on `department: { "name": "Drift" }`; 2026-03-21 persistent sandbox returned `201` but silently stored `department=null`, and `GET /department?name=Drift...` can return containing matches such as `Drift sandbox ...` unless you exact-filter locally.
