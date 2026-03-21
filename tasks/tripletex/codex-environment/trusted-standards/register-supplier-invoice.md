@@ -401,3 +401,19 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 - this is the 7th consecutive optimal 5-call production run with 0 errors using this standard
 - languages confirmed across 7 consecutive optimal runs: en, es, pt, de, fr — standard is fully language-independent
 - sandbox re-proof confirmed: `importDocument` auto-creates a supplier from XML org number but with empty address fields and no bank account — NOT useful for PDF tasks where address/bank are scored; explicit `POST /supplier` first remains required
+
+2026-03-21 production run for `Tindra AS` / `983514650` / `INV-2026-3624` / `42100` / `6540` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Norwegian-language text-only prompt (no PDF), description "kontortjenester"
+- no address or bank data to extract (text-only)
+- first production use of expense account 6540 (Inventar) in this standard
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- importDocument response correctly accessed via `values[0]`
+- PUT postings correctly used `row: 1` and `row: 2`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 42100/1.25=33680 net, 8420 VAT (no rounding)
+- voucher `609159040`, supplier `108428564`
+- description preserved with exact lowercase casing "kontortjenester" from prompt
+- this is the 8th consecutive optimal 5-call production run with 0 errors using this standard
+- accounts confirmed across 8 consecutive runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
+- sandbox re-proof confirmed: account 6540 works identically to other accounts; 5 calls remains the true minimum; `account: { number: N }` still requires GET to resolve ID

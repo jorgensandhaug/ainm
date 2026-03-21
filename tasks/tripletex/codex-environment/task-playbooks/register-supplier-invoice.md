@@ -406,6 +406,17 @@ Proven outcome:
 - 7th consecutive optimal 5-call production run with 0 errors
 - sandbox finding: `importDocument` auto-creates supplier from XML data but with empty address and no bank — explicit `POST /supplier` remains required for PDF tasks with scored address/bank fields
 
+2026-03-21 production run for `Tindra AS` / `983514650` / `INV-2026-3624` / `42100` / `6540` / `25%`:
+- used exactly 5 calls, 0 errors — optimal execution
+- Norwegian-language text-only prompt (no PDF), description "kontortjenester" (lowercase preserved exactly)
+- first production use of expense account 6540 (Inventar) in this standard
+- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+- exact VAT: 42100/1.25=33680 net, 8420 VAT (no rounding needed)
+- voucher `609159040`, supplier `108428564`
+- 8th consecutive optimal 5-call production run with 0 errors
+- accounts confirmed across 8 runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
+
 ## Production Proof — 4-call Path (SCORED 0% — missing booking step)
 
 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
