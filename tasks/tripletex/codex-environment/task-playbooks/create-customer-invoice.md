@@ -97,6 +97,12 @@ Do not use for:
   - this was an exact trusted-standard match for the `3`-call fast path: `GET /customer` -> `GET /product?productNumber=...` -> `POST /invoice?sendToCustomer=false`
   - the root cause was excessive file reading before execution, not an API-flow issue
   - persistent sandbox re-proof on 2026-03-21 re-confirmed that both explicit `vatType: { id: product.vatType.id }` and omitted `vatType` produce identical product-linked invoice readback
+- the 2026-03-21 production run for `Elvdal AS` / `810713909` / products `Nettverksteneste (7765)` + `Konsulenttimar (4369)` + `Vedlikehald (5331)` / VAT `25%` + `15% food` + `0% exempt` succeeded but used 7 calls instead of the optimal 6:
+  - the wasted call was a speculative `GET /product?productNumber=7765&productNumber=4369&productNumber=5331&fields=*` that returned only product `5331`; the broader `GET /product?count=1000&fields=*` fallback then found all three by local `number` filtering
+  - this confirms that for the "names + parenthetical numbers" prompt pattern, the catalog read is always strictly equal or better than the speculative productNumber query: both are 1 call, but the speculative query can waste an extra call when it returns partial results
+  - the correct lower-call path was `GET /customer` -> `GET /product?count=1000&fields=*` -> `POST /invoice?sendToCustomer=false` -> conditional bank-account repair -> retry = 6 calls
+  - product VAT inheritance worked: products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%) and reusing them produced correct totals `amountExcludingVatCurrency=33650` / `amountCurrency=38707.5`
+  - persistent sandbox re-proof on 2026-03-21 with the same amounts confirmed the catalog-read path in 3 calls (sandbox had no bank-account issue)
 
 ## Minimal Flow
 
@@ -287,7 +293,8 @@ then the practical repair path is:
 - Do not use the send-invoice flow when the prompt only asks to create an invoice
 - Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
 - Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
-- Do not replace a clear exact-product-number prompt with a broad catalog read; use `GET /product?productNumber=...` first and only broaden if that direct resolver is incomplete or ambiguous
+- Do not replace a clear product-number-only prompt (no names given) with a broad catalog read; use `GET /product?productNumber=...` when the prompt gives ONLY product numbers without exact names
+- When the prompt gives both exact product names AND parenthetical numbers, always use the catalog read `GET /product?count=1000&fields=*` with local filtering; the speculative `productNumber` query is never fewer calls (both are 1 call) and risks wasting an extra call when `productNumber` returns partial results, as confirmed in the 2026-03-21 production run for `810713909` / `7765` + `4369` + `5331`
 - Do not add `/ledger/vatType` by reflex on an exact existing-product-number create-only prompt when the resolved products already carry reusable `vatType.id`
 - Do not treat `product: { number: ... }` on `POST /invoice` as a safe existing-product shortcut; sandbox created unlinked lines even though the write succeeded
 - Do not assume `customer: { name, organizationNumber }` on `POST /invoice` removes the need for a customer read; sandbox still rejected the related order because `customer.id` was missing
