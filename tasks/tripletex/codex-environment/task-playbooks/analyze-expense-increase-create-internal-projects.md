@@ -15,12 +15,16 @@ Do not use for:
 
 ## Verified Findings
 
-Production run on 2026-03-21 (latest) achieved:
+Production run `3a21d463` on 2026-03-21 (latest, Spanish prompt) achieved:
 - **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
 - used `POST /project/list` with inline `projectActivities` per project for batch create
 - top 3 accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
 
 Earlier production run on 2026-03-21 achieved:
+- **3 calls, 0 errors, correct result** — same path, different run
+- used `POST /project/list` with inline `projectActivities` per project for batch create
+
+Earliest production run on 2026-03-21 achieved:
 - 6 calls, 0 errors, correct result
 - used `POST /project/list` + 3 separate `POST /project/projectActivity` calls (now known to be unnecessary)
 
@@ -33,16 +37,15 @@ Persistent-sandbox verification on 2026-03-21 showed:
 
 ## Minimal Safe Flow
 
-1. Read the whole analysis window once
+1. Fire both reads in parallel (saves wall time, same 2-call count):
    - `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+   - `GET /employee?assignableProjectManagers=true&count=1&fields=*`
 2. Aggregate locally
    - filter to expense accounts (`account.type == "OPERATING_EXPENSES"`, fallback `4000-8999`)
    - sum signed `amount` by account for January and February
    - rank by `(feb - jan)` descending
    - take the top three
-3. Resolve one assignable manager
-   - `GET /employee?assignableProjectManagers=true&count=1&fields=*`
-4. Batch-create the internal projects with inline activities
+3. Batch-create the internal projects with inline activities
    - `POST /project/list` with each row containing:
      - `name` (use `account.displayName`)
      - `startDate`

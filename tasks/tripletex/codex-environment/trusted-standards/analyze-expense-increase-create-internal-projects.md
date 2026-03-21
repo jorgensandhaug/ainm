@@ -19,13 +19,14 @@
 - the account ranking depends on non-ledger sources or additional business filters not already visible on `/ledger/posting`
 
 ## Standard Flow
-1. one decisive `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+1. fire in parallel (saves wall time, same call count):
+   - `GET /ledger/posting?dateFrom=2026-01-01&dateTo=2026-03-01&count=10000&fields=*,account(*)`
+   - `GET /employee?assignableProjectManagers=true&count=1&fields=*`
 2. aggregate signed `amount` by expense account and by month in local code
 3. select the top three accounts by `(february total - january total)` descending
-4. resolve one assignable manager with `GET /employee?assignableProjectManagers=true&count=1&fields=*`
-5. `POST /project/list` once with the three internal projects **and inline `projectActivities`** on each row
-6. verify from write responses
-7. stop
+4. `POST /project/list` once with the three internal projects **and inline `projectActivities`** on each row
+5. verify from write responses
+6. stop
 
 Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create with inline activities)
 
@@ -94,8 +95,11 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
   - each inline activity was created with the correct `name`, `activityType=PROJECT_SPECIFIC_ACTIVITY`, and `isChargeable=false`
   - the `Activity` objects were verified via `GET /activity` to have the expected names and properties
   - this eliminates the need for any separate `POST /project/projectActivity` calls
-- production run on `2026-03-21` confirmed the full 3-call path:
+- 1st production run on `2026-03-21` confirmed the full 3-call path:
   - `GET /ledger/posting` returned 42 postings covering Jan+Feb 2026
   - top 3 expense accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
   - `POST /project/list` created all 3 projects with inline activities in one batch call
   - 0 errors, 3 total API calls — the theoretical minimum for this task shape
+- 2nd production run `3a21d463` on `2026-03-21` (Spanish prompt) confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
+  - confirms the standard handles non-English prompts without any extra API calls
