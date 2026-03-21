@@ -44,6 +44,7 @@
 - for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`, that two-call path was the successful production path on 2026-03-21
 - for the exact prompt shape `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`, that two-call path was the successful production path on 2026-03-22 (Spanish prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); sandbox-verified on 2026-03-22
+- for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`, that two-call path was the successful production path on 2026-03-22 (German prompt); sandbox-verified on 2026-03-22
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
@@ -157,3 +158,8 @@
   - `PUT /invoice/2147651501/:createCreditNote?date=2026-03-22&sendToCustomer=false`
   - the run succeeded with 2 API calls, 0 errors
   - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+- production run confirmed on 2026-03-22 for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800` (German prompt):
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/2147652358/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+  - the run succeeded with 2 API calls, 0 errors
+  - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
