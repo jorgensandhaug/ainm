@@ -39,8 +39,14 @@ DEFAULT_BLUR_SIGMAS = (1.5, 4.0)
 QUERY_RESIDUAL_ALIAS = "query_residual"
 QUERY_RESIDUAL_V11 = "query_residual_v11"
 QUERY_RESIDUAL_V11_COVTRAIN = "query_residual_v11_covtrain"
+QUERY_RESIDUAL_V11_COVTRAIN_P0_B624 = "query_residual_v11_covtrain_p0_b624"
 QUERY_RESIDUAL_MODEL_NAMES = frozenset(
-    {QUERY_RESIDUAL_ALIAS, QUERY_RESIDUAL_V11, QUERY_RESIDUAL_V11_COVTRAIN},
+    {
+        QUERY_RESIDUAL_ALIAS,
+        QUERY_RESIDUAL_V11,
+        QUERY_RESIDUAL_V11_COVTRAIN,
+        QUERY_RESIDUAL_V11_COVTRAIN_P0_B624,
+    },
 )
 CELL_SELECTION_TOP_ENTROPY = "top_entropy"
 CELL_SELECTION_STRATIFIED_ENTROPY = "stratified_entropy"
@@ -59,12 +65,27 @@ def resolve_query_residual_training_spec(
     if normalized == QUERY_RESIDUAL_ALIAS:
         resolved_samples = 1 if samples_per_round is None else int(samples_per_round)
         return ("query_residual_v8", resolved_samples, CELL_SELECTION_TOP_ENTROPY, False)
-    if normalized in {QUERY_RESIDUAL_V11, QUERY_RESIDUAL_V11_COVTRAIN}:
+    if normalized in {
+        QUERY_RESIDUAL_V11,
+        QUERY_RESIDUAL_V11_COVTRAIN,
+        QUERY_RESIDUAL_V11_COVTRAIN_P0_B624,
+    }:
         if samples_per_round not in {None, 1, 2}:
             raise ValueError("query_residual_v11 fixes samples_per_round=2")
         return ("query_residual_v11", 2, CELL_SELECTION_STRATIFIED_ENTROPY, True)
     msg = f"unsupported query_residual model: {model_name}"
     raise ValueError(msg)
+
+
+def resolve_query_residual_serving_overrides(model_name: str) -> dict[str, float]:
+    normalized = model_name.strip().lower()
+    if normalized == QUERY_RESIDUAL_V11_COVTRAIN_P0_B624:
+        return {
+            "prior_blend": 0.0,
+            "beta_min": 6.0,
+            "beta_scale": 24.0,
+        }
+    return {}
 
 
 def _round_ids_with_analyses_and_replays(

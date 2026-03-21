@@ -776,3 +776,249 @@ Given current repo state, priority is not greenfield pipeline build. Priority is
     - model: `query_residual_v11_covtrain`
     - serve policy: `exploration_v2`
     - benchmark: `dev_query_residual_v11_covtrain_exploration_seed01`
+
+### 2026-03-21T06:10Z
+
+- Re-read canonicals at start of new session block:
+  - `README.md`
+  - `docs/game_facts.md`
+  - `instructions/agent4.md`
+  - `PROGRESS_AGENT4.md`
+- Re-checked branch status: clean before edits.
+- Re-checked task tracker:
+  - `br list` still unavailable in shell (`command not found`).
+- Inspected current frontier code and artifacts:
+  - `src/astar/student/predictor/query_residual.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/policy/coverage.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/workflows/model_eval.py`
+  - current best benchmark reports for:
+    - `dev_query_residual_v11_coverage_seed01`
+    - `dev_query_residual_v11_covtrain_exploration_seed01`
+
+### 2026-03-21T06:20Z
+
+- Audited `v11_covtrain` train/serve mismatch scientifically:
+  - coverage-trained model sees at most:
+    - global query count `45 / 50 = 0.9`
+    - per-seed query count `9 / 50 = 0.18`
+  - exploration serving uses:
+    - global query count `50 / 50 = 1.0`
+    - per-seed query count `10 / 50 = 0.2`
+- Loaded scoped `query_residual_v11` checkpoints and inspected coefficient magnitudes.
+- Found large coefficient norm on `global_query_count`:
+  - L2 about `0.850`
+  - dominant positive settlement effect
+- Hypothesis:
+  - current hybrid benefits from extra repeated observations,
+  - but may also suffer from coverage->exploration serving-distribution mismatch in heuristic calibration / blending.
+
+### 2026-03-21T06:30Z
+
+- Tested serving-only count-clipping idea in-process, reusing held-out coverage-trained fold checkpoints while evaluating on historical exploration transcripts.
+- Variant:
+  - clip `global_query_count` to `0.9`
+  - clip `seed_query_count` to `0.18`
+  - keep extra exploration exact-count evidence intact
+- Result on 8-round seed01 validation:
+  - count-clip probe mean score `74.5945`
+  - mean weighted KL `0.100391`
+- Verdict:
+  - reject count-clipping
+  - worse than current hybrid `74.6485 / 0.100186`
+
+### 2026-03-21T06:40Z
+
+- Switched to serving-only calibration search on same cached coverage-trained fold checkpoints.
+- Important methodological note:
+  - this did **not** retrain folds
+  - only serving-time posterior calibration changed
+  - validation remains correct holdout-by-round
+- Seed01 sweep results:
+  - baseline current hybrid:
+    - `74.648496`
+    - `0.100186`
+  - `beta=(4,16)`:
+    - `74.701439`
+    - `0.099827`
+  - `beta=(2,8)`:
+    - `74.481003`
+    - `0.100605`
+  - `prior_blend=0.25`:
+    - `75.447266`
+    - `0.096100`
+  - `teacher_blend=0.0`:
+    - no change vs baseline
+  - `prior_blend=0.25` + `beta=(4,16)`:
+    - `75.466084`
+    - `0.095894`
+- Interpretation:
+  - dominant missed opportunity was over-anchoring to the historical prior during exploration serving
+  - exact-count blend should be somewhat stronger too
+
+### 2026-03-21T06:50Z
+
+- Ran finer low-prior sweeps.
+- Single-seed (`episode_seed=0`) with `beta=(4,16)`:
+  - `prior=0.18`: `75.853071`, `0.093967`
+  - `prior=0.15`: `76.025666`, `0.093081`
+  - `prior=0.12`: `76.185739`, `0.092259`
+  - `prior=0.10`: `76.285448`, `0.091747`
+  - `prior=0.08`: `76.379504`, `0.091263`
+- Stronger seed01 sweep with `beta=(4,16)`:
+  - `prior=0.12`: `76.250922`, `0.091881`
+  - `prior=0.10`: `76.350414`, `0.091372`
+  - `prior=0.08`: `76.444128`, `0.090893`
+- Trend stayed monotone as prior anchor dropped.
+
+### 2026-03-21T07:00Z
+
+- Tested zero-prior regime.
+- Stronger seed01 sweep:
+  - `prior=0.00`, `beta=(4,16)`:
+    - `76.759795`
+    - `0.089269`
+  - `prior=0.00`, `beta=(6,24)`:
+    - `76.862578`
+    - `0.088911`
+  - `prior=0.00`, `beta=(8,32)`:
+    - `76.858129`
+    - `0.088984`
+- Supporting single-seed sweep:
+  - `prior=0.00`, `beta=(0,0)` catastrophically bad:
+    - `33.514786`
+    - `0.487255`
+  - `prior=0.00`, `beta=(1,4)` also bad:
+    - `73.490547`
+    - `0.103818`
+  - `prior=0.00`, `beta=(2,8)`:
+    - `75.906116`
+    - `0.092928`
+  - `prior=0.00`, `beta=(4,16)`:
+    - `76.698045`
+    - `0.089614`
+  - `prior=0.00`, `beta=(6,24)`:
+    - `76.793183`
+    - `0.089292`
+- Conclusion:
+  - zero final prior blend is decisively better under exploration serving for this coverage-trained `v11` family
+  - exact observed-cell blending still needs substantial shrinkage (`beta` cannot go to zero)
+  - best validated point so far:
+    - `prior_blend=0.0`
+    - `beta_min=6.0`
+    - `beta_scale=24.0`
+
+### 2026-03-21T07:05Z
+
+- Implemented new explicit alias:
+  - `query_residual_v11_covtrain_p0_b624`
+- Meaning:
+  - same coverage-trained `v11` fold checkpoints as `query_residual_v11_covtrain`
+  - serving calibration overrides:
+    - `prior_blend=0.0`
+    - `beta_min=6.0`
+    - `beta_scale=24.0`
+- Files edited:
+  - `src/astar/student/predictor/query_residual.py`
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/workflows/model_eval.py`
+  - `src/astar/cli.py`
+  - `tests/test_historical_benchmark.py`
+- Next:
+  - run smoke/regression tests
+  - run normal historical benchmark artifact for new alias
+  - compare against previous best benchmark artifacts
+  - commit + push
+
+### 2026-03-21T07:15Z
+
+- Verification after alias wiring:
+  - `uv run python -m py_compile src/astar/student/predictor/query_residual.py src/astar/student/predictor/interactive.py src/astar/workflows/model_eval.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run pytest tests/test_historical_benchmark.py tests/test_history_datasets.py tests/test_exploration_policy.py`
+    - `17 passed`
+
+### 2026-03-21T07:20Z
+
+- Ran normal benchmark artifact for searched seed01 setting:
+  - run: `dev_query_residual_v11_covtrain_p0_b624_seed01`
+  - model: `query_residual_v11_covtrain_p0_b624`
+  - policy: `exploration_v2`
+  - episode seeds: `0,1`
+  - mean score `76.8626`
+  - mean weighted KL `0.088911`
+  - report:
+    - `data/artifacts/benchmarks/dev_query_residual_v11_covtrain_p0_b624_seed01/report.md`
+- Paired vs prior hybrid champion on same seed01 setting:
+  - baseline: `dev_query_residual_v11_covtrain_exploration_seed01`
+  - candidate: `dev_query_residual_v11_covtrain_p0_b624_seed01`
+  - comparison artifact:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seeds=0-1__baseline=query_residual_v11_covtrain__candidate=query_residual_v11_covtrain_p0_b624.md`
+  - score delta `+2.2141`
+  - weighted-KL delta `-0.011275`
+  - win rate `0.688`
+  - CI95 on score delta entirely positive: `[1.5140, 3.0172]`
+
+### 2026-03-21T07:30Z
+
+- Ran stronger unseen-seed validation, intentionally outside the search seeds:
+  - baseline run:
+    - `dev_query_residual_v11_covtrain_exploration_seed23`
+    - mean score `74.5538`
+    - mean weighted KL `0.100738`
+  - candidate run:
+    - `dev_query_residual_v11_covtrain_p0_b624_seed23`
+    - mean score `76.7034`
+    - mean weighted KL `0.089665`
+- Paired unseen-seed comparison:
+  - artifact:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=exploration_v2__budget=50__episode_seeds=2-3__baseline=query_residual_v11_covtrain__candidate=query_residual_v11_covtrain_p0_b624.md`
+  - score delta `+2.1496`
+  - weighted-KL delta `-0.011072`
+  - win rate `0.662`
+  - CI95 on score delta entirely positive: `[1.4212, 2.9619]`
+- Interpretation:
+  - large gain survives on unseen episode seeds, so this is not just overfitting the search seeds `0,1`
+  - calibration fix appears genuinely robust
+
+### 2026-03-21T07:32Z
+
+- Combined summary across both disjoint 2-seed validations (`0,1` plus unseen `2,3`):
+  - old hybrid `query_residual_v11_covtrain`:
+    - `160` evaluated seeds
+    - mean score `74.601134`
+    - mean weighted KL `0.100462`
+  - new calibrated alias `query_residual_v11_covtrain_p0_b624`:
+    - `160` evaluated seeds
+    - mean score `76.782986`
+    - mean weighted KL `0.089288`
+- Combined delta:
+  - score `+2.181852`
+  - weighted KL `-0.011174`
+
+## Current Best Known Scores
+
+- best previous multi-episode branch champion:
+  - `dev_query_residual_v11_covtrain_exploration_seed01`
+  - mean score `74.6485`
+  - mean weighted KL `0.100186`
+- new best searched seed01 benchmark:
+  - `dev_query_residual_v11_covtrain_p0_b624_seed01`
+  - mean score `76.8626`
+  - mean weighted KL `0.088911`
+- unseen-seed confirmation:
+  - `dev_query_residual_v11_covtrain_p0_b624_seed23`
+  - mean score `76.7034`
+  - mean weighted KL `0.089665`
+
+## Current Goal
+
+- Commit calibrated alias + benchmark evidence.
+- Push branch to remote.
+- Current promotion candidate:
+  - model: `query_residual_v11_covtrain_p0_b624`
+  - serve policy: `exploration_v2`
+  - strongest validated evidence:
+    - searched seeds `0,1`: `76.8626 / 0.088911`
+    - unseen seeds `2,3`: `76.7034 / 0.089665`

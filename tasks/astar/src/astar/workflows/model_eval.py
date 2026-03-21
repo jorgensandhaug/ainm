@@ -23,6 +23,7 @@ from astar.student.predictor.interactive import RoundPredictorAdapter, build_onl
 from astar.student.predictor.query_residual import (
     QueryResidualPredictor,
     is_query_residual_model_name,
+    resolve_query_residual_serving_overrides,
     resolve_query_residual_training_spec,
 )
 from astar.student.predictor.static_semantic import (
@@ -238,6 +239,9 @@ def _build_prediction_bundle(
             cell_selection_strategy=cell_selection_strategy,
             include_exact_local_residual=include_exact_local_residual,
         )
+        serving_overrides = resolve_query_residual_serving_overrides(normalized)
+        if serving_overrides:
+            predictor = predictor.model_copy(update={"name": normalized, **serving_overrides})
         bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
         return (
             bundle,

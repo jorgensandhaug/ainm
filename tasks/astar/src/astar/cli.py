@@ -208,6 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "query_residual_v11",
             "query_residual_v11_covtrain",
+            "query_residual_v11_covtrain_p0_b624",
         ],
         required=True,
     )
@@ -245,7 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"],
         default="latent_regime",
     )
     synthetic_tournament_parser.add_argument("--policy", default="coverage")
@@ -258,7 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"],
         default="latent_regime",
     )
     synthetic_benchmark_parser.add_argument("--policy", default="coverage")
@@ -282,6 +283,7 @@ def build_parser() -> argparse.ArgumentParser:
             "query_residual",
             "query_residual_v11",
             "query_residual_v11_covtrain",
+            "query_residual_v11_covtrain_p0_b624",
         ],
         required=True,
     )
@@ -312,7 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
-        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain"],
+        choices=["geometry_prior", "historical_bucket_prior", "latent_regime", "query_residual", "query_residual_v11", "query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"],
         default="latent_regime",
     )
     live_online_parser.add_argument("--policy", default="coverage")

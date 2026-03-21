@@ -16,6 +16,7 @@ from astar.student.predictor.query_residual import (
     QueryResidualPredictor,
     is_query_residual_model_name,
     query_residual_scoped_checkpoint_path,
+    resolve_query_residual_serving_overrides,
     resolve_query_residual_training_spec,
 )
 from astar.student.predictor.round import BaseRoundPredictor
@@ -110,7 +111,11 @@ def build_online_predictor(
     if is_query_residual_model_name(normalized):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
-        training_policy_name = "coverage" if normalized == "query_residual_v11_covtrain" else resolved_policy_name
+        training_policy_name = (
+            "coverage"
+            if normalized in {"query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"}
+            else resolved_policy_name
+        )
         checkpoint_model_name, resolved_samples_per_round, cell_selection_strategy, include_exact_local_residual = (
             resolve_query_residual_training_spec(
                 normalized,
@@ -155,8 +160,9 @@ def build_online_predictor(
                     include_exact_local_residual=include_exact_local_residual,
                 )
                 predictor.save_checkpoint(checkpoint_path)
-        if normalized == "query_residual_v11_covtrain":
-            predictor = predictor.model_copy(update={"name": "query_residual_v11_covtrain"})
+        serving_overrides = resolve_query_residual_serving_overrides(normalized)
+        if normalized in {"query_residual_v11_covtrain", "query_residual_v11_covtrain_p0_b624"} or serving_overrides:
+            predictor = predictor.model_copy(update={"name": normalized, **serving_overrides})
         return RoundPredictorAdapter(
             predictor=predictor,
             name=predictor.name,
