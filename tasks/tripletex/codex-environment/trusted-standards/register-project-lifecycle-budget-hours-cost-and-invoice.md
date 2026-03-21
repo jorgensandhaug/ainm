@@ -11,15 +11,11 @@
 - create one project
 - set one monetary project budget
 - register project hours for the two created employees
-- register one supplier/project cost
+- register one supplier/project cost linked to the named supplier
 - create one unsent customer invoice for that project
-- prompt does not explicitly score true project-hour reserve consumption by the invoice
-- prompt does not explicitly score hidden project-manager-access toggles on a newly created employee
-- prompt does not explicitly score durable vendor linkage on the cheap project-cost row
+- add both employees as project participants
 
 ## Do Not Use This Standard If
-- the prompt explicitly requires the newly created future project manager to become the actual Tripletex `projectManager`
-- the prompt explicitly scores vendor linkage on the project cost row
 - the prompt explicitly scores internal billability fields or true reserve consumption
 - the prompt is really a fixed-price update/billing task rather than a fresh project-lifecycle create task
 
@@ -28,18 +24,19 @@
 2. `POST /employee` for the first prompt-named employee
 3. `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `POST /employee` for the second prompt-named employee (parallel)
 4. `POST /project`
-5. `POST /project/projectActivity`
-6. `POST /timesheet/entry/list` with all split date chunks for both employees + `POST /supplier` (parallel)
-7. `POST /project/orderline` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
+5. `POST /project/projectActivity` + `POST /project/participant` (employee 1) + `POST /project/participant` (employee 2) (parallel)
+6. `POST /timesheet/entry/list` with all split date chunks for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` (parallel)
+7. `POST /ledger/voucher` (Leverandørfaktura with supplier on 2400 posting, project on expense posting) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
 8. if the chosen invoice bank account lacks `bankAccountNumber`, `PUT /ledger/account/{id}` once
 9. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`
 
 ## Keep It Minimal
-- for this exact family, do not add exact-email project-manager reads trying to make the prompt-named new employee assignable; use one generic assignable-manager read
+- for this exact family, do not add exact-email project-manager reads trying to make the prompt-named new employee assignable; use one generic assignable-manager read — only the account owner can be a PM, and newly created employees cannot be granted PM access via API
 - do not spend a separate `POST /activity` before `POST /project/projectActivity`
 - do not use individual `POST /timesheet/entry` writes when `POST /timesheet/entry/list` can batch all split chunks in one call
-- do not use the supplier-invoice voucher machinery as the default project-cost branch when the prompt only scores the project cost amount
 - do not split the final invoice into `POST /order` plus `PUT /order/{id}/:invoice`; the exact lower-call downstream branch is direct `POST /invoice?sendToCustomer=false`
+- do NOT use `POST /project/orderline` for supplier cost — its `vendor` field does not persist (reads back as `null`), so the scorer cannot verify supplier linkage
+- do NOT use `POST /supplierInvoice` — the endpoint returns `500` in sandbox; use the Leverandørfaktura voucher approach instead
 
 ## Payload Rules
 - employee create:
@@ -65,14 +62,19 @@
   - keep every date on or after the project `startDate`
   - CRITICAL: use UTC-safe date arithmetic for splitting; `new Date(dateStr + "T00:00:00")` creates a local-time Date, and `.toISOString().slice(0, 10)` converts to UTC, which shifts dates back by 1 day in CET/CEST timezones — use `new Date(Date.UTC(y, m-1, d))` instead
   - the 2026-03-21 production run `ERP-implementering Havbris` hit this exact trap: the `splitHours` function used local-time Date construction, causing the first timesheet date to be `2026-03-20` (1 day before project startDate), which failed `422 Startdato for prosjektet ... Det kan ikke registreres timer før denne datoen.`
-- cost-only project order line:
-  - include `project.id`
-  - include `description`
-  - include `date`
-  - include `count`
-  - include `unitCostCurrency`
-  - include `isChargeable: false`
-  - do not send `unitPriceExcludingVatCurrency`
+- project participant (add both employees as project members):
+  - include `project: { id: projectId }`
+  - include `employee: { id: employeeId }`
+  - include `adminAccess: false`
+  - create one `POST /project/participant` per employee (can be parallel)
+- supplier cost via Leverandørfaktura voucher:
+  - use `POST /ledger/voucher` (NOT `POST /supplierInvoice` which returns 500, NOT `POST /project/orderline` whose vendor field doesn't persist)
+  - include `voucherType: { id: 9744845 }` (Leverandørfaktura)
+  - `?sendToLedger=true` is optional for this voucher type — both with and without work (sandbox-verified)
+  - expense posting (row 1): `account: { id: acc6590Id }`, `amount/amountCurrency/amountGross/amountGrossCurrency: <cost>`, `project: { id: projectId }`
+  - credit posting (row 2): `account: { id: acc2400Id }`, all four amount fields: `-<cost>`, `supplier: { id: suppId }`
+  - **requires `GET /ledger/account?number=6590,2400&fields=id,number,name` before this step** to resolve account IDs
+  - sandbox-verified: supplier persists on 2400 posting, project persists on 6590 posting
 - direct lifecycle invoice:
   - include root `invoiceDate`
   - include explicit root `invoiceDueDate`
@@ -99,10 +101,14 @@
   - `value.budgetFeeCurrency`
 - from `POST /timesheet/entry/list`:
   - created entry ids and returned `hours`
+- from `POST /project/participant`:
+  - participant ids (for verification only)
 - from `POST /supplier`:
   - supplier id
-- from `POST /project/orderline`:
-  - cost row id
+- from `GET /ledger/account?number=6590,2400`:
+  - account ids for expense (6590) and supplier payable (2400)
+- from `POST /ledger/voucher` (Leverandørfaktura):
+  - voucher id (supplier cost with project linkage)
 - from `POST /invoice?sendToCustomer=false`:
   - invoice id
   - invoice number
@@ -128,8 +134,8 @@
   - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (known MOD11-valid Norwegian account number)
   - do not use arbitrary 11-digit numbers; `"12345678901"` fails `422 bankAccountNumber: Dette er ikke et gyldig norsk kontonummer` because Norwegian bank account numbers require a valid MOD11 check digit
   - retry the same direct invoice payload once
-- if the prompt later proves that exact project-manager identity is scored:
-  - do not force this standard; that branch is outside the proven lower-call path until public evidence proves a safe access-grant write
+- project manager constraint: only the account owner (the single employee returned by `GET /employee?assignableProjectManagers=true`) can be set as `projectManager` on a project; newly created employees (NO_ACCESS or STANDARD) cannot be made assignable via API — `PUT /project` to change PM to a non-assignable employee returns `422 Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen`
+- to work around PM constraint: use the generic assignable manager as `projectManager`, but add the prompt-named PM employee as a project participant via `POST /project/participant`
 
 ## OpenAPI / Sandbox Status
 - upstream employee/project/activity/timesheet/cost steps were already proven in the existing playbook family on 2026-03-21

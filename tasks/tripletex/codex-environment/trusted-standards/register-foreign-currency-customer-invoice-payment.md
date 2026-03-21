@@ -176,6 +176,13 @@ The script pattern:
 
 ## Production Confirmation History
 
+### prod-2026-03-21-201703889Z-3386d6a5 (Nynorsk prompt, Elvdal AS / 964825114 / 10781 EUR, rate 11.03→11.41):
+- NOK fallback path: invoice `2147633697` had `amountExcludingVat=10781`, `amountOutstanding=13476.25`, `amount===amountCurrency` (NOK)
+- 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(1920,8060) → manual agio voucher
+- Agio: 10781 × (11.41 − 11.03) = 10781 × 0.38 = 4096.78 NOK booked on 8060 (voucher `609131777`)
+- Payment type `37142903` ("Betalt til bank", debitAccount 1920)
+- 2nd full-score NOK-fallback agio production confirmation
+
 ### prod-2026-03-21-200502800Z-86050544 (Nynorsk prompt, Bølgekraft AS / 830993940 / 12301 EUR, rate 10.83→11.83):
 - NOK fallback path: invoice `2147632528` had `amountExcludingVat=12301`, `amountOutstanding=15376.25`, `amount===amountCurrency` (NOK)
 - 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(1920,8060) → manual agio voucher
@@ -231,3 +238,4 @@ The script pattern:
 - 2026-03-21 sandbox proof: manual disagio voucher `609122714` with `row: 1` on 8160 (debit +7232.73) and `row: 2` on 1920 (credit -7232.73) succeeded — confirming the disagio direction (debit expense, credit bank) works
 - 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 (no customer) → 422 "Kunde mangler" — account 1500 (Kundefordringer) requires `customer: { id }` on the posting; the manual voucher approach uses 1920 (bank) instead to avoid this dependency
 - 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 and `customer: { id }` → 201 (voucher `609127910`) — 1500 with customer DOES work, but 1920 is simpler and production-confirmed
+- 2026-03-21 sandbox proof: paymentType `debitAccount.id` from `GET /invoice/paymentType?fields=*,debitAccount(*)` can be reused directly in `POST /ledger/voucher` postings as the bank account (vouchers `609133621`, `609134241`, `609134244`); this means `GET /ledger/account` only needs to look up the agio/disagio account (8060 or 8160), not the bank account — the bank account ID is already available from Call 2; call count stays at 5 but the approach is more correct (uses the actual payment bank account rather than hardcoded 1920)

@@ -1,5 +1,7 @@
 # Reconcile Bank Statement With Open Invoices
 
+> **NO BETA ENDPOINTS.** NEVER use `/bank/reconciliation*`, `/incomingInvoice*`, or any `(BETA)` endpoint. They ALL return `403`. Use manual voucher and `/invoice/:payment` paths only.
+
 ## Scope
 
 Use for tasks like:
@@ -19,7 +21,7 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 
 ## Production Run Results (2026-03-21)
 
-### English run 4 (task 23, 11 calls, 0 errors) — OPTIMAL
+### English run 4 (task 23, 11 calls, 0 errors) — SCORED 0.6/6 (skipped non-invoice lines)
 - 5 reads fired in parallel: `/invoice`, `/invoice/paymentType`, `/supplier`, `/supplierInvoice`, `/ledger/account`
 - 5 customer payments via `PUT /invoice/{id}/:payment` (4 full + 1 partial 2312.50 of 4625 outstanding)
 - `GET /supplierInvoice` returned 0 results; fell back to manual voucher path
@@ -27,15 +29,15 @@ The task has a hard 300s budget. Do not spend time on debug scripts, exploratory
 - total: 5 reads + 5 customer payments + 1 combined supplier voucher = **11 calls** (matches theoretical floor)
 - matching order mattered: Lewis Ltd had 2 invoices (#1 outstanding 4625, #5 outstanding 23562.50); first bank line (2312.50) matched #1 as partial, second bank line (23562.50) matched #5 as full
 
-### Nynorsk run 2 (c76bbef3, 11 calls, 0 errors) — OPTIMAL
+### Nynorsk run 2 (c76bbef3, 11 calls, 0 errors) — SCORED 0.6/6 (skipped non-invoice lines)
 - 5 reads fired in parallel, 5 customer payments (all full, no partial), 3 supplier payments combined into 1 voucher
-- CSV had non-invoice lines (Renteinntekter, Bankgebyr) correctly skipped
+- CSV had non-invoice lines (Renteinntekter, Bankgebyr) that were INCORRECTLY skipped — this caused Check 1 to fail
 - names: Neset AS, Eide AS, Lunde AS, Stølsvik AS, Haugen AS (customers); Lunde AS, Neset AS, Stølsvik AS (suppliers)
 - confirms trusted standard is correct for Nynorsk task variant
 
-### Portuguese run (d1297531, 11 calls, 0 errors) — OPTIMAL
+### Portuguese run (d1297531, 11 calls, 0 errors) — SCORED 0.6/6 (skipped non-invoice lines)
 - 5 reads fired in parallel, 5 customer payments (4 full + 1 partial: Sousa Lda 5675 of 14187.50), 3 supplier payments combined into 1 voucher
-- CSV had non-invoice lines (Renteinntekter, Skattetrekk, Bankgebyr) correctly skipped
+- CSV had non-invoice lines (Renteinntekter, Skattetrekk, Bankgebyr) that were INCORRECTLY skipped
 - customers: Oliveira Lda (2 invoices), Silva Lda, Ferreira Lda, Sousa Lda; suppliers: Martins Lda, Pereira Lda, Costa Lda
 - confirms trusted standard is correct for Portuguese task variant
 - Bankgebyr appeared in Inn column (positive 1956.88 — likely refund) — correctly skipped as non-invoice
@@ -116,7 +118,7 @@ Key findings:
 - if broad query returns payable rows, match by supplier name + amount, then use `POST /supplierInvoice/{id}/:addPayment`
 - if broad query returns 0 (common case in production), fall back to manual voucher payment (debit 2400, credit 1920)
 - resolve supplier ids from one `GET /supplier?count=1000&fields=*` (needed for manual voucher's `supplier: { id }` field)
-- to resolve account ids for manual voucher, use one `GET /ledger/account?number=2400,1920&fields=*`
+- to resolve account ids for manual voucher, use one `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*`
 
 ### What is unsafe
 - do not fire per-supplier `GET /supplierInvoice?supplierId=...` queries — use one broad query instead
@@ -141,7 +143,7 @@ Key findings:
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)`
    - `GET /supplier?count=1000&fields=*`
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
-   - `GET /ledger/account?number=2400,1920&fields=*` (speculative; needed if no supplier invoices)
+   - `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` (speculative; needed if no supplier invoices)
 3. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
 4. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments
 5. `PUT /invoice/{id}/:payment` once per matched incoming line
@@ -176,10 +178,20 @@ Key findings:
 - when multiple supplier invoices match, prefer exact amount match, then smallest outstanding >= bankAmount
 - for manual voucher payments, match supplier name to supplier id
 
-### Non-invoice lines
-- lines like "Renteinntekter", "Skattetrekk" are not invoice-related
-- skip these lines during reconciliation (they are interest income, tax deductions, etc.)
-- do not try to match them to invoices
+### Non-invoice lines — MUST BE BOOKED
+**CRITICAL: Do NOT skip non-invoice lines.** All previous production runs skipped them and consistently failed Check 1 (worth ~8/10 points), scoring only 0.6 instead of potentially 6.0.
+
+Book each non-invoice line with 2 postings (bank + contra account):
+
+| Line type | Direction | Bank 1920 | Contra account |
+|---|---|---|---|
+| Renteinntekter (interest income) | Inn (+) | debit | credit 8050 |
+| Bankgebyr (bank fee) | Ut (-) | credit | debit 7770 |
+| Bankgebyr (fee refund) | Inn (+) | debit | credit 7770 |
+| Skattetrekk (tax withholding) | Ut (-) | credit | debit 2600 |
+
+Add these postings to the combined supplier voucher (no extra API calls needed).
+Sandbox-verified: voucher #349 with all 3 non-invoice types booked successfully.
 
 ## `/ledger/posting/openPost` Parameter Notes
 - requires `date` parameter (NOT `dateFrom`/`dateTo`)
@@ -200,6 +212,6 @@ Key findings:
 - do not spend the 300s budget on debug/exploration scripts after the main work
 - row 0 is system-reserved; start manual voucher postings at `row: 1` and increment per posting
 - do not create M separate `POST /ledger/voucher` calls for M supplier payments; combine all into one voucher with 2M postings
-- fire `GET /ledger/account?number=2400,1920&fields=*` speculatively in the initial parallel batch; it is wasted only in the rare has-supplier-invoices case
+- fire `GET /ledger/account?number=1920,2400,2600,7770,8050&fields=*` speculatively in the initial parallel batch; it is wasted only in the rare has-supplier-invoices case
 - `amountCurrencyOutstanding` does NOT exist on `SupplierInvoiceDTO` — using it in `fields=` causes a `400`; use `fields=*,supplier(*)` instead (the DTO only has `amountOutstanding`)
 - when matching customer invoices, use `amountCurrencyOutstanding` (exists on `InvoiceDTO`); when matching supplier invoices, use `amountOutstanding`

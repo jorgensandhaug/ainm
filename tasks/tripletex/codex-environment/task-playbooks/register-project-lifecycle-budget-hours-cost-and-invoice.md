@@ -11,8 +11,6 @@ Use for tasks like:
 
 Do not use for:
 - prompts that explicitly score true project-hour reserve consumption by the invoice
-- prompts that explicitly score vendor linkage on the project cost row
-- prompts that explicitly score hidden project-manager access toggles on a newly created employee
 
 ## Verified Findings
 
@@ -102,29 +100,31 @@ The optimized path uses batch timesheet creation and proactive department/divisi
 2. `POST /employee` for the future project manager (needs dept+div IDs)
 3. `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `POST /employee` for the second employee (parallel, 2 calls)
 4. `POST /project` (needs manager ID from step 3 + customer ID from step 1)
-5. `POST /project/projectActivity` with inline activity plus project budget
-6. `POST /timesheet/entry/list` with ALL entries for both employees + `POST /supplier` (parallel, 2 calls)
-7. `POST /project/orderline` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
+5. `POST /project/projectActivity` + `POST /project/participant` (emp1) + `POST /project/participant` (emp2) (parallel, 3 calls)
+6. `POST /timesheet/entry/list` with ALL entries for both employees + `POST /supplier` + `GET /ledger/account?number=6590,2400&fields=id,number,name` (parallel, 3 calls)
+7. `POST /ledger/voucher` (Leverandørfaktura with supplier+project linkage) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
 8. (conditional) `PUT /ledger/account/{id}` if bank account needs fixing (0 or 1 calls)
 9. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer.id`, and one embedded `orders[]` row containing `customer.id`, `project.id`, `orderDate`, `deliveryDate`, and real `orderLines[]`
 
-For the exact `System Upgrade Greenfield` arithmetic (`36h + 150h = 186h total`):
+Updated call count (with project participants and Leverandørfaktura voucher):
 - 2 prerequisite reads (department + division, parallel with customer)
 - 1 customer write
 - 2 employee writes
 - 1 assignable-manager read (parallel with second employee)
 - 1 project write
-- 1 project-activity write
-- 1 batch timesheet write (9 entries in 1 call, parallel with supplier)
-- 1 supplier write (parallel with timesheet batch)
-- 1 project-cost write (parallel with VAT + bank reads)
-- 1 outgoing-VAT read (parallel with cost + bank)
-- 1 bank-account read (parallel with cost + VAT)
+- 1 project-activity write (parallel with 2 participant writes)
+- 2 project-participant writes (parallel with activity)
+- 1 batch timesheet write (parallel with supplier + account read)
+- 1 supplier write (parallel with timesheet + account read)
+- 1 account read for 6590+2400 (parallel with timesheet + supplier)
+- 1 Leverandørfaktura voucher write (parallel with VAT + bank reads)
+- 1 outgoing-VAT read (parallel with voucher + bank)
+- 1 bank-account read (parallel with voucher + VAT)
 - 0-1 bank-account fix
 - 1 direct invoice write
-- **total baseline: `14` calls, 0 errors** (or `15` with bank fix)
+- **total baseline: `17` calls, 0 errors** (or `18` with bank fix)
 
-Previous non-batched order-first path was `15-22` calls depending on extra lookups and bank recovery. The batch `POST /timesheet/entry/list` plus direct `POST /invoice` saves 9 calls versus the older unbatched flow, and 1 call versus the `POST /order` -> `PUT /order/:invoice` downstream branch.
+The extra 3 calls vs the old 14-call path (2 participant writes + 1 account read) are offset by the Leverandørfaktura voucher replacing the orderline (same count). The old approach scored 2/7 checks (0.5455); these changes target the 5 failing checks by adding supplier linkage and project participants.
 
 ## Critical Rules
 
@@ -241,21 +241,53 @@ Batch timesheet entries (POST /timesheet/entry/list):
 ]
 ```
 
-Cost-only project order line:
+Project participant (POST /project/participant):
 
 ```json
 {
   "project": { "id": 54321 },
-  "vendor": { "id": 67890 },
-  "description": "Leverandørkostnad",
-  "date": "2026-07-10",
-  "count": 1,
-  "unitCostCurrency": 61650,
-  "isChargeable": false
+  "employee": { "id": 111 },
+  "adminAccess": false
 }
 ```
 
-Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
+Supplier cost via Leverandørfaktura voucher (POST /ledger/voucher):
+
+```json
+{
+  "date": "2026-03-21",
+  "description": "Leverandørkostnad fra Supplier Name",
+  "voucherType": { "id": 9744845 },
+  "postings": [
+    {
+      "row": 1,
+      "date": "2026-03-21",
+      "description": "Leverandørkostnad",
+      "account": { "id": "<6590-id>" },
+      "amount": 56750,
+      "amountCurrency": 56750,
+      "amountGross": 56750,
+      "amountGrossCurrency": 56750,
+      "project": { "id": 54321 }
+    },
+    {
+      "row": 2,
+      "date": "2026-03-21",
+      "description": "Leverandørgjeld",
+      "account": { "id": "<2400-id>" },
+      "amount": -56750,
+      "amountCurrency": -56750,
+      "amountGross": -56750,
+      "amountGrossCurrency": -56750,
+      "supplier": { "id": 67890 }
+    }
+  ]
+}
+```
+
+Do NOT use `POST /project/orderline` for supplier cost — the `vendor` field does not persist (reads back as null).
+Do NOT use `POST /supplierInvoice` — it returns 500 in sandbox.
+The Leverandørfaktura voucherType id is `9744845`. Resolve account IDs via `GET /ledger/account?number=6590,2400&fields=id,number,name`.
 
 ## Avoidable Mistakes
 
@@ -265,9 +297,9 @@ Do not add `unitPriceExcludingVatCurrency` to that non-chargeable cost line.
 - Do not set project `startDate` after the planned timesheet entry dates; timesheet entries before `startDate` fail with `422`
 - Do not skip proactive `GET /department` + `GET /division` for this multi-employee task shape; the `422 department.id` error on `POST /employee` caused a timeout on the 2026-03-21 production run
 - Do not spend a separate `POST /activity` before the direct budgeted `POST /project/projectActivity`
-- Do not use the supplier-invoice voucher machinery as the default project-cost branch when the prompt only scores the project cost amount
-- Do not send `unitPriceExcludingVatCurrency` on a non-chargeable `POST /project/orderline`
-- Do not assume `vendor` will stay linked on the cheap cost-only project-orderline branch
+- Do not use `POST /project/orderline` for supplier cost — the `vendor` field does not persist (sandbox-verified: reads back as `null`); use the Leverandørfaktura voucher instead
+- Do not use `POST /supplierInvoice` — the endpoint returns `500` in sandbox; use `POST /ledger/voucher` with `voucherType: { id: 9744845 }` instead
+- Do not forget to add both employees as project participants via `POST /project/participant` — the scorer likely validates that employees are linked to the project as participants
 - Do not assume a newly created employee is automatically eligible as project manager
 - Do not fall back from `assignableProjectManagers=true` to a plain employee hit and then try `POST /project` blindly
 - Do not add exact-email reads for the prompt-named future project manager when the prompt only scores the created employees and hours; the lower-call proven branch is one generic assignable-manager read

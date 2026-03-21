@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-200502800Z-86050544",
+  "request_id": "14c4b92d",
+  "prompt_raw": "Me sende ein faktura på 12301 EUR til Bølgekraft AS (org.nr 830993940) då kursen var 10.83 NOK/EUR. Kunden har no betalt, men kursen er 11.83 NOK/EUR. Registrer betalinga og bokfør valutadifferansen (agio) på rett konto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:06:20Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:05:03.608Z",
+  "after_captured_at": "2026-03-21T20:06:51.436Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "27",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:06:51.437Z"
+}

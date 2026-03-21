@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie o produto \"Livro de receitas\" com número de produto 7946. O preço é 18250 NOK sem IVA, utilizando a taxa de IVA de 0 % para livros.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "T4PaU1jsU1y9PaiNqJVX8o9AaVxuosE2aXg1PcTGbXg"
+  }
+}

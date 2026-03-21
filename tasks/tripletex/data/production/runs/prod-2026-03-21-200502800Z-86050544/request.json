@@ -1,0 +1,8 @@
+{
+  "prompt": "Me sende ein faktura på 12301 EUR til Bølgekraft AS (org.nr 830993940) då kursen var 10.83 NOK/EUR. Kunden har no betalt, men kursen er 11.83 NOK/EUR. Registrer betalinga og bokfør valutadifferansen (agio) på rett konto.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "XsofxoH5auLb8jeDSCm1kIKG4NdFbpNVRfpwKzc9_E4"
+  }
+}

@@ -1,0 +1,1 @@
+Score-aware reflection written. Key finding: **0/8, all 4 checks failed** — the importDocument-based supplier invoice approach has systematically failed all 14 task 11 attempts (leaderboard best = 1/4). The approach works for task 20 (PDF-based) but is fundamentally wrong for task 11 (text-only). Task 11 needs a completely different approach to supplier invoice registration.

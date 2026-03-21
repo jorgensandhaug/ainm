@@ -1,0 +1,8 @@
+{
+  "prompt": "Ejecute la nómina de Fernando López (fernando.lopez@example.org) para este mes. El salario base es de 37850 NOK. Añada una bonificación única de 9200 NOK además del salario base.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "wybI1vVJbm2aVwJPZtGVbuyuGFnyEEHG9amcdYDblyM"
+  }
+}

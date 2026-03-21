@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-202124865Z-791922e2",
+  "request_id": "cb488f84",
+  "prompt_raw": "Erstellen Sie das Produkt \"Datenberatung\" mit der Produktnummer 7855. Der Preis beträgt 41550 NOK ohne MwSt., mit dem Standardsatz von 25 %.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T20:21:54Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T20:21:24.972Z",
+  "after_captured_at": "2026-03-21T20:22:24.948Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "03",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T20:22:24.949Z"
+}

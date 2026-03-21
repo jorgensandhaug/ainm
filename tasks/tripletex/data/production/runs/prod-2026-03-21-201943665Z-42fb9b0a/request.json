@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer leverandøren Fossekraft AS med organisasjonsnummer 977371635. E-post: faktura@fossekraft.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "5egXY8VJ2GNytdFRUK6enZi9f7Q3d3ss7H8AYQHreWg"
+  }
+}

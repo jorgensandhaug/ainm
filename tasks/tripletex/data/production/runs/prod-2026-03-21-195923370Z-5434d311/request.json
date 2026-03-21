@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalinga frå Vestfjord AS (org.nr 805747536) for fakturaen \"Systemutvikling\" (46850 kr ekskl. MVA) vart returnert av banken. Reverser betalinga slik at fakturaen igjen viser uteståande beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "mvcytSAOBjhBEoak3s0sS8qxIvBdC_RsSukBq2-Bb3w"
+  }
+}

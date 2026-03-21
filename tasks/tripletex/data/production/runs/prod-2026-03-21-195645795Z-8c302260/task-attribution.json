@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-195645795Z-8c302260",
+  "request_id": "f99dfd98",
+  "prompt_raw": "Wir haben die Rechnung INV-2026-6337 vom Lieferanten Waldstein GmbH (Org.-Nr. 927720523) über 55950 NOK einschließlich MwSt. erhalten. Der Betrag betrifft Bürodienstleistungen (Konto 7000). Erfassen Sie die Lieferantenrechnung mit der korrekten Vorsteuer (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T19:58:42Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T19:56:45.928Z",
+  "after_captured_at": "2026-03-21T19:59:12.461Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "11",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T19:59:12.464Z"
+}
