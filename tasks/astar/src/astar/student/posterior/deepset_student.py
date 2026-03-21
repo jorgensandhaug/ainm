@@ -84,6 +84,17 @@ def _summary_vector_from_artifact(
     return np.asarray(components, dtype=np.float64), artifact.regime_vector
 
 
+def _resolve_checkpoint_path(path: Path, *, base_dir: Path) -> Path:
+    candidate = Path(path)
+    if candidate.exists():
+        return candidate
+    if not candidate.is_absolute():
+        relative_candidate = (base_dir / candidate).resolve()
+        if relative_candidate.exists():
+            return relative_candidate
+    raise FileNotFoundError(candidate)
+
+
 class SummaryBankStudentCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -137,6 +148,42 @@ class SummaryBankStudent(BaseModel):
             regime_vectors=np.stack(regime_vectors, axis=0),
             k_neighbors=k_neighbors,
             teacher=teacher,
+        )
+
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> SummaryBankStudent:
+        checkpoint = SummaryBankStudentCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        checkpoint_dir = path.parent
+        npz_path = _resolve_checkpoint_path(
+            Path(checkpoint.checkpoint_npz_path),
+            base_dir=checkpoint_dir,
+        )
+        teacher_checkpoint_path = _resolve_checkpoint_path(
+            Path(checkpoint.teacher_checkpoint_path),
+            base_dir=checkpoint_dir,
+        )
+        with np.load(npz_path, allow_pickle=False) as payload:
+            summary_vectors = np.asarray(payload["summary_vectors"], dtype=np.float64)
+            regime_vectors = np.asarray(payload["regime_vectors"], dtype=np.float64)
+        expected_summary_shape = (checkpoint.sample_count, checkpoint.summary_dim)
+        expected_regime_shape = (checkpoint.sample_count, checkpoint.regime_dim)
+        if summary_vectors.shape != expected_summary_shape:
+            raise ValueError(
+                "summary vector checkpoint shape mismatch: "
+                f"expected {expected_summary_shape}, got {summary_vectors.shape}",
+            )
+        if regime_vectors.shape != expected_regime_shape:
+            raise ValueError(
+                "regime vector checkpoint shape mismatch: "
+                f"expected {expected_regime_shape}, got {regime_vectors.shape}",
+            )
+        return cls(
+            name=checkpoint.name,
+            dataset_name=checkpoint.dataset_name,
+            summary_vectors=summary_vectors,
+            regime_vectors=regime_vectors,
+            k_neighbors=checkpoint.k_neighbors,
+            teacher=HazardTeacher.load_checkpoint(teacher_checkpoint_path),
         )
 
     def checkpoint(

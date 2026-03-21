@@ -42,6 +42,27 @@ def test_hazard_teacher_and_summary_bank_student_smoke(sample_paths: RepoPaths) 
     assert student_result.checkpoint_path.exists()
 
 
+def test_hazard_teacher_load_checkpoint_round_trip(sample_paths: RepoPaths, tmp_path) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_test").fit([round_episode])
+    checkpoint_path = tmp_path / "hazard_teacher.json"
+    teacher.save_checkpoint(checkpoint_path)
+
+    loaded = HazardTeacher.load_checkpoint(checkpoint_path)
+    seed = round_episode.seeds[0]
+    regime = teacher.regime_bank[0]
+
+    assert loaded.name == teacher.name
+    assert loaded.feature_names == teacher.feature_names
+    assert loaded.round_ids == teacher.round_ids
+    assert loaded.round_numbers == teacher.round_numbers
+    assert np.allclose(loaded.regime_intercept, teacher.regime_intercept)
+    assert np.allclose(loaded.regime_weights, teacher.regime_weights)
+    assert np.allclose(loaded.terminal_tensor(seed, regime), teacher.terminal_tensor(seed, regime))
+
+
 def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: RepoPaths) -> None:
     _write_replays_for_all_seeds(sample_paths, run_count=2)
 
@@ -94,3 +115,50 @@ def test_summary_bank_student_predicts_and_offline_env_scores(sample_paths: Repo
 
     assert query.seed_index == 0
     assert 0 in scores
+
+
+def test_summary_bank_student_load_checkpoint_round_trip(
+    sample_paths: RepoPaths,
+    tmp_path,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    round_episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher = HazardTeacher(name="hazard_teacher_test").fit([round_episode])
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_summary_test",
+    )
+    from astar.student.posterior.deepset_student import SummaryBankStudent
+
+    student = SummaryBankStudent.fit_from_dataset(dataset, teacher, k_neighbors=1)
+    teacher_checkpoint_path = tmp_path / "hazard_teacher.json"
+    teacher.save_checkpoint(teacher_checkpoint_path)
+    student_checkpoint_path = student.save_checkpoint(tmp_path / "summary_student", teacher_checkpoint_path)
+    loaded = SummaryBankStudent.load_checkpoint(student_checkpoint_path)
+
+    round_record = read_round_record(sample_paths, ROUND_ID)
+    round_context = build_round_context_from_detail(round_record.round)
+    transcript_observations = (
+        round_episode.live_transcript.observations
+        if round_episode.live_transcript is not None
+        else ()
+    )
+    context = LiveInferenceContext(
+        online_episode=round_context_to_online_episode(
+            round_context,
+            transcript_observations,
+        ),
+        geometry_bundle=compute_round_features(round_record.round),
+        evidence_bundle=build_round_evidence(sample_paths, ROUND_ID),
+    )
+
+    assert loaded.name == student.name
+    assert loaded.dataset_name == student.dataset_name
+    assert np.allclose(loaded.summary_vectors, student.summary_vectors)
+    assert np.allclose(loaded.regime_vectors, student.regime_vectors)
+    assert np.allclose(loaded.infer_regime(context).mean, student.infer_regime(context).mean)
+    assert np.allclose(loaded.predict_seed(context, 0), student.predict_seed(context, 0))

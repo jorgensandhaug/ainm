@@ -72,6 +72,23 @@ class HazardTeacher(BaseModel):
     replay_bank_seed_indexes: tuple[int, ...] = ()
     replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = ()
 
+    @classmethod
+    def load_checkpoint(cls, path: Path) -> HazardTeacher:
+        checkpoint = HazardTeacherCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
+        return cls(
+            name=checkpoint.name,
+            feature_names=list(checkpoint.feature_names),
+            round_ids=tuple(checkpoint.round_ids),
+            round_numbers=tuple(checkpoint.round_numbers),
+            regime_bank=np.zeros((0, checkpoint.regime_dim), dtype=np.float64),
+            coefficient_bank=np.zeros((0, checkpoint.coefficient_dim), dtype=np.float64),
+            regime_intercept=np.asarray(checkpoint.regime_intercept, dtype=np.float64),
+            regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
+            replay_bank_round_ids=(),
+            replay_bank_seed_indexes=(),
+            replay_runs_bank=(),
+        )
+
     def fit(self, episodes: list[RoundEpisode]) -> HazardTeacher:
         replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
         if not replay_episodes:
@@ -138,16 +155,12 @@ class HazardTeacher(BaseModel):
         regime_array = np.asarray(regime, dtype=np.float64)
         if regime_array.ndim != 1:
             raise ValueError(f"expected 1D regime vector, got shape {regime_array.shape!r}")
-        if regime_array.shape[0] != self.regime_weights.shape[0]:
-            if self.regime_bank.size == 0:
-                raise ValueError("hazard teacher has no regime bank")
-            if regime_array.shape[0] == self.regime_bank.shape[1]:
+        expected_dim = self.regime_weights.shape[0]
+        if regime_array.shape[0] != expected_dim:
+            if self.regime_bank.size > 0 and regime_array.shape[0] == self.regime_bank.shape[1]:
                 pass
             else:
-                raise ValueError(
-                    "expected regime dim "
-                    f"{self.regime_weights.shape[0]}, got {regime_array.shape[0]}",
-                )
+                raise ValueError(f"expected regime dim {expected_dim}, got {regime_array.shape[0]}")
         return np.asarray(
             self.regime_intercept + regime_array @ self.regime_weights,
             dtype=np.float64,
