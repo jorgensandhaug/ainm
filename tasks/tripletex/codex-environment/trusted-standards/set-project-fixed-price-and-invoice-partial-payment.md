@@ -279,3 +279,8 @@
   - the run used 10 API calls with 0 errors, vs the optimal 5-6 calls with perfect correctness using this standard
   - root cause: the German prompt "Legen Sie einen Festpreis fest" was misinterpreted as "create a new project" instead of "update the existing project's fixed price"
   - LESSON: for this task family, the project/customer/PM ALWAYS exist on fresh production accounts; ALWAYS start with `GET /project?name=...` to find and update them
+- same-session persistent-sandbox verification on 2026-03-21 (post-run c9831f7e reflection) re-confirmed the direct `POST /invoice` path:
+  - update-needed path: `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `POST /invoice` = 5 measured calls; returned `amountExcludingVatCurrency=96541.5` (`292550 * 0.33`) with `projectInvoiceDetails.length=1`
+  - skip-PUT path: `GET /project` -> `GET /ledger/vatType` -> `POST /invoice` = 3 measured calls; returned `amountExcludingVatCurrency=96541.5` with `projectInvoiceDetails.length=1`
+  - both paths confirmed: direct `POST /invoice?sendToCustomer=false` replaces old `POST /order` + `PUT /order/:invoice` saving 1 call
+  - 12th+ production confirmation of this task family overall; first run to use `POST /invoice` in production (albeit on wrong entities); first run to expose the critical task-matching error

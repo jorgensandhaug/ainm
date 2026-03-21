@@ -158,6 +158,15 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - invoice: `amountExcludingVatCurrency=114075`, `amountCurrencyOutstanding=142593.75`, outgoing VAT `25%` (id=3)
   - milestone arithmetic `228150 * 0.50 = 114075` is exact (no decimals) and was accepted directly
   - this is the 10th update-needed run: 8/10 had missing bank accounts (80%); proactive hedge averages 6.8 calls + 0 errors vs optimistic 7.4 + 0.8 errors
+- CRITICAL FAILURE on 2026-03-21 for `Brückentor GmbH` / `800357314` / `E-Commerce-Entwicklung` / `felix.fischer@example.org` / `292550` / `33%` (run c9831f7e):
+  - the agent used the WRONG standard (lifecycle instead of this one); created customer/employee/project from scratch instead of finding/updating
+  - scored **0.5/4** — original project never updated, invoice linked to wrong project
+  - used 10 calls with 0 errors vs optimal 5-6 calls with this standard
+  - root cause: German prompt "Legen Sie einen Festpreis fest" = "set a fixed price" was misread as "create"
+  - LESSON: project/customer/PM ALWAYS exist for this task shape; ALWAYS use GET /project first
+- sandbox verification on 2026-03-21 (post-run c9831f7e) confirmed direct `POST /invoice` path:
+  - update-needed: 5 calls; skip-PUT: 3 calls; both returned `amountExcludingVatCurrency=96541.5` with `projectInvoiceDetails=1`
+  - canonical call counts with `POST /invoice`: skip-PUT = **3**, update-needed+configured = **5**, update-needed+missing = **6**
 
 ## Minimal Safe Flow
 
