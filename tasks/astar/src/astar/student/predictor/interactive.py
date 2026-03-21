@@ -345,10 +345,14 @@ def build_online_predictor(
         workspace_paths = paths or WorkspacePaths.from_root(".")
         # Parse weight from model name: greybox_stacked_w25 -> 0.25
         weight = 0.5  # default
+        use_hybrid = "hybrid" in normalized
         if "_w" in normalized:
             try:
-                w_str = normalized.split("_w")[-1]
-                weight = int(w_str) / 100.0
+                # Extract numeric part after _w, before any other _
+                parts = normalized.split("_w")
+                w_part = parts[-1].split("_")[0] if parts[-1] else ""
+                if w_part.isdigit():
+                    weight = int(w_part) / 100.0
             except (ValueError, IndexError):
                 pass
         predictor = GreyboxStackedPredictor.fit_from_workspace(
@@ -358,6 +362,7 @@ def build_online_predictor(
             samples_per_round=samples_per_round,
             cellknn_feature_weight=weight,
             model_name=normalized,
+            use_lowrank_hybrid=use_hybrid,
         )
         return RoundPredictorAdapter(
             predictor=predictor,

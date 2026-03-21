@@ -62,6 +62,8 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
     round_ids: tuple[str, ...] = ()
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     cellknn_feature_weight: float = Field(default=0.5, ge=0.0)
+    use_lowrank_hybrid: bool = Field(default=False)
+    lowrank_hybrid: object = Field(default=None)
 
     @classmethod
     def fit_from_workspace(
@@ -74,6 +76,7 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
         cellknn_feature_weight: float = 0.5,
         probability_floor: float = 0.01,
         model_name: str = "greybox_stacked_v01",
+        use_lowrank_hybrid: bool = False,
     ) -> GreyboxStackedPredictor:
         selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
 
@@ -89,6 +92,17 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
             round_ids=list(selected_round_ids),
         )
 
+        # Optionally also fit the lowrank hybrid
+        lowrank_hybrid = None
+        if use_lowrank_hybrid:
+            from astar.student.predictor.greybox_regime import GreyboxLowRankQueryResidualHybridPredictor
+            lowrank_hybrid = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
+                paths,
+                round_ids=list(selected_round_ids),
+                policy_name=policy_name,
+                samples_per_round=samples_per_round,
+            )
+
         return cls(
             name=model_name,
             query_residual=qr,
@@ -96,6 +110,8 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
             round_ids=tuple(selected_round_ids),
             probability_floor=probability_floor,
             cellknn_feature_weight=cellknn_feature_weight,
+            use_lowrank_hybrid=use_lowrank_hybrid,
+            lowrank_hybrid=lowrank_hybrid,
         )
 
     def _predict_stacked(
@@ -140,19 +156,35 @@ class GreyboxStackedPredictor(BaseRoundPredictor):
                 per_seed_counts[seed_index], per_seed_total[seed_index],
             )
 
-        # Combine: weighted blend of QR and CellKNN
+        # Optionally get lowrank hybrid prediction
+        hyb_bundle = None
+        if self.use_lowrank_hybrid and self.lowrank_hybrid is not None:
+            hyb_derived = _derive_transcript_features_from_stats(
+                round_detail,
+                features,
+                self.lowrank_hybrid.lowrank_predictor.base_predictor.build_prediction_bundle(round_detail, features),
+                per_seed_stats,
+                blur_sigmas=self.query_residual.blur_sigmas,
+            )
+            hyb_bundle = self.lowrank_hybrid._predict_from_derived(round_detail, features, hyb_derived)
+
+        # Combine: weighted blend of base + CellKNN
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
-            qr_pred = np.asarray(qr_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            # Use lowrank hybrid if available, otherwise pure QR
+            if hyb_bundle is not None:
+                base_pred = np.asarray(hyb_bundle.predictions_by_seed[seed_index], dtype=np.float64)
+            else:
+                base_pred = np.asarray(qr_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             cknn_pred = cknn_preds[seed_index]
 
-            # Use cellknn logits as additive correction to QR logits
-            qr_logits = _safe_log_probs(qr_pred, self.probability_floor)
+            # Blend in logit space
+            base_logits = _safe_log_probs(base_pred, self.probability_floor)
             cknn_logits = _safe_log_probs(cknn_pred, self.probability_floor)
 
             # Weighted blend in logit space
             blended_logits = (
-                (1.0 - self.cellknn_feature_weight) * qr_logits
+                (1.0 - self.cellknn_feature_weight) * base_logits
                 + self.cellknn_feature_weight * cknn_logits
             )
             blended = softmax_logits(blended_logits)
