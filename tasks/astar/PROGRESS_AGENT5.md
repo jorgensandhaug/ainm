@@ -335,6 +335,67 @@
   - implication:
     - if the launched `anchor=0.35` full-8 runs underperform, the next immediate branch should be an explicit `anchor=0.55 scale=0.10` variant
 
+### 2026-03-21T12:06:00Z
+
+- Full official 8-round bayesfamily results harvested for the first conservative variants:
+  - `agent5_bayesfamily_anchor35_scale10_explorationr3_online50_v02`
+    - mean score `73.1711`
+    - mean weighted KL `0.106471`
+  - `agent5_bayesfamily_anchor35_scale30_explorationr3_online50_v03`
+    - mean score `73.0319`
+    - mean weighted KL `0.107299`
+  - `agent5_bayesfamily_anchor35_scale10_coverage_online50_v02`
+    - mean score `74.0909`
+    - mean weighted KL `0.102028`
+  - `agent5_bayesfamily_anchor35_scale30_coverage_online50_v03`
+    - mean score `74.1359`
+    - mean weighted KL `0.101826`
+- Interpretation:
+  - for this family, `coverage` clearly beats `exploration_r3`
+  - `anchor35_scale30` is slightly best among the tested official variants
+  - still below current overall lead:
+    - `74.1359` vs `75.1931`
+  - biggest persistent drag remains `f1dac...`
+  - `36e581...` also still unstable under stronger likelihood settings
+- Updated hard-slice sweep now fully complete:
+  - `anchor=0.35 scale=0.10` -> mean `66.8378`
+  - `anchor=0.35 scale=0.30` -> mean `66.4933`
+  - `anchor=0.35 scale=0.60` -> mean `66.4970`
+  - `anchor=0.55 scale=0.10` -> mean `67.0853`
+  - `anchor=0.55 scale=0.30` -> mean `66.4888`
+  - `anchor=0.55 scale=0.60` -> mean `66.4969`
+- Decision from combined evidence:
+  - promote explicit next family member:
+    - `greybox_hazard_bayesfamily_anchor55_scale10_v04`
+  - rationale:
+    - best hard-slice result
+    - most likely path to move the full-8 bayesfamily branch upward
+    - test with `coverage` first priority, `exploration_r3` second priority
+- `v04` integration / validation:
+  - added explicit model name:
+    - `greybox_hazard_bayesfamily_anchor55_scale10_v04`
+  - `uv run python -m py_compile src/astar/student/predictor/greybox_hazard_bayesfamily.py src/astar/workflows/historical_benchmark.py src/astar/cli.py tests/test_historical_benchmark.py`
+    - passed
+  - `uv run --extra dev pytest tests/test_historical_benchmark.py -q`
+    - `21 passed in 59.72s`
+- Official full 8-round `v04` benchmarks launched:
+  - `agent5_bayesfamily_anchor55_scale10_coverage_online50_v04`
+    - model `greybox_hazard_bayesfamily_anchor55_scale10_v04`
+    - policy `coverage`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `91464`
+  - `agent5_bayesfamily_anchor55_scale10_explorationr3_online50_v04`
+    - model `greybox_hazard_bayesfamily_anchor55_scale10_v04`
+    - policy `exploration_r3`
+    - `samples_per_round=4`
+    - `budget=50`
+    - `episode_seed=0`
+    - `jobs=6`
+    - session `64264`
+
 ### 2026-03-21T11:32:00Z
 
 - Re-read handoff hypotheses again, especially:

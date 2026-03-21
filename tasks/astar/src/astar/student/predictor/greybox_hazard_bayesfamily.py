@@ -49,6 +49,11 @@ _BAYES_FAMILY_VARIANTS: dict[str, dict[str, float | str]] = {
         "global_anchor_weight": 0.35,
         "likelihood_scale": 0.30,
     },
+    "greybox_hazard_bayesfamily_anchor55_scale10_v04": {
+        "model_name": "greybox_hazard_bayesfamily_anchor55_scale10_v04",
+        "global_anchor_weight": 0.55,
+        "likelihood_scale": 0.10,
+    },
 }
 
 
