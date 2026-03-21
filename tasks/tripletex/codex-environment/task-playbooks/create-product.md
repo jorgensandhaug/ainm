@@ -43,6 +43,11 @@ Fresh-account production verification on 2026-03-21 showed:
 - scored 2/2 (perfect correctness + efficiency), confirming that the 2-call path is optimal and no 1-call shortcut exists for explicit 0% VAT in fresh accounts
 - the category qualifier ("for newspapers", "for books", etc.) is cosmetic and does not affect VAT resolution
 
+Fresh-account production verification on 2026-03-21 also showed:
+- an exact "0% VAT for books" product-create task (`Livro de receitas` / `7946` / `18250 NOK sem IVA`) succeeded with the same 2-call path: `GET /ledger/vatType?typeOfVat=OUTGOING` resolved `id=5` for `0%`, then `POST /product` returned `priceIncludingVatCurrency=18250` and `vatType.id=5`
+- 2 calls, 0 errors, confirming the 2-call path is consistently optimal for explicit 0% VAT tasks
+- Portuguese `sem IVA` wording correctly maps to `priceExcludingVatCurrency` without needing any special handling
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
