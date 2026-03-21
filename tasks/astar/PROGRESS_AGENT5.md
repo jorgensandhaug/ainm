@@ -2537,9 +2537,50 @@
   - Much tighter round-to-round spread (64-83 vs 57-86)
   - Lower overall risk
 
-- **Next actions (ordered by expected impact)**:
-  1. Complete weight sweep to find optimal blend weight
-  2. Try adaptive blending (higher cellknn weight when regime looks hostile)
-  3. Add regime-hostility detection from transcript evidence
-  4. Build a direct model for hostile regimes
-  5. Push all results to remote
+### 2026-03-21T16:40:00Z
+
+- **NEW BEST MODEL FOUND**
+
+- Full 8-round weight sweep for stacked QR+CellKNN with exploration_r3:
+
+  | Weight | Mean Score | f1dac | 36e581 |
+  |--------|-----------|-------|--------|
+  | 0% (pure QR) | 75.19 | 57.40 | 66.20 |
+  | **15%** | **75.80** | 61.70 | 65.53 |
+  | **25%** | **75.77** | 63.26 | 65.45 |
+  | 35% | 75.44 | 64.63 | 65.10 |
+  | 50% | 75.12 | 66.95 | 64.20 |
+
+- **New overall lead: `greybox_stacked_w15` at 75.80 (vs 75.19 existing best)**
+  - Delta: **+0.61 points** over previous best
+  - f1dac improvement: **+4.30 points** (57.40 → 61.70)
+  - Improvement on 4 of 8 rounds
+  - Best individual round: 85.37 (8e8399)
+  - Worst individual round: 61.70 (f1dac, improved from 57.40)
+
+- Per-round comparison vs old best:
+
+  | Round | Old Best | New Best (w15) | Delta |
+  |-------|---------|---------------|-------|
+  | 36e581 | 66.20 | 65.53 | -0.67 |
+  | 71451d | 79.39 | 81.11 | +1.72 |
+  | 76909e | 83.20 | 83.07 | -0.13 |
+  | 8e8399 | 86.17 | 85.37 | -0.80 |
+  | ae7800 | 78.88 | 76.55 | -2.33 |
+  | c5cdf | 71.50 | 73.59 | +2.09 |
+  | f1dac | 57.40 | 61.70 | +4.30 |
+  | fd3c92 | 78.38 | 79.47 | +1.09 |
+  | **Mean** | **75.19** | **75.80** | **+0.61** |
+
+- Model architecture:
+  - query_residual provides parametric base prediction with rich features
+  - cellknn_perround provides non-parametric prediction from full replay terminal probability maps
+  - blended in logit space with 15% cellknn weight
+  - exact-cell blending re-applied after blend
+
+- **Next actions**:
+  1. Try finer weight sweep around 0.10-0.20 range
+  2. Try coverage policy (old best used exploration_r3)
+  3. Try higher samples_per_round for QR component
+  4. Try adaptive weighting based on regime hostility detection
+  5. Explore further improvements to cellknn features
