@@ -273,7 +273,19 @@ To break through 78.4, we need fundamentally different modeling approaches.
 | glmm_dt_ensemble_v001 (15% DT) | 79.60 | 0.081 | +1.22 | 51.71 |
 | glmm_dt_ensemble_v004 (10% DT) | 79.24 | 0.083 | +0.86 | 50.88 |
 
-The ensemble works because GLMM excels on normal rounds (93 score) while the direct terminal predictor handles hard/novel rounds better (59 vs 49). The 35% blend optimizes this tradeoff.
+The ensemble works because GLMM excels on normal rounds (93 score) while the direct terminal predictor handles hard/novel rounds better (59 vs 49).
+
+### Extended sweep (higher DT weights + low probability floor)
+
+| Variant | DT weight | Floor | Score | Worst Round |
+|---------|-----------|-------|-------|-------------|
+| **v008** | **50%** | **3e-4** | **80.87** | **56.32** |
+| v007 | 50% | default | 80.84 | 56.30 |
+| v006 | 45% | default | 80.81 | 55.77 |
+| v005 | 40% | default | 80.72 | 55.19 |
+| v003 | 35% | default | 80.59 | 54.57 |
+
+Optimum at 50% DT weight with low floor. Low floor adds only +0.03 - our floor was already near optimal.
 
 ## Additional Results (Phase 3)
 
