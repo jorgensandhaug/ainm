@@ -85,6 +85,15 @@ from astar.student.predictor.summary_birth_hybrid_specs import (
 from astar.student.predictor.summary_bank_decoder_specs import (
     supported_summary_bank_decoder_model_names,
 )
+from astar.student.predictor.summary_rate_decoder_specs import (
+    supported_summary_rate_decoder_model_names,
+)
+from astar.student.predictor.summary_roundlaw_specs import (
+    supported_summary_roundlaw_model_names,
+)
+from astar.student.predictor.summary_roundlaw_decoder_specs import (
+    supported_summary_roundlaw_decoder_model_names,
+)
 from astar.student.predictor.summary_bank_specs import supported_summary_bank_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
@@ -147,6 +156,9 @@ def build_parser() -> argparse.ArgumentParser:
         *supported_query_residual_birth_blend_model_names(),
         *supported_summary_birth_hybrid_model_names(),
         *supported_summary_bank_decoder_model_names(),
+        *supported_summary_rate_decoder_model_names(),
+        *supported_summary_roundlaw_model_names(),
+        *supported_summary_roundlaw_decoder_model_names(),
         *supported_summary_bank_model_names(),
         *supported_query_residual_model_names(),
     ]

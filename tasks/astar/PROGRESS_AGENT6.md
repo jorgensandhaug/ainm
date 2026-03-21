@@ -63,6 +63,10 @@
    - first benchmarkable hand-built event-regime heuristic has now been tried and rejected
    - next missing piece is a learned or teacher-backed collapse posterior, plus memory-safe dataset building
    - only after that revisit low-rank coupling / live regime inference
+5. Current turn pivot:
+   - stop iterating on `query_residual` as mainline
+   - implement handoff sections 23-24 directly: fit per-round decoder laws `beta_r`, then infer those laws from transcript summaries
+   - treat old regime posterior only as optional auxiliary feature source, not the main target
 
 ## Active Experiment
 
@@ -115,6 +119,8 @@
 - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=10__episode_seed=0__baseline=latent_regime__candidate=f1_event_regime_v01.json`
 - `src/astar/student/predictor/query_residual.py`
 - `src/astar/student/predictor/interactive.py`
+- `src/astar/student/predictor/summary_roundlaw_decoder.py`
+- `src/astar/student/predictor/summary_roundlaw_decoder_specs.py`
 - `src/astar/history/datasets/event_ledger.py`
 - `src/astar/history/datasets/hazard_riskset.py`
 - `src/astar/history/datasets/synthetic_live.py`
@@ -125,6 +131,7 @@
 - `src/astar/workflows/markov_sufficiency.py`
 - `src/astar/workflows/round_dynamics_lowrank.py`
 - `src/astar/cli.py`
+- `tests/test_summary_roundlaw_decoder_predictor.py`
 
 ## Running Log
 
@@ -218,6 +225,126 @@
   - build target dominates mismatch
   - build log-loss: mean baseline `0.435386`, oracle `0.337201`, rank5 `0.385463`
   - port log-loss improves more cleanly: `0.039670 -> 0.032287` oracle, rank5 `0.033839`
+
+### 2026-03-21 UTC
+
+- Re-read `README.md`, `docs/game_facts.md`, and `instructions/agent6.md`.
+- Re-checked machine health before new heavy work:
+  - memory: about `2.7 TiB` available
+  - cores: `384`
+  - load average: about `20.60 / 7.50 / 7.51`
+  - other agents are actively using the box:
+    - agent1 historical benchmark around `18.9 GB` RSS
+    - agent4 multiprocessing workers around `10-12 GB` RSS each for several processes
+  - conclusion: plenty of headroom remains, but parallelism should still stay load-aware
+- Reconfirmed `br` still unavailable in this shell.
+- User explicitly redirected work away from `query_residual` as mainline and toward the handoff's new-family path.
+- Implemented new benchmarkable family model:
+  - predictor: `src/astar/student/predictor/summary_roundlaw_decoder.py`
+  - immutable specs: `src/astar/student/predictor/summary_roundlaw_decoder_specs.py`
+  - model family thesis:
+    - fit one per-round decoder law vector `beta_r` from held-in analyses
+    - infer `beta_r` directly from synthetic-live transcript summaries via kNN
+    - optionally add old summary-bank teacher logits only as decoder features
+    - optional low-rank law-bank compression via SVD coordinates
+- Wired model end-to-end:
+  - `src/astar/student/predictor/interactive.py`
+  - `src/astar/workflows/historical_benchmark.py`
+  - `src/astar/cli.py`
+- Added regression coverage:
+  - `tests/test_summary_roundlaw_decoder_predictor.py`
+- Initial validation:
+  - `uv run pytest tests/test_summary_roundlaw_decoder_predictor.py -q`
+  - result: `3 passed`
+- Next immediate step:
+  - run broader regression slice
+  - then benchmark smoke variants in parallel:
+    - `f1_summary_roundlaw_decoder_v01`
+    - `f1_summary_roundlaw_decoder_teacher_v01`
+- Discovered additional in-worktree roundlaw branch already present but untracked:
+  - predictor: `src/astar/student/predictor/summary_roundlaw.py`
+  - specs: `src/astar/student/predictor/summary_roundlaw_specs.py`
+  - tests: `tests/test_summary_roundlaw_predictor.py`
+  - helper diff already present in `src/astar/teacher/dynamics/hazard_teacher.py`:
+    - `predict_from_coefficients(...)`
+  - this branch infers semimechanistic `HazardTeacher` coefficient vectors from transcript summaries
+- Old roundlaw branch artifacts already present in workspace and now explicitly read/validated:
+  - `tmp_f1_summary_roundlaw_v01_probe3_current`: score `58.3306`, KL `0.186266`
+  - `tmp_f1_summary_roundlaw_k1_v01_probe3_current`: score `56.3089`, KL `0.198834`
+  - paired vs `supportx_v01`:
+    - `f1_summary_roundlaw_v01`: delta `-14.5869`, KL `+0.080570`, win `0.000`
+    - `f1_summary_roundlaw_k1_v01`: delta `-16.6085`, KL `+0.093138`, win `0.000`
+  - conclusion: old direct semimechanistic coefficient-bank line is a hard reject
+- New decoder-law branch results on current probe3:
+  - `tmp_f1_summary_roundlaw_decoder_v01_probe3_current`
+    - score `67.9159`
+    - KL `0.138430`
+    - runtime `83.618s`
+    - vs `supportx_v01`: delta `-5.0015`, KL `+0.032733`, win `0.533`
+    - pathology: very strong on round `4`, catastrophic on round `6`; target is unstable
+  - `tmp_f1_summary_roundlaw_decoder_teacher_v01_probe3_current`
+    - score `67.4569`
+    - KL `0.140407`
+    - runtime `416.208s`
+    - vs `supportx_v01`: delta `-5.4605`, KL `+0.034711`, win `0.400`
+    - vs plain decoder: delta `-0.4590`, KL `+0.001977`
+  - conclusion:
+    - teacher anchoring does not rescue the decoder-law target
+    - decoder-law branch is much better than old `summary_roundlaw`, but still rejected on probe3
+    - next meaningful experiment is not more 3-round smoke knobs; it is dev5 low-rank decoder evaluation where Phase 7 compression can actually matter
+- Dev5 Phase-7 compression result:
+  - `dev5_f1_summary_roundlaw_decoder_r3_v01_current_v01`
+    - score `71.2598`
+    - KL `0.116971`
+    - runtime `127.488s`
+    - vs current dev5 `supportx_v01`: delta `-4.9714`, KL `+0.024445`, win `0.280`, CI95 `[-10.0754, -0.3609]`
+  - interpretation:
+    - low-rank compression does improve relative to the raw old coefficient-bank family
+    - but it is still far from competitive on the first real multi-round Phase-7 test
+    - round `6` remains the dominant failure mode, though less catastrophic than the probe3 full-law decoder
+- Pruned dominated branch:
+  - started `dev5_f1_summary_roundlaw_decoder_teacher_r3_v01_current_v01`
+  - aborted after about `3m13s` elapsed and around `11 GB` RSS
+  - reason: plain `r3` was already strongly negative on dev5, and all lower-tier teacher-anchored predecessors were slower and worse; continuing the dominated teacher-`r3` branch was not iteration-efficient
+- New frontier read:
+  - full/semimechanistic round coefficient targets are now heavily tested and rejected:
+    - old direct `HazardTeacher` coefficient bank
+    - analysis-fitted full decoder-law bank
+    - analysis-fitted low-rank decoder-law bank on dev5
+  - next family move should target a smaller, more stable latent object than full coefficient vectors:
+    - phase-blocked targets
+    - event-rate / build-collapse block targets
+    - or another structured latent closer to the stable decoder-family gains already seen
+- Smaller latent target branch discovered in workspace and validated:
+  - code:
+    - `src/astar/student/predictor/summary_rate_decoder.py`
+    - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - `tests/test_summary_rate_decoder_predictor.py`
+  - target: round-level birth/collapse rate vector (`rates`) from `event_regime_posterior_audit` target frame
+- Rate-target smoke results:
+  - `tmp_f1_summary_rate_decoder_v01_probe3_current`
+    - score `69.6481`
+    - KL `0.128455`
+    - vs `supportx_v01`: delta `-3.2694`, KL `+0.022759`, win `0.533`, CI95 `[-11.4985, 4.2909]`
+  - `tmp_f1_summary_rate_decoder_teacher_v01_probe3_current`
+    - score `69.8840`
+    - KL `0.127767`
+    - vs `supportx_v01`: delta `-3.0335`, KL `+0.022071`, win `0.533`, CI95 `[-11.6082, 4.8019]`
+  - interpretation:
+    - rate-target branch is the best of the newly surfaced family-1 latent-target branches in this workspace
+    - teacher features help slightly here, unlike the full-law branch
+    - but it is still not close enough to current best to promote from smoke alone
+- Updated frontier after rate-target check:
+  - raw coefficient targets: dead
+  - full decoder-law targets: dead
+  - low-rank decoder-law targets: dead on dev5
+  - low-dimensional rate target: best surviving family branch so far, but still materially behind current best
+  - next best family move is likely:
+    - richer but still small structured targets, e.g. birth+collapse+port-split / phase-blocked latents
+    - not another full coefficient bank
+- Broader regression after folding in both roundlaw branches:
+  - `uv run pytest tests/test_summary_roundlaw_predictor.py tests/test_summary_roundlaw_decoder_predictor.py tests/test_summary_bank_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result: `21 passed`
   - ruin log-loss improves modestly: `0.069307 -> 0.061830` oracle, rank5 `0.062629`
 - Updated next-step read:
   - strongest next family-1 baseline should be event-hazard / event-ledger based, especially for build dynamics
@@ -2003,3 +2130,210 @@
   - specifically:
     - the decoder bottleneck is no longer hypothetical; learned decode gives a big family lift
     - but posterior/latent quality is still not good enough to beat the best current benchmarkable line
+
+## 2026-03-21 direct round-law pivot
+
+- Re-read required docs again at turn start:
+  - `instructions/agent6.md`
+  - `README.md`
+  - `docs/game_facts.md`
+- `br list` still unavailable in this environment:
+  - `/bin/bash: br: command not found`
+- Checked machine health before deciding parallelism:
+  - memory:
+    - `2.9 TiB` total
+    - about `232 GiB` used
+    - about `2.7 TiB` available
+  - cores:
+    - `384`
+  - load:
+    - about `20.6 / 7.5 / 7.5`
+  - other agent work observed:
+    - agent1 running `hazard_posterior_v2_k5_r3` benchmark at about `18.9 GB` RSS
+    - agent4 running many multiprocessing workers around `10-12 GB` RSS each plus smaller workers
+  - read:
+    - box has huge remaining headroom
+    - parallel experimentation should be aggressive but still aware of active large jobs
+- Re-read handoff sections 23-24 and inspected existing family code.
+- Important discovery:
+  - the repo already has a true Phase-6 style per-round coefficient object in:
+    - `src/astar/history/summaries/round_coefficients.py`
+    - `RoundSemimechanisticCoefficients.combined_vector()`
+  - plus existing cross-round manifold code in:
+    - `src/astar/history/summaries/manifold.py`
+  - plus an existing coefficient decoder in:
+    - `src/astar/teacher/dynamics/hazard_teacher.py`
+- New mainline decision:
+  - stop routing new family work through the old `regime_vector -> linear map -> coefficients` teacher path
+  - implement a direct `transcript summary -> coefficient vector / low-rank coefficient latent -> semimechanistic decoder` predictor
+  - this is much closer to the handoff’s Phase 6 / Phase 7 prescription than the old summary-bank teacher line
+- Pending implementation:
+  - add new direct round-law predictor family
+  - benchmark multiple variants in parallel on current smoke
+
+## 2026-03-21 round-law and rate-target results
+
+- New landed code this turn:
+  - direct semimechanistic coefficient-bank family:
+    - `src/astar/student/predictor/summary_roundlaw.py`
+    - `src/astar/student/predictor/summary_roundlaw_specs.py`
+    - `tests/test_summary_roundlaw_predictor.py`
+  - public coefficient decode hook:
+    - `src/astar/teacher/dynamics/hazard_teacher.py`
+      - added `predict_from_coefficients(...)`
+  - smaller event-rate latent decoder family:
+    - `src/astar/student/predictor/summary_rate_decoder.py`
+    - `src/astar/student/predictor/summary_rate_decoder_specs.py`
+    - `tests/test_summary_rate_decoder_predictor.py`
+  - wiring updated in:
+    - `src/astar/student/predictor/interactive.py`
+    - `src/astar/cli.py`
+    - `src/astar/workflows/historical_benchmark.py`
+- Also discovered pre-existing uncommitted round-law decoder work already in this workspace and treated it as current branch state instead of duplicating it:
+  - `src/astar/student/predictor/summary_roundlaw_decoder.py`
+  - `src/astar/student/predictor/summary_roundlaw_decoder_specs.py`
+  - `tests/test_summary_roundlaw_decoder_predictor.py`
+  - benchmarked it rather than stomping it
+- Validation:
+  - `uv run pytest tests/test_summary_rate_decoder_predictor.py tests/test_summary_roundlaw_predictor.py tests/test_summary_roundlaw_decoder_predictor.py tests/test_event_regime_posterior_audit.py tests/test_historical_benchmark.py tests/test_live_online.py -q`
+  - result:
+    - `21 passed`
+- Machine / execution notes while benchmarking:
+  - machine later got much busier than the initial snapshot:
+    - about `603 GiB` used
+    - about `2.3 TiB` still available
+    - load around `49 / 41 / 24`
+  - large concurrent runs observed from other agents:
+    - several `20-33 GB` jobs
+    - many active benchmark sweeps
+  - still enough headroom for several family smoke runs in parallel
+  - one accidental duplicate `f1_summary_rate_decoder_teacher_v01` benchmark process started under the same name; killed the extra copy to avoid wasting CPU and racing the artifact
+
+- Smoke results on the standard current 3-round slice:
+  - rounds:
+    - `8e839974-b13b-407b-a5e7-fc749d877195`
+    - `fd3c92ff-3178-4dc9-8d9b-acf389b3982b`
+    - `ae78003a-4efe-425a-881a-d16a39bca0ad`
+
+- `f1_summary_roundlaw_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_v01_probe3_current/result.json`
+  - result:
+    - mean score `58.3306`
+    - weighted KL `0.186266`
+    - wall `3:43.80`
+    - max RSS `10.02 GB`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_roundlaw_v01.json`
+    - score delta `-14.5869`
+    - KL delta `+0.080570`
+    - win rate `0.000`
+    - CI95 `[-21.1577, -9.2874]`
+
+- `f1_summary_roundlaw_k1_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_k1_v01_probe3_current/result.json`
+  - result:
+    - mean score `56.3089`
+    - weighted KL `0.198834`
+    - wall `4:13.60`
+    - max RSS `10.04 GB`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_roundlaw_k1_v01.json`
+    - score delta `-16.6085`
+    - KL delta `+0.093138`
+    - win rate `0.000`
+    - CI95 `[-23.1167, -11.1428]`
+
+- `f1_summary_roundlaw_decoder_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_v01_probe3_current/result.json`
+  - result:
+    - mean score `67.9159`
+    - weighted KL `0.138430`
+    - wall `1:28.41`
+    - max RSS `10.10 GB`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_roundlaw_decoder_v01.json`
+    - score delta `-5.0015`
+    - KL delta `+0.032733`
+    - win rate `0.533`
+    - CI95 `[-13.7531, 2.4689]`
+  - read:
+    - very strong on round 4
+    - catastrophic on round 6
+
+- `f1_summary_roundlaw_decoder_teacher_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_roundlaw_decoder_teacher_v01_probe3_current/result.json`
+  - result:
+    - mean score `67.4569`
+    - weighted KL `0.140407`
+    - wall `7:06.10`
+    - max RSS `13.73 GB`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_roundlaw_decoder_teacher_v01.json`
+    - score delta `-5.4605`
+    - KL delta `+0.034711`
+    - win rate `0.400`
+    - CI95 `[-14.0241, 2.4086]`
+  - paired compare vs plain roundlaw decoder:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_roundlaw_decoder_v01__candidate=f1_summary_roundlaw_decoder_teacher_v01.json`
+    - score delta `-0.4590`
+    - KL delta `+0.001977`
+    - win rate `0.467`
+    - CI95 `[-1.0353, 0.2429]`
+
+- `f1_summary_rate_decoder_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_v01_probe3_current/result.json`
+  - result:
+    - mean score `69.6481`
+    - weighted KL `0.128455`
+    - wall `1:24.76`
+    - paired compare vs `f1_student_query_residual_supportx_v01`:
+      - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_v01.json`
+      - score delta `-3.2694`
+      - KL delta `+0.022759`
+      - win rate `0.533`
+      - CI95 `[-11.4985, 4.2909]`
+  - read:
+    - clearly better than the raw coefficient-bank and full roundlaw targets
+    - still not close enough to promote
+
+- `f1_summary_rate_decoder_teacher_v01`
+  - artifact:
+    - `data/artifacts/benchmarks/tmp_f1_summary_rate_decoder_teacher_v01_probe3_current/result.json`
+  - result:
+    - mean score `69.8840`
+    - weighted KL `0.127767`
+    - wall `6:56.47`
+    - max RSS `16.77 GB`
+  - paired compare vs `f1_student_query_residual_supportx_v01`:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_student_query_residual_supportx_v01__candidate=f1_summary_rate_decoder_teacher_v01.json`
+    - score delta `-3.0335`
+    - KL delta `+0.022071`
+    - win rate `0.533`
+    - CI95 `[-11.6082, 4.8019]`
+  - paired compare vs plain rate decoder:
+    - `data/artifacts/comparisons/historical__mode=online_interactive__policy=coverage__budget=50__episode_seed=0__baseline=f1_summary_rate_decoder_v01__candidate=f1_summary_rate_decoder_teacher_v01.json`
+    - score delta `+0.2359`
+    - KL delta `-0.000689`
+    - win rate `0.933`
+    - CI95 `[-0.1542, 0.5030]`
+
+- Main read after this block:
+  - direct semimechanistic coefficient-bank target is dead
+  - full decoder-law target is better, but still too unstable and still collapses on round 6
+  - smaller event-rate latent is the best new family target found this turn
+  - teacher logits help a little on the smaller rate target, but not enough to close the gap
+  - persistent pattern:
+    - round 4 loves these new family decoders
+    - round 6 crushes them
+  - strongest interpretation:
+    - the family is not missing only a “better summary target”
+    - it is missing hidden collapse / winter / stress structure that the current decoders cannot represent
+- Best next family branch from here:
+  - build a smaller latent that explicitly separates collapse stress or winter-like common shock from birth/collapse rates
+  - do not spend more time on direct coarse coefficient banks
+  - do not pay dev5 for the current rate-target branch yet; the smoke deficit is still too large

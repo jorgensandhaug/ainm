@@ -344,3 +344,13 @@ class HazardTeacher(BaseModel):
             weights = weights / np.sum(weights)
             return np.tensordot(weights, stacked, axes=(0, 0))
         return self.terminal_tensor(seed, posterior.mean, n_rollouts=n_rollouts)
+
+    def predict_from_coefficients(
+        self,
+        seed: SeedLike,
+        coefficient_vector: np.ndarray,
+    ) -> np.ndarray:
+        return self._decode_terminal_tensor(
+            seed,
+            np.asarray(coefficient_vector, dtype=np.float64),
+        )
