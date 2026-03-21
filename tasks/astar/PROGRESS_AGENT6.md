@@ -4242,6 +4242,141 @@
 5. supportx_v01: 76.23
 6. baseline query_residual: 75.97
 
+---
+
+## DETAILED EXPLANATION OF BEST MODEL: `f1_ensemble_hv2_sx_50_v01`
+
+### What is it?
+A **geometric-mean ensemble** of two complementary prediction models, each capturing different aspects of the simulation dynamics. During online prediction, both models independently predict the year-50 per-cell class probability distribution, and their predictions are combined via geometric averaging in log-probability space.
+
+### Architecture Overview
+
+```
+Live Transcript (50 queries) ─┬─→ [HazardPosteriorV2]     ─→ P₁(class|cell)  ─┐
+                               │                                                 │→ geometric_mean → Final P(class|cell)
+                               └─→ [QueryResidual+Supportx] ─→ P₂(class|cell) ─┘
+```
+
+### Component 1: `f1_hazard_posterior_v2_k5_r3_v01` (HazardTeacherV2 + kNN posterior)
+
+**What it does:** Captures the *global round regime* - the hidden parameters that determine how the simulation behaves this round (e.g., how aggressive are winter events? how fast do settlements grow?).
+
+**How it works, step by step:**
+
+1. **Offline: Per-round coefficient fitting** (`round_coefficients_v2.py`):
+   - For each historical round, fit a semimechanistic linear model from 27 spatial features (buildable, coast, settlement proximity, forest density, etc. + interactions like `coast × settlement_proximity`) to terminal year-50 class probabilities
+   - Uses entropy-weighted ridge regression on all replay-backed terminal distributions
+   - Output: one coefficient vector `β_r` per round (dimension ~130)
+
+2. **Offline: SVD compression** (`hazard_teacher_v2.py`):
+   - Stack all per-round coefficient vectors into a matrix
+   - Compute SVD to find the low-rank structure
+   - With `latent_rank=3`, compress each round's behavior into a 3D latent vector `z_r`
+   - This captures the key axes of variation between rounds (e.g., "aggressive winter" vs "peaceful growth")
+
+3. **Offline: Summary bank construction**:
+   - Generate synthetic live transcripts (4 per round) using the coverage query policy
+   - For each transcript, extract a summary vector (observed class frequencies, settlement stats, etc.)
+   - Build a kNN bank mapping summary vectors → round regime latent vectors
+   - Fit a ridge regression: `summary_vector → regime_latent` for a smooth predicted mean
+
+4. **Online: Regime inference**:
+   - Extract summary vector from the live transcript observations
+   - Predict regime mean via ridge regression
+   - Find k=5 nearest neighbors in the summary bank
+   - Blend: 70% weight on ridge prediction + 30% on kNN neighbor particles
+   - Output: posterior over `z_r` (3D regime latent)
+
+5. **Online: Terminal tensor decode**:
+   - Given regime posterior particles and weights
+   - For each particle, map `z_r → β_r` via the SVD basis
+   - Decode `β_r → P(year50_class | cell)` via the spatial feature linear model
+   - Weight-average across particles
+
+**Why this architecture?**
+- The V2 coefficient fitting uses 27 rich spatial features with interactions, capturing how different cell types behave differently across rounds
+- SVD compression enforces that cross-round variation is low-dimensional, which is crucial because we only have ~8 historical rounds
+- Ridge-projected regime prediction generalizes better than pure kNN for novel rounds
+- The particle blend gives a proper posterior predictive, not just a point estimate
+
+**Key parameters:**
+- `latent_rank=3`: 3D regime captures most cross-round variation
+- `k_neighbors=5`: 5 nearest transcript matches for regime particles
+- `ridge_alpha=32.0`: moderate regularization for summary→regime projection
+- `predicted_particle_weight=0.7`: trust the smooth ridge prediction more than raw kNN
+
+### Component 2: `f1_student_query_residual_supportx_v01` (QueryResidual + Support)
+
+**What it does:** Captures *local per-cell evidence* from the actual live transcript observations. Where the hazard posterior captures global round behavior, query_residual captures what the specific queried cells reveal about their neighborhoods.
+
+**How it works:**
+
+1. **Offline: Historical bucket prior** (`historical_bucket.py`):
+   - For each cell, compute P(year50_class) based on initial terrain type + settlement proximity + geometry
+   - This is a coarse prior that doesn't know the specific round regime
+
+2. **Offline: Teacher model**:
+   - Fit a `HazardTeacher` that maps round regime vectors to per-cell terminal law coefficients
+   - Provides teacher-predicted terminal distributions
+
+3. **Offline: Residual training**:
+   - Generate synthetic live transcripts
+   - For each transcript observation, compute the residual between true year-50 distribution and prior prediction
+   - Train a linear model to predict these residuals from local query-derived features:
+     - Per-seed observed class counts (Gaussian-blurred for spatial spread)
+     - Regime vector derived from transcript summary
+     - Support-weighted residual channels (trust residual more where coverage is high)
+
+4. **Online: Per-cell residual prediction**:
+   - Observe live transcript cells
+   - Compute local evidence features from observed cells
+   - Predict per-cell residual corrections via the trained linear model
+   - Apply corrections to the historical bucket prior
+   - Blend with teacher prediction (12% teacher weight)
+
+**Why this architecture?**
+- Directly uses live-observed cells as evidence about nearby cell fates
+- The Gaussian blur propagates observed cell information to unobserved neighbors
+- The support-weighted channels tell the model "trust this residual more here because we observed nearby cells"
+- The `supportx` variant specifically adds interaction terms between support/reliability and residual estimates
+
+**Key parameters:**
+- `probability_floor=0.01`: prevents zero probabilities
+- `teacher_blend=0.12`: small teacher prior contribution
+- `signal_scale=0.35`: controls residual prediction magnitude
+- `feature_variant=v8_supportxbase`: includes support-weighted residual interaction channels
+
+### The Ensemble Blend
+
+**How blending works:**
+```python
+# For each cell (y, x) and each class c:
+log_blend = 0.5 * log(P_hazard[y,x,c]) + 0.5 * log(P_qr[y,x,c])
+P_final[y,x,c] = softmax(log_blend)  # renormalize
+```
+
+**Why geometric mean (not arithmetic)?**
+- Geometric mean in probability space is equivalent to additive blending in log-probability space
+- It respects the KL-divergence scoring metric better (KL operates in log-probability space)
+- It's more conservative: if either model assigns very low probability to a class, the ensemble also assigns low probability
+- On dev5, geometric mean (79.57) slightly outperforms arithmetic mean (79.48)
+
+**Why 50/50 weight?**
+- Exhaustive sweep showed 50/50 is optimal (tested 30/70, 40/60, 45/55, 50/50, 55/45, 60/40, 70/30)
+- The two components are roughly equally informative but on different axes
+- Hazard captures global regime ↔ Query residual captures local evidence
+- Neither dominates the other; equal blending maximizes their complementarity
+
+### Why the ensemble works so well (+3.6 points)
+The key insight is **information complementarity**:
+- HazardPosteriorV2 is best at predicting cells *far from queried locations* because it infers the global round regime
+- QueryResidual is best at predicting cells *near queried locations* because it uses the actual observed cells as evidence
+- Neither model alone has both signals; the ensemble gets both
+
+This explains why the improvement is so large (72.9 → 79.6 on dev5): each model contributes information the other fundamentally cannot access.
+
+---
+
 ### Summary of all new approaches tried this session:
 | Approach | Best Score (probe3) | Status |
 |----------|-------------------|--------|
