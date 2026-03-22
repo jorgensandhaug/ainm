@@ -3684,6 +3684,25 @@ This is because the model is trained on ground truth distributions (hundreds of 
 - Model+replay blending: killed after 8+ hours (too complex for marginal gain)
 - aug=10 triple crossseed: killed after 8+ hours (too complex for marginal gain)
 
+### 2026-03-22T10:30Z — TRAJECTORY FEATURES: NEW ALL-TIME BEST 89.64!
+
+Added temporal dynamics features from full 51-frame replay trajectories:
+- Early/mid/late change rates per cell
+- Growth acceleration (late - early change)
+- Settlement growth trajectory
+- Cross-trajectory variance
+- Global temporal statistics
+
+| Model | ev | Score | vs prev best |
+|-------|-----|-------|-------------|
+| **Trajectory triple** | **15** | **89.64** | **+1.37** |
+| **Trajectory triple** | **1** | **85.78** | **+0.07** |
+| Triple crossseed | 30 | 88.67 | prev best |
+| Triple crossseed | 1 | 85.71 | prev ev1 best |
+
+**89.64 is the NEW ALL-TIME BEST across ALL agents!**
+Per-round scores: c5cdf100=95.33, 76909e=94.55, 8e8399=94.29, fd3c92=90.76
+
 ### Architecture is fully exhausted
 
 We have systematically explored:
