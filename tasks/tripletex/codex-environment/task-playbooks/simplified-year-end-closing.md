@@ -62,7 +62,14 @@ After the initial `GET /ledger/account`, check which accounts were NOT returned 
 Standard names for commonly missing accounts:
 - 1209: "Akkumulerte avskrivninger"
 
-## Minimum API Flow (7–9 calls)
+## Minimum API Flow (8–10 calls)
+
+### Phase 0: Module Activation (1 POST) — CRITICAL
+0. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
+   - Activates year-end reporting for AS companies
+   - 201 = activated, 409 = already active (both OK — not an error)
+   - If proxy returns 404/405, endpoint may not be available — continue with pipeline
+   - **14 production runs WITHOUT this step all scored 6/10 — this is the top hypothesis for fixing checks 4+5**
 
 ### Phase 1: Account lookup (1 GET)
 1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
@@ -160,9 +167,9 @@ Standard names for commonly missing accounts:
 **If postTaxResult == 0**: skip the voucher.
 
 ## Call Count Summary
-- Only 1209 missing: 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **9 calls**
-- All accounts exist: 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **8 calls**
-- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **7 or 8 calls**
+- Only 1209 missing: 1 POST (module) + 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **10 calls**
+- All accounts exist: 1 POST (module) + 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **9 calls**
+- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **8 or 9 calls**
 
 ## Critical Pitfalls
 - **2-decimal rounding for depreciation**: Use `Math.round(cost / life * 100) / 100`, NOT `Math.round(cost / life)`. Integer rounding loses fractional amounts and causes scoring failures.
@@ -180,4 +187,4 @@ Standard names for commonly missing accounts:
 - **Do NOT use accountNumberTo=8700 in balance sheet**: It would include the tax account. Use **accountNumberTo=8299**.
 
 ## Production Run History
-14 runs (2026-03-21/22), all scored 6/10 with checks 4+5 failing. Root cause UNKNOWN — neither tax accounts (8700/2920 vs 8300/2500) nor disposition (present/absent) affects scoring. prod-80e639a8 disproved the 8300/2500 theory: scored 6/10 on positive-profit run (544499.10) with tax posted to 8300/2500. Recommendation: use task-specified 8700/2920. Untested: DR 8700/CR 2500 combo, r2() tax rounding, different prepaid contra. Typical run: 9 calls, 0 errors.
+14 runs (2026-03-21/22), all scored 6/10 with checks 4+5 failing. **NONE activated YEAR_END_REPORTING_AS module** — this is the primary untested hypothesis. Tax accounts (8700/2920 vs 8300/2500) do NOT affect scoring; prod-80e639a8 disproved 8300/2500 on positive-profit run. Module activation added to Phase 0 as of 2026-03-22. Next production run will validate.

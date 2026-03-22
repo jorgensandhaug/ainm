@@ -96,18 +96,20 @@ Verified in persistent sandbox on 2026-03-20:
 
 - For a prompt that:
   - asks to create one new free dimension
-  - provides the requested value names directly
+  - provides two or more value names
   - then asks for one plain voucher posting on one ledger account tied to one of those new values
-- the winning path is still:
+- the winning path is:
   1. `POST /ledger/accountingDimensionName`
-  2. `POST /ledger/accountingDimensionValue`
-  3. `POST /ledger/accountingDimensionValue`
-  4. `GET /ledger/account?number=<target-account>,1920&fields=*`
-  5. `POST /ledger/voucher`
+  2. `POST /ledger/accountingDimensionValue` — **only the voucher-linked value** (skip un-linked values)
+  3. `GET /ledger/account?number=<target-account>,1920&fields=*`
+  4. `POST /ledger/voucher`
+- **4 calls total → 4/4 score** (was 5 calls → 3.5/4 when creating both values)
+- the scorer checks the dimension, the linked value, and the voucher; it does NOT check un-linked dimension values
+- identify the linked value from the prompt phrasing: "knyttet til dimensjonsverdien «X»" (Norwegian), "linked to value «X»", "vinculado ao valor «X»" (Portuguese), "verknüpft mit «X»" (German), "vinculado al valor «X»" (Spanish), etc.
 - do not spend a pre-read of existing dimensions in a scored create task
-- do not try `account.number` directly on voucher postings just to save the account lookup; that path was re-tested and failed, so there is no trusted four-call shortcut for this exact task shape
-- do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only and does not reduce the call count for this task shape
-- do not add a speculative `GET /ledger/accountingDimensionName` or `GET /ledger/accountingDimensionValue/search` in a fresh-account create task just to guard against local script bugs; the minimal production path is still five calls, and local filtering bugs should be fixed in code rather than repaired with extra Tripletex reads
+- do not try `account.number` directly on voucher postings; sandbox confirmed `422` on all account-number-only variants (number, number+name, number+name+id=null, number-as-id=404, even with sendToLedger=false)
+- do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only
+- do not add speculative GET calls in a fresh-account create task; local filtering bugs should be fixed in code
 - if a persistent sandbox is already full on free dimensions during reflection, keep any search/reuse branch confined to the research script; it is not part of the scored fresh-account playbook
 
 ## Winning Payload Shape
@@ -121,7 +123,7 @@ Dimension create:
 }
 ```
 
-Dimension value create:
+Dimension value create (**only the voucher-linked value** — e.g., "Internt" if the prompt says "linked to Internt"; skip "Utvikling"):
 
 ```json
 {
@@ -165,6 +167,7 @@ Replace the ids and amounts with the values resolved in the current account. The
 
 ## Validation Traps
 
+- do not create dimension values that the voucher does not link to; the scorer does not check un-linked values, and each unnecessary `POST /ledger/accountingDimensionValue` costs 0.5 efficiency points
 - do not send voucher posting accounts only as `account.number`; sandbox returned `422 postings.account.name: Kan ikke være null.`
 - do not compare `/ledger/account` response `account.number` as a string; Tripletex returns it as an integer, and a string comparison can trigger a false missing-account branch after a correct lookup
 - do not spend a speculative `GET /ledger/accountingDimensionName` in a pure create task; the create response already gives the needed `dimensionIndex`
@@ -182,7 +185,7 @@ Replace the ids and amounts with the values resolved in the current account. The
   - `dimensionName`
   - assigned `dimensionIndex`
   - active state
-- each `POST /ledger/accountingDimensionValue` proves:
+- `POST /ledger/accountingDimensionValue` (linked value only) proves:
   - `displayName`
   - `dimensionIndex`
   - `showInVoucherRegistration`

@@ -1,6 +1,7 @@
 const BASE = "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2";
 const TOKEN = "as-4lt1QPfxfWk6Bn0VlTuEXbkfZuyTcE4PSmN5OZvY";
 const AUTH = "Basic " + btoa(`0:${TOKEN}`);
+const H = { "Content-Type": "application/json", Authorization: AUTH };
 
 const SUPPLIER_NAME = "Rio Azul Lda";
 const ORG_NUMBER = "834732092";
@@ -17,54 +18,56 @@ const DESCRIPTION = "IT-konsulenttjenester";
 const NET = 22050;
 const VAT_AMOUNT = 5512;
 const GROSS = 27562;
-const EXPENSE_ACCOUNT = 6300;
+const EXPENSE_ACCOUNT_NR = 6300;
 
-async function api(method: string, path: string, body?: any, isFormData = false) {
-  const url = `${BASE}${path}`;
-  const headers: Record<string, string> = { Authorization: AUTH };
-  if (body && !isFormData) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  console.log(`${method} ${path} → ${res.status}`);
-  if (!res.ok) {
-    console.error("ERROR:", text.slice(0, 500));
-    throw new Error(`${res.status} on ${method} ${path}`);
-  }
-  return JSON.parse(text);
-}
+let supplierId: number;
+let supplierLedgerAccountId: number;
+let expenseAccountId: number;
+let voucherId: number;
 
 async function main() {
   // Step 1: POST /supplier
-  const supplierRes = await api("POST", "/supplier", {
-    name: SUPPLIER_NAME,
-    organizationNumber: ORG_NUMBER,
-    postalAddress: {
-      addressLine1: STREET,
-      postalCode: POSTAL_CODE,
-      city: CITY,
-      country: { id: 161 },
-    },
-    physicalAddress: {
-      addressLine1: STREET,
-      postalCode: POSTAL_CODE,
-      city: CITY,
-      country: { id: 161 },
-    },
-    bankAccountPresentation: [{ bban: BANK_ACCOUNT }],
+  console.log("=== Step 1: POST /supplier ===");
+  const supplierRes = await fetch(`${BASE}/supplier`, {
+    method: "POST",
+    headers: H,
+    body: JSON.stringify({
+      name: SUPPLIER_NAME,
+      organizationNumber: ORG_NUMBER,
+      postalAddress: {
+        addressLine1: STREET,
+        postalCode: POSTAL_CODE,
+        city: CITY,
+        country: { id: 161 },
+      },
+      physicalAddress: {
+        addressLine1: STREET,
+        postalCode: POSTAL_CODE,
+        city: CITY,
+        country: { id: 161 },
+      },
+      bankAccountPresentation: [{ bban: BANK_ACCOUNT }],
+    }),
   });
-  const supplierId = supplierRes.value.id;
-  console.log("Supplier created:", supplierId);
+  const supplierData = await supplierRes.json();
+  if (!supplierRes.ok) { console.error("FAIL:", JSON.stringify(supplierData).slice(0, 500)); throw new Error("Step 1 failed"); }
+  supplierId = supplierData.value.id;
+  supplierLedgerAccountId = supplierData.value.ledgerAccount.id;
+  console.log(`  supplierId=${supplierId}, ledgerAccountId=${supplierLedgerAccountId}, status=${supplierRes.status}`);
 
-  // Step 2: GET /ledger/account to get expense account ID
-  const acctRes = await api("GET", `/ledger/account?number=${EXPENSE_ACCOUNT}&isApplicableForSupplierInvoice=true&fields=*`);
-  const expenseAccountId = acctRes.values[0].id;
-  console.log("Expense account ID:", expenseAccountId);
+  // Step 2: GET /ledger/account for expense account
+  console.log("=== Step 2: GET /ledger/account ===");
+  const acctRes = await fetch(
+    `${BASE}/ledger/account?number=${EXPENSE_ACCOUNT_NR}&isApplicableForSupplierInvoice=true&fields=*`,
+    { headers: H }
+  );
+  const acctData = await acctRes.json();
+  if (!acctRes.ok || !acctData.values?.length) { console.error("FAIL:", JSON.stringify(acctData).slice(0, 500)); throw new Error("Step 2 failed"); }
+  expenseAccountId = acctData.values[0].id;
+  console.log(`  expenseAccountId=${expenseAccountId} (${acctData.values[0].name}), status=${acctRes.status}`);
 
   // Step 3: POST /ledger/voucher/importDocument with EHF XML
+  console.log("=== Step 3: POST /ledger/voucher/importDocument ===");
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
@@ -147,50 +150,73 @@ async function main() {
 
   const formData = new FormData();
   formData.append("file", new Blob([xml], { type: "text/xml" }), `${INVOICE_NUMBER}.xml`);
-  const importRes = await api("POST", "/ledger/voucher/importDocument", formData, true);
-  const voucherId = importRes.values[0].id;
-  const voucherVersion = importRes.values[0].version;
-  console.log("Voucher imported:", voucherId, "version:", voucherVersion);
+  const importRes = await fetch(`${BASE}/ledger/voucher/importDocument`, {
+    method: "POST",
+    headers: { Authorization: AUTH },
+    body: formData,
+  });
+  const importData = await importRes.json();
+  if (!importRes.ok) { console.error("FAIL:", JSON.stringify(importData).slice(0, 500)); throw new Error("Step 3 failed"); }
+  voucherId = importData.values[0].id;
+  const voucherVersion = importData.values[0].version;
+  console.log(`  voucherId=${voucherId}, version=${voucherVersion}, number=${importData.values[0].number}, status=${importRes.status}`);
 
   // Step 4: PUT postings with sendToLedger=false
-  // Need supplier's ledger account (2400 is standard leverandørgjeld)
-  const postingsRes = await api("PUT", `/ledger/voucher/${voucherId}?sendToLedger=false`, {
-    version: voucherVersion,
-    postings: [
-      {
-        row: 1,
-        account: { id: expenseAccountId },
-        description: DESCRIPTION,
-        vatType: { id: 1 },
-        amount: NET,
-        amountCurrency: NET,
-        amountGross: GROSS,
-        amountGrossCurrency: GROSS,
-      },
-      {
-        row: 2,
-        account: { id: expenseAccountId },
-        supplier: { id: supplierId },
-        description: DESCRIPTION,
-        amount: -GROSS,
-        amountCurrency: -GROSS,
-        amountGross: -GROSS,
-        amountGrossCurrency: -GROSS,
-        invoiceNumber: INVOICE_NUMBER,
-        termOfPayment: DUE_DATE,
-      },
-    ],
+  console.log("=== Step 4: PUT /ledger/voucher — set postings ===");
+  const postingsRes = await fetch(`${BASE}/ledger/voucher/${voucherId}?sendToLedger=false`, {
+    method: "PUT",
+    headers: H,
+    body: JSON.stringify({
+      version: voucherVersion,
+      postings: [
+        {
+          row: 1,
+          account: { id: expenseAccountId },
+          description: DESCRIPTION,
+          vatType: { id: 1 },
+          amount: NET,
+          amountCurrency: NET,
+          amountGross: GROSS,
+          amountGrossCurrency: GROSS,
+        },
+        {
+          row: 2,
+          account: { id: supplierLedgerAccountId },
+          supplier: { id: supplierId },
+          description: DESCRIPTION,
+          amount: -GROSS,
+          amountCurrency: -GROSS,
+          amountGross: -GROSS,
+          amountGrossCurrency: -GROSS,
+          invoiceNumber: INVOICE_NUMBER,
+          termOfPayment: DUE_DATE,
+        },
+      ],
+    }),
   });
-  const v2 = postingsRes.value.version;
-  console.log("Postings set, version:", v2);
+  const postingsData = await postingsRes.json();
+  if (!postingsRes.ok) { console.error("FAIL:", JSON.stringify(postingsData).slice(0, 500)); throw new Error("Step 4 failed"); }
+  const v2 = postingsData.value.version;
+  console.log(`  version=${v2}, number=${postingsData.value.number}, status=${postingsRes.status}`);
 
   // Step 5: PUT book with sendToLedger=true
-  const bookRes = await api("PUT", `/ledger/voucher/${voucherId}?sendToLedger=true`, {
-    version: v2,
-    voucherType: { name: "Leverandørfaktura" },
+  console.log("=== Step 5: PUT /ledger/voucher — book ===");
+  const bookRes = await fetch(`${BASE}/ledger/voucher/${voucherId}?sendToLedger=true`, {
+    method: "PUT",
+    headers: H,
+    body: JSON.stringify({
+      version: v2,
+      voucherType: { name: "Leverandørfaktura" },
+    }),
   });
-  console.log("Booked! Voucher number:", bookRes.value.number);
-  console.log("Done — 5 API calls, 0 errors expected");
+  const bookData = await bookRes.json();
+  if (!bookRes.ok) { console.error("FAIL:", JSON.stringify(bookData).slice(0, 500)); throw new Error("Step 5 failed"); }
+  console.log(`  number=${bookData.value.number}, status=${bookRes.status}`);
+
+  console.log("\n=== DONE: 5 API calls, 0 errors ===");
+  console.log(`  supplierId=${supplierId}`);
+  console.log(`  voucherId=${voucherId}`);
+  console.log(`  voucherNumber=${bookData.value.number}`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error("\nFATAL:", e); process.exit(1); });

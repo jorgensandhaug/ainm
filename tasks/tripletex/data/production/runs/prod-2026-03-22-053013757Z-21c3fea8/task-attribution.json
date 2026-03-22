@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-053013757Z-21c3fea8",
+  "request_id": "40583356",
+  "prompt_raw": "Du har motteke ein arbeidskontrakt (sjaa vedlagt PDF). Opprett den tilsette i Tripletex med alle detaljar fraa kontrakten: personnummer, fodselsdato, avdeling, stillingskode, lonn, stillingsprosent og startdato.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T05:31:18Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T05:30:14.413Z",
+  "after_captured_at": "2026-03-22T05:31:49.343Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "19",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T05:31:49.347Z"
+}

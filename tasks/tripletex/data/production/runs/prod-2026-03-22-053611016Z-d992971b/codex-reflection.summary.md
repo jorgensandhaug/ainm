@@ -1,0 +1,1 @@
+Score reflection written. Perfect correctness (6/6 checks, 13/13 raw), 3.5/4.0 normalized — tied for leaderboard best on task 17. The 0.5 gap is a structural call-count penalty; 5 calls is the proven minimum. Nothing to change.

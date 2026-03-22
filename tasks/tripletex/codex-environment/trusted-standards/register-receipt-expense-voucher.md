@@ -22,9 +22,9 @@ These mistakes have caused 0/10 or partial scores in EVERY production run:
 
 1. **Missing `?sendToLedger=true`** → voucher stays DRAFT → scorer finds nothing → 0/10. ALWAYS use `POST /ledger/voucher?sendToLedger=true`.
 
-2. **NET amount used as GROSS** → wrong amountGross → 0/10. ALL task 22 receipts are NET-priced. You MUST multiply: `GROSS = NET_line × (1 + statutory_rate)`.
+2. **Multiplying receipt amounts** → wrong amountGross → Check 3 fails (7/10). Receipt line amounts ARE GROSS (VAT-inclusive). Use the receipt line amount directly as `amountGross`. Do NOT multiply by 1.25 or 1.12. Production run e89025d1 multiplied Tastatur 6900 × 1.25 = 8625 and failed Check 3. The correct amountGross is 6900.
 
-3. **vatType 1 (25%) on transport/accommodation** → wrong VAT treatment → Check 3 fails (7/10 instead of 10/10). Togbillett/Overnatting/Flybillett use vatType id=`12` (12% lav sats). GROSS = NET × 1.12, NOT × 1.25.
+3. **vatType 1 (25%) on transport/accommodation** → wrong VAT treatment → Check 3 fails. Togbillett/Overnatting/Flybillett use vatType id=`12` (12% lav sats) from the account's default.
 
 4. **Account 7360 for Kaffemøte** → wrong account → 0/10. Kaffemøte is a meeting expense (6860), NOT representation (7360).
 
@@ -36,7 +36,25 @@ These mistakes have caused 0/10 or partial scores in EVERY production run:
 
 8. **importDocument** → description/postings become immutable → unrecoverable. Use manual `POST /ledger/voucher`.
 
-9. **Omitting vatType on Branch B/C/D** → defaults to code 0 (no VAT) → Check 3 fails. Always send explicit `vatType: { id: <from account> }`.
+9. **Omitting vatType on Branch B/C/D** → defaults to code 0 (no VAT) → Check 3 fails. Always send explicit `vatType: { id: <from account response> }`.
+
+---
+
+## Receipt Amounts — CRITICAL
+
+**Receipt line amounts are GROSS (VAT-inclusive). Use the line amount directly as `amountGross`. Do NOT multiply.**
+
+The receipts show "herav MVA 25%: X" which means "of which VAT" — the VAT is ALREADY INCLUDED in the total and in each line price. Despite the coincidence that `total × 0.25 == stated_MVA`, this does NOT mean prices are NET.
+
+| Receipt line | amountGross to use | What NOT to do |
+|---|---|---|
+| Tastatur 6900 | **6900** | ~~6900 × 1.25 = 8625~~ (WRONG, failed Check 3) |
+| Togbillett 8750 | **8750** | ~~8750 × 1.12 = 9800~~ |
+| Kontorstoler 10800 | **10800** | ~~10800 × 1.25 = 13500~~ |
+| Kaffemøte 6600 | **6600** | ~~6600 × 1.25 = 8250~~ |
+| Forretningslunsj 13650 | **13650** | ~~13650 × 1.25 = 17062.50~~ |
+
+**Production evidence:** Run e89025d1 (Branch B, Tastatur 6900) used amountGross=8625 (6900×1.25) with correct vatType=1. Check 3 FAILED. The only possible cause is the wrong amount — scorer expects amountGross=6900.
 
 ---
 
@@ -44,42 +62,17 @@ These mistakes have caused 0/10 or partial scores in EVERY production run:
 
 Read the receipt line text from the prompt. Match to one of 4 branches:
 
-| Receipt line keyword | Branch | Account | VAT rate | GROSS (for NET receipt) |
+| Receipt line keyword | Branch | Account | VAT rate | vatType id |
 |---|---|---|---|---|
-| `Forretningslunsj`, `Kundemøte lunsj`, business lunch, customer entertainment | **A** | `7360` | 0% (vatLocked, no deduction) | NET × 1.25 |
-| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment/supplies, IT peripherals | **B** | `6540` | 25% incoming (vatType from acct) | NET × 1.25 |
-| `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12% incoming** (vatType id=`12`) | **NET × 1.12** |
-| `Kaffemøte`, coffee meeting, course, seminar, internal meeting | **D** | `6860` | 25% incoming (vatType id=`1`) | NET × 1.25 |
-
-### Why Branch C uses 12% not 25%
-The receipt says "MVA 25%" — but that is the aggregate across ALL items on the receipt. Norwegian passenger transport and accommodation have a **statutory VAT rate of 12%** (lav sats). The per-item rate for Togbillett is 12%, not 25%. Production run 3373fbc9 used 25% and failed Check 3.
+| `Forretningslunsj`, `Kundemøte lunsj`, business lunch, customer entertainment | **A** | `7360` | 0% (vatLocked, no deduction) | — (don't send) |
+| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment, IT peripherals | **B** | `6540` | 25% incoming | from account response |
+| `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12% incoming** (lav sats) | from account response (typically 12) |
+| `Kaffemøte`, coffee meeting, course, seminar, internal meeting | **D** | `6860` | 25% incoming | from account response (typically 1) |
 
 ### Why Kaffemøte is not representation
 Representation (7360) = external customer entertainment (Forretningslunsj, Kundemøte lunsj).
 Meeting expense (6860) = internal meetings, coffee meetings, courses, seminars (Kaffemøte).
 All 4 production runs using 7360 for Kaffemøte scored 0/10.
-
----
-
-## NET vs GROSS Detection — CRITICAL
-
-**All known task 22 receipts show NET prices (before VAT).**
-
-Detection algorithm:
-```
-IF receipt_total × 0.25 == stated_MVA   →  NET  →  GROSS = line × (1 + rate)
-IF receipt_total / 1.25 × 0.25 == stated_MVA  →  GROSS  →  use line amount directly
-```
-
-The rate depends on the branch:
-- Branch A/B/D: rate = 0.25 → GROSS = NET × 1.25
-- **Branch C: rate = 0.12 → GROSS = NET × 1.12** (statutory transport/accommodation rate)
-
-Worked example (Branch C, Togbillett):
-- Receipt total: 9300, stated MVA: 2325
-- Check: 9300 × 0.25 = 2325 ✓ → prices are NET
-- Togbillett line: 8750 (this is NET)
-- GROSS = 8750 × 1.12 = **9800** (NOT 8750 × 1.25 = 10937.50)
 
 ---
 
@@ -97,9 +90,8 @@ Worked example (Branch C, Togbillett):
 GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*),vatLocked
 ```
 - Extract `expenseAccountId`, `bankAccountId` (for 1920)
-- For Branch B/C/D: extract `vatType.id` from the expense account response
-- For Branch C (7140): the default `vatType.id` is typically `12` (12% lav sats). **Use this value as-is. Do NOT change it to 1.**
-- **No separate `GET /ledger/vatType` call needed** — the account's default is correct
+- For Branch B/C/D: extract `vatType.id` from the expense account response — use this directly, no separate GET /ledger/vatType needed
+- For Branch C (7140): the default `vatType.id` is typically `12` (12% lav sats). Use this value as-is.
 
 ### Call 3: Create and book the voucher
 ```
@@ -112,10 +104,10 @@ POST /ledger/voucher?sendToLedger=true
 - [ ] `account` uses `{ id: <id> }` (not number)
 - [ ] `department` uses `{ id: <id> }` (not name)
 - [ ] For B/C/D: `vatType: { id: <from account response> }` is present on expense posting
-- [ ] `amountGross` is the GROSS value (NET × multiplier), not the raw NET line amount
-- [ ] Bank posting `amountGross` is the negated GROSS
-- [ ] `date` is the receipt date
-- [ ] `description` is the receipt line text
+- [ ] **`amountGross` = the receipt line amount DIRECTLY — no multiplication**
+- [ ] Bank posting `amountGross` = negated receipt line amount
+- [ ] `date` = receipt date
+- [ ] `description` = receipt line text
 
 ### Call 4: Upload receipt attachment
 ```
@@ -123,8 +115,6 @@ POST /ledger/voucher/{voucherId}/attachment
 Content-Type: multipart/form-data
 Body: file=<receipt-file>
 ```
-- Use the receipt file from the prompt's attached files
-- Extract `attachmentId` from `response.value.attachment.id`
 
 ---
 
@@ -132,29 +122,27 @@ Body: file=<receipt-file>
 
 ### Branch A — Non-deductible representation (7360)
 - Account `7360` is `vatLocked=true` with VAT code 0 → do NOT send vatType
-- All 4 amount fields get the same GROSS value: `amount`, `amountCurrency`, `amountGross`, `amountGrossCurrency` = GROSS
-- Bank posting: all 4 amount fields = -GROSS
-- No auto-VAT posting (VAT code 0, company bears full cost)
+- All 4 amount fields = receipt line amount: `amount`, `amountCurrency`, `amountGross`, `amountGrossCurrency`
+- Bank posting: all 4 fields = negated receipt line amount
+- No auto-VAT posting
 
 ### Branch B — Deductible purchase (6540, 25%)
 - Send `vatType: { id: <from account> }` (typically id=`1`, 25% incoming) on expense posting
-- Send only `amountGross` + `amountGrossCurrency` on expense posting (Tripletex auto-computes `amount`)
-- Bank posting: `amountGross` + `amountGrossCurrency` = -GROSS
-- Tripletex auto-generates 3rd posting on `2710` (Inngående merverdiavgift, høy sats)
+- `amountGross` = `amountGrossCurrency` = receipt line amount
+- Tripletex auto-computes: `amount` = amountGross / 1.25 (net), plus 3rd posting on `2710`
+- Bank posting: `amountGross` = `amountGrossCurrency` = negated receipt line amount
 
 ### Branch C — Transport/accommodation (7140, 12%)
 - Send `vatType: { id: <from account> }` (typically id=`12`, 12% lav sats) on expense posting
-- **GROSS = NET × 1.12** (not × 1.25)
-- Send only `amountGross` + `amountGrossCurrency` on expense posting
-- Bank posting: `amountGross` + `amountGrossCurrency` = -GROSS
-- Tripletex auto-generates 3rd posting on `2712` (Inngående merverdiavgift, **lav** sats)
-- Example: NET=8750, GROSS=9800, auto-amount=8750, auto-VAT=1050 on 2712
+- `amountGross` = `amountGrossCurrency` = receipt line amount
+- Tripletex auto-computes: `amount` = amountGross / 1.12 (net), plus 3rd posting on `2712` (lav sats)
+- Bank posting: `amountGross` = `amountGrossCurrency` = negated receipt line amount
 
 ### Branch D — Meeting/course (6860, 25%)
-- Send `vatType: { id: 1 }` (25% incoming) on expense posting
-- Send only `amountGross` + `amountGrossCurrency` on expense posting
-- Bank posting: `amountGross` + `amountGrossCurrency` = -GROSS
-- Tripletex auto-generates 3rd posting on `2710` (Inngående merverdiavgift, høy sats)
+- Send `vatType: { id: <from account> }` (typically id=`1`) on expense posting
+- `amountGross` = `amountGrossCurrency` = receipt line amount
+- Tripletex auto-computes: `amount` = amountGross / 1.25 (net), plus 3rd posting on `2710`
+- Bank posting: `amountGross` = `amountGrossCurrency` = negated receipt line amount
 
 ---
 
@@ -170,14 +158,14 @@ Body: file=<receipt-file>
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<7360-id>" },
       "department": { "id": "<dept-id>" },
-      "amount": "<GROSS>", "amountCurrency": "<GROSS>",
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amount": "<line-amount>", "amountCurrency": "<line-amount>",
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amount": "-<line-amount>", "amountCurrency": "-<line-amount>",
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
@@ -194,12 +182,12 @@ Body: file=<receipt-file>
       "account": { "id": "<6540-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
@@ -216,17 +204,16 @@ Body: file=<receipt-file>
       "account": { "id": "<7140-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
-Where GROSS = NET × 1.12 and vatType.id = from account (typically 12).
 
 ### Branch D — Meeting/course (25% VAT)
 ```json
@@ -238,17 +225,19 @@ Where GROSS = NET × 1.12 and vatType.id = from account (typically 12).
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<6860-id>" },
       "department": { "id": "<dept-id>" },
-      "vatType": { "id": 1 },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "vatType": { "id": "<vatType-id-from-account>" },
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
+
+In ALL payloads: `<line-amount>` = the receipt line price exactly as shown (e.g. Tastatur 6900 → 6900). No multiplication.
 
 ---
 
@@ -286,42 +275,36 @@ The POST /ledger/voucher response proves all 5 scoring checks — no extra GET n
 |---|---|---|
 | 1 — Voucher exists & booked | `id` > 0, `number` > 0 | voucher POST response |
 | 2 — Correct expense account | posting account number | voucher POST response |
-| 3 — Amount & VAT | `amountGross`, `vatType.id`, auto-VAT posting | voucher POST response |
+| 3 — Amount & VAT | `amountGross` = receipt line, `vatType.id`, auto-VAT posting | voucher POST response |
 | 4 — Correct department | posting department | voucher POST response |
 | 5 — Attachment | `attachment.id` > 0 | attachment POST response |
 
 ## Reuse From Write Response
 - `POST /department`: `value.id`, `value.name`
 - `GET /ledger/account`: account IDs + `vatType.id` (for B/C/D)
-- `POST /ledger/voucher`: `value.id`, `value.number`, posting details (account, department, vatType, amounts)
-- For B/C: auto-generated VAT posting on `2710`/`2712` with `amount` = VAT recovery
+- `POST /ledger/voucher`: `value.id`, `value.number`, posting details
 - `POST /attachment`: `value.attachment.id`
 
 ---
 
 ## Sandbox Verification (2026-03-22)
 
-| Branch | Account | GROSS | vatType | NET (auto) | VAT (auto) | VAT acct | Status |
-|---|---|---|---|---|---|---|---|
-| A (Forretningslunsj) | 7360 | 17062.50 | 0 (0%) | 17062.50 | — | — | all pass |
-| B (Kontorstoler) | 6540 | 13500 | 1 (25%) | 10800 | 2700 | 2710 | all pass |
-| C (Togbillett) | 7140 | 9800 | 12 (12%) | 8750 | 1050 | 2712 | all pass |
-| D (Kaffemøte) | 6860 | 8250 | 1 (25%) | 6600 | 1650 | 2710 | all pass |
+### GROSS interpretation — all 4 branches verified
 
-Production E2E (Branch C, run 3373fbc9 prompt): 5/5 checks, 4 calls, 0 errors → expected 10/10.
+| Branch | Account | amountGross | vatType | amount(NET auto) | VAT (auto) | VAT acct |
+|---|---|---|---|---|---|---|
+| A (Forretningslunsj) | 7360 | 13650 | 0 (0%) | 13650 | — | — |
+| B (Kontorstoler) | 6540 | 10800 | 1 (25%) | 8640 | 2160 | 2710 |
+| C (Togbillett) | 7140 | 8750 | 12 (12%) | 7812.50 | 937.50 | 2712 |
+| D (Kaffemøte) | 6860 | 6600 | 1 (25%) | 5280 | 1320 | 2710 |
 
-### Production run e89025d1 (2026-03-22, French prompt, Branch B — Tastatur)
-- Receipt: Elkjøp, date 2026-05-19, Tastatur NET=6900, total NET=7780, MVA=1945
-- Branch B: account 6540, vatType=1 (25%), GROSS=8625
-- Department: Utvikling (POST created, fresh account)
-- 4 calls, 0 errors: POST dept → GET accounts → POST voucher → POST attachment
-- Voucher id=609304794, number=1; auto-VAT posting: 1725 on 2710
-- All 5 checks expected to pass
+### Production run history
 
-### Production run 7ad5804f (2026-03-22, Norwegian prompt, Branch B — Whiteboard)
-- Receipt: Jernia, date 2026-06-21, Whiteboard NET=14300, Mus NET=120, total NET=14420, MVA=3605
-- Task asked for Whiteboard only → Branch B: account 6540, vatType=1 (25%), GROSS=17875
-- Department: HR (POST created, fresh account)
-- 4 calls, 0 errors: POST dept → GET accounts → POST voucher → POST attachment
-- Voucher id=609326454, number=1; auto-VAT posting: 3575 on 2710
-- All 5 checks expected to pass
+| Run | Branch | amountGross used | Score | Root cause |
+|---|---|---|---|---|
+| e89025d1 | B (Tastatur 6900) | 8625 (6900×1.25) | 7/10 | **Wrong amount: multiplied by 1.25 instead of using 6900 directly** |
+| 3373fbc9 | C (Togbillett 8750) | 10937.50 (8750×1.25) | 7/10 | Wrong vatType (1 not 12) + wrong amount (multiplied) |
+| 4c7f5f3e | D (Kaffemøte 6600) | ? | 0/10 | Wrong account (7360 instead of 6860) |
+| 01420e60 | A (Kundemøte lunsj) | ? | 0/10 | Missing sendToLedger |
+| 67d4ddca | C (Overnatting) | ? | 0/10 | Missing sendToLedger |
+| 1519c2a7 | C (Togbillett) | ? | 0/10 | Missing sendToLedger |

@@ -9,13 +9,13 @@ Do NOT use for: supplier invoices, travel expenses, employee reimbursements, mul
 
 ---
 
-## ⛔ FATAL MISTAKES — Every one of these has caused 0/10 in production
+## ⛔ FATAL MISTAKES — Every one of these has caused 0/10 or partial scores in production
 
 | # | Mistake | What happens | Fix |
 |---|---------|-------------|-----|
 | F1 | Missing `?sendToLedger=true` on POST /ledger/voucher | Voucher stays DRAFT → scorer cannot find it → ALL 5 checks fail (0/10) | Always POST to `/ledger/voucher?sendToLedger=true` |
-| F2 | Using NET amount as GROSS | Wrong amountGross → Check 3 fails. ALL task 22 receipts show NET prices. | Detect NET vs GROSS first (see below). Multiply: `GROSS = NET × (1 + VAT rate)` |
-| F3 | Using vatType 1 (25%) for transport/accommodation | Wrong VAT rate → Check 3 fails. Run 3373fbc9 scored 7/10 instead of 10/10 | Transport/accommodation (Togbillett, Overnatting, Flybillett) uses vatType id=`12` (12% lav sats). GROSS = NET × 1.12 |
+| F2 | **Multiplying receipt amounts** | Wrong amountGross → Check 3 fails. Run e89025d1 used 6900×1.25=8625 → FAILED | Receipt line amounts ARE GROSS (VAT-inclusive). Use them DIRECTLY as `amountGross`. Do NOT multiply by 1.25 or 1.12. |
+| F3 | Using vatType 1 (25%) for transport/accommodation | Wrong VAT rate → Check 3 fails. Run 3373fbc9 scored 7/10 | Transport/accommodation (Togbillett, Overnatting, Flybillett) uses vatType id=`12` (12% lav sats) |
 | F4 | Using account 7360 for Kaffemøte | Wrong account → 0/10. Kaffemøte is a meeting expense, NOT representation | Kaffemøte → account `6860` (Branch D), NOT `7360` (Branch A) |
 | F5 | Missing `row` field on postings | Tripletex puts postings on row 0 (system-reserved) → 422 error | Expense posting: `row: 1`. Bank posting: `row: 2` |
 | F6 | Using `department: { name: "..." }` | Silently stores `department=null` → Check 4 fails | Always resolve department ID first, then use `department: { id: <id> }` |
@@ -29,12 +29,12 @@ Do NOT use for: supplier invoices, travel expenses, employee reimbursements, mul
 
 Read the receipt line text from the prompt. Pick the FIRST matching branch:
 
-| Receipt line text | Branch | Account | VAT rate | GROSS formula (NET receipt) |
+| Receipt line text | Branch | Account | VAT rate | vatType id |
 |---|---|---|---|---|
-| `Forretningslunsj`, `Kundemøte lunsj`, business lunch, restaurant meal | **A** | `7360` | 0% (vatLocked) | NET × 1.25 |
-| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment, IT peripherals | **B** | `6540` | 25% (vatType id from acct) | NET × 1.25 |
-| `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12%** (vatType id=`12`) | **NET × 1.12** |
-| `Kaffemøte`, coffee meeting, internal meeting, course, seminar | **D** | `6860` | 25% (vatType id=`1`) | NET × 1.25 |
+| `Forretningslunsj`, `Kundemøte lunsj`, business lunch, restaurant meal | **A** | `7360` | 0% (vatLocked) | — (don't send) |
+| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment, IT peripherals | **B** | `6540` | 25% incoming | from account response |
+| `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12% incoming** (lav sats) | from account response (typically 12) |
+| `Kaffemøte`, coffee meeting, internal meeting, course, seminar | **D** | `6860` | 25% incoming | from account response (typically 1) |
 
 **Branch C is the tricky one**: the receipt says "MVA 25%" but that's the aggregate across all items. Norwegian passenger transport and accommodation have a statutory 12% rate (lav sats). Use 12%, not 25%.
 
@@ -42,20 +42,21 @@ Read the receipt line text from the prompt. Pick the FIRST matching branch:
 
 ---
 
-## Step 2 — Detect NET vs GROSS Receipt Prices
+## Step 2 — Receipt Amounts Are GROSS (VAT-inclusive) — CRITICAL
 
-All known task 22 receipts are NET-priced. But always verify:
+**Receipt line amounts ARE GROSS (VAT-inclusive). Use the line amount DIRECTLY as `amountGross`. Do NOT multiply by 1.25 or 1.12.**
 
-```
-IF receipt_total × 0.25 == stated_MVA  →  prices are NET  →  GROSS = line × (1 + rate)
-IF receipt_total / 1.25 × 0.25 == stated_MVA  →  prices are GROSS  →  GROSS = line
-```
+The receipts show "herav MVA 25%: X" which means "of which VAT = X" — the VAT is ALREADY INCLUDED in the total and in each line price. Despite the mathematical coincidence that `total × 0.25 == stated_MVA`, this does NOT mean prices are NET.
 
-The rate depends on the branch: 0.25 for A/B/D, **0.12 for C** (transport/accommodation).
+| Receipt line | amountGross to use | What NOT to do |
+|---|---|---|
+| Tastatur 6900 | **6900** | ~~6900 × 1.25 = 8625~~ (WRONG, failed Check 3 in production) |
+| Togbillett 8750 | **8750** | ~~8750 × 1.12 = 9800~~ |
+| Kontorstoler 10800 | **10800** | ~~10800 × 1.25 = 13500~~ |
+| Kaffemøte 6600 | **6600** | ~~6600 × 1.25 = 8250~~ |
+| Forretningslunsj 13650 | **13650** | ~~13650 × 1.25 = 17062.50~~ |
 
-Example: Receipt total 9300, MVA 2325. Check: 9300 × 0.25 = 2325 ✓ → NET.
-- Branch A/B/D line 8750: GROSS = 8750 × 1.25 = 10937.50
-- Branch C line 8750: GROSS = 8750 × 1.12 = **9800** (NOT 10937.50)
+**Production evidence:** Run e89025d1 (Branch B, Tastatur 6900) used amountGross=8625 (6900×1.25) with correct vatType=1. Check 3 FAILED. The only possible cause is the wrong amount — scorer expects amountGross=6900.
 
 ---
 
@@ -98,8 +99,10 @@ Body: file=<receipt-pdf-from-prompt-files>
 
 ## Payload Shapes
 
+In ALL payloads below: `<line-amount>` = the receipt line price exactly as shown (e.g. Tastatur 6900 → 6900). **No multiplication.**
+
 ### Branch A — Representation (7360, no VAT)
-Account 7360 is `vatLocked=true` with VAT code 0. Do NOT send vatType. Send all 4 amount fields with the same GROSS value.
+Account 7360 is `vatLocked=true` with VAT code 0. Do NOT send vatType. Send all 4 amount fields with the same value.
 ```json
 {
   "date": "<receipt-date>",
@@ -109,19 +112,19 @@ Account 7360 is `vatLocked=true` with VAT code 0. Do NOT send vatType. Send all 
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<7360-id>" },
       "department": { "id": "<dept-id>" },
-      "amount": "<GROSS>", "amountCurrency": "<GROSS>",
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amount": "<line-amount>", "amountCurrency": "<line-amount>",
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amount": "-<GROSS>", "amountCurrency": "-<GROSS>",
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amount": "-<line-amount>", "amountCurrency": "-<line-amount>",
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
-No auto-VAT posting. Company bears full cost (NET + non-recoverable VAT).
+No auto-VAT posting.
 
 ### Branch B — Deductible purchase (6540, 25% VAT)
 ```json
@@ -134,19 +137,19 @@ No auto-VAT posting. Company bears full cost (NET + non-recoverable VAT).
       "account": { "id": "<6540-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
-Tripletex auto-computes: `amount` = GROSS / 1.25 (net), plus a 3rd posting on `2710` for VAT recovery.
+Tripletex auto-computes: `amount` = amountGross / 1.25 (net), plus a 3rd posting on `2710` for VAT recovery.
 
-### Branch C — Transport/accommodation (7140, 12% VAT) ← THE TRICKY ONE
+### Branch C — Transport/accommodation (7140, 12% VAT)
 ```json
 {
   "date": "<receipt-date>",
@@ -157,20 +160,18 @@ Tripletex auto-computes: `amount` = GROSS / 1.25 (net), plus a 3rd posting on `2
       "account": { "id": "<7140-id>" },
       "department": { "id": "<dept-id>" },
       "vatType": { "id": "<vatType-id-from-account>" },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
 - `vatType.id` = from account response (typically `12`, incoming 12% lav sats)
-- `GROSS = NET × 1.12` (NOT × 1.25 — transport uses 12% statutory rate)
-- Tripletex auto-computes: `amount` = GROSS / 1.12, plus a 3rd posting on `2712` (lav sats) for VAT recovery
-- Example: Togbillett NET=8750 → GROSS=9800, auto-VAT=1050 on 2712
+- Tripletex auto-computes: `amount` = amountGross / 1.12, plus a 3rd posting on `2712` (lav sats) for VAT recovery
 
 ### Branch D — Meeting/course expense (6860, 25% VAT)
 ```json
@@ -182,18 +183,18 @@ Tripletex auto-computes: `amount` = GROSS / 1.25 (net), plus a 3rd posting on `2
       "row": 1, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<6860-id>" },
       "department": { "id": "<dept-id>" },
-      "vatType": { "id": 1 },
-      "amountGross": "<GROSS>", "amountGrossCurrency": "<GROSS>"
+      "vatType": { "id": "<vatType-id-from-account>" },
+      "amountGross": "<line-amount>", "amountGrossCurrency": "<line-amount>"
     },
     {
       "row": 2, "date": "<receipt-date>", "description": "<receipt-line-text>",
       "account": { "id": "<1920-id>" },
-      "amountGross": "-<GROSS>", "amountGrossCurrency": "-<GROSS>"
+      "amountGross": "-<line-amount>", "amountGrossCurrency": "-<line-amount>"
     }
   ]
 }
 ```
-Tripletex auto-computes: `amount` = GROSS / 1.25, plus a 3rd posting on `2710` for VAT recovery.
+Tripletex auto-computes: `amount` = amountGross / 1.25, plus a 3rd posting on `2710` for VAT recovery.
 
 ---
 
@@ -211,36 +212,24 @@ The voucher POST response already proves all scored fields. No extra GET needed 
 
 ---
 
-## Sandbox Verification Results (2026-03-22)
+## Sandbox Verification Results (2026-03-22) — GROSS interpretation
 
-All 4 branches verified end-to-end with readback:
+All 4 branches verified end-to-end with GROSS interpretation (line amount directly):
 
-| Branch | Voucher # | Account | GROSS | vatType | NET (auto) | VAT (auto) | VAT acct | Score |
-|---|---|---|---|---|---|---|---|---|
-| A (Forretningslunsj) | #704 | 7360 | 17062.50 | 0 (0%) | 17062.50 | — | — | all checks pass |
-| B (Kontorstoler) | #706 | 6540 | 13500 | 1 (25%) | 10800 | 2700 | 2710 | all checks pass |
-| C (Togbillett) | #708→#727 | 7140 | 9800 | 12 (12%) | 8750 | 1050 | 2712 | all checks pass |
-| D (Kaffemøte) | #712 | 6860 | 8250 | 1 (25%) | 6600 | 1650 | 2710 | all checks pass |
-
-Production E2E simulation (Branch C, run 3373fbc9 prompt): 5/5 checks pass, 4 API calls, 0 errors. Expected score 10/10 (vs production best 7/10).
-
-### Branch C — Why 12% not 25% (4 hypotheses tested)
-
-| Hypothesis | GROSS | vatType | NET (auto) | VAT (auto) | VAT acct | Result |
+| Branch | Account | amountGross | vatType | amount (NET auto) | VAT (auto) | VAT acct |
 |---|---|---|---|---|---|---|
-| **H1 (correct)** | **9800** (NET×1.12) | **12** (12%) | 8750 | 1050 | 2712 | **PASS** |
-| H4 (production) | 10937.50 (NET×1.25) | 1 (25%) | 8750 | 2187.50 | 2710 | **FAILED Check 3** |
-
-H1 and H4 both produce amount(net)=8750. The scorer checks vatType and VAT account — that's why H4 failed.
+| A (Forretningslunsj) | 7360 | 13650 | 0 (0%) | 13650 | — | — |
+| B (Kontorstoler) | 6540 | 10800 | 1 (25%) | 8640 | 2160 | 2710 |
+| C (Togbillett) | 7140 | 8750 | 12 (12%) | 7812.50 | 937.50 | 2712 |
+| D (Kaffemøte) | 6860 | 6600 | 1 (25%) | 5280 | 1320 | 2710 |
 
 ### Production run history
 
-| Run | Branch | Score | Root cause |
-|---|---|---|---|
-| 3373fbc9 | C (Togbillett) | 7/10 | vatType=1 instead of 12; GROSS=NET×1.25 instead of ×1.12 |
-| 4c7f5f3e | D (Kaffemøte) | 0/10 | Wrong account 7360 instead of 6860 |
-| 01420e60 | A (Kundemøte lunsj) | 0/10 | NET as GROSS + missing sendToLedger |
-| 67d4ddca | C (Overnatting) | 0/10 | Missing sendToLedger |
-| 1519c2a7 | C (Togbillett) | 0/10 | Missing sendToLedger + NET as GROSS |
-| e89025d1 | B (Tastatur) | expected 10/10 | Clean run: 4 calls, 0 errors, exact standard match |
-| 7ad5804f | B (Whiteboard) | expected 10/10 | Clean run: 4 calls, 0 errors; Jernia receipt, Whiteboard NET=14300 GROSS=17875, dept HR, acct 6540 vatType=1; auto-VAT 3575 on 2710 |
+| Run | Branch | amountGross used | Score | Root cause |
+|---|---|---|---|---|
+| e89025d1 | B (Tastatur 6900) | 8625 (6900×1.25) | 7/10 | **Wrong amount: multiplied by 1.25 instead of using 6900 directly** |
+| 3373fbc9 | C (Togbillett 8750) | 10937.50 (8750×1.25) | 7/10 | Wrong vatType (1 not 12) + wrong amount (multiplied) |
+| 4c7f5f3e | D (Kaffemøte) | ? | 0/10 | Wrong account (7360 instead of 6860) |
+| 01420e60 | A (Kundemøte lunsj) | ? | 0/10 | Missing sendToLedger |
+| 67d4ddca | C (Overnatting) | ? | 0/10 | Missing sendToLedger |
+| 1519c2a7 | C (Togbillett) | ? | 0/10 | Missing sendToLedger |

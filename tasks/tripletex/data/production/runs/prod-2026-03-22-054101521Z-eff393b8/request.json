@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une facture pour le client Colline SARL (nº org. 942447647) avec trois lignes de produit : Service réseau (1340) à 10500 NOK avec 25 % TVA, Stockage cloud (9754) à 11000 NOK avec 15 % TVA (alimentaire), et Session de formation (7005) à 5850 NOK avec 0 % TVA (exonéré).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "tpwC309ezdtMzlyt7EHQR0wJgYBGGqOk-O7yMeNFzNs"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-053741210Z-7443a3f6",
+  "request_id": "1870b0a6",
+  "prompt_raw": "O cliente Floresta Lda (org. nº 906739542) tem uma fatura pendente de 6800 NOK sem IVA por \"Consultoria de dados\". Registe o pagamento total desta fatura.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T05:38:51Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T05:37:41.262Z",
+  "after_captured_at": "2026-03-22T05:39:22.198Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "07",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T05:39:22.200Z"
+}

@@ -102,7 +102,15 @@ Account 8800 is the standard result transfer account for forenklet årsoppgjør.
 
 Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in the initial account lookup.
 
-## Canonical API Flow (7–9 calls)
+## Canonical API Flow (8–10 calls)
+
+### Phase 0: Module Activation (1 POST) — CRITICAL
+0. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
+   - Activates the year-end reporting module for AS (aksjeselskap)
+   - Returns 201 if activated, 409 if already active — both are success
+   - **MUST be called before any other year-end operations**
+   - This is the PRIMARY UNTESTED HYPOTHESIS for fixing checks 4+5 (14 production runs without module activation all score 6/10)
+   - If the proxy returns 404 or 405, the endpoint may not be available — continue with the rest of the pipeline
 
 ### Phase 1: Account lookup (1 GET)
 1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
@@ -198,9 +206,10 @@ Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in th
 **If postTaxResult == 0**: skip the voucher.
 
 ## Call Count Summary
-- Only 1209 missing: 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **9 calls**
-- All accounts exist: 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **8 calls**
-- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **7 or 8 calls**
+- Only 1209 missing: 1 POST (module) + 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **10 calls**
+- All accounts exist: 1 POST (module) + 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **9 calls**
+- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **8 or 9 calls**
+- Module already active (409): same call count — 409 is still 1 call but not an error
 
 ## Do NOT
 - **Do NOT use integer rounding**: `Math.round(cost / life)` loses fractional amounts. Use `Math.round(cost / life * 100) / 100`.
@@ -215,35 +224,27 @@ Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in th
 - **Do NOT use account 8960 for disposition**: 8960 "Overføringer annen egenkapital" is for detailed full-year-end closings. Forenklet årsoppgjør uses **8800 "Årsresultat"**.
 
 ## Sandbox Verification (2026-03-22)
+- Module activation: `POST /company/salesmodules { name: "YEAR_END_REPORTING_AS" }` → 201 (or 409 if already active)
+- Body format is `{ "name": "<enum>" }` — NOT `{ "salesModule": "<enum>" }` (422 error with wrong field name)
 - `accountNumberTo` confirmed INCLUSIVE: range 8700-8700 returns 1 row; range 8699-8699 returns 0 rows
 - Balance sheet range 3000-8299 correctly excludes tax accounts and returns only operating P&L
 - Account 1209 typically missing in fresh Tripletex — must create
-- **Full E2E sandbox-verified 2026-03-22**: 7 vouchers (3 dep + 1 prepaid + 1 tax + 1 disposition DR 8800/CR 2050); all vouchers created 201
-- Posting field behavior: `amount` = `amountGross` for VAT-free journal entries
+- **Full E2E sandbox-verified 2026-03-22 with module activation**: 1 POST module + 5 vouchers (3 dep + 1 prepaid + 1 disposition); all 201 OK; module 409 (already active)
 - Account types: 8700 = `TAX_ON_EXTRAORDINARY_ACTIVITIES`, 8300 = `TAX_ON_ORDINARY_ACTIVITIES`, 2920 = `LIABILITIES`, 2500 = `LIABILITIES`
-- yearEnd API taxCost grouping covers 8300-8319,8600-8619 only — 8700 does NOT appear in taxCost
 
-## Production Run History (14 runs — all scored 6/10, checks 4+5 always fail)
+## Production Run History (14 runs — all scored 6/10, checks 4+5 always fail, NO module activation)
 
-| Date | Run | Tax Accounts | Profit | Tax Posted | Disposition | Score |
-|------|-----|-------------|--------|-----------|-------------|-------|
-| 2026-03-21 | 6 runs | 8700/2920 | positive | yes | none | 6/10 |
-| 2026-03-21 | 5 runs | 8700/2920 | varied | varied | none | 6/10 |
-| 2026-03-22 | prod-8dd9ba2b | 8300/2500 | negative (-17323.86) | no (0 tax) | yes (8800/2050) | 6/10 |
-| 2026-03-22 | prod-80e639a8 | 8300/2500 | positive (544499.10) | yes (119790) | yes (8800/2050) | 6/10 |
+| Date | Run | Tax Accounts | Module Activated | Score |
+|------|-----|-------------|-----------------|-------|
+| 2026-03-21 | 11 runs | 8700/2920 | **NO** | 6/10 |
+| 2026-03-22 | prod-8dd9ba2b | 8300/2500 | **NO** | 6/10 |
+| 2026-03-22 | prod-80e639a8 | 8300/2500 | **NO** | 6/10 |
 
-**Checks 4+5 root cause UNKNOWN.** Neither tax accounts (8700/2920 vs 8300/2500) nor disposition (present/absent) affects scoring. All 14 runs score identically: checks 1-3 pass (depreciation), check 6 passes (prepaid reversal), checks 4+5 fail.
+**Checks 4+5 root cause: likely missing module activation.** ALL 14 production runs skip module activation. The YEAR_END_REPORTING_AS module has never been activated in any production run. Module activation is the ONLY variable not yet tested in production.
 
-**Key observations:**
-- prod-80e639a8 DISPROVED the 8300/2500 theory — scored 6/10 on a positive-profit run with correct tax posted to 8300/2500
-- Disposition (8800/2050) presence or absence does NOT affect any check
-- 9 calls with 0 errors is the typical call count for positive-profit scenario
-- Checks 1-3 (depreciation) and check 6 (prepaid reversal) pass consistently
+**Disproven theories:**
+- Tax accounts (8700/2920 vs 8300/2500): does NOT affect checks 4+5 — both score 6/10
+- Disposition voucher (present/absent): does NOT affect checks
+- Profit vs loss scenario: does NOT affect checks
 
-**Recommendation**: Use the task's specified accounts (8700/2920) since neither approach fixes checks 4+5. Following the task instruction avoids contradicting account-number-specific scoring.
-
-**UNTESTED combinations** that may fix checks 4+5:
-- DR 8700 / CR 2500 (task's expense account + correct tax liability)
-- r2() rounding for tax amount instead of Math.round()
-- Different prepaid contra account (7500 vs 6300)
-- Different balance sheet range for tax calculation
+**Next production run MUST include Phase 0 (module activation) to validate this hypothesis.**

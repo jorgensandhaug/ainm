@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-054826843Z-dec75cfd",
+  "request_id": "29ffc5a0",
+  "prompt_raw": "Fixez un prix forfaitaire de 170650 NOK sur le projet \"Projet d'automatisation\" pour Rivière SARL (nº org. 852968737). Le chef de projet est Nathan Martin (nathan.martin@example.org). Facturez au client 25 % du prix fixe comme paiement d'étape.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T05:49:39Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T05:48:26.907Z",
+  "after_captured_at": "2026-03-22T05:50:10.425Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "15",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T05:50:10.426Z"
+}

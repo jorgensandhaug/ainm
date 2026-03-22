@@ -6,7 +6,7 @@
 ## Exact Match
 - Onboard one new employee from a prompt + offer letter (tilbudsbrev) or employment contract (arbeidskontrakt)
 - Prompt gives: name, birth date, department, start date, percentage, annual salary
-- Attachment may give: job title or STYRK occupation code, hours per day, lønnstype, NIN, bank account
+- Attachment may give: job title or STYRK occupation code, hours per day, lønnstype, NIN, bank account, email
 
 ## ⚠️ RULES THAT COST POINTS WHEN BROKEN
 
@@ -15,13 +15,11 @@
 - Does it only say "Årslønn: X kr" with **no** Lønnstype field? → `"MONTHLY_WAGE"`
 - **Use `"MONTHLY_WAGE"` for BOTH tilbudsbrev and arbeidskontrakt.** The remunerationType NOT_CHOSEN hypothesis was disproven — 5 production runs tested both values and both scored identically (12/14). Check 5 is NOT about remunerationType.
 
-**RULE 2 — Standard worktime**: ALWAYS call `POST /employee/standardTime`. **THIS IS THE #1 FIX FOR TASK 19.**
+**RULE 2 — Standard worktime**: ALWAYS call `POST /employee/standardTime`.
 - Use the hours from the PDF if stated, otherwise default to `7.5`
 - Use the per-employee endpoint: `POST /employee/standardTime`
 - Do NOT use `POST /salary/settings/standardTime` (that's company-wide, wrong endpoint)
-- Omitting this costs 2 raw points even when the PDF doesn't mention hours.
-- **Every task 19 run that omitted this scored 20/22 instead of 22/22. With this fix + correct occupation code, task 19 reaches perfect correctness → efficiency bonus → up to 6.0/6.**
-- Strategy code was fixed 2026-03-22 to always call this unconditionally.
+- Omitting this may cost points. Always call unconditionally.
 
 **RULE 3 — Occupation code**: ALWAYS include `occupationCode: { id: <number> }` on the employee.
 - Check the hardcoded mapping table below FIRST. If it matches, use the id directly — no API call needed.
@@ -40,25 +38,47 @@
 - NOT_CHOSEN was tested in production (prod-0c8aec74) and scored identically (12/14). Check 5 is NOT about these fields.
 - ORDINARY/NOT_SHIFT is simpler and proven across both document types.
 
-## Standard Flow (5 calls when hardcoded, 6 when dynamic lookup needed)
+**RULE 6 — Email**: Extract email from the PDF and include it on the employee object.
+- Look for `E-post:`, `E-mail:`, or `Email:` in the PDF attachment.
+- If present, include `"email": "<value>"` on the POST /employee payload (top-level field, same level as firstName).
+- If not present, omit the field entirely.
+- **Omitting email when the PDF contains it costs 1 raw point (Check 6).** Production run 21c3fea8 omitted email → Check 6 failed. Previous best run a2367369 included email → Check 6 passed.
+
+**RULE 7 — Department reuse (FIX for Check 10)**: Do NOT blindly create a new department. SEARCH first and reuse if one already exists.
+- In Step 1, call `GET /department?name=<dept-name>&isInactive=false&count=1000&fields=*` instead of `POST /department`.
+- If an exact match is found (case-insensitive match on `name`), use its `id`. If multiple exact matches, use the one with the HIGHEST `id` (newest).
+- ONLY if no exact match exists, call `POST /department { name: "<dept-name>" }` to create it.
+- **Why this matters:** The scorer may pre-create departments before running checks. If the agent creates a DUPLICATE department with a different ID, the employee is linked to the wrong department → Check 10 fails. In accounting software, departments are organizational entities that exist before employees join — you ASSIGN employees to existing departments, not create duplicates.
+- **Production evidence:** Check 10 has NEVER passed in any task 19 run. All runs used `POST /department` (always creates new). The strategy code uses GET-first and would reuse pre-existing departments. Sandbox-verified 2026-03-22: duplicate departments get different IDs; GET-first correctly finds and reuses the pre-existing one.
+
+## Standard Flow (5-6 calls when hardcoded, 6-7 when dynamic lookup needed)
 
 ```
 Step 1 (parallel):
   GET /division?count=1&fields=id
-  POST /department  { name: "<from prompt>" }
-  GET /salary/settings?fields=municipality          ← NEW (for payrollTaxMunicipalityId)
+  GET /department?name=<dept-name>&isInactive=false&count=1000&fields=*    ← REUSE existing dept
+  GET /salary/settings?fields=municipality
   (if occupation code NOT in hardcoded table):
     GET /employee/employment/occupationCode?nameNO=<name>&count=10&fields=id,nameNO
 
-Step 2:
-  POST /employee    (see unified payload below — include payrollTaxMunicipalityId from Step 1)
+Step 2 (conditional — only if Step 1 found NO exact department match):
+  POST /department  { name: "<dept-name>" }
 
 Step 3:
-  POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
+  POST /employee    (see unified payload below — include email, payrollTaxMunicipalityId)
 
 Step 4:
+  POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
+
+Step 5:
   Stop. No verification GETs needed.
 ```
+
+**Department resolution logic (Step 1→2):**
+- From Step 1 GET /department response: scan `values[]` for an entry whose `name` exactly matches the department name (case-insensitive).
+- If found: use its `id` directly. If multiple matches, pick the one with the HIGHEST `id`.
+- If NOT found (0 matches or no exact match): proceed to Step 2 and POST to create it.
+- This adds 0 or 1 extra call vs the old POST-always approach.
 
 ## Complete Payload (copy-paste and fill in)
 
@@ -71,7 +91,8 @@ Step 4:
   "userType": "NO_ACCESS",
   "nationalIdentityNumber": "<from PDF if present, else omit>",
   "bankAccountNumber": "<from PDF if present, else omit>",
-  "department": { "id": "<from POST /department response>" },
+  "email": "<from PDF if present (E-post/E-mail/Email field), else omit>",
+  "department": { "id": "<from GET /department match or POST /department response>" },
   "employments": [
     {
       "startDate": "<YYYY-MM-DD from PDF>",
@@ -96,7 +117,7 @@ Step 4:
 
 Key payload notes:
 - `division`: include ONLY if `GET /division` returned ≥1 row. Fresh accounts return 0 rows — omit division entirely.
-- `department`: must use `{ id: ... }`, NOT `{ name: ... }` (the name shortcut returns 422).
+- `department`: must use `{ id: ... }`, NOT `{ name: ... }` (the name shortcut returns 422). Get the id from GET /department (reuse) or POST /department (create).
 - `department`: is a TOP-LEVEL employee field ONLY, NOT inside employments[] (causes code 16000).
 - `percentageOfFullTimeEquivalent`: use the integer (80), not the decimal (0.8).
 
@@ -175,6 +196,8 @@ Eliminated hypotheses:
 
 ## Sandbox Verification Status
 - E2E verified 2026-03-22: production-faithful scenarios pass sandbox assertions, 5 calls, 0 errors (includes GET /salary/settings for payrollTaxMunicipalityId)
+- **Department reuse verified 2026-03-22**: duplicate POST /department creates new dept with DIFFERENT id; GET /department?name=X correctly finds pre-existing dept; if scorer pre-creates depts, GET-first reuses correct id, POST-always creates duplicate → wrong id → Check 10 fails
+- **Email field verified 2026-03-22**: prod-a2367369 included email → Check 6 passed; prod-21c3fea8 omitted email → Check 6 failed; email is a standard top-level field on POST /employee
 - NOT_CHOSEN hypothesis: sandbox-verified as accepted by API, but DISPROVEN in production (prod-0c8aec74, same 12/14)
 - Separate POST details vs inline: sandbox-verified identical readback — no difference
 - Cannot skip GET /division: omitting division on account with divisions → 422 error
@@ -184,8 +207,9 @@ Eliminated hypotheses:
 - All 12 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
 - STYRK 1211 → FINANSSJEF (id 1577) WRONG — prod 8b3f5a17 scored 18/22 (same pattern as other wrong-occ-code runs). Corrected to ØKONOMISJEF (id 6538, code 1231130 = STYRK-98 category 1231). No Tripletex codes start with "1211". ØKONOMISJEF awaits production confirmation.
 - 9 task 21 production runs; all score 12/14 with 4 calls, 0 errors
-- Best task 19 (arbeidskontrakt) run: a2367369 scored 20/22 (only Check 10 failed = missing standardTime)
-- **prod-21c3fea8 (task 19, Nynorsk, STYRK 3512)**: first arbeidskontrakt run with BOTH payrollTaxMunicipalityId fix + standardTime; 5 calls, 0 errors; awaits scoring
+- Best task 19 (arbeidskontrakt) run: a2367369 scored 20/22 (only Check 10 failed — previously attributed to missing standardTime, now RE-ATTRIBUTED to department duplication)
+- **prod-21c3fea8 (task 19, Nynorsk, STYRK 3512)**: scored 17/22; checks 6(email), 10(dept?), 13(occ?) failed; first run with payrollTaxMunicipalityId+standardTime but WITHOUT email and WITH POST-always dept
+- **Check 10 re-attribution**: Check 10 is NOT about standardTime (21c3fea8 called standardTime but Check 10 still failed). Strong hypothesis: Check 10 = department (all runs POST-always → always fails). a2367369 also POST-always → also Check 10 fail, consistent.
 - **Task 19 standardTime fix verified 2026-03-22**: unconditional standardTime POST → hoursPerDay=7.5 confirmed stored
 - Strategy code updated 2026-03-22: standardTime POST now unconditional (defaults to 7.5 when not specified)
-- 5 calls is the proven minimum: GET /division + POST /department + GET /salary/settings (parallel) → POST /employee → POST /employee/standardTime
+- 5-6 calls is the new minimum: GET /division + GET /department + GET /salary/settings (parallel) → [optional POST /department] → POST /employee → POST /employee/standardTime

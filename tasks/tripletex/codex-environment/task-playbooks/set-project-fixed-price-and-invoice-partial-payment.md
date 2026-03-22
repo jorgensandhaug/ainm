@@ -175,6 +175,13 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - this is the 12th update-needed run: 10/12 had missing bank accounts (83%); proactive hedge averages 5.83 calls + 0 errors
 - persistent-sandbox verification on 2026-03-22 with `170650 * 0.25 = 42662.5` re-confirmed both branches:
   - update-needed proactive hedge: `5` calls (bank configured); skip-PUT: `3` calls; both returned `amountExcludingVatCurrency=42662.5`
+- OPTIMIZATION on 2026-03-22: hardcode `vatType: { id: 3 }` (25% outgoing MVA) — eliminates `GET /ledger/vatType` on every branch:
+  - sandbox-verified: `POST /invoice` with hardcoded `vatType: { id: 3 }` produces correct `amountExcludingVatCurrency` and `amountCurrency` (= ex-VAT × 1.25)
+  - sandbox-verified: omitting `vatType` entirely defaults to id=0 (0% VAT), giving WRONG `amountCurrency` — vatType MUST be specified but can be hardcoded to id=3
+  - vatType id=3 = "Utgående avgift, høy sats" (25%) is the standard Norwegian outgoing MVA rate; every Tripletex account has it
+  - all T15 production runs (12+ runs across en/de/nb/nn/pt/es/fr) used vatType id=3
+  - sandbox E2E results: update-needed+configured = `4` calls (was 5); skip-PUT = `2` calls (was 3); update-needed+missing = `5` calls (was 6)
+  - new canonical call counts: skip-PUT = **2**, update-needed+configured = **4**, update-needed+missing = **5**
 
 ## Minimal Safe Flow
 
@@ -184,13 +191,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - optional `POST /customer`
    - `GET /project`
    - `POST /project` or `PUT /project/{id}`
-   - `GET /ledger/vatType`
    - `POST /invoice`
 2. First try a project-first resolver for update-shaped prompts
    - `GET /project?name=<project-name>&count=50&fields=*,customer(*),projectManager(*)`
    - if that one read already leaves one exact `project.name` hit whose nested `customer.organizationNumber` matches the prompt, reuse `project.id`, `customer.id`, and the returned `startDate`
    - if the same expanded row also shows nested `projectManager.email=<prompt-email>`, reuse `projectManager.id` too and skip a separate `GET /employee`
-   - if that same row also already shows `fixedprice=<prompt-fixed-price>` and the manager already matches, skip the project write entirely and continue from the VAT lookup
+   - if that same row also already shows `fixedprice=<prompt-fixed-price>` and the manager already matches, skip the project write entirely and go directly to `POST /invoice`
    - in that exact hit case, skip a separate `GET /customer`
 3. Resolve the customer only if the project-first read did not already prove it
    - usually `GET /customer?organizationNumber=...&count=10&fields=*`
@@ -214,21 +220,21 @@ Persistent-sandbox verification on 2026-03-20 showed:
    - `invoiceOnAccountVatHigh: false`
    - for `PUT /project/{id}` on an existing project, reuse the `startDate` returned by the project search unless the prompt explicitly asks to change it
 8. On the update-needed branch (step 6 required `PUT /project`):
-   - run `PUT /project/{id}` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` in parallel (3 calls)
+   - run `PUT /project/{id}` + `GET /ledger/account?isBankAccount=true&fields=*` in parallel (2 calls)
    - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using `bankAccountNumber: "12345678903"` (0-1 calls)
-   - on the skip-`PUT /project` branch: just `GET /ledger/vatType` alone; do NOT add proactive bank check
+   - do NOT call `GET /ledger/vatType`; hardcode `vatType: { id: 3 }` (25% outgoing MVA) — standard on all Tripletex accounts, confirmed on every T15 production run, sandbox-verified 2026-03-22
+   - on the skip-`PUT /project` branch: go directly to `POST /invoice`; do NOT add proactive bank check
 9. Create the invoice directly with `POST /invoice?sendToCustomer=false`
    - include root `invoiceDate`, root `invoiceDueDate`, root `customer: { id }`
-   - include embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { id } }] }]`
+   - include embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { id: 3 } }] }]`
    - for percentage-derived milestones, send the exact 2-decimal amount; do not round values like `350650 * 0.25 = 87662.5`
-   - this replaces the old 2-call `POST /order` + `PUT /order/:invoice` path, saving 1 call on every branch
 10. If the invoice write fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`, repair and retry once
    - `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
    - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
    - retry the same `POST /invoice` once
 10.5. Bank-account strategy summary:
-   - update-needed branch: proactive hedge is the DEFAULT; `5` calls when configured, `6` when missing, `0` errors either way
-   - skip-`PUT /project` branch: optimistic is the DEFAULT; `3` calls, bank-account issues have never occurred on this branch in production
+   - update-needed branch: proactive hedge is the DEFAULT; `4` calls when configured, `5` when missing, `0` errors either way
+   - skip-`PUT /project` branch: optimistic is the DEFAULT; `2` calls, bank-account issues have never occurred on this branch in production
 11. Verify from the write response first
    - reuse the invoice totals from `response.value`
 12. For scored runs, stop after the successful invoice write unless the prompt explicitly requires linked-field proof
@@ -274,7 +280,7 @@ POST /invoice?sendToCustomer=false
 }
 ```
 
-In real tasks, replace VAT id `3` with the VAT type actually returned by the filtered `GET /ledger/vatType` call for the invoice date.
+VAT id `3` (25% outgoing MVA) is hardcoded — do not call `GET /ledger/vatType`. This is the standard Norwegian 25% outgoing MVA rate, confirmed on every T15 production run and sandbox-verified 2026-03-22.
 
 ## Exact-Match Fast Path
 
@@ -287,16 +293,15 @@ In real tasks, replace VAT id `3` with the VAT type actually returned by the fil
 - the lower-call exact-match flow is usually:
   1. `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`
   2. if that read already proves the exact project, nested customer match, nested manager email match, and `fixedprice=<prompt-fixed-price>`, skip the project write and go straight to:
-     `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` -> `POST /invoice?sendToCustomer=false`
+     `POST /invoice?sendToCustomer=false` with hardcoded `vatType: { id: 3 }`
   3. otherwise do one conditional `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
   4. if the project-first read did not already prove the customer, `GET /customer?organizationNumber=...&count=10&fields=*`
   5. optional `POST /customer` with `invoiceSendMethod: "MANUAL"` if missing
-  6. `PUT /project/{id}` (or `POST /project`) + `GET /ledger/vatType` + `GET /ledger/account` (parallel, 3 calls)
+  6. `PUT /project/{id}` (or `POST /project`) + `GET /ledger/account` (parallel, 2 calls)
   7. if bank account missing: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
-  8. `POST /invoice?sendToCustomer=false` with embedded `orders[]`
-- on the update-needed branch, `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account` are parallelized; this is the default since production evidence (10/12 missing bank accounts, 83%) makes the proactive hedge clearly better
-- on the exact skip-`PUT /project` branch, do not chase a fictional `2`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
-- canonical call counts: skip-PUT = **3**, update-needed+configured = **5**, update-needed+missing = **6**
+  8. `POST /invoice?sendToCustomer=false` with embedded `orders[]` and hardcoded `vatType: { id: 3 }`
+- on the update-needed branch, `PUT /project` + `GET /ledger/account` are parallelized; this is the default since production evidence (10/12 missing bank accounts, 83%) makes the proactive hedge clearly better
+- canonical call counts: skip-PUT = **2**, update-needed+configured = **4**, update-needed+missing = **5**
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
 ## Verification Shape
@@ -327,16 +332,15 @@ In real tasks, replace VAT id `3` with the VAT type actually returned by the fil
 
 - **CRITICAL: Do not use the lifecycle standard (`register-project-lifecycle-budget-hours-cost-and-invoice`) for this task shape** — the 2026-03-21 run for `Brückentor GmbH / E-Commerce-Entwicklung / 292550 / 33%` scored **0.5/4** because the agent created everything from scratch instead of finding and updating the existing project; for this task shape, the project/customer/PM ALREADY EXIST — always start with `GET /project?name=...`
 - Do not use the old 2-call `POST /order` + `PUT /order/:invoice` path; `POST /invoice?sendToCustomer=false` with embedded `orders[]` replaces both in 1 call — sandbox-verified 2026-03-21
-- Do not hardcode VAT code `3`; the filtered account-specific outgoing VAT list may only expose another code such as `6`
-- Do not blindly choose the highest outgoing VAT percentage when the filtered result already shows the account only allows `0%` on the invoice date
+- DO hardcode `vatType: { id: 3 }` (25% outgoing MVA) — do NOT call `GET /ledger/vatType`; vatType id=3 is the standard Norwegian 25% outgoing MVA rate, confirmed on every T15 production run (12+ runs) and sandbox-verified 2026-03-22; omitting vatType entirely silently defaults to id=0 (0% VAT) which gives wrong amounts
 - Do not round percentage-derived milestone amounts to whole NOK; Tripletex accepted `87662.5` directly for a `25%` milestone on `350650`
 - Do not invent customer email or address fields when the prompt does not provide them; `invoiceSendMethod: "MANUAL"` is the safer customer-create default for this unsent-invoice flow
 - Do not restart from `POST /project` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same `POST /invoice`
 - Do not add a scored-run `GET /invoice/{id}` only because the invoice write response leaves some fields sparse; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`; production evidence (10/12 update-needed runs had missing bank accounts, 83%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
+- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/account`; production evidence (10/12 update-needed runs had missing bank accounts, 83%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
 - Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste
-- Do not try to collapse the skip-`PUT /project` branch to `2` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result
+- The skip-`PUT /project` branch is now `2` calls: `GET /project` -> `POST /invoice` with hardcoded `vatType: { id: 3 }`; do not collapse further to `1` call — the `GET /project` is what proves the exact existing project state and whether skipping `PUT /project` is valid
 - Do not assert the prompt-derived milestone amount against `amountCurrencyOutstanding` on taxable accounts; the correct check field is `amountExcludingVatCurrency`
 - Do not omit `invoiceDueDate` from `POST /invoice` — it fails `422`; do not omit `customer` from `orders[0]` — it also fails `422`

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-052532132Z-7ad5804f",
+  "request_id": "28175850",
+  "prompt_raw": "Vi trenger Whiteboard fra denne kvitteringen bokfort pa avdeling HR. Bruk riktig utgiftskonto basert pa kjopet, og sorg for korrekt MVA-behandling.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T05:26:36Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T05:25:32.224Z",
+  "after_captured_at": "2026-03-22T05:27:07.614Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "22",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T05:27:07.617Z"
+}

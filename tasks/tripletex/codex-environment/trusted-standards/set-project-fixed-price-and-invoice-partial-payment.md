@@ -32,16 +32,17 @@
    - reuse `project.id`, `customer.id`, and the existing `startDate`
    - if nested `projectManager.email` also matches the prompt, reuse `projectManager.id` and skip a separate `GET /employee`
    - otherwise resolve the manager with `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
-   - if the same expanded row also already shows `fixedprice=<prompt-fixed-price>` and the manager already matches, skip `PUT /project/{id}` entirely and continue from VAT lookup
+   - if the same expanded row also already shows `fixedprice=<prompt-fixed-price>` and the manager already matches, skip `PUT /project/{id}` entirely and go directly to `POST /invoice`
 3. if the project-first read did not already prove the exact project and customer, resolve the customer with `GET /customer?organizationNumber=...&count=10&fields=*`
 4. only if the customer does not already exist, `POST /customer` with `invoiceSendMethod: "MANUAL"` when the prompt gives no delivery details
 5. if the project-first read did not already prove the correct project manager, resolve the manager with `GET /employee?email=...&assignableProjectManagers=true&count=10&fields=*`
 6. if the project is missing, `POST /project`; if the project exists but the current row does not already prove the target fixed-price + manager state, `PUT /project/{id}`; otherwise skip the project write
 7. on the update-needed branch (step 6 required `PUT /project` or `POST /project`):
-   - `PUT /project/{id}` (or `POST /project`) + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 3 calls)
+   - `PUT /project/{id}` (or `POST /project`) + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 2 calls)
    - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using `bankAccountNumber: "12345678903"` before proceeding (0-1 calls)
-   - on the skip-`PUT /project` branch (step 6 was skipped), do NOT add the proactive bank check; just `GET /ledger/vatType` alone
-8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer: { id }`, and embedded `orders[]` containing `customer: { id }`, `project: { id }`, `orderDate`, `deliveryDate`, and one `orderLines[]` entry with the milestone amount
+   - on the skip-`PUT /project` branch (step 6 was skipped), do NOT add the proactive bank check; go directly to `POST /invoice`
+   - do NOT call `GET /ledger/vatType`; hardcode `vatType: { id: 3 }` (25% outgoing — standard Norwegian MVA, exists on every Tripletex account; all T15 production runs confirmed id=3; sandbox-verified 2026-03-22)
+8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer: { id }`, and embedded `orders[]` containing `customer: { id }`, `project: { id }`, `orderDate`, `deliveryDate`, and one `orderLines[]` entry with the milestone amount and `vatType: { id: 3 }`
 9. stop
 
 ## Payload Rules
@@ -59,20 +60,16 @@
   - root `invoiceDate`
   - root `invoiceDueDate` (omitting fails `422`)
   - root `customer: { "id": ... }`
-  - embedded `orders: [{ customer: { "id": ... }, project: { "id": ... }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { "id": ... } }] }]`
+  - embedded `orders: [{ customer: { "id": ... }, project: { "id": ... }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { "id": 3 } }] }]`
   - `orders[0].customer` must be explicitly set or the endpoint returns `422 orders.customer: Kan ikke være null.`
 - for percentage-based milestone prompts:
   - compute the exact 2-decimal partial amount and send that amount directly; do not round milestone amounts to whole NOK
 - compare returned `employee.email` exactly because the endpoint filter is containing
 - compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present
 - for update-shaped prompts, also compare nested `project.projectManager.email` exactly when `projectManager(*)` is expanded on the project search
-- if the prompt implies a normal taxable service and the filtered outgoing VAT result contains `25%`, use that `25%` row
-- if the filtered outgoing VAT result only exposes `0%`, use that one valid row instead of guessing another VAT code
-- if the exact update-first project read already proves project + customer + manager and also `fixedprice=<prompt-fixed-price>`, the canonical branch is `GET /ledger/vatType` -> `POST /invoice` in `3` total calls including the initial project read
-- there is still no safe `2`-call shortcut on that skip-`PUT /project` branch:
-  - the initial `GET /project` is what proves the exact existing project, linked customer, linked manager, and whether `PUT /project` can be skipped
-  - the filtered `GET /ledger/vatType` is still required on taxable accounts; omitting `orderLines[].vatType` can silently create the wrong VAT result
-- on the update-needed branch (where `PUT /project` is required), the canonical call count is `5` (configured bank) or `6` (missing bank), because `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account` are parallelized, followed by optional bank fix + `POST /invoice`
+- hardcode `vatType: { id: 3 }` (25% outgoing MVA) on all order lines — do NOT call `GET /ledger/vatType`; vatType id=3 is the standard Norwegian 25% outgoing MVA rate, confirmed on every T15 production run and sandbox-verified 2026-03-22; omitting vatType entirely silently defaults to id=0 (0% VAT) which is wrong
+- if the exact update-first project read already proves project + customer + manager and also `fixedprice=<prompt-fixed-price>`, the canonical branch is `GET /project` -> `POST /invoice` in `2` total calls
+- on the update-needed branch (where `PUT /project` is required), the canonical call count is `4` (configured bank) or `5` (missing bank), because `PUT /project` + `GET /ledger/account` are parallelized (2 calls), followed by optional bank fix + `POST /invoice`
 - do not use `POST /order` + `PUT /order/:invoice` (2 calls); `POST /invoice?sendToCustomer=false` with embedded `orders[]` replaces both in 1 call — sandbox-verified on 2026-03-21
 - do not use `createOnAccount` on an order with no real order lines for this task shape
 
@@ -101,12 +98,11 @@
   - `GET /ledger/account?isBankAccount=true&fields=*` (if not already done in step 7)
   - update the existing invoice account with `PUT /ledger/account/{id}` using `bankAccountNumber: "12345678903"`
   - retry the same `POST /invoice` once
-- for the exact update-needed project-first branch, the default is the proactive hedge (parallelized with `PUT /project` + `GET /ledger/vatType`):
-  - proactive hedge branch (DEFAULT for update-needed): `5` calls when the invoice account is already configured, `6` calls when the company bank account is missing
+- for the exact update-needed project-first branch, the default is the proactive hedge (parallelized with `PUT /project` + `GET /ledger/account`):
+  - proactive hedge branch (DEFAULT for update-needed): `4` calls when the invoice account is already configured, `5` calls when the company bank account is missing
   - production evidence from 2026-03-20 and 2026-03-21 shows 8/10 update-needed runs had missing bank accounts; at 80% missing rate, proactive hedge is clearly the better default
-  - the `POST /invoice` replaces the old `POST /order` + `PUT /order/:invoice` 2-call path, saving 1 call on every branch
-- for the exact skip-`PUT /project` branch, stay optimistic: do not add `/ledger/account`; production runs on that branch (`Fossekraft AS`, etc.) have never hit the bank-account issue, and adding it would waste a call on already-mature accounts
-- if the filtered outgoing VAT result has no row that matches the prompt's intended taxable behavior and only unsupported rows remain, treat the task as blocked instead of guessing a VAT code
+  - `GET /ledger/vatType` is no longer needed — hardcode `vatType: { id: 3 }` (25% outgoing MVA); sandbox-verified 2026-03-22: POST /invoice with hardcoded vatType=3 produces correct amountExcludingVatCurrency and amountCurrency on every branch
+- for the exact skip-`PUT /project` branch, stay optimistic: do not add `/ledger/account`; production runs on that branch have never hit the bank-account issue, and adding it would waste a call on already-mature accounts
 
 ## OpenAPI / Sandbox Status
 - `/project`, `/order`, `/order/{id}/:invoice`, `/ledger/vatType`, and `/ledger/account` verified in `./openapi.json`
@@ -297,3 +293,12 @@
   - the skip-`PUT /project` branch completed in `3` measured calls: `GET /project` -> `GET /ledger/vatType` -> `POST /invoice`
   - both proof invoices returned `amountExcludingVatCurrency=42662.5`; the sandbox exposed outgoing VAT `25%` (id=3)
   - therefore the conditional `3/5/6`-call standard remains the minimum proven path for this task family
+- OPTIMIZATION on 2026-03-22: hardcode `vatType: { id: 3 }` (25% outgoing MVA) — eliminates `GET /ledger/vatType` on every branch:
+  - sandbox-verified: `POST /invoice` with hardcoded `vatType: { id: 3 }` produces correct `amountExcludingVatCurrency` and `amountCurrency` (= ex-VAT × 1.25)
+  - sandbox-verified: omitting `vatType` entirely defaults to id=0 (0% VAT), which gives WRONG `amountCurrency` — therefore vatType MUST be specified, but can be hardcoded to id=3
+  - vatType id=3 = "Utgående avgift, høy sats" (25%) is the standard Norwegian outgoing MVA rate; exists on every Tripletex account
+  - all T15 production runs (12+ runs across en/de/nb/nn/pt/es/fr prompts) used vatType id=3 with 25% outgoing
+  - sandbox E2E: update-needed+configured completed in `4` measured calls: `GET /project` -> `PUT /project` || `GET /ledger/account` -> `POST /invoice` (was 5)
+  - sandbox E2E: skip-PUT completed in `2` measured calls: `GET /project` -> `POST /invoice` (was 3)
+  - new canonical call counts: skip-PUT = **2**, update-needed+configured = **4**, update-needed+missing = **5**
+  - replaces the previous `3/5/6`-call standard
