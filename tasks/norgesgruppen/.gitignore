@@ -31,3 +31,5 @@ data/2026-03-19/derived/yolo-class-agnostic/labels/
 
 # Large generated experiment artifacts
 data/2026-03-19/experiments/**/artifacts/
+submission/
+*.zip
