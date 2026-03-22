@@ -1062,10 +1062,10 @@ def build_online_predictor(
         resolved_policy_name = (policy_name or "coverage").strip().lower()
         predictor = FFAMModePredictor.fit_named_from_workspace(
             workspace_paths,
-            config=ffam_config,
+            model_name=normalized,
             round_ids=(
                 list(historical_round_ids) if historical_round_ids is not None
-                else sorted(rd.name for rd in workspace_paths.raw_dir.joinpath("replays").glob("*") if rd.is_dir())
+                else None
             ),
             policy_name=resolved_policy_name,
             samples_per_round=samples_per_round,
