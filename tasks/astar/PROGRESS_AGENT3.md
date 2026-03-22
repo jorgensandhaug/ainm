@@ -4955,9 +4955,28 @@ Key techniques to incorporate from other agents:
    - Models are COMPLEMENTARY - ensemble could potentially beat both
    - But no easy way to access their prediction tensors for ensembling
 
+532. AutoGluon+TabPFN V2.5 FINAL: **85.90** (BELOW our CatBoost 86.38!)
+   - Per-round: 72.13, 89.26, 89.48, 88.73, 86.09, 90.73, 85.05, 85.70
+   - Even AutoGluon's full ensemble (LGB+CatBoost+TabPFN+NN+stacking) can't beat our single CatBoost
+   - Our feature engineering + training approach is BETTER than AutoGluon's auto-ML
+
+533. SPR experiments failed (query_residual_v19 has fixed samples_per_round=2)
+
+534. DEFINITIVE SESSION LEADERBOARD:
+   | Rank | Model | Score | Method |
+   |------|-------|-------|--------|
+   | 1 | **CatBoost + exploration + obs-blend** | **86.38** | Cellwise CatBoost, 1500 iter, depth 8 |
+   | 2 | AutoGluon+TabPFN best_quality | 85.90 | Full ensemble with TabPFN V2.5 |
+   | 3 | AutoGluon best_quality | 85.18 | Full ensemble without TabPFN |
+   | 4 | CatBoost + obs-blend (coverage) | 85.29 | Same model, coverage policy |
+   | 5 | LGB v5_d8 (coverage) | 84.94 | LightGBM single model |
+   | 6 | adaptive_ensemble_v17 | 79.98 | Barren-round calibration on query_residual |
+   | 7 | query_residual_v19 | 76.89 | Starting baseline |
+
+   **Total session improvement: +9.49 points** (76.89 → 86.38)
+
 ## Open Questions
 
-- Will AutoGluon+TabPFN finish and beat our CatBoost?
-- Can we cross-ensemble with Agent7's model?
-- Need to wire best model into live pipeline for next round
-- Total session improvement: **+9.49 points** (76.89 → 86.38)
+- Can we close the 0.74 gap to Agent7 (87.12 vs 86.38)?
+- Need to wire CatBoost + exploration into live pipeline for next round submission
+- The bottleneck is round 36e581f1 at 73.64 - can ANY approach push it past 80?
