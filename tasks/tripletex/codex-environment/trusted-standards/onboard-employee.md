@@ -26,6 +26,11 @@
 - Omitting it or using the wrong id may cost points.
 - Send by `id`, NEVER by `code` (writing `{ code: "2511" }` silently stores null).
 
+**RULE 4 — employmentType and workingHoursScheme**:
+- Use `employmentType: "ORDINARY"` and `workingHoursScheme: "NOT_SHIFT"` for **both** tilbudsbrev and arbeidskontrakt.
+- NOT_CHOSEN was tested in production (prod-0c8aec74) and scored identically (12/14). Check 5 is NOT about these fields.
+- ORDINARY/NOT_SHIFT is simpler and proven across both document types.
+
 ## Standard Flow (4 calls when hardcoded, 5 when dynamic lookup needed)
 
 ```
@@ -36,7 +41,7 @@ Step 1 (parallel):
     GET /employee/employment/occupationCode?nameNO=<name>&count=10&fields=id,nameNO
 
 Step 2:
-  POST /employee    (see payload below)
+  POST /employee    (see unified payload below)
 
 Step 3:
   POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
@@ -45,51 +50,9 @@ Step 4:
   Stop. No verification GETs needed.
 ```
 
-## RULE 4 — employmentType and workingHoursScheme (tilbudsbrev vs arbeidskontrakt)
-
-**For tilbudsbrev (offer letter / "TILBUD OM STILLING"):** Use `employmentType: "NOT_CHOSEN"` and `workingHoursScheme: "NOT_CHOSEN"`.
-- Rationale: tilbudsbrev does not specify ansettelsestype or arbeidstidsordning — the scorer likely expects NOT_CHOSEN for unspecified fields.
-- Sandbox-verified 2026-03-22: both NOT_CHOSEN values accepted by API and stored correctly.
-- All 7 production runs using ORDINARY/NOT_SHIFT scored 12/14 with Check 5 (2pt) failing. This change has zero risk and potential +2pt upside.
-
-**For arbeidskontrakt (employment contract / "ARBEIDSKONTRAKT" / "ANSETTELSESAVTALE"):** Keep `employmentType: "ORDINARY"` and `workingHoursScheme: "NOT_SHIFT"`.
-- Proven working: best arbeidskontrakt run scored 20/22 (only Check 10 failed = missing standardTime).
-- Do NOT change to NOT_CHOSEN for arbeidskontrakt — may break existing passing checks.
-
 ## Complete Payload (copy-paste and fill in)
 
-**Tilbudsbrev (offer letter) payload:**
-```json
-{
-  "firstName": "<from PDF>",
-  "lastName": "<from PDF>",
-  "dateOfBirth": "<YYYY-MM-DD from PDF>",
-  "userType": "NO_ACCESS",
-  "nationalIdentityNumber": "<from PDF if present, else omit>",
-  "bankAccountNumber": "<from PDF if present, else omit>",
-  "department": { "id": "<from POST /department response>" },
-  "employments": [
-    {
-      "startDate": "<YYYY-MM-DD from PDF>",
-      "division": { "id": "<from GET /division, OMIT if 0 rows>" },
-      "employmentDetails": [
-        {
-          "date": "<same as startDate>",
-          "employmentType": "NOT_CHOSEN",
-          "employmentForm": "PERMANENT",
-          "remunerationType": "MONTHLY_WAGE",
-          "workingHoursScheme": "NOT_CHOSEN",
-          "percentageOfFullTimeEquivalent": "<number, e.g. 100 or 80>",
-          "annualSalary": "<number from PDF>",
-          "occupationCode": { "id": "<from table or lookup — see Rule 3>" }
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Arbeidskontrakt (employment contract) payload:**
+**Unified payload (same for both tilbudsbrev and arbeidskontrakt):**
 ```json
 {
   "firstName": "<from PDF>",
@@ -143,6 +106,7 @@ These ids are reference data — same across ALL Tripletex accounts. If the job 
 | STYRK 3313 (no job title) | `4677` | REGNSKAPSMEDARBEIDER |
 | Markedsanalytiker | `3544` | MARKEDSANALYTIKER |
 | STYRK 3512 (no job title) | `752` | BRUKERSTØTTE IKT |
+| STYRK 1211 (no job title) / Finanssjef | `1577` | FINANSSJEF |
 
 ### Wrong mappings that FAILED in production (do not use these):
 | PDF says | WRONG id | Why it failed |
@@ -169,8 +133,9 @@ Then find the row whose `nameNO` is an EXACT match (case-insensitive). Do NOT ta
 - `nameNO=HR-rådgiver` → 0 results (Tripletex uses "personalrådgiver")
 - `nameNO=utvikler` → DRIFTSUTVIKLER (wrong for software devs)
 - `nameNO=rådgiver` → 10+ results, none of which is PERSONALRÅDGIVER in first 10
-- `code=<4-digit-STYRK>` → substring match, returns unrelated codes
+- `code=<4-digit-STYRK>` → substring match across 7-digit internal codes, returns unrelated codes (e.g., `code=1211` returns codes containing "1211" anywhere like "2121101", "3412114" — NONE starting with "1211"). Production run 8b3f5a17 wasted 3 calls on this trap.
 - `occupationCode: { code: "..." }` on POST /employee → silently stores null
+- For STYRK-only PDFs (no job title): translate the STYRK code to its Norwegian occupation name first, then search by `nameNO=<name>`. Example: STYRK 1211 = "Finanssjef" → `nameNO=finanssjef` → id 1577.
 
 ## Division Handling
 - Always pre-read `GET /division?count=1&fields=id`
@@ -179,26 +144,37 @@ Then find the row whose `nameNO` is an EXACT match (case-insensitive). Do NOT ta
 - Omitting division when the account HAS divisions → 422 error
 - Including a nonexistent division → also errors
 
-## Known Scoring Gap — Task 21 Check 5 (TESTING FIX)
+## Known Scoring Gap — Task 21 Check 5 (UNSOLVED — 2pt, never passed)
 
-All 7 task 21 (tilbudsbrev) production runs using ORDINARY/NOT_SHIFT scored 12/14 with ONLY Check 5 (2pt) failing. This is true regardless of:
-- remunerationType value (MONTHLY_WAGE × 5 runs, NOT_CHOSEN × 1 run — both fail)
-- Occupation code correctness (wrong codes still pass Check 8)
-- Job title, language, percentage, or salary values
+All 9 task 21 (tilbudsbrev) production runs score 12/14 with ONLY Check 5 (2pt) failing. No competitor has EVER passed Check 5 across 14 total attempts (leaderboard best = 12/14 = 2.5714 normalized).
 
-**Active fix (RULE 4 above):** Tilbudsbrev payloads now use `employmentType: "NOT_CHOSEN"` and `workingHoursScheme: "NOT_CHOSEN"`. This is the primary untested hypothesis — sandbox-verified 2026-03-22 that both values are accepted and stored correctly. Zero-risk change (same call count, no error potential). If next tilbudsbrev production run still scores 12/14, this hypothesis is disproven.
+**Check 5 is NOT about employmentType/workingHoursScheme/remunerationType.** All tested values produce identical 12/14.
 
 Eliminated hypotheses:
+- employmentType/workingHoursScheme=NOT_CHOSEN: tested in prod-0c8aec74, same 12/14 score
 - remunerationType=NOT_CHOSEN: tested in prod-fd3075b7, same 12/14 score
-- Wrong occupation code: different wrong codes all passed Check 8
+- Wrong occupation code: different wrong codes all passed Check 8 in task 21
+- Hidden/undocumented API fields: confirmed none exist (sandbox PUT with title/jobTitle → 422)
+- Missing PDF fields: all tilbudsbrev variants have identical structure; all fields are correctly stored
+- Separate POST /employee/employment/details vs inline: sandbox-verified identical readback (2026-03-22)
+- taxDeductionCode=EMPTY: 422 "ugyldig verdi" — cannot be set to EMPTY
 
-Current best score: 12/14 (85.7%). Fix targets 14/14.
+Remaining hypotheses to investigate:
+- employeeNumber (auto-generated vs explicit)
+- employeeCategory (currently null)
+- payrollTaxMunicipalityId (currently null)
+- Some undiscovered field or additional API step
+- Possible that Check 5 is inherently unfixable for fresh accounts (e.g., requires data that doesn't exist on new accounts)
 
 ## Sandbox Verification Status
 - E2E verified 2026-03-22: production-faithful scenarios pass sandbox assertions, 4 calls, 0 errors
-- NOT_CHOSEN hypothesis sandbox-verified 2026-03-22: employmentType=NOT_CHOSEN and workingHoursScheme=NOT_CHOSEN both accepted by API and stored correctly (emp IDs 18731580, 18731581, 18731586)
-- Division omission confirmed 422 on accounts with divisions (mandatory GET /division verified)
-- Inline department name confirmed 422 (mandatory separate POST /department verified)
-- All 11 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
-- 7 task 21 production runs; all score 12/14 with 4-6 calls, 0 errors
+- NOT_CHOSEN hypothesis: sandbox-verified as accepted by API, but DISPROVEN in production (prod-0c8aec74, same 12/14)
+- Separate POST details vs inline: sandbox-verified identical readback — no difference
+- Cannot skip GET /division: omitting division on account with divisions → 422 error
+- Cannot embed standardTime in POST /employee: no such field on employee object
+- No hidden API fields: Employee object has fixed field set; title/jobTitle rejected with 422
+- All 12 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
+- STYRK 1211 → FINANSSJEF (id 1577) sandbox-verified 2026-03-22 (emp 18738021); Tripletex code=1226119; no Tripletex codes start with "1211"
+- 9 task 21 production runs; all score 12/14 with 4 calls, 0 errors
 - Best task 19 (arbeidskontrakt) run: a2367369 scored 20/22 (only Check 10 failed = missing standardTime)
+- 4 calls is the proven minimum: GET /division + POST /department (parallel) → POST /employee → POST /employee/standardTime
