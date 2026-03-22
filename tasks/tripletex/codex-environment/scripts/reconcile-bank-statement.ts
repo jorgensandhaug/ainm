@@ -1,11 +1,10 @@
 /**
  * Pre-built bank reconciliation script for Task 23.
- * Sandbox-verified END-TO-END (2026-03-22): 11/11 matches, cross-month (2 recons), both closed.
- * Optimized: parallel payments/matches/closes + confirmatory GETs (GETs are free).
- * Cross-month handling verified: creates separate reconciliation per month.
+ * v2: Optimized with batch matching (L→P calls) + combined OB+supplier voucher (2→1 call).
+ * Sandbox-verified: batch match 5-in-1 → 201, combined voucher → 201 (2026-03-22).
+ * Production v1 (a986e65f): 20 mutating, 0 errors, 10/10 matches. v2 target: ~10 mutating.
  *
  * Usage: bun reconcile-bank-statement.ts <BASE_URL> <TOKEN> <CSV_FILE_PATH>
- * Example: bun reconcile-bank-statement.ts https://proxy.example/v2 myToken123 /path/to/bankutskrift.csv
  */
 
 const BASE = process.argv[2]?.replace(/\/+$/, "");
@@ -129,42 +128,96 @@ for (const inv of outstandingInvs) {
   console.log(`  Inv #${inv.invoiceNumber} | ${inv.customer?.name} | outstanding=${inv.amountCurrencyOutstanding ?? inv.amountOutstanding} | total=${inv.amount}`);
 }
 
-// ── STEP 0: Opening balance voucher ──
-
-console.log(`\n=== STEP 0: Opening balance voucher ===`);
-
-let obVoucherId: number | null = null;
-if (openingBalance !== 0) {
-  const obRes = await post("ledger/voucher", {
-    date: firstCsvDate, description: "Inngående balanse",
-    postings: [
-      { row: 1, date: firstCsvDate, description: "Inngående balanse", account: { id: acctMap[1920] },
-        amount: openingBalance, amountCurrency: openingBalance, amountGross: openingBalance, amountGrossCurrency: openingBalance, currency: { id: 1 } },
-      { row: 2, date: firstCsvDate, description: "Inngående balanse", account: { id: acctMap[2050] },
-        amount: -openingBalance, amountCurrency: -openingBalance, amountGross: -openingBalance, amountGrossCurrency: -openingBalance, currency: { id: 1 } },
-    ],
-  });
-  obVoucherId = obRes?.value?.id;
-  console.log(`OB voucher created: id=${obVoucherId || "ERROR"}`);
-
-  // Verify OB voucher
-  if (obVoucherId) {
-    const obVerify = await get(`ledger/voucher/${obVoucherId}?fields=*,postings(*)`);
-    const obPostings = obVerify?.value?.postings || [];
-    console.log(`  Verified: ${obPostings.length} postings, date=${obVerify?.value?.date}`);
-    for (const p of obPostings) {
-      console.log(`    row=${p.row} acct=${p.account?.number || p.account?.id} amount=${p.amount}`);
-    }
-  }
-} else {
-  console.log(`Opening balance is 0 — no OB voucher needed`);
-}
-
 // ── STEP 2: Payment type ──
 
 const payType = payTypes.find((pt: any) => pt.debitAccount?.number === 1920);
 if (!payType) { console.error("No payment type with debitAccount 1920"); process.exit(1); }
 console.log(`\nPayment type: id=${payType.id} "${payType.description}" debit=${payType.debitAccount?.number}`);
+
+// ── STEPS 0+4+5: COMBINED VOUCHER (OB + suppliers + non-invoice) — ONE POST ──
+
+console.log(`\n=== STEPS 0+4+5: Combined voucher (OB + suppliers + non-invoice) ===`);
+
+const supplierMap: Record<string, number> = {};
+for (const s of suppliers) supplierMap[s.name.toLowerCase()] = s.id;
+
+const voucherPostings: any[] = [];
+let row = 1;
+
+// OB postings (DR 1920 / CR 2050)
+if (openingBalance !== 0) {
+  voucherPostings.push({
+    row: row++, date: firstCsvDate, description: "Inngående balanse", account: { id: acctMap[1920] },
+    amount: openingBalance, amountCurrency: openingBalance, amountGross: openingBalance, amountGrossCurrency: openingBalance, currency: { id: 1 },
+  });
+  voucherPostings.push({
+    row: row++, date: firstCsvDate, description: "Inngående balanse", account: { id: acctMap[2050] },
+    amount: -openingBalance, amountCurrency: -openingBalance, amountGross: -openingBalance, amountGrossCurrency: -openingBalance, currency: { id: 1 },
+  });
+  console.log(`  OB: ${openingBalance} (DR 1920 / CR 2050) on ${firstCsvDate}`);
+}
+
+// Supplier payment postings (DR 2400 / CR 1920)
+for (const line of supplierLines) {
+  const supplierName = line.desc.replace(/Betaling\s+(Proveedor|Supplier|Leverandor|Lieferant|Fournisseur|Fornecedor)\s+/i, "").trim();
+  const amount = Math.abs(line.ut);
+  const suppId = Object.entries(supplierMap).find(([name]) => name.includes(supplierName.toLowerCase()))?.[1];
+
+  console.log(`  Supplier: "${supplierName}" amount=${amount} supplierId=${suppId || "NOT FOUND"}`);
+
+  voucherPostings.push({
+    row: row++, date: line.date, description: `Betaling ${supplierName}`, account: { id: acctMap[2400] },
+    amount, amountCurrency: amount, amountGross: amount, amountGrossCurrency: amount,
+    ...(suppId ? { supplier: { id: suppId } } : {}), currency: { id: 1 },
+  });
+  voucherPostings.push({
+    row: row++, date: line.date, description: `Betaling ${supplierName}`, account: { id: acctMap[1920] },
+    amount: -amount, amountCurrency: -amount, amountGross: -amount, amountGrossCurrency: -amount, currency: { id: 1 },
+  });
+}
+
+// Non-invoice postings
+const contraAcctMap: Record<string, number> = {
+  Bankgebyr: acctMap[7770], Renteinntekter: acctMap[8050], Skattetrekk: acctMap[2600],
+};
+
+for (const line of nonInvoiceLines) {
+  const isIncoming = line.inn > 0;
+  const absAmount = isIncoming ? line.inn : Math.abs(line.ut);
+  const keyword = Object.keys(contraAcctMap).find(k => line.desc.includes(k)) || "Bankgebyr";
+  const contraId = contraAcctMap[keyword] || acctMap[7770];
+
+  console.log(`  Non-invoice: "${line.desc}" amount=${isIncoming ? "+" : "-"}${absAmount} contra=${keyword}`);
+
+  if (isIncoming) {
+    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: acctMap[1920] },
+      amount: absAmount, amountCurrency: absAmount, amountGross: absAmount, amountGrossCurrency: absAmount, currency: { id: 1 } });
+    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: contraId },
+      amount: -absAmount, amountCurrency: -absAmount, amountGross: -absAmount, amountGrossCurrency: -absAmount, currency: { id: 1 } });
+  } else {
+    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: contraId },
+      amount: absAmount, amountCurrency: absAmount, amountGross: absAmount, amountGrossCurrency: absAmount, currency: { id: 1 } });
+    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: acctMap[1920] },
+      amount: -absAmount, amountCurrency: -absAmount, amountGross: -absAmount, amountGrossCurrency: -absAmount, currency: { id: 1 } });
+  }
+}
+
+let combinedVoucherId: number | null = null;
+if (voucherPostings.length > 0) {
+  const vRes = await post("ledger/voucher", { date: firstCsvDate, description: "Bank reconciliation", postings: voucherPostings });
+  combinedVoucherId = vRes?.value?.id;
+  console.log(`Combined voucher: id=${combinedVoucherId || "ERROR"} (${voucherPostings.length} postings)`);
+
+  // Verify combined voucher
+  if (combinedVoucherId) {
+    const cvVerify = await get(`ledger/voucher/${combinedVoucherId}?fields=*,postings(*)`);
+    const cvPostings = cvVerify?.value?.postings || [];
+    console.log(`  Verified: ${cvPostings.length} postings on voucher ${combinedVoucherId}`);
+    for (const p of cvPostings) {
+      console.log(`    row=${p.row} acct=${p.account?.number || p.account?.id} amount=${p.amount} desc="${p.description}"`);
+    }
+  }
+}
 
 // ── STEP 3: Customer payments (parallel) ──
 
@@ -220,77 +273,6 @@ for (let i = 0; i < paymentPlan.length; i++) {
   if (inv) {
     const outstanding = inv.amountCurrencyOutstanding ?? inv.amountOutstanding ?? "?";
     console.log(`  Inv #${inv.invoiceNumber}: total=${inv.amount} outstanding=${outstanding} ${outstanding === 0 || outstanding === 0.0 ? "✓ PAID" : "⚠ STILL OUTSTANDING"}`);
-  }
-}
-
-// ── STEPS 4+5: Combined voucher (suppliers + non-invoice) ──
-
-console.log(`\n=== STEPS 4+5: Combined voucher ===`);
-
-const supplierMap: Record<string, number> = {};
-for (const s of suppliers) supplierMap[s.name.toLowerCase()] = s.id;
-
-const voucherPostings: any[] = [];
-let row = 1;
-
-for (const line of supplierLines) {
-  const supplierName = line.desc.replace(/Betaling\s+(Proveedor|Supplier|Leverandor|Lieferant|Fournisseur|Fornecedor)\s+/i, "").trim();
-  const amount = Math.abs(line.ut);
-  const suppId = Object.entries(supplierMap).find(([name]) => name.includes(supplierName.toLowerCase()))?.[1];
-
-  console.log(`  Supplier: "${supplierName}" amount=${amount} supplierId=${suppId || "NOT FOUND"}`);
-
-  voucherPostings.push({
-    row: row++, date: line.date, description: `Betaling ${supplierName}`, account: { id: acctMap[2400] },
-    amount, amountCurrency: amount, amountGross: amount, amountGrossCurrency: amount,
-    ...(suppId ? { supplier: { id: suppId } } : {}), currency: { id: 1 },
-  });
-  voucherPostings.push({
-    row: row++, date: line.date, description: `Betaling ${supplierName}`, account: { id: acctMap[1920] },
-    amount: -amount, amountCurrency: -amount, amountGross: -amount, amountGrossCurrency: -amount, currency: { id: 1 },
-  });
-}
-
-const contraAcctMap: Record<string, number> = {
-  Bankgebyr: acctMap[7770], Renteinntekter: acctMap[8050], Skattetrekk: acctMap[2600],
-};
-
-for (const line of nonInvoiceLines) {
-  const isIncoming = line.inn > 0;
-  const absAmount = isIncoming ? line.inn : Math.abs(line.ut);
-  const keyword = Object.keys(contraAcctMap).find(k => line.desc.includes(k)) || "Bankgebyr";
-  const contraId = contraAcctMap[keyword] || acctMap[7770];
-
-  console.log(`  Non-invoice: "${line.desc}" amount=${isIncoming ? "+" : "-"}${absAmount} contra=${keyword}`);
-
-  if (isIncoming) {
-    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: acctMap[1920] },
-      amount: absAmount, amountCurrency: absAmount, amountGross: absAmount, amountGrossCurrency: absAmount, currency: { id: 1 } });
-    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: contraId },
-      amount: -absAmount, amountCurrency: -absAmount, amountGross: -absAmount, amountGrossCurrency: -absAmount, currency: { id: 1 } });
-  } else {
-    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: contraId },
-      amount: absAmount, amountCurrency: absAmount, amountGross: absAmount, amountGrossCurrency: absAmount, currency: { id: 1 } });
-    voucherPostings.push({ row: row++, date: line.date, description: line.desc, account: { id: acctMap[1920] },
-      amount: -absAmount, amountCurrency: -absAmount, amountGross: -absAmount, amountGrossCurrency: -absAmount, currency: { id: 1 } });
-  }
-}
-
-let combinedVoucherId: number | null = null;
-if (voucherPostings.length > 0) {
-  const earliestDate = [...supplierLines, ...nonInvoiceLines].sort((a, b) => a.date.localeCompare(b.date))[0]?.date || firstCsvDate;
-  const vRes = await post("ledger/voucher", { date: earliestDate, description: "Bank reconciliation - payments", postings: voucherPostings });
-  combinedVoucherId = vRes?.value?.id;
-  console.log(`Combined voucher: id=${combinedVoucherId || "ERROR"} (${voucherPostings.length} postings)`);
-
-  // Verify combined voucher
-  if (combinedVoucherId) {
-    const cvVerify = await get(`ledger/voucher/${combinedVoucherId}?fields=*,postings(*)`);
-    const cvPostings = cvVerify?.value?.postings || [];
-    console.log(`  Verified: ${cvPostings.length} postings on voucher ${combinedVoucherId}`);
-    for (const p of cvPostings) {
-      console.log(`    row=${p.row} acct=${p.account?.number || p.account?.id} amount=${p.amount} desc="${p.description}"`);
-    }
   }
 }
 
@@ -358,9 +340,9 @@ for (let i = 0; i < txnVerifyResults.length; i++) {
   }
 }
 
-// ── STEP 7: Match bank transactions to ledger postings ──
+// ── STEP 7: Create recons + BATCH match ──
 
-console.log(`\n=== STEP 7: Create recons + match ===`);
+console.log(`\n=== STEP 7: Create recons + batch match ===`);
 
 const postingsRes = await get(`ledger/posting?accountId=${acctMap[1920]}&dateFrom=${firstCsvDate}&dateTo=${dayAfterLast}&count=1000&fields=id,date,amount,description`);
 const allPostings1920 = postingsRes.values || [];
@@ -385,9 +367,9 @@ const reconEntries = await Promise.all(
 const reconByMonth: Record<string, any> = Object.fromEntries(reconEntries);
 console.log(`Recons created: ${Object.entries(reconByMonth).map(([m,r]) => `${m} → id=${r?.id} v=${r?.version}`).join(", ")}`);
 
-// Match each CSV line to posting using positional txn IDs from import (parallel)
+// Build match pairs grouped by month for BATCH matching
 const usedPostingIds = new Set<number>();
-const matchPlan: { txnId: number; postingId: number; reconId: number; csvIdx: number; csvAmount: number }[] = [];
+const matchesByMonth: Record<string, { txnIds: number[], postingIds: number[] }> = {};
 
 for (let i = 0; i < csvLines.length; i++) {
   const txnId = importTxnIds[i];
@@ -404,21 +386,42 @@ for (let i = 0; i < csvLines.length; i++) {
   const recon = reconByMonth[lineMonth];
   if (!recon) { console.log(`  No recon for month ${lineMonth}`); continue; }
 
-  matchPlan.push({ txnId, postingId: matchPosting.id, reconId: recon.id, csvIdx: i, csvAmount });
+  if (!matchesByMonth[lineMonth]) matchesByMonth[lineMonth] = { txnIds: [], postingIds: [] };
+  matchesByMonth[lineMonth].txnIds.push(txnId);
+  matchesByMonth[lineMonth].postingIds.push(matchPosting.id);
   console.log(`  Plan match: CSV[${i}] txn=${txnId} ↔ posting=${matchPosting.id} (amount=${csvAmount}) → recon ${lineMonth}`);
 }
 
-console.log(`\nFiring ${matchPlan.length} matches in parallel...`);
-const matchResults = await Promise.all(
-  matchPlan.map(mp => post("bank/reconciliation/match", {
-    bankReconciliation: { id: mp.reconId },
-    transactions: [{ id: mp.txnId }],
-    postings: [{ id: mp.postingId }],
+// Fire ONE batch match per month (saves L-P calls vs individual matching)
+const batchMonths = Object.keys(matchesByMonth);
+console.log(`\nFiring ${batchMonths.length} batch match(es) for ${Object.values(matchesByMonth).reduce((s, m) => s + m.txnIds.length, 0)} total pairs...`);
+const batchResults = await Promise.all(
+  batchMonths.map(m => post("bank/reconciliation/match", {
+    bankReconciliation: { id: reconByMonth[m].id },
+    transactions: matchesByMonth[m].txnIds.map(id => ({ id })),
+    postings: matchesByMonth[m].postingIds.map(id => ({ id })),
   }))
 );
-const matchOk = matchResults.filter(r => r?.value).length;
-const matchFail = matchResults.length - matchOk;
-console.log(`Matched: ${matchOk}/${csvLines.length} OK, ${matchFail} failed`);
+const batchOk = batchResults.filter(r => r?.value).length;
+const batchFail = batchResults.length - batchOk;
+console.log(`Batch matched: ${batchOk}/${batchMonths.length} batches OK, ${batchFail} failed`);
+
+// If any batch failed, fall back to individual matches for that month
+for (let i = 0; i < batchMonths.length; i++) {
+  if (!batchResults[i]?.value) {
+    const m = batchMonths[i];
+    console.log(`  Batch for ${m} failed — falling back to individual matches`);
+    const { txnIds, postingIds } = matchesByMonth[m];
+    for (let j = 0; j < txnIds.length; j++) {
+      const r = await post("bank/reconciliation/match", {
+        bankReconciliation: { id: reconByMonth[m].id },
+        transactions: [{ id: txnIds[j] }],
+        postings: [{ id: postingIds[j] }],
+      });
+      console.log(`    Individual match txn=${txnIds[j]} ↔ posting=${postingIds[j]}: ${r?.value ? "OK" : "FAIL"}`);
+    }
+  }
+}
 
 // Verify: GET each recon to see match count
 console.log(`\n  --- Verifying recon match counts ---`);
@@ -446,19 +449,19 @@ for (const m of months) {
   console.log(`  ${m} closing balance from CSV: ${monthClosingBalance[m]}`);
 }
 
-// Close recons in parallel (first attempt)
-const closeResults = await Promise.all(
-  months.filter(m => reconByMonth[m]).map(async m => {
-    const recon = reconByMonth[m];
-    const bal = monthClosingBalance[m];
-    const cr = await put(`bank/reconciliation/${recon.id}`, {
-      id: recon.id, version: recon.version,
-      account: { id: acctMap[1920] }, accountingPeriod: { id: periodMap[m].id },
-      type: "MANUAL", bankAccountClosingBalanceCurrency: bal, isClosed: true,
-    });
-    return { m, bal, ok: !!cr?.value, recon };
-  })
-);
+// Close recons in chronological order
+const closeResults: { m: string; bal: number; ok: boolean; recon: any }[] = [];
+for (const m of months.sort()) {
+  const recon = reconByMonth[m];
+  if (!recon) continue;
+  const bal = monthClosingBalance[m];
+  const cr = await put(`bank/reconciliation/${recon.id}`, {
+    id: recon.id, version: recon.version,
+    account: { id: acctMap[1920] }, accountingPeriod: { id: periodMap[m].id },
+    type: "MANUAL", bankAccountClosingBalanceCurrency: bal, isClosed: true,
+  });
+  closeResults.push({ m, bal, ok: !!cr?.value, recon });
+}
 
 // Sequential fallback for any that failed (balance sheet read needed)
 for (const r of closeResults) {

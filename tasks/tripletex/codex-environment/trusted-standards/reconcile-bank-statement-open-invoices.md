@@ -29,15 +29,13 @@ Replace `<RUN_SCRIPTS_DIR>`, `<BASE_URL>`, `<TOKEN>`, and `<CSV_FILE_PATH>` with
 
 Steps 1–5 alone give 0.6/6 (Check 2 only). Steps 6+7 alone were proven INSUFFICIENT (57c8f4db, 02daaa35 both 0.6/6). **ALL of Steps 0, 6, 7, 8 are required for Check 1 (8 points).** Complete flow sandbox-verified END-TO-END on 2026-03-22 with 11/11 matches, 0 errors, all checks passed.
 
-0. **Step 0**: Post opening balance voucher (DR 1920 / CR 2050) — makes ledger consistent with CSV saldo
 1. **Step 1**: Fire 6 reads in parallel (including `accountingPeriod` covering ALL months in CSV, and account 2050)
 2. **Step 2**: Select payment type (debitAccount.number === 1920)
 3. **Step 3**: Match and pay customer invoices (`PUT /invoice/{id}/:payment`)
-4. **Step 4**: Handle supplier payments (combined voucher if no supplier invoices)
-5. **Step 5**: Book ALL non-invoice lines (Bankgebyr/Skattetrekk/Renteinntekter)
-6. **Step 6**: `POST /bank/statement/import` with `SBANKEN_BEDRIFT_CSV` format — save txn IDs from response (positional, matches CSV order)
-7. **Step 7**: `GET /ledger/posting` + create SEPARATE reconciliation PER accounting period + `POST /bank/reconciliation/match` for each CSV line (assign each match to the recon of its period)
-8. **Step 8**: Close ALL bank reconciliations (`PUT /bank/reconciliation/{id}` with `isClosed: true`, one per period)
+4. **Steps 0+4+5 COMBINED**: Post ONE `POST /ledger/voucher` containing opening balance (DR 1920 / CR 2050) + supplier payments (DR 2400 / CR 1920) + non-invoice lines (Bankgebyr/Skattetrekk/Renteinntekter) — sandbox-verified 2026-03-22: combined OB+transactions in 1 voucher works, saves 1 POST vs separate OB voucher
+5. **Step 6**: `POST /bank/statement/import` with `SBANKEN_BEDRIFT_CSV` format — save txn IDs from response (positional, matches CSV order)
+6. **Step 7**: `GET /ledger/posting` + create SEPARATE reconciliation PER accounting period + **BATCH** `POST /bank/reconciliation/match` per period (send ALL txn+posting pairs in ONE call per period, not individual calls) — sandbox-verified 2026-03-22: batch match with 5 txns+5 postings in 1 call returns 201, creates 1 match object with type=MANUAL
+7. **Step 8**: Close ALL bank reconciliations (`PUT /bank/reconciliation/{id}` with `isClosed: true`, one per period)
 
 ## CSV parsing
 
@@ -63,50 +61,41 @@ GET /ledger/accountingPeriod?startFrom=<first-csv-month-start>&startTo=<month-af
 
 **CRITICAL: the period query MUST cover ALL months in the CSV.** CSVs commonly span 2 months (e.g., Jan 16 – Feb 4). Use the first day of the first CSV date's month as `startFrom` and the first day of the month AFTER the last CSV date as `startTo`. Example: CSV dates 2026-01-16 to 2026-02-04 → `startFrom=2026-01-01&startTo=2026-03-01`. This returns both January and February periods in 1 call. Then group CSV lines by period (based on date) for multi-period reconciliation in Steps 7–8.
 
-### Step 0: Post opening balance voucher (execute immediately after Step 1)
+### Steps 0+4+5: Combined voucher (OB + supplier payments + non-invoice lines) — ONE POST
 
-The CSV includes an opening saldo (typically 100000) representing the bank balance before the first transaction. Post this as a voucher so account 1920 starts at the correct balance.
+**OPTIMIZATION (sandbox-verified 2026-03-22)**: Combine the opening balance postings, supplier payment postings, and non-invoice line postings into ONE `POST /ledger/voucher`. This saves 1 POST vs the old approach of separate OB voucher + combined supplier/non-invoice voucher. Individual posting dates within the voucher are preserved correctly even when they differ from the voucher date.
 
 ```typescript
 const openingBalance = csvLines[0].saldo - (csvLines[0].inn || 0) + Math.abs(csvLines[0].ut || 0);
+const allPostings: any[] = [];
+let row = 1;
+
+// OB postings (DR 1920 / CR 2050)
 if (openingBalance !== 0) {
-  await post("ledger/voucher", {
-    date: csvLines[0].date,
-    description: "Inngående balanse",
-    postings: [
-      {
-        row: 1,
-        date: csvLines[0].date,
-        description: "Inngående balanse",
-        account: { id: acct1920Id },
-        amount: openingBalance,
-        amountCurrency: openingBalance,
-        amountGross: openingBalance,
-        amountGrossCurrency: openingBalance,
-        currency: { id: 1 },
-      },
-      {
-        row: 2,
-        date: csvLines[0].date,
-        description: "Inngående balanse",
-        account: { id: acct2050Id },
-        amount: -openingBalance,
-        amountCurrency: -openingBalance,
-        amountGross: -openingBalance,
-        amountGrossCurrency: -openingBalance,
-        currency: { id: 1 },
-      },
-    ],
-  });
+  allPostings.push(
+    { row: row++, date: csvLines[0].date, description: "Inngående balanse", account: { id: acct1920Id },
+      amount: openingBalance, amountCurrency: openingBalance, amountGross: openingBalance, amountGrossCurrency: openingBalance, currency: { id: 1 } },
+    { row: row++, date: csvLines[0].date, description: "Inngående balanse", account: { id: acct2050Id },
+      amount: -openingBalance, amountCurrency: -openingBalance, amountGross: -openingBalance, amountGrossCurrency: -openingBalance, currency: { id: 1 } },
+  );
 }
+
+// Supplier payment postings (DR 2400 / CR 1920)
+for (const line of supplierLines) { /* add 2 postings per supplier */ }
+
+// Non-invoice postings (Bankgebyr/7770, Skattetrekk/2600, Renteinntekter/8050)
+for (const line of nonInvoiceLines) { /* add 2 postings per line */ }
+
+await post("ledger/voucher", { date: csvLines[0].date, description: "Bank reconciliation", postings: allPostings });
 ```
 
-**Key requirements (sandbox-verified 2026-03-21)**:
+**Key requirements (sandbox-verified 2026-03-21, combined voucher verified 2026-03-22)**:
 - `row` must start at 1 (row 0 is system-reserved; causes 422)
 - All 4 amount fields (`amount`, `amountCurrency`, `amountGross`, `amountGrossCurrency`) MUST be included; without `amountGross`/`amountGrossCurrency`, amounts are silently zeroed to 0.00 (no error returned)
 - Account 2050 "Annen egenkapital" is the standard equity contra account (exists in all standard Norwegian chart-of-accounts)
-- Post BEFORE any other transactions on 1920 and BEFORE closing bank reconciliation
-- Execution order: Step 1 (reads) → Step 0 (opening balance) → Steps 2-5 (payments/vouchers) → Step 6 (bank import) → Step 7 (matching) → Step 8 (close recon)
+- Post BEFORE bank import and BEFORE closing bank reconciliation
+- Execution order: Step 1 (reads) → Steps 0+4+5 (combined voucher) → Step 3 (customer payments) → Step 6 (bank import) → Step 7 (matching) → Step 8 (close recon)
+- The voucher date = first CSV date; individual posting dates are preserved per-posting
 - After posting, account 1920 balance = openingBalance + sum(all CSV movements) = CSV ending saldo
 
 ### Step 2: Select payment type
@@ -281,33 +270,41 @@ await Promise.all([...periodMap.entries()].map(async ([periodId, { period }]) =>
   recons[periodId] = res.value;
 }));
 
-// 5. Match each bank txn to posting with SAME amount on 1920
-// Assign each match to the reconciliation of its period
+// 5. BATCH MATCH: group all txn+posting pairs by period, send ONE call per period
 const usedPostingIds = new Set<number>();
+const matchesByPeriod = new Map<number, { txnIds: number[], postingIds: number[] }>();
+
 for (let i = 0; i < csvLines.length; i++) {
   const csvAmount = csvLines[i].inn > 0 ? csvLines[i].inn : csvLines[i].ut;
   const lineDate = csvLines[i].date;
   const period = allPeriods.find((p: any) => lineDate >= p.start && lineDate < p.end);
-  const recon = recons[period.id];
 
   const matchPosting = allPostings1920.find((p: any) =>
     Math.abs(p.amount - csvAmount) < 0.01 && !usedPostingIds.has(p.id)
   );
-  if (matchPosting && recon) {
+  if (matchPosting && recons[period.id]) {
     usedPostingIds.add(matchPosting.id);
-    await post("bank/reconciliation/match", {
-      bankReconciliation: { id: recon.id },
-      transactions: [{ id: importTxnIds[i] }],
-      postings: [{ id: matchPosting.id }],
-    });
+    if (!matchesByPeriod.has(period.id)) matchesByPeriod.set(period.id, { txnIds: [], postingIds: [] });
+    matchesByPeriod.get(period.id)!.txnIds.push(importTxnIds[i]);
+    matchesByPeriod.get(period.id)!.postingIds.push(matchPosting.id);
   }
 }
+
+// Fire ONE batch match per period (saves L-P calls vs individual matching)
+await Promise.all([...matchesByPeriod.entries()].map(([periodId, { txnIds, postingIds }]) =>
+  post("bank/reconciliation/match", {
+    bankReconciliation: { id: recons[periodId].id },
+    transactions: txnIds.map(id => ({ id })),
+    postings: postingIds.map(id => ({ id })),
+  })
+));
 ```
+
+**BATCH MATCHING OPTIMIZATION (sandbox-verified 2026-03-22)**: Instead of L individual `POST /bank/reconciliation/match` calls (one per CSV line), send ALL txn+posting pairs for each period in ONE call. The API accepts arrays for both `transactions` and `postings`. Sandbox proof: 5 txns + 5 postings in 1 call → `201 Created`, single match object with `type=MANUAL`, all 5 bank txns marked `matched=true`. This saves L-P POST calls (e.g., 10 CSV lines with 1 period: 10→1 = save 9 calls).
 
 **Key facts (sandbox-verified 2026-03-22, production-confirmed 2026-03-22)**:
 - **MULTI-PERIOD IS MANDATORY**: bank txn date determines which reconciliation it belongs to. A Jan txn CANNOT match a Feb reconciliation. Production run 1d375699 proved this: 8/11 matches failed with 422 because all were assigned to a single Feb recon.
-- Match validation: `csvAmount` must equal `posting.amount` (same sign, same value). Mismatched amounts cause `422 "Summen av posteringer og transaksjoner er ikke lik null."`
-- Each match creates a `BankReconciliationMatch` with `type: "MANUAL"` and changes the bank txn to `matched: true`, `matchType: "ONE_TRANSACTION_TO_ONE_POSTING"`
+- **BATCH MATCH IS SAFE**: sending multiple txn+posting pairs in one call works if all pairs belong to the same reconciliation and the net amounts sum correctly. Each pair must have matching amounts (txn.amount === posting.amount).
 - The posting must be on account 1920 (the bank account)
 - For incoming customer payment (+5000): the `PUT /invoice/:payment` creates a debit posting on 1920 with amount +5000. Match with the same-amount bank txn.
 - For outgoing supplier payment (-2000): the combined voucher has a credit posting on 1920 with amount -2000. Match with the same-amount bank txn.
@@ -373,19 +370,21 @@ GET /bank/statement?accountId=...&fields=*
 ```
 Confirm the imported statement exists and has the expected transaction count.
 
-## Call count (updated 2026-03-22)
+## Call count (updated 2026-03-22, optimized with batch matching + combined voucher)
 
-- **Full flow formula**: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET postings + P create recons + L POST matches + P PUT close recons = **10 + N + L + 2P** (where N = customer payments, L = CSV lines, P = number of distinct accounting periods)
-- **Savings vs old formula (6 + N + L + 8)**: skip GET bank txns (use import response txn IDs positionally, -1 call); skip GET fresh recon (version unchanged after matches, -P calls); add per-period recon management (+P create, +P-1 close)
-- **Example (2 periods)**: 5 customer + 3 supplier + 3 non-invoice = 11 lines, P=2: 10 + 5 + 11 + 4 = **30 calls, 0 errors** (vs old: 30 calls, 8 errors from single-period bug)
-- **Example (1 period)**: same CSV but all in 1 month: 10 + 5 + 11 + 2 = **28 calls, 0 errors** (saves 2 calls vs old formula)
+- **Optimized flow formula**: 6 reads + N customer payments + 1 combined voucher (OB + suppliers + non-invoice) + 1 bank import + 1 GET postings + P create recons + P batch matches + P close recons = **9 + N + 3P** (where N = customer payments, P = number of distinct accounting periods)
+- **Savings vs previous formula (10 + N + L + 2P)**: combined OB+supplier voucher saves 1 POST; batch matching saves L-P POST calls (one batch per period instead of L individual calls)
+- **Example (1 period, 10 CSV lines, 5 customers)**: 9 + 5 + 3 = **17 mutating calls** (was 20 with individual matches, was 28 with old formula)
+- **Example (2 periods, 11 CSV lines, 5 customers)**: 9 + 5 + 6 = **20 mutating calls** (was 30 with individual matches)
 - Old path without Steps 0/6/7/8: 6 + N + 2 = ~13 calls (scored 0.6/6)
-- **Even with 30 calls, the API executes in ~8-15 seconds** — well within the 300s budget. The bottleneck is LLM generation time, not API calls.
+- **Spanish run 4 (a986e65f, pre-built script v1): 20 mutating calls, 0 errors** — used individual matches (10 POST match calls). With batch matching would have been 10.
+- **Even with 20 calls, the API executes in ~8-15 seconds** — well within the 300s budget.
 
 ## Proven results
 
-**ALL completed production runs scored 0.6/6.** None included the full Steps 0+6+7+8 with correct multi-period matching. The full flow (opening balance + bank import + multi-period matching + close) was sandbox-verified END-TO-END on 2026-03-22.
+**ALL prior completed runs scored 0.6/6.** The full flow (opening balance + bank import + multi-period matching + close) was sandbox-verified END-TO-END on 2026-03-22.
 
+- **Spanish run 4 (a986e65f): 20 mutating calls, 0 errors, scored pending** — FIRST run using pre-built script. All 10 CSV lines matched (10/10), single-period (Jan 2026). 6 reads + 1 OB voucher + 5 customer payments (4 full + 1 partial: González SL 2550 of 6375) + 1 combined voucher (10 postings: 3 supplier + 2 Skattetrekk Inn) + 1 bank import + 1 GET postings + 1 create recon + 10 individual matches + 1 close recon. **Optimization opportunity**: batch matching would save 9 calls (10→1), combined OB+supplier voucher would save 1 call. Net: 20→10 mutating calls.
 - **Spanish run 3 (1d375699): 30 calls, 8 errors (422), scored pending** — FIRST run with full Steps 0+6+7+8, but created SINGLE Feb recon for a Jan+Feb CSV (11 lines: 5 customer Jan 16-23, 3 supplier Jan 25-30, 3 non-invoice Feb 1-4). 8 Jan txns failed matching with 422 "Banktransaksjoner er ikke en del av bankavstemmingen" because they don't belong to the Feb recon. Only 3 Feb txns matched. Recon closed successfully but with only 3/11 matches. **Root cause**: single-period reconciliation for multi-period bank statement. **Fix**: create separate recon per period.
 - **Norwegian run (ac903481): 16 calls, 1 error (422), scored pending** — 3rd bank reconciliation attempt. 6 reads + 5 customer payments (all full: Moe AS ×2, Johansen AS, Nilsen AS ×2) + 1 combined voucher (10 postings: 3 supplier Ødegård/Moe/Hansen + 2 Bankgebyr Ut) + 1 failed recon (floating-point 3506.4300000000003 caused 422) + 1 redundant account re-read + 1 balance sheet read + 1 successful recon (closingBalance=3506.43). **Wasted 3 calls** due to floating-point precision bug. Optimal would have been 13 calls (or 14 with bank statement import). No bank statement import attempted.
 - **English run 11 (02daaa35): 13 calls, 0 errors, scored 0.6/6** — 2nd bank reconciliation attempt, optimal call count. 6 reads + 5 customer payments (4 full + 1 partial: Taylor Ltd 5156.25 of 10312.50) + 1 combined voucher (12 postings: 3 supplier payments Taylor+Taylor+Smith + 1 Renteinntekter Ut 1495.08 + 1 Skattetrekk Ut 1819.20 + 1 Skattetrekk Inn 1947.28) + 1 bank reconciliation (closingBalance=56951.75, Feb period). Used computed closing balance (no balance sheet fallback needed). **Confirms**: bank reconciliation alone does not affect the score.
@@ -402,8 +401,10 @@ Confirm the imported statement exists and has the expected transaction count.
 
 ## Critical pitfalls
 
-- **ALL 4 STEPS REQUIRED FOR CHECK 1**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (matching) + Step 8 (close recon). Runs without these steps scored 0.6/6.
+- **ALL 4 STEPS REQUIRED FOR CHECK 1**: Steps 0+4+5 (combined voucher) + Step 6 (bank import) + Step 7 (batch matching) + Step 8 (close recon). Runs without these steps scored 0.6/6.
 - **MULTI-PERIOD RECONCILIATION IS MANDATORY**: CSVs commonly span 2 months (e.g., Jan 16 – Feb 4). A bank transaction ONLY matches a reconciliation whose accounting period covers the transaction's date. Creating a single recon for the last month causes ALL earlier-month txns to fail with `422 "Banktransaksjoner er ikke en del av bankavstemmingen."` Production run 1d375699 confirmed: 8/11 matches failed because Jan txns were assigned to Feb recon. **FIX**: create a SEPARATE reconciliation for EACH accounting period that has bank transactions. Group CSV lines by period (compare date against period start/end). Close each recon with the Saldo of the last CSV line in that period.
+- **BATCH MATCHING SAVES L-P CALLS**: `POST /bank/reconciliation/match` accepts ARRAYS for both `transactions` and `postings`. Send ALL txn+posting pairs for a period in ONE call instead of L individual calls. Sandbox-verified 2026-03-22: 5 pairs in 1 call → 201 Created, single match with type=MANUAL, all txns marked matched=true. Production run a986e65f used 10 individual matches = 10 calls; with batch would be 1 call.
+- **COMBINE OB + SUPPLIER + NON-INVOICE INTO ONE VOUCHER**: Individual posting dates within a voucher are preserved correctly. Sandbox-verified 2026-03-22: OB (DR 1920/CR 2050) + transaction postings in same voucher → 201 Created. Saves 1 POST vs separate OB + combined voucher.
 - **DO NOT GET bank txns separately**: Import response `transactions` array has valid IDs in CSV order. Use positional mapping: `importResponse.value.transactions[i].id` = bank txn for `csvLines[i]`. Saves 1 API call. Sandbox-verified 2026-03-22.
 - **RECON VERSION DOES NOT CHANGE AFTER MATCHES**: Sandbox-verified 2026-03-22 — after creating recon (version=0) and posting matches, GET returned version=0. Production run 1d375699 also confirmed version=0 after matches. Use creation version directly for close PUT. Do NOT waste a GET fresh recon call. Saves P API calls.
 - **MATCH VALIDATION**: the matched posting's `amount` must equal the CSV line's amount (same sign, same value). Mismatched amounts → `422 "Summen av posteringer og transaksjoner er ikke lik null."`. The posting must be on account 1920.

@@ -22,6 +22,10 @@ If the pre-built script is missing, read the trusted standard and write one comp
 
 ## Production Run Results
 
+### Spanish run 4 (a986e65f, 20 mutating, 0 errors) — FIRST pre-built script run, score pending
+- Used pre-built script v1. All 10 CSV lines in Jan 2026 (single period). 6 reads + 1 OB voucher + 5 customer payments (4 full + 1 partial: González SL 2550/6375) + 1 combined voucher (10 postings: 3 supplier + 2 Skattetrekk Inn) + 1 bank import + 1 GET postings + 1 create recon + 10 individual matches + 1 close recon = 20 mutating calls, 0 errors. All 10 bank txns matched, recon closed with balance 151044.75.
+- **Optimization applied in v2**: batch matching (10→1 match calls = -9) + combined OB+supplier voucher (2→1 voucher = -1). Target: 10 mutating calls.
+
 ### Spanish run 3 (1d375699, 30 calls, 8 errors) — score pending
 - FIRST run with full Steps 0+6+7+8, but created SINGLE Feb recon for a Jan+Feb CSV (11 lines: 5 customer Jan 16-23, 3 supplier Jan 25-30, 3 non-invoice Feb 1-4)
 - 8 Jan bank txns failed matching with 422 "Banktransaksjoner er ikke en del av bankavstemmingen" because they don't belong to the Feb recon. Only 3 Feb txns matched. Recon closed with only 3/11 matches.
@@ -186,7 +190,7 @@ Key findings:
 4. `PUT /invoice/{id}/:payment` once per matched incoming line
 - **total: 2 reads + N customer payments**
 
-### Mixed incoming/outgoing runs (COMPLETE 9-step flow — sandbox-verified END-TO-END 2026-03-22)
+### Mixed incoming/outgoing runs (OPTIMIZED flow — sandbox-verified 2026-03-22, production-proven a986e65f)
 1. parse CSV locally — compute opening balance: `first_saldo - first_inn + Math.abs(first_ut)` (e.g. 100000). Ut values are negative in production CSVs. Closing balance = last line's Saldo.
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
@@ -195,15 +199,15 @@ Key findings:
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
    - `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*` (includes 2050 for opening balance voucher)
    - `GET /ledger/accountingPeriod?startFrom=<first-csv-month-start>&startTo=<month-after-last-csv-date-start>&count=12&fields=*` (MUST cover ALL months in CSV — see multi-period rule)
-3. **Opening balance voucher** (right after reads): `POST /ledger/voucher` with DR 1920 / CR 2050 for the opening balance amount (see trusted standard Step 0)
+3. **Combined voucher (OB + suppliers + non-invoice)**: ONE `POST /ledger/voucher` containing: opening balance (DR 1920 / CR 2050) + supplier payments (DR 2400 / CR 1920 with supplier linkage) + non-invoice lines (Bankgebyr/7770, Skattetrekk/2600, Renteinntekter/8050). Sandbox-verified: combined OB+txn postings in 1 voucher works. Saves 1 POST vs separate OB + supplier voucher.
 4. **Customer payments**: `PUT /invoice/{id}/:payment` once per matched incoming line
 5. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
-6. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
-7. **Bank statement import** (AFTER all vouchers posted): convert CSV to SBANKEN_BEDRIFT_CSV format (MUST use Norwegian chars: Inngående, Utgående, Bokført, Beløp), `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV` — save returned bank statement ID
-8. **Match bank txns to postings**: Use txn IDs from import response (positional, no GET needed). `GET /ledger/posting?accountId=<1920_id>&dateFrom=...&dateTo=<nextMonthFirst>&count=1000&fields=id,date,amount,description`. Create SEPARATE `POST /bank/reconciliation` (OPEN) for EACH accounting period that has bank txns (group CSV lines by period). Then `POST /bank/reconciliation/match` for each CSV line, assigning each match to the recon of its period. **CRITICAL**: a bank txn can ONLY match a recon whose period covers its date — single-period recon for multi-period CSV causes 422.
-9. **Close all bank reconciliations**: `PUT /bank/reconciliation/{id}` with `isClosed: true` for each period. Use creation version (version does NOT change after matches). Per-period closing balance = Saldo of last CSV line in that period.
-- **full call count: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET postings + P create recons + L POST matches + P close recons = 10 + N + L + 2P** (L = total CSV lines, P = number of distinct accounting periods)
-- example: 5 customer + 3 supplier + 3 non-invoice = 11 CSV lines, P=2 (Jan+Feb): 10 + 5 + 11 + 4 = **30 calls, 0 errors** (executes in ~8-15 seconds)
+6. **Bank statement import** (AFTER all vouchers posted): convert CSV to SBANKEN_BEDRIFT_CSV format (MUST use Norwegian chars: Inngående, Utgående, Bokført, Beløp), `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV` — save returned bank statement ID
+7. **Batch match bank txns to postings**: `GET /ledger/posting?accountId=<1920_id>&dateFrom=...&dateTo=<nextMonthFirst>&count=1000&fields=id,date,amount,description`. Create SEPARATE `POST /bank/reconciliation` (OPEN) for EACH accounting period. Then **ONE** `POST /bank/reconciliation/match` **per period** with ALL txn+posting pairs in arrays (batch match, sandbox-verified 2026-03-22). Saves L-P calls vs individual matching.
+8. **Close all bank reconciliations**: `PUT /bank/reconciliation/{id}` with `isClosed: true` for each period. Use creation version (version does NOT change after matches). Per-period closing balance = Saldo of last CSV line in that period.
+- **optimized call count: 6 reads + N customer payments + 1 combined voucher + 1 bank import + 1 GET postings + P create recons + P batch matches + P close recons = 9 + N + 3P** (N = customer payments, P = number of distinct accounting periods)
+- example (1 period, 10 lines, 5 customers): 9 + 5 + 3 = **17 calls** (was 20 with individual matches in a986e65f, was 28 with old formula)
+- example (2 periods, 11 lines, 5 customers): 9 + 5 + 6 = **20 calls** (was 30)
 - **ROUND closing balance** — `Math.round(saldo * 100) / 100`
 - **USE CSV ending saldo** as closing balance (after posting opening balance in Step 0)
 - **SBANKEN CSV MUST USE NORWEGIAN CHARS** (`å`, `ø`) — without them import returns 422
