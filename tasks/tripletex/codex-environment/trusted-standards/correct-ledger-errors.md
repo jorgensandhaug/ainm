@@ -462,6 +462,15 @@ even when other postings in the same voucher generate 2710 from their own VAT li
 - Contra was account 2400 with supplier.id=108609902 — template correctly propagated supplier
 - Fifth consecutive 6/6 run — template proven stable across nb, en, de, pt prompts
 
+### Production Run fb024a4a (2026-03-22, 1 POST, 0 errors, 6/6)
+- Accounts: 6540→6860 (4800), dup 6500 (1050), MV 7000 (6750), WA 6500 (15700→8100)
+- English (en) prompt — second confirmed English language for this task
+- **DUP_ACCT=WA_ACCT=6500**: two different errors on same account, distinguished by amount (1050 vs 15700)
+- Duplicate V#28 "Kontorrekvisita duplikat" detected via description keyword — 1 candidate, clean match
+- Layer 3 matched "Varekjøp uten MVA" in V#29 description → correct voucher (Layer 1 & 2 both returned 0)
+- Contra was account 2400 with supplier.id=108612202 — template correctly propagated supplier
+- Sixth consecutive 6/6 run — template proven stable across nb, en, de, pt prompts
+
 ### Production Run 14 (2026-03-22, 3 calls, 0 errors)
 - Accounts: 7140→7100 (5850), dup 7300 (1200), MV 6540 (13000), WA 7100 (19050→7100)
 - Missing-VAT detection: caseA(no2710)=0, caseB(has2710)=3 — ALL vouchers on 6540 had 2710 from other lines
