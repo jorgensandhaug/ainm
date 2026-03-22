@@ -7,7 +7,7 @@ import type {
 } from "../../runtime/contracts";
 
 export const CREATE_AND_SEND_INVOICE_TASK_ID = "08";
-export const CREATE_AND_SEND_INVOICE_TX_TASK_ID = "08";
+export const CREATE_AND_SEND_INVOICE_TX_TASK_ID = "06";
 export const CREATE_AND_SEND_INVOICE_INPUT_SCHEMA_ID =
   "08.v1";
 

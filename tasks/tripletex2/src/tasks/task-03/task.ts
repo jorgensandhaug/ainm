@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_DEPARTMENT_TASK_ID = "03";
-export const CREATE_DEPARTMENT_TX_TASK_ID = "03";
+export const CREATE_DEPARTMENT_TX_TASK_ID = "05";
 export const CREATE_DEPARTMENT_INPUT_SCHEMA_ID = "03.v1";
 export interface CreateDepartmentInput {
   departmentNames: string[];

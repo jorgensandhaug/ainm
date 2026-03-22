@@ -58,74 +58,74 @@ export interface CanonicalTaskRegistryEntry {
 export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "01",
-    txTaskId: "01",
+    txTaskId: "02",
     taskSlug: "create-customer",
     taskName: "Create customer",
     summary:
       "Create a customer with organization number, address, and contact email.",
-    legacyTripletex1TaskIds: ["01"],
+    legacyTripletex1TaskIds: ["02"],
   },
   {
     taskId: "02",
-    txTaskId: "02",
+    txTaskId: "04",
     taskSlug: "create-supplier",
     taskName: "Create supplier",
     summary:
       "Create a supplier with organization number and invoice email details.",
-    legacyTripletex1TaskIds: ["02"],
+    legacyTripletex1TaskIds: ["04"],
   },
   {
     taskId: "03",
-    txTaskId: "03",
+    txTaskId: "05",
     taskSlug: "create-department",
     taskName: "Create department",
     summary:
       "Create one or more new departments with the requested names.",
-    legacyTripletex1TaskIds: ["03"],
+    legacyTripletex1TaskIds: ["05"],
   },
   {
     taskId: "04",
-    txTaskId: "04",
+    txTaskId: "03",
     taskSlug: "create-product",
     taskName: "Create product",
     summary:
       "Create a product with product number, price, and the required VAT treatment.",
-    legacyTripletex1TaskIds: ["04"],
+    legacyTripletex1TaskIds: ["03"],
   },
   {
     taskId: "05",
-    txTaskId: "05",
+    txTaskId: "08",
     taskSlug: "create-project",
     taskName: "Create project",
     summary:
       "Create a project for an existing customer and assign a project manager.",
-    legacyTripletex1TaskIds: ["05"],
+    legacyTripletex1TaskIds: ["08"],
   },
   {
     taskId: "06",
-    txTaskId: "06",
+    txTaskId: "01",
     taskSlug: "create-employee",
     taskName: "Create employee",
     summary:
       "Create a new employee with identifying details, contact email, and start date.",
-    legacyTripletex1TaskIds: ["06"],
+    legacyTripletex1TaskIds: ["01"],
   },
   {
     taskId: "07",
-    txTaskId: "07",
+    txTaskId: "17",
     taskSlug: "create-accounting-dimension-and-post-voucher",
     taskName: "Create accounting dimension and post voucher",
     summary:
       "Create a custom accounting dimension with values, then post a voucher linked to one value.",
-    legacyTripletex1TaskIds: ["07"],
+    legacyTripletex1TaskIds: ["17"],
   },
   {
     taskId: CREATE_AND_SEND_INVOICE_TASK_ID,
-    txTaskId: "08",
+    txTaskId: "06",
     taskSlug: "create-and-send-invoice",
     taskName: createAndSendInvoiceTask.taskName,
     summary: createAndSendInvoiceTask.summary,
-    legacyTripletex1TaskIds: ["08"],
+    legacyTripletex1TaskIds: ["06"],
   },
   {
     taskId: "09",
@@ -138,21 +138,21 @@ export const CANONICAL_TASK_REGISTRY = [
   },
   {
     taskId: "10",
-    txTaskId: "10",
+    txTaskId: "14",
     taskSlug: "issue-full-credit-note",
     taskName: "Issue full credit note",
     summary:
       "Find an invoice and issue a full credit note that reverses the entire amount.",
-    legacyTripletex1TaskIds: ["10"],
+    legacyTripletex1TaskIds: ["14"],
   },
   {
     taskId: "11",
-    txTaskId: "11",
+    txTaskId: "10",
     taskSlug: "create-order-invoice-and-register-payment",
     taskName: "Create order, invoice, and register payment",
     summary:
       "Create a sales order, convert it to an invoice, and register full payment.",
-    legacyTripletex1TaskIds: ["11"],
+    legacyTripletex1TaskIds: ["10"],
   },
   {
     taskId: "12",
@@ -174,39 +174,39 @@ export const CANONICAL_TASK_REGISTRY = [
   },
   {
     taskId: "14",
-    txTaskId: "14",
+    txTaskId: "15",
     taskSlug: "set-project-fixed-price-and-invoice-milestone",
     taskName: "Set project fixed price and invoice milestone",
     summary:
       "Set a fixed project price and invoice a requested milestone percentage.",
-    legacyTripletex1TaskIds: ["14"],
+    legacyTripletex1TaskIds: ["15"],
   },
   {
     taskId: "15",
-    txTaskId: "15",
+    txTaskId: "16",
     taskSlug: "register-project-hours-and-create-project-invoice",
     taskName: "Register project hours and create project invoice",
     summary:
       "Register billable hours to a project activity and generate the resulting project invoice.",
-    legacyTripletex1TaskIds: ["15"],
+    legacyTripletex1TaskIds: ["16"],
   },
   {
     taskId: "16",
-    txTaskId: "16",
+    txTaskId: "11",
     taskSlug: "register-supplier-invoice",
     taskName: "Register supplier invoice",
     summary:
       "Register an incoming supplier invoice with the requested account and input VAT.",
-    legacyTripletex1TaskIds: ["16"],
+    legacyTripletex1TaskIds: ["11"],
   },
   {
     taskId: "17",
-    txTaskId: "17",
+    txTaskId: "07",
     taskSlug: "register-customer-invoice-payment",
     taskName: "Register customer invoice payment",
     summary:
       "Locate an unpaid customer invoice and register full payment against it.",
-    legacyTripletex1TaskIds: ["17"],
+    legacyTripletex1TaskIds: ["07"],
   },
   {
     taskId: "18",
@@ -238,10 +238,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "21",
     txTaskId: "21",
-    taskSlug: "correct-ledger-errors-audit",
-    taskName: "Correct ledger errors",
+    taskSlug: "onboard-employee-offer-letter",
+    taskName: "Onboard employee from offer letter",
     summary:
-      "Audit Jan-Feb 2026 vouchers for four known ledger errors and post the corrective entries.",
+      "Create a new employee from a tilbudsbrev (offer letter) PDF, creating the department if needed. Uses remunerationType NOT_CHOSEN because offer letters do not specify Lonnstype.",
     legacyTripletex1TaskIds: ["21"],
   },
   {
@@ -283,10 +283,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "26",
     txTaskId: "26",
-    taskSlug: "unknown-task-26",
-    taskName: "Unknown task 26",
+    taskSlug: "monthly-closing",
+    taskName: "Monthly closing (March 2026)",
     summary:
-      "Tier 3 placeholder for tx_task_id 26 with no checked-in prompt examples yet.",
+      "Perform the monthly closing for March 2026: post accrued prepaid expense from account 1700, book monthly depreciation, and close relevant balance sheet items.",
     legacyTripletex1TaskIds: ["26"],
   },
   {
@@ -319,10 +319,10 @@ export const CANONICAL_TASK_REGISTRY = [
   {
     taskId: "30",
     txTaskId: "30",
-    taskSlug: "unknown-task-30",
-    taskName: "Unknown task 30",
+    taskSlug: "simplified-annual-closing",
+    taskName: "Simplified annual closing (2025)",
     summary:
-      "Tier 3 placeholder for tx_task_id 30 with no checked-in prompt examples yet.",
+      "Perform the simplified annual closing for 2025: calculate and book annual depreciation for three assets, post year-end cost allocation, and create annual closing vouchers.",
     legacyTripletex1TaskIds: ["30"],
   },
 ] as const satisfies readonly CanonicalTaskRegistryEntry[];

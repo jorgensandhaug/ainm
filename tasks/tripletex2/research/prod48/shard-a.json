@@ -1,0 +1,413 @@
+{
+  "schemaVersion": "tripletex2.prod48-shard.v1",
+  "shard": "A",
+  "analyzedAt": "2026-03-22T02:30:00Z",
+  "runCount": 8,
+  "timeRange": {
+    "first": "2026-03-21T22:41:00.599Z",
+    "last": "2026-03-21T22:44:31.683Z"
+  },
+  "runs": [
+    {
+      "runId": "prod-2026-03-21-224100599Z-9f9c4770",
+      "requestId": "08a1914e",
+      "txTaskId": "12",
+      "inferenceStatus": "ambiguous",
+      "inferenceNote": "candidate_count=2; task 12 +1 attempt (20->21), most likely match",
+      "promptLanguage": "nn",
+      "promptSummary": "Run payroll for Brita Berge, base 36800 NOK + bonus 14100 NOK",
+      "apiCalls": [
+        "GET /employee?email=brita.berge@example.org",
+        "POST /division",
+        "PUT /employee/18617515 (set dateOfBirth)",
+        "POST /employee/employment",
+        "GET /salary/type?count=1000",
+        "GET /ledger/voucherType?name=Lonnsbilag",
+        "GET /ledger/account?number=5000,1920",
+        "POST /salary/transaction?generateTaxDeduction=true",
+        "POST /ledger/voucher?sendToLedger=true"
+      ],
+      "apiCallCount": 9,
+      "apiErrors": 0,
+      "scriptFiles": ["run-payroll.ts", "sandbox-prove-8call-path.ts", "sandbox-test-amountGross.ts", "sandbox-test-amountGross2.ts", "sandbox-test-optimizations.ts", "sandbox-test-parallel-writes.ts", "sandbox-test-parallel-writes2.ts"],
+      "leaderboard": {
+        "attemptsBefore": 20,
+        "attemptsAfter": 21,
+        "bestScoreBefore": 2.333,
+        "bestScoreAfter": 2.333,
+        "improved": false
+      },
+      "semanticOperation": "run-payroll-with-bonus",
+      "correctCanonicalTaskId": "12",
+      "currentCanonicalTaskId": "12",
+      "mappingCorrect": true,
+      "bugs": ["voucher postings use 'amount' field which stores as 0; should use 'amountGross'/'amountGrossCurrency'"],
+      "wastedCalls": ["GET /ledger/voucherType eliminable via inline voucherType: { name: 'Lonnsbilag' }"]
+    },
+    {
+      "runId": "prod-2026-03-21-224127364Z-a3d75a03",
+      "requestId": "bc72fa98",
+      "txTaskId": "05",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "nn",
+      "promptSummary": "Create 3 departments: Produksjon, Kvalitetskontroll, HR",
+      "apiCalls": [
+        "POST /department/list"
+      ],
+      "apiCallCount": 1,
+      "apiErrors": 0,
+      "scriptFiles": ["create-departments.ts", "sandbox-verify-batch.ts"],
+      "score": {
+        "raw": "7/7",
+        "correctness": 1.0,
+        "normalized": 2.0,
+        "checksTotal": 3,
+        "checksPassed": 3,
+        "checksFailed": 0
+      },
+      "leaderboard": {
+        "attemptsBefore": 22,
+        "attemptsAfter": 23,
+        "bestScoreBefore": 2.0,
+        "bestScoreAfter": 2.0,
+        "improved": false
+      },
+      "semanticOperation": "create-department",
+      "correctCanonicalTaskId": "03",
+      "currentCanonicalTaskId": "05",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-224158753Z-2f5da463",
+      "requestId": "5480208b",
+      "txTaskId": "07",
+      "inferenceStatus": "ambiguous",
+      "inferenceNote": "candidate_count=2; task 07 +1 attempt, most likely match",
+      "promptLanguage": "pt",
+      "promptSummary": "Register full payment on invoice for Luz do Sol Lda (939210970), 23900 NOK ex-VAT",
+      "apiCalls": [
+        "GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))",
+        "GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)",
+        "PUT /invoice/2147575326/:payment?paymentDate=2026-03-21&paymentTypeId=28406443&paidAmount=29875"
+      ],
+      "apiCallCount": 3,
+      "apiErrors": 0,
+      "scriptFiles": ["register-payment.ts", "sandbox-explore-2call.ts"],
+      "leaderboard": {
+        "attemptsBefore": null,
+        "attemptsAfter": null,
+        "bestScoreBefore": null,
+        "bestScoreAfter": null,
+        "improved": null,
+        "note": "ambiguous; 3 tasks in diff window"
+      },
+      "semanticOperation": "register-customer-invoice-payment",
+      "correctCanonicalTaskId": "17",
+      "currentCanonicalTaskId": "07",
+      "mappingCorrect": false,
+      "notes": ["Used live outstanding amount (29875 incl VAT) not prompt ex-VAT amount (23900)", "14th consecutive confirmation of 3-call payment path"]
+    },
+    {
+      "runId": "prod-2026-03-21-224235285Z-07d50494",
+      "requestId": "f53be80f",
+      "txTaskId": null,
+      "inferenceStatus": "ambiguous",
+      "inferenceNote": "10 tasks in diff window (01,04,07,08,09,12,16,17,18,29); no unique attribution",
+      "promptLanguage": "fr",
+      "promptSummary": "Register 16h for Camille Dubois on 'Design' activity of 'Mise a niveau systeme' for Ocean SARL (953748460), 1300 NOK/h, create project invoice",
+      "apiCalls": [
+        "GET /department?isInactive=false&count=1",
+        "POST /customer (Ocean SARL)",
+        "GET /employee?assignableProjectManagers=true&count=1",
+        "GET /ledger/vatType?typeOfVat=OUTGOING",
+        "GET /ledger/account?number=1920",
+        "POST /employee (Camille Dubois)",
+        "POST /project (Mise a niveau systeme)",
+        "POST /project/projectActivity (Design)",
+        "POST /project/participant",
+        "POST /timesheet/entry/list (3 entries: 7.5+7.5+1.0h)",
+        "PUT /ledger/account/{id} (bank fix)",
+        "POST /invoice?sendToCustomer=false"
+      ],
+      "apiCallCount": 12,
+      "apiErrors": 0,
+      "scriptFiles": ["run.ts", "sandbox-parallel-test.ts", "sandbox-verify.ts"],
+      "semanticOperation": "register-project-hours-and-create-project-invoice",
+      "correctCanonicalTaskId": "15",
+      "currentCanonicalTaskId": null,
+      "mappingCorrect": null,
+      "notes": [
+        "Agent read wrong standard (T29 lifecycle instead of T15 hours+invoice)",
+        "Omitted isFixedPrice/fixedprice from project",
+        "Invoice amount: 20800 NOK (16*1300)"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-224251957Z-c70259c2",
+      "requestId": null,
+      "txTaskId": "04",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "en",
+      "promptSummary": "Create supplier Oakwood Ltd (887507295), email faktura@oakwoodltd.no",
+      "apiCalls": [
+        "POST /supplier"
+      ],
+      "apiCallCount": 1,
+      "apiErrors": 0,
+      "scriptFiles": ["create-supplier.ts", "sandbox-verify-supplier.ts"],
+      "score": {
+        "raw": "6/6",
+        "correctness": 1.0,
+        "normalized": 2.0,
+        "checksTotal": 4,
+        "checksPassed": 4,
+        "checksFailed": 0
+      },
+      "leaderboard": {
+        "attemptsBefore": 22,
+        "attemptsAfter": 23,
+        "bestScoreBefore": 2.0,
+        "bestScoreAfter": 2.0,
+        "improved": false
+      },
+      "semanticOperation": "create-supplier",
+      "correctCanonicalTaskId": "02",
+      "currentCanonicalTaskId": "04",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-224323667Z-f1d7b5dd",
+      "requestId": null,
+      "txTaskId": "01",
+      "inferenceStatus": "ambiguous",
+      "inferenceNote": "3 tasks in diff (01, 04, 09); task 01 timing closest",
+      "promptLanguage": "en",
+      "promptSummary": "Create employee Charles Walker, born 1999-01-21, email charles.walker@example.org, start 2026-12-23",
+      "apiCalls": [
+        "POST /employee (422 — missing department)",
+        "GET /department?isInactive=false&count=1",
+        "POST /employee (201 — with department)"
+      ],
+      "apiCallCount": 3,
+      "apiErrors": 1,
+      "scriptFiles": ["create-employee.ts", "sandbox-preread-both.ts", "sandbox-preread-strategy.ts"],
+      "leaderboard": {
+        "attemptsBefore": null,
+        "attemptsAfter": null,
+        "bestScoreBefore": null,
+        "bestScoreAfter": null,
+        "improved": null,
+        "note": "ambiguous; nearby submission scored 8/8 raw, 1.4/2.0 normalized"
+      },
+      "semanticOperation": "create-employee",
+      "correctCanonicalTaskId": "06",
+      "currentCanonicalTaskId": "01",
+      "mappingCorrect": false,
+      "notes": [
+        "Optimistic POST strategy caused avoidable 422",
+        "Post-run reflection switched trusted standard to dept pre-read strategy (commit b5f39b62)"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-224412365Z-33209af0",
+      "requestId": null,
+      "txTaskId": "17",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "no",
+      "promptSummary": "Create dimension 'Prosjekttype' with values 'Eksternt'/'Forskning', post voucher on 7140 for 28850 NOK linked to 'Forskning'",
+      "apiCalls": [
+        "POST /ledger/accountingDimensionName (Prosjekttype)",
+        "POST /ledger/accountingDimensionValue (Eksternt)",
+        "POST /ledger/accountingDimensionValue (Forskning)",
+        "GET /ledger/account?number=7140,1920",
+        "POST /ledger/voucher"
+      ],
+      "apiCallCount": 5,
+      "apiErrors": 0,
+      "scriptFiles": ["run.ts"],
+      "score": {
+        "raw": "13/13",
+        "correctness": 1.0,
+        "normalized": 3.5,
+        "checksTotal": 6,
+        "checksPassed": 6,
+        "checksFailed": 0
+      },
+      "leaderboard": {
+        "attemptsBefore": 18,
+        "attemptsAfter": 19,
+        "bestScoreBefore": 3.5,
+        "bestScoreAfter": 3.5,
+        "improved": false
+      },
+      "semanticOperation": "create-accounting-dimension-and-post-voucher",
+      "correctCanonicalTaskId": "07",
+      "currentCanonicalTaskId": "17",
+      "mappingCorrect": false,
+      "notes": ["6th consecutive perfect-correctness run for this task shape", "5-call path is structural minimum"]
+    },
+    {
+      "runId": "prod-2026-03-21-224431683Z-166fec82",
+      "requestId": null,
+      "txTaskId": "29",
+      "inferenceStatus": "ambiguous",
+      "inferenceNote": "3 tasks in diff (17, 18, 29); task 29 timing closest",
+      "promptLanguage": "de",
+      "promptSummary": "Full project lifecycle: Systemupgrade Bruckentor (929610156), budget 405900, 2 employees (73h+134h), supplier cost 55650 from Silberberg GmbH (818922248), customer invoice",
+      "apiCalls": [
+        "GET /department?isInactive=false&count=1",
+        "POST /customer (Bruckentor GmbH)",
+        "GET /employee?assignableProjectManagers=true&count=1",
+        "POST /employee (Emma Weber)",
+        "POST /employee (Anna Becker)",
+        "POST /project (isFixedPrice=true, fixedprice=405900)",
+        "POST /project/projectActivity (budgetHours=207, budgetFeeCurrency=405900)",
+        "POST /project/participant (Emma, adminAccess=true)",
+        "POST /project/participant (Anna, adminAccess=false)",
+        "POST /timesheet/entry/list (73h+134h split into 7.5h chunks)",
+        "POST /supplier (Silberberg GmbH)",
+        "GET /ledger/account?number=1920,6590,2400",
+        "GET /ledger/voucherType?name=Leverandorfaktura",
+        "POST /project/orderline (unitCostCurrency=55650)",
+        "POST /ledger/voucher (Leverandorfaktura)",
+        "GET /ledger/vatType?typeOfVat=OUTGOING",
+        "PUT /ledger/account/{id} (bank fix)",
+        "POST /invoice?sendToCustomer=false (405900 ex-VAT)"
+      ],
+      "apiCallCount": 18,
+      "apiErrors": 0,
+      "scriptFiles": [
+        "run.ts",
+        "sandbox-5step-path.ts",
+        "sandbox-batch-employees.ts",
+        "sandbox-check-vat.ts",
+        "sandbox-no-dept.ts",
+        "sandbox-test-no-vattype.ts",
+        "sandbox-test-vattype-detail.ts",
+        "sandbox-test-vattype2.ts",
+        "sandbox-vattype-by-number.ts",
+        "sandbox-optimized-16call.ts"
+      ],
+      "score": {
+        "raw": "4/11",
+        "correctness": 0.36,
+        "normalized": 1.0909,
+        "checksTotal": 7,
+        "checksPassed": 3,
+        "checksFailed": 4,
+        "checkDetails": {
+          "passed": [1, 2, 6],
+          "failed": [3, 4, 5, 7]
+        }
+      },
+      "leaderboard": {
+        "attemptsBefore": 11,
+        "attemptsAfter": 12,
+        "bestScoreBefore": 1.0909,
+        "bestScoreAfter": 1.0909,
+        "improved": false
+      },
+      "semanticOperation": "full-project-lifecycle",
+      "correctCanonicalTaskId": "29",
+      "currentCanonicalTaskId": "29",
+      "mappingCorrect": true,
+      "notes": [
+        "ALL 4 hypothesized critical fixes implemented (isFixedPrice, budgetHours, adminAccess, orderline) — same 4 checks STILL FAIL",
+        "Trusted standard root cause analysis for checks 3/4/5/7 is proven wrong",
+        "Batch endpoints confirmed: POST /employee/list, POST /project/participant/list",
+        "Optimal path: 15 calls (current: 17-18)"
+      ]
+    }
+  ],
+  "mappingCorrections": [
+    {
+      "txTaskId": "05",
+      "currentCanonicalTaskId": "05",
+      "currentCanonicalName": "Create Project",
+      "correctCanonicalTaskId": "03",
+      "correctCanonicalName": "Create Department",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224127364Z-a3d75a03"]
+    },
+    {
+      "txTaskId": "04",
+      "currentCanonicalTaskId": "04",
+      "currentCanonicalName": "Create Product",
+      "correctCanonicalTaskId": "02",
+      "correctCanonicalName": "Create Supplier",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224251957Z-c70259c2"]
+    },
+    {
+      "txTaskId": "17",
+      "currentCanonicalTaskId": "17",
+      "currentCanonicalName": "Register Customer Invoice Payment",
+      "correctCanonicalTaskId": "07",
+      "correctCanonicalName": "Create Accounting Dimension and Post Voucher",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224412365Z-33209af0"]
+    },
+    {
+      "txTaskId": "07",
+      "currentCanonicalTaskId": "07",
+      "currentCanonicalName": "Create Accounting Dimension and Post Voucher",
+      "correctCanonicalTaskId": "17",
+      "correctCanonicalName": "Register Customer Invoice Payment",
+      "confidence": "medium",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224158753Z-2f5da463"]
+    },
+    {
+      "txTaskId": "01",
+      "currentCanonicalTaskId": "01",
+      "currentCanonicalName": "Create Customer",
+      "correctCanonicalTaskId": "06",
+      "correctCanonicalName": "Create Employee",
+      "confidence": "medium",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224323667Z-f1d7b5dd"]
+    }
+  ],
+  "confirmedCorrectMappings": [
+    {
+      "txTaskId": "12",
+      "canonicalTaskId": "12",
+      "canonicalName": "Run Payroll with Bonus",
+      "confidence": "medium",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224100599Z-9f9c4770"]
+    },
+    {
+      "txTaskId": "29",
+      "canonicalTaskId": "29",
+      "canonicalName": "Full Project Lifecycle",
+      "confidence": "medium",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-224431683Z-166fec82"]
+    }
+  ],
+  "scoreImprovements": [],
+  "strategyCandidate": {
+    "produced": false,
+    "reason": "No novel reusable strategy pattern emerged from this shard. The 3 confirmed-wrong mappings are identity corrections, not strategy changes. The task-29 finding (4 critical fields disproven) is a negative result — it invalidates the current hypothesis but does not yet propose a replacement. The payroll amountGross bug is a field-level fix, not a new strategy pattern. All well-performing runs (T05/departments, T04/supplier, T17/dimension+voucher, T07/payment) already have optimal strategies in the active registry."
+  },
+  "clusterInsights": {
+    "identityBridgeBroken": true,
+    "wrongMappingCount": 5,
+    "correctMappingCount": 2,
+    "unknownMappingCount": 1,
+    "totalDistinctTxTaskIds": 6,
+    "promptLanguages": ["nn", "pt", "fr", "en", "no", "de"],
+    "scoreImprovementCount": 0,
+    "scorePlateauCount": 7,
+    "leaderboardTimeoutCount": 0,
+    "criticalFindings": [
+      "Task 29 '4 critical fields' hypothesis DISPROVEN — checks 3/4/5/7 still fail despite implementing all 4 fixes",
+      "Task 12 amountGross bug — voucher postings silently stored as 0 when using 'amount' instead of 'amountGross'",
+      "3 high-confidence mapping corrections confirmed via unique_attempt_delta (txTaskId 04, 05, 17)"
+    ]
+  }
+}

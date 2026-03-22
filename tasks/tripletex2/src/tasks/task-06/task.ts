@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_EMPLOYEE_TASK_ID = "06";
-export const CREATE_EMPLOYEE_TX_TASK_ID = "06";
+export const CREATE_EMPLOYEE_TX_TASK_ID = "01";
 export const CREATE_EMPLOYEE_INPUT_SCHEMA_ID = "06.v1";
 export interface CreateEmployeeInput {
   employeeName: string;

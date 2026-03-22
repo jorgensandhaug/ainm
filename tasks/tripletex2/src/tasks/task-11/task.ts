@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_TASK_ID = "11";
-export const CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_TX_TASK_ID = "11";
+export const CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_TX_TASK_ID = "10";
 export const CREATE_ORDER_INVOICE_AND_REGISTER_PAYMENT_INPUT_SCHEMA_ID = "11.v1";
 export interface CreateOrderInvoiceAndRegisterPaymentLineInput {
   description: string;

@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const SET_PROJECT_FIXED_PRICE_AND_INVOICE_MILESTONE_TASK_ID = "14";
-export const SET_PROJECT_FIXED_PRICE_AND_INVOICE_MILESTONE_TX_TASK_ID = "14";
+export const SET_PROJECT_FIXED_PRICE_AND_INVOICE_MILESTONE_TX_TASK_ID = "15";
 export const SET_PROJECT_FIXED_PRICE_AND_INVOICE_MILESTONE_INPUT_SCHEMA_ID = "14.v1";
 export interface SetProjectFixedPriceAndInvoiceMilestoneInput {
   projectName: string;
