@@ -49,10 +49,13 @@
         "Key finding: POST /employee with fields=employments(*) returns full employment data including startDate, eliminating the employment readback GET. Saves 1 call vs v1 on all paths (fresh: 1 call, sandbox repair: 5 calls).",
         "fields=* alone does NOT expand nested objects. Only fields=employments(*) or fields=id,...,employments(*) expands nested employment data.",
         "Manual disposable-sandbox test on 2026-03-22 confirmed: without fields param, employments are sparse {id,url}; with fields=employments(*), employments include startDate.",
-        "Sandbox reset blocker: 3 old v1 employee records (18667403, 18667476, 18667507) cannot be neutralized; verification used a fresh proof input (maria.lindqvist@example.org) to bypass."
+        "Sandbox reset blocker: 3 old v1 employee records (18667403, 18667476, 18667507) cannot be neutralized; verification used a fresh proof input (maria.lindqvist@example.org) to bypass.",
+        "NOT promotion-ready: fields=employments(*) is sandbox-proven only. Production proxy may strip or ignore this parameter. One production proof run is required before promotion.",
+        "Follow-up: repair routing hardened to use structured validationMessages[].field checks (department.id, employments.division.id) instead of v1's negative message heuristics.",
+        "Attribution caveat: the 1.4/2 baseline is from the leaderboard tx_task_id 06 entry, but production employee-creation runs were attributed to tx_task_id 01 (noisy attribution)."
       ],
       "createdAt": "2026-03-22T02:23:40.980Z",
-      "updatedAt": "2026-03-22T02:31:28.857Z"
+      "updatedAt": "2026-03-22T02:37:00.000Z"
     },
     {
       "candidateId": "11.order-invoice-prepaid.v1",

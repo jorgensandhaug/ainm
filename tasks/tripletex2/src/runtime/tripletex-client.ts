@@ -39,12 +39,18 @@ export interface TripletexCallLog extends TripletexCallCapture {
   snapshot(): TripletexCallLogSnapshot;
 }
 
+export interface TripletexValidationMessage {
+  field?: string;
+  message?: string;
+}
+
 export class TripletexHttpError extends Error {
   readonly status: number;
   readonly errorCode?: string;
   readonly path: string;
   readonly retryable: boolean;
   readonly requestId?: string;
+  readonly validationMessages: readonly TripletexValidationMessage[];
 
   constructor(input: {
     status: number;
@@ -52,6 +58,7 @@ export class TripletexHttpError extends Error {
     message: string;
     errorCode?: string;
     requestId?: string;
+    validationMessages?: readonly TripletexValidationMessage[];
   }) {
     super(input.message);
     this.name = "TripletexHttpError";
@@ -60,6 +67,11 @@ export class TripletexHttpError extends Error {
     this.errorCode = input.errorCode;
     this.requestId = input.requestId;
     this.retryable = input.status === 429 || input.status >= 500;
+    this.validationMessages = input.validationMessages ?? [];
+  }
+
+  hasValidationField(field: string): boolean {
+    return this.validationMessages.some((vm) => vm.field === field);
   }
 }
 
@@ -508,6 +520,7 @@ function createTripletexHttpError(
       status,
       errorCode: extractTripletexErrorCode(body),
       requestId: body.requestId,
+      validationMessages: extractValidationMessages(body.validationMessages),
       message:
         body.message ??
         body.developerMessage ??
@@ -704,6 +717,19 @@ function extractTripletexErrorCode(body: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function extractValidationMessages(raw: unknown): TripletexValidationMessage[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .map((entry) => ({
+      field: typeof entry.field === "string" ? entry.field : undefined,
+      message: typeof entry.message === "string" ? entry.message : undefined,
+    }));
 }
 
 function isTripletexErrorEnvelope(body: unknown): body is TripletexErrorEnvelope {

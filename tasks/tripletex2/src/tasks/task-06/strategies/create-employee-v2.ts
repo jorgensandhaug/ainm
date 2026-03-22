@@ -495,49 +495,25 @@ function requireId(value: number | undefined, entityName: string): number {
   return value;
 }
 
-function isValidationError(error: unknown): error is TripletexHttpError {
-  return error instanceof TripletexHttpError && error.status === 422;
-}
-
 function shouldAttemptDepartmentRepair(
   error: unknown,
 ): error is TripletexHttpError {
-  if (!isValidationError(error)) {
+  if (!(error instanceof TripletexHttpError) || error.status !== 422) {
     return false;
   }
 
-  return !hasInputFieldValidationHint(error.message);
+  return error.hasValidationField("department.id");
 }
 
 function shouldAttemptDivisionRepair(
   error: unknown,
 ): error is TripletexHttpError {
-  if (!isValidationError(error)) {
+  if (!(error instanceof TripletexHttpError) || error.status !== 422) {
     return false;
   }
 
-  return !hasInputFieldValidationHint(error.message);
+  return error.hasValidationField("employments.division.id");
 }
-
-function hasInputFieldValidationHint(message: string): boolean {
-  const hint = stripDiacritics(message).toLowerCase();
-  return INPUT_FIELD_ERROR_HINTS.some((fieldHint) => hint.includes(fieldHint));
-}
-
-const INPUT_FIELD_ERROR_HINTS = [
-  "dateofbirth",
-  "birthdate",
-  "startdate",
-  "email",
-  "firstname",
-  "lastname",
-  "fornavn",
-  "etternavn",
-  "epost",
-  "e-post",
-  "fodselsdato",
-  "employments.startdate",
-];
 
 const NATURAL_LANGUAGE_MONTHS: Readonly<Record<string, number>> = {
   jan: 1,
