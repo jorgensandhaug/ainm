@@ -2192,6 +2192,8 @@ def build_online_predictor(
             TRIPLE_EW_BEST_V005: (0.20, 0.55, 0.25),
             TRIPLE_EW_BEST_V006: (0.10, 0.55, 0.35),
             TRIPLE_EW_BEST_V007: (0.15, 0.50, 0.35),
+            TRIPLE_EW_BEST_V008: (0.20, 0.50, 0.30),
+            TRIPLE_EW_BEST_V009: (0.20, 0.50, 0.30),
         }
         wa, wb, wc = weight_map[normalized]
         base = TripleBlendPredictor(
