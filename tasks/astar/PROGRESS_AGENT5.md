@@ -2799,7 +2799,13 @@ Score: 80.37
 - Copied all required files and fixed 4 compatibility issues
 - **BLOCKED**: regime vector dimension mismatch (12 vs 5) between v1/v2 teachers
 - Would need complete dataset rebuild — abandoned for time reasons
-- **Final best remains: QR recalibrated at 80.37** (+5.18 over original 75.19)
+- **NEW BEST: cells_per_seed=512 → 80.56** (+0.19 over 256 default)
+  - cells_per_seed sweep: 256→80.37, 512→**80.56**, 1024→79.95
+  - Optimal is ~512 cells per seed for training the ridge
+
+- **Final best: QR recalibrated at 80.56** (+5.37 over original 75.19)
+  - temperature=1.0, prior_blend=0.0, beta_min=6.0, teacher_blend=0.0
+  - cells_per_seed=512, samples_per_round=2, exploration_r3 policy
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning

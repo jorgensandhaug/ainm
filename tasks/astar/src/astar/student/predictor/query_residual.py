@@ -966,7 +966,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     policy_name: str = "coverage"
     round_ids: tuple[str, ...] = ()
     samples_per_round: int = Field(default=1, ge=1)
-    cells_per_seed: int = Field(default=256, ge=1)
+    cells_per_seed: int = Field(default=512, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
     ridge_lambda: float = Field(default=8.0, ge=0.0)
@@ -1005,7 +1005,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         round_ids: Sequence[str] | None = None,
         policy_name: str = "coverage",
         samples_per_round: int = 1,
-        cells_per_seed: int = 256,
+        cells_per_seed: int = 512,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
         ridge_lambda: float = 8.0,
         model_name: str = "query_residual_v7",
