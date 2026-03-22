@@ -9,93 +9,107 @@
 - Restricted imports (no `import os`)
 - YOLO26x weights: ~115 MB each → room for ~3 models
 
-## Current Best Model (EXP-001-v2)
+## Current Best: 2-Model Ensemble (b4+b8)
 
-**Model**: `960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123`
-**Location**: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
-**Architecture**: YOLO26x (59.6M params, 213 GFLOPs)
-**Training**: 6-stage curriculum pipeline at 960px, batch=4, AdamW
+**Models**:
+1. `960_confcurr_s2_final` (batch=4 pipeline) — 115 MB
+2. `960b8_confcurr_s2` (batch=8 pipeline) — 115 MB
+**Total weight size**: 230 MB (under 420 MB limit)
 
-### Scores (no TTA, conf=0.0001)
-
-| Metric | Value |
-|--------|-------|
-| det_AP50 | 0.9328 |
-| cls_mAP50_present (278) | 0.8015 |
-| cls_mAP50_all (356) | 0.6259 |
-| hybrid_present | 0.8934 |
-| **hybrid_all** | **0.8407** |
-
-### Scores (with TTA — flip + multiscale 640/960/1280)
+### Best Ensemble Scores (no TTA, conf=0.0001)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9428 |
-| cls_mAP50_present | 0.8119 |
-| cls_mAP50_all | 0.6340 |
-| hybrid_present | 0.9035 |
-| **hybrid_all** | **0.8502** |
+| det_AP50 | 0.9416 |
+| cls_mAP50_present (278) | 0.8172 |
+| cls_mAP50_all (356) | 0.6381 |
+| hybrid_present | 0.9043 |
+| **hybrid_all** | **0.8506** |
 
-### Pipeline Stages (full chain, deterministic)
+### Individual Model Scores
+
+| Model | det_AP50 | cls_all | hybrid_all | hybrid_present |
+|-------|----------|---------|------------|---------------|
+| b4 alone | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
+| b8 alone | 0.9340 | 0.6259 | 0.8416 | 0.8943 |
+| **b4+b8 ensemble** | **0.9416** | **0.6381** | **0.8506** | **0.9043** |
+
+### Model Locations
+- b4: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+- b8: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960b8_confcurr_s2_e18_img960_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+
+## Training Pipelines
+
+### Pipeline A: batch=4 (EXP-001-v2)
 ```
 Stage 1: sweep_precision  — 30ep from yolo26x.pt → mAP50=0.679
-  seed=62, lr0=0.0035, mixup=0, copy_paste=0, scale=0.35
 Stage 2: hardopt_full     — 70ep → mAP50=0.7315@e65
-  seed=77, lr0=0.002, mixup=0.15, copy_paste=0.15, scale=0.5
-Stage 3: rebalanceft_v2   — 25ep balanced data → mAP50=0.7387@e17
-  seed=91, lr0=0.0008, mixup=0.05, copy_paste=0.1
+Stage 3: rebalanceft_v2   — 25ep balanced → mAP50=0.7387@e17
 Stage 4: finalfull_v2     — 20ep train+val → mAP50=0.8141@e20
-  seed=123, lr0=0.0006
-Stage 5: confcurr_s1_v2   — 12ep confusion curriculum → mAP50=0.8011@e2
-  seed=123, lr0=0.0002
-Stage 6: confcurr_s2_final — 18ep original data → mAP50=0.8024@e9
-  seed=123, lr0=8e-5, mixup=0, copy_paste=0
+Stage 5: confcurr_s1_v2   — 12ep confusion → mAP50=0.8011@e2
+Stage 6: confcurr_s2_final — 18ep original → mAP50=0.8024@e9
+```
+
+### Pipeline B: batch=8 (EXP-006)
+```
+Stage 1: 960b8_sweep_precision — 30ep → mAP50=0.6855
+Stage 2: 960b8_hardopt        — 70ep → mAP50=0.7412@e68
+Stage 3: 960b8_rebalanceft    — 25ep → mAP50=0.7292@e14
+Stage 4: 960b8_finalfull      — 20ep → mAP50=0.8129@e17
+Stage 5: 960b8_confcurr_s1    — 12ep → mAP50=0.7958@e12
+Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 ```
 
 ## Completed Experiments
 
 ### EXP-002: Inference Threshold Sweep
-- conf has minimal impact: 0.8404 (conf=0.001) → 0.8407 (conf=0.0001) on hybrid_all
-- NMS IoU has zero effect at low conf thresholds
+- conf has minimal impact: 0.8404→0.8407 across conf=0.001..0.0001
+- NMS IoU has zero effect at low conf
 - Best: conf=0.0001, iou=0.55
 
-### EXP-004: Manual TTA
-| Config | det | cls_all | hybrid_all | hybrid_present | Cost |
-|--------|-----|---------|------------|---------------|------|
-| no_tta (960) | 0.9328 | 0.6259 | 0.8407 | 0.8934 | 1x |
-| flip_only (960) | 0.9407 | 0.6336 | **0.8485** | 0.9019 | 2x |
-| ms 960+1280 | 0.9312 | 0.6250 | 0.8393 | 0.8919 | 2x |
-| flip+ms 960+1280 | 0.9359 | 0.6312 | 0.8445 | 0.8976 | 4x |
-| ms 640+960+1280 | 0.9399 | 0.6321 | 0.8476 | 0.9008 | 3x |
-| **flip+ms 640+960+1280** | **0.9428** | **0.6340** | **0.8502** | **0.9035** | **6x** |
+### EXP-004: Manual TTA (single model)
+| Config | det | cls_all | hybrid_all | Cost |
+|--------|-----|---------|------------|------|
+| no_tta (960) | 0.9328 | 0.6259 | 0.8407 | 1x |
+| flip_only (960) | 0.9407 | 0.6336 | 0.8485 | 2x |
+| ms 640+960+1280 | 0.9399 | 0.6321 | 0.8476 | 3x |
+| flip+ms 640+960+1280 | 0.9428 | 0.6340 | 0.8502 | 6x |
 
-**Finding**: TTA is very effective. Flip alone: +0.0078 hybrid_all. Full 6x TTA: +0.0095.
-Practical choice for L4: flip_only (2x cost, +0.0078) or 3-scale no-flip (3x cost, +0.0069).
+### EXP-005: Ensemble (b4+b8 models)
+| Config | det | cls_all | hybrid_all | Cost |
+|--------|-----|---------|------------|------|
+| b4+b8 ensemble | 0.9416 | 0.6381 | **0.8506** | 2x |
+| b4+b8+flip | 0.9347 | 0.6361 | 0.8451 | 4x |
+| b4+b8+ms | 0.9349 | 0.6321 | 0.8441 | 3x |
+
+**Key finding**: 2-model ensemble (0.8506) > single-model 6x TTA (0.8502). Ensemble is more compute-efficient.
+
+### EXP-006: Batch=8 Training
+- batch=8 slightly improves stage 2 (+0.0097 mAP50) but stage 3 slightly worse
+- Final model: hybrid_all=0.8416 vs 0.8407 (marginal)
+- Main value: **diversity for ensemble**
 
 ## Experiment Queue
-- [ ] EXP-005: Ensemble 640px + 960px models (WBF merge)
-- [ ] EXP-006: Retrain pipeline with batch=8 (A100 uses only 16/40 GB at batch=4)
-- [ ] EXP-007: Alternative backbones / model sizes
-- [ ] EXP-008: Label smoothing + focal loss tuning
-- [ ] EXP-009: Longer stage 2 (100+ epochs)
-- [ ] EXP-010: Different seed ensemble (same pipeline, different seeds)
-
-## Key Observations
-1. 78 of 356 classes have zero GT in val → cls_mAP_all = cls_mAP_present * 278/356
-2. TTA (flip) is the single biggest inference-time improvement (+0.0078 hybrid_all)
-3. 960px resolution helps classification more than detection vs 640px baseline
-4. Stage 2 (hardopt, 70ep) is the longest/most impactful training stage
-5. Model uses only 16GB VRAM at batch=4 — batch=8 should fit easily on A100
+- [ ] EXP-010: Train 3rd model (different seed) for 3-model ensemble
+- [ ] EXP-011: Fix WBF + ensemble + TTA combination
+- [ ] EXP-012: yolo26l backbone (lighter, might offer diversity)
+- [ ] EXP-013: Label smoothing (cls=0.01 or higher)
+- [ ] EXP-014: Higher resolution training (1280px)
+- [ ] EXP-015: Longer training (200+ total epochs)
+- [ ] EXP-016: SWA/EMA weight averaging across checkpoints
 
 ## Baseline Comparison
 | Model | det_AP50 | cls_all | hybrid_all | hybrid_present |
 |-------|----------|---------|------------|---------------|
-| 640px confcurr_s2 (prev) | 0.9321 | ~0.581 | ~0.838 | 0.8758 |
-| **960px pipeline (ours)** | 0.9328 | 0.6259 | **0.8407** | 0.8934 |
-| 960px + full TTA | 0.9428 | 0.6340 | **0.8502** | 0.9035 |
+| 640px baseline (prev) | 0.9321 | ~0.581 | ~0.838 | 0.8758 |
+| 960px b4 model | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
+| 960px b4 + full TTA | 0.9428 | 0.6340 | 0.8502 | 0.9035 |
+| **960px b4+b8 ensemble** | **0.9416** | **0.6381** | **0.8506** | **0.9043** |
 
 ## Lessons Learned
 - Always glob *.jpeg along with *.jpg — 6/49 val images are .jpeg
 - YOLO26 doesn't support `augment=True` — must implement manual TTA
-- WBF merge across scales/flips is effective for both det and cls
-- Threshold sweeps show diminishing returns below conf=0.001
+- WBF ensemble of diverse models > TTA on single model
+- batch=8 helps stage 2 (+0.01 mAP50) but value is mainly ensemble diversity
+- Threshold tuning has diminishing returns below conf=0.001
+- WBF with flip degrades ensemble — score normalization needs care
