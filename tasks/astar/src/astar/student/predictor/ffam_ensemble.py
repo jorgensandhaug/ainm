@@ -604,6 +604,60 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         blend_space="logodds",
         policy_name="exploration_r3_settle_heavy",
     ),
+    # Fine-tune around a6_v25 (88.10) — our new champion
+    # Test different blend weights with settle_heavy
+    "ffam_ensemble_a6_v29": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v29",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.83,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    "ffam_ensemble_a6_v30": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v30",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.87,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # Test settle_heavy with r5 (more repeats)
+    "ffam_ensemble_a6_v31": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v31",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r5_settle_heavy",
+    ),
+    # Scale tuning
+    "ffam_ensemble_a6_v32": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v32",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    "ffam_ensemble_a6_v33": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v33",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
 }
 
 
