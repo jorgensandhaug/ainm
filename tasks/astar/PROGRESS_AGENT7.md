@@ -3206,3 +3206,20 @@ All experiments in this session:
 - **Total: 290+ variants across 4 architectures**
 
 Current champion: **ensemble_v22 = 87.7340**
+
+
+### 2026-03-22T05:00Z approx
+
+## Episode Seed Sensitivity
+| Seed | Score | R7 |
+|------|-------|-----|
+| 0 | **87.65** | 72.4 |
+| 42 | 87.18 | 72.3 |
+| 2 | 86.71 | 70.4 |
+| 1 | 86.69 | 72.5 |
+
+Seed 0 produces the best-matching synthetic transcripts.
+~1 point variation across seeds suggests moderate episode randomness.
+Live predictions use real API transcripts, not synthetic.
+
+## CONTINUING EXPLORATION - searching for breakthroughs
