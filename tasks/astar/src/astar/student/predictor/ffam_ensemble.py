@@ -74,6 +74,30 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.95,
     ),
+    "ffam_ensemble_v6": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v6",
+        mode_model="ffam_mode_v214",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.97,
+    ),
+    "ffam_ensemble_v7": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v7",
+        mode_model="ffam_mode_v214",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.98,
+    ),
+    "ffam_ensemble_v8": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v8",
+        mode_model="ffam_mode_v228",  # 3 clusters
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
+    "ffam_ensemble_v9": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v9",
+        mode_model="ffam_mode_v234",  # 4 clusters (best R7)
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
 }
 
 
