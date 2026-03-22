@@ -3019,4 +3019,58 @@ kNN is too simple to compete alone, but proves cell-level transcript features ar
 - improvement: **+0.0428**
 - First model to break 87.65 plateau via model diversity
 
-### Testing: finer blend weights (97/3, 98/2) and cluster-enhanced variants (v8, v9)
+### Full ensemble sweep (v5-v11)
+
+| Model | Score | R7 | Blend |
+|-------|-------|-----|-------|
+| **ensemble_v9 (4c + 5%)** | **87.700** | **72.6** | **CHAMPION** |
+| ensemble_v10 (4c + 3%) | 87.692 | 72.5 | |
+| ensemble_v11 (4c + 7%) | 87.692 | 72.6 | |
+| ensemble_v5 (v214 + 5%) | 87.697 | 72.2 | |
+| ensemble_v6 (v214 + 3%) | 87.693 | 72.1 | |
+| ensemble_v8 (3c + 5%) | 87.692 | 72.5 | |
+| ensemble_v7 (v214 + 2%) | 87.685 | 72.1 | |
+| ensemble_v1 (v214 + 10%) | 87.642 | 72.4 | |
+| ensemble_v3 (v214 + 20%) | 87.318 | 72.6 | |
+
+### Pooled ridge regression results
+
+| Model | Score | R7 | Features |
+|-------|-------|-----|---------|
+| pooled_v1 (ridge=10, tx) | 77.19 | 69.4 | With transcript |
+| pooled_v2 (ridge=1, tx) | 77.14 | 69.3 | With transcript |
+| pooled_v4 (ridge=10, no tx) | 72.36 | 60.8 | Without transcript |
+
+**Pooled regression confirms:**
+- Per-round SVD structure adds 10+ points over no-structure approaches
+- Transcript features add +4.83 points in pooled model
+- But pooled approaches can't replace per-round operator + manifold
+
+## Current Champion
+
+- model: `ffam_ensemble_v9` (95% ffam_mode_v234 [4 clusters] + 5% ffam_knn_v1)
+- score: **87.6997** (was 87.6540)
+- improvement from v214: **+0.0457**
+- R7: 72.6 (was 72.0)
+
+## Summary of All New Approaches Tested (This Session)
+
+### Architectures tried:
+1. **ffam_mode_v220-v247** (28 variants): plateaued at 87.65
+2. **FFAMKNNPredictor** (kNN terrain matching): 77.47 alone, valuable as ensemble component
+3. **FFAMPooledPredictor** (pooled ridge regression): 77.19 alone
+4. **FFAMEnsemblePredictor** (mode+kNN): **87.70 NEW BEST**
+
+### Key scientific findings:
+1. **R7 is OOD, not inherently hard** (entropy 0.39 is medium)
+2. **Cell-level transcript features add +6.65 points** (kNN ablation)
+3. **Per-round SVD structure adds +10 points** vs no-structure approaches
+4. **Model ensemble provides genuine improvement** (+0.05 over single model)
+5. **4 clusters > 2 clusters** for R7 (helps OOD round representation)
+6. **Evidence propagation is neutral** (spatial smoothing of observations)
+7. **Higher particle blend always hurts** (SVD modes are better than retrieval)
+8. **OOD-adaptive priors always hurt** (damage good rounds more than help bad)
+9. **s=6 is optimal** (s=12 hurts, s=2 hurts)
+10. **Pure particle decoder scores 83.57** (SVD modes add +4 points over it)
+
+### 250+ total variants tested across all axes.
