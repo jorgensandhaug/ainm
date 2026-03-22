@@ -5003,7 +5003,46 @@ Per-round analysis for LGB (best model):
 - 1 round 70-75: 36e581f1(74.0)
 - 1 round <60: **795bfb1f(55.0)** - catastrophic failure
 
-527. LGB + exploration (no blend) - testing if exploration helps LGB too:
+527. **COMPLETE 6-CONFIG COMPARISON ON 16-ROUND LOO:**
+
+| Rank | Config | Score | Delta vs Best |
+|------|--------|-------|---------------|
+| 1 | **LGB + exploration (no blend)** | **86.96** | - |
+| 2 | LGB + coverage (no blend) | 86.62 | -0.34 |
+| 3 | CatBoost + exploration (no blend) | 86.41 | -0.55 |
+| 4 | CatBoost + coverage (no blend) | 86.11 | -0.85 |
+| 5 | CatBoost + exploration + blend | 84.52 | -2.44 |
+| 6 | CatBoost + coverage + blend | 84.16 | -2.80 |
+
+Key patterns:
+- LGB beats CatBoost consistently (+0.3-0.5 points)
+- Exploration beats coverage consistently (+0.3 points)
+- Obs-blend HURTS consistently (~2 points penalty)
+- Round 795bfb1f catastrophic (55-58 across all models)
+- Improving just 795bfb1f by 20 points → overall to ~88.2
+
+528. **HYPERPARAMETER SWEEP RESULTS:**
+
+| Config | Score | Delta vs baseline |
+|--------|-------|-------------------|
+| **LGB d10, 800t, lr=0.02, exploration** | **87.06** | **+0.10 (NEW BEST)** |
+| LGB d10, 1200t, lr=0.015 | 87.02 | +0.06 |
+| LGB d12, 800t, lr=0.02 | 87.01 | +0.05 |
+| LGB d8, 800t, lr=0.02 (baseline) | 86.96 | 0 |
+| LGB d8, 1200t, lr=0.015 | 86.97 | +0.01 |
+| LGB d10, 2000t, lr=0.01 | 86.91 | -0.05 |
+| Ensemble LGB+CB 70/30 | 86.85 | -0.11 |
+
+Key findings:
+- d10 is optimal depth (d12 overfits, d8 underfits slightly)
+- 800 trees is optimal (more trees with lower LR doesn't help)
+- Ensemble now HURTS (was +0.02 on old data)
+- Diminishing returns on hyperparameter tuning
+
+Current best: **LGB d10, 800t, lr=0.02, exploration, no blend = 87.06**
+Improvement from data expansion: +2.12 (84.94→87.06 for comparable LGB)
+
+529. Next experiments to push past 87.5:
 
 ## Open Questions
 
