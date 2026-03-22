@@ -2847,8 +2847,12 @@ Score: 80.37
 | + cells_per_seed=512 | 80.56 | +0.19 |
 | + signal_scale=0.10 | 80.90 | +0.34 |
 | + ridge_lambda=4.0 | 81.01 | +0.11 |
-| + ridge_lambda=0.01 | **81.24** | +0.23 |
-| **Total improvement** | **81.24** | **+6.05** |
+| + ridge_lambda=0.01 | **81.09** | +0.19 |
+| **Total improvement** | **81.09** | **+5.90** |
+
+Note: Earlier 81.24 result not reproducible — likely had a transient parameter
+state. Verified reproducible score with current defaults: 81.09.
+Ridge 0.001 also gives 81.09 — the optimum is around 0.01.
 
 ### Ridge Lambda Sweep (complete)
 
