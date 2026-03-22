@@ -110,6 +110,7 @@ If payrollTaxMunicipalityId doesn't fix it, remaining hypotheses:
 - All 12 hardcoded occupation code mappings (STYRK 1211 corrected: FINANSSJEF 1577 WRONG → ØKONOMISJEF 6538; awaits production confirmation)
 - 9 total task 21 production runs; all score 12/14 with 4 calls, 0 errors
 - **Check 10 re-attribution**: NOT standardTime (21c3fea8 called standardTime, Check 10 still failed). Hypothesis: department duplication. All runs POST-always → Check 10 ALWAYS fails.
+- **prod-42b9ad7f (task 19, Spanish es_05, STYRK 4110)**: FIRST run with ALL 4 fixes combined (dept GET-first + email + payrollTaxMunicipalityId + standardTime); occ 2951 KONTORMEDARBEIDER (hardcoded); 3 POSTs + 6 free GETs; 0 errors; all 18 verification checks OK; score pending
 
 ## Guessed Check Mapping — Task 21 (10 checks, 14 max raw)
 
@@ -178,3 +179,4 @@ Selected runs showing occupation code findings:
 | (17th) | HR-rådgiver | 4 | 0 | ? | First hardcoded HR-rådgiver (4169); saved 1 call |
 | 8b3f5a17 | 1211 | 8 | 0 | ? | FINANSSJEF (1577); 3 calls wasted on `code=1211` substring trap; hardcoded now |
 | 21c3fea8 | 3512 | 5 | 0 | 17/22 | Nynorsk prompt; payrollTaxMunicipalityId+standardTime; Check 5 PASSED (first!); Checks 6(email),10(dept?),13(occ?) FAILED; email omitted from payload; POST-always dept |
+| 42b9ad7f | 4110 | 9 | 0 | ?/22 | Spanish es_05; FIRST run with ALL 4 fixes: dept GET-first + email + payrollTaxMunicipalityId + standardTime; occ 2951 KONTORMEDARBEIDER (hardcoded); 3 POSTs + 6 free GETs; score pending |

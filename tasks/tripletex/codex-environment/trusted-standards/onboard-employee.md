@@ -26,12 +26,14 @@
 - Omitting it or using the wrong id may cost points.
 - Send by `id`, NEVER by `code` (writing `{ code: "2511" }` silently stores null).
 
-**RULE 4 — payrollTaxMunicipalityId (FIX for Check 5)**:
+**RULE 4 — payrollTaxMunicipalityId (CONFIRMED for task 19 Check 5)**:
 - ALWAYS call `GET /salary/settings?fields=municipality` in the parallel step (Step 1).
 - If the response contains `municipality.id`, include `payrollTaxMunicipalityId: { id: <municipality.id> }` in the employmentDetails.
 - If no municipality in settings, omit `payrollTaxMunicipalityId`.
-- **Why:** All 9 task 21 production runs left this field null → Check 5 always failed. The Tripletex UI auto-populates this from company salary settings, but the API does NOT. In Norway, payroll tax zone (arbeidsgiveravgift-sone) is mandatory for proper employee registration. Sandbox-verified 2026-03-22: municipality accepted and stored correctly.
-- **DO NOT IGNORE THIS RULE.** This is the only remaining hypothesis for Check 5 — every other field-value hypothesis has been disproven in production.
+- **Why:** The Tripletex UI auto-populates this from company salary settings, but the API does NOT. In Norway, payroll tax zone (arbeidsgiveravgift-sone) is mandatory for proper employee registration.
+- **Task 19 (arbeidskontrakt):** payrollTaxMunicipalityId CONFIRMED to fix Check 5 — prod-21c3fea8 was the first run to pass Check 5 after including this field.
+- **Task 21 (tilbudsbrev):** payrollTaxMunicipalityId DISPROVEN for Check 5 — prod-cce321cd included municipality.id=262 (verified in readback) but Check 5 STILL failed. 15 total attempts on task 21, NONE have ever passed Check 5. This check may be inherently unfixable via current API, or requires an undiscovered API call/field.
+- **Still include it** — it's correct Norwegian practice and fixes task 19 Check 5. It does no harm on task 21.
 
 **RULE 5 — employmentType and workingHoursScheme**:
 - Use `employmentType: "ORDINARY"` and `workingHoursScheme: "NOT_SHIFT"` for **both** tilbudsbrev and arbeidskontrakt.
@@ -73,14 +75,13 @@ Step 4 (POST):
   POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
 
 Step 5 (parallel verification — all free GETs, ALWAYS do these):
+  Extract employmentId from Step 3 POST /employee response: value.employments[0].id
   GET /employee/<empId>?fields=*,department(*),employments(*)
   GET /employee/standardTime?employeeId=<empId>&fields=*
-
-Step 6 (one more free GET — needs employmentId from Step 5):
-  Extract employmentId from Step 5: employments[0].id
   GET /employee/employment/details?employmentId=<employmentId>&fields=*
-  → This returns the FULL employment details including occupationCode, payrollTaxMunicipalityId, annualSalary etc.
-  → The Step 5 employee readback does NOT expand employmentDetails (returns only {id, url} stubs).
+  → All 3 GETs can run in parallel since employmentId comes from the POST response (Step 3), NOT from Step 5's GET.
+  → The employee readback does NOT expand employmentDetails (returns only {id, url} stubs).
+  → The employment/details GET returns the FULL details: occupationCode, payrollTaxMunicipalityId, annualSalary etc.
 ```
 
 **Department resolution logic (Step 1→2):**
@@ -88,8 +89,8 @@ Step 6 (one more free GET — needs employmentId from Step 5):
 - If found: use its `id` directly. If multiple matches, pick the one with the HIGHEST `id`.
 - If NOT found (0 matches or no exact match): proceed to Step 2 and POST to create it.
 
-**Verification readback (Steps 5-6) — MUST DO, GETs are free:**
-Run Step 5 GETs in parallel. Then use the employmentId from Step 5 to run Step 6. Log all responses and check:
+**Verification readback (Step 5) — MUST DO, GETs are free:**
+Run all 3 verification GETs in parallel (employmentId from POST /employee response). Log all responses and check:
 
 From GET /employee (Step 5):
 
@@ -259,3 +260,4 @@ Eliminated hypotheses:
 - Strategy code updated 2026-03-22: standardTime POST now unconditional (defaults to 7.5 when not specified)
 - POSTs: 2-3 minimum (employee + standardTime + optional dept). GETs: 6-7 (all free). Total calls: 8-10 but only POSTs count.
 - **Readback field expansion verified 2026-03-22**: `fields=*,department(*),employments(*)` returns department.name but employmentDetails are stubs ({id,url} only). Must use separate `GET /employee/employment/details?employmentId=<id>&fields=*` for full details (occupationCode, payrollTaxMunicipalityId, annualSalary etc.)
+- **prod-42b9ad7f (task 19, Spanish es_05, STYRK 4110)**: FIRST run with ALL 4 fixes combined (dept GET-first + email + payrollTaxMunicipalityId + standardTime); occ 2951 KONTORMEDARBEIDER (hardcoded); 3 POSTs + 6 free GETs; 0 errors; all 18 verification checks OK; score pending
