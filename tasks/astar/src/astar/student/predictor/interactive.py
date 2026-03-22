@@ -10,39 +10,50 @@ from astar.envs.base import OnlinePredictor, TranscriptBeliefState
 from astar.envs.conversion import round_context_to_live_inference_context
 from astar.envs.types import OnlineEpisodeSample, OnlineTranscript, RoundContext
 from astar.infra.artifacts.paths import WorkspacePaths
-from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
-from astar.student.predictor.greybox_expansion_conditioned import GreyboxExpansionConditionedPredictor
-from astar.student.predictor.greybox_multiregime import GreyboxMultiRegimePredictor
-from astar.student.predictor.greybox_tristack import GreyboxTriStackPredictor
-from astar.student.predictor.greybox_stacked_expansion import GreyboxStackedExpansionPredictor
-from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
-from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
-from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
-from astar.student.predictor.greybox_roundmatch import GreyboxRoundMatchPredictor
-from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
-from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
-from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
-from astar.student.predictor.greybox_hazard_bayesfamily import (
-    bayesfamily_model_names,
-    fit_named_bayesfamily_predictor,
+from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import (
+    available_ffam_model_names,
+    ffam_checkpoint_name,
+    is_ffam_model_name,
 )
-from astar.student.predictor.greybox_hazard_clusteredbayes import GreyboxHazardClusteredBayesPredictor
-from astar.student.predictor.greybox_hazard_clusteredmanifold import GreyboxHazardClusteredManifoldPredictor
-from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
-from astar.student.predictor.greybox_hazard_phasefactored import GreyboxHazardPhaseFactoredPredictor
-from astar.student.predictor.greybox_regime import (
-    GreyboxHazardLowRankPredictor,
-    GreyboxLowRankQueryResidualHybridPredictor,
-    GreyboxRegimeKnnPredictor,
-    GreyboxRegimeRidgePredictor,
+from astar.student.predictor.ffam_mode import FFAMModePredictor
+from astar.student.predictor.ffam_mode_config import (
+    available_ffam_mode_model_names,
+    ffam_mode_checkpoint_name,
+    is_ffam_mode_model_name,
 )
-from astar.student.predictor.greybox_student_joint import GreyboxStudentJointPredictor
-from astar.student.predictor.greybox_student_joint_repeataware import (
-    GreyboxStudentJointRepeatAwarePredictor,
+from astar.student.predictor.ffam_operator import FFAMOperatorPredictor
+from astar.student.predictor.ffam_operator_config import (
+    available_ffam_operator_model_names,
+    ffam_operator_checkpoint_name,
+    is_ffam_operator_model_name,
 )
+from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
+from astar.student.predictor.ffam_ensemble import FFAMEnsemblePredictor
+from astar.student.predictor.ffam_ensemble import (
+    available_ffam_ensemble_model_names,
+    ffam_ensemble_checkpoint_name,
+    is_ffam_ensemble_model_name,
+)
+from astar.student.predictor.ffam_knn import FFAMKNNPredictor
+from astar.student.predictor.ffam_knn_config import (
+    available_ffam_knn_model_names,
+    ffam_knn_checkpoint_name,
+    is_ffam_knn_model_name,
+)
+from astar.student.predictor.ffam_pooled import FFAMPooledPredictor
+from astar.student.predictor.ffam_pooled_config import (
+    available_ffam_pooled_model_names,
+    ffam_pooled_checkpoint_name,
+    is_ffam_pooled_model_name,
+)
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_config import (
+    is_query_residual_model_name,
+    query_residual_checkpoint_name,
+)
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -132,405 +143,236 @@ def build_online_predictor(
             predictor=latent_predictor,
             name=latent_predictor.name,
         )
-    if normalized == "greybox_regime_ridge":
+    if is_ffam_model_name(model_name):
         workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxRegimeRidgePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_regime_knn":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxRegimeKnnPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hazard_lowrank":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hazard_phasefactored":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxHazardPhaseFactoredPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hazard_clusteredmanifold":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxHazardClusteredManifoldPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hazard_clusteredbayes":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxHazardClusteredBayesPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized in bayesfamily_model_names():
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = fit_named_bayesfamily_predictor(
-            model_name,
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_student_joint":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxStudentJointPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized in {"greybox_student_joint_repeataware", "greybox_student_joint_repeataware_v01"}:
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxStudentJointRepeatAwarePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_coefficient_knn":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxCoefficientKnnPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hybrid_lowrank_coefficientknn":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxLowRankCoefficientHybridPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hazard_mixture":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxHazardMixturePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hybrid_lowrank_queryres":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_hybrid_lowrank_queryres_w45":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            lowrank_weight=0.45,
-            model_name="greybox_hybrid_lowrank_queryres_w45_v01",
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_gated_hybrid":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxGatedHybridPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_cellknn":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxCellKnnPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized.startswith("greybox_tristack"):
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        # Parse: greybox_tristack_e25_c10 -> expansion_weight=0.25, cellknn_weight=0.10
-        exp_w = 0.25
-        cknn_w = 0.10
-        if "_e" in normalized:
-            try:
-                e_part = normalized.split("_e")[1].split("_")[0]
-                if e_part.isdigit():
-                    exp_w = int(e_part) / 100.0
-            except (ValueError, IndexError):
-                pass
-        if "_c" in normalized:
-            try:
-                c_part = normalized.split("_c")[1].split("_")[0]
-                if c_part.isdigit():
-                    cknn_w = int(c_part) / 100.0
-            except (ValueError, IndexError):
-                pass
-        predictor = GreyboxTriStackPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            expansion_weight=exp_w,
-            cellknn_weight=cknn_w,
-            model_name=normalized,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized.startswith("greybox_stacked_expansion"):
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        weight = 0.20
-        if "_w" in normalized:
-            try:
-                parts = normalized.split("_w")
-                w_part = parts[-1].split("_")[0] if parts[-1] else ""
-                if w_part.isdigit():
-                    weight = int(w_part) / 100.0
-            except (ValueError, IndexError):
-                pass
-        predictor = GreyboxStackedExpansionPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            expansion_weight=weight,
-            model_name=normalized,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized.startswith("greybox_adaptive_stack"):
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        from astar.student.predictor.greybox_adaptive_stack import GreyboxAdaptiveStackPredictor
-        predictor = GreyboxAdaptiveStackPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            model_name=normalized,
-        )
-        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
-    if normalized.startswith("greybox_stacked_multiregime"):
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        from astar.student.predictor.greybox_stacked_multiregime import GreyboxStackedMultiRegimePredictor
-        weight = 0.35
-        if "_w" in normalized:
-            try:
-                parts = normalized.split("_w")
-                w_part = parts[-1].split("_")[0] if parts[-1] else ""
-                if w_part.isdigit():
-                    weight = int(w_part) / 100.0
-            except (ValueError, IndexError):
-                pass
-        predictor = GreyboxStackedMultiRegimePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            multiregime_weight=weight,
-            model_name=normalized,
-        )
-        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
-    if normalized == "greybox_multiregime":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxMultiRegimePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-        )
-        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
-    if normalized == "greybox_expansion_conditioned":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_cellknn_perround":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxCellKnnPerRoundPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_roundmatch":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxRoundMatchPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized.startswith("greybox_stacked"):
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        # Parse weight from model name: greybox_stacked_w25 -> 0.25
-        weight = 0.5  # default
-        use_hybrid = "hybrid" in normalized
-        if "_w" in normalized:
-            try:
-                # Extract numeric part after _w, before any other _
-                parts = normalized.split("_w")
-                w_part = parts[-1].split("_")[0] if parts[-1] else ""
-                if w_part.isdigit():
-                    weight = int(w_part) / 100.0
-            except (ValueError, IndexError):
-                pass
-        predictor = GreyboxStackedPredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            cellknn_feature_weight=weight,
-            model_name=normalized,
-            use_lowrank_hybrid=use_hybrid,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized == "greybox_obsval_ensemble":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        predictor = GreyboxObsValEnsemblePredictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=None if historical_round_ids is None else list(historical_round_ids),
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-        )
-        return RoundPredictorAdapter(
-            predictor=predictor,
-            name=predictor.name,
-        )
-    if normalized.startswith("hazard_posterior_v15"):
-        from astar.student.predictor.hazard_posterior_v15 import (
-            HazardPosteriorV15Predictor,
-            hazard_posterior_v15_spec_for_model_name,
-        )
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        spec = hazard_posterior_v15_spec_for_model_name(normalized)
-        if spec is None:
-            spec = (5, 3, 32.0, 0.7, 8.0)
-        k, rank, ridge, mean_w, obs_w = spec
-        predictor = HazardPosteriorV15Predictor.fit_from_workspace(
-            workspace_paths,
-            round_ids=list(historical_round_ids) if historical_round_ids else [],
-            policy_name=(policy_name or "coverage").strip().lower(),
-            samples_per_round=samples_per_round,
-            k_neighbors=k,
-            latent_rank=rank,
-            ridge_alpha=ridge,
-            predicted_particle_weight=mean_w,
-            observation_weight=obs_w,
-            model_name=normalized,
-        )
-        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
-    if normalized == "query_residual":
-        workspace_paths = paths or WorkspacePaths.from_root(".")
-        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
         if historical_round_ids is not None:
-            predictor = QueryResidualPredictor.fit_from_workspace(
+            predictor = FFAMRetrievalPredictor.fit_named_from_workspace(
                 workspace_paths,
+                model_name=model_name,
                 round_ids=list(historical_round_ids),
                 policy_name=resolved_policy_name,
                 samples_per_round=samples_per_round,
             )
         else:
             checkpoint_dir = workspace_paths.model_dir(
-                f"query_residual_v7__policy={resolved_policy_name}__samples={samples_per_round}",
+                ffam_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMRetrievalPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMRetrievalPredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_mode_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMModePredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_mode_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMModePredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMModePredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_operator_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMOperatorPredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_operator_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMOperatorPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMOperatorPredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_ensemble_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_ensemble_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMEnsemblePredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_pooled_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMPooledPredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_pooled_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMPooledPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMPooledPredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_knn_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMKNNPredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_knn_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMKNNPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMKNNPredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_query_residual_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = QueryResidualPredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                query_residual_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
             )
             checkpoint_path = checkpoint_dir / "checkpoint.json"
             if checkpoint_path.exists():
                 predictor = QueryResidualPredictor.load_checkpoint(checkpoint_path)
             else:
-                predictor = QueryResidualPredictor.fit_from_workspace(
+                predictor = QueryResidualPredictor.fit_named_from_workspace(
                     workspace_paths,
+                    model_name=model_name,
                     policy_name=resolved_policy_name,
                     samples_per_round=samples_per_round,
                 )
@@ -546,5 +388,8 @@ def build_online_predictor(
 __all__ = [
     "OnlinePredictor",
     "RoundPredictorAdapter",
+    "available_ffam_model_names",
+    "available_ffam_mode_model_names",
+    "available_ffam_operator_model_names",
     "build_online_predictor",
 ]

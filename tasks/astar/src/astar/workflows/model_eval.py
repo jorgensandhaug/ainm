@@ -17,37 +17,16 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
-from astar.student.predictor.greybox_cellknn import GreyboxCellKnnPredictor
-from astar.student.predictor.greybox_expansion_conditioned import GreyboxExpansionConditionedPredictor
-from astar.student.predictor.greybox_cellknn_perround import GreyboxCellKnnPerRoundPredictor
-from astar.student.predictor.greybox_stacked_v01 import GreyboxStackedPredictor
-from astar.student.predictor.greybox_obsval_ensemble import GreyboxObsValEnsemblePredictor
-from astar.student.predictor.greybox_roundmatch import GreyboxRoundMatchPredictor
-from astar.student.predictor.greybox_gated_hybrid import GreyboxGatedHybridPredictor
-from astar.student.predictor.greybox_coefficient_knn import GreyboxCoefficientKnnPredictor
-from astar.student.predictor.greybox_coefficient_knn import GreyboxLowRankCoefficientHybridPredictor
-from astar.student.predictor.greybox_hazard_bayesfamily import (
-    bayesfamily_model_names,
-    fit_named_bayesfamily_predictor,
-)
-from astar.student.predictor.greybox_hazard_clusteredbayes import GreyboxHazardClusteredBayesPredictor
-from astar.student.predictor.greybox_hazard_clusteredmanifold import GreyboxHazardClusteredManifoldPredictor
-from astar.student.predictor.greybox_hazard_mixture import GreyboxHazardMixturePredictor
-from astar.student.predictor.greybox_hazard_phasefactored import GreyboxHazardPhaseFactoredPredictor
-from astar.student.predictor.greybox_regime import (
-    GreyboxHazardLowRankPredictor,
-    GreyboxLowRankQueryResidualHybridPredictor,
-    GreyboxRegimeKnnPredictor,
-    GreyboxRegimeRidgePredictor,
-)
-from astar.student.predictor.greybox_student_joint import GreyboxStudentJointPredictor
-from astar.student.predictor.greybox_student_joint_repeataware import (
-    GreyboxStudentJointRepeatAwarePredictor,
-)
+from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
+from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
+from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -246,9 +225,10 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
-        predictor = QueryResidualPredictor.fit_from_workspace(
+    if is_query_residual_model_name(model_name):
+        predictor = QueryResidualPredictor.fit_named_from_workspace(
             paths,
+            model_name=model_name,
             round_ids=list(training_round_ids),
             samples_per_round=samples_per_round,
         )
@@ -260,351 +240,11 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
-    if normalized == "greybox_regime_ridge":
-        predictor = GreyboxRegimeRidgePredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_regime_knn":
-        predictor = GreyboxRegimeKnnPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hazard_lowrank":
-        predictor = GreyboxHazardLowRankPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hazard_phasefactored":
-        predictor = GreyboxHazardPhaseFactoredPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hazard_clusteredmanifold":
-        predictor = GreyboxHazardClusteredManifoldPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hazard_clusteredbayes":
-        predictor = GreyboxHazardClusteredBayesPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.clustered_predictor.base_predictor.analyzed_seed_count,
-            predictor.clustered_predictor.base_predictor.cell_count,
-        )
-
-    if normalized in bayesfamily_model_names():
-        predictor = fit_named_bayesfamily_predictor(
-            model_name,
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_student_joint":
-        predictor = GreyboxStudentJointPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized in {"greybox_student_joint_repeataware", "greybox_student_joint_repeataware_v01"}:
-        predictor = GreyboxStudentJointRepeatAwarePredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_coefficient_knn":
-        predictor = GreyboxCoefficientKnnPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hybrid_lowrank_coefficientknn":
-        predictor = GreyboxLowRankCoefficientHybridPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hazard_mixture":
-        predictor = GreyboxHazardMixturePredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hybrid_lowrank_queryres":
-        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_hybrid_lowrank_queryres_w45":
-        predictor = GreyboxLowRankQueryResidualHybridPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-            lowrank_weight=0.45,
-            model_name="greybox_hybrid_lowrank_queryres_w45_v01",
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_gated_hybrid":
-        predictor = GreyboxGatedHybridPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            samples_per_round=samples_per_round,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.lowrank_predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_cellknn":
-        predictor = GreyboxCellKnnPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized.startswith("greybox_tristack"):
-        from astar.student.predictor.greybox_tristack import GreyboxTriStackPredictor
-        exp_w = 0.25
-        cknn_w = 0.10
-        if "_e" in normalized:
-            try:
-                e_part = normalized.split("_e")[1].split("_")[0]
-                if e_part.isdigit(): exp_w = int(e_part) / 100.0
-            except: pass
-        if "_c" in normalized:
-            try:
-                c_part = normalized.split("_c")[1].split("_")[0]
-                if c_part.isdigit(): cknn_w = int(c_part) / 100.0
-            except: pass
-        predictor = GreyboxTriStackPredictor.fit_from_workspace(
-            paths, round_ids=list(training_round_ids),
-            policy_name=policy_name or "coverage",
-            samples_per_round=samples_per_round or 4,
-            expansion_weight=exp_w, cellknn_weight=cknn_w,
-            model_name=normalized,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (bundle, {}, predictor.query_residual.base_predictor.analyzed_seed_count,
-                predictor.query_residual.base_predictor.cell_count)
-
-    if normalized.startswith("greybox_adaptive_stack"):
-        from astar.student.predictor.greybox_adaptive_stack import GreyboxAdaptiveStackPredictor
-
-        predictor = GreyboxAdaptiveStackPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            policy_name=policy_name or "coverage",
-            samples_per_round=samples_per_round or 4,
-            model_name=normalized,
-        )
-        bundle = predictor.build_prediction_bundle(
-            round_detail,
-            compute_round_features(round_detail),
-            None,
-        )
-        return (
-            bundle,
-            {},
-            predictor.query_residual.base_predictor.analyzed_seed_count,
-            predictor.query_residual.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_expansion_conditioned":
-        predictor = GreyboxExpansionConditionedPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (bundle, {}, predictor.base_predictor.analyzed_seed_count, predictor.base_predictor.cell_count)
-
-    if normalized == "greybox_cellknn_perround":
-        predictor = GreyboxCellKnnPerRoundPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized.startswith("greybox_stacked"):
-        weight = 0.5
-        if "_w" in normalized:
-            try:
-                w_str = normalized.split("_w")[-1]
-                weight = int(w_str) / 100.0
-            except (ValueError, IndexError):
-                pass
-        predictor = GreyboxStackedPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            policy_name=policy_name or "coverage",
-            samples_per_round=samples_per_round or 1,
-            cellknn_feature_weight=weight,
-            model_name=normalized,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.query_residual.base_predictor.analyzed_seed_count,
-            predictor.query_residual.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_roundmatch":
-        predictor = GreyboxRoundMatchPredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.base_predictor.analyzed_seed_count,
-            predictor.base_predictor.cell_count,
-        )
-
-    if normalized == "greybox_obsval_ensemble":
-        predictor = GreyboxObsValEnsemblePredictor.fit_from_workspace(
-            paths,
-            round_ids=list(training_round_ids),
-            policy_name=policy_name or "coverage",
-            samples_per_round=samples_per_round or 4,
-        )
-        bundle = predictor.build_prediction_bundle(round_detail, compute_round_features(round_detail), None)
-        return (
-            bundle,
-            {},
-            predictor.hybrid.lowrank_predictor.base_predictor.analyzed_seed_count,
-            predictor.hybrid.lowrank_predictor.base_predictor.cell_count,
-        )
+    _norm = model_name.strip().lower()
+    _is_ensemble = _norm.startswith("ffam_ensemble")
+    _is_pooled = _norm.startswith("ffam_pooled")
+    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name) or is_ffam_knn_model_name(model_name) or _is_ensemble or _is_pooled:
+        raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
 
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
@@ -634,14 +274,15 @@ def _build_online_prediction_bundle(
     int,
     int,
 ]:
+    resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
     predictor = build_online_predictor(
         model_name,
         paths=paths,
         historical_round_ids=training_round_ids,
-        policy_name=policy_name,
+        policy_name=resolved_policy_name,
         samples_per_round=samples_per_round,
     )
-    policy = build_interactive_policy(policy_name, predictor=predictor)
+    policy = build_interactive_policy(resolved_policy_name)
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,
@@ -735,42 +376,7 @@ def evaluate_model_on_round(
             )
         )
         resolved_policy_name = None
-        _norm_model = model_name.strip().lower()
-        _transcript_set = {
-            "query_residual",
-            "greybox_regime_ridge",
-            "greybox_regime_knn",
-            "greybox_hazard_lowrank",
-            "greybox_hazard_phasefactored",
-            "greybox_hazard_clusteredmanifold",
-            "greybox_hazard_clusteredbayes",
-            *bayesfamily_model_names(),
-            "greybox_student_joint",
-            "greybox_student_joint_repeataware",
-            "greybox_student_joint_repeataware_v01",
-            "greybox_coefficient_knn",
-            "greybox_hybrid_lowrank_coefficientknn",
-            "greybox_hazard_mixture",
-            "greybox_hybrid_lowrank_queryres",
-            "greybox_hybrid_lowrank_queryres_w45",
-            "greybox_gated_hybrid",
-            "greybox_cellknn",
-            "greybox_expansion_conditioned",
-            "greybox_adaptive_stack",
-            "greybox_cellknn_perround",
-            "greybox_stacked",
-            "greybox_roundmatch",
-            "greybox_obsval_ensemble",
-        }
-        resolved_samples_per_round = (
-            samples_per_round
-            if _norm_model in _transcript_set
-            or _norm_model.startswith("greybox_stacked")
-            or _norm_model.startswith("greybox_tristack")
-            or _norm_model.startswith("greybox_multiregime")
-            or _norm_model.startswith("greybox_adaptive")
-            else None
-        )
+        resolved_samples_per_round = samples_per_round if model_name.strip().lower() == "query_residual" else None
         resolved_budget = None
         resolved_episode_seed = None
         executed_queries = 0

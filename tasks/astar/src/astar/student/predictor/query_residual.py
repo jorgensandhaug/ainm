@@ -28,6 +28,11 @@ from astar.observe.evidence import (
 )
 from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor, softmax_logits
+from astar.student.predictor.query_residual_config import (
+    QueryResidualConfig,
+    RegimeInputVariant,
+    resolve_query_residual_config,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.round import BaseRoundPredictor
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
@@ -36,6 +41,25 @@ LOG_FLOOR_DENOM = math.log(100.0)
 MAX_QUERY_BUDGET = 50.0
 DEFAULT_BUDGET_PREFIXES = (0, 5, 10, 20, 35, 50)
 DEFAULT_BLUR_SIGMAS = (1.5, 4.0)
+CLASS_INDEX = {name: index for index, name in enumerate(CLASS_NAMES)}
+REGIME_MOTIF_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("settlement_buildable", "settlement", "buildable"),
+    ("settlement_proximity", "settlement", "settlement_proximity"),
+    ("port_maritime_access", "port", "maritime_access"),
+    ("port_coast", "port", "coast"),
+    ("ruin_frontier", "ruin", "frontier_score"),
+    ("forest_density", "forest", "forest_density"),
+    ("mountain_density", "mountain", "mountain_density"),
+)
+REGIME_COVERAGE_FIELDS: tuple[str, ...] = (
+    "buildable",
+    "coast",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "forest_density",
+    "mountain_density",
+)
 
 
 def _round_ids_with_analyses_and_replays(
@@ -72,11 +96,13 @@ def _round_scope_token(round_ids: Sequence[str] | None) -> str:
 def _cached_synthetic_dataset_name(
     policy_name: str,
     samples_per_round: int,
+    dataset_version: str,
     round_ids: Sequence[str] | None = None,
 ) -> str:
     normalized_policy = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
     return (
+        f"{dataset_version}__"
         f"query_residual_synthetic_live__policy={normalized_policy}"
         f"__samples={samples_per_round}__rounds={scope_token}"
     )
@@ -94,54 +120,44 @@ def _load_synthetic_dataset_ref(
     return summary_path, index_path
 
 
-def _dataset_covers_rounds(
-    index_path: Path,
-    round_ids: Sequence[str] | None,
-) -> bool:
-    if round_ids is None:
-        return True
-    available_round_ids = set(
-        pl.read_parquet(index_path, columns=["round_id"])["round_id"].to_list(),
-    )
-    return set(round_ids).issubset(available_round_ids)
-
-
 def _ensure_synthetic_dataset(
     paths: WorkspacePaths,
     *,
     policy_name: str,
     samples_per_round: int,
+    dataset_version: str,
     round_ids: Sequence[str] | None = None,
 ) -> Path:
     from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 
     legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
-    if samples_per_round == 1:
+    if dataset_version == "v1" and samples_per_round == 1:
         try:
             _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
-            if _dataset_covers_rounds(index_path, round_ids):
-                return index_path
+            return index_path
         except FileNotFoundError:
             pass
 
-    dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
+    dataset_name = _cached_synthetic_dataset_name(
+        policy_name,
+        samples_per_round,
+        dataset_version,
+        round_ids,
+    )
     try:
         _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
-        if _dataset_covers_rounds(index_path, round_ids):
-            return index_path
+        return index_path
     except FileNotFoundError:
-        pass
-
-    dataset = build_synthetic_live_dataset(
-        paths,
-        policy_name=policy_name,
-        round_ids=None if round_ids is None else list(round_ids),
-        samples_per_round=samples_per_round,
-        dataset_name=dataset_name,
-    )
-    if dataset.index_path is None:
-        raise ValueError("synthetic live dataset did not produce an index path")
-    return dataset.index_path
+        dataset = build_synthetic_live_dataset(
+            paths,
+            policy_name=policy_name,
+            round_ids=None if round_ids is None else list(round_ids),
+            samples_per_round=samples_per_round,
+            dataset_name=dataset_name,
+        )
+        if dataset.index_path is None:
+            raise ValueError("synthetic live dataset did not produce an index path")
+        return dataset.index_path
 
 
 def _safe_log_probs(probabilities: np.ndarray, floor: float) -> np.ndarray:
@@ -322,6 +338,10 @@ class TranscriptDerivedFeatures(BaseModel):
 
     global_summary: np.ndarray
     seed_summaries: dict[int, np.ndarray]
+    regime_global_summary: np.ndarray = Field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64),
+    )
+    regime_seed_summaries: dict[int, np.ndarray] = Field(default_factory=dict)
     local_evidence: dict[int, np.ndarray]
     exact_counts: dict[int, np.ndarray]
 
@@ -370,12 +390,29 @@ class QueryResidualPredictorCheckpoint(BaseModel):
     regime_weights: list[list[float]]
     beta_min: float = Field(ge=0.0)
     beta_scale: float = Field(ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
+    synthetic_dataset_version: str = "v1"
+    manifold_neighbor_count: int = Field(default=0, ge=0)
+    manifold_bandwidth: float = Field(default=1.0, gt=0.0)
+    manifold_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    manifold_novelty_power: float = Field(default=0.0, ge=0.0)
+    novelty_prior_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_partner_model_name: str | None = None
+    ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
+    ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    regime_input_variant: RegimeInputVariant = "base"
+    regime_input_names: list[str] = Field(default_factory=list)
+    manifold_round_ids: list[str] = Field(default_factory=list)
+    manifold_regime_bank: list[list[float]] = Field(default_factory=list)
+    manifold_regime_scale: list[float] = Field(default_factory=list)
     training_episode_count: int = Field(ge=0)
     sample_count: int = Field(ge=0)
     feature_names: list[str]
     coefficients: list[list[float]]
     intercept: list[float]
     base_checkpoint_relpath: str
+    ensemble_partner_checkpoint_relpath: str | None = None
 
 
 def _stats_from_seed_evidence(seed_evidence: SeedEvidenceBundle) -> SeedTranscriptStats:
@@ -452,6 +489,74 @@ def _masked_residual_mean(
     return np.sum(residual * mask[..., None], axis=(0, 1)) / count
 
 
+def _weighted_mean(
+    values: np.ndarray,
+    weights: np.ndarray,
+) -> float:
+    total_weight = float(np.sum(weights))
+    if total_weight <= 0.0:
+        return 0.0
+    return float(np.sum(values * weights) / total_weight)
+
+
+def _count_hhi(count_total: np.ndarray) -> float:
+    flattened = np.asarray(count_total, dtype=np.float64).reshape(-1)
+    total = float(np.sum(flattened))
+    if total <= 0.0:
+        return 0.0
+    shares = flattened / total
+    return float(np.sum(np.square(shares)))
+
+
+def _regime_aux_seed_names(variant: RegimeInputVariant) -> list[str]:
+    if variant == "base":
+        return []
+    names = [
+        "seed_repeat_cell_frac_ge2",
+        "seed_repeat_mass_share",
+        "seed_count_hhi",
+    ]
+    names.extend([f"seed_coverage_{name}" for name in REGIME_COVERAGE_FIELDS])
+    names.extend([f"seed_resid_{name}" for name, _, _ in REGIME_MOTIF_FIELDS])
+    return names
+
+
+def _regime_aux_global_names(variant: RegimeInputVariant) -> list[str]:
+    return [
+        name.replace("seed_", "global_", 1)
+        for name in _regime_aux_seed_names(variant)
+    ]
+
+
+def _regime_aux_seed_summary(
+    *,
+    count_total: np.ndarray,
+    blur_coverage_small: np.ndarray,
+    blur_residual_small: np.ndarray,
+    feature_maps: dict[str, np.ndarray],
+) -> np.ndarray:
+    total_mass = float(np.sum(count_total))
+    repeat_mass = float(np.sum(np.clip(count_total - 1.0, 0.0, None)))
+    features = [
+        float(np.mean(count_total >= 2.0)),
+        repeat_mass / max(total_mass, 1.0),
+        _count_hhi(count_total),
+    ]
+    coverage_map = np.asarray(blur_coverage_small, dtype=np.float64)
+    features.extend(
+        _weighted_mean(coverage_map, feature_maps[name])
+        for name in REGIME_COVERAGE_FIELDS
+    )
+    for _, class_name, feature_name in REGIME_MOTIF_FIELDS:
+        features.append(
+            _weighted_mean(
+                blur_residual_small[..., CLASS_INDEX[class_name]],
+                feature_maps[feature_name],
+            ),
+        )
+    return np.asarray(features, dtype=np.float64)
+
+
 def _derive_transcript_features_from_stats(
     round_detail: RoundDetail,
     features: RoundFeatureBundle,
@@ -465,6 +570,7 @@ def _derive_transcript_features_from_stats(
     exact_counts: dict[int, np.ndarray] = {}
     local_evidence: dict[int, np.ndarray] = {}
     seed_summaries: dict[int, np.ndarray] = {}
+    regime_seed_summaries: dict[int, np.ndarray] = {}
 
     total_queries = sum(stats.query_count for stats in per_seed_stats.values())
     total_observed_cells = 0.0
@@ -490,6 +596,15 @@ def _derive_transcript_features_from_stats(
     owner_count_values: list[float] = []
     owner_share_values: list[float] = []
     owner_hhi_values: list[float] = []
+    global_repeat_cells_ge2 = 0.0
+    global_total_cells = 0.0
+    global_repeat_mass = 0.0
+    global_total_count_mass = 0.0
+    global_count_square_mass = 0.0
+    global_coverage_sums = np.zeros(len(REGIME_COVERAGE_FIELDS), dtype=np.float64)
+    global_coverage_weights = np.zeros(len(REGIME_COVERAGE_FIELDS), dtype=np.float64)
+    global_motif_sums = np.zeros(len(REGIME_MOTIF_FIELDS), dtype=np.float64)
+    global_motif_weights = np.zeros(len(REGIME_MOTIF_FIELDS), dtype=np.float64)
 
     for seed_index in range(round_detail.seeds_count):
         stats = per_seed_stats[seed_index]
@@ -505,6 +620,19 @@ def _derive_transcript_features_from_stats(
         buildable_mask = np.asarray(seed_features.feature("buildable"), dtype=np.float64)
         nonbuildable_mask = 1.0 - buildable_mask
         settlement_proximity = np.asarray(seed_features.feature("settlement_proximity"), dtype=np.float64)
+        maritime_access = np.asarray(seed_features.feature("maritime_access"), dtype=np.float64)
+        frontier_score = np.asarray(seed_features.feature("frontier_score"), dtype=np.float64)
+        forest_density = np.asarray(seed_features.feature("forest_density"), dtype=np.float64)
+        mountain_density = np.asarray(seed_features.feature("mountain_density"), dtype=np.float64)
+        feature_maps = {
+            "buildable": buildable_mask,
+            "coast": coastal_mask,
+            "settlement_proximity": settlement_proximity,
+            "maritime_access": maritime_access,
+            "frontier_score": frontier_score,
+            "forest_density": forest_density,
+            "mountain_density": mountain_density,
+        }
         near_mask = (settlement_proximity >= 0.67).astype(np.float64)
         mid_mask = ((settlement_proximity >= 0.33) & (settlement_proximity < 0.67)).astype(np.float64)
         far_mask = (settlement_proximity < 0.33).astype(np.float64)
@@ -581,14 +709,37 @@ def _derive_transcript_features_from_stats(
         observed_count_feature = np.log1p(stats.count_total.astype(np.float64)) / np.log(6.0)
         blur_residual_small = _gaussian_blur(residual, blur_sigmas[0])
         blur_residual_large = _gaussian_blur(residual, blur_sigmas[1])
-        blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])[..., None]
+        blur_coverage_small = _gaussian_blur(observed_count_feature, blur_sigmas[0])
         blur_coverage_large = _gaussian_blur(observed_count_feature, blur_sigmas[1])[..., None]
+        regime_seed_summaries[seed_index] = _regime_aux_seed_summary(
+            count_total=stats.count_total,
+            blur_coverage_small=blur_coverage_small,
+            blur_residual_small=blur_residual_small,
+            feature_maps=feature_maps,
+        )
+        global_repeat_cells_ge2 += float(np.sum(stats.count_total >= 2.0))
+        global_total_cells += float(stats.count_total.size)
+        global_repeat_mass += float(np.sum(np.clip(stats.count_total - 1.0, 0.0, None)))
+        global_total_count_mass += float(np.sum(stats.count_total))
+        global_count_square_mass += float(np.sum(np.square(stats.count_total)))
+        for feature_index, feature_name in enumerate(REGIME_COVERAGE_FIELDS):
+            feature_weight = feature_maps[feature_name]
+            global_coverage_sums[feature_index] += float(
+                np.sum(blur_coverage_small * feature_weight),
+            )
+            global_coverage_weights[feature_index] += float(np.sum(feature_weight))
+        for feature_index, (_, class_name, feature_name) in enumerate(REGIME_MOTIF_FIELDS):
+            feature_weight = feature_maps[feature_name]
+            global_motif_sums[feature_index] += float(
+                np.sum(blur_residual_small[..., CLASS_INDEX[class_name]] * feature_weight),
+            )
+            global_motif_weights[feature_index] += float(np.sum(feature_weight))
         local_evidence[seed_index] = np.concatenate(
             [
                 observed_count_feature[..., None],
                 blur_residual_small,
                 blur_residual_large,
-                blur_coverage_small,
+                blur_coverage_small[..., None],
                 blur_coverage_large,
             ],
             axis=-1,
@@ -616,9 +767,27 @@ def _derive_transcript_features_from_stats(
         ],
         dtype=np.float64,
     )
+    regime_global_summary = np.asarray(
+        [
+            global_repeat_cells_ge2 / max(global_total_cells, 1.0),
+            global_repeat_mass / max(global_total_count_mass, 1.0),
+            global_count_square_mass / max(global_total_count_mass**2, 1.0),
+            *(
+                global_coverage_sums[index] / max(global_coverage_weights[index], 1.0)
+                for index in range(len(REGIME_COVERAGE_FIELDS))
+            ),
+            *(
+                global_motif_sums[index] / max(global_motif_weights[index], 1.0)
+                for index in range(len(REGIME_MOTIF_FIELDS))
+            ),
+        ],
+        dtype=np.float64,
+    )
     return TranscriptDerivedFeatures(
         global_summary=global_summary,
         seed_summaries=seed_summaries,
+        regime_global_summary=regime_global_summary,
+        regime_seed_summaries=regime_seed_summaries,
         local_evidence=local_evidence,
         exact_counts=exact_counts,
     )
@@ -718,10 +887,17 @@ def _regime_summary_names() -> list[str]:
     ]
 
 
-def _regime_input_names() -> list[str]:
+def _regime_input_names(variant: RegimeInputVariant = "base") -> list[str]:
     names = [f"regime_in__{name}" for name in _global_summary_names()]
     names.extend([f"regime_in__seed_mean__{name}" for name in _seed_summary_names()])
     names.extend([f"regime_in__seed_std__{name}" for name in _seed_summary_names()])
+    names.extend([f"regime_in__{name}" for name in _regime_aux_global_names(variant)])
+    names.extend(
+        [f"regime_in__seed_mean__{name}" for name in _regime_aux_seed_names(variant)],
+    )
+    names.extend(
+        [f"regime_in__seed_std__{name}" for name in _regime_aux_seed_names(variant)],
+    )
     return names
 
 
@@ -868,15 +1044,32 @@ def _interaction_tensor(
     )
 
 
-def _regime_input_vector(derived: TranscriptDerivedFeatures) -> np.ndarray:
+def _regime_input_vector(
+    derived: TranscriptDerivedFeatures,
+    *,
+    variant: RegimeInputVariant = "base",
+) -> np.ndarray:
     ordered_seed_indexes = sorted(derived.seed_summaries)
     seed_stack = np.stack([derived.seed_summaries[seed_index] for seed_index in ordered_seed_indexes], axis=0)
+    components = [
+        np.asarray(derived.global_summary, dtype=np.float64),
+        np.mean(seed_stack, axis=0),
+        np.std(seed_stack, axis=0),
+    ]
+    if variant != "base":
+        aux_seed_stack = np.stack(
+            [derived.regime_seed_summaries[seed_index] for seed_index in ordered_seed_indexes],
+            axis=0,
+        )
+        components.extend(
+            [
+                np.asarray(derived.regime_global_summary, dtype=np.float64),
+                np.mean(aux_seed_stack, axis=0),
+                np.std(aux_seed_stack, axis=0),
+            ],
+        )
     return np.concatenate(
-        [
-            np.asarray(derived.global_summary, dtype=np.float64),
-            np.mean(seed_stack, axis=0),
-            np.std(seed_stack, axis=0),
-        ],
+        components,
         axis=0,
     ).astype(np.float64)
 
@@ -966,27 +1159,47 @@ class QueryResidualPredictor(BaseRoundPredictor):
     policy_name: str = "coverage"
     round_ids: tuple[str, ...] = ()
     samples_per_round: int = Field(default=1, ge=1)
-    cells_per_seed: int = Field(default=512, ge=1)
+    cells_per_seed: int = Field(default=256, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
-    ridge_lambda: float = Field(default=0.01, ge=0.0)
+    ridge_lambda: float = Field(default=8.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
-    temperature: float = Field(default=1.0, gt=0.0)
-    prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
-    signal_scale: float = Field(default=0.10, gt=0.0)
+    temperature: float = Field(default=1.15, gt=0.0)
+    prior_blend: float = Field(default=0.35, ge=0.0, le=1.0)
+    signal_scale: float = Field(default=0.12, gt=0.0)
     min_delta_scale: float = Field(default=0.4, ge=0.0, le=1.0)
     residual_class_scale: np.ndarray = Field(
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
     )
-    teacher_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    teacher_blend: float = Field(default=0.12, ge=0.0, le=1.0)
     regime_intercept: np.ndarray = Field(
         default_factory=lambda: np.zeros(len(_regime_summary_names()), dtype=np.float64),
     )
     regime_weights: np.ndarray = Field(
         default_factory=lambda: np.zeros((len(_regime_input_names()), len(_regime_summary_names())), dtype=np.float64),
     )
-    beta_min: float = Field(default=6.0, ge=0.0)
+    beta_min: float = Field(default=8.0, ge=0.0)
     beta_scale: float = Field(default=24.0, ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
+    synthetic_dataset_version: str = "v1"
+    manifold_neighbor_count: int = Field(default=0, ge=0)
+    manifold_bandwidth: float = Field(default=1.0, gt=0.0)
+    manifold_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    manifold_novelty_power: float = Field(default=0.0, ge=0.0)
+    novelty_prior_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_partner_model_name: str | None = None
+    ensemble_max_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    ensemble_novelty_power: float = Field(default=1.0, ge=0.0)
+    ensemble_signal_power: float = Field(default=1.0, ge=0.0)
+    regime_input_variant: RegimeInputVariant = "base"
+    ensemble_partner: QueryResidualPredictor | None = None
+    manifold_round_ids: tuple[str, ...] = ()
+    manifold_regime_bank: np.ndarray = Field(
+        default_factory=lambda: np.zeros((0, len(_regime_summary_names())), dtype=np.float64),
+    )
+    manifold_regime_scale: np.ndarray = Field(
+        default_factory=lambda: np.ones(len(_regime_summary_names()), dtype=np.float64),
+    )
     training_episode_count: int = Field(default=0, ge=0)
     sample_count: int = Field(default=0, ge=0)
     feature_names: tuple[str, ...] = tuple(_full_feature_names())
@@ -998,6 +1211,90 @@ class QueryResidualPredictor(BaseRoundPredictor):
     )
 
     @classmethod
+    def fit_named_from_workspace(
+        cls,
+        paths: WorkspacePaths,
+        *,
+        model_name: str,
+        round_ids: Sequence[str] | None = None,
+        policy_name: str | None = None,
+        samples_per_round: int | None = None,
+    ) -> QueryResidualPredictor:
+        config = resolve_query_residual_config(model_name, policy_name=policy_name)
+        if samples_per_round is not None:
+            config = config.model_copy(update={"samples_per_round": samples_per_round})
+        return cls.fit_from_config(
+            paths,
+            config=config,
+            round_ids=round_ids,
+        )
+
+    @classmethod
+    def fit_from_config(
+        cls,
+        paths: WorkspacePaths,
+        *,
+        config: QueryResidualConfig,
+        round_ids: Sequence[str] | None = None,
+    ) -> QueryResidualPredictor:
+        predictor = cls.fit_from_workspace(
+            paths,
+            round_ids=round_ids,
+            policy_name=config.policy_name,
+            samples_per_round=config.samples_per_round,
+            cells_per_seed=config.cells_per_seed,
+            budget_prefixes=config.budget_prefixes,
+            ridge_lambda=config.ridge_lambda,
+            model_name=config.model_name,
+            probability_floor=config.probability_floor,
+            temperature=config.temperature,
+            prior_blend=config.prior_blend,
+            signal_scale=config.signal_scale,
+            min_delta_scale=config.min_delta_scale,
+            residual_class_scale=config.residual_class_scale,
+            teacher_blend=config.teacher_blend,
+            beta_min=config.beta_min,
+            beta_scale=config.beta_scale,
+            beta_repeat_discount=config.beta_repeat_discount,
+            synthetic_dataset_version=config.synthetic_dataset_version,
+            manifold_neighbor_count=config.manifold_neighbor_count,
+            manifold_bandwidth=config.manifold_bandwidth,
+            manifold_blend=config.manifold_blend,
+            manifold_novelty_power=config.manifold_novelty_power,
+            novelty_prior_weight=config.novelty_prior_weight,
+            regime_input_variant=config.regime_input_variant,
+        )
+        if (
+            config.ensemble_partner_model_name is None
+            or config.ensemble_max_weight <= 0.0
+        ):
+            return predictor
+        normalized_model_name = config.model_name.strip().lower()
+        normalized_partner_name = config.ensemble_partner_model_name.strip().lower()
+        if normalized_partner_name == normalized_model_name:
+            raise ValueError("query_residual ensemble partner cannot reference itself")
+        partner_config = resolve_query_residual_config(
+            config.ensemble_partner_model_name,
+            policy_name=config.policy_name,
+        ).model_copy(
+            update={"samples_per_round": config.samples_per_round},
+        )
+        partner = cls.fit_from_config(
+            paths,
+            config=partner_config,
+            round_ids=round_ids,
+        )
+        return predictor.model_copy(
+            update={
+                "ensemble_partner_model_name": partner.name,
+                "ensemble_max_weight": config.ensemble_max_weight,
+                "ensemble_novelty_power": config.ensemble_novelty_power,
+                "ensemble_signal_power": config.ensemble_signal_power,
+                "ensemble_partner": partner,
+            },
+        )
+
+    @classmethod
     def fit_from_workspace(
         cls,
         paths: WorkspacePaths,
@@ -1005,19 +1302,27 @@ class QueryResidualPredictor(BaseRoundPredictor):
         round_ids: Sequence[str] | None = None,
         policy_name: str = "coverage",
         samples_per_round: int = 1,
-        cells_per_seed: int = 512,
+        cells_per_seed: int = 256,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
-        ridge_lambda: float = 0.01,
+        ridge_lambda: float = 8.0,
         model_name: str = "query_residual_v7",
         probability_floor: float = 0.01,
-        temperature: float = 1.0,
-        prior_blend: float = 0.0,
-        signal_scale: float = 0.10,
+        temperature: float = 1.15,
+        prior_blend: float = 0.35,
+        signal_scale: float = 0.12,
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
-        teacher_blend: float = 0.0,
+        teacher_blend: float = 0.12,
         beta_min: float = 8.0,
         beta_scale: float = 24.0,
+        beta_repeat_discount: float = 0.0,
+        synthetic_dataset_version: str = "v1",
+        manifold_neighbor_count: int = 0,
+        manifold_bandwidth: float = 1.0,
+        manifold_blend: float = 0.0,
+        manifold_novelty_power: float = 0.0,
+        novelty_prior_weight: float = 0.0,
+        regime_input_variant: RegimeInputVariant = "base",
     ) -> QueryResidualPredictor:
         selected_round_ids = _round_ids_with_analyses_and_replays(paths, round_ids)
         if not selected_round_ids:
@@ -1035,9 +1340,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
             paths,
             policy_name=policy_name,
             samples_per_round=samples_per_round,
+            dataset_version=synthetic_dataset_version,
             round_ids=dataset_round_ids,
         )
-        dataset_dir = index_path.parent
         index_table = pl.read_parquet(index_path).filter(
             pl.col("round_id").is_in(selected_round_ids),
         )
@@ -1100,11 +1405,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
 
             from astar.history.datasets.synthetic_live import load_synthetic_episode
 
-            artifact = load_synthetic_episode(
-                Path(str(row["episode_path"])),
-                dataset_dir=dataset_dir,
-                workspace_root=paths.root,
-            )
+            artifact = load_synthetic_episode(Path(str(row["episode_path"])))
             full_observations = tuple(artifact.observations)
             budget_values = sorted({min(int(value), len(full_observations)) for value in budget_prefixes})
             for budget in budget_values:
@@ -1125,7 +1426,10 @@ class QueryResidualPredictor(BaseRoundPredictor):
                     ),
                 )
         regime_inputs = np.stack(
-            [_regime_input_vector(derived) for _, derived, _ in training_prefixes],
+            [
+                _regime_input_vector(derived, variant=regime_input_variant)
+                for _, derived, _ in training_prefixes
+            ],
             axis=0,
         )
         regime_targets = np.stack([target for _, _, target in training_prefixes], axis=0)
@@ -1134,10 +1438,20 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_targets,
             ridge_alpha=max(ridge_lambda, 1e-3),
         )
+        manifold_regime_bank = np.asarray(teacher.regime_bank, dtype=np.float64)
+        manifold_regime_scale = np.asarray(
+            np.std(manifold_regime_bank, axis=0) if manifold_regime_bank.size else np.ones(len(_regime_summary_names())),
+            dtype=np.float64,
+        )
+        manifold_regime_scale = np.where(manifold_regime_scale > 1e-6, manifold_regime_scale, 1.0)
 
         for cached, derived, _ in training_prefixes:
             predicted_regime = np.asarray(
-                regime_intercept + (_regime_input_vector(derived) @ regime_weights),
+                regime_intercept
+                + (
+                    _regime_input_vector(derived, variant=regime_input_variant)
+                    @ regime_weights
+                ),
                 dtype=np.float64,
             )
             predicted_regime = np.clip(predicted_regime, -0.25, 1.25)
@@ -1194,6 +1508,17 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(regime_weights, dtype=np.float64),
             beta_min=beta_min,
             beta_scale=beta_scale,
+            beta_repeat_discount=beta_repeat_discount,
+            synthetic_dataset_version=synthetic_dataset_version,
+            manifold_neighbor_count=manifold_neighbor_count,
+            manifold_bandwidth=manifold_bandwidth,
+            manifold_blend=manifold_blend,
+            manifold_novelty_power=manifold_novelty_power,
+            novelty_prior_weight=novelty_prior_weight,
+            regime_input_variant=regime_input_variant,
+            manifold_round_ids=tuple(teacher.round_ids),
+            manifold_regime_bank=manifold_regime_bank,
+            manifold_regime_scale=manifold_regime_scale,
             training_episode_count=training_episode_count,
             sample_count=sample_count,
             feature_names=tuple(_full_feature_names()),
@@ -1205,6 +1530,11 @@ class QueryResidualPredictor(BaseRoundPredictor):
     def load_checkpoint(cls, path: Path) -> QueryResidualPredictor:
         checkpoint = QueryResidualPredictorCheckpoint.model_validate_json(path.read_text(encoding="utf-8"))
         base_path = path.parent / checkpoint.base_checkpoint_relpath
+        ensemble_partner = None
+        if checkpoint.ensemble_partner_checkpoint_relpath is not None:
+            ensemble_partner = cls.load_checkpoint(
+                path.parent / checkpoint.ensemble_partner_checkpoint_relpath,
+            )
         return cls(
             name=checkpoint.name,
             base_predictor=HistoricalBucketPriorPredictor.load_checkpoint(base_path),
@@ -1232,6 +1562,22 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(checkpoint.regime_weights, dtype=np.float64),
             beta_min=checkpoint.beta_min,
             beta_scale=checkpoint.beta_scale,
+            beta_repeat_discount=checkpoint.beta_repeat_discount,
+            synthetic_dataset_version=checkpoint.synthetic_dataset_version,
+            manifold_neighbor_count=checkpoint.manifold_neighbor_count,
+            manifold_bandwidth=checkpoint.manifold_bandwidth,
+            manifold_blend=checkpoint.manifold_blend,
+            manifold_novelty_power=checkpoint.manifold_novelty_power,
+            novelty_prior_weight=checkpoint.novelty_prior_weight,
+            ensemble_partner_model_name=checkpoint.ensemble_partner_model_name,
+            ensemble_max_weight=checkpoint.ensemble_max_weight,
+            ensemble_novelty_power=checkpoint.ensemble_novelty_power,
+            ensemble_signal_power=checkpoint.ensemble_signal_power,
+            regime_input_variant=checkpoint.regime_input_variant,
+            ensemble_partner=ensemble_partner,
+            manifold_round_ids=tuple(checkpoint.manifold_round_ids),
+            manifold_regime_bank=np.asarray(checkpoint.manifold_regime_bank, dtype=np.float64),
+            manifold_regime_scale=np.asarray(checkpoint.manifold_regime_scale or [1.0] * len(_regime_summary_names()), dtype=np.float64),
             training_episode_count=checkpoint.training_episode_count,
             sample_count=checkpoint.sample_count,
             feature_names=tuple(checkpoint.feature_names),
@@ -1243,6 +1589,13 @@ class QueryResidualPredictor(BaseRoundPredictor):
         path.parent.mkdir(parents=True, exist_ok=True)
         base_path = path.parent / "base_prior.json"
         self.base_predictor.save_checkpoint(base_path)
+        ensemble_partner_checkpoint_relpath = None
+        if self.ensemble_partner is not None:
+            ensemble_partner_path = path.parent / "ensemble_partner" / "checkpoint.json"
+            self.ensemble_partner.save_checkpoint(ensemble_partner_path)
+            ensemble_partner_checkpoint_relpath = str(
+                ensemble_partner_path.relative_to(path.parent),
+            )
         checkpoint = QueryResidualPredictorCheckpoint(
             name=self.name,
             policy_name=self.policy_name,
@@ -1267,12 +1620,29 @@ class QueryResidualPredictor(BaseRoundPredictor):
             regime_weights=np.asarray(self.regime_weights, dtype=np.float64).tolist(),
             beta_min=self.beta_min,
             beta_scale=self.beta_scale,
+            beta_repeat_discount=self.beta_repeat_discount,
+            synthetic_dataset_version=self.synthetic_dataset_version,
+            manifold_neighbor_count=self.manifold_neighbor_count,
+            manifold_bandwidth=self.manifold_bandwidth,
+            manifold_blend=self.manifold_blend,
+            manifold_novelty_power=self.manifold_novelty_power,
+            novelty_prior_weight=self.novelty_prior_weight,
+            ensemble_partner_model_name=self.ensemble_partner_model_name,
+            ensemble_max_weight=self.ensemble_max_weight,
+            ensemble_novelty_power=self.ensemble_novelty_power,
+            ensemble_signal_power=self.ensemble_signal_power,
+            regime_input_variant=self.regime_input_variant,
+            regime_input_names=_regime_input_names(self.regime_input_variant),
+            manifold_round_ids=list(self.manifold_round_ids),
+            manifold_regime_bank=np.asarray(self.manifold_regime_bank, dtype=np.float64).tolist(),
+            manifold_regime_scale=np.asarray(self.manifold_regime_scale, dtype=np.float64).tolist(),
             training_episode_count=self.training_episode_count,
             sample_count=self.sample_count,
             feature_names=list(self.feature_names),
             coefficients=np.asarray(self.coefficients, dtype=np.float64).tolist(),
             intercept=np.asarray(self.intercept, dtype=np.float64).tolist(),
             base_checkpoint_relpath=base_path.name,
+            ensemble_partner_checkpoint_relpath=ensemble_partner_checkpoint_relpath,
         )
         path.write_text(json.dumps(to_jsonable(checkpoint), indent=2), encoding="utf-8")
         return path
@@ -1285,13 +1655,40 @@ class QueryResidualPredictor(BaseRoundPredictor):
     ) -> PredictionBundle:
         prior_bundle = self.base_predictor.build_prediction_bundle(round_detail, features)
         delta_scale = self._transcript_delta_scale(derived)
+        (
+            raw_regime,
+            inferred_regime,
+            manifold_indexes,
+            manifold_weights,
+            novelty_score,
+            effective_manifold_blend,
+        ) = self._infer_regime_from_derived(derived)
+        ensemble_weight = self._ensemble_weight_from_derived(
+            derived,
+            delta_scale=delta_scale,
+        )
         effective_prior_blend = 1.0 - (delta_scale * (1.0 - self.prior_blend))
-        inferred_regime = self._infer_regime_from_derived(derived)
+        if self.novelty_prior_weight > 0.0:
+            effective_prior_blend = float(
+                np.clip(
+                    effective_prior_blend + (novelty_score * self.novelty_prior_weight),
+                    0.0,
+                    1.0,
+                ),
+            )
         predictions_by_seed: dict[int, np.ndarray] = {}
         for seed_index in range(round_detail.seeds_count):
             static_stack = _build_static_feature_stack(round_detail, features, seed_index)
             prior = np.asarray(prior_bundle.predictions_by_seed[seed_index], dtype=np.float64)
-            teacher_prior = self._teacher_prior_for_seed(round_detail, seed_index, inferred_regime)
+            teacher_prior = self._teacher_prior_for_seed(
+                round_detail,
+                seed_index,
+                raw_regime,
+                inferred_regime,
+                manifold_indexes=manifold_indexes,
+                manifold_weights=manifold_weights,
+                effective_manifold_blend=effective_manifold_blend,
+            )
             design = _compose_design_tensor(
                 static_stack,
                 prior,
@@ -1328,30 +1725,180 @@ class QueryResidualPredictor(BaseRoundPredictor):
             if effective_prior_blend > 0.0:
                 prediction = ((1.0 - effective_prior_blend) * prediction) + (effective_prior_blend * prior)
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
+        if ensemble_weight > 0.0 and self.ensemble_partner is not None:
+            partner_bundle = self.ensemble_partner._predict_from_derived(
+                round_detail,
+                features,
+                derived,
+            )
+            for seed_index, primary_prediction in predictions_by_seed.items():
+                partner_prediction = np.asarray(
+                    partner_bundle.predictions_by_seed[seed_index],
+                    dtype=np.float64,
+                )
+                predictions_by_seed[seed_index] = apply_probability_floor(
+                    ((1.0 - ensemble_weight) * np.asarray(primary_prediction, dtype=np.float64))
+                    + (ensemble_weight * partner_prediction),
+                    self.probability_floor,
+                )
         return PredictionBundle(
             round_id=round_detail.id,
             model_name=self.name,
             predictions_by_seed=predictions_by_seed,
         )
 
-    def _infer_regime_from_derived(self, derived: TranscriptDerivedFeatures) -> np.ndarray:
-        regime = np.asarray(
-            self.regime_intercept + (_regime_input_vector(derived) @ self.regime_weights),
+    def _infer_regime_from_derived(
+        self,
+        derived: TranscriptDerivedFeatures,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
+        raw_regime = np.asarray(
+            self.regime_intercept
+            + (
+                _regime_input_vector(
+                    derived,
+                    variant=self.regime_input_variant,
+                )
+                @ self.regime_weights
+            ),
             dtype=np.float64,
         )
-        return np.clip(regime, -0.25, 1.25)
+        raw_regime = np.clip(raw_regime, -0.25, 1.25)
+        manifold_indexes, manifold_weights, min_distance = self._manifold_weights(raw_regime)
+        if manifold_indexes.size == 0:
+            return (
+                raw_regime,
+                raw_regime,
+                manifold_indexes,
+                manifold_weights,
+                0.0,
+                0.0,
+            )
+        bank = np.asarray(self.manifold_regime_bank, dtype=np.float64)[manifold_indexes]
+        manifold_regime = np.sum(manifold_weights[:, None] * bank, axis=0)
+        novelty_score = float(
+            np.clip(min_distance / max(self.manifold_bandwidth, 1e-6), 0.0, 1.0),
+        )
+        effective_manifold_blend = float(self.manifold_blend)
+        if self.manifold_novelty_power > 0.0:
+            effective_manifold_blend *= novelty_score**self.manifold_novelty_power
+        inferred_regime = np.asarray(
+            ((1.0 - effective_manifold_blend) * raw_regime)
+            + (effective_manifold_blend * manifold_regime),
+            dtype=np.float64,
+        )
+        return (
+            raw_regime,
+            np.clip(inferred_regime, -0.25, 1.25),
+            manifold_indexes,
+            manifold_weights,
+            novelty_score,
+            effective_manifold_blend,
+        )
+
+    def _ensemble_weight_from_derived(
+        self,
+        derived: TranscriptDerivedFeatures,
+        *,
+        delta_scale: float | None = None,
+    ) -> float:
+        partner = self.ensemble_partner
+        if partner is None or self.ensemble_max_weight <= 0.0:
+            return 0.0
+        used_delta_scale = (
+            self._transcript_delta_scale(derived) if delta_scale is None else delta_scale
+        )
+        low_signal = float(
+            np.clip(
+                (1.0 - used_delta_scale) / max(1.0 - self.min_delta_scale, 1e-6),
+                0.0,
+                1.0,
+            ),
+        )
+        signal_factor = 1.0
+        if self.ensemble_signal_power > 0.0:
+            signal_factor = float(low_signal**self.ensemble_signal_power)
+            if signal_factor <= 0.0:
+                return 0.0
+        novelty_factor = 1.0
+        if self.ensemble_novelty_power > 0.0:
+            novelty_score = partner._infer_regime_from_derived(derived)[4]
+            if novelty_score <= 0.0:
+                return 0.0
+            novelty_factor = float(novelty_score**self.ensemble_novelty_power)
+        return float(
+            np.clip(
+                self.ensemble_max_weight * signal_factor * novelty_factor,
+                0.0,
+                1.0,
+            ),
+        )
+
+    def _manifold_weights(self, regime: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+        bank = np.asarray(self.manifold_regime_bank, dtype=np.float64)
+        if (
+            self.manifold_neighbor_count <= 0
+            or self.manifold_blend <= 0.0
+            or bank.size == 0
+        ):
+            return (
+                np.zeros(0, dtype=np.int64),
+                np.zeros(0, dtype=np.float64),
+                0.0,
+            )
+        scale = np.asarray(self.manifold_regime_scale, dtype=np.float64)
+        scale = np.where(scale > 1e-6, scale, 1.0)
+        distances = np.linalg.norm((bank - regime[None, :]) / scale[None, :], axis=1)
+        neighbor_count = min(int(self.manifold_neighbor_count), int(bank.shape[0]))
+        indexes = np.argsort(distances)[:neighbor_count]
+        local_distances = distances[indexes]
+        weights = np.exp(
+            -0.5 * np.square(local_distances / max(self.manifold_bandwidth, 1e-6)),
+        )
+        weight_sum = float(np.sum(weights))
+        if not np.isfinite(weight_sum) or weight_sum <= 0.0:
+            weights = np.full(indexes.shape[0], 1.0 / float(indexes.shape[0]), dtype=np.float64)
+        else:
+            weights = weights / weight_sum
+        return (
+            np.asarray(indexes, dtype=np.int64),
+            np.asarray(weights, dtype=np.float64),
+            float(np.min(distances)),
+        )
 
     def _teacher_prior_for_seed(
         self,
         round_detail: RoundDetail,
         seed_index: int,
+        raw_regime: np.ndarray,
         inferred_regime: np.ndarray,
+        *,
+        manifold_indexes: np.ndarray,
+        manifold_weights: np.ndarray,
+        effective_manifold_blend: float,
     ) -> np.ndarray:
-        return np.asarray(
+        teacher_prior = np.asarray(
             self.teacher.terminal_tensor(
                 _teacher_seed_adapter(round_detail, seed_index),
                 inferred_regime,
             ),
+            dtype=np.float64,
+        )
+        if manifold_indexes.size == 0 or effective_manifold_blend <= 0.0:
+            return teacher_prior
+        bank = np.asarray(self.manifold_regime_bank, dtype=np.float64)
+        mixture = np.zeros_like(teacher_prior, dtype=np.float64)
+        for index, weight in zip(manifold_indexes.tolist(), manifold_weights.tolist(), strict=True):
+            mixture += float(weight) * np.asarray(
+                self.teacher.terminal_tensor(
+                    _teacher_seed_adapter(round_detail, seed_index),
+                    bank[index],
+                ),
+                dtype=np.float64,
+            )
+        del raw_regime
+        return np.asarray(
+            ((1.0 - effective_manifold_blend) * teacher_prior)
+            + (effective_manifold_blend * mixture),
             dtype=np.float64,
         )
 
@@ -1389,6 +1936,14 @@ class QueryResidualPredictor(BaseRoundPredictor):
             return prediction
         prior_entropy = np.asarray(entropy_map(prior), dtype=np.float64)[..., None]
         beta = self.beta_min + self.beta_scale * (1.0 - (prior_entropy / math.log(6.0)))
+        if self.beta_repeat_discount > 0.0:
+            beta = beta / (
+                1.0
+                + (
+                    self.beta_repeat_discount
+                    * np.maximum(count_total - 1.0, 0.0)
+                )
+            )
         blended = np.where(
             count_total > 0.0,
             (beta * prediction + exact_counts) / np.maximum(beta + count_total, 1e-6),
@@ -1439,6 +1994,9 @@ class QueryResidualPredictor(BaseRoundPredictor):
             blur_sigmas=self.blur_sigmas,
         )
         return self._predict_from_derived(round_detail, features, derived)
+
+
+QueryResidualPredictor.model_rebuild()
 
 
 __all__ = ["QueryResidualPredictor", "QueryResidualPredictorCheckpoint"]

@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor
 from time import perf_counter
 
 from astar.eval.competition import CompetitionAggregate, aggregate_episode_metrics
@@ -13,6 +12,12 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
+from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
+from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
+from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -91,62 +96,16 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
-def _evaluate_historical_round(
-    task: tuple[
-        str,
-        str,
-        tuple[str, ...],
-        str,
-        str,
-        int,
-        int,
-        int,
-    ],
-) -> tuple[str, int | None, list[ModelSeedEvaluationContext], float]:
-    (
-        root,
-        held_out_round_id,
-        selected_round_ids,
-        model_name,
-        mode,
-        policy_name,
-        samples_per_round,
-        budget,
-        episode_seed,
-    ) = task
-    paths = WorkspacePaths.from_root(root)
-    started_at = perf_counter()
-    training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-    contexts = evaluate_model_on_round(
-        paths,
-        round_id=held_out_round_id,
-        model_name=model_name,
-        training_round_ids=training_round_ids,
-        mode=mode,
-        policy_name=policy_name if mode == "online_interactive" else None,
-        samples_per_round=samples_per_round,
-        budget=budget,
-        episode_seed=episode_seed,
-    )
-    return (
-        held_out_round_id,
-        contexts[0].round_number if contexts else None,
-        contexts,
-        perf_counter() - started_at,
-    )
-
-
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
     model_name: str,
     round_ids: list[str] | None = None,
     mode: str = "prior_only",
-    policy_name: str = "coverage",
+    policy_name: str = "default",
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
-    max_workers: int | None = None,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
 ) -> HistoricalBenchmarkResult:
@@ -168,62 +127,41 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    transcript_models = {
-        "query_residual",
-        "greybox_regime_ridge",
-        "greybox_regime_knn",
-        "greybox_hazard_lowrank",
-        "greybox_hazard_phasefactored",
-        "greybox_hazard_clusteredmanifold",
-        "greybox_hazard_clusteredbayes",
-        "greybox_hazard_bayesfamily",
-        "greybox_hazard_bayesfamily_anchor35_scale10_v02",
-        "greybox_hazard_bayesfamily_anchor35_scale30_v03",
-        "greybox_hazard_bayesfamily_anchor55_scale10_v04",
-        "greybox_student_joint",
-        "greybox_student_joint_repeataware",
-        "greybox_student_joint_repeataware_v01",
-        "greybox_coefficient_knn",
-        "greybox_hybrid_lowrank_coefficientknn",
-        "greybox_hazard_mixture",
-        "greybox_hybrid_lowrank_queryres",
-        "greybox_hybrid_lowrank_queryres_w45",
-        "greybox_gated_hybrid",
-        "greybox_cellknn",
-        "greybox_expansion_conditioned",
-        "greybox_stacked_expansion",
-        "greybox_cellknn_perround",
-        "greybox_stacked",
-        "greybox_roundmatch",
-        "greybox_obsval_ensemble",
-    }
-    is_transcript_model = normalized_model_name in transcript_models or normalized_model_name.startswith("greybox_stacked") or normalized_model_name.startswith("greybox_tristack") or normalized_model_name.startswith("greybox_multiregime") or normalized_model_name.startswith("greybox_adaptive") or normalized_model_name.startswith("hazard_posterior_v15")
-    resolved_samples_per_round = samples_per_round if is_transcript_model else None
-    if is_transcript_model and len(selected_round_ids) < 2:
-        raise ValueError(f"{normalized_model_name} requires at least two replay-backed analyzed rounds for holdout eval")
+    if is_query_residual_model_name(model_name) and len(selected_round_ids) < 2:
+        raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
     if mode == "prior_only" and normalized_model_name == "latent_regime":
         raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
+    if mode == "prior_only" and (
+        is_ffam_model_name(model_name)
+        or is_ffam_mode_model_name(model_name)
+        or is_ffam_operator_model_name(model_name)
+        or is_ffam_knn_model_name(model_name)
+        or model_name.strip().lower().startswith("ffam_ensemble")
+        or model_name.strip().lower().startswith("ffam_pooled")
+    ):
+        raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
-        None if mode == "prior_only" else build_interactive_policy(policy_name).name
+        None
+        if mode == "prior_only"
+        else build_interactive_policy(
+            resolve_policy_name(policy_name, model_name=model_name),
+        ).name
     )
-    model_suffix = ""
-    if normalized_model_name in transcript_models:
-        model_suffix = f"__samples={samples_per_round}"
     interactive_suffix = ""
     if mode != "prior_only":
         interactive_suffix = (
             f"__policy={resolved_policy_name}"
+            f"__samples={samples_per_round}"
             f"__budget={budget}"
             f"__episode_seed={episode_seed}"
         )
 
     run_name = benchmark_name or (
         f"historical__{mode}__{model_name}"
-        f"{model_suffix}"
         f"{interactive_suffix}"
         f"__rounds={len(selected_round_ids)}"
     )
@@ -241,36 +179,21 @@ def run_historical_benchmark(
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    if max_workers is not None and max_workers < 1:
-        raise ValueError("max_workers must be >= 1")
-
-    requested_workers = 1 if max_workers is None else max_workers
-    use_parallel = requested_workers > 1 and len(selected_round_ids) > 1
-
-    round_tasks = [
-        (
-            str(paths.root),
-            held_out_round_id,
-            tuple(selected_round_ids),
-            model_name,
-            mode,
-            policy_name,
-            samples_per_round,
-            budget,
-            episode_seed,
+    for held_out_round_id in selected_round_ids:
+        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+        evaluation_started_at = perf_counter()
+        contexts = evaluate_model_on_round(
+            paths,
+            round_id=held_out_round_id,
+            model_name=model_name,
+            training_round_ids=training_round_ids,
+            mode=mode,
+            policy_name=resolved_policy_name if mode == "online_interactive" else None,
+            samples_per_round=samples_per_round,
+            budget=budget,
+            episode_seed=episode_seed,
         )
-        for held_out_round_id in selected_round_ids
-    ]
-
-    round_outputs: list[tuple[str, int | None, list[ModelSeedEvaluationContext], float]]
-    if use_parallel:
-        with ProcessPoolExecutor(max_workers=requested_workers) as executor:
-            round_outputs = list(executor.map(_evaluate_historical_round, round_tasks))
-    else:
-        round_outputs = [_evaluate_historical_round(task) for task in round_tasks]
-
-    for held_out_round_id, round_number, contexts, evaluation_seconds in round_outputs:
-        round_evaluation_seconds[held_out_round_id] = evaluation_seconds
+        round_evaluation_seconds[held_out_round_id] = perf_counter() - evaluation_started_at
         if not contexts:
             continue
         keys: list[tuple[str, int]] = []
@@ -371,7 +294,7 @@ def run_historical_benchmark(
         model_name=model_name,
         mode=mode,
         policy_name=resolved_policy_name,
-        samples_per_round=resolved_samples_per_round,
+        samples_per_round=samples_per_round if mode == "online_interactive" else None,
         budget=None if mode == "prior_only" else budget,
         episode_seed=None if mode == "prior_only" else episode_seed,
         round_ids=[item.round_id for item in round_results],
@@ -422,7 +345,6 @@ def run_historical_benchmark(
                 "round_count": len(result.rounds),
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,
-                "samples_per_round": result.samples_per_round,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,
