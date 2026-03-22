@@ -4619,7 +4619,23 @@ Key innovations that gave agent7 the +7.5 point improvement:
   1. Slower MLP posterior training (lr=0.015, steps=800 vs lr=0.02, steps=500) from our v19
   2. Adaptive per-cell blend in log-odds space (from agent7's latest innovation)
   3. Higher kNN weight (15% vs 5%) enabled by adaptive blending
-- Score progression: 80.17 → 87.65 → 87.71 → **87.86**
+- Score progression: 80.17 → 87.65 → 87.71 → **87.87**
+
+### Refinement Sweep (adaptive logodds, all full 8-round LORO dev)
+| Model | Score | Mode | Blend | Scale | Clusters |
+|-------|-------|------|-------|-------|----------|
+| **a6_v19** | **87.866** | v19+4c | 85/15 | 2.0 | 4 |
+| a6_v11 | 87.865 | v19 | 85/15 | 2.0 | 2 |
+| a6_v16 | 87.865 | v19 | 87/13 | 2.0 | 2 |
+| a6_v9 | 87.862 | v19 | 88/12 | 2.0 | 2 |
+| a6_v20 | 87.862 | v19+3c | 85/15 | 2.0 | 3 |
+| v35 | 87.858 | v248 | 88/12 | 2.0 | 4 |
+| a6_v15 | 87.857 | v19 | 83/17 | 2.0 | 2 |
+| a6_v10 | 87.850 | v19 | 90/10 | 2.0 | 2 |
+| a6_v14 | 87.850 | v19 | 88/12 | 3.0 | 2 |
+| a6_v18 | 87.844 | v19 | 85/15 | 2.5 | 2 |
+| a6_v13 | 87.841 | v19 | 88/12 | 1.5 | 2 |
+| a6_v17 | 87.823 | v19 | 85/15 | 1.0 | 2 |
 
 ### Compared to Other Agents
 | Agent | Best Score | Architecture |
