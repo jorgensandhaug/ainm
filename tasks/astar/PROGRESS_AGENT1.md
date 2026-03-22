@@ -1582,5 +1582,54 @@ The Agent7 version of interactive.py didn't support hazard_posterior models. Add
 #### Key Insight: Observation Blending Trade-off
 - R7 (OOD): observations ADD information the model doesn't have → blending helps
 - R1 (well-fitted): model already accurate → observations just add noise → blending hurts
-- Need SELECTIVE blending that activates only when model is uncertain/wrong
-- Proxies for model wrongness: prediction entropy, regime posterior uncertainty, observation-model disagreement
+- Tested 15+ observation blending variants → ALL net negative
+- Selective blending (disagreement-aware, entropy-adaptive) also net negative
+- Settlement-specific correction: catastrophically bad (model corruption)
+- Temperature scaling: optimal at T=1.00, no improvement possible
+
+#### Experiment Results Summary
+
+**Post-processing (ALL FAILED):**
+| Approach | R7 Delta | Overall Delta | Status |
+|----------|----------|---------------|--------|
+| Obs blend temp=15 | +0.95 | -0.3 est | NET NEGATIVE |
+| Obs blend temp=25 | +0.82 | -0.1 est | MARGINAL LOSS |
+| Disagree blend v1 | +0.48 | -3.0 est | NET NEGATIVE |
+| Settlement correction | -34.35 | -catastrophic | FAILED |
+| Temperature scaling | best at T=1.0 | 0.0 | NO IMPROVEMENT |
+
+**Ensemble fine-tuning (SUCCESS):**
+| Config | mode_weight | adaptive_scale | Score |
+|--------|-------------|----------------|-------|
+| v50 (Agent7) | 0.88 | 1.5 | 88.06 |
+| v66 | 0.90 | 1.0 | 88.03 |
+| v60 (knn_v7) | 0.88 | 1.5 | 88.06 |
+| v65 | 0.85 | 1.5 | 88.09 |
+| v61 | 0.82 | 2.0 | 88.10 |
+| **v75** | **0.84** | **2.0** | **88.11** |
+| **v76** | **0.82** | **1.8** | **88.11** |
+| v70 | 0.80 | 2.0 | 88.09 |
+| v71 | 0.78 | 2.0 | 88.07 |
+| v72 | 0.82 | 2.5 | 88.06 |
+| v73 | 0.82 | 3.0 | 87.97 |
+| v78 | 0.75 | 2.0 | 88.02 |
+
+**Optimal zone: mode_weight=0.82-0.84, adaptive_scale=1.8-2.0**
+
+#### New Champion: ffam_ensemble_v75/v76 → 88.11
+- mode_weight=0.84, adaptive_scale=2.0 (v75)
+- mode_weight=0.82, adaptive_scale=1.8 (v76)
+- +0.05 over Agent7's v50 (88.06)
+- +0.38 over Agent7's v22 (87.73)
+- More kNN diversity helps R7 (+0.19) and R1 (+0.44)
+
+#### Meta-Ensemble Finding: v15 doesn't help
+- ffam_ensemble_v50 + hazard_posterior_v15 meta-ensemble: WORSE
+- R7 score drops from 73.59 to 73.24 (v15 also wrong for OOD)
+- Same architecture family → correlated errors → no diversity benefit
+
+#### R7 Analysis Findings
+- Model systematically underestimates settlements (predicts 10-26%, truth 55-73%)
+- 100% observation coverage - information IS available, model ignores it
+- Worst cells: model predicts 60%+ forest where truth is 70%+ settlement
+- The teacher's coefficient model captures wrong dynamics for R7
