@@ -138,21 +138,21 @@ export const CANONICAL_TASK_REGISTRY = [
   },
   {
     taskId: "10",
-    txTaskId: "10",
+    txTaskId: "14",
     taskSlug: "issue-full-credit-note",
     taskName: "Issue full credit note",
     summary:
       "Find an invoice and issue a full credit note that reverses the entire amount.",
-    legacyTripletex1TaskIds: ["10"],
+    legacyTripletex1TaskIds: ["14"],
   },
   {
     taskId: "11",
-    txTaskId: "11",
+    txTaskId: "10",
     taskSlug: "create-order-invoice-and-register-payment",
     taskName: "Create order, invoice, and register payment",
     summary:
       "Create a sales order, convert it to an invoice, and register full payment.",
-    legacyTripletex1TaskIds: ["11"],
+    legacyTripletex1TaskIds: ["10"],
   },
   {
     taskId: "12",
@@ -174,21 +174,21 @@ export const CANONICAL_TASK_REGISTRY = [
   },
   {
     taskId: "14",
-    txTaskId: "14",
+    txTaskId: "15",
     taskSlug: "set-project-fixed-price-and-invoice-milestone",
     taskName: "Set project fixed price and invoice milestone",
     summary:
       "Set a fixed project price and invoice a requested milestone percentage.",
-    legacyTripletex1TaskIds: ["14"],
+    legacyTripletex1TaskIds: ["15"],
   },
   {
     taskId: "15",
-    txTaskId: "15",
+    txTaskId: "16",
     taskSlug: "register-project-hours-and-create-project-invoice",
     taskName: "Register project hours and create project invoice",
     summary:
       "Register billable hours to a project activity and generate the resulting project invoice.",
-    legacyTripletex1TaskIds: ["15"],
+    legacyTripletex1TaskIds: ["16"],
   },
   {
     taskId: "16",
