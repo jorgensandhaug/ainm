@@ -98,6 +98,14 @@ Fresh-account production verification on 2026-03-22 also showed:
 - 11th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape
 - first Nynorsk 25% confirmation; extends proven 25% language set from {de, en, es, pt, fr} to {de, en, es, pt, fr, nn}
 
+Fresh-account production verification on 2026-03-22 also showed:
+- an exact 0% VAT product-create task in German (`Fachbuch` / `2237` / `5650 NOK ohne MwSt.` / `0%` for books) succeeded with the 2-call path
+- `GET /ledger/vatType?typeOfVat=OUTGOING&fields=*` resolved `id=5` for `0%`
+- `POST /product` returned `priceIncludingVatCurrency=5650` and `vatType.id=5`
+- 2 calls, 0 errors
+- 5th production confirmation of the 2-call path for explicit 0% VAT; first German 0% confirmation
+- extends proven 0% language set from {fr, pt, nn} to {de, fr, pt, nn}
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
