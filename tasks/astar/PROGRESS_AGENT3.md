@@ -5042,7 +5042,34 @@ Key findings:
 Current best: **LGB d10, 800t, lr=0.02, exploration, no blend = 87.06**
 Improvement from data expansion: +2.12 (84.94→87.06 for comparable LGB)
 
-529. Next experiments to push past 87.5:
+529. **MULTI-EPISODE BREAKTHROUGH: 88.40!** (+1.34 over solo LGB d10)
+
+| Round | Solo LGB d10 | Multi-ep 5ep | Delta |
+|-------|-------------|-------------|-------|
+| 2a341ace | 89.22 | 90.27 | +1.05 |
+| 324fde07 | 91.55 | 91.48 | -0.07 |
+| 36e581f1 | 72.64 | **77.06** | **+4.42** |
+| 3eb0c25d | 93.34 | 91.57 | -1.77 |
+| 71451d74 | 89.47 | 90.50 | +1.03 |
+| 75e625c3 | 91.39 | 91.83 | +0.44 |
+| 76909e29 | 92.85 | 93.49 | +0.64 |
+| **795bfb1f** | 57.58 | **64.42** | **+6.84** |
+| 7b4bda99 | 92.69 | 93.29 | +0.60 |
+| 8e839974 | 92.26 | 93.32 | +1.06 |
+| ae78003a | 86.32 | 88.12 | +1.80 |
+| c5cdf100 | 91.35 | 92.43 | +1.08 |
+| cc5442dd | 93.57 | 94.09 | +0.52 |
+| d0a2c894 | 83.65 | 84.71 | +1.06 |
+| f1dac9a9 | 88.67 | 89.45 | +0.78 |
+| fd3c92ff | 86.44 | 88.33 | +1.89 |
+
+Multi-episode variance features provide information about within-round stochastic variation.
+The model can now distinguish rounds with similar mean observations but different variance patterns.
+Biggest gains on the hardest rounds: 795bfb1f (+6.84), 36e581f1 (+4.42).
+
+**Cumulative improvement: 84.94 → 88.40 = +3.46 points** (from LGB v5 on old 8-round data)
+
+530. Next experiments:
 
 ## Open Questions
 
