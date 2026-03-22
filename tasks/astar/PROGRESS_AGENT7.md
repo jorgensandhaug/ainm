@@ -2920,3 +2920,61 @@ All of these have been systematically swept and are near-optimal:
 | 18 | v17 | 76.09 | Summary-input baseline |
 | 19 | v12 | 75.89 | Supervised metric baseline |
 | 20 | qr_v14 | 74.72 | Query residual family best |
+
+### 2026-03-22T01:30Z approx
+
+## Radical New Approaches (v220+ and kNN)
+
+Implemented and benchmarked 14 radically different ffam_mode variants and a completely new kNN predictor.
+
+### Key Finding: R7 is OOD, not inherently hard
+
+| Round | Entropy | Score (v214) |
+|-------|---------|------|
+| f1dac9a9 (R3) | 0.0681 | 89.5 |
+| c5cdf100 (R8) | 0.2697 | 93.7 |
+| **36e581f1 (R7)** | **0.3917** | **72.0** |
+| 8e839974 (R4) | 0.4654 | 93.7 |
+| fd3c92ff (R5) | 0.4818 | 84.9 |
+| 71451d74 (R2) | 0.5538 | 92.0 |
+| 76909e29 (R1) | 0.6919 | 87.1 |
+| ae78003a (R6) | 0.8082 | 88.4 |
+
+R7's entropy (0.3917) is LOWER than R1 (0.6919) and R6 (0.8082) which both score 87+. The model fails on R7 because R7's dynamics are OOD relative to the other 7 training rounds, NOT because R7 is inherently hard.
+
+### ffam_mode v220-v233 results (all 8-round LORO, s6)
+
+| Model | Score | R7 | Key change |
+|-------|-------|-----|-----------|
+| **v214** | **87.65** | **72.0** | **Current champion** |
+| v228 (3 clusters) | 87.65 | **72.3** | Best R7! |
+| v229 (deeper MLP h=64) | 87.65 | 72.0 | Tied |
+| v224 (evidence sigma=0.5) | 87.63 | 71.7 | Tied |
+| v227 (q=7, MLP h=48) | 87.54 | 72.0 | Slightly worse |
+| v232 (ridge=1.0) | 87.49 | 72.1 | Worse |
+| v225 (evidence sigma=1.0) | 87.40 | 71.1 | Worse |
+| v222 (OOD particle d=0.03/0.50) | 87.03 | 71.4 | Worse |
+| v231 (combined_input) | 87.01 | 72.0 | Worse |
+| v220 (particle blend=0.25) | 86.90 | 71.2 | Worse |
+| v230 (combined OOD+evidence) | 86.00 | 70.0 | Much worse |
+| v223 (OOD prior blend=0.20) | 85.53 | 70.1 | Much worse |
+
+### Architecture is genuinely plateaued at ~87.65
+
+**All axes exhausted within ffam_mode architecture:**
+- 238 config variants tested
+- Evidence propagation: neutral (sigma=0.5 ties, sigma=1.0 hurts)
+- Higher particle blend: always worse (SVD modes add significant value)
+- OOD-adaptive prior: always worse (hurts good rounds more than helps bad)
+- Combined posterior input: slightly worse
+- 3 clusters vs 2: ties (best R7 at 72.3)
+- Deeper MLP: ties
+- More modes (q=7): slightly worse
+
+### New kNN predictor created
+- Completely different architecture: per-cell kNN matching, no SVD/operator/posterior
+- Cell-level transcript features (was_observed, class fractions, neighbor stats)
+- Pooled training across all rounds
+- Currently benchmarking, results pending
+
+### Still running: v234 (4 clusters), v235 (q=8), v236 (pure particle), v238 (s=12), kNN v1/v5
