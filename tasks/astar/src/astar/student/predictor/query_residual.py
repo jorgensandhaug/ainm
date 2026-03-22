@@ -973,7 +973,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     temperature: float = Field(default=1.0, gt=0.0)
     prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
-    signal_scale: float = Field(default=0.12, gt=0.0)
+    signal_scale: float = Field(default=0.10, gt=0.0)
     min_delta_scale: float = Field(default=0.4, ge=0.0, le=1.0)
     residual_class_scale: np.ndarray = Field(
         default_factory=lambda: np.asarray([1.0, 0.65, 0.55, 0.55, 0.85, 1.0], dtype=np.float64),
@@ -1012,7 +1012,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         probability_floor: float = 0.01,
         temperature: float = 1.0,
         prior_blend: float = 0.0,
-        signal_scale: float = 0.12,
+        signal_scale: float = 0.10,
         min_delta_scale: float = 0.4,
         residual_class_scale: Sequence[float] = (1.0, 0.65, 0.55, 0.55, 0.85, 1.0),
         teacher_blend: float = 0.0,

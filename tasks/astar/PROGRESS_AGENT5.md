@@ -2803,9 +2803,22 @@ Score: 80.37
   - cells_per_seed sweep: 256→80.37, 512→**80.56**, 1024→79.95
   - Optimal is ~512 cells per seed for training the ridge
 
-- **Final best: QR recalibrated at 80.56** (+5.37 over original 75.19)
+### 2026-03-22T02:00:00Z — Signal Scale Tuning
+
+- signal_scale and min_delta_scale sweep:
+
+  | signal_scale | min_delta_scale | Mean |
+  |-------------|----------------|------|
+  | 0.08 | 0.3 | 80.79 |
+  | **0.10** | **0.4** | **80.89** |
+  | 0.12 | 0.4 | 80.55 |
+
+- signal_scale=0.10 is optimal (was 0.12)
+- Official benchmark confirms: **80.90** (+5.71 over 75.19)
+
+- **Final best: QR recalibrated at 80.90** (+5.71 over original 75.19)
   - temperature=1.0, prior_blend=0.0, beta_min=6.0, teacher_blend=0.0
-  - cells_per_seed=512, samples_per_round=2, exploration_r3 policy
+  - signal_scale=0.10, cells_per_seed=512, samples_per_round=2, exploration_r3
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
