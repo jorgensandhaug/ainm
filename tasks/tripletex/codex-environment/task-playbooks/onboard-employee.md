@@ -100,6 +100,7 @@ If payrollTaxMunicipalityId doesn't fix it, remaining hypotheses:
 - 5 calls proven flow: GET /division + POST /department + GET /salary/settings (parallel) → POST /employee → POST /employee/standardTime
 - Cannot skip GET /division (422 on accounts with divisions)
 - Cannot embed standardTime in POST /employee (no such field)
+- Cannot inline department by name: `department: { name: "..." }` → 422 "Feltet må fylles ut" on department.id — must POST /department first and use `{ id }` (sandbox-verified 2026-03-22)
 - All 12 hardcoded occupation code mappings (STYRK 1211 corrected: FINANSSJEF 1577 WRONG → ØKONOMISJEF 6538; awaits production confirmation)
 - STYRK 1211 trap: `code=1211` returns 50+ unrelated codes, none starting with "1211"; FINANSSJEF (1577, code 1226xxx) scored 18/22 = wrong occ code pattern; correct = ØKONOMISJEF (6538, code 1231130 = STYRK-98 category 1231)
 - 9 total task 21 production runs; all score 12/14 with 4 calls, 0 errors
@@ -149,3 +150,4 @@ Selected runs showing occupation code findings:
 | (15th) | 3512 | 5 | 0 | ? | First encounter; dynamic lookup found BRUKERSTØTTE IKT (752) |
 | (17th) | HR-rådgiver | 4 | 0 | ? | First hardcoded HR-rådgiver (4169); saved 1 call |
 | 8b3f5a17 | 1211 | 8 | 0 | ? | FINANSSJEF (1577); 3 calls wasted on `code=1211` substring trap; hardcoded now |
+| 21c3fea8 | 3512 | 5 | 0 | ? | Nynorsk prompt; first run with BOTH payrollTaxMunicipalityId fix + standardTime; STYRK 3512→752 hardcoded; full 5-call flow (3 parallel + employee + standardTime) |

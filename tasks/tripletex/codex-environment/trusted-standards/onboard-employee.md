@@ -174,16 +174,18 @@ Eliminated hypotheses:
 - taxDeductionCode=EMPTY: 422 "ugyldig verdi" — cannot be set to EMPTY
 
 ## Sandbox Verification Status
-- E2E verified 2026-03-22: production-faithful scenarios pass sandbox assertions, 4 calls, 0 errors
+- E2E verified 2026-03-22: production-faithful scenarios pass sandbox assertions, 5 calls, 0 errors (includes GET /salary/settings for payrollTaxMunicipalityId)
 - NOT_CHOSEN hypothesis: sandbox-verified as accepted by API, but DISPROVEN in production (prod-0c8aec74, same 12/14)
 - Separate POST details vs inline: sandbox-verified identical readback — no difference
 - Cannot skip GET /division: omitting division on account with divisions → 422 error
 - Cannot embed standardTime in POST /employee: no such field on employee object
+- Cannot inline department by name: `department: { name: "..." }` → 422 "Feltet må fylles ut" on department.id — must POST /department first and use `{ id }` (sandbox-verified 2026-03-22)
 - No hidden API fields: Employee object has fixed field set; title/jobTitle rejected with 422
 - All 12 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
 - STYRK 1211 → FINANSSJEF (id 1577) WRONG — prod 8b3f5a17 scored 18/22 (same pattern as other wrong-occ-code runs). Corrected to ØKONOMISJEF (id 6538, code 1231130 = STYRK-98 category 1231). No Tripletex codes start with "1211". ØKONOMISJEF awaits production confirmation.
 - 9 task 21 production runs; all score 12/14 with 4 calls, 0 errors
 - Best task 19 (arbeidskontrakt) run: a2367369 scored 20/22 (only Check 10 failed = missing standardTime)
-- **Task 19 standardTime fix verified 2026-03-22**: 4-call flow with unconditional standardTime POST → 15/15 simulated checks pass, hoursPerDay=7.5 confirmed stored
+- **prod-21c3fea8 (task 19, Nynorsk, STYRK 3512)**: first arbeidskontrakt run with BOTH payrollTaxMunicipalityId fix + standardTime; 5 calls, 0 errors; awaits scoring
+- **Task 19 standardTime fix verified 2026-03-22**: unconditional standardTime POST → hoursPerDay=7.5 confirmed stored
 - Strategy code updated 2026-03-22: standardTime POST now unconditional (defaults to 7.5 when not specified)
-- 4 calls is the proven minimum: GET /division + POST /department (parallel) → POST /employee → POST /employee/standardTime
+- 5 calls is the proven minimum: GET /division + POST /department + GET /salary/settings (parallel) → POST /employee → POST /employee/standardTime
