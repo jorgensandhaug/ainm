@@ -141,6 +141,21 @@ cost.vatType = { id: flyCat.vatType.id };
 
 If POST fails with `VAT_NOT_REGISTERED` → retry with `vatType: { id: 0 }`.
 
+## Why You Cannot Reduce Below 5–6 Calls
+
+All 3 round-1 lookups are mandatory. Sandbox-verified 2026-03-22:
+
+| Tempting shortcut | Outcome |
+|---|---|
+| `costCategory: { description: "Fly" }` instead of `{ id }` | POST 201 but resolves to null → deliver 422 |
+| `paymentType: { description: "Privat utlegg" }` instead of `{ id }` | POST 201 but resolves to null → deliver 422 |
+| Omit `paymentType` entirely | 422 "Kan ikke være null" |
+| Omit `vatType` entirely | POST 201 but deliver 422 |
+| `fields=*,company(*)` on employee | 400 — `company` is not an expandable field |
+| Omit `costCategory` entirely | POST 201 but deliver 422 |
+
+**The 5–6 call path is the proven floor.** Do not try to optimize further.
+
 ## Fields That Cause 422 If Sent
 
 | DO NOT send | Error | Use instead |
@@ -203,3 +218,9 @@ Clean end-to-end test: 6-call path, 0 errors, all assertions pass, state=DELIVER
 - Per-diem readback: count=4, rate=1012 (system-filled), amount=4048
 - Costs: flight=2850, taxi=200, both with correct categories
 - DELETE /travelExpense/{id} works on both OPEN and DELIVERED for sandbox reset
+
+## Production Confirmation (2026-03-22, Spanish prompt)
+Run prod-2026-03-22-022922296Z-b1317762: 6 calls, 0 errors, state=DELIVERED.
+Employee had no address → company city (Oslo) used as departureFrom.
+vatType=12 from category lookup worked (production accounts are VAT-registered).
+Per-diem: count=4, no rate/amount set. Costs: flight=4700, taxi=550.

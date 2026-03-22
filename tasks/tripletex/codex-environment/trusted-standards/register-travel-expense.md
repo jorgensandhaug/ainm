@@ -116,6 +116,21 @@ Set `costs[].vatType` to `{ id: costCategory.vatType.id }` from the matching cat
 
 **Recovery**: if POST fails with `VAT_NOT_REGISTERED`, retry with `vatType: { id: 0 }` on all costs.
 
+## Proven Optimization Traps (DO NOT attempt)
+
+These "optimizations" look like they would save API calls but actually waste calls on retries:
+
+| Tempting shortcut | What happens | Why it fails |
+|---|---|---|
+| `costCategory: { description: "Fly" }` | POST 201, deliver 422 | Resolves to null — category not found by description |
+| `paymentType: { description: "Privat utlegg" }` | POST 201, deliver 422 | Resolves to null — payType not found by description |
+| Omit `paymentType` from costs | 422 at POST | "Kan ikke være null" — paymentType is mandatory |
+| Omit `vatType` from costs | POST 201, deliver 422 | System does not auto-fill vatType correctly for deliver |
+| `fields=*,company(*)` on employee | 400 | `company` is not a field on EmployeeDTO; use `companyId` + separate GET |
+| Omit `costCategory` from costs | POST 201, deliver 422 | costCategory.id required for deliver validation |
+
+**Conclusion:** All 3 round-1 lookups (employee, costCategory, paymentType) are mandatory. The 5–6 call path is the proven floor. Sandbox-verified 2026-03-22.
+
 ## Fields That DO NOT Exist (422 if sent)
 | Wrong field | Causes | Use instead |
 |---|---|---|
@@ -159,3 +174,9 @@ If the prompt gives only "N days" without specific dates, pick a deterministic d
 Clean end-to-end test: 6-call path, 0 errors, all assertions pass, state=DELIVERED.
 Per-diem readback: count=4, rate=1012 (system-filled), amount=4048. Costs: flight + taxi correct.
 DELETE /travelExpense/{id} works on both OPEN and DELIVERED for sandbox reset.
+
+## Production Confirmation (2026-03-22, Spanish prompt)
+Run prod-2026-03-22-022922296Z-b1317762: 6 calls, 0 errors, state=DELIVERED.
+Employee had no address → company city (Oslo) used as departureFrom.
+vatType=12 from category lookup worked (production accounts are VAT-registered).
+Per-diem: count=4, no rate/amount set. Costs: flight=4700, taxi=550.
