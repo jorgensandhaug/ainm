@@ -405,6 +405,66 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.94,
     ),
+    # Agent6 novel: v19 (slow MLP) + adaptive blend + logodds
+    "ffam_ensemble_a6_v9": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v9",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # Agent6: v19 + adaptive + logodds at 90/10
+    "ffam_ensemble_a6_v10": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v10",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # Agent6: v19 + adaptive + logodds at 85/15
+    "ffam_ensemble_a6_v11": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v11",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # Agent6: v248 (agent7's best mode) + adaptive + logodds (match v35 but potentially different data)
+    "ffam_ensemble_a6_v12": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v12",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # Agent6: v19 + adaptive scale=1.5
+    "ffam_ensemble_a6_v13": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v13",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    # Agent6: v19 + adaptive scale=3.0
+    "ffam_ensemble_a6_v14": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v14",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=3.0,
+        blend_space="logodds",
+    ),
 }
 
 
