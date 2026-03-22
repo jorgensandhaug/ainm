@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-101759006Z-b65ab238",
+  "request_id": "a2b5753c",
+  "prompt_raw": "Crea una factura para el cliente Solmar SL (org. nº 829487888) con tres líneas de producto: Sesión de formación (6042) a 2350 NOK con 25 % IVA, Mantenimiento (5211) a 3150 NOK con 15 % IVA (alimentos), y Licencia de software (8022) a 14300 NOK con 0 % IVA (exento).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:20:16Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:17:59.055Z",
+  "after_captured_at": "2026-03-22T10:20:46.803Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "09",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T10:20:46.804Z"
+}
