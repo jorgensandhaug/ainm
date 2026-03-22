@@ -9,34 +9,37 @@
 - Restricted imports (no `import os`)
 - YOLO26x weights: ~115 MB each → room for ~3 models
 
-## Current Best: 2-Model Ensemble (b4+b8)
+## Current Best: 3-Model Ensemble + Flip TTA
 
-**Models**:
-1. `960_confcurr_s2_final` (batch=4 pipeline) — 115 MB
-2. `960b8_confcurr_s2` (batch=8 pipeline) — 115 MB
-**Total weight size**: 230 MB (under 420 MB limit)
+**Models** (total 345 MB, under 420 MB limit):
+1. `960_confcurr_s2_final` (batch=4, seed=62/77/91/123) — 115 MB
+2. `960b8_confcurr_s2` (batch=8, seed=62/77/91/123) — 115 MB
+3. `960div_confcurr_s2` (batch=6, seed=200, different hyperparams) — 115 MB
 
-### Best Ensemble Scores (no TTA, conf=0.0001)
+### Best Scores: 3-model + flip TTA (conf=0.0001)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9416 |
-| cls_mAP50_present (278) | 0.8172 |
-| cls_mAP50_all (356) | 0.6381 |
-| hybrid_present | 0.9043 |
-| **hybrid_all** | **0.8506** |
+| det_AP50 | 0.9465 |
+| cls_mAP50_present (278) | 0.8215 |
+| cls_mAP50_all (356) | 0.6417 |
+| hybrid_present | 0.9091 |
+| **hybrid_all** | **0.8550** |
+| Inference cost | 6x (3 models × 2 orientations) |
 
-### Individual Model Scores
+### All Ensemble Variants
 
-| Model | det_AP50 | cls_all | hybrid_all | hybrid_present |
-|-------|----------|---------|------------|---------------|
-| b4 alone | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
-| b8 alone | 0.9340 | 0.6259 | 0.8416 | 0.8943 |
-| **b4+b8 ensemble** | **0.9416** | **0.6381** | **0.8506** | **0.9043** |
+| Config | det | cls_all | hybrid_all | hybrid_pres | Cost |
+|--------|-----|---------|------------|------------|------|
+| b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 | 1x |
+| b4+b8 (2-model) | 0.9416 | 0.6381 | 0.8506 | 0.9043 | 2x |
+| b4+b8+div (3-model) | 0.9441 | 0.6375 | 0.8521 | 0.9057 | 3x |
+| **b4+b8+div + flip** | **0.9465** | **0.6417** | **0.8550** | **0.9091** | **6x** |
 
 ### Model Locations
 - b4: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 - b8: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960b8_confcurr_s2_e18_img960_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+- div: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960div_confcurr_s2_e18_img960_b6_lr8e-05_mix0_cp0_seed200/weights/best.pt`
 
 ## Training Pipelines
 
@@ -87,24 +90,30 @@ Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 ### EXP-006: Batch=8 Training
 - batch=8 slightly improves stage 2 (+0.0097 mAP50) but stage 3 slightly worse
 - Final model: hybrid_all=0.8416 vs 0.8407 (marginal)
-- Main value: **diversity for ensemble**
+- Main value: **diversity for ensemble** (+0.0099 when combined with b4)
+
+### EXP-010: Diversity Model (seed=200, batch=6)
+- Different seed + slightly modified hyperparams (lr0=0.004, mixup=0.2 in stage 2)
+- Individual: mAP50=0.779 (weaker), but adds diversity
+- 3-model ensemble: +0.0015 over 2-model (0.8521 vs 0.8506)
+- 3-model + flip: **0.8550** — best result overall
 
 ## Experiment Queue
-- [ ] EXP-010: Train 3rd model (different seed) for 3-model ensemble
-- [ ] EXP-011: Fix WBF + ensemble + TTA combination
 - [ ] EXP-012: yolo26l backbone (lighter, might offer diversity)
 - [ ] EXP-013: Label smoothing (cls=0.01 or higher)
 - [ ] EXP-014: Higher resolution training (1280px)
 - [ ] EXP-015: Longer training (200+ total epochs)
 - [ ] EXP-016: SWA/EMA weight averaging across checkpoints
+- [ ] EXP-017: Soft-NMS or weighted NMS post-processing
+- [ ] EXP-018: Knowledge distillation from ensemble → single model
 
 ## Baseline Comparison
 | Model | det_AP50 | cls_all | hybrid_all | hybrid_present |
 |-------|----------|---------|------------|---------------|
 | 640px baseline (prev) | 0.9321 | ~0.581 | ~0.838 | 0.8758 |
-| 960px b4 model | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
-| 960px b4 + full TTA | 0.9428 | 0.6340 | 0.8502 | 0.9035 |
-| **960px b4+b8 ensemble** | **0.9416** | **0.6381** | **0.8506** | **0.9043** |
+| 960px b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
+| 960px b4+b8 ensemble | 0.9416 | 0.6381 | 0.8506 | 0.9043 |
+| **960px 3-model+flip** | **0.9465** | **0.6417** | **0.8550** | **0.9091** |
 
 ## Lessons Learned
 - Always glob *.jpeg along with *.jpg — 6/49 val images are .jpeg
