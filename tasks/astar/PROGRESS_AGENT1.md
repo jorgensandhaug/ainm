@@ -393,7 +393,16 @@ Geometric blending gives higher best-round scores (93.5) but slightly lower mean
 Entropy-weighted DT training: 79.43 solo (was 76.93, +2.50 improvement)
 Carries through to triple blend: 83.46 (was 83.33, +0.13)
 
-**Total improvement: 78.38 → 83.46 (+5.08 points)**
+**Extended triple-ew sweep:**
+
+| Variant | GLMM% | DT_EW% | PO% | Score | Worst |
+|---------|-------|--------|-----|-------|-------|
+| **v008** | **30** | **40** | **30** | **83.50** | 65.39 |
+| v006 | 20 | 40 | 40 | 83.50 | 66.24 |
+| v004 | 25 | 37 | 38 | 83.49 | 65.73 |
+| v007 | 15 | 42 | 43 | 83.46 | 66.68 |
+
+**Total improvement: 78.38 → 83.50 (+5.12 points)**
 
 ## Final Summary
 
