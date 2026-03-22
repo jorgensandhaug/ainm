@@ -349,7 +349,16 @@ All with observation blending at t=20. Triple blend of three complementary model
 - Direct Terminal: captures direct feature→terminal mapping (balanced)
 - Prior Operator: captures prior correction patterns (best on hard rounds)
 
-**Total improvement: 78.38 → 83.03 (+4.65 points, +13.70 on worst round)**
+**Updated after fine-tuning sweep:**
+
+| Variant | GLMM% | DT% | PO% | Score | Worst |
+|---------|-------|-----|-----|-------|-------|
+| **v008** | **30** | **35** | **35** | **83.14** | **63.34** |
+| v010 | 30 | 40 | 30 | 83.11 | 63.27 |
+| v007 | 33 | 33 | 34 | 83.08 | 63.04 |
+| v003 | 35 | 35 | 30 | 83.03 | 62.80 |
+
+**Total improvement: 78.38 → 83.14 (+4.76 points, +14.24 on worst round)**
 
 ## Additional Results (Phase 3)
 
