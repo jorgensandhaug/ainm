@@ -228,5 +228,46 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             probe_first=True,
             motif_scorer=_entropy_bias_scorer(),
         )
+    # Smart query policies
+    if normalized == "concentrated_r5":
+        from astar.policy.smart_query import ConcentratedRepeatPolicy
+        return ConcentratedRepeatPolicy(
+            name="concentrated_r5",
+            repeat_budget=5,
+            probe_first=True,
+        )
+    if normalized == "concentrated_r3":
+        from astar.policy.smart_query import ConcentratedRepeatPolicy
+        return ConcentratedRepeatPolicy(
+            name="concentrated_r3",
+            repeat_budget=3,
+            probe_first=True,
+        )
+    if normalized == "settlement_focused_r3":
+        from astar.policy.smart_query import SettlementFocusedPolicy
+        return SettlementFocusedPolicy(
+            name="settlement_focused_r3",
+            repeat_budget=3,
+        )
+    if normalized == "settlement_focused_r5":
+        from astar.policy.smart_query import SettlementFocusedPolicy
+        return SettlementFocusedPolicy(
+            name="settlement_focused_r5",
+            repeat_budget=5,
+        )
+    if normalized == "heavy_repeat_3s":
+        from astar.policy.smart_query import HeavyRepeatPolicy
+        return HeavyRepeatPolicy(
+            name="heavy_repeat_3s",
+            coverage_seeds=3,
+            repeat_budget=23,  # 3 seeds × 9 vp = 27 coverage + 23 repeats = 50
+        )
+    if normalized == "heavy_repeat_4s":
+        from astar.policy.smart_query import HeavyRepeatPolicy
+        return HeavyRepeatPolicy(
+            name="heavy_repeat_4s",
+            coverage_seeds=4,
+            repeat_budget=14,  # 4 seeds × 9 vp = 36 coverage + 14 repeats = 50
+        )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)
