@@ -14,6 +14,45 @@ The live Tripletex1 control surface remains:
 
 This queue is for humans and review agents. It is **not** read by the Tripletex1 runtime.
 
+## Current curated queue (2026-03-22)
+
+This queue has been triaged against the live finder/adversary outputs with the judging axis:
+**likelihood of improving Tripletex1's production competition score if ported correctly**.
+
+### Priority order
+
+1. **Task 13 — Register Travel Expense**
+   - Keep.
+   - Best surviving delta: fix the live Tripletex1 contradiction on `perDiemCompensations` / “no per-diems”, and strengthen `createVouchers` emphasis.
+   - Why it stays high: this is an internal T1 consistency bug that can directly steer agents into the wrong flow.
+
+2. **Task 23 — Reconcile Bank Statement / Open Invoices**
+   - Keep, but verification-first.
+   - Best surviving delta: batch matching per accounting period.
+   - Why it stays high: still the highest-upside efficiency import in the queue, but the proposal mixed live changes, stale claims, and mis-cited evidence, so it needs a tighter rewrite before any port.
+
+3. **Task 29 — Full Project Lifecycle**
+   - Keep as a narrow salvage item.
+   - Best surviving delta: the `AGENTS.md` voucher fix only.
+   - Do **not** port the broader structural-ceiling / blocker-analysis claims without stronger proof.
+
+4. **Task 30 — Simplified Year-End Closing**
+   - Keep as a narrow salvage item.
+   - Best surviving delta: the factual correction that account `8700` does not exist by default.
+   - Do **not** port the asset-register rewrite into trusted guidance until it wins in scored production.
+
+### Pruned from the queue
+
+The following files were removed because they were mostly no-ops, stale, anti-import notes, or too low leverage to justify staying in the migration queue:
+
+- `task-11.md`
+- `task-19.md`
+- `task-20.md`
+- `task-21.md`
+- `task-22.md`
+
+If any of those are ever revived, they should come back as much narrower proposals with concrete score-moving evidence.
+
 ## Hard rules
 
 1. **Do not edit `codex-environment/` from this queue workflow.**
