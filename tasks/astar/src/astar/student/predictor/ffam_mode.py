@@ -671,6 +671,8 @@ class FFAMModePredictorCheckpoint(BaseModel):
     posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_method: str = "pca"
     cluster_count: int = Field(default=1, ge=1)
+    evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
     mode_feature_names: list[str]
     posterior_input_names: list[str]
     mode_round_ids: list[str]
@@ -728,6 +730,8 @@ class FFAMModePredictor(BaseRoundPredictor):
     posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
     posterior_metric_method: str = "pca"
     cluster_count: int = Field(default=1, ge=1)
+    evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
     mode_feature_names: tuple[str, ...] = ()
     posterior_input_names: tuple[str, ...] = ()
     mode_round_ids: tuple[str, ...] = ()
@@ -1126,6 +1130,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_ood_prior_blend=config.posterior_ood_prior_blend,
             posterior_metric_method=config.posterior_metric_method,
             cluster_count=effective_cluster_count,
+            evidence_smooth_sigma=config.evidence_smooth_sigma,
+            evidence_propagation_beta_scale=config.evidence_propagation_beta_scale,
             mode_feature_names=tuple(mode_feature_names),
             posterior_input_names=tuple(posterior_input_names),
             mode_round_ids=tuple(mode_round_ids),
@@ -1205,6 +1211,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_ood_prior_blend=self.posterior_ood_prior_blend,
             posterior_metric_method=self.posterior_metric_method,
             cluster_count=self.cluster_count,
+            evidence_smooth_sigma=self.evidence_smooth_sigma,
+            evidence_propagation_beta_scale=self.evidence_propagation_beta_scale,
             mode_feature_names=list(self.mode_feature_names),
             posterior_input_names=list(self.posterior_input_names),
             mode_round_ids=list(self.mode_round_ids),
@@ -1308,6 +1316,8 @@ class FFAMModePredictor(BaseRoundPredictor):
             posterior_ood_prior_blend=checkpoint.posterior_ood_prior_blend,
             posterior_metric_method=checkpoint.posterior_metric_method,
             cluster_count=checkpoint.cluster_count,
+            evidence_smooth_sigma=checkpoint.evidence_smooth_sigma,
+            evidence_propagation_beta_scale=checkpoint.evidence_propagation_beta_scale,
             mode_feature_names=tuple(checkpoint.mode_feature_names),
             posterior_input_names=tuple(checkpoint.posterior_input_names),
             mode_round_ids=tuple(checkpoint.mode_round_ids),
@@ -1792,7 +1802,25 @@ class FFAMModePredictor(BaseRoundPredictor):
         exact_counts: np.ndarray,
         prior: np.ndarray,
     ) -> np.ndarray:
-        count_total = np.sum(exact_counts, axis=-1, keepdims=True)
+        effective_counts = exact_counts
+        if self.evidence_smooth_sigma > 0:
+            kernel_radius = max(1, int(3 * self.evidence_smooth_sigma))
+            ax = np.arange(-kernel_radius, kernel_radius + 1, dtype=np.float64)
+            kernel_1d = np.exp(-0.5 * (ax / self.evidence_smooth_sigma) ** 2)
+            kernel_1d /= np.sum(kernel_1d)
+            smoothed = np.zeros_like(exact_counts, dtype=np.float64)
+            for c in range(exact_counts.shape[-1]):
+                channel = exact_counts[..., c].copy()
+                for row in range(channel.shape[0]):
+                    channel[row] = np.convolve(channel[row], kernel_1d, mode='same')
+                for col in range(channel.shape[1]):
+                    channel[:, col] = np.convolve(channel[:, col], kernel_1d, mode='same')
+                smoothed[..., c] = channel
+            if self.evidence_propagation_beta_scale > 0:
+                effective_counts = smoothed * self.evidence_propagation_beta_scale
+            else:
+                effective_counts = smoothed
+        count_total = np.sum(effective_counts, axis=-1, keepdims=True)
         if not np.any(count_total > 0.0):
             return prediction
         prior_entropy = np.asarray(entropy_map(prior), dtype=np.float64)[..., None]
@@ -1801,7 +1829,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             beta = beta / (1.0 + (self.beta_repeat_discount * np.maximum(count_total - 1.0, 0.0)))
         blended = np.where(
             count_total > 0.0,
-            (beta * prediction + exact_counts) / np.maximum(beta + count_total, 1e-6),
+            (beta * prediction + effective_counts) / np.maximum(beta + count_total, 1e-6),
             prediction,
         )
         return np.asarray(blended, dtype=np.float64)

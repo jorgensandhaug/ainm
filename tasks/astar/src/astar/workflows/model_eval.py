@@ -19,6 +19,7 @@ from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
 from astar.policy.registry import resolve_policy_name
 from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
 from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
 from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
@@ -239,7 +240,7 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
-    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name):
+    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name) or is_ffam_knn_model_name(model_name):
         raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
 
     if normalized == "latent_regime":

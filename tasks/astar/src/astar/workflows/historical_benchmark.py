@@ -14,6 +14,7 @@ from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
 from astar.policy.registry import resolve_policy_name
 from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
 from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
 from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
@@ -134,6 +135,7 @@ def run_historical_benchmark(
         is_ffam_model_name(model_name)
         or is_ffam_mode_model_name(model_name)
         or is_ffam_operator_model_name(model_name)
+        or is_ffam_knn_model_name(model_name)
     ):
         raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
