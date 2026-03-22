@@ -153,6 +153,11 @@ Exact-match tasks should now prefer the trusted standard:
   - root cause: script did not include bank-account recovery from the start; the 4 wasted calls (GET customer + GET product + GET paymentType + POST /invoice 422) were completely avoidable
   - ideal with proactive hedge: 6 calls, 0 errors (GET customer + GET product + GET paymentType + GET /ledger/account + PUT /ledger/account + POST /invoice)
   - sandbox-verified 2026-03-22: proactive hedge path = 5 calls when bank acct exists, 6 calls when bank acct missing, 0 errors either way
+- production run on 2026-03-22 for Norwegian prompt `Snøhetta AS` / `800082021` / `Webdesign (2797)` + `Analyserapport (5684)` / prices `33100` + `18550`:
+  - used `POST /invoice` path with proactive bank-account hedge, comma-separated `number=2797,5684&fields=*,vatType(*)`, exact `paidAmount=64562.5` (both products 25% VAT), `pts[0]` payment type selection
+  - bank account 1920 already configured — hedge cost 1 extra call but guaranteed 0 errors
+  - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of `POST /invoice` path with proactive hedge
+  - confirms the 5-call hedge path is stable as the recommended default; 4-call path (skip hedge) would have sufficed here but risks 422 + retry on fresh accounts
 
 ## Minimal Flow
 
