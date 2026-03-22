@@ -15,13 +15,13 @@ Do not use for:
 
 ## Verified Findings
 
-Production run `4810881c` on 2026-03-22 (latest, Norwegian/Nynorsk prompt) achieved:
+Production run `cb8278d8` on 2026-03-22 (latest, German prompt) achieved:
 - **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
 - used `POST /project/list` with inline `projectActivities` per project for batch create
 - same top 3 accounts as all prior runs
 
-8 consecutive optimal production runs (en/es/pt/nb/nn) confirm this standard is fully stable and language-independent:
-- `4810881c` (Norwegian/Nynorsk, 2026-03-22), `ccafc2e3` (English, 2026-03-22), `29c4733d` (Spanish, 2026-03-22), `2916e388` (English, 2026-03-21), `454452ef` (Spanish), `1c76136a` (Portuguese), `3a21d463` (Spanish), 1st run (English)
+9 consecutive optimal production runs (en/es/pt/nb/nn/de) confirm this standard is fully stable and language-independent:
+- `cb8278d8` (German, 2026-03-22), `4810881c` (Norwegian/Nynorsk, 2026-03-22), `ccafc2e3` (English, 2026-03-22), `29c4733d` (Spanish, 2026-03-22), `2916e388` (English, 2026-03-21), `454452ef` (Spanish), `1c76136a` (Portuguese), `3a21d463` (Spanish), 1st run (English)
 - All: 3 calls, 0 errors, same top 3 accounts, same batch create path
 
 Persistent-sandbox verification on 2026-03-21 showed:
