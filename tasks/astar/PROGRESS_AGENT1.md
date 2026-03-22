@@ -382,6 +382,19 @@ GLMM adds only +0.07 at 10% weight. DT and PO are the real workhorses.
 
 Geometric blending gives higher best-round scores (93.5) but slightly lower mean than arithmetic (83.27 vs 83.33). Adding QR as 4th component hurts.
 
+### Entropy-Weighted DT Training (Phase 10) - NEW BEST 83.46!
+
+| Model | GLMM% | DT(EW)% | PO% | Score | Worst |
+|-------|-------|---------|-----|-------|-------|
+| **triple_ew_v001** | **30** | **35** | **35** | **83.46** | **65.22** |
+| triple_ew_v003 | 10 | 45 | 45 | 83.41 | 67.12 |
+| triple_ew_v002 | 0 | 50 | 50 | 83.20 | **67.86** |
+
+Entropy-weighted DT training: 79.43 solo (was 76.93, +2.50 improvement)
+Carries through to triple blend: 83.46 (was 83.33, +0.13)
+
+**Total improvement: 78.38 → 83.46 (+5.08 points)**
+
 ## Final Summary
 
 **Best model: `triple_blend_v020`** (10% GLMM + 45% DT + 45% PO, arithmetic, obs blend t=20)
