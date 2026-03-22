@@ -167,6 +167,14 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - sandbox verification on 2026-03-21 (post-run c9831f7e) confirmed direct `POST /invoice` path:
   - update-needed: 5 calls; skip-PUT: 3 calls; both returned `amountExcludingVatCurrency=96541.5` with `projectInvoiceDetails=1`
   - canonical call counts with `POST /invoice`: skip-PUT = **3**, update-needed+configured = **5**, update-needed+missing = **6**
+- exact production confirmation on 2026-03-22 for `Rivière SARL` / `852968737` / `Projet d'automatisation` / `nathan.martin@example.org` / `170650` / `25%` (run prod-dec75cfd):
+  - first production run to successfully use `POST /invoice?sendToCustomer=false` on correct entities (replacing old `POST /order` + `PUT /order/:invoice`)
+  - update-needed + missing bank: `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` for `6` calls, `0` errors
+  - invoice: `amountExcludingVatCurrency=42662.5`, `amountCurrencyOutstanding=53328.13`, outgoing VAT `25%` (id=3)
+  - milestone arithmetic `170650 * 0.25 = 42662.5` accepted directly as decimal; fourth production confirmation of 25% milestone
+  - this is the 12th update-needed run: 10/12 had missing bank accounts (83%); proactive hedge averages 5.83 calls + 0 errors
+- persistent-sandbox verification on 2026-03-22 with `170650 * 0.25 = 42662.5` re-confirmed both branches:
+  - update-needed proactive hedge: `5` calls (bank configured); skip-PUT: `3` calls; both returned `amountExcludingVatCurrency=42662.5`
 
 ## Minimal Safe Flow
 
@@ -286,7 +294,7 @@ In real tasks, replace VAT id `3` with the VAT type actually returned by the fil
   6. `PUT /project/{id}` (or `POST /project`) + `GET /ledger/vatType` + `GET /ledger/account` (parallel, 3 calls)
   7. if bank account missing: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
   8. `POST /invoice?sendToCustomer=false` with embedded `orders[]`
-- on the update-needed branch, `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account` are parallelized; this is the default since production evidence (9/11 missing bank accounts, 82%) makes the proactive hedge clearly better
+- on the update-needed branch, `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account` are parallelized; this is the default since production evidence (10/12 missing bank accounts, 83%) makes the proactive hedge clearly better
 - on the exact skip-`PUT /project` branch, do not chase a fictional `2`-call shortcut; the initial project read and the filtered VAT read are both still required for perfect correctness
 - canonical call counts: skip-PUT = **3**, update-needed+configured = **5**, update-needed+missing = **6**
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
@@ -326,7 +334,7 @@ In real tasks, replace VAT id `3` with the VAT type actually returned by the fil
 - Do not restart from `POST /project` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same `POST /invoice`
 - Do not add a scored-run `GET /invoice/{id}` only because the invoice write response leaves some fields sparse; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`; production evidence (9/11 update-needed runs had missing bank accounts, 82%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
+- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`; production evidence (10/12 update-needed runs had missing bank accounts, 83%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
 - Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste
 - Do not try to collapse the skip-`PUT /project` branch to `2` calls by omitting either `GET /project` or `GET /ledger/vatType`; the first call is what proves the exact existing project state, and the second call is what keeps taxable accounts from silently getting the wrong VAT result

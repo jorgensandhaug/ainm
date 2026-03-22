@@ -284,3 +284,16 @@
   - skip-PUT path: `GET /project` -> `GET /ledger/vatType` -> `POST /invoice` = 3 measured calls; returned `amountExcludingVatCurrency=96541.5` with `projectInvoiceDetails.length=1`
   - both paths confirmed: direct `POST /invoice?sendToCustomer=false` replaces old `POST /order` + `PUT /order/:invoice` saving 1 call
   - 12th+ production confirmation of this task family overall; first run to use `POST /invoice` in production (albeit on wrong entities); first run to expose the critical task-matching error
+- exact production confirmation on 2026-03-22 for `Rivière SARL` / `852968737` / `Projet d'automatisation` / `nathan.martin@example.org` / `170650` / `25%` proved the update-needed proactive-hedge branch on a missing-bank account with the `POST /invoice` optimization:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` found the project with `fixedprice=0` and `isFixedPrice=false`, but correct customer and PM already linked (PM email matched exactly)
+  - the proactive hedge discovered invoice account `1920` with empty `bankAccountNumber` and fixed it before the invoice write
+  - the successful production path was `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` for `6` total calls with `0` errors
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=42662.5` and `amountCurrencyOutstanding=53328.13`
+  - milestone arithmetic `170650 * 0.25 = 42662.5` — fourth production confirmation of the 25% milestone percentage; decimal amount accepted directly
+  - this is the first production run to successfully use `POST /invoice?sendToCustomer=false` with embedded `orders[]` on the correct entities (prior Brückentor run used POST /invoice but on wrong entities); confirms the 1-call saving over old `POST /order` + `PUT /order/:invoice` path holds in production
+  - this is the 12th update-needed production run: 10/12 had missing bank accounts (83%); proactive hedge averages 5.83 calls + 0 errors vs optimistic would average 6.5 + 0.83 errors
+- persistent-sandbox verification on 2026-03-22 with current-task arithmetic `170650 * 0.25 = 42662.5` re-confirmed both branches:
+  - the update-needed proactive hedge path completed in `5` measured calls (bank already configured from prior sandbox proof): `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `POST /invoice`
+  - the skip-`PUT /project` branch completed in `3` measured calls: `GET /project` -> `GET /ledger/vatType` -> `POST /invoice`
+  - both proof invoices returned `amountExcludingVatCurrency=42662.5`; the sandbox exposed outgoing VAT `25%` (id=3)
+  - therefore the conditional `3/5/6`-call standard remains the minimum proven path for this task family
