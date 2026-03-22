@@ -5328,7 +5328,21 @@ Improvement trajectory:
 | 9 | Multi-ep train 3ep | 89.64 |
 | 10 | Multi-ep 10 var eps | 89.19 |
 
-547. Next experiments:
+547. Post-processing sweep (floor × temperature):
+   - Current config (floor=0.0001, temp=1.0) is ALREADY OPTIMAL at 90.40
+   - Any temperature scaling hurts (temp=0.9→88.87, temp=1.1→90.03)
+   - Higher floors hurt (floor=0.001→89.95, floor=0.005→87.96)
+   - Model output is already well-calibrated - no free gains from post-processing
+
+548. ALL approaches exhausted. Final architecture:
+   - 2-stage LGB stacking with multi-episode features
+   - 3 training episodes, 10 variance episodes, 10 eval averaging episodes
+   - Exploration policy (coverage + 5 diagnostic repeats)
+   - ~170 base features + ~45 stacking features
+   - floor=0.0001, no temperature scaling
+   - **Best score: 90.41 on 16-round LOO**
+
+549. Next experiments:
 
 ## Open Questions
 
