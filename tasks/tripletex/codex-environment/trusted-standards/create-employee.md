@@ -33,6 +33,7 @@
 - normalize mixed-language prompt dates such as `8. December 1982` to ISO; prompt language does not change the employee-create endpoint choice
 - preserve prompt-provided Unicode names exactly as written; do not ASCII-normalize names such as `João`
 - do not invent personal data not given by prompt
+- CRITICAL: the employment object accepts ONLY `startDate` (and `division` for repair) — do NOT add `employmentType`, `percentageOfFullTimeEquivalent`, `employmentDetails`, or any other invented fields; these trigger code 16000 "Request mapping failed" / "Feltet eksisterer ikke i objektet."; sandbox-verified on 2026-03-22; the aa0e0f72 production run wasted 2 calls on this exact mistake
 
 ## Validation Rules
 - do not branch on the generic top-level `422 message`; it can stay `Validering feilet.` across different failures
@@ -76,8 +77,10 @@
 - `POST /employee?fields=*` (without `employments(*)`) still returns sparse employments (id + url only) — the nested expansion `employments(*)` is essential
 - persistent sandbox re-verification on 2026-03-20 reproduced both `422 department.id` and `422 employments.division.id` as precise repair branches
 - persistent sandbox re-verification on 2026-03-21 confirmed the pre-read strategy (GET /department + POST /employee with dept + division) succeeds in the sandbox with 0 errors
-- out of 13 known production create-employee runs, 4 succeeded without department and 8 needed it (1 used pre-read so requirement is indeterminate); dept-required rate is at least 64%
+- out of 14 known production create-employee runs, 4 succeeded without department and 8 needed it (2 used pre-read so requirement is indeterminate); dept-required rate is at least 57%
 - André Almeida run (e9e115f1, Portuguese prompt, 1992-05-30, andre.almeida@example.org, start 2026-02-04) used the pre-read strategy but placed `department` inside the employment object; caused 2 wasted 422s (code 16000 unmappable-field) before correcting placement; 4 calls, 2 errors; should have been 2 calls, 0 errors
 - Bjørn Neset run (8e8e2e86, Nynorsk prompt, 1996-02-21, bjrn.neset@example.org, start 2026-06-16) used the CURRENT pre-read strategy correctly; 2 calls, 0 errors (GET /department found 973047, POST /employee with dept→201); 1st production run achieving the proven-minimum 2-call path with pre-read
 - the Torbjørn Neset run (b23d4cc2) and Hannah Becker run (3705040b) both used the OLD no-pre-read strategy despite the trusted standard already specifying pre-read; each wasted 1 call + 1 error — agent MUST follow the CURRENT standard flow, not cached/old patterns
 - sandbox verification on 2026-03-22 confirmed: `department` inside employment → code 16000; `department` at top level → correct; `department` only in employment → code 16000
+- Bjørn Neset run (aa0e0f72, Nynorsk prompt, 2nd instance) added invented fields (`employmentType`, `percentageOfFullTimeEquivalent`, `employmentDetails`) to the employment object; caused code 16000 → script re-run; 4 calls, 1 error against production; should have been 2 calls, 0 errors; sandbox re-verified on 2026-03-22: `employmentType` in employment → code 16000
+- the employment object for the simple create-employee shape accepts ONLY `startDate` (plus `division` for repair); all other fields (`employmentType`, `workingHoursScheme`, `remunerationType`, `percentageOfFullTimeEquivalent`, `employmentDetails`) belong to the richer onboard-employee shape and are NOT valid on the base employment model used by `POST /employee`

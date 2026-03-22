@@ -99,6 +99,8 @@ Run 2026-03-22 (Bjørn Neset, Nynorsk prompt): 2 calls, 0 errors — 1st optimal
 
 Run 2026-03-22 (André Almeida, Portuguese prompt): 4 calls, 2 errors — agent placed `department` inside employment object causing 2× code 16000 unmappable-field errors (e9e115f1); GET /department found 973636, POST with dept in employment→422, POST with dept only in employment→422, POST with dept at top level only→201; should have been 2 calls, 0 errors; 13th create-employee run overall, 2nd Portuguese prompt
 
+Run 2026-03-22 (Bjørn Neset, Nynorsk prompt, 2nd instance): 4 calls, 1 error (aa0e0f72); agent added invented fields (`employmentType: "ORDINARY"`, `percentageOfFullTimeEquivalent: 100`, `employmentDetails: []`) to the employment object → 422 code 16000 "employmentType: Feltet eksisterer ikke i objektet."; script was fixed and re-run (GET /department again + POST /employee → 201); should have been 2 calls, 0 errors; scored 8/8 (7/7 checks passed) despite wasted calls; 14th create-employee run overall, 4th Nynorsk prompt; root cause: agent ignored the trusted standard's example payload which shows only `startDate` in employment
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
@@ -111,3 +113,4 @@ Run 2026-03-22 (André Almeida, Portuguese prompt): 4 calls, 2 errors — agent 
 - Do not branch on the generic `422 message`; inspect `validationMessages[].field`
 - Do not use `userType: "STANDARD"` when the prompt only asks to create the employee; always use `"NO_ACCESS"`
 - Do not add a separate `GET /employee/employment` verification call — use `?fields=*,employments(*)` on POST instead
+- CRITICAL: the employment object accepts ONLY `startDate` (and `division` for repair) — do NOT invent extra fields like `employmentType`, `percentageOfFullTimeEquivalent`, or `employmentDetails`; these do not exist on the employment model and trigger code 16000 "Feltet eksisterer ikke i objektet."; the aa0e0f72 run wasted 2 calls on this exact mistake; always copy the employment payload shape from the trusted standard example verbatim
