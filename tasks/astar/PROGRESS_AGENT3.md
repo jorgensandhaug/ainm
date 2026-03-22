@@ -5176,7 +5176,15 @@ Per-round best (avg 10 eval):
 **Total session improvement: +5.21 points** (84.94 → 90.15)
 **Key innovations**: multi-episode variance features, training augmentation, prediction averaging
 
-536. Next experiments:
+536. Smart blend FAILED:
+   - blend=0.05: 86.03 (dropped from 90.15!)
+   - blend=0.10: 78.25
+   - blend=0.20: 62.47
+   - MC frequency estimates too noisy to blend with model predictions
+   - The model already uses observation data as FEATURES and does a better job
+   - **Lesson**: don't blend raw observations - let the model learn when to trust them
+
+537. Next experiments:
 
 ## Open Questions
 
