@@ -323,6 +323,16 @@ DT weight peaks at 50% (higher hurts the good rounds).
 
 Model has plateaued at ~81.7. All configurations within ±0.6 of each other.
 
+### Prior-Operator Predictor (Phase 7)
+
+| Model | Score | Worst Round | Best Round |
+|-------|-------|-------------|------------|
+| prior_op_obsblend (r=0.1, obs t=20) | 80.54 | **62.65** | 87.96 |
+| prior_operator_z2_v001 (r=0.1) | 79.51 | 59.48 | 87.90 |
+| prior_operator_z2_v002 (r=0.01) | 79.51 | 59.47 | 87.89 |
+
+Prior operator scores lower overall but has BEST worst-round at 62.65! This is a 3rd complementary model for potential triple-blend.
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
