@@ -593,6 +593,405 @@ __all__ = [
 ]
 
 
+def _summary_vector_from_artifact_v2(path: Path) -> tuple[np.ndarray, np.ndarray]:
+    artifact = load_synthetic_episode(path)
+    observations = list(artifact.observations)
+    target_seed_indexes = [int(seed_index) for seed_index in artifact.target_sources]
+    inferred_width = artifact.map_width or max(
+        (observation.viewport.x + observation.viewport.w for observation in observations),
+        default=1,
+    )
+    inferred_height = artifact.map_height or max(
+        (observation.viewport.y + observation.viewport.h for observation in observations),
+        default=1,
+    )
+    seed_count = max(
+        [observation.seed_index for observation in observations] + target_seed_indexes,
+        default=-1,
+    ) + 1
+    return (
+        _summary_vector_from_observations(
+            observations,
+            map_width=max(1, inferred_width),
+            map_height=max(1, inferred_height),
+            seed_count=max(1, seed_count),
+        ),
+        artifact.regime_vector,
+    )
+
+
+def _load_v2_training_pairs(
+    dataset: SyntheticEpisodeDatasetRef,
+) -> tuple[np.ndarray, np.ndarray]:
+    if dataset.index_path is None:
+        raise ValueError("synthetic dataset requires an index path")
+    index_table = pl.read_parquet(dataset.index_path)
+    summary_vectors: list[np.ndarray] = []
+    regime_vectors: list[np.ndarray] = []
+    for path_value in index_table["episode_path"].to_list():
+        summary_vector, regime_vector = _summary_vector_from_artifact_v2(Path(str(path_value)))
+        summary_vectors.append(summary_vector)
+        regime_vectors.append(regime_vector)
+    if not summary_vectors:
+        raise ValueError("synthetic dataset did not yield any summary vectors")
+    return np.stack(summary_vectors, axis=0), np.stack(regime_vectors, axis=0)
+
+
+def _fit_refined_student_components(
+    dataset: SyntheticEpisodeDatasetRef,
+    *,
+    ridge_alpha: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    summary_matrix, regime_matrix = _load_v2_training_pairs(dataset)
+    summary_mean = np.mean(summary_matrix, axis=0)
+    summary_scale = np.std(summary_matrix, axis=0)
+    summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
+    normalized_summary = (summary_matrix - summary_mean[None, :]) / summary_scale[None, :]
+
+    regime_mean = np.mean(regime_matrix, axis=0)
+    centered_regime = regime_matrix - regime_mean[None, :]
+    gram = normalized_summary.T @ normalized_summary
+    rhs = normalized_summary.T @ centered_regime
+    projection = np.linalg.solve(
+        gram + ridge_alpha * np.eye(gram.shape[0], dtype=np.float64),
+        rhs,
+    )
+    regime_clip = np.percentile(np.abs(centered_regime), 95.0, axis=0)
+    regime_clip = np.maximum(regime_clip, np.max(np.abs(centered_regime), axis=0))
+    regime_clip = np.where(regime_clip > 1e-6, regime_clip, 1.0)
+    return (
+        summary_matrix,
+        regime_matrix,
+        summary_mean.astype(np.float64),
+        summary_scale.astype(np.float64),
+        regime_mean.astype(np.float64),
+        np.asarray(projection, dtype=np.float64),
+        np.asarray(regime_clip, dtype=np.float64),
+    )
+
+
+def _fit_attention_refined_student_components(
+    dataset: SyntheticEpisodeDatasetRef,
+    *,
+    ridge_alpha: float,
+    inducing_count: int,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    if dataset.index_path is None:
+        raise ValueError("synthetic dataset requires an index path")
+    index_table = pl.read_parquet(dataset.index_path)
+    if index_table.height == 0:
+        raise ValueError("synthetic dataset did not yield any episodes")
+
+    episode_rows: list[tuple[np.ndarray, tuple[np.ndarray, ...], np.ndarray]] = []
+    token_rows: list[np.ndarray] = []
+    for path_value in index_table["episode_path"].to_list():
+        artifact = load_synthetic_episode(Path(str(path_value)))
+        observations = list(artifact.observations)
+        target_seed_indexes = [int(seed_index) for seed_index in artifact.target_sources]
+        inferred_width = artifact.map_width or max(
+            (observation.viewport.x + observation.viewport.w for observation in observations),
+            default=1,
+        )
+        inferred_height = artifact.map_height or max(
+            (observation.viewport.y + observation.viewport.h for observation in observations),
+            default=1,
+        )
+        seed_count = max(
+            [observation.seed_index for observation in observations] + target_seed_indexes,
+            default=-1,
+        ) + 1
+        resolved_width = max(1, inferred_width)
+        resolved_height = max(1, inferred_height)
+        resolved_seed_count = max(1, seed_count)
+        base_summary = _summary_vector_from_observations(
+            observations,
+            map_width=resolved_width,
+            map_height=resolved_height,
+            seed_count=resolved_seed_count,
+        )
+        token_groups = _observation_token_groups(
+            observations,
+            map_width=resolved_width,
+            map_height=resolved_height,
+            seed_count=resolved_seed_count,
+        )
+        for token_matrix in token_groups:
+            if token_matrix.shape[0] > 0:
+                token_rows.append(token_matrix)
+        episode_rows.append(
+            (
+                base_summary,
+                token_groups,
+                np.asarray(artifact.regime_vector, dtype=np.float64),
+            ),
+        )
+
+    all_tokens = (
+        np.concatenate(token_rows, axis=0)
+        if token_rows
+        else np.zeros((1, _OBSERVATION_FEATURE_DIM), dtype=np.float64)
+    )
+    token_feature_mean = np.mean(all_tokens, axis=0)
+    token_feature_scale = np.std(all_tokens, axis=0)
+    token_feature_scale = np.where(token_feature_scale > 1e-6, token_feature_scale, 1.0)
+    normalized_tokens = (all_tokens - token_feature_mean[None, :]) / token_feature_scale[None, :]
+    inducing_points = _select_inducing_points(
+        normalized_tokens,
+        inducing_count=inducing_count,
+    )
+
+    summary_matrix = np.stack(
+        [
+            np.concatenate(
+                [
+                    base_summary,
+                    np.concatenate(
+                        [
+                            _attention_pool_features(
+                                token_matrix,
+                                token_feature_mean=token_feature_mean,
+                                token_feature_scale=token_feature_scale,
+                                inducing_points=inducing_points,
+                            )
+                            for token_matrix in token_groups
+                        ],
+                        axis=0,
+                    ),
+                ],
+                axis=0,
+            ).astype(np.float64)
+            for base_summary, token_groups, _ in episode_rows
+        ],
+        axis=0,
+    )
+    regime_matrix = np.stack([regime_vector for _, _, regime_vector in episode_rows], axis=0)
+
+    summary_mean = np.mean(summary_matrix, axis=0)
+    summary_scale = np.std(summary_matrix, axis=0)
+    summary_scale = np.where(summary_scale > 1e-6, summary_scale, 1.0)
+    normalized_summary = (summary_matrix - summary_mean[None, :]) / summary_scale[None, :]
+    regime_mean = np.mean(regime_matrix, axis=0)
+    centered_regime = regime_matrix - regime_mean[None, :]
+    gram = normalized_summary.T @ normalized_summary
+    rhs = normalized_summary.T @ centered_regime
+    projection = np.linalg.solve(
+        gram + ridge_alpha * np.eye(gram.shape[0], dtype=np.float64),
+        rhs,
+    )
+    regime_clip = np.percentile(np.abs(centered_regime), 95.0, axis=0)
+    regime_clip = np.maximum(regime_clip, np.max(np.abs(centered_regime), axis=0))
+    regime_clip = np.where(regime_clip > 1e-6, regime_clip, 1.0)
+    return (
+        summary_matrix.astype(np.float64),
+        regime_matrix.astype(np.float64),
+        summary_mean.astype(np.float64),
+        summary_scale.astype(np.float64),
+        regime_mean.astype(np.float64),
+        np.asarray(projection, dtype=np.float64),
+        np.asarray(regime_clip, dtype=np.float64),
+        token_feature_mean.astype(np.float64),
+        token_feature_scale.astype(np.float64),
+        inducing_points.astype(np.float64),
+    )
+
+
+def _observation_grid_loglikelihood(
+    predictive_tensor: np.ndarray,
+    observation: LiveQueryObs,
+    *,
+    class_floor: float,
+    class_weights: np.ndarray,
+) -> float:
+    viewport = observation.viewport
+    patch = np.asarray(
+        predictive_tensor[
+            viewport.y : viewport.y + viewport.h,
+            viewport.x : viewport.x + viewport.w,
+            :,
+        ],
+        dtype=np.float64,
+    )
+    observed_classes = collapse_internal_grid(np.asarray(observation.grid, dtype=np.int64))
+    class_probabilities = np.take_along_axis(
+        patch,
+        observed_classes[..., None],
+        axis=-1,
+    ).reshape(-1)
+    observation_weights = np.asarray(class_weights[observed_classes.reshape(-1)], dtype=np.float64)
+    safe_probabilities = np.clip(class_probabilities, class_floor, 1.0)
+    if safe_probabilities.size == 0:
+        return 0.0
+    weight_sum = float(np.sum(observation_weights))
+    if not np.isfinite(weight_sum) or weight_sum <= 0.0:
+        return float(np.mean(np.log(safe_probabilities)))
+    return float(np.sum(observation_weights * np.log(safe_probabilities)) / weight_sum)
+
+
+def _posterior_reweighted_by_observations(
+    context: LiveInferenceContext,
+    *,
+    teacher: object,
+    particles: tuple[np.ndarray, ...],
+    base_weights: np.ndarray,
+    observation_weight: float,
+    observation_class_floor: float,
+    observation_class_weights: np.ndarray,
+) -> np.ndarray:
+    if observation_weight <= 0.0 or not context.observations:
+        return np.asarray(base_weights, dtype=np.float64)
+    terminal_tensor = getattr(teacher, "terminal_tensor", None)
+    if not callable(terminal_tensor):
+        return np.asarray(base_weights, dtype=np.float64)
+
+    seed_cache: dict[int, list[np.ndarray]] = {}
+    log_likelihoods = np.zeros(len(particles), dtype=np.float64)
+    for particle_index in range(len(particles)):
+        total_log_likelihood = 0.0
+        for observation in context.observations:
+            per_seed = seed_cache.setdefault(observation.seed_index, [])
+            while len(per_seed) <= particle_index:
+                seed = context.round_context.seeds[observation.seed_index]
+                per_seed.append(
+                    np.asarray(terminal_tensor(seed, particles[len(per_seed)]), dtype=np.float64),
+                )
+            total_log_likelihood += _observation_grid_loglikelihood(
+                per_seed[particle_index],
+                observation,
+                class_floor=observation_class_floor,
+                class_weights=observation_class_weights,
+            )
+        log_likelihoods[particle_index] = total_log_likelihood
+
+    log_prior = np.log(np.clip(np.asarray(base_weights, dtype=np.float64), 1e-12, None))
+    centered_log_likelihoods = log_likelihoods - float(np.mean(log_likelihoods))
+    logits = log_prior + observation_weight * centered_log_likelihoods
+    logits = logits - float(np.max(logits))
+    refined = np.exp(np.clip(logits, -60.0, 0.0))
+    total = float(np.sum(refined))
+    if not np.isfinite(total) or total <= 0.0:
+        return np.asarray(base_weights, dtype=np.float64)
+    return np.asarray(refined / total, dtype=np.float64)
+
+
+class SummaryBankStudentCheckpoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    dataset_name: str
+    checkpoint_npz_path: str
+    teacher_checkpoint_path: str
+    k_neighbors: int = Field(ge=1)
+    sample_count: int = Field(ge=0)
+    summary_dim: int = Field(ge=1)
+    regime_dim: int = Field(ge=1)
+
+
+class SummaryBankStudent(BaseModel):
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    name: str = "summary_bank_student_v1"
+    dataset_name: str = "synthetic_live_v1"
+    summary_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    regime_vectors: np.ndarray = Field(default_factory=lambda: np.zeros((0, 1), dtype=np.float64))
+    k_neighbors: int = Field(default=5, ge=1)
+    teacher: HazardTeacher
+
+    @classmethod
+    def fit_from_dataset(
+        cls,
+        dataset: SyntheticEpisodeDatasetRef,
+        teacher: HazardTeacher,
+        *,
+        k_neighbors: int = 5,
+    ) -> SummaryBankStudent:
+        if dataset.index_path is None:
+            raise ValueError("synthetic dataset requires an index path")
+        index_table = pl.read_parquet(dataset.index_path)
+        summary_vectors: list[np.ndarray] = []
+        regime_vectors: list[np.ndarray] = []
+        for path_value in index_table["episode_path"].to_list():
+            summary_vector, regime_vector = _summary_vector_from_artifact(Path(str(path_value)))
+            summary_vectors.append(summary_vector)
+            regime_vectors.append(regime_vector)
+        if not summary_vectors:
+            raise ValueError("synthetic dataset did not yield any summary vectors")
+        return cls(
+            dataset_name=dataset.dataset_name,
+            summary_vectors=np.stack(summary_vectors, axis=0),
+            regime_vectors=np.stack(regime_vectors, axis=0),
+            k_neighbors=k_neighbors,
+            teacher=teacher,
+        )
+
+    def checkpoint(
+        self,
+        checkpoint_npz_path: Path,
+        teacher_checkpoint_path: Path,
+    ) -> SummaryBankStudentCheckpoint:
+        return SummaryBankStudentCheckpoint(
+            name=self.name,
+            dataset_name=self.dataset_name,
+            checkpoint_npz_path=str(checkpoint_npz_path),
+            teacher_checkpoint_path=str(teacher_checkpoint_path),
+            k_neighbors=self.k_neighbors,
+            sample_count=int(self.summary_vectors.shape[0]),
+            summary_dim=int(self.summary_vectors.shape[1]),
+            regime_dim=int(self.regime_vectors.shape[1]),
+        )
+
+    def save_checkpoint(self, checkpoint_dir: Path, teacher_checkpoint_path: Path) -> Path:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        npz_path = checkpoint_dir / "bank.npz"
+        json_path = checkpoint_dir / "summary_bank_student.json"
+        np.savez_compressed(
+            npz_path,
+            summary_vectors=self.summary_vectors,
+            regime_vectors=self.regime_vectors,
+        )
+        json_path.write_text(
+            json.dumps(
+                to_jsonable(self.checkpoint(npz_path, teacher_checkpoint_path)),
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return json_path
+
+    def infer_regime(self, context: LiveInferenceContext) -> RegimePosteriorState:
+        query_vector = _summary_vector_from_evidence(context.evidence_bundle)
+        distances = np.linalg.norm(self.summary_vectors - query_vector[None, :], axis=1)
+        order = np.argsort(distances)[: min(self.k_neighbors, len(distances))]
+        nearest_distances = distances[order]
+        weights = 1.0 / np.clip(nearest_distances, 1e-6, None)
+        weights = weights / np.sum(weights)
+        mean = np.tensordot(weights, self.regime_vectors[order], axes=(0, 0))
+        particles = tuple(self.regime_vectors[index] for index in order)
+        return RegimePosteriorState(
+            mean=np.asarray(mean, dtype=np.float64),
+            particles=particles,
+            weights=np.asarray(weights, dtype=np.float64),
+        )
+
+    def predict_seed(self, context: LiveInferenceContext, seed_index: int) -> np.ndarray:
+        posterior = self.infer_regime(context)
+        return self.teacher.posterior_predictive(
+            context.round_context.seeds[seed_index],
+            posterior,
+        )
+
+
+
+
 # === Agent1 additions (observation-set student family) ===
 
 class ObservationSetBankStudent(BaseModel):
