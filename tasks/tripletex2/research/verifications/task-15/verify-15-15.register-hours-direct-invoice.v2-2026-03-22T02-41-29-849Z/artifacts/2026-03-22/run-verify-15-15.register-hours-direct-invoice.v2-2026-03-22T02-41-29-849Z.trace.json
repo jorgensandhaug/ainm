@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T02:41:29.853Z",
+  "payload": {
+    "notes": [
+      "Captured 7 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 1154,
+        "index": 1,
+        "method": "GET",
+        "path": "/employee",
+        "query": {
+          "count": 10,
+          "email": "codex.verify.1773957815637@example.org",
+          "fields": "*"
+        },
+        "requestSummary": "lookup employee by email, count, fields",
+        "responseSummary": "employee list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 221,
+        "index": 2,
+        "method": "GET",
+        "path": "/project",
+        "query": {
+          "count": 50,
+          "fields": "*,customer(*)",
+          "name": "Sandbox Hour Invoice Project 1774020541520"
+        },
+        "requestSummary": "lookup project by name, count, fields",
+        "responseSummary": "project list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 162,
+        "index": 3,
+        "method": "GET",
+        "path": "/activity/>forTimeSheet",
+        "query": {
+          "count": 50,
+          "date": "2027-07-01",
+          "employeeId": 18478235,
+          "fields": "*",
+          "filterExistingHours": false,
+          "projectId": 401959961,
+          "query": "Prosjektadministrasjon"
+        },
+        "requestSummary": "lookup activity by projectId, employeeId, date, query, filterExistingHours, count, fields",
+        "responseSummary": "activity list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 1127,
+        "entityIds": {
+          "entryId": 175914950
+        },
+        "index": 4,
+        "method": "POST",
+        "path": "/timesheet/entry",
+        "requestSummary": "create entry with employee, project, activity, date",
+        "responseSummary": "entryId 175914950",
+        "status": 201
+      },
+      {
+        "durationMs": 1398,
+        "entityIds": {
+          "entryId": 175914952
+        },
+        "index": 5,
+        "method": "POST",
+        "path": "/timesheet/entry",
+        "requestSummary": "create entry with employee, project, activity, date",
+        "responseSummary": "entryId 175914952",
+        "status": 201
+      },
+      {
+        "durationMs": 120,
+        "index": 6,
+        "method": "GET",
+        "path": "/ledger/vatType",
+        "query": {
+          "fields": "*",
+          "typeOfVat": "OUTGOING",
+          "vatDate": "2027-07-01"
+        },
+        "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+        "responseSummary": "vatType list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 2442,
+        "entityIds": {
+          "invoiceId": 2147669500
+        },
+        "index": 7,
+        "method": "POST",
+        "path": "/invoice",
+        "requestSummary": "create invoice with invoiceDate, invoiceDueDate, customer, orders",
+        "responseSummary": "invoiceId 2147669500",
+        "status": 201
+      }
+    ]
+  }
+}

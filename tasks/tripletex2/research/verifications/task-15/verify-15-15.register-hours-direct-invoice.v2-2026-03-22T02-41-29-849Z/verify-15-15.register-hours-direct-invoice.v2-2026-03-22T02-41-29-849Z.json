@@ -1,0 +1,318 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+  "createdAt": "2026-03-22T02:41:29.849Z",
+  "taskId": "15",
+  "strategyId": "15.register-hours-direct-invoice.v2",
+  "candidateId": "15.register-hours-direct-invoice.v2",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-40-54-692Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
+  "sandboxReset": {
+    "command": "bun scripts/sandbox.ts reset --task 15 --strategy 15.register-hours-direct-invoice.v2",
+    "exitCode": 0,
+    "stdout": "research sandbox reset summary: {\"taskId\":\"15\",\"strategyId\":\"15.register-hours-direct-invoice.v2\",\"scannedFiles\":0,\"discoveredRefs\":0,\"completed\":0,\"failed\":0,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-41-29-850Z.json\"}\nresearch sandbox reset: no sandbox-backed cleanup targets were discovered.\n",
+    "stderr": "",
+    "durationMs": 2,
+    "highlights": [
+      "research sandbox reset summary: {\"taskId\":\"15\",\"strategyId\":\"15.register-hours-direct-invoice.v2\",\"scannedFiles\":0,\"discoveredRefs\":0,\"completed\":0,\"failed\":0,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-41-29-850Z.json\"}",
+      "research sandbox reset: no sandbox-backed cleanup targets were discovered."
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 7,
+    "baselineCallBudget": 7,
+    "withinBudget": true
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 2,
+    "checks": [
+      {
+        "checkId": "timesheet-entry-readback",
+        "description": "Read the first created timesheet entry and confirm hours, project, and activity.",
+        "status": "passed",
+        "requestPath": "/timesheet/entry/175914950",
+        "requestQuery": {
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "project.id",
+            "expectedPath": "result.verification.projectId",
+            "actualValue": 401959961,
+            "expectedValue": 401959961,
+            "passed": true
+          },
+          {
+            "actualPath": "activity.id",
+            "expectedPath": "result.verification.activityId",
+            "actualValue": 5588719,
+            "expectedValue": 5588719,
+            "passed": true
+          },
+          {
+            "actualPath": "hours",
+            "expectedPath": "result.verification.registeredHours.0",
+            "actualValue": 24,
+            "expectedValue": 24,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 175914950,
+          "version": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/timesheet/entry/175914950",
+          "project": {
+            "id": 401959961,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/project/401959961"
+          },
+          "activity": {
+            "id": 5588719,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/activity/5588719"
+          },
+          "date": "2027-07-01",
+          "hours": 24,
+          "chargeableHours": 24,
+          "employee": {
+            "id": 18478235,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18478235"
+          },
+          "timeClocks": [],
+          "comment": "",
+          "locked": false,
+          "chargeable": false,
+          "invoice": null,
+          "hourlyRate": 0,
+          "hourlyCost": 0,
+          "hourlyCostPercentage": 0,
+          "projectChargeableHours": 24
+        }
+      },
+      {
+        "checkId": "invoice-readback",
+        "description": "Read the created invoice and confirm customer, amount, and order linkage.",
+        "status": "passed",
+        "requestPath": "/invoice/2147669500",
+        "requestQuery": {
+          "fields": "*,customer(*),orders(*)"
+        },
+        "assertions": [
+          {
+            "actualPath": "customer.id",
+            "expectedPath": "result.verification.customerId",
+            "actualValue": 108247218,
+            "expectedValue": 108247218,
+            "passed": true
+          },
+          {
+            "actualPath": "amountExcludingVatCurrency",
+            "expectedPath": "result.verification.amountExcludingVatCurrency",
+            "actualValue": 56550,
+            "expectedValue": 56550,
+            "passed": true
+          },
+          {
+            "actualPath": "invoiceNumber",
+            "expectedPath": "result.verification.invoiceNumber",
+            "actualValue": 525,
+            "expectedValue": 525,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2147669500,
+          "version": 3,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/2147669500",
+          "invoiceNumber": 525,
+          "invoiceDate": "2027-07-01",
+          "customer": {
+            "id": 108247218,
+            "version": 1,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/customer/108247218",
+            "name": "Sandbox Hour Invoice Customer 1774020541254",
+            "organizationNumber": "907791616",
+            "globalLocationNumber": 0,
+            "supplierNumber": 0,
+            "customerNumber": 10050,
+            "isSupplier": false,
+            "isCustomer": true,
+            "isInactive": false,
+            "accountManager": null,
+            "department": null,
+            "email": "",
+            "invoiceEmail": "",
+            "overdueNoticeEmail": "",
+            "phoneNumber": "",
+            "phoneNumberMobile": "",
+            "description": "",
+            "language": "NO",
+            "displayName": "Sandbox Hour Invoice Customer 1774020541254 (10050)",
+            "isPrivateIndividual": false,
+            "singleCustomerInvoice": false,
+            "invoiceSendMethod": "MANUAL",
+            "emailAttachmentType": "ATTACHMENT",
+            "postalAddress": {
+              "id": 405345867,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/address/405345867"
+            },
+            "physicalAddress": {
+              "id": 405345866,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/address/405345866"
+            },
+            "deliveryAddress": null,
+            "category1": null,
+            "category2": null,
+            "category3": null,
+            "invoicesDueIn": 14,
+            "invoicesDueInType": "DAYS",
+            "currency": {
+              "id": 1,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+            },
+            "bankAccountPresentation": [],
+            "ledgerAccount": {
+              "id": 424190806,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/424190806"
+            },
+            "isFactoring": false,
+            "invoiceSendSMSNotification": false,
+            "invoiceSMSNotificationNumber": "",
+            "isAutomaticSoftReminderEnabled": false,
+            "isAutomaticReminderEnabled": false,
+            "isAutomaticNoticeOfDebtCollectionEnabled": false,
+            "discountPercentage": 0,
+            "website": ""
+          },
+          "creditedInvoice": 0,
+          "isCredited": false,
+          "invoiceDueDate": "2027-07-15",
+          "kid": "",
+          "invoiceComment": "",
+          "comment": "",
+          "orders": [
+            {
+              "id": 402058829,
+              "version": 1,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/order/402058829",
+              "customer": {
+                "id": 108247218,
+                "url": "kkpqfuj-amager.tripletex.dev/v2/customer/108247218"
+              },
+              "contact": null,
+              "attn": null,
+              "displayName": "509 Ordre",
+              "receiverEmail": "",
+              "overdueNoticeEmail": "",
+              "number": "509",
+              "reference": "",
+              "department": null,
+              "orderDate": "2027-07-01",
+              "project": {
+                "id": 401959961,
+                "url": "kkpqfuj-amager.tripletex.dev/v2/project/401959961"
+              },
+              "invoiceComment": "",
+              "currency": {
+                "id": 1,
+                "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+              },
+              "invoicesDueIn": 14,
+              "invoicesDueInType": "DAYS",
+              "isShowOpenPostsOnInvoices": false,
+              "isClosed": false,
+              "deliveryDate": "2027-07-01",
+              "deliveryAddress": null,
+              "deliveryComment": "",
+              "isPrioritizeAmountsIncludingVat": true,
+              "orderLineSorting": "PRODUCT",
+              "orderGroups": [],
+              "orderLines": [
+                {
+                  "id": 1607594677,
+                  "url": "kkpqfuj-amager.tripletex.dev/v2/order/orderline/1607594677"
+                }
+              ],
+              "isSubscription": false,
+              "subscriptionDuration": 0,
+              "subscriptionDurationType": "MONTHS",
+              "subscriptionPeriodsOnInvoice": 0,
+              "subscriptionPeriodsOnInvoiceType": "MONTHS",
+              "subscriptionInvoicingTimeInAdvanceOrArrears": "ADVANCE",
+              "subscriptionInvoicingTime": 0,
+              "subscriptionInvoicingTimeType": "MONTHS",
+              "isSubscriptionAutoInvoicing": false,
+              "preliminaryInvoice": null,
+              "attachment": [],
+              "sendMethodDescription": "Faktura må sendes manuelt.",
+              "invoiceOnAccountVatHigh": false,
+              "totalInvoicedOnAccountAmountAbsoluteCurrency": 0,
+              "invoiceSendSMSNotification": false,
+              "invoiceSMSNotificationNumber": "",
+              "markUpOrderLines": 0,
+              "discountPercentage": 0,
+              "customerName": "Sandbox Hour Invoice Customer 1774020541254",
+              "projectManagerNameAndNumber": "",
+              "travelReports": [],
+              "accountingDimensionValues": []
+            }
+          ],
+          "orderLines": [
+            {
+              "id": 1607594677,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/order/orderline/1607594677"
+            }
+          ],
+          "travelReports": [],
+          "projectInvoiceDetails": [
+            {
+              "id": 1965812353,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/details/1965812353"
+            }
+          ],
+          "voucher": {
+            "id": 609283821,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609283821"
+          },
+          "deliveryDate": "2027-07-01",
+          "amount": 56550,
+          "amountCurrency": 56550,
+          "amountExcludingVat": 56550,
+          "amountExcludingVatCurrency": 56550,
+          "amountRoundoff": 0,
+          "amountRoundoffCurrency": 0,
+          "amountOutstanding": 56550,
+          "amountCurrencyOutstanding": 56550,
+          "amountOutstandingTotal": 56550,
+          "amountCurrencyOutstandingTotal": 56550,
+          "sumRemits": 0,
+          "currency": {
+            "id": 1,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+          },
+          "isCreditNote": false,
+          "isCharged": true,
+          "isApproved": false,
+          "postings": [
+            {
+              "id": 3846155966,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846155966"
+            }
+          ],
+          "reminders": [],
+          "invoiceRemarks": "",
+          "invoiceRemark": null,
+          "isPeriodizationPossible": true,
+          "documentId": 1024334664
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "sandbox-pass",
+    "correctnessPassed": true,
+    "withinBudget": true,
+    "message": "Challenger produced the expected sandbox state within the current baseline call budget."
+  }
+}
