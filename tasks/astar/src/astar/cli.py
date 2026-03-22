@@ -63,8 +63,16 @@ from astar.observe.executor import execute_query_plan, record_simulation
 from astar.observe.planner import build_policy_plan
 from astar.observe.query_plan import read_any_query_plan
 from astar.policy import build_interactive_policy, build_named_policy
+from astar.policy.registry import resolve_policy_name
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
+from astar.student.predictor.ffam_config import available_ffam_model_names
+from astar.student.predictor.ffam_ensemble import available_ffam_ensemble_model_names
+from astar.student.predictor.ffam_knn_config import available_ffam_knn_model_names
+from astar.student.predictor.ffam_pooled_config import available_ffam_pooled_model_names
+from astar.student.predictor.ffam_mode_config import available_ffam_mode_model_names
+from astar.student.predictor.ffam_operator_config import available_ffam_operator_model_names
 from astar.student.predictor.interactive import build_online_predictor
+from astar.student.predictor.query_residual_config import available_query_residual_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -106,6 +114,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--root", default=".", help="repo root")
     parser.add_argument("--json", action=argparse.BooleanOptionalAction, default=False)
     subparsers = parser.add_subparsers(dest="command", required=True)
+    predictor_model_choices = list(
+        dict.fromkeys(
+            [
+                "static_semantic",
+                "geometry_prior",
+                "historical_bucket_prior",
+                "latent_regime",
+                *available_ffam_model_names(),
+                *available_ffam_ensemble_model_names(),
+                *available_ffam_knn_model_names(),
+                *available_ffam_mode_model_names(),
+                *available_ffam_pooled_model_names(),
+                *available_ffam_operator_model_names(),
+                *available_query_residual_model_names(),
+            ],
+        ),
+    )
 
     sync_parser = subparsers.add_parser("sync-round")
     sync_parser.add_argument("--round-id", required=True)
@@ -200,6 +225,7 @@ def build_parser() -> argparse.ArgumentParser:
     model_prediction_parser.add_argument("--seed-index", type=int, required=True)
     model_prediction_parser.add_argument(
         "--model",
+        choices=predictor_model_choices,
         required=True,
     )
 
@@ -215,7 +241,6 @@ def build_parser() -> argparse.ArgumentParser:
     factorize_rounds_parser = subparsers.add_parser("factorize-round-summaries")
     factorize_rounds_parser.add_argument("--round-id", action="append", default=None)
     factorize_rounds_parser.add_argument("--max-rank", type=int, default=3)
-    factorize_rounds_parser.add_argument("--summary-version", choices=["v1", "v2"], default="v1")
 
     teacher_transition_parser = subparsers.add_parser("build-teacher-transition-dataset")
     teacher_transition_parser.add_argument("--round-id", action="append", default=None)
@@ -237,9 +262,10 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_tournament_parser.add_argument("--round-id", required=True)
     synthetic_tournament_parser.add_argument(
         "--model",
+        choices=[item for item in predictor_model_choices if item != "static_semantic"],
         default="latent_regime",
     )
-    synthetic_tournament_parser.add_argument("--policy", default="coverage")
+    synthetic_tournament_parser.add_argument("--policy", default="default")
     synthetic_tournament_parser.add_argument("--samples-per-round", type=int, default=1)
     synthetic_tournament_parser.add_argument("--budget", type=int, default=50)
     synthetic_tournament_parser.add_argument("--episode-seed", type=int, default=0)
@@ -249,9 +275,10 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic_benchmark_parser.add_argument("--manifest", default=None)
     synthetic_benchmark_parser.add_argument(
         "--model",
+        choices=[item for item in predictor_model_choices if item != "static_semantic"],
         default="latent_regime",
     )
-    synthetic_benchmark_parser.add_argument("--policy", default="coverage")
+    synthetic_benchmark_parser.add_argument("--policy", default="default")
     synthetic_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     synthetic_benchmark_parser.add_argument("--budget", type=int, default=50)
     synthetic_benchmark_parser.add_argument(
@@ -264,6 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
     historical_benchmark_parser = subparsers.add_parser("run-historical-benchmark")
     historical_benchmark_parser.add_argument(
         "--model",
+        choices=predictor_model_choices,
         required=True,
     )
     historical_benchmark_parser.add_argument(
@@ -272,12 +300,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="prior_only",
     )
     historical_benchmark_parser.add_argument("--round-id", action="append", default=None)
-    historical_benchmark_parser.add_argument("--policy", default="coverage")
+    historical_benchmark_parser.add_argument("--policy", default="default")
     historical_benchmark_parser.add_argument("--samples-per-round", type=int, default=1)
     historical_benchmark_parser.add_argument("--budget", type=int, default=50)
     historical_benchmark_parser.add_argument("--episode-seed", type=int, default=0)
-    historical_benchmark_parser.add_argument("--episode-seed-count", type=int, default=1)
-    historical_benchmark_parser.add_argument("--jobs", type=int, default=1)
     historical_benchmark_parser.add_argument(
         "--with-png",
         choices=["none", "top", "all"],
@@ -294,9 +320,10 @@ def build_parser() -> argparse.ArgumentParser:
     live_online_parser.add_argument("--round-id", "--round", dest="round_id", default=None)
     live_online_parser.add_argument(
         "--model",
+        choices=[item for item in predictor_model_choices if item != "static_semantic"],
         default="latent_regime",
     )
-    live_online_parser.add_argument("--policy", default="coverage")
+    live_online_parser.add_argument("--policy", default="default")
     live_online_parser.add_argument("--samples-per-round", type=int, default=1)
     live_online_parser.add_argument(
         "--budget",
@@ -481,7 +508,6 @@ def _main() -> int:
             paths,
             round_ids=args.round_id,
             max_rank=args.max_rank,
-            summary_version=args.summary_version,
         )
         _emit(args.json, factorized, render_factorize_round_summaries(factorized))
         return 0
@@ -562,17 +588,17 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-tournament":
-        predictor = build_online_predictor(
-            args.model,
-            paths=paths,
-            policy_name=args.policy,
-            samples_per_round=args.samples_per_round,
-        )
+        resolved_policy_name = resolve_policy_name(args.policy, model_name=args.model)
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
-            predictor=predictor,
-            policy=build_interactive_policy(args.policy, predictor=predictor),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=resolved_policy_name,
+                samples_per_round=args.samples_per_round,
+            ),
+            policy=build_interactive_policy(resolved_policy_name),
             budget=args.budget,
             episode_seed=args.episode_seed,
         )
@@ -584,16 +610,16 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-benchmark":
-        predictor = build_online_predictor(
-            args.model,
-            paths=paths,
-            policy_name=args.policy,
-            samples_per_round=args.samples_per_round,
-        )
+        resolved_policy_name = resolve_policy_name(args.policy, model_name=args.model)
         benchmark_result = run_synthetic_benchmark(
             paths,
-            predictor=predictor,
-            policy=build_interactive_policy(args.policy, predictor=predictor),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=resolved_policy_name,
+                samples_per_round=args.samples_per_round,
+            ),
+            policy=build_interactive_policy(resolved_policy_name),
             manifest_path=(Path(args.manifest) if args.manifest is not None else None),
             round_ids=args.round_id,
             episode_seeds=args.episode_seed,
@@ -616,8 +642,6 @@ def _main() -> int:
             samples_per_round=args.samples_per_round,
             budget=args.budget,
             episode_seed=args.episode_seed,
-            episode_seed_count=args.episode_seed_count,
-            jobs=args.jobs,
             visualization_policy=args.with_png,
             benchmark_name=args.name,
         )
@@ -691,18 +715,18 @@ def _main() -> int:
         round_id = args.round_id
         if round_id is None:
             round_id = client.get_active_round().id
-        predictor = build_online_predictor(
-            args.model,
-            paths=paths,
-            policy_name=args.policy,
-            samples_per_round=args.samples_per_round,
-        )
+        resolved_policy_name = resolve_policy_name(args.policy, model_name=args.model)
         live_online_result = run_live_online_round(
             paths,
             client,
             round_id=round_id,
-            predictor=predictor,
-            policy=build_interactive_policy(args.policy, predictor=predictor),
+            predictor=build_online_predictor(
+                args.model,
+                paths=paths,
+                policy_name=resolved_policy_name,
+                samples_per_round=args.samples_per_round,
+            ),
+            policy=build_interactive_policy(resolved_policy_name),
             budget=args.budget,
             allow_empty_queries=args.allow_empty_queries,
             submit_predictions=args.submit_predictions,
