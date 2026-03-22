@@ -3615,3 +3615,12 @@ Each round held out for evaluation:
 4. **Score-aligned training**: Entropy-weighted GT loss directly optimizes for KL scoring metric
 5. **Low probability floor**: Allows precise predictions at deterministic cells (+3.89 points alone!)
 6. **Model diversity**: LGB+CatBoost geometric mean reduces prediction variance
+
+### 2026-03-22T02:00Z — LIVE SUBMISSION
+
+Successfully submitted predictions for round #19 (597e60cf-d1a1-4627-ac4d-2a61da68b6df):
+- Used `run-live-online` with `query_residual_v11_covtrain_p0_b624_t100` to execute 45 coverage queries
+- Full map coverage achieved (1600/1600 cells observed per seed)
+- Trained GT-crossseed ensemble on ALL 8 historical rounds
+- Used saved query results as evidence with cross-seed features
+- All 5 seeds submitted: status='accepted'
