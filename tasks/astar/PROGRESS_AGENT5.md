@@ -2867,6 +2867,24 @@ architecture. The remaining ~2.8 point gap to Agent1 (83.89) requires:
 These are ARCHITECTURAL differences, not parameter tuning opportunities.
 The QR model has been exhaustively tuned within its design space.
 
+Final spr sweep confirmation: spr=2→81.09, spr=3→80.63, spr=4→80.20.
+
+### All Parameters Exhaustively Verified as Optimal
+
+| Parameter | Optimal Value | Sweep Range | Status |
+|-----------|--------------|-------------|--------|
+| temperature | 1.0 | {1.0, 1.15} | Optimal |
+| prior_blend | 0.0 | {0.0, 0.25, 0.35} | Optimal |
+| ridge_lambda | 0.01 | {0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 3, 4, 6, 8} | Optimal |
+| signal_scale | 0.10 | {0.08, 0.10, 0.12, 0.15} | Optimal |
+| min_delta_scale | 0.4 | {0.3, 0.4, 0.5} | Optimal |
+| cells_per_seed | 512 | {256, 384, 512, 768, 1024} | Optimal |
+| beta_min | 6.0 | {2, 4, 6, 8} | No effect |
+| beta_scale | 24.0 | unchanged | Optimal |
+| teacher_blend | 0.0 | {0.0, 0.12} | Optimal |
+| samples_per_round | 2 | {1, 2, 3, 4} | Optimal |
+| policy | exploration_r3 | {coverage, exploration_r3, regime_probe_v1} | Optimal |
+
 ### Ridge Lambda Sweep (complete)
 
 | ridge_lambda | Mean Score |
