@@ -158,6 +158,11 @@ Exact-match tasks should now prefer the trusted standard:
   - bank account 1920 already configured — hedge cost 1 extra call but guaranteed 0 errors
   - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of `POST /invoice` path with proactive hedge
   - confirms the 5-call hedge path is stable as the recommended default; 4-call path (skip hedge) would have sufficed here but risks 422 + retry on fresh accounts
+- production run on 2026-03-22 for English prompt `Oakwood Ltd` / `932937204` / `Data Advisory (3346)` + `Network Service (7273)` / prices `16000` + `22050`:
+  - used `POST /invoice` path with proactive bank-account hedge, comma-separated `number=3346,7273&fields=*,vatType(*)`, exact `paidAmount=47562.5` (both products 25% VAT), `pts[0]` payment type selection
+  - bank account 1920 already configured — proactive hedge confirmed no repair needed
+  - 6 calls (5 free GETs + 1 write), 0 errors, outstanding=0 — 3rd confirmation of `POST /invoice` path with proactive hedge
+  - readback confirmed correct product linkage, customer org, and fully-paid state
 
 ## Scoring Note
 - **GET calls do not count against the efficiency score** — only writes (POST/PUT/DELETE) are scored

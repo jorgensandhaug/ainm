@@ -118,6 +118,7 @@
 - production confirmations using the new `POST /invoice` path (4-call canonical):
   - 2026-03-22: Portuguese `Floresta Lda` / `919172657` — 3 products (4783/3343/4380), 3 VAT rates (25%/15%/0%), paidAmount=63032.50; **11 actual calls** (4 wasted from script restart + 7 with recovery); needed bank-account repair (GET ledger + PUT ledger + retry POST); root cause: initial script lacked recovery branch; **FIRST 3-product confirmation, FIRST POST /invoice production run, FIRST bank-account repair on this path**
   - 2026-03-22: Norwegian `Snøhetta AS` / `800082021` — 2 products (2797/5684), both 25% VAT, paidAmount=64562.50; **5 calls, 0 errors**; proactive hedge found bank account 1920 already configured (no PUT needed); 2nd POST /invoice production confirmation
+  - 2026-03-22: English `Oakwood Ltd` / `932937204` — 2 products (3346/7273), both 25% VAT, paidAmount=47562.50; **6 calls (5 free GETs + 1 write), 0 errors**; proactive hedge found bank account already configured; readback confirmed correct product linkage (Data Advisory + Network Service), amountOutstanding=0; 3rd POST /invoice production confirmation
 - prior production confirmations (all used the old 5-call path with `POST /order` + `PUT /order/:invoice`):
   - 2026-03-21: Portuguese `Solmar Lda` / `867069526` — 5 calls, 0 errors
   - 2026-03-21: English `Ridgepoint Ltd` / `997470311` — 5 calls, 0 errors
