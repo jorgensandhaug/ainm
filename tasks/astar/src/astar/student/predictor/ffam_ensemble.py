@@ -560,6 +560,50 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=2.2,
         blend_space="logodds",
     ),
+    # Agent6: best mode + settle_heavy policy (agent7's latest breakthrough)
+    "ffam_ensemble_a6_v25": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v25",
+        mode_model="ffam_mode_a6_v24",  # v19+4c
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v19 mode + settle_heavy
+    "ffam_ensemble_a6_v26": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v26",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v248 + settle_heavy (matching agent7's v50 recipe)
+    "ffam_ensemble_a6_v27": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v27",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v19+4c + settle_heavy at 88/12
+    "ffam_ensemble_a6_v28": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v28",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
 }
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from astar.features.motifs import ViewportMotifScorer
 from astar.policy.coverage import CoverageThenReplicatePolicy
 from astar.policy.query_plan import QueryPlanPolicy
 
@@ -41,6 +42,36 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             name="exploration_r4",
             replicate_budget=4,
             probe_first=True,
+        )
+    if normalized == "exploration_r3_settle_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_heavy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=10.0,
+                settlement_pair_weight=5.0,
+                port_weight=3.0,
+                coastal_settlement_weight=4.0,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r5_settle_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_settle_heavy",
+            replicate_budget=5,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=10.0,
+                settlement_pair_weight=5.0,
+                port_weight=3.0,
+                coastal_settlement_weight=4.0,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+            ),
         )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)
