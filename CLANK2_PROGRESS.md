@@ -149,13 +149,30 @@ Key classification issues:
 - Git remote branch: **clank2** (not clank4!)
 - GPU assignment: device 1
 
-## Ideas Queue (revised priority)
-1. ~~Threshold sweep~~ — no gain
-2. ~~MobileNetV3 classifier fusion~~ — no gain (YOLO context > crop classifier)
-3. **1280px model** (training now) — pending
-4. **Ensemble 960+1280 via WBF** — next after 1280 finishes
-5. **TTA on ensemble** — combine TTA with model ensemble
-6. Stronger classifier (EfficientNet-B4, ConvNeXt, or ViT) at 384px crops
-7. Score-fusion: multiply YOLO cls conf by classifier agreement
-8. Train YOLO with focal loss / class-balanced loss
-9. Use product reference images for few-shot class recovery
+## Experiments Summary
+
+| Experiment | Result | Notes |
+|-----------|--------|-------|
+| Baseline 960px single | 0.8872 | 6-stage pipeline |
+| Threshold sweep | 0.8872 | No gain |
+| TTA (3 scales, flip) | 0.8948 | +0.0076 |
+| 1280px single | 0.8876 | Better cls, worse det |
+| 1280px TTA | 0.9013 | Good |
+| Seed-99 960px single | 0.8910 | Better than seed-62 |
+| 2-model ensemble TTA | 0.9037 | Good |
+| 3-model ensemble TTA (960+1280+clk3) | 0.9057 | Good |
+| **4-model ensemble (960+1280+clk3+s99)** | **0.9069** | **Best unconstrained** |
+| **3-model ensemble (960+1280+s99)** | **0.9047** | **Best submittable** |
+| MobileNetV3 classifier fusion | 0.8721-0.8872 | YOLO context > crop |
+| EfficientNet-B2 classifier (89.6%) fusion | 0.8721 | Still worse than YOLO |
+| YOLO26l + ensemble | 0.9026 | Too weak |
+| High cls_weight (1.5) model | 0.8698 | Too aggressive |
+| Soft fusion ensemble | 0.8908 | Class-agnostic merge bad |
+
+## Ideas Queue (revised)
+1. Train with moderate cls=0.8 (not 1.5)
+2. Train with different random erasing/cutout settings
+3. Train on mixed resolutions (alternate 960/1280 epochs)
+4. Use product reference images as extra training data
+5. Knowledge distillation from ensemble to single model
+6. Try YOLO11x architecture for diversity
