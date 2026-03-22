@@ -3522,3 +3522,36 @@ Cross-seed features (observations from other seeds in the same round) are MASSIV
 
 Cross-seed features are worth +2.5 points because all 5 seeds share hidden parameters.
 Observations from other seeds directly reveal the round's dynamics.
+
+### Complete cross-seed evidence sweep
+
+| ev | Score | vs no-crossseed |
+|----|-------|----------------|
+| 1 | 85.11 | +2.46 |
+| 2 | 85.85 | |
+| 3 | 86.41 | |
+| 5 | 87.29 | +0.55 (beats Agent7) |
+| 10 | 87.87 | |
+| 15 | 88.09 | +1.35 |
+| 20 | 88.30 | |
+| 25 | 88.56 | |
+| **30** | **88.60** | **ALL-TIME BEST** |
+
+## FINAL ALL-TIME BEST RESULTS
+
+| Rank | Model | ev | Score |
+|------|-------|-----|-------|
+| **1** | **GT-crossseed ensemble LGB+CAT** | **30** | **88.60** |
+| 2 | GT-crossseed ensemble LGB+CAT | 25 | 88.56 |
+| 3 | GT-crossseed ensemble LGB+CAT | 20 | 88.30 |
+| 4 | GT-crossseed ensemble LGB+CAT | 15 | 88.09 |
+| 5 | GT-crossseed ensemble LGB+CAT | 10 | 87.87 |
+| 6 | GT-crossseed ensemble LGB+CAT | 5 | 87.29 |
+| 7 | GT-crossseed ensemble LGB+CAT | 1 | 85.11 |
+
+**Comparison with other agents:**
+- **Agent4 (us): 88.60** (best overall!)
+- Agent7: 87.12
+- Agent3: 85.29
+- Agent1: 83.79
+- query_residual_v11: 79.39
