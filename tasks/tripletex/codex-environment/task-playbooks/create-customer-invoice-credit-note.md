@@ -246,7 +246,17 @@ Verified on 2026-03-22:
   - 2 API calls, 0 errors
 - this is the second production confirmation for the exact prompt shape `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` (first was 2026-03-20)
 - persistent-sandbox re-verification on 2026-03-22 with a disposable fixture matching `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500` again proved the same two-call core after setup
-- 21 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
+- a twenty-second production run succeeded in the same two API calls for:
+  - `customer.organizationNumber=879581265`
+  - `amountExcludingVatCurrency=23750`
+  - `description="Conseil en données"` (French prompt)
+- that twenty-second production run was also already minimal-call for this prompt shape:
+  - no `GET /customer`
+  - no `GET /invoice/{id}`
+  - no extra `openapi.json` confirmation was needed once the trusted standard already matched
+  - 2 API calls, 0 errors
+- persistent-sandbox re-verification on 2026-03-22 with a disposable fixture matching `organizationNumber=879581265`, `description="Conseil en données"`, `amountExcludingVatCurrency=23750` again proved the same two-call core after setup
+- 22 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Flow
 
