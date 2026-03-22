@@ -66,9 +66,10 @@ export type CreateEmployeeTaskUnderstandingResult = TaskUnderstandingResult<
 >;
 export async function loadTaskModule(): Promise<CreateEmployeeTaskModule> {
   const { strategy } = await import("./strategies/create-employee");
+  const { strategy: strategyV2 } = await import("./strategies/create-employee-v2");
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV2],
   };
 }
 export const taskRegistration = {
