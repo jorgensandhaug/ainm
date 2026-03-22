@@ -4253,6 +4253,11 @@
   - With rank=3 and 2-4 training rounds per fold, SVD reconstruction is already near-exact
   - The trick helps most when rank << training rounds (agent1 uses r=5 with 7 rounds)
   - Correctly implemented and ready for full-tier where it may matter
+- Agent1's r=5 latent rank: degenerate on probe3/dev5 (only 2-4 training rounds per fold)
+  - r=5 is identical to r=3 on probe3 (80.17 both ways)
+  - Would only help on full 8-round where more training rounds exist
+- Agent1's m=0.30: consistently hurts our ensemble (79.86 vs 80.17 at same config)
+  - Our ridge projection is more accurate than pure kNN in our setup
 
 ### Observation-frequency blending sweep:
 | obs_temp | Probe3 |
