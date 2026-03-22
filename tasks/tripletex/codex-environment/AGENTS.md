@@ -455,8 +455,8 @@ Authentication:
 - If a multi-step order/invoice/payment flow already created the order and invoice but failed before payment registration, do not restart from `POST /order`. Resume by locating the unpaid invoice with one decisive `GET /invoice` and finish the payment on that existing invoice.
 - Some tasks may require enabling a module or feature before later entity operations can succeed.
 - **Travel-expense per-diem: the 3 critical rules** (see `./trusted-standards/register-travel-expense.md` for full details):
-  1. **DO NOT SET `rate` or `amount` on `perDiemCompensations[]`.** Leave them OFF the payload. System auto-fills rate=1012 from rateType 25888. The prompt says "dagssats 800" — **IGNORE IT.** 21 runs with rate=800 all scored 4.5/8.
-  2. **`count` = overnights = days minus 1.** A 5-day trip → count=4. A 3-day trip → count=2. Never use the prompt's day count directly.
+  1. **SET `rate` from the prompt and `count` = days from the prompt.** A 5-day trip with "daily rate 800" → `count: 5, rate: 800`. Do NOT set `amount` (auto-computed as count × rate). Do NOT omit `rate` (system fills 1012 which scores wrong). Do NOT use count=days-1 (overnights) — 22 production runs with count=days-1 ALL scored 4.5/8 regardless of rate.
+  2. **`count` = days from prompt directly.** A 5-day trip → count=5. A 3-day trip → count=3. Do NOT subtract 1.
   3. **`vatType` on costs = `costCategory.vatType.id`** from the lookup (typically 12 for Fly/Taxi). If POST fails with VAT_NOT_REGISTERED → retry with `{ id: 0 }`.
 - Travel-expense flow: 6 calls (no-address employee), 5 calls (with address). Round 1 parallel: `GET /employee` + `GET /travelExpense/costCategory` + `GET /travelExpense/paymentType`. Round 2 conditional: `GET /company/{id}?fields=*,address(*)` if employee has no address. Round 3: `POST /travelExpense`. Round 4: `PUT /travelExpense/:deliver`.
 - Use **hardcoded rateType IDs** — DO NOT call `GET /travelExpense/rate`. Overnight: `{ id: 25888, rateCategory: { id: 740 } }`. Day 6–12h: `{ id: 25886, rateCategory: { id: 738 } }`. Day >12h: `{ id: 25887, rateCategory: { id: 739 } }`.

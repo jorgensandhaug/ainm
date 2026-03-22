@@ -66,7 +66,8 @@ Verify `state=DELIVERED` from deliver response. Do NOT add extra readback calls.
   "perDiemCompensations": [
     {
       "location": "<destination city>",
-      "count": "<OVERNIGHTS = days minus 1>",
+      "count": "<DAYS from prompt — use the number directly>",
+      "rate": "<rate from prompt (e.g. 800)>",
       "rateType": { "id": 25888, "rateCategory": { "id": 740 } },
       "overnightAccommodation": "HOTEL"
     }
@@ -96,19 +97,25 @@ Verify `state=DELIVERED` from deliver response. Do NOT add extra readback calls.
 
 ## Three Rules That Matter Most
 
-### 1. DO NOT set `rate` or `amount` on perDiemCompensations
-The prompt says "dagssats 800 kr" or "daily rate 800 NOK" — **IGNORE THIS NUMBER COMPLETELY**.
+### 1. Per-diem: USE the prompt's rate and day count directly
+Set `rate` to the prompt's stated per-diem rate (e.g., 800). Set `count` to the prompt's stated number of days (e.g., 5 for "5 days"). Do NOT set `amount` — it is auto-computed as `count × rate`.
 
-Leave `rate` and `amount` OFF the per-diem object. The system auto-fills rate=1012 (government rate for overnight domestic travel, rateType 25888).
+| Prompt says | count | rate | amount (auto) |
+|---|---|---|---|
+| "5 days, daily rate 800" | 5 | 800 | 4000 |
+| "3 days, dagssats 800" | 3 | 800 | 2400 |
+| "2 days, tarifa diaria 800" | 2 | 800 | 1600 |
 
-21 production runs used rate=800 → ALL scored 4.5/8. This is the root cause of scoring failure.
+**CRITICAL — disproven hypotheses:**
+- **Rate omission (system rate 1012)**: 22 production runs tried count=4 — 21 with rate=800 and 1 with rate omitted (system fills 1012). ALL scored 4.5/8 with the same 3 checks failing. Rate was never the discriminator.
+- **count = days minus 1 (overnights)**: ALL 22 runs used count=days-1. This was constant across every run that scored 4.5/8. count=days (from prompt) is the strongest untested hypothesis. Sandbox-verified 2026-03-22: count=5 + rate=800 → DELIVERED, amount=4000.
 
-### 2. Per-diem count = overnights (days minus 1)
-- 5-day trip → `count: 4`
-- 3-day trip → `count: 2`
-- 2-day trip → `count: 1`
+### 2. Per-diem count = DAYS from prompt (NOT overnights)
+- 5-day trip → `count: 5`
+- 3-day trip → `count: 3`
+- 2-day trip → `count: 2`
 
-Do NOT use the prompt's day count directly. Always subtract 1.
+Use the prompt's day count DIRECTLY. Do NOT subtract 1.
 
 ### 3. vatType on costs = category default (not hardcoded 0)
 Each cost category from the lookup has a `vatType` field (e.g., `{ id: 12 }` for Fly/Taxi = 12% input VAT).
@@ -171,12 +178,14 @@ If the prompt gives only "N days" without specific dates, pick a deterministic d
 - `Kun kostnader kan registreres uten kompensasjon etter satser` → set `isCompensationFromRates: true`
 
 ## Sandbox Verification (2026-03-22)
-Clean end-to-end test: 6-call path, 0 errors, all assertions pass, state=DELIVERED.
-Per-diem readback: count=4, rate=1012 (system-filled), amount=4048. Costs: flight + taxi correct.
+Two clean E2E sandbox tests:
+1. count=4, no rate (system fills 1012): DELIVERED, amount=4048 — proves API mechanics
+2. count=5, rate=800: DELIVERED, amount=4000 — proves the new hypothesis is API-valid
+
+Optimization traps verified: costCategory/paymentType by description → null, deliver 422. See "Proven Optimization Traps" section.
 DELETE /travelExpense/{id} works on both OPEN and DELIVERED for sandbox reset.
 
-## Production Confirmation (2026-03-22, Spanish prompt)
-Run prod-2026-03-22-022922296Z-b1317762: 6 calls, 0 errors, state=DELIVERED.
-Employee had no address → company city (Oslo) used as departureFrom.
-vatType=12 from category lookup worked (production accounts are VAT-registered).
-Per-diem: count=4, no rate/amount set. Costs: flight=4700, taxi=550.
+## Production History (all scored 4.5/8 with count=4)
+- 21 prior runs: count=4, rate=800 → 4.5/8 (checks 2,3,6 fail)
+- prod-2026-03-22-022922296Z-b1317762 (Spanish): count=4, no rate (system fills 1012) → 4.5/8 (same 3 checks fail)
+- **Conclusion**: rate was never the root cause. count=4 (constant across all 22 runs) is the strongest suspect. count=5 + rate=800 is the untested fix.
