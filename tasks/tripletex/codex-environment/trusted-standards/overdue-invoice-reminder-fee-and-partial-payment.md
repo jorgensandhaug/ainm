@@ -196,3 +196,7 @@
   - payment type `37556805`
   - payment reduced outstanding from `26312.5` to `21312.5`
   - 9th production confirmation of the `6`-call path; first clean `en`+`40` combination; now verified across `nb`, `en`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `40`, `50`, `60`, `70`
+- production run on `2026-03-22` (`prod-2026-03-22-034304639Z-37825322`) was blocked by expired proxy token (403 on first GET); script was correctly structured for the `6`-call path with Spanish prompt and fee `35`; scored `0/10` purely due to credential expiry, not a logic error
+- persistent sandbox re-proof on `2026-03-22` confirmed the `6`-call path end-to-end: fixture invoice `#529` (`id=2147672215`, outstanding `10000`), voucher `609301160`, fee invoice `#530` (`amountCurrency=35`), payment reduced outstanding to `5000`; 0 errors
+- sandbox investigation on `2026-03-22` tested whether invoice postings contain enough account ids to skip `GET /ledger/account`: the overdue invoice's auto-generated postings include account `1500` (`id=424190806`) but NOT account `3400`; therefore the `GET /ledger/account?number=1500,3400` call cannot be eliminated — `3400` is only obtainable from the ledger account endpoint
+- the `6`-call path is confirmed across 9 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists

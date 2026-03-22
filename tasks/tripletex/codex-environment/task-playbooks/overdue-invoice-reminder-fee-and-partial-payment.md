@@ -258,3 +258,6 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `37556805`
   - remaining outstanding `21312.5`
 - the `6`-call path is now confirmed across 9 production runs with fee amounts `35`, `40`, `50`, `60`, `70` and prompts in `nb`, `en`, `es`, `pt`, `de`, `fr`; no lower-call path exists
+- production run `prod-2026-03-22-034304639Z-37825322` was blocked by expired proxy token (403 on first GET); script was correctly structured for the `6`-call path (Spanish prompt, fee `35`); scored `0/10` due to credential expiry, not logic error
+- persistent sandbox re-proof on `2026-03-22` confirmed the `6`-call path end-to-end with 0 errors; also investigated whether invoice postings contain enough data to skip `GET /ledger/account`: postings include account `1500` id but NOT `3400`, so the account GET is still required
+- the `6`-call path is confirmed across 9 clean production runs + 1 blocked run; no `5`-call standalone path exists
